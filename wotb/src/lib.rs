@@ -155,6 +155,12 @@ struct WotStep {
     pub distance: u32,
 }
 
+struct LookupStep {
+    paths: Vec<Rc<Box<WotStep>>>,
+    matching_paths: Vec<Rc<Box<WotStep>>>,
+    distances: Vec<u32>,
+}
+
 /// Store a Web of Trust.
 ///
 /// Allow to create/remove nodes and links between them.
@@ -330,53 +336,54 @@ impl WebOfTrust {
         distance: u32,
         distance_max: u32,
         previous: &Rc<Box<WotStep>>,
-        paths: &mut Vec<Rc<Box<WotStep>>>,
-        matching_paths: &mut Vec<Rc<Box<WotStep>>>,
-        distances: &mut Vec<u32>,
-    ) {
+        mut lookup_step: LookupStep,
+    ) -> LookupStep {
         if source != target && distance <= distance_max {
             let mut local_paths: Vec<Rc<Box<WotStep>>> = vec![];
 
             for &by in self.nodes[target.0].links_iter() {
-                if distance < distances[by.0] {
-                    distances[by.0] = distance;
+                if distance < lookup_step.distances[by.0] {
+                    lookup_step.distances[by.0] = distance;
                     let step = Rc::new(Box::new(WotStep {
                         previous: Some(Rc::clone(previous)),
                         node: by,
                         distance,
                     }));
 
-                    paths.push(Rc::clone(&step));
+                    lookup_step.paths.push(Rc::clone(&step));
                     local_paths.push(Rc::clone(&step));
                     if by == source {
-                        matching_paths.push(Rc::clone(&step));
+                        lookup_step.matching_paths.push(Rc::clone(&step));
                     }
                 }
             }
 
             if distance <= distance_max {
                 for path in &local_paths {
-                    self.lookup(
+                    lookup_step = self.lookup(
                         source,
                         path.node,
                         distance + 1,
                         distance_max,
                         &Rc::clone(path),
-                        paths,
-                        matching_paths,
-                        distances,
+                        lookup_step,
                     );
                 }
             }
         }
+
+        lookup_step
     }
 
     /// Get paths from one node to the other.
     pub fn get_paths(&self, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>> {
-        let mut paths: Vec<Rc<Box<WotStep>>> = vec![];
-        let mut matching_paths: Vec<Rc<Box<WotStep>>> = vec![];
-        let mut distances: Vec<u32> = self.nodes.iter().map(|_| k_max + 1).collect();
-        distances[to.0] = 0;
+        let mut lookup_step = LookupStep {
+            paths: vec![],
+            matching_paths: vec![],
+            distances: self.nodes.iter().map(|_| k_max + 1).collect(),
+        };
+
+        lookup_step.distances[to.0] = 0;
 
         let root = Rc::new(Box::new(WotStep {
             previous: None,
@@ -384,22 +391,13 @@ impl WebOfTrust {
             distance: 0,
         }));
 
-        paths.push(Rc::clone(&root));
+        lookup_step.paths.push(Rc::clone(&root));
 
-        self.lookup(
-            from,
-            to,
-            1,
-            k_max,
-            &root,
-            &mut paths,
-            &mut matching_paths,
-            &mut distances,
-        );
+        lookup_step = self.lookup(from, to, 1, k_max, &root, lookup_step);
 
-        let mut result: Vec<Vec<NodeId>> = Vec::with_capacity(matching_paths.len());
+        let mut result: Vec<Vec<NodeId>> = Vec::with_capacity(lookup_step.matching_paths.len());
 
-        for step in &matching_paths {
+        for step in &lookup_step.matching_paths {
             let mut vecpath = vec![];
             let mut step = Rc::clone(step);
 
