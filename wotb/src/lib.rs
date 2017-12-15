@@ -18,7 +18,6 @@ extern crate serde;
 extern crate serde_derive;
 extern crate bincode;
 
-use std::ops::Deref;
 use std::collections::HashSet;
 use std::collections::hash_set::Iter;
 use std::rc::Rc;
@@ -30,14 +29,6 @@ use bincode::{serialize, deserialize, Infinite};
 /// Wrapper for a node id.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct NodeId(pub usize);
-
-impl Deref for NodeId {
-    type Target = usize;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 /// Results of a certification, with the current certification count
 /// of the destination as parameter.
@@ -239,8 +230,8 @@ impl WebOfTrust {
     fn check_matches(&self, node: NodeId, d: u32, d_max: u32, mut checked: Vec<bool>) -> Vec<bool> {
         let mut linked_nodes = Vec::new();
 
-        for linked_node in self.nodes[*node].links_iter() {
-            checked[**linked_node] = true;
+        for linked_node in self.nodes[node.0].links_iter() {
+            checked[linked_node.0] = true;
             linked_nodes.push(*linked_node);
         }
 
@@ -276,7 +267,7 @@ impl WebOfTrust {
                 x.enabled && x.issued_count() >= d_min && x.links_iter().count() >= d_min
             })
             .collect();
-        sentries[*member] = false;
+        sentries[member.0] = false;
 
         let mut checked: Vec<bool> = self.nodes.iter().map(|_| false).collect();
 
@@ -347,9 +338,9 @@ impl WebOfTrust {
         if source != target && distance <= distance_max {
             let mut local_paths: Vec<Rc<Box<WotStep>>> = vec![];
 
-            for &by in self.nodes[*target].links_iter() {
-                if distance < distances[*by] {
-                    distances[*by] = distance;
+            for &by in self.nodes[target.0].links_iter() {
+                if distance < distances[by.0] {
+                    distances[by.0] = distance;
                     let step = Rc::new(Box::new(WotStep {
                         previous: Some(previous.clone()),
                         node: by,
@@ -386,7 +377,7 @@ impl WebOfTrust {
         let mut paths: Vec<Rc<Box<WotStep>>> = vec![];
         let mut matching_paths: Vec<Rc<Box<WotStep>>> = vec![];
         let mut distances: Vec<u32> = self.nodes.iter().map(|_| k_max + 1).collect();
-        distances[*to] = 0;
+        distances[to.0] = 0;
 
         let root = Rc::new(Box::new(WotStep {
             previous: None,
@@ -434,69 +425,69 @@ impl WebOfTrust {
 
     /// Tells if requested node is enabled (None if doesn't exist).
     pub fn is_enabled(&self, node: NodeId) -> Option<bool> {
-        if *node >= self.size() {
+        if node.0 >= self.size() {
             None
         } else {
-            Some(self.nodes[*node].enabled)
+            Some(self.nodes[node.0].enabled)
         }
     }
 
     /// Set if a node is enabled.
     pub fn set_enabled(&mut self, node: NodeId, state: bool) -> Option<bool> {
-        if *node >= self.size() {
+        if node.0 >= self.size() {
             None
         } else {
-            self.nodes[*node].enabled = state;
+            self.nodes[node.0].enabled = state;
             Some(state)
         }
     }
 
     /// Add link from a node to another.
     pub fn add_link(&mut self, from: NodeId, to: NodeId) -> NewLinkResult {
-        if *from == *to {
+        if from.0 == to.0 {
             NewLinkResult::SelfLinkingForbidden()
-        } else if *from >= self.size() {
+        } else if from.0 >= self.size() {
             NewLinkResult::UnknownSource()
-        } else if *to >= self.size() {
+        } else if to.0 >= self.size() {
             NewLinkResult::UnknownTarget()
         } else {
-            if *from < *to {
+            if from.0 < to.0 {
                 // split `nodes` in two part to allow borrowing 2 nodes at the same time
-                let (start, end) = self.nodes.split_at_mut(*to);
-                start[*from].link_to(&mut end[0], self.max_cert)
+                let (start, end) = self.nodes.split_at_mut(to.0);
+                start[from.0].link_to(&mut end[0], self.max_cert)
             } else {
                 // split `nodes` in two part to allow borrowing 2 nodes at the same time
-                let (start, end) = self.nodes.split_at_mut(*from);
-                end[0].link_to(&mut start[*to], self.max_cert)
+                let (start, end) = self.nodes.split_at_mut(from.0);
+                end[0].link_to(&mut start[to.0], self.max_cert)
             }
         }
     }
 
     /// Remove a link from a node to another.
     pub fn remove_link(&mut self, from: NodeId, to: NodeId) -> RemovedLinkResult {
-        if *from >= self.size() {
+        if from.0 >= self.size() {
             RemovedLinkResult::UnknownSource()
-        } else if *to >= self.size() {
+        } else if to.0 >= self.size() {
             RemovedLinkResult::UnknownTarget()
         } else {
-            if *from < *to {
+            if from.0 < to.0 {
                 // split `nodes` in two part to allow borrowing 2 nodes at the same time
-                let (start, end) = self.nodes.split_at_mut(*to);
-                start[*from].unlink_to(&mut end[0])
+                let (start, end) = self.nodes.split_at_mut(to.0);
+                start[from.0].unlink_to(&mut end[0])
             } else {
                 // split `nodes` in two part to allow borrowing 2 nodes at the same time
-                let (start, end) = self.nodes.split_at_mut(*from);
-                end[0].unlink_to(&mut start[*to])
+                let (start, end) = self.nodes.split_at_mut(from.0);
+                end[0].unlink_to(&mut start[to.0])
             }
         }
     }
 
     /// Test if a link exist from a node to another.
     pub fn exists_link(&self, from: NodeId, to: NodeId) -> bool {
-        if *from >= self.size() || *to >= self.size() {
+        if from.0 >= self.size() || to.0 >= self.size() {
             false
         } else {
-            self.nodes[*from].has_link_to(&self.nodes[*to])
+            self.nodes[from.0].has_link_to(&self.nodes[to.0])
         }
     }
 
@@ -508,7 +499,7 @@ impl WebOfTrust {
         d_max: u32,
         x_percent: f64,
     ) -> Option<bool> {
-        if *node >= self.size() {
+        if node.0 >= self.size() {
             None
         } else {
             Some(
@@ -526,7 +517,7 @@ mod tests {
     #[test]
     fn node_tests() {
         // Correct node id
-        assert_eq!(*Node::new(1).id(), 1);
+        assert_eq!(Node::new(1).id().0, 1);
 
         // Create 2 nodes
         let mut node1 = Node::new(1);
