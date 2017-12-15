@@ -1,10 +1,11 @@
 //! `wotb` is a crate making "Web of Trust" computations for
 //! the [Duniter] project.
 //!
-//! It defines a structure storing a Web of Trust (WoT).
+//! It defines a structure storing a Web of Trust.
 //!
-//! WoT test is translated from [duniter/wotb Javascript test]
-//! (https://github.com/duniter/wotb/blob/master/wotcpp/webOfTrust.cpp).
+//! Web of Trust tests are translated from [duniter/wotb Javascript test][js-tests].
+//!
+//! [js-tests]: https://github.com/duniter/wotb/blob/master/wotcpp/webOfTrust.cpp
 
 #![deny(missing_docs,
         missing_debug_implementations, missing_copy_implementations,
@@ -120,7 +121,7 @@ impl Node {
 
     /// Tells if this node has a link to the given node.
     pub fn has_link_to(&self, to: &Node) -> bool {
-        to.has_link_from(&self)
+        to.has_link_from(self)
     }
 
     /// Give an iterator of node certs.
@@ -134,7 +135,7 @@ impl Node {
     }
 }
 
-/// Results of WebOfTrust::compute_distance.
+/// Results of `WebOfTrust::compute_distance`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct WotDistance {
     /// Sentries count
@@ -188,7 +189,7 @@ impl WebOfTrust {
         };
 
         let mut content: Vec<u8> = vec![];
-        if let Err(_) = file.read_to_end(&mut content) {
+        if file.read_to_end(&mut content).is_err() {
             return None;
         }
 
@@ -220,7 +221,7 @@ impl WebOfTrust {
     pub fn remove_node(&mut self) -> Option<NodeId> {
         self.nodes.pop();
 
-        if self.nodes.len() > 0 {
+        if !self.nodes.is_empty() {
             Some(NodeId(self.nodes.iter().len() - 1))
         } else {
             None
@@ -236,7 +237,7 @@ impl WebOfTrust {
         }
 
         if d < d_max {
-            for linked_node in linked_nodes.iter() {
+            for linked_node in &linked_nodes {
                 checked = self.check_matches(*linked_node, d + 1, d_max, checked);
             }
         }
@@ -282,14 +283,12 @@ impl WebOfTrust {
                     result.success += 1;
                     result.reached += 1;
                 }
-            } else {
-                if check {
-                    result.reached += 1;
-                }
+            } else if check {
+                result.reached += 1;
             }
         }
 
-        result.outdistanced = (result.success as f64) < x_percent * (result.sentries as f64);
+        result.outdistanced = f64::from(result.success) < x_percent * f64::from(result.sentries);
         result
     }
 
@@ -330,7 +329,7 @@ impl WebOfTrust {
         target: NodeId,
         distance: u32,
         distance_max: u32,
-        previous: Rc<Box<WotStep>>,
+        previous: &Rc<Box<WotStep>>,
         paths: &mut Vec<Rc<Box<WotStep>>>,
         matching_paths: &mut Vec<Rc<Box<WotStep>>>,
         distances: &mut Vec<u32>,
@@ -342,27 +341,27 @@ impl WebOfTrust {
                 if distance < distances[by.0] {
                     distances[by.0] = distance;
                     let step = Rc::new(Box::new(WotStep {
-                        previous: Some(previous.clone()),
+                        previous: Some(Rc::clone(previous)),
                         node: by,
                         distance,
                     }));
 
-                    paths.push(step.clone());
-                    local_paths.push(step.clone());
+                    paths.push(Rc::clone(&step));
+                    local_paths.push(Rc::clone(&step));
                     if by == source {
-                        matching_paths.push(step.clone());
+                        matching_paths.push(Rc::clone(&step));
                     }
                 }
             }
 
             if distance <= distance_max {
-                for path in local_paths.iter() {
+                for path in &local_paths {
                     self.lookup(
                         source,
                         path.node,
                         distance + 1,
                         distance_max,
-                        path.clone(),
+                        &Rc::clone(path),
                         paths,
                         matching_paths,
                         distances,
@@ -385,14 +384,14 @@ impl WebOfTrust {
             distance: 0,
         }));
 
-        paths.push(root.clone());
+        paths.push(Rc::clone(&root));
 
         self.lookup(
             from,
             to,
             1,
             k_max,
-            root,
+            &root,
             &mut paths,
             &mut matching_paths,
             &mut distances,
@@ -400,9 +399,9 @@ impl WebOfTrust {
 
         let mut result: Vec<Vec<NodeId>> = Vec::with_capacity(matching_paths.len());
 
-        for step in matching_paths.iter() {
+        for step in &matching_paths {
             let mut vecpath = vec![];
-            let mut step = step.clone();
+            let mut step = Rc::clone(step);
 
             loop {
                 vecpath.push(step.node);
@@ -450,16 +449,14 @@ impl WebOfTrust {
             NewLinkResult::UnknownSource()
         } else if to.0 >= self.size() {
             NewLinkResult::UnknownTarget()
+        } else if from.0 < to.0 {
+            // split `nodes` in two part to allow borrowing 2 nodes at the same time
+            let (start, end) = self.nodes.split_at_mut(to.0);
+            start[from.0].link_to(&mut end[0], self.max_cert)
         } else {
-            if from.0 < to.0 {
-                // split `nodes` in two part to allow borrowing 2 nodes at the same time
-                let (start, end) = self.nodes.split_at_mut(to.0);
-                start[from.0].link_to(&mut end[0], self.max_cert)
-            } else {
-                // split `nodes` in two part to allow borrowing 2 nodes at the same time
-                let (start, end) = self.nodes.split_at_mut(from.0);
-                end[0].link_to(&mut start[to.0], self.max_cert)
-            }
+            // split `nodes` in two part to allow borrowing 2 nodes at the same time
+            let (start, end) = self.nodes.split_at_mut(from.0);
+            end[0].link_to(&mut start[to.0], self.max_cert)
         }
     }
 
@@ -469,16 +466,14 @@ impl WebOfTrust {
             RemovedLinkResult::UnknownSource()
         } else if to.0 >= self.size() {
             RemovedLinkResult::UnknownTarget()
+        } else if from.0 < to.0 {
+            // split `nodes` in two part to allow borrowing 2 nodes at the same time
+            let (start, end) = self.nodes.split_at_mut(to.0);
+            start[from.0].unlink_to(&mut end[0])
         } else {
-            if from.0 < to.0 {
-                // split `nodes` in two part to allow borrowing 2 nodes at the same time
-                let (start, end) = self.nodes.split_at_mut(to.0);
-                start[from.0].unlink_to(&mut end[0])
-            } else {
-                // split `nodes` in two part to allow borrowing 2 nodes at the same time
-                let (start, end) = self.nodes.split_at_mut(from.0);
-                end[0].unlink_to(&mut start[to.0])
-            }
+            // split `nodes` in two part to allow borrowing 2 nodes at the same time
+            let (start, end) = self.nodes.split_at_mut(from.0);
+            end[0].unlink_to(&mut start[to.0])
         }
     }
 
