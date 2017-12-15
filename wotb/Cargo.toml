@@ -1,0 +1,14 @@
+[package]
+name = "duniter-wotb"
+version = "0.3.2"
+authors = ["nanocryk <nanocryk@duniter.org>"]
+description = "Makes Web of Trust computations for the Duniter project."
+repository = "https://github.com/duniter-rs/wotb"
+readme = "README.md"
+keywords = ["duniter", "wot", "wotb", "web", "trust"]
+license = "GPL-3.0"
+
+[dependencies]
+serde = "1.0.19"
+bincode = "0.9.2"
+serde_derive = "1.0.19"
