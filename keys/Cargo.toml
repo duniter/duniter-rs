@@ -9,3 +9,6 @@ keywords = ["duniter", "keys", "cryptography"]
 license = "AGPL-3.0"
 
 [dependencies]
+base58 = "0.1.0"
+base64 = "0.7.0"
+rust-crypto = "0.2.36"
