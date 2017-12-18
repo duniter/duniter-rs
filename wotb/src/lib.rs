@@ -5,6 +5,7 @@
 //!
 //! Web of Trust tests are translated from [duniter/wotb Javascript test][js-tests].
 //!
+//! [Duniter]: https://duniter.org/
 //! [js-tests]: https://github.com/duniter/wotb/blob/master/wotcpp/webOfTrust.cpp
 
 #![deny(missing_docs,
