@@ -1,6 +1,6 @@
 [package]
 name = "duniter-keys"
-version = "0.0.0"
+version = "0.1.0"
 authors = ["nanocryk <nanocryk@duniter.org>"]
 description = "Manage cryptographic keys for the Duniter project."
 repository = "https://git.duniter.org/nodes/rust/duniter-rs"
