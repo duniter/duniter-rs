@@ -8,6 +8,9 @@ readme = "README.md"
 keywords = ["duniter", "keys", "cryptography"]
 license = "AGPL-3.0"
 
+[lib]
+path = "lib.rs"
+
 [dependencies]
 base58 = "0.1.0"
 base64 = "0.8.0"
