@@ -2,5 +2,4 @@
 \.vscode/
 
 **/*.rs.bk
-Cargo.lock
 *.wot
