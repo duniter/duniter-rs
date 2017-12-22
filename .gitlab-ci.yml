@@ -1,11 +1,19 @@
 stages:
-    - test
+    - builds
+    - tests
     
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
     
-test:
-  stage: test
+builds:
+  stage: builds
+  tags:
+    - redshift-rs
+  script:
+    - cargo build
+    
+tests:
+  stage: tests
   tags:
     - redshift-rs
   script:
