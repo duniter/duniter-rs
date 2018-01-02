@@ -1,0 +1,19 @@
+[package]
+name = "duniter-protocol"
+version = "0.1.0"
+authors = ["nanocryk <nanocryk@duniter.org>"]
+description = "Implements the Duniter Protocol"
+repository = "https://git.duniter.org/nodes/rust/duniter-rs"
+readme = "README.md"
+keywords = ["duniter", "blockchain", "cryptocurrency", "document"]
+license = "AGPL-3.0"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+rust-crypto = "0.2.36"
+linked-hash-map = "0.5.0"
+base58 = "0.1.0"
+base64 = "0.8.0"
+duniter-keys = { path = "../keys" }
