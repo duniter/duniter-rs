@@ -15,6 +15,11 @@
 
 //! Provide wrappers around Duniter blockchain documents for protocol version 10.
 
+pub mod identity;
+
+pub use self::identity::IdentityDocument;
+
+use duniter_keys::{ed25519, Signature};
 use super::{Document, ToProtocolDocument, ToSpecializedDocument, BlockchainProtocolVersion};
 
 /// List of wrapped document types.
@@ -41,54 +46,21 @@ pub enum DocumentType<'a> {
     Revocation(),
 }
 
-/// Wrap an identity document.
-#[derive(Debug, Clone)]
-pub struct IdentityDocument {
-    /// Currency
-    pub currency: String,
-}
+/// Trait for a V10 document.
+pub trait TextDocument<'a>
+    : ToSpecializedDocument<'a, ed25519::PublicKey, ed25519::Signature, DocumentType<'a>>
+    {
+    /// Return document as text.
+    fn as_text(&'a self) -> &'a str;
 
-impl Document for IdentityDocument {
-    fn version(&self) -> u16 {
-        10
-    }
+    /// Return document as text with leading signatures.
+    fn as_text_with_signatures(&'a self) -> String {
+        let mut text = self.as_text().to_string();
 
-    fn currency(&self) -> &str {
-        &self.currency
-    }
-}
-
-impl<'a> ToSpecializedDocument<'a, DocumentType<'a>> for IdentityDocument {
-    fn specialize(&'a self) -> DocumentType<'a> {
-        DocumentType::Identity(self)
-    }
-}
-
-impl<'a> ToProtocolDocument<'a, BlockchainProtocolVersion<'a>> for IdentityDocument {
-    fn associated_protocol(&'a self) -> BlockchainProtocolVersion<'a> {
-        BlockchainProtocolVersion::V10(self)
-    }
-}
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn resolve_document_concrete_type() {
-        let doc = IdentityDocument { currency: "test".to_string() };
-
-        // we now consider `doc` to be only a Document, and try to get back to our specialized document
-
-        if let BlockchainProtocolVersion::V10(to_spe_doc) = doc.associated_protocol() {
-            if let DocumentType::Identity(_) = to_spe_doc.specialize() {
-
-            } else {
-                panic!("wront doc type");
-            }
-        } else {
-            panic!("wrong version");
+        for sig in self.signatures() {
+            text = format!("{}{}\n", text, sig.to_base64());
         }
+
+        text
     }
 }
