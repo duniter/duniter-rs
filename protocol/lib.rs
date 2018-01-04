@@ -15,22 +15,19 @@
 
 //! Implements the Duniter Protocol.
 
-#![deny(missing_docs,
-        missing_debug_implementations, missing_copy_implementations,
-        trivial_casts, trivial_numeric_casts,
-        unsafe_code,
-        unstable_features,
-        unused_import_braces, unused_qualifications)]
+#![deny(missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
+        trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+        unused_qualifications)]
 
-extern crate crypto;
-extern crate linked_hash_map;
 extern crate base58;
 extern crate base64;
+extern crate crypto;
 extern crate duniter_keys;
+extern crate linked_hash_map;
 
 pub mod documents;
 
-use std::fmt::{Debug, Error, Formatter, Display};
+use std::fmt::{Debug, Display, Error, Formatter};
 use duniter_keys::BaseConvertionError;
 
 /// A block Id.

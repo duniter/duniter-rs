@@ -17,16 +17,17 @@
 
 pub mod identity;
 
-pub use self::identity::IdentityDocument;
+pub use self::identity::{IdentityDocument, IdentityDocumentBuilder};
 
-use duniter_keys::{ed25519, Signature};
-use super::{Document, ToProtocolDocument, ToSpecializedDocument, BlockchainProtocolVersion};
+use duniter_keys::{Signature, ed25519};
+use documents::DocumentBuilder;
+use super::Document;
 
 /// List of wrapped document types.
 ///
 /// > TODO Add wrapped types in enum variants.
-#[derive(Debug, Copy, Clone)]
-pub enum DocumentType<'a> {
+#[derive(Debug, Clone)]
+pub enum V10Document {
     /// Block document.
     Block(),
 
@@ -34,7 +35,7 @@ pub enum DocumentType<'a> {
     Transaction(),
 
     /// Identity document.
-    Identity(&'a IdentityDocument),
+    Identity(IdentityDocument),
 
     /// Membership document.
     Membership(),
@@ -47,14 +48,12 @@ pub enum DocumentType<'a> {
 }
 
 /// Trait for a V10 document.
-pub trait TextDocument<'a>
-    : ToSpecializedDocument<'a, ed25519::PublicKey, ed25519::Signature, DocumentType<'a>>
-    {
+pub trait TextDocument: Document<ed25519::PublicKey, ed25519::Signature> {
     /// Return document as text.
-    fn as_text(&'a self) -> &'a str;
+    fn as_text(&self) -> &str;
 
     /// Return document as text with leading signatures.
-    fn as_text_with_signatures(&'a self) -> String {
+    fn as_text_with_signatures(&self) -> String {
         let mut text = self.as_text().to_string();
 
         for sig in self.signatures() {
@@ -62,5 +61,42 @@ pub trait TextDocument<'a>
         }
 
         text
+    }
+}
+
+/// Trait for a V10 document builder.
+pub trait TextDocumentBuilder<D>
+    : DocumentBuilder<ed25519::PublicKey, ed25519::PrivateKey, ed25519::Signature, D>
+where
+    D: TextDocument,
+{
+    /// Generate document text.
+    ///
+    /// - Don't contains leading signatures
+    /// - Contains line breaks on all line.
+    fn generate_text(&self) -> String;
+
+    /// Generate final document with signatures, and also return them in an array.
+    ///
+    /// Returns :
+    /// - Text without signatures
+    /// - Signatures
+    fn build_signed_text(
+        &self,
+        private_keys: Vec<ed25519::PrivateKey>,
+    ) -> (String, Vec<ed25519::Signature>) {
+        use duniter_keys::PrivateKey;
+
+        let text = self.generate_text();
+
+        let signatures: Vec<_> = {
+            let text_bytes = text.as_bytes();
+            private_keys
+                .iter()
+                .map(|key| key.sign(text_bytes))
+                .collect()
+        };
+
+        (text, signatures)
     }
 }

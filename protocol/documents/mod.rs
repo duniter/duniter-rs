@@ -18,7 +18,16 @@
 pub mod block10;
 
 use std::fmt::Debug;
-use duniter_keys::{PublicKey, Signature};
+use duniter_keys::{PrivateKey, PublicKey, Signature};
+
+/// List of blockchain protocol versions.
+#[derive(Debug)]
+pub enum BlockchainProtocol {
+    /// Version 10.
+    V10(block10::V10Document),
+    /// Version 11. (not done yet, but defined for tests)
+    V11(),
+}
 
 /// Common top-level document trait.
 ///
@@ -27,7 +36,8 @@ use duniter_keys::{PublicKey, Signature};
 /// Document trait is generic about its signature scheme.
 ///
 /// > Design choice : allow only ed25519 for protocol 10 and many differents
-/// schemes for protocol 11 through a proxy type.
+/// schemes for protocol 11 through a proxy type. This behavior can be made
+/// through generic `PublicKey` and `Signature` traits.
 pub trait Document<PK, S>: Debug
 where
     PK: PublicKey<Signature = S>,
@@ -62,9 +72,7 @@ where
                 .iter()
                 .zip(signatures.iter())
                 .enumerate()
-                .filter(|&(_, (key, signature))| {
-                    !key.verify(self.as_bytes(), signature)
-                })
+                .filter(|&(_, (key, signature))| !key.verify(self.as_bytes(), signature))
                 .map(|(i, _)| i)
                 .collect();
 
@@ -92,38 +100,27 @@ pub enum VerificationResult {
 
 /// Trait allowing access to the document through it's proper protocol version.
 ///
-/// This trait is generic over `VersionEnum` providing all supported protocol version variants.
+/// This trait is generic over `P` providing all supported protocol version variants.
 ///
 /// A lifetime is specified to allow enum variants to hold references to the document.
-pub trait ToProtocolDocument<'a, PK, S, VersionEnum>: Document<PK, S>
+pub trait IntoSpecializedDocument<P> {
+    /// Get a protocol-specific document wrapped in an enum variant.
+    fn into_specialized(self) -> P;
+}
+
+/// Trait helper for building new documents.
+pub trait DocumentBuilder<PK, SK, S, D>
 where
     PK: PublicKey<Signature = S>,
+    SK: PrivateKey<Signature = S>,
     S: Signature,
+    D: Document<PK, S>,
 {
-    /// Get a protocol-specific document wrapped in an enum variant.
-    fn associated_protocol(&'a self) -> VersionEnum;
-}
+    /// Build a document with provided signatures.
+    fn build_with_signature(self, signatures: Vec<S>) -> D;
 
-/// Trait converting a document to a specialized document wrapped in an enum variant.
-///
-/// This trait is generic over an `TypeEnum` specific to the protcol version.
-///
-/// A lifetime is specified to allow enum variants to hold references to the document.
-pub trait ToSpecializedDocument<'a, PK, S, TypeEnum: 'a>: Document<PK, S>
-where
-    PK: PublicKey<Signature=S>,
-    S: Signature, {
-/// Get specialized document wrapped in an enum variant.
-    fn specialize(&'a self) -> TypeEnum;
-}
-
-/// List of blockchain protocol versions.
-#[derive(Debug)]
-pub enum BlockchainProtocolVersion<'a> {
-    /// Version 10.
-    V10(&'a block10::TextDocument<'a>),
-    /// Version 11. (not done yet, but defined for tests)
-    V11(),
+    /// Build a document and sign it with the private key.
+    fn build_and_sign(self, private_keys: Vec<SK>) -> D;
 }
 
 #[cfg(test)]
@@ -178,7 +175,7 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 
         let sig1 = ed25519::Signature::from_base64(
             "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMM\
-            mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
+             mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
         ).unwrap();
 
         // incorrect pair
@@ -188,7 +185,7 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 
         let sig2 = ed25519::Signature::from_base64(
             "1eubHHbuNfilHHH0G2bI30iZzebQ2cQ1PC7uPAw08FGMM\
-            mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
+             mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
         ).unwrap();
 
         {
