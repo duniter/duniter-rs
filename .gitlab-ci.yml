@@ -23,6 +23,7 @@ tests:
 fmt:
   stage: fmt
   tags:
-    - redshift-rs
-  script:  
-    - cargo +nightly fmt -- --write-mode=diff
+    - redshift-rs-nightly
+  script:
+    - cargo install --force rustfmt-nightly
+    - cargo fmt -- --write-mode=diff
