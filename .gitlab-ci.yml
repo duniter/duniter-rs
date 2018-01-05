@@ -7,7 +7,7 @@ before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
     - which rustfmt || cargo install rustfmt
     
- fmt:
+fmt:
   stage: fmt
   tags:
     - redshift-rs
