@@ -1,18 +1,11 @@
 stages:
-    - fmt
     - builds
     - tests
+    - fmt
     
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
     - which rustfmt || cargo install rustfmt-nightly
-    
-fmt:
-  stage: fmt
-  tags:
-    - redshift-rs
-  script:  
-    - cargo fmt -- --write-mode=diff
     
 builds:
   stage: builds
@@ -27,3 +20,10 @@ tests:
     - redshift-rs
   script:
     - cargo test
+    
+fmt:
+  stage: fmt
+  tags:
+    - redshift-rs
+  script:  
+    - cargo +nightly fmt -- --write-mode=diff
