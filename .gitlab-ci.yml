@@ -25,5 +25,5 @@ fmt:
   tags:
     - redshift-rs-nightly
   script:
-    - cargo install --force rustfmt-nightly
+    - which rustfmt || cargo install rustfmt-nightly
     - cargo fmt -- --write-mode=diff
