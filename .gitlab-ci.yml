@@ -5,7 +5,6 @@ stages:
     
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
-    - which rustfmt || cargo install rustfmt-nightly
     
 builds:
   stage: builds
