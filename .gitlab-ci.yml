@@ -26,6 +26,6 @@ fmt:
     - redshift-rs-nightly
   before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
-    - which rustfmt || cargo install rustfmt-nightly
+    - which rustfmt || cargo +nightly install rustfmt-nightly
   script:
-    - cargo fmt -- --write-mode=diff
+    - cargo +nightly fmt -- --write-mode=diff
