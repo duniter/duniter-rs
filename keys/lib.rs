@@ -1,4 +1,4 @@
-//  Copyright (C) 2017  The Duniter Project Developers.
+//  Copyright (C) 2018  The Duniter Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -46,12 +46,9 @@
 //! `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/`
 //! with `=` as padding character.
 
-#![deny(missing_docs,
-        missing_debug_implementations, missing_copy_implementations,
-        trivial_casts, trivial_numeric_casts,
-        unsafe_code,
-        unstable_features,
-        unused_import_braces, unused_qualifications)]
+#![deny(missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
+        trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+        unused_qualifications)]
 
 extern crate base58;
 extern crate base64;
@@ -64,10 +61,6 @@ use base58::ToBase58;
 
 pub mod ed25519;
 
-// ------------------------------------ //
-// ----- enum BaseConvertionError ----- //
-// ------------------------------------ //
-
 /// Errors enumeration for Base58/64 strings convertion.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BaseConvertionError {
@@ -78,11 +71,6 @@ pub enum BaseConvertionError {
     /// Base58 have invalid lendth
     InvalidBaseConverterLength(),
 }
-
-
-// --------------------------- //
-// ----- trait Signature ----- //
-// --------------------------- //
 
 /// Store a cryptographic signature.
 ///
@@ -108,11 +96,6 @@ pub trait Signature: Clone + Display + Debug + PartialEq + Eq {
     fn to_base64(&self) -> String;
 }
 
-
-// ---------------------------- //
-// ----- struct PublicKey ----- //
-// ---------------------------- //
-
 /// Store a cryptographic public key.
 ///
 /// A `PublicKey` can be converted from/to Base64 format.
@@ -123,10 +106,8 @@ pub trait Signature: Clone + Display + Debug + PartialEq + Eq {
 ///
 /// [`PrivateKey`]: trait.PrivateKey.html
 pub trait PublicKey: Clone + Display + Debug + PartialEq + Eq + ToBase58 {
-    /// [`Signature`] type of associated cryptosystem.
-    ///
-    /// [`Signature`]: trait.Signature.html
-    type Signature;
+    /// Signature type of associated cryptosystem.
+    type Signature: Signature;
 
     /// Create a PublicKey from a Base58 string.
     ///
@@ -141,11 +122,6 @@ pub trait PublicKey: Clone + Display + Debug + PartialEq + Eq + ToBase58 {
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool;
 }
 
-
-// ----------------------------- //
-// ----- struct PrivateKey ----- //
-// ----------------------------- //
-
 /// Store a cryptographic private key.
 ///
 /// A `PrivateKey` can be converted from/to Base58 format.
@@ -156,10 +132,8 @@ pub trait PublicKey: Clone + Display + Debug + PartialEq + Eq + ToBase58 {
 ///
 /// [`PublicKey`]: trait.PublicKey.html
 pub trait PrivateKey: Clone + Display + Debug + PartialEq + Eq + ToBase58 {
-    /// [`Signature`] type of associated cryptosystem.
-    ///
-    /// [`Signature`]: trait.Signature.html
-    type Signature;
+    /// Signature type of associated cryptosystem.
+    type Signature: Signature;
 
     /// Create a PrivateKey from a Base58 string.
     ///
