@@ -20,7 +20,6 @@ pub mod identity;
 pub use self::identity::{IdentityDocument, IdentityDocumentBuilder};
 
 use duniter_keys::{Signature, ed25519};
-use documents::DocumentBuilder;
 use super::Document;
 
 /// List of wrapped document types.
@@ -48,7 +47,7 @@ pub enum V10Document {
 }
 
 /// Trait for a V10 document.
-pub trait TextDocument: Document<ed25519::PublicKey, ed25519::Signature> {
+pub trait TextDocument: Document<PublicKey = ed25519::PublicKey> {
     /// Return document as text.
     fn as_text(&self) -> &str;
 
@@ -65,11 +64,7 @@ pub trait TextDocument: Document<ed25519::PublicKey, ed25519::Signature> {
 }
 
 /// Trait for a V10 document builder.
-pub trait TextDocumentBuilder<D>
-    : DocumentBuilder<ed25519::PublicKey, ed25519::PrivateKey, ed25519::Signature, D>
-where
-    D: TextDocument,
-{
+pub trait TextDocumentBuilder<Document: TextDocument> {
     /// Generate document text.
     ///
     /// - Don't contains leading signatures

@@ -45,7 +45,9 @@ pub struct IdentityDocument {
     signatures: Vec<ed25519::Signature>,
 }
 
-impl Document<ed25519::PublicKey, ed25519::Signature> for IdentityDocument {
+impl Document for IdentityDocument {
+    type PublicKey = ed25519::PublicKey;
+
     fn version(&self) -> u16 {
         10
     }
@@ -92,10 +94,10 @@ pub struct IdentityDocumentBuilder<'a> {
     pub issuer: &'a ed25519::PublicKey,
 }
 
-impl<
-    'a,
-> DocumentBuilder<ed25519::PublicKey, ed25519::PrivateKey, ed25519::Signature, IdentityDocument>
-    for IdentityDocumentBuilder<'a> {
+impl<'a> DocumentBuilder for IdentityDocumentBuilder<'a> {
+    type Document = IdentityDocument;
+    type PrivateKey = ed25519::PrivateKey;
+
     fn build_with_signature(self, signatures: Vec<ed25519::Signature>) -> IdentityDocument {
         IdentityDocument {
             text: self.generate_text(),

@@ -18,7 +18,7 @@
 pub mod block10;
 
 use std::fmt::Debug;
-use duniter_keys::{PrivateKey, PublicKey, Signature};
+use duniter_keys::{PrivateKey, PublicKey};
 
 /// List of blockchain protocol versions.
 #[derive(Debug)]
@@ -29,20 +29,16 @@ pub enum BlockchainProtocol {
     V11(),
 }
 
-/// Common top-level document trait.
+/// trait providing commun methods for any documents of any protocol version.
 ///
-/// Provide commun methods for any documents of any protocol version.
+/// # Design choice
 ///
-/// Document trait is generic about its signature scheme.
-///
-/// > Design choice : allow only ed25519 for protocol 10 and many differents
-/// schemes for protocol 11 through a proxy type. This behavior can be made
-/// through generic `PublicKey` and `Signature` traits.
-pub trait Document<PK, S>: Debug
-where
-    PK: PublicKey<Signature = S>,
-    S: Signature,
-{
+/// Allow only ed25519 for protocol 10 and many differents
+/// schemes for protocol 11 through a proxy type.
+pub trait Document: Debug {
+    /// Type of the `PublicKey` used by the document.
+    type PublicKey: PublicKey;
+
     /// Get document version.
     fn version(&self) -> u16;
 
@@ -50,10 +46,10 @@ where
     fn currency(&self) -> &str;
 
     /// Iterate over document issuers.
-    fn issuers(&self) -> &Vec<PK>;
+    fn issuers(&self) -> &Vec<Self::PublicKey>;
 
     /// Iterate over document signatures.
-    fn signatures(&self) -> &Vec<S>;
+    fn signatures(&self) -> &Vec<<Self::PublicKey as PublicKey>::Signature>;
 
     /// Get document as bytes for signature verification.
     fn as_bytes(&self) -> &[u8];
@@ -109,24 +105,29 @@ pub trait IntoSpecializedDocument<P> {
 }
 
 /// Trait helper for building new documents.
-pub trait DocumentBuilder<PK, SK, S, D>
-where
-    PK: PublicKey<Signature = S>,
-    SK: PrivateKey<Signature = S>,
-    S: Signature,
-    D: Document<PK, S>,
-{
+pub trait DocumentBuilder {
+    /// Type of the builded document.
+    type Document: Document;
+
+    /// Type of the private keys signing the documents.
+    type PrivateKey: PrivateKey<
+        Signature = <<Self::Document as Document>::PublicKey as PublicKey>::Signature,
+    >;
+
     /// Build a document with provided signatures.
-    fn build_with_signature(self, signatures: Vec<S>) -> D;
+    fn build_with_signature(
+        self,
+        signatures: Vec<<<Self::Document as Document>::PublicKey as PublicKey>::Signature>,
+    ) -> Self::Document;
 
     /// Build a document and sign it with the private key.
-    fn build_and_sign(self, private_keys: Vec<SK>) -> D;
+    fn build_and_sign(self, private_keys: Vec<Self::PrivateKey>) -> Self::Document;
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use duniter_keys::ed25519;
+    use duniter_keys::{Signature, ed25519};
 
     // simple text document for signature testing
     #[derive(Debug, Clone)]
@@ -136,7 +137,9 @@ mod tests {
         pub signatures: Vec<ed25519::Signature>,
     }
 
-    impl Document<ed25519::PublicKey, ed25519::Signature> for PlainTextDocument {
+    impl Document for PlainTextDocument {
+        type PublicKey = ed25519::PublicKey;
+
         fn version(&self) -> u16 {
             unimplemented!()
         }
