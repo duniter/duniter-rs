@@ -23,17 +23,14 @@
 //! [Duniter]: https://duniter.org/
 //! [js-tests]: https://github.com/duniter/wotb/blob/master/wotcpp/webOfTrust.cpp
 
-#![deny(missing_docs,
-        missing_debug_implementations, missing_copy_implementations,
-        trivial_casts, trivial_numeric_casts,
-        unsafe_code,
-        unstable_features,
-        unused_import_braces, unused_qualifications)]
+#![deny(missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
+        trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+        unused_qualifications)]
 
+extern crate bincode;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate bincode;
 
 use std::collections::HashSet;
 use std::collections::hash_set::Iter;
@@ -41,7 +38,7 @@ use std::rc::Rc;
 use std::fs::File;
 use std::io::prelude::*;
 
-use bincode::{serialize, deserialize, Infinite};
+use bincode::{deserialize, serialize, Infinite};
 
 /// Wrapper for a node id.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -286,9 +283,7 @@ impl WebOfTrust {
 
         let mut sentries: Vec<bool> = self.nodes
             .iter()
-            .map(|x| {
-                x.enabled && x.issued_count() >= d_min && x.links_iter().count() >= d_min
-            })
+            .map(|x| x.enabled && x.issued_count() >= d_min && x.links_iter().count() >= d_min)
             .collect();
         sentries[member.0] = false;
 
@@ -318,9 +313,7 @@ impl WebOfTrust {
     pub fn get_sentries(&self, d_min: usize) -> Vec<NodeId> {
         self.nodes
             .iter()
-            .filter(|x| {
-                x.enabled && x.issued_count() >= d_min && x.links_iter().count() >= d_min
-            })
+            .filter(|x| x.enabled && x.issued_count() >= d_min && x.links_iter().count() >= d_min)
             .map(|x| x.id())
             .collect()
     }
@@ -329,9 +322,7 @@ impl WebOfTrust {
     pub fn get_non_sentries(&self, d_min: usize) -> Vec<NodeId> {
         self.nodes
             .iter()
-            .filter(|x| {
-                x.enabled && (x.issued_count < d_min || x.links_iter().count() < d_min)
-            })
+            .filter(|x| x.enabled && (x.issued_count < d_min || x.links_iter().count() < d_min))
             .map(|x| x.id())
             .collect()
     }
@@ -818,6 +809,5 @@ mod tests {
                 wot2.get_non_sentries(1).len()
             );
         }
-
     }
 }

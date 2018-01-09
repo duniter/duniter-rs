@@ -46,12 +46,9 @@
 //! `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/`
 //! with `=` as padding character.
 
-#![deny(missing_docs,
-        missing_debug_implementations, missing_copy_implementations,
-        trivial_casts, trivial_numeric_casts,
-        unsafe_code,
-        unstable_features,
-        unused_import_braces, unused_qualifications)]
+#![deny(missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
+        trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+        unused_qualifications)]
 
 extern crate base58;
 extern crate base64;
@@ -78,7 +75,6 @@ pub enum BaseConvertionError {
     /// Base58 have invalid lendth
     InvalidBaseConverterLength(),
 }
-
 
 // --------------------------- //
 // ----- trait Signature ----- //
@@ -107,7 +103,6 @@ pub trait Signature: Clone + Display + Debug + PartialEq + Eq {
     /// Encode the signature into Base64 string format.
     fn to_base64(&self) -> String;
 }
-
 
 // ---------------------------- //
 // ----- struct PublicKey ----- //
@@ -140,7 +135,6 @@ pub trait PublicKey: Clone + Display + Debug + PartialEq + Eq + ToBase58 {
     /// Verify a signature with this public key.
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool;
 }
-
 
 // ----------------------------- //
 // ----- struct PrivateKey ----- //

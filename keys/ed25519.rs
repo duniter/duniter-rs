@@ -24,14 +24,12 @@ use std::fmt::Error;
 use std::fmt::Formatter;
 use std::fmt::Debug;
 
-use base58::{ToBase58, FromBase58, FromBase58Error};
+use base58::{FromBase58, FromBase58Error, ToBase58};
 use base64;
 use base64::DecodeError;
 use crypto;
 
 use super::BaseConvertionError;
-
-
 
 // ---------------------------- //
 // ----- struct Signature ----- //
@@ -58,9 +56,9 @@ impl super::Signature for Signature {
             Err(DecodeError::InvalidByte(pos, byte)) => {
                 Err(BaseConvertionError::InvalidCharacter(byte as char, pos))
             }
-            Err(DecodeError::InvalidLength) => Err(
-                BaseConvertionError::InvalidBaseConverterLength(),
-            ),
+            Err(DecodeError::InvalidLength) => {
+                Err(BaseConvertionError::InvalidBaseConverterLength())
+            }
         }
     }
 
@@ -92,8 +90,6 @@ impl PartialEq<Signature> for Signature {
 }
 
 impl Eq for Signature {}
-
-
 
 // ---------------------------- //
 // ----- struct PublicKey ----- //
@@ -142,12 +138,12 @@ impl super::PublicKey for PublicKey {
                     Err(BaseConvertionError::InvalidKeyLendth(result.len(), 32))
                 }
             }
-            Err(FromBase58Error::InvalidBase58Character(character, pos)) => Err(
-                BaseConvertionError::InvalidCharacter(character, pos),
-            ),
-            Err(FromBase58Error::InvalidBase58Length) => Err(
-                BaseConvertionError::InvalidBaseConverterLength(),
-            ),
+            Err(FromBase58Error::InvalidBase58Character(character, pos)) => {
+                Err(BaseConvertionError::InvalidCharacter(character, pos))
+            }
+            Err(FromBase58Error::InvalidBase58Length) => {
+                Err(BaseConvertionError::InvalidBaseConverterLength())
+            }
         }
     }
 
@@ -155,8 +151,6 @@ impl super::PublicKey for PublicKey {
         crypto::ed25519::verify(message, &self.0, &signature.0)
     }
 }
-
-
 
 // ----------------------------- //
 // ----- struct PrivateKey ----- //
@@ -214,12 +208,12 @@ impl super::PrivateKey for PrivateKey {
                     Err(BaseConvertionError::InvalidKeyLendth(result.len(), 64))
                 }
             }
-            Err(FromBase58Error::InvalidBase58Character(character, pos)) => Err(
-                BaseConvertionError::InvalidCharacter(character, pos),
-            ),
-            Err(FromBase58Error::InvalidBase58Length) => Err(
-                BaseConvertionError::InvalidBaseConverterLength(),
-            ),
+            Err(FromBase58Error::InvalidBase58Character(character, pos)) => {
+                Err(BaseConvertionError::InvalidCharacter(character, pos))
+            }
+            Err(FromBase58Error::InvalidBase58Length) => {
+                Err(BaseConvertionError::InvalidBaseConverterLength())
+            }
         }
     }
 
@@ -228,9 +222,6 @@ impl super::PrivateKey for PrivateKey {
         Signature(crypto::ed25519::signature(message, &self.0))
     }
 }
-
-
-
 
 // ----------------------------------- //
 // ----- struct KeyPairGenerator ----- //
@@ -286,8 +277,6 @@ impl KeyPairGenerator {
     }
 }
 
-
-
 // ---------------------- //
 // ----- UNIT TESTS ----- //
 // ---------------------- //
@@ -295,12 +284,13 @@ impl KeyPairGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use {Signature, PublicKey, PrivateKey};
+    use {PrivateKey, PublicKey, Signature};
 
     #[test]
     fn base58_private_key() {
-        let private58 = "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9r\
-        qnXuW3iAfZACm7";
+        let private58 =
+            "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9r\
+             qnXuW3iAfZACm7";
         let private_key = super::PrivateKey::from_base58(private58).unwrap();
         let private_raw = private58.from_base58().unwrap();
 
@@ -354,7 +344,8 @@ mod tests {
             BaseConvertionError::InvalidKeyLendth(35, 32)
         );
         assert_eq!(
-            super::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQd").unwrap_err(),
+            super::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQd")
+                .unwrap_err(),
             BaseConvertionError::InvalidKeyLendth(31, 32)
         );
         assert_eq!(
@@ -367,7 +358,7 @@ mod tests {
     #[test]
     fn base64_signature() {
         let signature64 = "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FG\
-                          MMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==";
+                           MMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==";
         let signature = super::Signature::from_base64(signature64).unwrap();
         let signature_raw = base64::decode(signature64).unwrap();
 
@@ -382,14 +373,14 @@ mod tests {
         assert_eq!(
             super::Signature::from_base64(
                 "YmhlaW9iaHNlcGlvaGVvaXNlcGl2ZXBvdm5pc2V2c2JlaW9idmVpb3Zqc\
-                2V2Z3BpaHNlamVwZ25qZXNqb2dwZWpnaW9zZXNkdnNic3JicmJyZGJyZGI=",
+                 2V2Z3BpaHNlamVwZ25qZXNqb2dwZWpnaW9zZXNkdnNic3JicmJyZGJyZGI=",
             ).unwrap_err(),
             BaseConvertionError::InvalidKeyLendth(86, 64)
         );
         assert_eq!(
             super::Signature::from_base64(
                 "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMM\
-                mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAgdha<<",
+                 mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAgdha<<",
             ).unwrap_err(),
             BaseConvertionError::InvalidCharacter('<', 89)
         );
@@ -397,17 +388,17 @@ mod tests {
 
     #[test]
     fn message_sign_verify() {
-        let pubkey = super::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
-            .unwrap();
+        let pubkey =
+            super::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV").unwrap();
 
         let prikey = super::PrivateKey::from_base58(
             "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt\
-            5GiERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
+             5GiERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
         ).unwrap();
 
         let expected_signature = super::Signature::from_base64(
             "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FG\
-            MMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
+             MMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
         ).unwrap();
 
         let message = "Version: 10
