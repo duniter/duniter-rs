@@ -33,7 +33,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "duniter-keys"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "base58 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "base64 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
