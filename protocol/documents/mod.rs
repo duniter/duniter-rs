@@ -15,10 +15,11 @@
 
 //! Provide wrappers around Duniter documents.
 
-pub mod block10;
-
 use std::fmt::Debug;
+
 use duniter_keys::{PrivateKey, PublicKey};
+
+pub mod block10;
 
 /// List of blockchain protocol versions.
 #[derive(Debug)]
@@ -122,6 +123,14 @@ pub trait DocumentBuilder {
 
     /// Build a document and sign it with the private key.
     fn build_and_sign(self, private_keys: Vec<Self::PrivateKey>) -> Self::Document;
+}
+
+/// Trait for a document parser from a `S` source
+/// format to a `D` document. Will return the
+/// parsed document or an `E` error.
+pub trait DocumentParser<S, D, E> {
+    /// Parse a source and return a document or an error.
+    fn parse(source: S) -> Result<D, E>;
 }
 
 #[cfg(test)]

@@ -16,4 +16,6 @@ rust-crypto = "0.2.36"
 linked-hash-map = "0.5.0"
 base58 = "0.1.0"
 base64 = "0.8.0"
+lazy_static = "1.0.0"
+regex = "0.2"
 duniter-keys = { path = "../keys" }

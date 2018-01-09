@@ -15,11 +15,21 @@
 
 //! Wrappers around Identity documents.
 
-use duniter_keys::ed25519;
+use duniter_keys::{ed25519, PublicKey};
+use regex::Regex;
 
 use Blockstamp;
 use documents::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
-use documents::block10::{TextDocument, TextDocumentBuilder, V10Document};
+use documents::block10::{StandardTextDocumentParser, TextDocument, TextDocumentBuilder,
+                         V10Document, V10DocumentParsingError};
+
+
+
+lazy_static! {
+    static ref IDENTITY_REGEX: Regex = Regex::new(
+        "^Issuer: (?P<issuer>[1-9A-Za-z][^OIl]{43,44})\nUniqueID: (?P<uid>[[:alnum:]_-]+)\nTimestamp: (?P<blockstamp>[0-9]+-[0-9A-F]{64})\n$"
+    ).unwrap();
+}
 
 /// Wrap an Identity document.
 ///
@@ -123,7 +133,7 @@ impl<'a> DocumentBuilder for IdentityDocumentBuilder<'a> {
     }
 }
 
-impl<'a> TextDocumentBuilder<IdentityDocument> for IdentityDocumentBuilder<'a> {
+impl<'a> TextDocumentBuilder for IdentityDocumentBuilder<'a> {
     fn generate_text(&self) -> String {
         format!(
             "Version: 10
@@ -138,6 +148,43 @@ Timestamp: {blockstamp}
             unique_id = self.unique_id,
             blockstamp = self.blockstamp
         )
+    }
+}
+
+/// Identity document parser
+#[derive(Debug, Clone, Copy)]
+pub struct IdentityDocumentParser;
+
+impl StandardTextDocumentParser for IdentityDocumentParser {
+    fn parse_standard(
+        doc: &str,
+        body: &str,
+        currency: &str,
+        signatures: Vec<ed25519::Signature>,
+    ) -> Result<V10Document, V10DocumentParsingError> {
+        if let Some(caps) = IDENTITY_REGEX.captures(body) {
+            let issuer = &caps["issuer"];
+            let uid = &caps["uid"];
+            let blockstamp = &caps["blockstamp"];
+
+            // Regex match so should not fail.
+            // TODO : Test it anyway
+            let issuer = ed25519::PublicKey::from_base58(issuer).unwrap();
+            let blockstamp = Blockstamp::from_string(blockstamp).unwrap();
+            
+            Ok(V10Document::Identity( IdentityDocument {
+                text: doc.to_owned(),
+                currency: currency.to_owned(),
+                unique_id: uid.to_owned(),
+                blockstamp: blockstamp,
+                issuers: vec![issuer],
+                signatures
+            }))
+        } else {
+            Err(V10DocumentParsingError::InvalidInnerFormat(
+                "Identity".to_string(),
+            ))
+        }
     }
 }
 
@@ -188,5 +235,39 @@ mod tests {
 
             assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
         }
+    }
+
+    #[test]
+    fn identity_standard_regex() {
+        assert!(IDENTITY_REGEX.is_match(
+            "Issuer: DKpQPUL4ckzXYdnDRvCRKAm1gNvSdmAXnTrJZ7LvM5Qo
+UniqueID: toc
+Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+"
+        ));
+    }
+
+    #[test]
+    fn parse_identity_document() {
+        let doc = "Version: 10
+Type: Identity
+Currency: duniter_unit_test_currency
+Issuer: DKpQPUL4ckzXYdnDRvCRKAm1gNvSdmAXnTrJZ7LvM5Qo
+UniqueID: toc
+Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+lcekuS0eP2dpFL99imJcwvDAwx49diiDMkG8Lj7FLkC/6IJ0tgNjUzCIZgMGi7bL5tODRiWi9B49UMXb8b3MAw==";
+
+        let body = "Issuer: DKpQPUL4ckzXYdnDRvCRKAm1gNvSdmAXnTrJZ7LvM5Qo
+UniqueID: toc
+Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+";
+
+        let currency = "duniter_unit_test_currency";
+
+        let signatures = vec![Signature::from_base64(
+"lcekuS0eP2dpFL99imJcwvDAwx49diiDMkG8Lj7FLkC/6IJ0tgNjUzCIZgMGi7bL5tODRiWi9B49UMXb8b3MAw=="
+        ).unwrap(),];
+
+        let _ = IdentityDocumentParser::parse_standard(doc, body, currency, signatures).unwrap();
     }
 }
