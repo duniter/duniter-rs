@@ -1,6 +1,7 @@
 stages:
     - builds
     - tests
+    - fmt
     
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
@@ -18,3 +19,13 @@ tests:
     - redshift-rs
   script:
     - cargo test
+    
+fmt:
+  stage: fmt
+  tags:
+    - redshift-rs-nightly
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - cargo install --force rustfmt-nightly
+  script:
+    - cargo fmt -- --write-mode=diff
