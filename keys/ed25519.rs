@@ -31,10 +31,6 @@ use crypto;
 
 use super::BaseConvertionError;
 
-// ---------------------------- //
-// ----- struct Signature ----- //
-// ---------------------------- //
-
 /// Store a ed25519 signature.
 #[derive(Clone, Copy)]
 pub struct Signature(pub [u8; 64]);
@@ -90,10 +86,6 @@ impl PartialEq<Signature> for Signature {
 }
 
 impl Eq for Signature {}
-
-// ---------------------------- //
-// ----- struct PublicKey ----- //
-// ---------------------------- //
 
 /// Store a Ed25519 public key.
 ///
@@ -151,10 +143,6 @@ impl super::PublicKey for PublicKey {
         crypto::ed25519::verify(message, &self.0, &signature.0)
     }
 }
-
-// ----------------------------- //
-// ----- struct PrivateKey ----- //
-// ----------------------------- //
 
 /// Store a Ed25519 private key.
 ///
@@ -223,10 +211,6 @@ impl super::PrivateKey for PrivateKey {
     }
 }
 
-// ----------------------------------- //
-// ----- struct KeyPairGenerator ----- //
-// ----------------------------------- //
-
 /// Keypair generator with given parameters for `scrypt` keypair function.
 #[derive(Debug, Copy, Clone)]
 pub struct KeyPairGenerator {
@@ -276,10 +260,6 @@ impl KeyPairGenerator {
         (PrivateKey(private), PublicKey(public))
     }
 }
-
-// ---------------------- //
-// ----- UNIT TESTS ----- //
-// ---------------------- //
 
 #[cfg(test)]
 mod tests {
