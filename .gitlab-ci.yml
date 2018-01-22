@@ -5,20 +5,55 @@ stages:
     
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustup update
     
-builds:
+build-rust-stable:
   stage: builds
   tags:
-    - redshift-rs
+    - redshift-rs-stable
   script:
     - cargo build
     
-tests:
+build-rust-beta:
+  stage: builds
+  tags:
+    - redshift-rs-beta
+  script:
+    - cargo build
+    
+build-rust-nightly:
+  stage: builds
+  tags:
+    - redshift-rs-nightly
+  script:
+    - cargo build
+    
+test-rust-stable:
   stage: tests
   tags:
-    - redshift-rs
+    - redshift-rs-stable
   script:
     - cargo test
+    
+test-rust-beta:
+  stage: tests
+  tags:
+    - redshift-rs-beta
+  script:
+    - cargo test
+  when: manual
+  only:
+    - master
+    
+test-rust-nightly:
+  stage: tests
+  tags:
+    - redshift-rs-nightly
+  script:
+    - cargo test
+  when: manual
+  only:
+    - master
     
 fmt:
   stage: fmt
@@ -29,3 +64,6 @@ fmt:
     - cargo install --force rustfmt-nightly
   script:
     - cargo fmt -- --write-mode=diff
+  when: manual
+  only:
+    - master
