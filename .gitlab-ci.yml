@@ -1,7 +1,7 @@
 stages:
     - builds
-    - fmt
     - tests
+    - fmt
     
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
@@ -30,18 +30,6 @@ build-rust-nightly:
     - rustup update
     - cargo build
   allow_failure: true
-    
-fmt:
-  stage: fmt
-  tags:
-    - redshift-rs-nightly
-  before_script:
-    - export PATH="$HOME/.cargo/bin:$PATH"
-    - rustup update
-    - cargo install --force rustfmt-nightly
-  script:
-    - cargo fmt -- --write-mode=diff
-  allow_failure: true
   
 test-coverage:
   stage: tests
@@ -49,12 +37,10 @@ test-coverage:
     - redshift-kcov-rs-stable
   script:
     - cargo test --no-run
-    - kcov --verify target/cov_wotb target/debug/duniter_wotb-*
+    - kcov --exclude-pattern ".cargo" --verify target/cov_wotb target/debug/duniter_wotb-*
     - cat target/cov_wotb/duniter_wotb-*/coverage.json
-    - kcov --verify target/cov_keys target/debug/duniter_keys-*
+    - kcov --exclude-pattern ".cargo" --verify target/cov_keys target/debug/duniter_keys-*
     - cat target/cov_wotb/duniter_keys-*/coverage.json
-  tags:
-    - kcov
   allow_failure: true
     
 test-rust-stable:
@@ -83,3 +69,16 @@ test-rust-nightly:
     - cargo test
   when: manual
   allow_failure: true
+  
+fmt:
+  stage: fmt
+  tags:
+    - redshift-rs-nightly
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustup update
+    - cargo install --force rustfmt-nightly
+  script:
+    - cargo fmt -- --write-mode=diff
+  allow_failure: true
+
