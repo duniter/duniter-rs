@@ -42,6 +42,20 @@ fmt:
   script:
     - cargo fmt -- --write-mode=diff
   allow_failure: true
+  
+test-coverage:
+  stage: tests
+  tags:
+    - redshift-kcov-rs-stable
+  script:
+    - cargo test --no-run
+    - kcov --verify target/cov_wotb target/debug/duniter_wotb-*
+    - cat target/cov_wotb/duniter_wotb-*/coverage.json
+    - kcov --verify target/cov_keys target/debug/duniter_keys-*
+    - cat target/cov_wotb/duniter_keys-*/coverage.json
+  tags:
+    - kcov
+  allow_failure: true
     
 test-rust-stable:
   stage: tests
