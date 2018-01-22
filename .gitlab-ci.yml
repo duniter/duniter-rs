@@ -9,6 +9,8 @@ before_script:
     
 build-rust-stable:
   stage: builds
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
   tags:
     - redshift-rs-stable
   script:
