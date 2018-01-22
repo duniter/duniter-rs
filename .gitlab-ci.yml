@@ -1,7 +1,7 @@
 stages:
     - builds
-    - tests
     - fmt
+    - tests
     
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
@@ -20,6 +20,7 @@ build-rust-beta:
   script:
     - rustup update
     - cargo build
+  allow_failure: true
     
 build-rust-nightly:
   stage: builds
@@ -28,6 +29,19 @@ build-rust-nightly:
   script:
     - rustup update
     - cargo build
+  allow_failure: true
+    
+fmt:
+  stage: fmt
+  tags:
+    - redshift-rs-nightly
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustup update
+    - cargo install --force rustfmt-nightly
+  script:
+    - cargo fmt -- --write-mode=diff
+  allow_failure: true
     
 test-rust-stable:
   stage: tests
@@ -44,8 +58,7 @@ test-rust-beta:
     - rustup update
     - cargo test
   when: manual
-  only:
-    - master
+  allow_failure: true
     
 test-rust-nightly:
   stage: tests
@@ -55,19 +68,4 @@ test-rust-nightly:
     - rustup update
     - cargo test
   when: manual
-  only:
-    - master
-    
-fmt:
-  stage: fmt
-  tags:
-    - redshift-rs-nightly
-  before_script:
-    - export PATH="$HOME/.cargo/bin:$PATH"
-    - rustup update
-    - cargo install --force rustfmt-nightly
-  script:
-    - cargo fmt -- --write-mode=diff
-  when: manual
-  only:
-    - master
+  allow_failure: true
