@@ -35,12 +35,12 @@ test-coverage:
   stage: tests
   tags:
     - redshift-kcov-rs-stable
+  image: registry.duniter.org/docker/rust/kcov:v0.0.3
   script:
     - cargo test --no-run
-    - kcov --exclude-pattern ".cargo" --verify target/cov_wotb target/debug/duniter_wotb-*
-    - cat target/cov_wotb/duniter_wotb-*/coverage.json
-    - kcov --exclude-pattern ".cargo" --verify target/cov_keys target/debug/duniter_keys-*
-    - cat target/cov_wotb/duniter_keys-*/coverage.json
+    - kcov --exclude-pattern ".cargo" --verify target/cov target/debug/duniter_wotb-*
+    - kcov --exclude-pattern ".cargo" --verify target/cov target/debug/duniter_keys-*
+    - cat target/cov/index.json
   allow_failure: true
     
 test-rust-stable:
