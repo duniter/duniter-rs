@@ -20,8 +20,8 @@ tests:coverage:
   image: registry.duniter.org/docker/rust/kcov:v0.0.4
   script:
     - RUSTFLAGS="-C link-dead-code" cargo test --no-run
-    - kcov --exclude-pattern ".cargo" --include-path $(pwd) --verify target/cov target/debug/duniter_wotb-*
-    - kcov --exclude-pattern ".cargo" --include-path $(pwd) --verify target/cov target/debug/duniter_keys-*
+    - kcov --exclude-pattern ".cargo" --include-pattern "wotb" --verify target/cov target/debug/duniter_wotb-*
+    - kcov --exclude-pattern ".cargo" --include-pattern "keys" --verify target/cov target/debug/duniter_keys-*
     - cat target/cov/index.json
   allow_failure: true
     
