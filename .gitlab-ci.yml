@@ -35,7 +35,7 @@ test-coverage:
   stage: tests
   tags:
     - redshift-kcov-rs-stable
-  image: registry.duniter.org/docker/rust/kcov:v0.0.3
+  image: registry.duniter.org/docker/rust/kcov:v0.0.4
   script:
     - cargo test --no-run
     - kcov --exclude-pattern ".cargo" --verify target/cov target/debug/duniter_wotb-*
