@@ -6,32 +6,14 @@ stages:
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
     
-build-rust-stable:
+build:stable:
   stage: builds
   tags:
     - redshift-rs-stable
   script:
     - cargo build
-    
-build-rust-beta:
-  stage: builds
-  tags:
-    - redshift-rs-beta
-  script:
-    - rustup update
-    - cargo build
-  allow_failure: true
-    
-build-rust-nightly:
-  stage: builds
-  tags:
-    - redshift-rs-nightly
-  script:
-    - rustup update
-    - cargo build
-  allow_failure: true
   
-test-coverage:
+tests:coverage:
   stage: tests
   tags:
     - redshift-kcov-rs-stable
@@ -43,14 +25,14 @@ test-coverage:
     - cat target/cov/index.json
   allow_failure: true
     
-test-rust-stable:
+tests:stable:
   stage: tests
   tags:
     - redshift-rs-stable
   script:
     - cargo test
     
-test-rust-beta:
+build_and_tests:beta:
   stage: tests
   tags:
     - redshift-rs-beta
@@ -60,7 +42,7 @@ test-rust-beta:
   when: manual
   allow_failure: true
     
-test-rust-nightly:
+build_and_tests:nightly:
   stage: tests
   tags:
     - redshift-rs-nightly
