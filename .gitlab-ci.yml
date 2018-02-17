@@ -6,22 +6,43 @@ stages:
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
     
-builds:
+build:stable:
   stage: builds
   tags:
-    - redshift-rs
+    - redshift-rs-stable
   script:
     - cargo build
     
-tests:
+tests:stable:
   stage: tests
   tags:
-    - redshift-rs
+    - redshift-rs-stable
   script:
     - cargo test
     
+build_and_tests:beta:
+  stage: tests
+  tags:
+    - redshift-rs-beta
+  script:
+    - rustup update
+    - cargo test
+  when: manual
+  allow_failure: true
+    
+build_and_tests:nightly:
+  stage: tests
+  tags:
+    - redshift-rs-nightly
+  script:
+    - rustup update
+    - cargo test
+  when: manual
+  allow_failure: true
+  
 fmt:
   stage: fmt
+  image: scorpil/rust:nightly-onbuild
   tags:
     - redshift-rs-nightly
   before_script:
@@ -29,3 +50,5 @@ fmt:
     - cargo install --force rustfmt-nightly
   script:
     - cargo fmt -- --write-mode=diff
+  allow_failure: true
+
