@@ -147,3 +147,15 @@ pub trait PrivateKey: Clone + Display + Debug + PartialEq + Eq + ToBase58 {
     /// Sign a message with this private key.
     fn sign(&self, message: &[u8]) -> Self::Signature;
 }
+
+/// Store a cryptographic key pair (`PublicKey` + `PrivateKey`)
+pub trait KeyPair: Clone + Display + Debug + PartialEq + Eq {
+    /// Signature type of associated cryptosystem.
+    type Signature: Signature;
+
+    /// Create a new KeyPair
+    fn new(password: &[u8], salt: &[u8]) -> Self;
+
+    /// Sign a message with privkey.
+    fn sign(&self, message: &[u8]) -> Self::Signature;
+}

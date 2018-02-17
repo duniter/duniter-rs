@@ -211,6 +211,45 @@ impl super::PrivateKey for PrivateKey {
     }
 }
 
+/// Store a ed25519 cryptographic key pair (`PublicKey` + `PrivateKey`)
+#[derive(Debug, Copy, Clone)]
+pub struct KeyPair {
+    /// Store a Ed25519 public key.
+    pub pubkey:PublicKey,
+    /// Store a Ed25519 private key.
+    privkey:PrivateKey,
+}
+
+impl Display for KeyPair {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "{}", self.pubkey.to_base58())
+    }
+}
+
+impl PartialEq<KeyPair> for KeyPair {
+    fn eq(&self, other: &KeyPair) -> bool {
+        self.pubkey.eq(&other.pubkey) && self.privkey.eq(&other.privkey)
+    }
+}
+
+impl Eq for KeyPair {}
+
+impl super::KeyPair for KeyPair {
+    type Signature = Signature;
+
+    fn new(password: &[u8], salt: &[u8]) -> KeyPair {
+        let generator = self::KeyPairGenerator::with_default_parameters();
+        let (privkey, pubkey) = generator.generate(password, salt);
+        KeyPair {
+            pubkey,
+            privkey
+        }
+    }
+    fn sign(&self, message: &[u8]) -> Signature {
+        Signature(crypto::ed25519::signature(message, &self.privkey.0))
+    }
+}
+
 /// Keypair generator with given parameters for `scrypt` keypair function.
 #[derive(Debug, Copy, Clone)]
 pub struct KeyPairGenerator {
@@ -264,7 +303,7 @@ impl KeyPairGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use {PrivateKey, PublicKey, Signature};
+    use {PrivateKey, PublicKey, Signature, KeyPair};
 
     #[test]
     fn base58_private_key() {
@@ -393,5 +432,21 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 
         assert_eq!(sig, expected_signature);
         assert!(pubkey.verify(message.as_bytes(), &sig));
+    }
+
+    #[test]
+    fn keypair_generate_sign_and_verify () {
+        let keypair = super::KeyPair::new("password".as_bytes(), "salt".as_bytes());
+
+        let message = "Version: 10
+Type: Identity
+Currency: duniter_unit_test_currency
+Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+UniqueID: tic
+Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+";
+
+        let sig = keypair.sign(message.as_bytes());
+        assert!(keypair.pubkey.verify(message.as_bytes(), &sig));
     }
 }
