@@ -217,7 +217,7 @@ pub struct KeyPair {
     /// Store a Ed25519 public key.
     pub pubkey:PublicKey,
     /// Store a Ed25519 private key.
-    privkey:PrivateKey,
+    pub privkey:PrivateKey,
 }
 
 impl Display for KeyPair {
@@ -236,14 +236,9 @@ impl Eq for KeyPair {}
 
 impl super::KeyPair for KeyPair {
     type Signature = Signature;
-
-    fn new(password: &[u8], salt: &[u8]) -> KeyPair {
+    fn from_passwd_and_salt(password: &[u8], salt: &[u8]) -> KeyPair {
         let generator = self::KeyPairGenerator::with_default_parameters();
-        let (privkey, pubkey) = generator.generate(password, salt);
-        KeyPair {
-            pubkey,
-            privkey
-        }
+        generator.generate(password, salt)
     }
     fn sign(&self, message: &[u8]) -> Signature {
         Signature(crypto::ed25519::signature(message, &self.privkey.0))
@@ -286,7 +281,7 @@ impl KeyPairGenerator {
     ///
     /// The [`PublicKey`](struct.PublicKey.html) will be able to verify messaged signed with
     /// the [`PrivateKey`](struct.PrivateKey.html).
-    pub fn generate(&self, password: &[u8], salt: &[u8]) -> (PrivateKey, PublicKey) {
+    pub fn generate(&self, password: &[u8], salt: &[u8]) -> KeyPair {
         let mut seed = [0u8; 32];
         crypto::scrypt::scrypt(
             password,
@@ -296,7 +291,10 @@ impl KeyPairGenerator {
         );
 
         let (private, public) = crypto::ed25519::keypair(&seed);
-        (PrivateKey(private), PublicKey(public))
+        KeyPair {
+            pubkey: PublicKey(public),
+            privkey: PrivateKey(private),
+        }
     }
 }
 
@@ -436,7 +434,7 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 
     #[test]
     fn keypair_generate_sign_and_verify () {
-        let keypair = super::KeyPair::new("password".as_bytes(), "salt".as_bytes());
+        let keypair = super::KeyPair::from_passwd_and_salt("password".as_bytes(), "salt".as_bytes());
 
         let message = "Version: 10
 Type: Identity
