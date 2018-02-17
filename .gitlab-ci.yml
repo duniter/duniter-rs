@@ -42,11 +42,11 @@ build_and_tests:nightly:
   
 fmt:
   stage: fmt
+  image: scorpil/rust/nightly-onbuild
   tags:
     - redshift-rs-nightly
   before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
-    - rustup update
     - cargo install --force rustfmt-nightly
   script:
     - cargo fmt -- --write-mode=diff
