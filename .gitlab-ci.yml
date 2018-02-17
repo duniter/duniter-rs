@@ -42,7 +42,7 @@ build_and_tests:nightly:
   
 fmt:
   stage: fmt
-  image: scorpil/rust/nightly-onbuild
+  image: scorpil/rust:nightly-onbuild
   tags:
     - redshift-rs-nightly
   before_script:
