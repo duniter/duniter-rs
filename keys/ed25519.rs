@@ -29,7 +29,7 @@ use base64;
 use base64::DecodeError;
 use crypto;
 
-use super::BaseConvertionError;
+use super::{BaseConvertionError, PrivateKey as PrivateKeyMethods};
 
 /// Store a ed25519 signature.
 #[derive(Clone, Copy)]
@@ -215,9 +215,9 @@ impl super::PrivateKey for PrivateKey {
 #[derive(Debug, Copy, Clone)]
 pub struct KeyPair {
     /// Store a Ed25519 public key.
-    pub pubkey:PublicKey,
+    pub pubkey: PublicKey,
     /// Store a Ed25519 private key.
-    pub privkey:PrivateKey,
+    pub privkey: PrivateKey,
 }
 
 impl Display for KeyPair {
@@ -236,18 +236,14 @@ impl Eq for KeyPair {}
 
 impl super::KeyPair for KeyPair {
     type Signature = Signature;
-    fn from_passwd_and_salt(password: &[u8], salt: &[u8]) -> KeyPair {
-        let generator = self::KeyPairGenerator::with_default_parameters();
-        generator.generate(password, salt)
-    }
     fn sign(&self, message: &[u8]) -> Signature {
-        Signature(crypto::ed25519::signature(message, &self.privkey.0))
+        self.privkey.sign(message)
     }
 }
 
 /// Keypair generator with given parameters for `scrypt` keypair function.
 #[derive(Debug, Copy, Clone)]
-pub struct KeyPairGenerator {
+pub struct KeyPairFromSaltedPasswordGenerator {
     /// The log2 of the Scrypt parameter `N`.
     log_n: u8,
     /// The Scrypt parameter `r`
@@ -256,25 +252,25 @@ pub struct KeyPairGenerator {
     p: u32,
 }
 
-impl KeyPairGenerator {
+impl KeyPairFromSaltedPasswordGenerator {
     /// Create a `KeyPairGenerator` with default arguments `(log_n: 12, r: 16, p: 1)`
-    pub fn with_default_parameters() -> KeyPairGenerator {
-        KeyPairGenerator {
+    pub fn with_default_parameters() -> KeyPairFromSaltedPasswordGenerator {
+        KeyPairFromSaltedPasswordGenerator {
             log_n: 12,
             r: 16,
             p: 1,
         }
     }
 
-    /// Create a `KeyPairGenerator` with given arguments.
+    /// Create a `KeyPairFromSaltedPasswordGenerator` with given arguments.
     ///
     /// # Arguments
     ///
     /// - log_n - The log2 of the Scrypt parameter N
     /// - r - The Scrypt parameter r
     /// - p - The Scrypt parameter p
-    pub fn with_parameters(log_n: u8, r: u32, p: u32) -> KeyPairGenerator {
-        KeyPairGenerator { log_n, r, p }
+    pub fn with_parameters(log_n: u8, r: u32, p: u32) -> KeyPairFromSaltedPasswordGenerator {
+        KeyPairFromSaltedPasswordGenerator { log_n, r, p }
     }
 
     /// Create a keypair based on a given password and salt.
@@ -301,7 +297,7 @@ impl KeyPairGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use {PrivateKey, PublicKey, Signature, KeyPair};
+    use {KeyPair, PrivateKey, PublicKey, Signature};
 
     #[test]
     fn base58_private_key() {
@@ -433,8 +429,9 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
     }
 
     #[test]
-    fn keypair_generate_sign_and_verify () {
-        let keypair = super::KeyPair::from_passwd_and_salt("password".as_bytes(), "salt".as_bytes());
+    fn keypair_generate_sign_and_verify() {
+        let keypair = KeyPairFromSaltedPasswordGenerator::with_default_parameters()
+            .generate("password".as_bytes(), "salt".as_bytes());
 
         let message = "Version: 10
 Type: Identity

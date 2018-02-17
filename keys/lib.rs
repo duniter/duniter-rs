@@ -22,9 +22,9 @@
 //!
 //! ```
 //! use duniter_keys::{Signature, PublicKey, PrivateKey, KeyPair};
-//! use duniter_keys::ed25519::KeyPairGenerator;
+//! use duniter_keys::ed25519::KeyPairFromSaltedPasswordGenerator;
 //!
-//! let generator = KeyPairGenerator::with_default_parameters();
+//! let generator = KeyPairFromSaltedPasswordGenerator::with_default_parameters();
 //!
 //! let keypair = generator.generate(
 //!     b"password",
@@ -152,9 +152,6 @@ pub trait PrivateKey: Clone + Display + Debug + PartialEq + Eq + ToBase58 {
 pub trait KeyPair: Clone + Display + Debug + PartialEq + Eq {
     /// Signature type of associated cryptosystem.
     type Signature: Signature;
-
-    /// Generate a new KeyPair from passwd and salt
-    fn from_passwd_and_salt(password: &[u8], salt: &[u8]) -> Self;
 
     /// Sign a message with privkey.
     fn sign(&self, message: &[u8]) -> Self::Signature;
