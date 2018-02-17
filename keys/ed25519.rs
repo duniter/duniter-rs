@@ -236,8 +236,19 @@ impl Eq for KeyPair {}
 
 impl super::KeyPair for KeyPair {
     type Signature = Signature;
+    type PublicKey = PublicKey;
+    type PrivateKey = PrivateKey;
+
+    fn public_key(&self) -> PublicKey {
+        self.pubkey
+    }
+
+    fn private_key(&self) -> PrivateKey {
+        self.privkey
+    }
+
     fn sign(&self, message: &[u8]) -> Signature {
-        self.privkey.sign(message)
+        self.private_key().sign(message)
     }
 }
 

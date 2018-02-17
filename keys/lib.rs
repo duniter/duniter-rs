@@ -152,6 +152,16 @@ pub trait PrivateKey: Clone + Display + Debug + PartialEq + Eq + ToBase58 {
 pub trait KeyPair: Clone + Display + Debug + PartialEq + Eq {
     /// Signature type of associated cryptosystem.
     type Signature: Signature;
+    /// PublicKey type of associated cryptosystem.
+    type PublicKey: PublicKey;
+    /// PrivateKey type of associated cryptosystem.
+    type PrivateKey: PrivateKey;
+
+    /// Get `PublicKey`
+    fn public_key(&self) -> Self::PublicKey;
+
+    /// Get `PrivateKey`
+    fn private_key(&self) -> Self::PrivateKey;
 
     /// Sign a message with privkey.
     fn sign(&self, message: &[u8]) -> Self::Signature;
