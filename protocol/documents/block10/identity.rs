@@ -15,15 +15,13 @@
 
 //! Wrappers around Identity documents.
 
-use duniter_keys::{ed25519, PublicKey};
+use duniter_keys::{PublicKey, ed25519};
 use regex::Regex;
 
 use Blockstamp;
 use documents::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
 use documents::block10::{StandardTextDocumentParser, TextDocument, TextDocumentBuilder,
                          V10Document, V10DocumentParsingError};
-
-
 
 lazy_static! {
     static ref IDENTITY_REGEX: Regex = Regex::new(
@@ -104,24 +102,12 @@ pub struct IdentityDocumentBuilder<'a> {
     pub issuer: &'a ed25519::PublicKey,
 }
 
-impl<'a> DocumentBuilder for IdentityDocumentBuilder<'a> {
-    type Document = IdentityDocument;
-    type PrivateKey = ed25519::PrivateKey;
-
-    fn build_with_signature(self, signatures: Vec<ed25519::Signature>) -> IdentityDocument {
-        IdentityDocument {
-            text: self.generate_text(),
-            currency: self.currency.to_string(),
-            unique_id: self.unique_id.to_string(),
-            blockstamp: *self.blockstamp,
-            issuers: vec![*self.issuer],
-            signatures,
-        }
-    }
-
-    fn build_and_sign(self, private_keys: Vec<ed25519::PrivateKey>) -> IdentityDocument {
-        let (text, signatures) = self.build_signed_text(private_keys);
-
+impl<'a> IdentityDocumentBuilder<'a> {
+    fn build_with_text_and_sigs(
+        self,
+        text: String,
+        signatures: Vec<ed25519::Signature>,
+    ) -> IdentityDocument {
         IdentityDocument {
             text: text,
             currency: self.currency.to_string(),
@@ -130,6 +116,20 @@ impl<'a> DocumentBuilder for IdentityDocumentBuilder<'a> {
             issuers: vec![*self.issuer],
             signatures,
         }
+    }
+}
+
+impl<'a> DocumentBuilder for IdentityDocumentBuilder<'a> {
+    type Document = IdentityDocument;
+    type PrivateKey = ed25519::PrivateKey;
+
+    fn build_with_signature(self, signatures: Vec<ed25519::Signature>) -> IdentityDocument {
+        self.build_with_text_and_sigs(self.generate_text(), signatures)
+    }
+
+    fn build_and_sign(self, private_keys: Vec<ed25519::PrivateKey>) -> IdentityDocument {
+        let (text, signatures) = self.build_signed_text(private_keys);
+        self.build_with_text_and_sigs(text, signatures)
     }
 }
 
@@ -171,14 +171,14 @@ impl StandardTextDocumentParser for IdentityDocumentParser {
             // TODO : Test it anyway
             let issuer = ed25519::PublicKey::from_base58(issuer).unwrap();
             let blockstamp = Blockstamp::from_string(blockstamp).unwrap();
-            
-            Ok(V10Document::Identity( IdentityDocument {
+
+            Ok(V10Document::Identity(IdentityDocument {
                 text: doc.to_owned(),
                 currency: currency.to_owned(),
                 unique_id: uid.to_owned(),
                 blockstamp: blockstamp,
                 issuers: vec![issuer],
-                signatures
+                signatures,
             }))
         } else {
             Err(V10DocumentParsingError::InvalidInnerFormat(
