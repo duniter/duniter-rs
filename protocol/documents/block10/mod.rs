@@ -92,6 +92,7 @@ pub trait TextDocumentBuilder: DocumentBuilder {
     /// Generate final document with signatures, and also return them in an array.
     ///
     /// Returns :
+    ///
     /// - Text without signatures
     /// - Signatures
     fn build_signed_text(
