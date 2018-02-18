@@ -32,17 +32,17 @@ build_and_tests:beta:
     
 build_and_tests:nightly:
   stage: tests
+  image: rustlang/rust:nightly
   tags:
     - redshift-rs-nightly
   script:
-    - rustup update
     - cargo test
   when: manual
   allow_failure: true
   
 fmt:
   stage: fmt
-  image: scorpil/rust:nightly-onbuild
+  image: rustlang/rust:nightly
   tags:
     - redshift-rs-nightly
   before_script:
