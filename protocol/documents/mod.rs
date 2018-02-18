@@ -39,12 +39,14 @@ pub enum BlockchainProtocol {
 pub trait Document: Debug {
     /// Type of the `PublicKey` used by the document.
     type PublicKey: PublicKey;
+    /// Data type of the currency code used by the document.
+    type CurrencyType: ?Sized;
 
     /// Get document version.
     fn version(&self) -> u16;
 
     /// Get document currency.
-    fn currency(&self) -> &str;
+    fn currency(&self) -> &Self::CurrencyType;
 
     /// Iterate over document issuers.
     fn issuers(&self) -> &Vec<Self::PublicKey>;
@@ -148,6 +150,7 @@ mod tests {
 
     impl Document for PlainTextDocument {
         type PublicKey = ed25519::PublicKey;
+        type CurrencyType = str;
 
         fn version(&self) -> u16 {
             unimplemented!()

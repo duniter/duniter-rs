@@ -55,6 +55,7 @@ pub struct IdentityDocument {
 
 impl Document for IdentityDocument {
     type PublicKey = ed25519::PublicKey;
+    type CurrencyType = str;
 
     fn version(&self) -> u16 {
         10
