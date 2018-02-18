@@ -13,19 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Provide wrappers around Duniter documents.
+//! Provide wrappers around Duniter documents and events.
 
 use std::fmt::Debug;
 
 use duniter_keys::{PrivateKey, PublicKey};
 
-pub mod block10;
+pub mod v10;
 
 /// List of blockchain protocol versions.
 #[derive(Debug)]
 pub enum BlockchainProtocol {
     /// Version 10.
-    V10(block10::V10Document),
+    V10(v10::documents::V10Document),
     /// Version 11. (not done yet, but defined for tests)
     V11(),
 }

@@ -32,7 +32,7 @@ use std::fmt::{Debug, Display, Error, Formatter};
 
 use duniter_keys::BaseConvertionError;
 
-pub mod documents;
+pub mod blockchain;
 
 /// A block Id.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

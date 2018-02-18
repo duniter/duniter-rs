@@ -17,12 +17,12 @@
 
 use duniter_keys::{Signature, ed25519};
 use regex::Regex;
-use documents::{Document, DocumentBuilder, DocumentParser};
-use documents::block10::identity::IdentityDocumentParser;
+use blockchain::{Document, DocumentBuilder, DocumentParser};
+use blockchain::v10::documents::identity::IdentityDocumentParser;
 
 pub mod identity;
 
-pub use documents::block10::identity::{IdentityDocument, IdentityDocumentBuilder};
+pub use blockchain::v10::documents::identity::{IdentityDocument, IdentityDocumentBuilder};
 
 // Use of lazy_static so the regex is only compiled at first use.
 lazy_static! {

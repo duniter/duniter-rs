@@ -19,9 +19,9 @@ use duniter_keys::{PublicKey, ed25519};
 use regex::Regex;
 
 use Blockstamp;
-use documents::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
-use documents::block10::{StandardTextDocumentParser, TextDocument, TextDocumentBuilder,
-                         V10Document, V10DocumentParsingError};
+use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
+use blockchain::v10::documents::{StandardTextDocumentParser, TextDocument, TextDocumentBuilder,
+                                 V10Document, V10DocumentParsingError};
 
 lazy_static! {
     static ref IDENTITY_REGEX: Regex = Regex::new(
@@ -193,7 +193,7 @@ impl StandardTextDocumentParser for IdentityDocumentParser {
 mod tests {
     use super::*;
     use duniter_keys::{PrivateKey, PublicKey, Signature};
-    use documents::VerificationResult;
+    use blockchain::VerificationResult;
 
     #[test]
     fn generate_real_document() {
