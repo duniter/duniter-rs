@@ -163,6 +163,9 @@ pub trait KeyPair: Clone + Display + Debug + PartialEq + Eq {
     /// Get `PrivateKey`
     fn private_key(&self) -> Self::PrivateKey;
 
-    /// Sign a message with privkey.
+    /// Sign a message with private key.
     fn sign(&self, message: &[u8]) -> Self::Signature;
+
+    /// Verify a signature with public key.
+    fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool;
 }

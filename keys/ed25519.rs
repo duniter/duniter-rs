@@ -29,7 +29,7 @@ use base64;
 use base64::DecodeError;
 use crypto;
 
-use super::{BaseConvertionError, PrivateKey as PrivateKeyMethods};
+use super::{BaseConvertionError, PrivateKey as PrivateKeyMethods, PublicKey as PublicKeyMethods};
 
 /// Store a ed25519 signature.
 #[derive(Clone, Copy)]
@@ -250,6 +250,10 @@ impl super::KeyPair for KeyPair {
     fn sign(&self, message: &[u8]) -> Signature {
         self.private_key().sign(message)
     }
+
+    fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool {
+        self.public_key().verify(message, signature)
+    }
 }
 
 /// Keypair generator with given parameters for `scrypt` keypair function.
@@ -453,6 +457,6 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 ";
 
         let sig = keypair.sign(message.as_bytes());
-        assert!(keypair.pubkey.verify(message.as_bytes(), &sig));
+        assert!(keypair.verify(message.as_bytes(), &sig));
     }
 }
