@@ -1,6 +1,7 @@
 stages:
     - builds
     - tests
+    - clippy
     - fmt
     
 before_script:
@@ -40,6 +41,18 @@ build_and_tests:nightly:
   when: manual
   allow_failure: true
   
+clippy:
+  stage: clippy
+  image: rustlang/rust:nightly
+  tags:
+    - redshift-rs-nightly
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - cargo install --force clippy
+  script:
+    - cargo clippy --all
+  allow_failure: true
+  
 fmt:
   stage: fmt
   image: rustlang/rust:nightly
@@ -51,4 +64,3 @@ fmt:
   script:
     - cargo fmt -- --write-mode=diff
   allow_failure: true
-
