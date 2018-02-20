@@ -21,21 +21,21 @@
 //! # Usage
 //!
 //! ```
-//! use duniter_keys::{Signature, PublicKey, PrivateKey};
-//! use duniter_keys::ed25519::KeyPairGenerator;
+//! use duniter_keys::{Signature, PublicKey, PrivateKey, KeyPair};
+//! use duniter_keys::ed25519::KeyPairFromSaltedPasswordGenerator;
 //!
-//! let generator = KeyPairGenerator::with_default_parameters();
+//! let generator = KeyPairFromSaltedPasswordGenerator::with_default_parameters();
 //!
-//! let (private_key, public_key) = generator.generate(
+//! let keypair = generator.generate(
 //!     b"password",
 //!     b"salt"
 //! );
 //!
 //! let message = "Hello, world!";
 //!
-//! let signature = private_key.sign(&message.as_bytes());
+//! let signature = keypair.sign(&message.as_bytes());
 //!
-//! assert!(public_key.verify(&message.as_bytes(), &signature));
+//! assert!(keypair.pubkey.verify(&message.as_bytes(), &signature));
 //! ```
 //!
 //! # Format
@@ -146,4 +146,26 @@ pub trait PrivateKey: Clone + Display + Debug + PartialEq + Eq + ToBase58 {
 
     /// Sign a message with this private key.
     fn sign(&self, message: &[u8]) -> Self::Signature;
+}
+
+/// Store a cryptographic key pair (`PublicKey` + `PrivateKey`)
+pub trait KeyPair: Clone + Display + Debug + PartialEq + Eq {
+    /// Signature type of associated cryptosystem.
+    type Signature: Signature;
+    /// PublicKey type of associated cryptosystem.
+    type PublicKey: PublicKey;
+    /// PrivateKey type of associated cryptosystem.
+    type PrivateKey: PrivateKey;
+
+    /// Get `PublicKey`
+    fn public_key(&self) -> Self::PublicKey;
+
+    /// Get `PrivateKey`
+    fn private_key(&self) -> Self::PrivateKey;
+
+    /// Sign a message with private key.
+    fn sign(&self, message: &[u8]) -> Self::Signature;
+
+    /// Verify a signature with public key.
+    fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool;
 }

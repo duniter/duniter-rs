@@ -29,7 +29,7 @@ use base64;
 use base64::DecodeError;
 use crypto;
 
-use super::BaseConvertionError;
+use super::{BaseConvertionError, PrivateKey as PrivateKeyMethods, PublicKey as PublicKeyMethods};
 
 /// Store a ed25519 signature.
 #[derive(Clone, Copy)]
@@ -211,9 +211,54 @@ impl super::PrivateKey for PrivateKey {
     }
 }
 
+/// Store a ed25519 cryptographic key pair (`PublicKey` + `PrivateKey`)
+#[derive(Debug, Copy, Clone)]
+pub struct KeyPair {
+    /// Store a Ed25519 public key.
+    pub pubkey: PublicKey,
+    /// Store a Ed25519 private key.
+    pub privkey: PrivateKey,
+}
+
+impl Display for KeyPair {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "({}, hidden)", self.pubkey.to_base58())
+    }
+}
+
+impl PartialEq<KeyPair> for KeyPair {
+    fn eq(&self, other: &KeyPair) -> bool {
+        self.pubkey.eq(&other.pubkey) && self.privkey.eq(&other.privkey)
+    }
+}
+
+impl Eq for KeyPair {}
+
+impl super::KeyPair for KeyPair {
+    type Signature = Signature;
+    type PublicKey = PublicKey;
+    type PrivateKey = PrivateKey;
+
+    fn public_key(&self) -> PublicKey {
+        self.pubkey
+    }
+
+    fn private_key(&self) -> PrivateKey {
+        self.privkey
+    }
+
+    fn sign(&self, message: &[u8]) -> Signature {
+        self.private_key().sign(message)
+    }
+
+    fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool {
+        self.public_key().verify(message, signature)
+    }
+}
+
 /// Keypair generator with given parameters for `scrypt` keypair function.
 #[derive(Debug, Copy, Clone)]
-pub struct KeyPairGenerator {
+pub struct KeyPairFromSaltedPasswordGenerator {
     /// The log2 of the Scrypt parameter `N`.
     log_n: u8,
     /// The Scrypt parameter `r`
@@ -222,32 +267,32 @@ pub struct KeyPairGenerator {
     p: u32,
 }
 
-impl KeyPairGenerator {
+impl KeyPairFromSaltedPasswordGenerator {
     /// Create a `KeyPairGenerator` with default arguments `(log_n: 12, r: 16, p: 1)`
-    pub fn with_default_parameters() -> KeyPairGenerator {
-        KeyPairGenerator {
+    pub fn with_default_parameters() -> KeyPairFromSaltedPasswordGenerator {
+        KeyPairFromSaltedPasswordGenerator {
             log_n: 12,
             r: 16,
             p: 1,
         }
     }
 
-    /// Create a `KeyPairGenerator` with given arguments.
+    /// Create a `KeyPairFromSaltedPasswordGenerator` with given arguments.
     ///
     /// # Arguments
     ///
     /// - log_n - The log2 of the Scrypt parameter N
     /// - r - The Scrypt parameter r
     /// - p - The Scrypt parameter p
-    pub fn with_parameters(log_n: u8, r: u32, p: u32) -> KeyPairGenerator {
-        KeyPairGenerator { log_n, r, p }
+    pub fn with_parameters(log_n: u8, r: u32, p: u32) -> KeyPairFromSaltedPasswordGenerator {
+        KeyPairFromSaltedPasswordGenerator { log_n, r, p }
     }
 
     /// Create a keypair based on a given password and salt.
     ///
     /// The [`PublicKey`](struct.PublicKey.html) will be able to verify messaged signed with
     /// the [`PrivateKey`](struct.PrivateKey.html).
-    pub fn generate(&self, password: &[u8], salt: &[u8]) -> (PrivateKey, PublicKey) {
+    pub fn generate(&self, password: &[u8], salt: &[u8]) -> KeyPair {
         let mut seed = [0u8; 32];
         crypto::scrypt::scrypt(
             password,
@@ -257,14 +302,17 @@ impl KeyPairGenerator {
         );
 
         let (private, public) = crypto::ed25519::keypair(&seed);
-        (PrivateKey(private), PublicKey(public))
+        KeyPair {
+            pubkey: PublicKey(public),
+            privkey: PrivateKey(private),
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use {PrivateKey, PublicKey, Signature};
+    use {KeyPair, Signature};
 
     #[test]
     fn base58_private_key() {
@@ -393,5 +441,22 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 
         assert_eq!(sig, expected_signature);
         assert!(pubkey.verify(message.as_bytes(), &sig));
+    }
+
+    #[test]
+    fn keypair_generate_sign_and_verify() {
+        let keypair = KeyPairFromSaltedPasswordGenerator::with_default_parameters()
+            .generate("password".as_bytes(), "salt".as_bytes());
+
+        let message = "Version: 10
+Type: Identity
+Currency: duniter_unit_test_currency
+Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+UniqueID: tic
+Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+";
+
+        let sig = keypair.sign(message.as_bytes());
+        assert!(keypair.verify(message.as_bytes(), &sig));
     }
 }
