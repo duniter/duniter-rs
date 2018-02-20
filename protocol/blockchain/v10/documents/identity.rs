@@ -31,8 +31,7 @@ lazy_static! {
 
 /// Wrap an Identity document.
 ///
-/// Must be created by parsing a text document (not done yet)
-/// or using a builder (not done yet).
+/// Must be created by parsing a text document or using a builder.
 #[derive(Debug, Clone)]
 pub struct IdentityDocument {
     /// Document as text.
