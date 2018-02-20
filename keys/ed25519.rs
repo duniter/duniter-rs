@@ -222,7 +222,7 @@ pub struct KeyPair {
 
 impl Display for KeyPair {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "{}", self.pubkey.to_base58())
+        write!(f, "({}, hidden)", self.pubkey.to_base58())
     }
 }
 
