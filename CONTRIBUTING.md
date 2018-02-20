@@ -1,6 +1,7 @@
 # Contributing
 
-When contributing to this repository, please first discuss the change you wish to make via issue and via the forum https://forum.duniter.org before making a change.
+When contributing to this repository, please first discuss the change you wish to make via issue and
+via the [forum](https://forum.duniter.org) before making a change.
 
 Please note we have a specific workflow, please follow it in all your interactions with the project.
 
