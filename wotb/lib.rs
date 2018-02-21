@@ -71,6 +71,30 @@ pub enum RemLinkResult {
     UnknownTarget(),
 }
 
+/// Results of a certification test.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum HasLinkResult {
+    /// Both nodes are known, here is the result.
+    Link(bool),
+    /// Unknown source.
+    UnknownSource(),
+    /// Unknown target.
+    UnknownTarget(),
+}
+
+/// Paramters for WoT distance calculations
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct WotDistanceParameters {
+    /// Node from where distances are calculated.
+    pub node: NodeId,
+    /// Links count received AND issued to be a sentry.
+    pub sentry_requirement: u32,
+    /// Currency parameter.
+    pub step_max: u32,
+    /// Currency parameter.
+    pub x_percent: f64,
+}
+
 /// Results of `WebOfTrust::compute_distance`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct WotDistance {
@@ -82,4 +106,73 @@ pub struct WotDistance {
     pub reached: u32,
     /// Is the node outdistanced ?
     pub outdistanced: bool,
+}
+
+/// Trait for a WebOfTrust.
+/// Allow to provide other implementations of the WebOfTrust logic instead of the legacy C++
+/// translated one.
+pub trait WebOfTrust {  
+    /// Get the maximum number of links per user.
+    fn get_max_link(&self) -> usize;
+
+    /// Set the maximum number of links per user.
+    fn set_max_link(&mut self, max_link: usize);
+
+    /// Add a new node.
+    fn add_node(&mut self) -> NodeId;
+
+    /// Remove the last node.
+    /// Returns `None` if the WoT was empty.
+    fn rem_node(&mut self) -> Option<NodeId>;
+
+    /// Get the size of the WoT.
+    fn size(&self) -> usize;
+
+    /// Check if given node is enabled.
+    /// Returns `None` if this node doesn't exist. 
+    fn is_enabled(&self, id: NodeId) -> Option<bool>;    
+
+    /// Set if given node is enabled.
+    /// Returns `Null` if this node doesn't exist, `enabled` otherwise.
+    fn set_enabled(&mut self, id: NodeId, enabled: bool) -> Option<bool>;
+
+    /// Get enabled node array.
+    fn get_enabled(&self) -> Vec<NodeId>;
+
+    /// Get disabled node array.
+    fn get_disabled(&self) -> Vec<NodeId>;
+
+    /// Try to add a link from the source to the target.
+    fn add_link(&mut self, source: NodeId, target: NodeId) -> NewLinkResult;
+
+    /// Try to remove a link from the source to the target.
+    fn rem_link(&mut self, source: NodeId, target: NodeId) -> RemLinkResult;
+
+    /// Test if there is a link from the source to the target.
+    fn has_link(&self, source: NodeId, target: NodeId) -> HasLinkResult;
+
+    /// Get the list of links source for this target.
+    /// Returns `None` if this node doesn't exist.
+    fn get_links_source(&self, target: NodeId) -> Option<Vec<NodeId>>;
+
+    /// Get the number of issued links by a node.
+    /// Returns `None` if this node doesn't exist.
+    fn issued_count(&mut self, id: NodeId) -> Option<usize>;
+
+     /// Get sentries array.
+    fn get_sentries(&self, sentry_requirement: usize) -> Vec<NodeId>;
+
+    /// Get non sentries array.
+    fn get_non_sentries(&self, sentry_requirement: usize) -> Vec<NodeId>;
+      
+    /// Get paths from one node to the other.
+    fn get_paths(&self, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>>;
+
+    /// Compute distance between a node and the network.
+    /// Returns `None` if this node doesn't exist.
+    fn compute_distance(&self, params: WotDistanceParameters) -> Option<WotDistance>;
+
+    /// Test if a node is outdistanced in the network.
+    /// Returns `Node` if this node doesn't exist.
+    fn is_outdistanced(&self, params: WotDistanceParameters) -> Option<bool>;
 }
