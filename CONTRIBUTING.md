@@ -12,96 +12,93 @@ Please note we have a specific workflow, please follow it in all your interactio
   **`Create a merge request`**. GitLab will create a branch dedicated to the issue as well as a
   *Work in Progress* merge request of this branch into the main branch (`dev`).
 - Please use tags to specify feature domains and concerned crates.
-- Never contribute to a branch whose issue has not been assigned to you! If the contributor make a 
+- Never contribute to a branch whose issue has not been assigned to you! If the contributor make a
   `git rebase` your commit will be lost !
-- Before you push your commit: 
-  1.  Apply `rustfmt`. Only formatted code will be accepted, and gitlab-ci will make sure it is ok.
-      Some exceptions are accepted such as long raw strings. 
+- Use `rustfmt`. Only formatted code will be accepted, and gitlab-ci will make sure it is ok.
+    Some exceptions are accepted such as long raw strings.
 
-      `rustfmt` is a tool applying Rust idiomatic code style to your files automatically.
+    `rustfmt` is a tool applying Rust idiomatic code style to your files automatically.
 
-      If you're using rust 1.24 or greater :
+    If you're using rust 1.24 or greater :
 
-      ```bash
-      # Install rustfmt through rustup
-      rustup component add rustfmt
-      # Run rustfmt
-      cargo fmt
-      ```
+    ```bash
+    # Install rustfmt through rustup
+    rustup component add rustfmt
+    # Run rustfmt
+    cargo fmt
+    ```
 
-      If you're using rust 1.23 or lower :
+    If you're using rust 1.23 or lower :
 
-      ```bash
-      # Install nightly toolchain
-      rustup install nightly
-      # Install rustfmt through cargo
-      cargo +nightly install rustfmt
-      # Run rustfmt
-      cargo +nightly fmt
-      ```
+    ```bash
+    # Install nightly toolchain
+    rustup install nightly
+    # Install rustfmt through cargo
+    cargo +nightly install rustfmt
+    # Run rustfmt
+    cargo +nightly fmt
+    ```
 
-      > If you switch from 1.23 to 1.24, uninstall `rustfmt` from cargo and install it back with
-      > `rustup`
+    > If you switch from 1.23 to 1.24, uninstall `rustfmt` from cargo and install it back with
+    > `rustup`
 
-  1.  Use `clippy`.
+- Use `clippy`.
 
-      `clippy` is a linting tool scanning your code to find common mistakes or bad code.
+    `clippy` is a linting tool scanning your code to find common mistakes or bad code.
 
-      Currenctly `clippy` is only available on the `nigthly` toolchain.
+    Currenctly `clippy` is only available on the `nigthly` toolchain.
 
-      ```bash
-      # Install nightly toolchain
-      rustup install nightly
-      # Install clippy through cargo
-      cargo +nightly install clippy
-      # Run clippy
-      cargo +nightly clippy
-      ```
-  
-  1.  Document your code and avoid any unsafe feature.
+    ```bash
+    # Install nightly toolchain
+    rustup install nightly
+    # Install clippy through cargo
+    cargo +nightly install clippy
+    # Run clippy
+    cargo +nightly clippy
+    ```
 
-      Each create should contain in its root file
+- Add documentation in your code and avoid any unsafe feature.
 
-      ```rust
-      #![deny(missing_docs, missing_debug_implementations, missing_copy_implementations,
-        trivial_casts, trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
-        unused_qualifications)]
-      ```
+    Each create should contain in its root file
 
-      It forces you to write documentation for any public code and prevent you from using unstable
-      or unsafe code.
+    ```rust
+    #![deny(missing_docs, missing_debug_implementations, missing_copy_implementations,
+    trivial_casts, trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+    unused_qualifications)]
+    ```
 
-  1.  Write unit tests, and verify that they **all** pass.
-  1.  Made a git rebase to make your history clean.
+    It forces you to write documentation for any public code and prevent you from using unstable
+    or unsafe code.
 
-      ```bash
-      # Make an alias
-      git config --global alias.tidy "rebase -i @{upstream}"
-      # Rebase your last commits since last push
-      git tidy
-      ```
+- Write unit tests, and verify that they **all** pass.
+- Use git rebase to make your history clean.
+
+    ```bash
+    # Make an alias
+    git config --global alias.tidy "rebase -i @{upstream}"
+    # Rebase your last commits since last push
+    git tidy
+    ```
 
 ## Merge Process
 
-1.  Ensure any install or build dependencies are removed before the end of the layer when doing a 
-    build.
+- Ensure any install or build dependencies are removed before the end of the layer when doing a
+  build.
+- Ensure you rebased your branch on the latest `dev` commit to avoid any merge conflicts.
+- Update the README.md with details of changes to the interface, this includes new environment
+  variables, exposed ports, useful file locations and container parameters.
 
-1.  Ensure you rebased your branch on the latest `dev` commit to avoid any merge conflicts.
-
-1.  Update the README.md with details of changes to the interface, this includes new environment 
-    variables, exposed ports, useful file locations and container parameters.
-
-1.  Increase the version numbers in any examples files and the README.md to the new version that this
+- Increase the version numbers in any examples files and the README.md to the new version that this
     Pull Request would represent. The versioning scheme we use is [SemVer](http://semver.org/) :
 
     If the create is in developement stage, its format is 0.X.Y. In production stage, it's X.Y.Z.
 
-    - When a API breaking change is made, X must be incremented.
-    - If new features are added without breaking the API, Y must be incremented.
-    - If the change is a quick fix of a production version, Z is incremented.
+  - When a API breaking change is made, X must be incremented.
+  - If new features are added without breaking the API, Y must be incremented.
+  - If the change is a quick fix of a production version, Z is incremented.
 
     Your crate should always start with 0.1.0 version and only pass in 1.0.0 when no big changes are
     planned. There is no need to rush a 1.0.0, take your time :)
 
-1.  You may merge the Merge Request in once you have the sign-off of two other developers. If you 
-    do not have permission to do that, you may request the second reviewer to merge it for you.
+- You may merge the Merge Request in once you have the sign-off of two other developers. If you
+  do not have permission to do that, you may request the second reviewer to merge it for you.
