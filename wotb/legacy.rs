@@ -16,6 +16,7 @@
 //! Provide a legacy implementation of WoT storage and calculations.
 //! Its mostly translated directly from the original C++ code.
 
+use WotDistance;
 use std::collections::HashSet;
 use std::collections::hash_set::Iter;
 use std::rc::Rc;
@@ -23,7 +24,13 @@ use std::fs::File;
 use std::io::prelude::*;
 
 use bincode::{deserialize, serialize, Infinite};
-use super::{NodeId, NewLinkResult, RemLinkResult, WotDistance};
+
+use HasLinkResult;
+use WotDistanceParameters;
+use WebOfTrust;
+use RemLinkResult;
+use NewLinkResult;
+use NodeId;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Node {
@@ -165,25 +172,6 @@ impl LegacyWebOfTrust {
         }
     }
 
-    /// Add a new node.
-    pub fn add_node(&mut self) -> NodeId {
-        let node_id = self.nodes.len();
-        self.nodes.push(Node::new(node_id));
-
-        NodeId(node_id)
-    }
-
-    /// Remove given node if it exits.
-    pub fn remove_node(&mut self) -> Option<NodeId> {
-        self.nodes.pop();
-
-        if !self.nodes.is_empty() {
-            Some(NodeId(self.nodes.iter().len() - 1))
-        } else {
-            None
-        }
-    }
-
     fn check_matches(&self, node: NodeId, d: u32, d_max: u32, mut checked: Vec<bool>) -> Vec<bool> {
         let mut linked_nodes = Vec::new();
 
@@ -199,78 +187,6 @@ impl LegacyWebOfTrust {
         }
 
         checked
-    }
-
-    /// Compute distance between a node and the network.
-    pub fn compute_distance(
-        &self,
-        member: NodeId,
-        d_min: u32,
-        k_max: u32,
-        x_percent: f64,
-    ) -> WotDistance {
-        let d_min = d_min as usize;
-
-        let mut result = WotDistance {
-            sentries: 0,
-            success: 0,
-            reached: 0,
-            outdistanced: false,
-        };
-
-        let mut sentries: Vec<bool> = self.nodes
-            .iter()
-            .map(|x| x.enabled && x.issued_count() >= d_min && x.links_iter().count() >= d_min)
-            .collect();
-        sentries[member.0] = false;
-
-        let mut checked: Vec<bool> = self.nodes.iter().map(|_| false).collect();
-
-        if k_max >= 1 {
-            checked = self.check_matches(member, 1, k_max, checked);
-        }
-
-        for (&sentry, &check) in sentries.iter().zip(checked.iter()) {
-            if sentry {
-                result.sentries += 1;
-                if check {
-                    result.success += 1;
-                    result.reached += 1;
-                }
-            } else if check {
-                result.reached += 1;
-            }
-        }
-
-        result.outdistanced = f64::from(result.success) < x_percent * f64::from(result.sentries);
-        result
-    }
-
-    /// Get sentries array.
-    pub fn get_sentries(&self, d_min: usize) -> Vec<NodeId> {
-        self.nodes
-            .iter()
-            .filter(|x| x.enabled && x.issued_count() >= d_min && x.links_iter().count() >= d_min)
-            .map(|x| x.id())
-            .collect()
-    }
-
-    /// Get non sentries array.
-    pub fn get_non_sentries(&self, d_min: usize) -> Vec<NodeId> {
-        self.nodes
-            .iter()
-            .filter(|x| x.enabled && (x.issued_count < d_min || x.links_iter().count() < d_min))
-            .map(|x| x.id())
-            .collect()
-    }
-
-    /// Get disabled array.
-    pub fn get_disabled(&self) -> Vec<NodeId> {
-        self.nodes
-            .iter()
-            .filter(|x| !x.enabled)
-            .map(|x| x.id())
-            .collect()
     }
 
     fn lookup(
@@ -318,13 +234,209 @@ impl LegacyWebOfTrust {
 
         lookup_step
     }
+}
 
-    /// Get paths from one node to the other.
-    pub fn get_paths(&self, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>> {
+impl WebOfTrust for LegacyWebOfTrust {
+    fn get_max_link(&self) -> usize {
+        self.max_cert
+    }
+
+    fn set_max_link(&mut self, max_link: usize) {
+        self.max_cert = max_link;
+    }
+
+    fn add_node(&mut self) -> NodeId {
+        let node_id = self.nodes.len();
+        self.nodes.push(Node::new(node_id));
+
+        NodeId(node_id)
+    }
+    
+    fn rem_node(&mut self) -> Option<NodeId> {
+        self.nodes.pop();
+
+        if !self.nodes.is_empty() {
+            Some(NodeId(self.nodes.iter().len() - 1))
+        } else {
+            None
+        }
+    } 
+
+    fn size(&self) -> usize {
+        self.nodes.iter().count()
+    }
+
+    fn is_enabled(&self, node: NodeId) -> Option<bool> {
+        if node.0 >= self.size() {
+            None
+        } else {
+            Some(self.nodes[node.0].enabled)
+        }
+    }
+
+    fn set_enabled(&mut self, node: NodeId, state: bool) -> Option<bool> {
+        if node.0 >= self.size() {
+            None
+        } else {
+            self.nodes[node.0].enabled = state;
+            Some(state)
+        }
+    }
+    
+    fn get_enabled(&self) -> Vec<NodeId> {
+        self.nodes
+            .iter()
+            .filter(|x| x.enabled)
+            .map(|x| x.id())
+            .collect()
+    }  
+    
+    fn get_disabled(&self) -> Vec<NodeId> {
+        self.nodes
+            .iter()
+            .filter(|x| !x.enabled)
+            .map(|x| x.id())
+            .collect()
+    }  
+
+    fn add_link(&mut self, from: NodeId, to: NodeId) -> NewLinkResult {
+        if from.0 == to.0 {
+            NewLinkResult::SelfLinkingForbidden()
+        } else if from.0 >= self.size() {
+            NewLinkResult::UnknownSource()
+        } else if to.0 >= self.size() {
+            NewLinkResult::UnknownTarget()
+        } else if from.0 < to.0 {
+            // split `nodes` in two part to allow borrowing 2 nodes at the same time
+            let (start, end) = self.nodes.split_at_mut(to.0);
+            start[from.0].link_to(&mut end[0], self.max_cert)
+        } else {
+            // split `nodes` in two part to allow borrowing 2 nodes at the same time
+            let (start, end) = self.nodes.split_at_mut(from.0);
+            end[0].link_to(&mut start[to.0], self.max_cert)
+        }
+    }
+
+    fn rem_link(&mut self, from: NodeId, to: NodeId) -> RemLinkResult {
+        if from.0 >= self.size() {
+            RemLinkResult::UnknownSource()
+        } else if to.0 >= self.size() {
+            RemLinkResult::UnknownTarget()
+        } else if from.0 < to.0 {
+            // split `nodes` in two part to allow borrowing 2 nodes at the same time
+            let (start, end) = self.nodes.split_at_mut(to.0);
+            start[from.0].unlink_to(&mut end[0])
+        } else {
+            // split `nodes` in two part to allow borrowing 2 nodes at the same time
+            let (start, end) = self.nodes.split_at_mut(from.0);
+            end[0].unlink_to(&mut start[to.0])
+        }
+    }
+
+    fn has_link(&self, from: NodeId, to: NodeId) -> HasLinkResult {
+        if from.0 >= self.size() {
+            HasLinkResult::UnknownSource()
+        } else if to.0 >= self.size() {
+            HasLinkResult::UnknownTarget()
+        } else {
+            HasLinkResult::Link(self.nodes[from.0].has_link_to(&self.nodes[to.0]))
+        }
+    }
+
+    fn get_sentries(&self, sentry_requirement: usize) -> Vec<NodeId> {
+        self.nodes
+            .iter()
+            .filter(|x| x.enabled && x.issued_count() >= sentry_requirement && x.links_iter().count() >= sentry_requirement)
+            .map(|x| x.id())
+            .collect()
+    }
+
+    fn get_non_sentries(&self, sentry_requirement: usize) -> Vec<NodeId> {
+        self.nodes
+            .iter()
+            .filter(|x| x.enabled && (x.issued_count < sentry_requirement || x.links_iter().count() < sentry_requirement))
+            .map(|x| x.id())
+            .collect()
+    }
+ 
+    fn get_links_source(&self, target: NodeId) -> Option<Vec<NodeId>> {
+        if target.0 >= self.size() {
+            None
+        } else {
+            Some(self.nodes[target.0].certs.iter().map(|node| *node).collect())
+        }
+    } 
+
+    fn issued_count(&mut self, id: NodeId) -> Option<usize> {
+        if id.0 >= self.size() {
+            None
+        } else {
+            Some(self.nodes[id.0].issued_count)
+        }
+    }   
+
+    fn compute_distance(&self, params: WotDistanceParameters) -> Option<WotDistance> {
+        let WotDistanceParameters { node, sentry_requirement, step_max, x_percent } = params;
+
+        if node.0 >= self.size() {
+            return None;
+        }
+
+        let sentry_requirement = sentry_requirement as usize;
+
+        let mut result = WotDistance {
+            sentries: 0,
+            success: 0,
+            reached: 0,
+            outdistanced: false,
+        };
+
+        let mut sentries: Vec<bool> = self.nodes
+            .iter()
+            .map(|x| x.enabled && x.issued_count() >= sentry_requirement && x.links_iter().count() >= sentry_requirement)
+            .collect();
+        sentries[node.0] = false;
+
+        let mut checked: Vec<bool> = self.nodes.iter().map(|_| false).collect();
+
+        if step_max >= 1 {
+            checked = self.check_matches(node, 1, step_max, checked);
+        }
+
+        for (&sentry, &check) in sentries.iter().zip(checked.iter()) {
+            if sentry {
+                result.sentries += 1;
+                if check {
+                    result.success += 1;
+                    result.reached += 1;
+                }
+            } else if check {
+                result.reached += 1;
+            }
+        }
+
+        result.outdistanced = f64::from(result.success) < x_percent * f64::from(result.sentries);
+        Some(result)
+    }
+    
+    fn is_outdistanced(&self, params: WotDistanceParameters) -> Option<bool> {
+        let WotDistanceParameters { node, ..} = params;
+
+        if node.0 >= self.size() {
+            None
+        } else {
+            match self.compute_distance(params) {
+                Some(distance) => Some(distance.outdistanced),
+                None => None,
+            }            
+        }
+    }
+    
+    fn get_paths(&self, from: NodeId, to: NodeId, step_max: u32) -> Vec<Vec<NodeId>> {
         let mut lookup_step = LookupStep {
             paths: vec![],
             matching_paths: vec![],
-            distances: self.nodes.iter().map(|_| k_max + 1).collect(),
+            distances: self.nodes.iter().map(|_| step_max + 1).collect(),
         };
 
         lookup_step.distances[to.0] = 0;
@@ -337,7 +449,7 @@ impl LegacyWebOfTrust {
 
         lookup_step.paths.push(Rc::clone(&root));
 
-        lookup_step = self.lookup(from, to, 1, k_max, &root, lookup_step);
+        lookup_step = self.lookup(from, to, 1, step_max, &root, lookup_step);
 
         let mut result: Vec<Vec<NodeId>> = Vec::with_capacity(lookup_step.matching_paths.len());
 
@@ -357,93 +469,6 @@ impl LegacyWebOfTrust {
         }
 
         result
-    }
-
-    /// Number of nodes in the WoT.
-    pub fn size(&self) -> usize {
-        self.nodes.iter().count()
-    }
-
-    /// Tells if requested node is enabled (None if doesn't exist).
-    pub fn is_enabled(&self, node: NodeId) -> Option<bool> {
-        if node.0 >= self.size() {
-            None
-        } else {
-            Some(self.nodes[node.0].enabled)
-        }
-    }
-
-    /// Set if a node is enabled.
-    pub fn set_enabled(&mut self, node: NodeId, state: bool) -> Option<bool> {
-        if node.0 >= self.size() {
-            None
-        } else {
-            self.nodes[node.0].enabled = state;
-            Some(state)
-        }
-    }
-
-    /// Add link from a node to another.
-    pub fn add_link(&mut self, from: NodeId, to: NodeId) -> NewLinkResult {
-        if from.0 == to.0 {
-            NewLinkResult::SelfLinkingForbidden()
-        } else if from.0 >= self.size() {
-            NewLinkResult::UnknownSource()
-        } else if to.0 >= self.size() {
-            NewLinkResult::UnknownTarget()
-        } else if from.0 < to.0 {
-            // split `nodes` in two part to allow borrowing 2 nodes at the same time
-            let (start, end) = self.nodes.split_at_mut(to.0);
-            start[from.0].link_to(&mut end[0], self.max_cert)
-        } else {
-            // split `nodes` in two part to allow borrowing 2 nodes at the same time
-            let (start, end) = self.nodes.split_at_mut(from.0);
-            end[0].link_to(&mut start[to.0], self.max_cert)
-        }
-    }
-
-    /// Remove a link from a node to another.
-    pub fn remove_link(&mut self, from: NodeId, to: NodeId) -> RemLinkResult {
-        if from.0 >= self.size() {
-            RemLinkResult::UnknownSource()
-        } else if to.0 >= self.size() {
-            RemLinkResult::UnknownTarget()
-        } else if from.0 < to.0 {
-            // split `nodes` in two part to allow borrowing 2 nodes at the same time
-            let (start, end) = self.nodes.split_at_mut(to.0);
-            start[from.0].unlink_to(&mut end[0])
-        } else {
-            // split `nodes` in two part to allow borrowing 2 nodes at the same time
-            let (start, end) = self.nodes.split_at_mut(from.0);
-            end[0].unlink_to(&mut start[to.0])
-        }
-    }
-
-    /// Test if a link exist from a node to another.
-    pub fn exists_link(&self, from: NodeId, to: NodeId) -> bool {
-        if from.0 >= self.size() || to.0 >= self.size() {
-            false
-        } else {
-            self.nodes[from.0].has_link_to(&self.nodes[to.0])
-        }
-    }
-
-    /// Test if a node is outdistanced in the network.
-    pub fn is_outdistanced(
-        &self,
-        node: NodeId,
-        d_min: u32,
-        d_max: u32,
-        x_percent: f64,
-    ) -> Option<bool> {
-        if node.0 >= self.size() {
-            None
-        } else {
-            Some(
-                self.compute_distance(node, d_min, d_max, x_percent)
-                    .outdistanced,
-            )
-        }
     }
 }
 
@@ -556,25 +581,25 @@ mod tests {
         );
 
         assert_eq!(wot.max_cert, 3);
-        assert_eq!(wot.exists_link(NodeId(0), NodeId(1)), true);
-        assert_eq!(wot.exists_link(NodeId(0), NodeId(2)), true);
-        assert_eq!(wot.exists_link(NodeId(0), NodeId(3)), true);
-        assert_eq!(wot.exists_link(NodeId(0), NodeId(4)), false);
+        assert_eq!(wot.has_link(NodeId(0), NodeId(1)), HasLinkResult::Link(true));
+        assert_eq!(wot.has_link(NodeId(0), NodeId(2)), HasLinkResult::Link(true));
+        assert_eq!(wot.has_link(NodeId(0), NodeId(3)), HasLinkResult::Link(true));
+        assert_eq!(wot.has_link(NodeId(0), NodeId(4)), HasLinkResult::Link(false));
 
         wot.max_cert = 4;
         assert_eq!(wot.max_cert, 4);
-        assert_eq!(wot.exists_link(NodeId(0), NodeId(4)), false);
+        assert_eq!(wot.has_link(NodeId(0), NodeId(4)), HasLinkResult::Link(false));
         wot.add_link(NodeId(0), NodeId(4));
-        assert_eq!(wot.exists_link(NodeId(0), NodeId(4)), true);
-        wot.remove_link(NodeId(0), NodeId(1));
-        wot.remove_link(NodeId(0), NodeId(2));
-        wot.remove_link(NodeId(0), NodeId(3));
-        wot.remove_link(NodeId(0), NodeId(4));
+        assert_eq!(wot.has_link(NodeId(0), NodeId(4)), HasLinkResult::Link(true));
+        wot.rem_link(NodeId(0), NodeId(1));
+        wot.rem_link(NodeId(0), NodeId(2));
+        wot.rem_link(NodeId(0), NodeId(3));
+        wot.rem_link(NodeId(0), NodeId(4));
 
-        // false when not linked or out of bounds
-        assert_eq!(wot.exists_link(NodeId(0), NodeId(6)), false);
-        assert_eq!(wot.exists_link(NodeId(23), NodeId(0)), false);
-        assert_eq!(wot.exists_link(NodeId(2), NodeId(53)), false);
+        // false when not linked + test out of bounds
+        assert_eq!(wot.has_link(NodeId(0), NodeId(6)), HasLinkResult::Link(false));
+        assert_eq!(wot.has_link(NodeId(23), NodeId(0)), HasLinkResult::UnknownSource());
+        assert_eq!(wot.has_link(NodeId(2), NodeId(53)), HasLinkResult::UnknownTarget());
 
         // created nodes should be enabled
         assert_eq!(wot.is_enabled(NodeId(0)), Some(true));
@@ -603,7 +628,7 @@ mod tests {
         assert_eq!(wot.get_disabled().len(), 0);
 
         // should not exist a link from 2 to 0
-        assert_eq!(wot.exists_link(NodeId(2), NodeId(0)), false);
+        assert_eq!(wot.has_link(NodeId(2), NodeId(0)), HasLinkResult::Link(false));
 
         // should be able to add some links, cert count is returned
         assert_eq!(wot.add_link(NodeId(2), NodeId(0)), NewLinkResult::Ok(1));
@@ -626,14 +651,14 @@ mod tests {
          * 5 --> 0
          */
 
-        assert_eq!(wot.exists_link(NodeId(2), NodeId(0)), true);
-        assert_eq!(wot.exists_link(NodeId(4), NodeId(0)), true);
-        assert_eq!(wot.exists_link(NodeId(5), NodeId(0)), true);
-        assert_eq!(wot.exists_link(NodeId(2), NodeId(1)), false);
+        assert_eq!(wot.has_link(NodeId(2), NodeId(0)), HasLinkResult::Link(true));
+        assert_eq!(wot.has_link(NodeId(4), NodeId(0)), HasLinkResult::Link(true));
+        assert_eq!(wot.has_link(NodeId(5), NodeId(0)), HasLinkResult::Link(true));
+        assert_eq!(wot.has_link(NodeId(2), NodeId(1)), HasLinkResult::Link(false));
 
         // should be able to remove some links
         assert_eq!(
-            wot.remove_link(NodeId(4), NodeId(0)),
+            wot.rem_link(NodeId(4), NodeId(0)),
             RemLinkResult::Removed(2)
         );
         /*
@@ -644,17 +669,32 @@ mod tests {
          */
 
         // should exist less links
-        assert_eq!(wot.exists_link(NodeId(2), NodeId(0)), true);
-        assert_eq!(wot.exists_link(NodeId(4), NodeId(0)), false);
-        assert_eq!(wot.exists_link(NodeId(5), NodeId(0)), true);
-        assert_eq!(wot.exists_link(NodeId(2), NodeId(1)), false);
+        assert_eq!(wot.has_link(NodeId(2), NodeId(0)), HasLinkResult::Link(true));
+        assert_eq!(wot.has_link(NodeId(4), NodeId(0)), HasLinkResult::Link(false));
+        assert_eq!(wot.has_link(NodeId(5), NodeId(0)), HasLinkResult::Link(true));
+        assert_eq!(wot.has_link(NodeId(2), NodeId(1)), HasLinkResult::Link(false));
 
         // should successfully use distance rule
-        assert_eq!(wot.is_outdistanced(NodeId(0), 1, 1, 1.0), Some(false));
+        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
+            node: NodeId(0),
+            sentry_requirement: 1,
+            step_max: 1,
+            x_percent: 1.0
+        }), Some(false));
         // => no because 2,4,5 have certified him
-        assert_eq!(wot.is_outdistanced(NodeId(0), 2, 1, 1.0), Some(false));
+        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
+            node: NodeId(0),
+            sentry_requirement: 2,
+            step_max: 1,
+            x_percent: 1.0
+        }), Some(false));
         // => no because only member 2 has 2 certs, and has certified him
-        assert_eq!(wot.is_outdistanced(NodeId(0), 3, 1, 1.0), Some(false));
+        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
+            node: NodeId(0),
+            sentry_requirement: 3,
+            step_max: 1,
+            x_percent: 1.0
+        }), Some(false));
         // => no because no member has issued 3 certifications
 
         // - we add links from member 3
@@ -679,10 +719,30 @@ mod tests {
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 1).len(), 0); // KO
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2)[0].len(), 3); // It exists 3 -> 2 -> 0
-        assert_eq!(wot.is_outdistanced(NodeId(0), 1, 1, 1.0), Some(false)); // OK : 2 -> 0
-        assert_eq!(wot.is_outdistanced(NodeId(0), 2, 1, 1.0), Some(false)); // OK : 2 -> 0
-        assert_eq!(wot.is_outdistanced(NodeId(0), 3, 1, 1.0), Some(false)); // OK : no stry \w 3 lnk
-        assert_eq!(wot.is_outdistanced(NodeId(0), 2, 2, 1.0), Some(false)); // OK : 2 -> 0
+        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
+            node: NodeId(0),
+            sentry_requirement: 1,
+            step_max: 1,
+            x_percent: 1.0
+        }), Some(false)); // OK : 2 -> 0
+        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
+            node: NodeId(0),
+            sentry_requirement: 2,
+            step_max: 1, 
+            x_percent: 1.0
+        }), Some(false)); // OK : 2 -> 0
+        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
+            node: NodeId(0),
+            sentry_requirement: 3,
+            step_max: 1, 
+            x_percent: 1.0
+        }), Some(false)); // OK : no stry \w 3 lnk
+        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
+            node: NodeId(0),
+            sentry_requirement: 2, 
+            step_max: 2, 
+            x_percent: 1.0
+        }), Some(false)); // OK : 2 -> 0
 
         wot.add_link(NodeId(1), NodeId(3));
         wot.add_link(NodeId(2), NodeId(3));
@@ -702,16 +762,36 @@ mod tests {
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 1).len(), 0); // KO
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2)[0].len(), 3); // It exists 3 -> 2 -> 0
-        assert_eq!(wot.is_outdistanced(NodeId(0), 1, 1, 1.0), Some(true)); // KO : No path 3 -> 0
-        assert_eq!(wot.is_outdistanced(NodeId(0), 2, 1, 1.0), Some(true)); // KO : No path 3 -> 0
-        assert_eq!(wot.is_outdistanced(NodeId(0), 3, 1, 1.0), Some(false)); // OK : no stry \w 3 lnk
-        assert_eq!(wot.is_outdistanced(NodeId(0), 2, 2, 1.0), Some(false)); // OK : 3 -> 2 -> 0
+        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
+            node: NodeId(0),
+            sentry_requirement: 1,
+            step_max: 1, 
+            x_percent: 1.0
+        }), Some(true)); // KO : No path 3 -> 0
+        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
+            node: NodeId(0),
+            sentry_requirement: 2, 
+            step_max: 1, 
+            x_percent: 1.0
+        }), Some(true)); // KO : No path 3 -> 0
+        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
+            node: NodeId(0), 
+            sentry_requirement: 3, 
+            step_max: 1, 
+            x_percent: 1.0
+        }), Some(false)); // OK : no stry \w 3 lnk
+        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
+            node: NodeId(0),
+            sentry_requirement: 2, 
+            step_max: 2, 
+            x_percent: 1.0
+        }), Some(false)); // OK : 3 -> 2 -> 0
 
         // should have 12 nodes
         assert_eq!(wot.size(), 12);
 
         // delete top node (return new top node id)
-        assert_eq!(wot.remove_node(), Some(NodeId(10)));
+        assert_eq!(wot.rem_node(), Some(NodeId(10)));
 
         // should have 11 nodes
         assert_eq!(wot.size(), 11);
@@ -720,7 +800,12 @@ mod tests {
         // - with member 3 disabled (non-member)
         assert_eq!(wot.set_enabled(NodeId(3), false), Some(false));
         assert_eq!(wot.get_disabled().len(), 1);
-        assert_eq!(wot.is_outdistanced(NodeId(0), 2, 1, 1.0), Some(false)); // OK : Disabled
+        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
+            node: NodeId(0), 
+            sentry_requirement: 2, 
+            step_max: 1, 
+            x_percent: 1.0
+        }), Some(false)); // OK : Disabled
 
         // should be able to make a mem copy
         {
