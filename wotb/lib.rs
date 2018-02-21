@@ -15,11 +15,11 @@
 
 //! `wotb` is a crate making "Web of Trust" computations for
 //! the [Duniter] project.
-//! 
+//!
 //! [Duniter]: https://duniter.org/
 //!
 //! It defines a trait representing a Web of Trust and allow to do calculations on it.
-//! 
+//!
 //! It also contains an "legacy" implementation translated from the original C++ code.
 //!
 //! Web of Trust tests are translated from [duniter/wotb Javascript test][js-tests].
@@ -85,7 +85,7 @@ pub enum HasLinkResult {
     UnknownTarget(),
 }
 
-/// Paramters for WoT distance calculations
+/// Paramters for *WoT* distance calculations
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct WotDistanceParameters {
     /// Node from where distances are calculated.
@@ -111,10 +111,10 @@ pub struct WotDistance {
     pub outdistanced: bool,
 }
 
-/// Trait for a WebOfTrust.
-/// Allow to provide other implementations of the WebOfTrust logic instead of the legacy C++
+/// Trait for a Web Of Trust.
+/// Allow to provide other implementations of the *WoT* logic instead of the legacy C++
 /// translated one.
-pub trait WebOfTrust {  
+pub trait WebOfTrust {
     /// Get the maximum number of links per user.
     fn get_max_link(&self) -> usize;
 
@@ -132,8 +132,8 @@ pub trait WebOfTrust {
     fn size(&self) -> usize;
 
     /// Check if given node is enabled.
-    /// Returns `None` if this node doesn't exist. 
-    fn is_enabled(&self, id: NodeId) -> Option<bool>;    
+    /// Returns `None` if this node doesn't exist.
+    fn is_enabled(&self, id: NodeId) -> Option<bool>;
 
     /// Set if given node is enabled.
     /// Returns `Null` if this node doesn't exist, `enabled` otherwise.
@@ -162,12 +162,12 @@ pub trait WebOfTrust {
     /// Returns `None` if this node doesn't exist.
     fn issued_count(&mut self, id: NodeId) -> Option<usize>;
 
-     /// Get sentries array.
+    /// Get sentries array.
     fn get_sentries(&self, sentry_requirement: usize) -> Vec<NodeId>;
 
     /// Get non sentries array.
     fn get_non_sentries(&self, sentry_requirement: usize) -> Vec<NodeId>;
-      
+
     /// Get paths from one node to the other.
     fn get_paths(&self, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>>;
 
@@ -185,7 +185,7 @@ mod tests {
     use super::*;
 
     /// Test translated from https://github.com/duniter/wotb/blob/master/tests/test.js
-    /// 
+    ///
     /// Clone and file tests are not included in this generic test and should be done in
     /// the implementation test.
     pub fn generic_wot_test<T: WebOfTrust>(wot: &mut T) {
@@ -230,25 +230,52 @@ mod tests {
         );
 
         assert_eq!(wot.get_max_link(), 3);
-        assert_eq!(wot.has_link(NodeId(0), NodeId(1)), HasLinkResult::Link(true));
-        assert_eq!(wot.has_link(NodeId(0), NodeId(2)), HasLinkResult::Link(true));
-        assert_eq!(wot.has_link(NodeId(0), NodeId(3)), HasLinkResult::Link(true));
-        assert_eq!(wot.has_link(NodeId(0), NodeId(4)), HasLinkResult::Link(false));
+        assert_eq!(
+            wot.has_link(NodeId(0), NodeId(1)),
+            HasLinkResult::Link(true)
+        );
+        assert_eq!(
+            wot.has_link(NodeId(0), NodeId(2)),
+            HasLinkResult::Link(true)
+        );
+        assert_eq!(
+            wot.has_link(NodeId(0), NodeId(3)),
+            HasLinkResult::Link(true)
+        );
+        assert_eq!(
+            wot.has_link(NodeId(0), NodeId(4)),
+            HasLinkResult::Link(false)
+        );
 
         wot.set_max_link(4);
         assert_eq!(wot.get_max_link(), 4);
-        assert_eq!(wot.has_link(NodeId(0), NodeId(4)), HasLinkResult::Link(false));
+        assert_eq!(
+            wot.has_link(NodeId(0), NodeId(4)),
+            HasLinkResult::Link(false)
+        );
         wot.add_link(NodeId(0), NodeId(4));
-        assert_eq!(wot.has_link(NodeId(0), NodeId(4)), HasLinkResult::Link(true));
+        assert_eq!(
+            wot.has_link(NodeId(0), NodeId(4)),
+            HasLinkResult::Link(true)
+        );
         wot.rem_link(NodeId(0), NodeId(1));
         wot.rem_link(NodeId(0), NodeId(2));
         wot.rem_link(NodeId(0), NodeId(3));
         wot.rem_link(NodeId(0), NodeId(4));
 
         // false when not linked + test out of bounds
-        assert_eq!(wot.has_link(NodeId(0), NodeId(6)), HasLinkResult::Link(false));
-        assert_eq!(wot.has_link(NodeId(23), NodeId(0)), HasLinkResult::UnknownSource());
-        assert_eq!(wot.has_link(NodeId(2), NodeId(53)), HasLinkResult::UnknownTarget());
+        assert_eq!(
+            wot.has_link(NodeId(0), NodeId(6)),
+            HasLinkResult::Link(false)
+        );
+        assert_eq!(
+            wot.has_link(NodeId(23), NodeId(0)),
+            HasLinkResult::UnknownSource()
+        );
+        assert_eq!(
+            wot.has_link(NodeId(2), NodeId(53)),
+            HasLinkResult::UnknownTarget()
+        );
 
         // created nodes should be enabled
         assert_eq!(wot.is_enabled(NodeId(0)), Some(true));
@@ -277,7 +304,10 @@ mod tests {
         assert_eq!(wot.get_disabled().len(), 0);
 
         // should not exist a link from 2 to 0
-        assert_eq!(wot.has_link(NodeId(2), NodeId(0)), HasLinkResult::Link(false));
+        assert_eq!(
+            wot.has_link(NodeId(2), NodeId(0)),
+            HasLinkResult::Link(false)
+        );
 
         // should be able to add some links, cert count is returned
         assert_eq!(wot.add_link(NodeId(2), NodeId(0)), NewLinkResult::Ok(1));
@@ -300,10 +330,22 @@ mod tests {
          * 5 --> 0
          */
 
-        assert_eq!(wot.has_link(NodeId(2), NodeId(0)), HasLinkResult::Link(true));
-        assert_eq!(wot.has_link(NodeId(4), NodeId(0)), HasLinkResult::Link(true));
-        assert_eq!(wot.has_link(NodeId(5), NodeId(0)), HasLinkResult::Link(true));
-        assert_eq!(wot.has_link(NodeId(2), NodeId(1)), HasLinkResult::Link(false));
+        assert_eq!(
+            wot.has_link(NodeId(2), NodeId(0)),
+            HasLinkResult::Link(true)
+        );
+        assert_eq!(
+            wot.has_link(NodeId(4), NodeId(0)),
+            HasLinkResult::Link(true)
+        );
+        assert_eq!(
+            wot.has_link(NodeId(5), NodeId(0)),
+            HasLinkResult::Link(true)
+        );
+        assert_eq!(
+            wot.has_link(NodeId(2), NodeId(1)),
+            HasLinkResult::Link(false)
+        );
 
         // should be able to remove some links
         assert_eq!(
@@ -318,32 +360,53 @@ mod tests {
          */
 
         // should exist less links
-        assert_eq!(wot.has_link(NodeId(2), NodeId(0)), HasLinkResult::Link(true));
-        assert_eq!(wot.has_link(NodeId(4), NodeId(0)), HasLinkResult::Link(false));
-        assert_eq!(wot.has_link(NodeId(5), NodeId(0)), HasLinkResult::Link(true));
-        assert_eq!(wot.has_link(NodeId(2), NodeId(1)), HasLinkResult::Link(false));
+        assert_eq!(
+            wot.has_link(NodeId(2), NodeId(0)),
+            HasLinkResult::Link(true)
+        );
+        assert_eq!(
+            wot.has_link(NodeId(4), NodeId(0)),
+            HasLinkResult::Link(false)
+        );
+        assert_eq!(
+            wot.has_link(NodeId(5), NodeId(0)),
+            HasLinkResult::Link(true)
+        );
+        assert_eq!(
+            wot.has_link(NodeId(2), NodeId(1)),
+            HasLinkResult::Link(false)
+        );
 
         // should successfully use distance rule
-        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
-            node: NodeId(0),
-            sentry_requirement: 1,
-            step_max: 1,
-            x_percent: 1.0
-        }), Some(false));
+        assert_eq!(
+            wot.is_outdistanced(WotDistanceParameters {
+                node: NodeId(0),
+                sentry_requirement: 1,
+                step_max: 1,
+                x_percent: 1.0,
+            }),
+            Some(false)
+        );
         // => no because 2,4,5 have certified him
-        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
-            node: NodeId(0),
-            sentry_requirement: 2,
-            step_max: 1,
-            x_percent: 1.0
-        }), Some(false));
+        assert_eq!(
+            wot.is_outdistanced(WotDistanceParameters {
+                node: NodeId(0),
+                sentry_requirement: 2,
+                step_max: 1,
+                x_percent: 1.0,
+            }),
+            Some(false)
+        );
         // => no because only member 2 has 2 certs, and has certified him
-        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
-            node: NodeId(0),
-            sentry_requirement: 3,
-            step_max: 1,
-            x_percent: 1.0
-        }), Some(false));
+        assert_eq!(
+            wot.is_outdistanced(WotDistanceParameters {
+                node: NodeId(0),
+                sentry_requirement: 3,
+                step_max: 1,
+                x_percent: 1.0,
+            }),
+            Some(false)
+        );
         // => no because no member has issued 3 certifications
 
         // - we add links from member 3
@@ -368,30 +431,42 @@ mod tests {
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 1).len(), 0); // KO
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2)[0].len(), 3); // It exists 3 -> 2 -> 0
-        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
-            node: NodeId(0),
-            sentry_requirement: 1,
-            step_max: 1,
-            x_percent: 1.0
-        }), Some(false)); // OK : 2 -> 0
-        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
-            node: NodeId(0),
-            sentry_requirement: 2,
-            step_max: 1, 
-            x_percent: 1.0
-        }), Some(false)); // OK : 2 -> 0
-        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
-            node: NodeId(0),
-            sentry_requirement: 3,
-            step_max: 1, 
-            x_percent: 1.0
-        }), Some(false)); // OK : no stry \w 3 lnk
-        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
-            node: NodeId(0),
-            sentry_requirement: 2, 
-            step_max: 2, 
-            x_percent: 1.0
-        }), Some(false)); // OK : 2 -> 0
+        assert_eq!(
+            wot.is_outdistanced(WotDistanceParameters {
+                node: NodeId(0),
+                sentry_requirement: 1,
+                step_max: 1,
+                x_percent: 1.0,
+            }),
+            Some(false)
+        ); // OK : 2 -> 0
+        assert_eq!(
+            wot.is_outdistanced(WotDistanceParameters {
+                node: NodeId(0),
+                sentry_requirement: 2,
+                step_max: 1,
+                x_percent: 1.0,
+            }),
+            Some(false)
+        ); // OK : 2 -> 0
+        assert_eq!(
+            wot.is_outdistanced(WotDistanceParameters {
+                node: NodeId(0),
+                sentry_requirement: 3,
+                step_max: 1,
+                x_percent: 1.0,
+            }),
+            Some(false)
+        ); // OK : no stry \w 3 lnk
+        assert_eq!(
+            wot.is_outdistanced(WotDistanceParameters {
+                node: NodeId(0),
+                sentry_requirement: 2,
+                step_max: 2,
+                x_percent: 1.0,
+            }),
+            Some(false)
+        ); // OK : 2 -> 0
 
         wot.add_link(NodeId(1), NodeId(3));
         wot.add_link(NodeId(2), NodeId(3));
@@ -411,30 +486,42 @@ mod tests {
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 1).len(), 0); // KO
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2)[0].len(), 3); // It exists 3 -> 2 -> 0
-        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
-            node: NodeId(0),
-            sentry_requirement: 1,
-            step_max: 1, 
-            x_percent: 1.0
-        }), Some(true)); // KO : No path 3 -> 0
-        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
-            node: NodeId(0),
-            sentry_requirement: 2, 
-            step_max: 1, 
-            x_percent: 1.0
-        }), Some(true)); // KO : No path 3 -> 0
-        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
-            node: NodeId(0), 
-            sentry_requirement: 3, 
-            step_max: 1, 
-            x_percent: 1.0
-        }), Some(false)); // OK : no stry \w 3 lnk
-        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
-            node: NodeId(0),
-            sentry_requirement: 2, 
-            step_max: 2, 
-            x_percent: 1.0
-        }), Some(false)); // OK : 3 -> 2 -> 0
+        assert_eq!(
+            wot.is_outdistanced(WotDistanceParameters {
+                node: NodeId(0),
+                sentry_requirement: 1,
+                step_max: 1,
+                x_percent: 1.0,
+            }),
+            Some(true)
+        ); // KO : No path 3 -> 0
+        assert_eq!(
+            wot.is_outdistanced(WotDistanceParameters {
+                node: NodeId(0),
+                sentry_requirement: 2,
+                step_max: 1,
+                x_percent: 1.0,
+            }),
+            Some(true)
+        ); // KO : No path 3 -> 0
+        assert_eq!(
+            wot.is_outdistanced(WotDistanceParameters {
+                node: NodeId(0),
+                sentry_requirement: 3,
+                step_max: 1,
+                x_percent: 1.0,
+            }),
+            Some(false)
+        ); // OK : no stry \w 3 lnk
+        assert_eq!(
+            wot.is_outdistanced(WotDistanceParameters {
+                node: NodeId(0),
+                sentry_requirement: 2,
+                step_max: 2,
+                x_percent: 1.0,
+            }),
+            Some(false)
+        ); // OK : 3 -> 2 -> 0
 
         // should have 12 nodes
         assert_eq!(wot.size(), 12);
@@ -449,11 +536,14 @@ mod tests {
         // - with member 3 disabled (non-member)
         assert_eq!(wot.set_enabled(NodeId(3), false), Some(false));
         assert_eq!(wot.get_disabled().len(), 1);
-        assert_eq!(wot.is_outdistanced(WotDistanceParameters {
-            node: NodeId(0), 
-            sentry_requirement: 2, 
-            step_max: 1, 
-            x_percent: 1.0
-        }), Some(false)); // OK : Disabled
+        assert_eq!(
+            wot.is_outdistanced(WotDistanceParameters {
+                node: NodeId(0),
+                sentry_requirement: 2,
+                step_max: 1,
+                x_percent: 1.0,
+            }),
+            Some(false)
+        ); // OK : Disabled
     }
 }

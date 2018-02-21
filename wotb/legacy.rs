@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Provide a legacy implementation of WoT storage and calculations.
+//! Provide a legacy implementation of *WoT* storage and calculations.
 //! Its mostly translated directly from the original C++ code.
 
 use WotDistance;
@@ -117,7 +117,6 @@ struct LookupStep {
     distances: Vec<u32>,
 }
 
-
 /// Store a Web of Trust.
 ///
 /// Allow to create/remove nodes and links between them.
@@ -144,7 +143,7 @@ impl LegacyWebOfTrust {
         }
     }
 
-    /// Read WoT from file.
+    /// Read *WoT* from file.
     pub fn from_file(path: &str) -> Option<LegacyWebOfTrust> {
         let mut file = match File::open(path) {
             Ok(file) => file,
@@ -162,7 +161,7 @@ impl LegacyWebOfTrust {
         }
     }
 
-    /// Write WoT to file.
+    /// Write *WoT* to file.
     pub fn to_file(&self, path: &str) -> bool {
         let encoded: Vec<u8> = serialize(self, Infinite).unwrap();
 
@@ -251,7 +250,7 @@ impl WebOfTrust for LegacyWebOfTrust {
 
         NodeId(node_id)
     }
-    
+
     fn rem_node(&mut self) -> Option<NodeId> {
         self.nodes.pop();
 
@@ -260,7 +259,7 @@ impl WebOfTrust for LegacyWebOfTrust {
         } else {
             None
         }
-    } 
+    }
 
     fn size(&self) -> usize {
         self.nodes.iter().count()
@@ -282,22 +281,22 @@ impl WebOfTrust for LegacyWebOfTrust {
             Some(state)
         }
     }
-    
+
     fn get_enabled(&self) -> Vec<NodeId> {
         self.nodes
             .iter()
             .filter(|x| x.enabled)
             .map(|x| x.id())
             .collect()
-    }  
-    
+    }
+
     fn get_disabled(&self) -> Vec<NodeId> {
         self.nodes
             .iter()
             .filter(|x| !x.enabled)
             .map(|x| x.id())
             .collect()
-    }  
+    }
 
     fn add_link(&mut self, from: NodeId, to: NodeId) -> NewLinkResult {
         if from.0 == to.0 {
@@ -346,7 +345,10 @@ impl WebOfTrust for LegacyWebOfTrust {
     fn get_sentries(&self, sentry_requirement: usize) -> Vec<NodeId> {
         self.nodes
             .iter()
-            .filter(|x| x.enabled && x.issued_count() >= sentry_requirement && x.links_iter().count() >= sentry_requirement)
+            .filter(|x| {
+                x.enabled && x.issued_count() >= sentry_requirement
+                    && x.links_iter().count() >= sentry_requirement
+            })
             .map(|x| x.id())
             .collect()
     }
@@ -354,18 +356,22 @@ impl WebOfTrust for LegacyWebOfTrust {
     fn get_non_sentries(&self, sentry_requirement: usize) -> Vec<NodeId> {
         self.nodes
             .iter()
-            .filter(|x| x.enabled && (x.issued_count < sentry_requirement || x.links_iter().count() < sentry_requirement))
+            .filter(|x| {
+                x.enabled
+                    && (x.issued_count < sentry_requirement
+                        || x.links_iter().count() < sentry_requirement)
+            })
             .map(|x| x.id())
             .collect()
     }
- 
+
     fn get_links_source(&self, target: NodeId) -> Option<Vec<NodeId>> {
         if target.0 >= self.size() {
             None
         } else {
-            Some(self.nodes[target.0].certs.iter().map(|node| *node).collect())
+            Some(self.nodes[target.0].certs.iter().cloned().collect())
         }
-    } 
+    }
 
     fn issued_count(&mut self, id: NodeId) -> Option<usize> {
         if id.0 >= self.size() {
@@ -373,10 +379,15 @@ impl WebOfTrust for LegacyWebOfTrust {
         } else {
             Some(self.nodes[id.0].issued_count)
         }
-    }   
+    }
 
     fn compute_distance(&self, params: WotDistanceParameters) -> Option<WotDistance> {
-        let WotDistanceParameters { node, sentry_requirement, step_max, x_percent } = params;
+        let WotDistanceParameters {
+            node,
+            sentry_requirement,
+            step_max,
+            x_percent,
+        } = params;
 
         if node.0 >= self.size() {
             return None;
@@ -393,7 +404,10 @@ impl WebOfTrust for LegacyWebOfTrust {
 
         let mut sentries: Vec<bool> = self.nodes
             .iter()
-            .map(|x| x.enabled && x.issued_count() >= sentry_requirement && x.links_iter().count() >= sentry_requirement)
+            .map(|x| {
+                x.enabled && x.issued_count() >= sentry_requirement
+                    && x.links_iter().count() >= sentry_requirement
+            })
             .collect();
         sentries[node.0] = false;
 
@@ -418,9 +432,9 @@ impl WebOfTrust for LegacyWebOfTrust {
         result.outdistanced = f64::from(result.success) < x_percent * f64::from(result.sentries);
         Some(result)
     }
-    
+
     fn is_outdistanced(&self, params: WotDistanceParameters) -> Option<bool> {
-        let WotDistanceParameters { node, ..} = params;
+        let WotDistanceParameters { node, .. } = params;
 
         if node.0 >= self.size() {
             None
@@ -428,10 +442,10 @@ impl WebOfTrust for LegacyWebOfTrust {
             match self.compute_distance(params) {
                 Some(distance) => Some(distance.outdistanced),
                 None => None,
-            }            
+            }
         }
     }
-    
+
     fn get_paths(&self, from: NodeId, to: NodeId, step_max: u32) -> Vec<Vec<NodeId>> {
         let mut lookup_step = LookupStep {
             paths: vec![],
