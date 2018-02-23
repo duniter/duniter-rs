@@ -23,6 +23,16 @@ use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedD
 use blockchain::v10::documents::{StandardTextDocumentParser, TextDocument, TextDocumentBuilder,
                                  V10Document, V10DocumentParsingError};
 
+lazy_static! {
+    static ref MEMBERSHIP_REGEX: Regex = Regex::new(
+        "^Issuer: (?P<issuer>[1-9A-Za-z][^OIl]{43,44})\n\
+Block: (?P<blockstamp>[0-9]+-[0-9A-F]{64})\n\
+Membership: (?P<membership>(IN|OUT))\n\
+UserID: (?P<ity_user>[[:alnum:]_-]+)\n\
+CertTS: (?P<ity_block>[0-9]+-[0-9A-F]{64})\n$"
+    ).unwrap();
+}
+
 /// Type of a Membership.
 #[derive(Debug, Clone, Copy)]
 pub enum MembershipType {
@@ -38,7 +48,7 @@ pub enum MembershipType {
 #[derive(Debug, Clone)]
 pub struct MembershipDocument {
     /// Document as text.
-    /// 
+    ///
     /// Is used to check signatures, and other values mut be extracted from it.
     text: String,
 
@@ -119,9 +129,9 @@ pub struct MembershipDocumentBuilder<'a> {
     /// Membership message.
     pub membership: MembershipType,
     /// Identity username.
-    pub identity_username: &'a str,  
+    pub identity_username: &'a str,
     /// Identity document blockstamp.
-    pub identity_blockstamp: &'a Blockstamp,  
+    pub identity_blockstamp: &'a Blockstamp,
 }
 
 impl<'a> MembershipDocumentBuilder<'a> {
@@ -138,7 +148,7 @@ impl<'a> MembershipDocumentBuilder<'a> {
             membership: self.membership,
             identity_username: self.identity_username.to_string(),
             identity_blockstamp: *self.identity_blockstamp,
-            signatures
+            signatures,
         }
     }
 }
@@ -182,6 +192,55 @@ CertTS: {ity_blockstamp}
     }
 }
 
+/// Membership document parser
+#[derive(Debug, Clone, Copy)]
+pub struct MembershipDocumentParser;
+
+impl StandardTextDocumentParser for MembershipDocumentParser {
+    fn parse_standard(
+        doc: &str,
+        body: &str,
+        currency: &str,
+        signatures: Vec<ed25519::Signature>,
+    ) -> Result<V10Document, V10DocumentParsingError> {
+        if let Some(caps) = MEMBERSHIP_REGEX.captures(body) {
+            let issuer = &caps["issuer"];
+
+            let blockstamp = &caps["blockstamp"];
+            let membership = &caps["membership"];
+            let username = &caps["ity_user"];
+            let ity_block = &caps["ity_block"];
+
+            // Regex match so should not fail.
+            // TODO : Test it anyway
+            let issuer = ed25519::PublicKey::from_base58(issuer).unwrap();
+            let blockstamp = Blockstamp::from_string(blockstamp).unwrap();
+            let membership = match membership {
+                "IN" => MembershipType::In(),
+                "OUT" => MembershipType::Out(),
+                _ => panic!("Invalid membership type {}", membership),
+            };
+
+            let ity_block = Blockstamp::from_string(ity_block).unwrap();
+
+            Ok(V10Document::Membership(MembershipDocument {
+                text: doc.to_owned(),
+                issuers: vec![issuer],
+                currency: currency.to_owned(),
+                blockstamp: blockstamp,
+                membership,
+                identity_username: username.to_owned(),
+                identity_blockstamp: ity_block,
+                signatures,
+            }))
+        } else {
+            Err(V10DocumentParsingError::InvalidInnerFormat(
+                "Identity".to_string(),
+            ))
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -201,7 +260,7 @@ mod tests {
 
         let sig = ed25519::Signature::from_base64(
             "s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkEl\
-            AyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw==",
+             AyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw==",
         ).unwrap();
 
         let block = Blockstamp::from_string(
@@ -225,5 +284,45 @@ mod tests {
             builder.build_and_sign(vec![prikey]).verify_signatures(),
             VerificationResult::Valid()
         );
+    }
+
+    #[test]
+    fn membership_standard_regex() {
+        assert!(MEMBERSHIP_REGEX.is_match(
+            "Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+Block: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+Membership: IN
+UserID: tic
+CertTS: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+"
+        ));
+    }
+
+    #[test]
+    fn membership_identity_document() {
+        let doc = "Version: 10
+Type: Membership
+Currency: duniter_unit_test_currency
+Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+Block: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+Membership: IN
+UserID: tic
+CertTS: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw==";
+
+        let body = "Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+Block: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+Membership: IN
+UserID: tic
+CertTS: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+";
+
+        let currency = "duniter_unit_test_currency";
+
+        let signatures = vec![Signature::from_base64(
+"s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw=="
+        ).unwrap(),];
+
+        let _ = MembershipDocumentParser::parse_standard(doc, body, currency, signatures).unwrap();
     }
 }

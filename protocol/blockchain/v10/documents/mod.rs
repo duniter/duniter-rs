@@ -24,7 +24,7 @@ pub mod identity;
 pub mod membership;
 
 pub use blockchain::v10::documents::identity::{IdentityDocument, IdentityDocumentBuilder};
-pub use blockchain::v10::documents::membership::MembershipDocument;
+pub use blockchain::v10::documents::membership::{MembershipDocument, MembershipDocumentParser};
 
 // Use of lazy_static so the regex is only compiled at first use.
 lazy_static! {
@@ -166,6 +166,7 @@ impl<'a> DocumentParser<&'a str, V10Document, V10DocumentParsingError> for V10Do
 
             match doctype {
                 "Identity" => IdentityDocumentParser::parse_standard(doc, body, currency, sigs),
+                "Membership" => MembershipDocumentParser::parse_standard(doc, body, currency, sigs),
                 _ => Err(V10DocumentParsingError::UnknownDocumentType(
                     doctype.to_string(),
                 )),
