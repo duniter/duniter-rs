@@ -106,3 +106,124 @@ impl IntoSpecializedDocument<BlockchainProtocol> for MembershipDocument {
         BlockchainProtocol::V10(V10Document::Membership(self))
     }
 }
+
+/// Membership document builder.
+#[derive(Debug, Copy, Clone)]
+pub struct MembershipDocumentBuilder<'a> {
+    /// Document currency.
+    pub currency: &'a str,
+    /// Document/identity issuer.
+    pub issuer: &'a ed25519::PublicKey,
+    /// Reference blockstamp.
+    pub blockstamp: &'a Blockstamp,
+    /// Membership message.
+    pub membership: MembershipType,
+    /// Identity username.
+    pub identity_username: &'a str,  
+    /// Identity document blockstamp.
+    pub identity_blockstamp: &'a Blockstamp,  
+}
+
+impl<'a> MembershipDocumentBuilder<'a> {
+    fn build_with_text_and_sigs(
+        self,
+        text: String,
+        signatures: Vec<ed25519::Signature>,
+    ) -> MembershipDocument {
+        MembershipDocument {
+            text: text,
+            currency: self.currency.to_string(),
+            issuers: vec![*self.issuer],
+            blockstamp: *self.blockstamp,
+            membership: self.membership,
+            identity_username: self.identity_username.to_string(),
+            identity_blockstamp: *self.identity_blockstamp,
+            signatures
+        }
+    }
+}
+
+impl<'a> DocumentBuilder for MembershipDocumentBuilder<'a> {
+    type Document = MembershipDocument;
+    type PrivateKey = ed25519::PrivateKey;
+
+    fn build_with_signature(&self, signatures: Vec<ed25519::Signature>) -> MembershipDocument {
+        self.build_with_text_and_sigs(self.generate_text(), signatures)
+    }
+
+    fn build_and_sign(&self, private_keys: Vec<ed25519::PrivateKey>) -> MembershipDocument {
+        let (text, signatures) = self.build_signed_text(private_keys);
+        self.build_with_text_and_sigs(text, signatures)
+    }
+}
+
+impl<'a> TextDocumentBuilder for MembershipDocumentBuilder<'a> {
+    fn generate_text(&self) -> String {
+        format!(
+            "Version: 10
+Type: Membership
+Currency: {currency}
+Issuer: {issuer}
+Block: {blockstamp}
+Membership: {membership}
+UserID: {username}
+CertTS: {ity_blockstamp}
+",
+            currency = self.currency,
+            issuer = self.issuer,
+            blockstamp = self.blockstamp,
+            membership = match self.membership {
+                MembershipType::In() => "IN",
+                MembershipType::Out() => "OUT",
+            },
+            username = self.identity_username,
+            ity_blockstamp = self.identity_blockstamp,
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use duniter_crypto::keys::{PrivateKey, PublicKey, Signature};
+    use blockchain::VerificationResult;
+
+    #[test]
+    fn generate_real_document() {
+        let pubkey = ed25519::PublicKey::from_base58(
+            "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV",
+        ).unwrap();
+
+        let prikey = ed25519::PrivateKey::from_base58(
+            "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5G\
+             iERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
+        ).unwrap();
+
+        let sig = ed25519::Signature::from_base64(
+            "s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkEl\
+            AyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw==",
+        ).unwrap();
+
+        let block = Blockstamp::from_string(
+            "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        ).unwrap();
+
+        let builder = MembershipDocumentBuilder {
+            currency: "duniter_unit_test_currency",
+            issuer: &pubkey,
+            blockstamp: &block,
+            membership: MembershipType::In(),
+            identity_username: "tic",
+            identity_blockstamp: &block,
+        };
+
+        assert_eq!(
+            builder.build_with_signature(vec![sig]).verify_signatures(),
+            VerificationResult::Valid()
+        );
+        assert_eq!(
+            builder.build_and_sign(vec![prikey]).verify_signatures(),
+            VerificationResult::Valid()
+        );
+    }
+}
