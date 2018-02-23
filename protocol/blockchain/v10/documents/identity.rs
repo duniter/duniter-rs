@@ -123,11 +123,11 @@ impl<'a> DocumentBuilder for IdentityDocumentBuilder<'a> {
     type Document = IdentityDocument;
     type PrivateKey = ed25519::PrivateKey;
 
-    fn build_with_signature(self, signatures: Vec<ed25519::Signature>) -> IdentityDocument {
+    fn build_with_signature(&self, signatures: Vec<ed25519::Signature>) -> IdentityDocument {
         self.build_with_text_and_sigs(self.generate_text(), signatures)
     }
 
-    fn build_and_sign(self, private_keys: Vec<ed25519::PrivateKey>) -> IdentityDocument {
+    fn build_and_sign(&self, private_keys: Vec<ed25519::PrivateKey>) -> IdentityDocument {
         let (text, signatures) = self.build_signed_text(private_keys);
         self.build_with_text_and_sigs(text, signatures)
     }
@@ -214,27 +214,21 @@ mod tests {
             "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
         ).unwrap();
 
-        {
-            let doc = IdentityDocumentBuilder {
-                currency: "duniter_unit_test_currency",
-                unique_id: "tic",
-                blockstamp: &block,
-                issuer: &pubkey,
-            }.build_with_signature(vec![sig]);
+        let builder = IdentityDocumentBuilder {
+            currency: "duniter_unit_test_currency",
+            unique_id: "tic",
+            blockstamp: &block,
+            issuer: &pubkey,
+        };
 
-            assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
-        }
-
-        {
-            let doc = IdentityDocumentBuilder {
-                currency: "duniter_unit_test_currency",
-                unique_id: "tic",
-                blockstamp: &block,
-                issuer: &pubkey,
-            }.build_and_sign(vec![prikey]);
-
-            assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
-        }
+        assert_eq!(
+            builder.build_with_signature(vec![sig]).verify_signatures(),
+            VerificationResult::Valid()
+        );
+        assert_eq!(
+            builder.build_and_sign(vec![prikey]).verify_signatures(),
+            VerificationResult::Valid()
+        );
     }
 
     #[test]

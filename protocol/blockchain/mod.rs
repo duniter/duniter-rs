@@ -119,12 +119,12 @@ pub trait DocumentBuilder {
 
     /// Build a document with provided signatures.
     fn build_with_signature(
-        self,
+        &self,
         signatures: Vec<<<Self::Document as Document>::PublicKey as PublicKey>::Signature>,
     ) -> Self::Document;
 
     /// Build a document and sign it with the private key.
-    fn build_and_sign(self, private_keys: Vec<Self::PrivateKey>) -> Self::Document;
+    fn build_and_sign(&self, private_keys: Vec<Self::PrivateKey>) -> Self::Document;
 }
 
 /// Trait for a document parser from a `S` source
