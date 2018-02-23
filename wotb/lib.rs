@@ -169,7 +169,7 @@ pub trait WebOfTrust {
     fn add_node(&mut self) -> NodeId;
 
     /// Remove the last node.
-    /// Returns `None` if the WoT was empty.
+    /// Returns `None` if the WoT was empty, otherwise new top node id.
     fn rem_node(&mut self) -> Option<NodeId>;
 
     /// Get the size of the WoT.

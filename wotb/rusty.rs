@@ -38,6 +38,17 @@ struct Node {
     issued_count: usize,
 }
 
+impl Node {
+    /// Create a new node.
+    pub fn new() -> Node {
+        Node {
+            enabled: true,
+            links_source: HashSet::new(),
+            issued_count: 0,
+        }
+    }
+}
+
 /// A more idiomatic implementation of a Web of Trust.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RustyWebOfTrust {
@@ -60,103 +71,172 @@ impl RustyWebOfTrust {
 impl WebOfTrust for RustyWebOfTrust {
     /// Get the maximum number of links per user.
     fn get_max_link(&self) -> usize {
-        unimplemented!()
+        self.max_links
     }
 
     /// Set the maximum number of links per user.
-    fn set_max_link(&mut self, max_link: usize) {
-        unimplemented!()
+    fn set_max_link(&mut self, max_links: usize) {
+        self.max_links = max_links;
     }
 
     /// Add a new node.
     fn add_node(&mut self) -> NodeId {
-        unimplemented!()
+        self.nodes.push(Node::new());
+        NodeId(self.nodes.len() - 1)
     }
 
     /// Remove the last node.
-    /// Returns `None` if the WoT was empty.
+    /// Returns `None` if the WoT was empty, otherwise new top node id.
     fn rem_node(&mut self) -> Option<NodeId> {
-        unimplemented!()
+        self.nodes.pop();
+
+        if !self.nodes.is_empty() {
+            Some(NodeId(self.nodes.len() - 1))
+        } else {
+            None
+        }
     }
 
     /// Get the size of the WoT.
     fn size(&self) -> usize {
-        unimplemented!()
+        self.nodes.len()
     }
 
     /// Check if given node is enabled.
     /// Returns `None` if this node doesn't exist.
     fn is_enabled(&self, id: NodeId) -> Option<bool> {
-        unimplemented!()
+        self.nodes.get(id.0).map(|n| n.enabled)
     }
 
     /// Set if given node is enabled.
     /// Returns `Null` if this node doesn't exist, `enabled` otherwise.
     fn set_enabled(&mut self, id: NodeId, enabled: bool) -> Option<bool> {
-        unimplemented!()
+        self.nodes
+            .get_mut(id.0)
+            .map(|n| n.enabled = enabled)
+            .map(|_| enabled)
     }
 
     /// Get enabled node array.
     fn get_enabled(&self) -> Vec<NodeId> {
-        unimplemented!()
+        self.nodes
+            .par_iter()
+            .enumerate()
+            .filter(|&(_, n)| n.enabled)
+            .map(|(i, _)| NodeId(i))
+            .collect()
     }
 
     /// Get disabled node array.
     fn get_disabled(&self) -> Vec<NodeId> {
-        unimplemented!()
+        self.nodes
+            .par_iter()
+            .enumerate()
+            .filter(|&(_, n)| !n.enabled)
+            .map(|(i, _)| NodeId(i))
+            .collect()
     }
 
     /// Try to add a link from the source to the target.
     fn add_link(&mut self, source: NodeId, target: NodeId) -> NewLinkResult {
-        unimplemented!()
+        if source == target {
+            NewLinkResult::SelfLinkingForbidden()
+        } else if source.0 >= self.size() {
+            NewLinkResult::UnknownSource()
+        } else if target.0 >= self.size() {
+            NewLinkResult::UnknownTarget()
+        } else if self.nodes[source.0].issued_count >= self.max_links {
+            NewLinkResult::AllCertificationsUsed(self.nodes[target.0].links_source.len())
+        } else if self.nodes[target.0].links_source.contains(&source) {
+            NewLinkResult::AlreadyCertified(self.nodes[target.0].links_source.len())
+        } else {
+            self.nodes[source.0].issued_count += 1;
+            self.nodes[target.0].links_source.insert(source);
+            NewLinkResult::Ok(self.nodes[target.0].links_source.len())
+    }
     }
 
     /// Try to remove a link from the source to the target.
     fn rem_link(&mut self, source: NodeId, target: NodeId) -> RemLinkResult {
-        unimplemented!()
+        if source.0 >= self.size() {
+            RemLinkResult::UnknownSource()
+        } else if target.0 >= self.size() {
+            RemLinkResult::UnknownTarget()
+        } else if !self.nodes[target.0].links_source.contains(&source) {
+            RemLinkResult::UnknownCert(self.nodes[target.0].links_source.len())
+        } else {
+            self.nodes[source.0].issued_count -= 1;
+            self.nodes[target.0].links_source.remove(&source);
+            RemLinkResult::Removed(self.nodes[target.0].links_source.len())
+    }
     }
 
     /// Test if there is a link from the source to the target.
     fn has_link(&self, source: NodeId, target: NodeId) -> HasLinkResult {
-        unimplemented!()
+        if source.0 >= self.size() {
+            HasLinkResult::UnknownSource()
+        } else if target.0 >= self.size() {
+            HasLinkResult::UnknownTarget()
+        } else {
+            HasLinkResult::Link(self.nodes[target.0].links_source.contains(&source))
+        }
     }
 
     /// Get the list of links source for this target.
     /// Returns `None` if this node doesn't exist.
     fn get_links_source(&self, target: NodeId) -> Option<Vec<NodeId>> {
-        unimplemented!()
+        self.nodes
+            .get(target.0)
+            .map(|n| n.links_source.iter().cloned().collect())
     }
 
     /// Get the number of issued links by a node.
     /// Returns `None` if this node doesn't exist.
     fn issued_count(&self, id: NodeId) -> Option<usize> {
-        unimplemented!()
+        self.nodes.get(id.0).map(|n| n.issued_count)
     }
 
     /// Get sentries array.
     fn get_sentries(&self, sentry_requirement: usize) -> Vec<NodeId> {
-        unimplemented!()
+        self.nodes
+            .par_iter()
+            .enumerate()
+            .filter(|&(_, n)| {
+                n.enabled && n.issued_count >= sentry_requirement
+                    && n.links_source.len() >= sentry_requirement
+            })
+            .map(|(i, _)| NodeId(i))
+            .collect()
     }
 
     /// Get non sentries array.
     fn get_non_sentries(&self, sentry_requirement: usize) -> Vec<NodeId> {
-        unimplemented!()
+        self.nodes
+            .par_iter()
+            .enumerate()
+            .filter(|&(_, n)| {
+                n.enabled
+                    && (n.issued_count < sentry_requirement
+                        || n.links_source.len() < sentry_requirement)
+            })
+            .map(|(i, _)| NodeId(i))
+            .collect()
     }
 
     /// Get paths from one node to the other.
-    fn get_paths(&self, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>> {
+    fn get_paths(&self, _from: NodeId, _to: NodeId, _k_max: u32) -> Vec<Vec<NodeId>> {
         unimplemented!()
     }
 
     /// Compute distance between a node and the network.
     /// Returns `None` if this node doesn't exist.
-    fn compute_distance(&self, params: WotDistanceParameters) -> Option<WotDistance> {
+    fn compute_distance(&self, _params: WotDistanceParameters) -> Option<WotDistance> {
         unimplemented!()
     }
 
     /// Test if a node is outdistanced in the network.
     /// Returns `Node` if this node doesn't exist.
-    fn is_outdistanced(&self, params: WotDistanceParameters) -> Option<bool> {
+    fn is_outdistanced(&self, _params: WotDistanceParameters) -> Option<bool> {
         unimplemented!()
     }
 }
