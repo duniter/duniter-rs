@@ -52,6 +52,13 @@ pub struct IdentityDocument {
     signatures: Vec<ed25519::Signature>,
 }
 
+impl IdentityDocument {
+    /// Unique ID
+    pub fn unique_id(&self) -> &str {
+        &self.unique_id
+    }
+}
+
 impl Document for IdentityDocument {
     type PublicKey = ed25519::PublicKey;
     type CurrencyType = str;
