@@ -32,6 +32,7 @@
 
 extern crate bincode;
 extern crate byteorder;
+extern crate rayon;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -631,7 +632,12 @@ mod tests {
         assert_eq!(wot.get_non_sentries(3).len(), 12); // 12 - 0
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 1).len(), 0); // KO
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
-        assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2)[0].len(), 3); // It exists 3 -> 2 -> 0
+        assert!(wot.get_paths(NodeId(3), NodeId(0), 2).contains(&vec![
+            NodeId(3),
+            NodeId(2),
+            NodeId(0),
+        ]));
+
         assert_eq!(
             wot.is_outdistanced(WotDistanceParameters {
                 node: NodeId(0),
@@ -686,7 +692,12 @@ mod tests {
         assert_eq!(wot.get_non_sentries(3).len(), 12); // 12 - 0
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 1).len(), 0); // KO
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
-        assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2)[0].len(), 3); // It exists 3 -> 2 -> 0
+        assert!(wot.get_paths(NodeId(3), NodeId(0), 2).contains(&vec![
+            NodeId(3),
+            NodeId(2),
+            NodeId(0),
+        ]));
+
         assert_eq!(
             wot.is_outdistanced(WotDistanceParameters {
                 node: NodeId(0),

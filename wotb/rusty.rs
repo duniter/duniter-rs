@@ -15,17 +15,19 @@
 
 //! Experimental implementation of the Web of Trust in a more "rusty" style.
 
+use std::collections::HashSet;
+use rayon::prelude::*;
+
 use WebOfTrust;
 use WotDistance;
 use WotDistanceParameters;
 use HasLinkResult;
 use RemLinkResult;
 use NewLinkResult;
-use std::collections::HashSet;
 
 use NodeId;
 
-/// A node in the WoT graph.
+/// A node in the *WoT* graph.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Node {
     /// Is this node enabled ?
@@ -153,7 +155,7 @@ impl WebOfTrust for RustyWebOfTrust {
             self.nodes[source.0].issued_count += 1;
             self.nodes[target.0].links_source.insert(source);
             NewLinkResult::Ok(self.nodes[target.0].links_source.len())
-    }
+        }
     }
 
     /// Try to remove a link from the source to the target.
@@ -168,7 +170,7 @@ impl WebOfTrust for RustyWebOfTrust {
             self.nodes[source.0].issued_count -= 1;
             self.nodes[target.0].links_source.remove(&source);
             RemLinkResult::Removed(self.nodes[target.0].links_source.len())
-    }
+        }
     }
 
     /// Test if there is a link from the source to the target.
@@ -224,8 +226,34 @@ impl WebOfTrust for RustyWebOfTrust {
     }
 
     /// Get paths from one node to the other.
-    fn get_paths(&self, _from: NodeId, _to: NodeId, _k_max: u32) -> Vec<Vec<NodeId>> {
-        unimplemented!()
+    fn get_paths(&self, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>> {
+        if from == to {
+            vec![vec![to]]
+        } else if k_max > 0 {
+            self.nodes[to.0]
+                .links_source
+                .par_iter()
+                .map(|&source| self.get_paths(from, source, k_max - 1))
+                .map(|paths| {
+                    paths
+                        .iter()
+                        .map(|path| {
+                            let mut path = path.clone();
+                            path.push(to);
+                            path
+                        })
+                        .collect::<Vec<Vec<NodeId>>>()
+                })
+                .reduce(
+                    || vec![],
+                    |mut acc, mut paths| {
+                        acc.append(&mut paths);
+                        acc
+                    },
+                )
+        } else {
+            vec![]
+        }
     }
 
     /// Compute distance between a node and the network.
