@@ -21,8 +21,10 @@ use blockchain::{Document, DocumentBuilder, DocumentParser};
 use blockchain::v10::documents::identity::IdentityDocumentParser;
 
 pub mod identity;
+pub mod membership;
 
 pub use blockchain::v10::documents::identity::{IdentityDocument, IdentityDocumentBuilder};
+pub use blockchain::v10::documents::membership::MembershipDocument;
 
 // Use of lazy_static so the regex is only compiled at first use.
 lazy_static! {
@@ -54,7 +56,7 @@ pub enum V10Document {
     Identity(IdentityDocument),
 
     /// Membership document.
-    Membership(),
+    Membership(MembershipDocument),
 
     /// Certification document.
     Certification(),
