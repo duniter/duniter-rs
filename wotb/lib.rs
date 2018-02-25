@@ -92,13 +92,13 @@ pub enum WotParseError {
 }
 
 impl From<std::io::Error> for WotParseError {
-    fn from(e:std::io::Error) -> WotParseError {
+    fn from(e: std::io::Error) -> WotParseError {
         WotParseError::IOError(e)
     }
 }
 
 impl PartialEq for WotParseError {
-    fn eq(&self, wot_parse_error_2:&WotParseError) -> bool {
+    fn eq(&self, wot_parse_error_2: &WotParseError) -> bool {
         match wot_parse_error_2 {
             &WotParseError::FailToOpenFile(_) => match self {
                 &WotParseError::FailToOpenFile(_) => true,
@@ -126,13 +126,13 @@ pub enum WotWriteError {
 }
 
 impl From<std::io::Error> for WotWriteError {
-    fn from(e:std::io::Error) -> WotWriteError {
+    fn from(e: std::io::Error) -> WotWriteError {
         WotWriteError::FailToWriteInFile(e)
     }
 }
 
 impl PartialEq for WotWriteError {
-    fn eq(&self, wot_write_error_2:&WotWriteError) -> bool {
+    fn eq(&self, wot_write_error_2: &WotWriteError) -> bool {
         match wot_write_error_2 {
             &WotWriteError::WrongWotSize() => match self {
                 &WotWriteError::WrongWotSize() => true,
@@ -297,7 +297,10 @@ pub trait WebOfTrust {
                     if byte_integer >= factor {
                         byte_integer -= factor;
                     } else {
-                        println!("DEBUG : set_enabled({})", (nodes_count - count_remaining_nodes));
+                        println!(
+                            "DEBUG : set_enabled({})",
+                            (nodes_count - count_remaining_nodes)
+                        );
                         let test = self.set_enabled(
                             NodeId((nodes_count - count_remaining_nodes) as usize),
                             false,
@@ -312,7 +315,7 @@ pub trait WebOfTrust {
         // Apply links
         let mut buffer_3b: Vec<u8> = Vec::with_capacity(3);
         let mut count_bytes = 0;
-        let mut remaining_links:u8 = 0;
+        let mut remaining_links: u8 = 0;
         let mut source: u32 = 0;
         let mut target: u32 = 0;
         for byte in file_pointing_to_links {
@@ -325,7 +328,7 @@ pub trait WebOfTrust {
                 if count_bytes % 3 == 2 {
                     let mut buf = &buffer_3b.clone()[..];
                     source = buf.read_u24::<BigEndian>().expect("fail to parse source");
-                    self.add_link(NodeId(source as usize), NodeId((target-1) as usize));
+                    self.add_link(NodeId(source as usize), NodeId((target - 1) as usize));
                     remaining_links -= 1;
                     buffer_3b.clear();
                 }
@@ -418,7 +421,7 @@ mod tests {
     ///
     /// Clone and file tests are not included in this generic test and should be done in
     /// the implementation test.
-    pub fn generic_wot_test<T: WebOfTrust>(wot: &mut T) {
+    pub fn generic_wot_test<T: WebOfTrust>(wot: &mut T, wot2: &mut T) {
         // should have an initial size of 0
         assert_eq!(wot.size(), 0);
 
@@ -762,7 +765,7 @@ mod tests {
         // should have 11 nodes
         assert_eq!(wot.size(), 11);
 
-        // should work with member 3 disabledwork with member 3 disabled
+        // should work with member 3 disabled
         // - with member 3 disabled (non-member)
         assert_eq!(wot.set_enabled(NodeId(3), false), Some(false));
         assert_eq!(wot.get_disabled().len(), 1);
@@ -775,5 +778,39 @@ mod tests {
             }),
             Some(false)
         ); // OK : Disabled
+
+        // Write wot in file
+        assert_eq!(
+            wot.to_file(
+                "test.bin",
+                &[0b0000_0000, 0b0000_0001, 0b0000_0001, 0b0000_0000]
+            ),
+            Ok(())
+        );
+
+        // Read wot from file
+        {
+            assert_eq!(
+                wot2.from_file("test.bin"),
+                Ok(vec![0b0000_0000, 0b0000_0001, 0b0000_0001, 0b0000_0000])
+            );
+            assert_eq!(wot.size(), wot2.size());
+            assert_eq!(
+                wot.get_non_sentries(1).len(),
+                wot2.get_non_sentries(1).len()
+            );
+            assert_eq!(wot.get_disabled().len(), wot2.get_disabled().len());
+            assert_eq!(wot2.get_disabled().len(), 1);
+            assert_eq!(wot2.is_enabled(NodeId(3)), Some(false));
+            assert_eq!(
+                wot2.is_outdistanced(WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 2,
+                    step_max: 1,
+                    x_percent: 1.0,
+                }),
+                Some(false)
+            );
+        }
     }
 }

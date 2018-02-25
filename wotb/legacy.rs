@@ -554,7 +554,8 @@ mod tests {
     #[test]
     fn wot_tests() {
         let mut wot = LegacyWebOfTrust::new(3);
-        generic_wot_test(&mut wot);
+        let mut wot2 = LegacyWebOfTrust::new(3);
+        generic_wot_test(&mut wot, &mut wot2);
 
         // should be able to make a mem copy
         {
@@ -580,8 +581,5 @@ mod tests {
                 wot2.get_non_sentries(1).len()
             );
         }
-
-        // Write wot in file
-        assert_eq!(wot.to_file("test.bin", &[0b0000_0000, 0b0000_0001,0b0000_0001,0b0000_0000]), Ok(()));
     }
 }
