@@ -1,6 +1,6 @@
 [workspace]
 members = [
     "wotb",
-    "keys",
+    "crypto",
     "protocol",
 ]

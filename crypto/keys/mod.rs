@@ -21,8 +21,8 @@
 //! # Usage
 //!
 //! ```
-//! use duniter_keys::{Signature, PublicKey, PrivateKey, KeyPair};
-//! use duniter_keys::ed25519::KeyPairFromSaltedPasswordGenerator;
+//! use duniter_crypto::keys::{Signature, PublicKey, PrivateKey, KeyPair};
+//! use duniter_crypto::keys::ed25519::KeyPairFromSaltedPasswordGenerator;
 //!
 //! let generator = KeyPairFromSaltedPasswordGenerator::with_default_parameters();
 //!
@@ -45,14 +45,6 @@
 //! - Base64 use the following alphabet :
 //! `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/`
 //! with `=` as padding character.
-
-#![deny(missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
-        trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
-        unused_qualifications)]
-
-extern crate base58;
-extern crate base64;
-extern crate crypto;
 
 use std::fmt::Display;
 use std::fmt::Debug;

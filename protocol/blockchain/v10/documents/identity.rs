@@ -15,7 +15,7 @@
 
 //! Wrappers around Identity documents.
 
-use duniter_keys::{PublicKey, ed25519};
+use duniter_crypto::keys::{PublicKey, ed25519};
 use regex::Regex;
 
 use Blockstamp;
@@ -198,7 +198,7 @@ impl StandardTextDocumentParser for IdentityDocumentParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use duniter_keys::{PrivateKey, PublicKey, Signature};
+    use duniter_crypto::keys::{PrivateKey, PublicKey, Signature};
     use blockchain::VerificationResult;
 
     #[test]
