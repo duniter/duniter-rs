@@ -17,7 +17,7 @@
 
 use std::fmt::Debug;
 
-use duniter_keys::{PrivateKey, PublicKey};
+use duniter_crypto::keys::{PrivateKey, PublicKey};
 
 pub mod v10;
 
@@ -138,7 +138,7 @@ pub trait DocumentParser<S, D, E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use duniter_keys::{Signature, ed25519};
+    use duniter_crypto::keys::{Signature, ed25519};
 
     // simple text document for signature testing
     #[derive(Debug, Clone)]

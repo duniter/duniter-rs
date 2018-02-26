@@ -15,7 +15,7 @@
 
 //! Provide wrappers around Duniter blockchain documents for protocol version 10.
 
-use duniter_keys::{Signature, ed25519};
+use duniter_crypto::keys::{Signature, ed25519};
 use regex::Regex;
 use blockchain::{Document, DocumentBuilder, DocumentParser};
 use blockchain::v10::documents::identity::IdentityDocumentParser;
@@ -99,7 +99,7 @@ pub trait TextDocumentBuilder: DocumentBuilder {
         &self,
         private_keys: Vec<ed25519::PrivateKey>,
     ) -> (String, Vec<ed25519::Signature>) {
-        use duniter_keys::PrivateKey;
+        use duniter_crypto::keys::PrivateKey;
 
         let text = self.generate_text();
 

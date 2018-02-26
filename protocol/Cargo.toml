@@ -1,6 +1,6 @@
 [package]
 name = "duniter-protocol"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["nanocryk <nanocryk@duniter.org>"]
 description = "Implements the Duniter Protocol"
 repository = "https://git.duniter.org/nodes/rust/duniter-rs"
@@ -18,4 +18,4 @@ base58 = "0.1.0"
 base64 = "0.8.0"
 lazy_static = "1.0.0"
 regex = "0.2"
-duniter-keys = { path = "../keys" }
+duniter-crypto = { path = "../crypto" }

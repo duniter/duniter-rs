@@ -22,7 +22,7 @@
 extern crate base58;
 extern crate base64;
 extern crate crypto;
-extern crate duniter_keys;
+extern crate duniter_crypto;
 #[macro_use]
 extern crate lazy_static;
 extern crate linked_hash_map;
@@ -30,7 +30,7 @@ extern crate regex;
 
 use std::fmt::{Debug, Display, Error, Formatter};
 
-use duniter_keys::BaseConvertionError;
+use duniter_crypto::keys::BaseConvertionError;
 
 pub mod blockchain;
 
