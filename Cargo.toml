@@ -2,5 +2,6 @@
 members = [
     "wotb",
     "keys",
+    "crypto",
     "protocol",
 ]
