@@ -1,8 +1,8 @@
 [package]
 name = "duniter-keys"
-version = "0.3.0"
+version = "0.3.1-deprecated"
 authors = ["nanocryk <nanocryk@duniter.org>"]
-description = "Manage cryptographic keys for the Duniter project."
+description = "Deprecated crate. Use duniter-crypto."
 repository = "https://git.duniter.org/nodes/rust/duniter-rs"
 readme = "README.md"
 keywords = ["duniter", "keys", "cryptography"]
