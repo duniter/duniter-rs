@@ -199,7 +199,7 @@ impl StandardTextDocumentParser for IdentityDocumentParser {
 mod tests {
     use super::*;
     use duniter_crypto::keys::{PrivateKey, PublicKey, Signature};
-    use blockchain::VerificationResult;
+    use blockchain::{Document, VerificationResult};
 
     #[test]
     fn generate_real_document() {
@@ -241,8 +241,8 @@ mod tests {
     #[test]
     fn identity_standard_regex() {
         assert!(IDENTITY_REGEX.is_match(
-            "Issuer: DKpQPUL4ckzXYdnDRvCRKAm1gNvSdmAXnTrJZ7LvM5Qo
-UniqueID: toc
+            "Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+UniqueID: tic
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 "
         ));
@@ -253,22 +253,28 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
         let doc = "Version: 10
 Type: Identity
 Currency: duniter_unit_test_currency
-Issuer: DKpQPUL4ckzXYdnDRvCRKAm1gNvSdmAXnTrJZ7LvM5Qo
-UniqueID: toc
+Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+UniqueID: tic
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
-lcekuS0eP2dpFL99imJcwvDAwx49diiDMkG8Lj7FLkC/6IJ0tgNjUzCIZgMGi7bL5tODRiWi9B49UMXb8b3MAw==";
+";
 
-        let body = "Issuer: DKpQPUL4ckzXYdnDRvCRKAm1gNvSdmAXnTrJZ7LvM5Qo
-UniqueID: toc
+        let body = "Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+UniqueID: tic
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 ";
 
         let currency = "duniter_unit_test_currency";
 
         let signatures = vec![Signature::from_base64(
-"lcekuS0eP2dpFL99imJcwvDAwx49diiDMkG8Lj7FLkC/6IJ0tgNjUzCIZgMGi7bL5tODRiWi9B49UMXb8b3MAw=="
+"1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg=="
         ).unwrap(),];
 
-        let _ = IdentityDocumentParser::parse_standard(doc, body, currency, signatures).unwrap();
+        let doc = IdentityDocumentParser::parse_standard(doc, body, currency, signatures).unwrap();
+        if let V10Document::Identity(doc) = doc {
+            println!("Doc : {:?}", doc);
+            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+        } else {
+            panic!("Wrong document type");
+        }
     }
 }

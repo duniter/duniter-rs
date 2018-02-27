@@ -308,7 +308,7 @@ Block: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 Membership: IN
 UserID: tic
 CertTS: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
-s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw==";
+";
 
         let body = "Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
 Block: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
@@ -323,6 +323,13 @@ CertTS: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 "s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw=="
         ).unwrap(),];
 
-        let _ = MembershipDocumentParser::parse_standard(doc, body, currency, signatures).unwrap();
+        let doc =
+            MembershipDocumentParser::parse_standard(doc, body, currency, signatures).unwrap();
+        if let V10Document::Membership(doc) = doc {
+            println!("Doc : {:?}", doc);
+            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+        } else {
+            panic!("Wrong document type");
+        }
     }
 }

@@ -69,7 +69,7 @@ pub trait Document: Debug {
             let signatures = self.signatures();
             let mismatches: Vec<_> = issuers
                 .iter()
-                .zip(signatures.iter())
+                .zip(signatures)
                 .enumerate()
                 .filter(|&(_, (key, signature))| !key.verify(self.as_bytes(), signature))
                 .map(|(i, _)| i)

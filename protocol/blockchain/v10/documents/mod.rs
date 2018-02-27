@@ -33,11 +33,11 @@ lazy_static! {
         Type: (?P<type>[[:alpha:]]+)\n\
         Currency: (?P<currency>[[:alnum:] _-]+)\n\
         (?P<body>(?:.*\n)+?))\
-        (?P<sigs>([[:alnum:]+/=]+\n)+)$"
+        (?P<sigs>([[:alnum:]+/=]+\n)*([[:alnum:]+/=]+))$"
     ).unwrap();
 
     static ref SIGNATURES_REGEX: Regex = Regex::new(
-        "[[:alnum:]+/=]+\n"
+        "[[:alnum:]+/=]+\n?"
     ).unwrap();
 }
 
@@ -180,6 +180,7 @@ impl<'a> DocumentParser<&'a str, V10Document, V10DocumentParsingError> for V10Do
 #[cfg(test)]
 mod tests {
     use super::*;
+    use blockchain::{Document, VerificationResult};
 
     #[test]
     fn document_regex() {
@@ -215,8 +216,7 @@ Outputs:
 Comment: -----@@@----- (why not this comment?)
 42yQm4hGTJYWkPg39hQAUgP6S6EQ4vTfXdJuxKEHL1ih6YHiDL2hcwrFgBHjXLRgxRhj2VNVqqc6b4JayKqTE14r
 2D96KZwNUvVtcapQPq2mm7J9isFcDCfykwJpVEZwBc7tCgL4qPyu17BT5ePozAE9HS6Yvj51f62Mp4n9d9dkzJoX
-2XiBDpuUdu6zCPWGzHXXy8c4ATSscfFQG9DjmqMZUxDZVt1Dp4m2N5oHYVUfoPdrU9SLk4qxi65RNrfCVnvQtQJk
-"
+2XiBDpuUdu6zCPWGzHXXy8c4ATSscfFQG9DjmqMZUxDZVt1Dp4m2N5oHYVUfoPdrU9SLk4qxi65RNrfCVnvQtQJk"
         ));
 
         assert!(DOCUMENT_REGEX.is_match(
@@ -230,8 +230,7 @@ IdtyTimestamp: 32-DB30D958EE5CB75186972286ED3F4686B8A1C2CD
 IdtySignature: J3G9oM5AKYZNLAB5Wx499w61NuUoS57JVccTShUb\
 GpCMjCqj9yXXqNq7dyZpDWA6BxipsiaMZhujMeBfCznzyci
 CertTimestamp: 36-1076F10A7397715D2BEE82579861999EA1F274AC
-SoKwoa8PFfCDJWZ6dNCv7XstezHcc2BbKiJgVDXv82R5zYR83nis9dShLgWJ5w48noVUHimdngzYQneNYSMV3rk
-"
+SoKwoa8PFfCDJWZ6dNCv7XstezHcc2BbKiJgVDXv82R5zYR83nis9dShLgWJ5w48noVUHimdngzYQneNYSMV3rk"
         ));
     }
 
@@ -243,8 +242,7 @@ SoKwoa8PFfCDJWZ6dNCv7XstezHcc2BbKiJgVDXv82R5zYR83nis9dShLgWJ5w48noVUHimdngzYQneN
                     "
 42yQm4hGTJYWkPg39hQAUgP6S6EQ4vTfXdJuxKEHL1ih6YHiDL2hcwrFgBHjXLRgxRhj2VNVqqc6b4JayKqTE14r
 2D96KZwNUvVtcapQPq2mm7J9isFcDCfykwJpVEZwBc7tCgL4qPyu17BT5ePozAE9HS6Yvj51f62Mp4n9d9dkzJoX
-2XiBDpuUdu6zCPWGzHXXy8c4ATSscfFQG9DjmqMZUxDZVt1Dp4m2N5oHYVUfoPdrU9SLk4qxi65RNrfCVnvQtQJk
-"
+2XiBDpuUdu6zCPWGzHXXy8c4ATSscfFQG9DjmqMZUxDZVt1Dp4m2N5oHYVUfoPdrU9SLk4qxi65RNrfCVnvQtQJk"
                 )
                 .count(),
             3
@@ -255,11 +253,50 @@ SoKwoa8PFfCDJWZ6dNCv7XstezHcc2BbKiJgVDXv82R5zYR83nis9dShLgWJ5w48noVUHimdngzYQneN
                 .captures_iter(
                     "
 42yQm4hGTJYWkPg39hQAUgP6S6EQ4vTfXdJuxKEHL1ih6YHiDL2hcwrFgBHjXLRgxRhj2VNVqqc6b4JayKqTE14r
-2XiBDpuUdu6zCPWGzHXXy8c4ATSscfFQG9DjmqMZUxDZVt1Dp4m2N5oHYVUfoPdrU9SLk4qxi65RNrfCVnvQtQJk
-"
+2XiBDpuUdu6zCPWGzHXXy8c4ATSscfFQG9DjmqMZUxDZVt1Dp4m2N5oHYVUfoPdrU9SLk4qxi65RNrfCVnvQtQJk"
                 )
                 .count(),
             2
         );
+    }
+
+    #[test]
+    fn parse_identity_document() {
+        let text = "Version: 10
+Type: Identity
+Currency: duniter_unit_test_currency
+Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+UniqueID: tic
+Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==";
+
+        let doc = V10DocumentParser::parse(text).unwrap();
+        if let V10Document::Identity(doc) = doc {
+            println!("Doc : {:?}", doc);
+            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+        } else {
+            panic!("Wrong document type");
+        }
+    }
+
+    #[test]
+    fn parse_membership_document() {
+        let text = "Version: 10
+Type: Membership
+Currency: duniter_unit_test_currency
+Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+Block: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+Membership: IN
+UserID: tic
+CertTS: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw==";
+
+        let doc = V10DocumentParser::parse(text).unwrap();
+        if let V10Document::Membership(doc) = doc {
+            println!("Doc : {:?}", doc);
+            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+        } else {
+            panic!("Wrong document type");
+        }
     }
 }
