@@ -144,7 +144,7 @@ impl LegacyWebOfTrust {
     }
 
     /// Read *WoT* from file.
-    pub fn from_file(path: &str) -> Option<LegacyWebOfTrust> {
+    pub fn legacy_from_file(path: &str) -> Option<LegacyWebOfTrust> {
         let mut file = match File::open(path) {
             Ok(file) => file,
             Err(_) => return None,
@@ -162,7 +162,7 @@ impl LegacyWebOfTrust {
     }
 
     /// Write *WoT* to file.
-    pub fn to_file(&self, path: &str) -> bool {
+    pub fn legacy_to_file(&self, path: &str) -> bool {
         let encoded: Vec<u8> = serialize(self, Infinite).unwrap();
 
         match File::create(path) {
@@ -373,7 +373,7 @@ impl WebOfTrust for LegacyWebOfTrust {
         }
     }
 
-    fn issued_count(&mut self, id: NodeId) -> Option<usize> {
+    fn issued_count(&self, id: NodeId) -> Option<usize> {
         if id.0 >= self.size() {
             None
         } else {
@@ -554,7 +554,8 @@ mod tests {
     #[test]
     fn wot_tests() {
         let mut wot = LegacyWebOfTrust::new(3);
-        generic_wot_test(&mut wot);
+        let mut wot2 = LegacyWebOfTrust::new(3);
+        generic_wot_test(&mut wot, &mut wot2);
 
         // should be able to make a mem copy
         {
@@ -568,11 +569,11 @@ mod tests {
         }
 
         // serialization
-        assert_eq!(wot.to_file("test.wot"), true);
+        assert_eq!(wot.legacy_to_file("test.wot"), true);
 
         // deserialization
         {
-            let wot2 = LegacyWebOfTrust::from_file("test.wot").unwrap();
+            let wot2 = LegacyWebOfTrust::legacy_from_file("test.wot").unwrap();
 
             assert_eq!(wot.size(), wot2.size());
             assert_eq!(
