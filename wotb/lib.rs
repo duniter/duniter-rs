@@ -97,21 +97,6 @@ impl From<std::io::Error> for WotParseError {
     }
 }
 
-impl PartialEq for WotParseError {
-    fn eq(&self, wot_parse_error_2: &WotParseError) -> bool {
-        match wot_parse_error_2 {
-            &WotParseError::FailToOpenFile(_) => match self {
-                &WotParseError::FailToOpenFile(_) => true,
-                _ => false,
-            },
-            &WotParseError::IOError(_) => match self {
-                &WotParseError::IOError(_) => true,
-                _ => false,
-            },
-        }
-    }
-}
-
 /// Results of WebOfTrust writing to binary file.
 #[derive(Debug)]
 pub enum WotWriteError {
@@ -128,25 +113,6 @@ pub enum WotWriteError {
 impl From<std::io::Error> for WotWriteError {
     fn from(e: std::io::Error) -> WotWriteError {
         WotWriteError::FailToWriteInFile(e)
-    }
-}
-
-impl PartialEq for WotWriteError {
-    fn eq(&self, wot_write_error_2: &WotWriteError) -> bool {
-        match wot_write_error_2 {
-            &WotWriteError::WrongWotSize() => match self {
-                &WotWriteError::WrongWotSize() => true,
-                _ => false,
-            },
-            &WotWriteError::FailToCreateFile(_) => match self {
-                &WotWriteError::FailToCreateFile(_) => true,
-                _ => false,
-            },
-            &WotWriteError::FailToWriteInFile(_) => match self {
-                &WotWriteError::FailToWriteInFile(_) => true,
-                _ => false,
-            },
-        }
     }
 }
 
@@ -784,15 +750,15 @@ mod tests {
             wot.to_file(
                 "test.bin",
                 &[0b0000_0000, 0b0000_0001, 0b0000_0001, 0b0000_0000]
-            ),
-            Ok(())
+            ).unwrap(),
+            ()
         );
 
         // Read wot from file
         {
             assert_eq!(
-                wot2.from_file("test.bin"),
-                Ok(vec![0b0000_0000, 0b0000_0001, 0b0000_0001, 0b0000_0000])
+                wot2.from_file("test.bin").unwrap(),
+                vec![0b0000_0000, 0b0000_0001, 0b0000_0001, 0b0000_0000]
             );
             assert_eq!(wot.size(), wot2.size());
             assert_eq!(
