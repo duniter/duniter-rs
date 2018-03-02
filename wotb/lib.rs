@@ -285,7 +285,6 @@ pub trait WebOfTrust {
         let mut buffer_3b: Vec<u8> = Vec::with_capacity(3);
         let mut count_bytes = 0;
         let mut remaining_links: u8 = 0;
-        let mut source: u32 = 0;
         let mut target: u32 = 0;
         for byte in file_pointing_to_links {
             if remaining_links == 0 {
@@ -296,7 +295,7 @@ pub trait WebOfTrust {
                 buffer_3b.push(byte);
                 if count_bytes % 3 == 2 {
                     let mut buf = &buffer_3b.clone()[..];
-                    source = buf.read_u24::<BigEndian>().expect("fail to parse source");
+                    let source = buf.read_u24::<BigEndian>().expect("fail to parse source");
                     self.add_link(NodeId(source as usize), NodeId((target - 1) as usize));
                     remaining_links -= 1;
                     buffer_3b.clear();
