@@ -68,27 +68,36 @@ impl RustyWebOfTrust {
             max_links,
         }
     }
+
+    /// Test if a node is a sentry.
+    pub fn is_sentry(&self, node: NodeId, sentry_requirement: usize) -> Option<bool> {
+        if node.0 >= self.size() {
+            return None;
+        }
+
+        let node = &self.nodes[node.0];
+
+        Some(
+            node.enabled && node.issued_count >= sentry_requirement
+                && node.links_source.len() >= sentry_requirement,
+        )
+    }
 }
 
 impl WebOfTrust for RustyWebOfTrust {
-    /// Get the maximum number of links per user.
     fn get_max_link(&self) -> usize {
         self.max_links
     }
 
-    /// Set the maximum number of links per user.
     fn set_max_link(&mut self, max_links: usize) {
         self.max_links = max_links;
     }
 
-    /// Add a new node.
     fn add_node(&mut self) -> NodeId {
         self.nodes.push(Node::new());
         NodeId(self.nodes.len() - 1)
     }
 
-    /// Remove the last node.
-    /// Returns `None` if the WoT was empty, otherwise new top node id.
     fn rem_node(&mut self) -> Option<NodeId> {
         self.nodes.pop();
 
@@ -99,19 +108,14 @@ impl WebOfTrust for RustyWebOfTrust {
         }
     }
 
-    /// Get the size of the WoT.
     fn size(&self) -> usize {
         self.nodes.len()
     }
 
-    /// Check if given node is enabled.
-    /// Returns `None` if this node doesn't exist.
     fn is_enabled(&self, id: NodeId) -> Option<bool> {
         self.nodes.get(id.0).map(|n| n.enabled)
     }
 
-    /// Set if given node is enabled.
-    /// Returns `Null` if this node doesn't exist, `enabled` otherwise.
     fn set_enabled(&mut self, id: NodeId, enabled: bool) -> Option<bool> {
         self.nodes
             .get_mut(id.0)
@@ -119,7 +123,6 @@ impl WebOfTrust for RustyWebOfTrust {
             .map(|_| enabled)
     }
 
-    /// Get enabled nodes array.
     fn get_enabled(&self) -> Vec<NodeId> {
         self.nodes
             .par_iter()
@@ -129,7 +132,6 @@ impl WebOfTrust for RustyWebOfTrust {
             .collect()
     }
 
-    /// Get disabled nodes array.
     fn get_disabled(&self) -> Vec<NodeId> {
         self.nodes
             .par_iter()
@@ -139,7 +141,6 @@ impl WebOfTrust for RustyWebOfTrust {
             .collect()
     }
 
-    /// Try to add a link from the source to the target.
     fn add_link(&mut self, source: NodeId, target: NodeId) -> NewLinkResult {
         if source == target {
             NewLinkResult::SelfLinkingForbidden()
@@ -158,7 +159,6 @@ impl WebOfTrust for RustyWebOfTrust {
         }
     }
 
-    /// Try to remove a link from the source to the target.
     fn rem_link(&mut self, source: NodeId, target: NodeId) -> RemLinkResult {
         if source.0 >= self.size() {
             RemLinkResult::UnknownSource()
@@ -173,7 +173,6 @@ impl WebOfTrust for RustyWebOfTrust {
         }
     }
 
-    /// Test if there is a link from the source to the target.
     fn has_link(&self, source: NodeId, target: NodeId) -> HasLinkResult {
         if source.0 >= self.size() {
             HasLinkResult::UnknownSource()
@@ -184,21 +183,16 @@ impl WebOfTrust for RustyWebOfTrust {
         }
     }
 
-    /// Get the list of links source for this target.
-    /// Returns `None` if this node doesn't exist.
     fn get_links_source(&self, target: NodeId) -> Option<Vec<NodeId>> {
         self.nodes
             .get(target.0)
             .map(|n| n.links_source.iter().cloned().collect())
     }
 
-    /// Get the number of issued links by a node.
-    /// Returns `None` if this node doesn't exist.
     fn issued_count(&self, id: NodeId) -> Option<usize> {
         self.nodes.get(id.0).map(|n| n.issued_count)
     }
 
-    /// Get sentries array.
     fn get_sentries(&self, sentry_requirement: usize) -> Vec<NodeId> {
         self.nodes
             .par_iter()
@@ -211,7 +205,6 @@ impl WebOfTrust for RustyWebOfTrust {
             .collect()
     }
 
-    /// Get non sentries array.
     fn get_non_sentries(&self, sentry_requirement: usize) -> Vec<NodeId> {
         self.nodes
             .par_iter()
@@ -225,7 +218,6 @@ impl WebOfTrust for RustyWebOfTrust {
             .collect()
     }
 
-    /// Get paths from one node to the other.
     fn get_paths(&self, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>> {
         if from == to {
             vec![vec![to]]
@@ -256,8 +248,6 @@ impl WebOfTrust for RustyWebOfTrust {
         }
     }
 
-    /// Compute distance between a node and the network.
-    /// Returns `None` if this node doesn't exist.
     fn compute_distance(&self, params: WotDistanceParameters) -> Option<WotDistance> {
         let WotDistanceParameters {
             node,
@@ -282,42 +272,37 @@ impl WebOfTrust for RustyWebOfTrust {
                     self.nodes[id.0]
                         .links_source
                         .iter()
-                        .filter(|source| !area.contains(&source))
+                        .filter(|source| !area.contains(source))
                         .cloned()
                         .collect::<HashSet<_>>()
                 })
-                .reduce(
-                    || HashSet::new(),
-                    |mut acc, sources| {
-                        for source in sources {
-                            acc.insert(source);
-                        }
-                        acc
-                    },
-                );
+                .reduce(HashSet::new, |mut acc, sources| {
+                    for source in sources {
+                        acc.insert(source);
+                    }
+                    acc
+                });
             area.extend(border.iter());
         }
 
-        let sentries: Vec<_> = self.get_sentries(sentry_requirement as usize)
-            .into_iter()
-            .filter(|sentry| sentry.0 != node.0)
-            .collect();
+        let sentries: Vec<_> = self.get_sentries(sentry_requirement as usize);
 
-        let success = area.iter().filter(|n| sentries.contains(&n)).count() as u32;
-        let sentries = sentries.len() as u32;
+        let success = area.iter().filter(|n| sentries.contains(n)).count() as u32;
+        let sentries = sentries.len() as u32
+            - if self.is_sentry(node, sentry_requirement as usize).unwrap() {
+                1
+            } else {
+                0
+            };
 
-        let distance = WotDistance {
+        Some(WotDistance {
             sentries,
             reached: (area.len() - 1) as u32,
-            success: success,
+            success,
             outdistanced: f64::from(success) < x_percent * f64::from(sentries),
-        };
-
-        Some(distance)
+        })
     }
 
-    /// Test if a node is outdistanced in the network.
-    /// Returns `Node` if this node doesn't exist.
     fn is_outdistanced(&self, params: WotDistanceParameters) -> Option<bool> {
         self.compute_distance(params)
             .map(|result| result.outdistanced)

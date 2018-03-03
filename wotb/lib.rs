@@ -180,7 +180,7 @@ pub trait WebOfTrust {
     /// Returns `None` if this node doesn't exist.
     fn is_enabled(&self, id: NodeId) -> Option<bool>;
 
-    /// Set if given node is enabled.
+    /// Set the enabled state of given node.
     /// Returns `Null` if this node doesn't exist, `enabled` otherwise.
     fn set_enabled(&mut self, id: NodeId, enabled: bool) -> Option<bool>;
 
@@ -353,20 +353,17 @@ pub trait WebOfTrust {
         }
         // Write links
         for n in 0..nodes_count {
-            match self.get_links_source(NodeId(n as usize)) {
-                Some(sources) => {
-                    // Write sources_counts
-                    let mut bytes = Vec::with_capacity(1);
-                    bytes.write_u8(sources.len() as u8).unwrap();
+            if let Some(sources) = self.get_links_source(NodeId(n as usize)) {
+                // Write sources_counts
+                let mut bytes = Vec::with_capacity(1);
+                bytes.write_u8(sources.len() as u8).unwrap();
+                buffer.append(&mut bytes);
+                for source in sources {
+                    // Write source
+                    let mut bytes: Vec<u8> = Vec::with_capacity(3);
+                    bytes.write_u24::<BigEndian>(source.0 as u32).unwrap();
                     buffer.append(&mut bytes);
-                    for source in sources.iter() {
-                        // Write source
-                        let mut bytes: Vec<u8> = Vec::with_capacity(3);
-                        bytes.write_u24::<BigEndian>(source.0 as u32).unwrap();
-                        buffer.append(&mut bytes);
-                    }
                 }
-                None => {}
             };
         }
         // Create or open file
