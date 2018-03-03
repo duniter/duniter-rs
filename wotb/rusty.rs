@@ -119,7 +119,7 @@ impl WebOfTrust for RustyWebOfTrust {
             .map(|_| enabled)
     }
 
-    /// Get enabled node array.
+    /// Get enabled nodes array.
     fn get_enabled(&self) -> Vec<NodeId> {
         self.nodes
             .par_iter()
@@ -129,7 +129,7 @@ impl WebOfTrust for RustyWebOfTrust {
             .collect()
     }
 
-    /// Get disabled node array.
+    /// Get disabled nodes array.
     fn get_disabled(&self) -> Vec<NodeId> {
         self.nodes
             .par_iter()
@@ -270,13 +270,6 @@ impl WebOfTrust for RustyWebOfTrust {
             return None;
         }
 
-        let mut distance = WotDistance {
-            sentries: 0,
-            success: 0,
-            reached: 0,
-            outdistanced: false,
-        };
-
         let mut area = HashSet::new();
         area.insert(node);
         let mut border = HashSet::new();
@@ -305,13 +298,20 @@ impl WebOfTrust for RustyWebOfTrust {
             area.extend(border.iter());
         }
 
-        let sentries = self.get_sentries(sentry_requirement as usize);
+        let sentries: Vec<_> = self.get_sentries(sentry_requirement as usize)
+            .into_iter()
+            .filter(|sentry| sentry.0 != node.0)
+            .collect();
 
-        distance.sentries = sentries.len() as u32;
-        distance.reached = area.len() as u32;
-        distance.success = area.iter().filter(|n| sentries.contains(&n)).count() as u32;
-        distance.outdistanced =
-            f64::from(distance.success) < x_percent * f64::from(distance.sentries);
+        let success = area.iter().filter(|n| sentries.contains(&n)).count() as u32;
+        let sentries = sentries.len() as u32;
+
+        let distance = WotDistance {
+            sentries,
+            reached: (area.len() - 1) as u32,
+            success: success,
+            outdistanced: f64::from(success) < x_percent * f64::from(sentries),
+        };
 
         Some(distance)
     }
@@ -319,16 +319,8 @@ impl WebOfTrust for RustyWebOfTrust {
     /// Test if a node is outdistanced in the network.
     /// Returns `Node` if this node doesn't exist.
     fn is_outdistanced(&self, params: WotDistanceParameters) -> Option<bool> {
-        let WotDistanceParameters { node, .. } = params;
-
-        if node.0 >= self.size() {
-            None
-        } else {
-            match self.compute_distance(params) {
-                Some(distance) => Some(distance.outdistanced),
-                None => None,
-            }
-        }
+        self.compute_distance(params)
+            .map(|result| result.outdistanced)
     }
 }
 
