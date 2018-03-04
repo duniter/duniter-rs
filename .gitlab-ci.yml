@@ -50,8 +50,8 @@ clippy:
     - export PATH="$HOME/.cargo/bin:$PATH"
     - cargo install --force clippy
   script:
-    - cargo clippy --all
-  allow_failure: true
+    - cargo clippy --all -- -D warnings
+  allow_failure: true  
   
 fmt:
   stage: fmt
