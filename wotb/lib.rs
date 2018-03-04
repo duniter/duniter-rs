@@ -32,11 +32,14 @@
 
 extern crate bincode;
 extern crate byteorder;
+extern crate rayon;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
 pub mod legacy;
+pub mod rusty;
+
 pub use legacy::LegacyWebOfTrust;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
@@ -167,7 +170,7 @@ pub trait WebOfTrust {
     fn add_node(&mut self) -> NodeId;
 
     /// Remove the last node.
-    /// Returns `None` if the WoT was empty.
+    /// Returns `None` if the WoT was empty, otherwise new top node id.
     fn rem_node(&mut self) -> Option<NodeId>;
 
     /// Get the size of the WoT.
@@ -177,7 +180,7 @@ pub trait WebOfTrust {
     /// Returns `None` if this node doesn't exist.
     fn is_enabled(&self, id: NodeId) -> Option<bool>;
 
-    /// Set if given node is enabled.
+    /// Set the enabled state of given node.
     /// Returns `Null` if this node doesn't exist, `enabled` otherwise.
     fn set_enabled(&mut self, id: NodeId, enabled: bool) -> Option<bool>;
 
@@ -282,7 +285,6 @@ pub trait WebOfTrust {
         let mut buffer_3b: Vec<u8> = Vec::with_capacity(3);
         let mut count_bytes = 0;
         let mut remaining_links: u8 = 0;
-        let mut source: u32 = 0;
         let mut target: u32 = 0;
         for byte in file_pointing_to_links {
             if remaining_links == 0 {
@@ -293,7 +295,7 @@ pub trait WebOfTrust {
                 buffer_3b.push(byte);
                 if count_bytes % 3 == 2 {
                     let mut buf = &buffer_3b.clone()[..];
-                    source = buf.read_u24::<BigEndian>().expect("fail to parse source");
+                    let source = buf.read_u24::<BigEndian>().expect("fail to parse source");
                     self.add_link(NodeId(source as usize), NodeId((target - 1) as usize));
                     remaining_links -= 1;
                     buffer_3b.clear();
@@ -351,20 +353,17 @@ pub trait WebOfTrust {
         }
         // Write links
         for n in 0..nodes_count {
-            match self.get_links_source(NodeId(n as usize)) {
-                Some(sources) => {
-                    // Write sources_counts
-                    let mut bytes = Vec::with_capacity(1);
-                    bytes.write_u8(sources.len() as u8).unwrap();
+            if let Some(sources) = self.get_links_source(NodeId(n as usize)) {
+                // Write sources_counts
+                let mut bytes = Vec::with_capacity(1);
+                bytes.write_u8(sources.len() as u8).unwrap();
+                buffer.append(&mut bytes);
+                for source in sources {
+                    // Write source
+                    let mut bytes: Vec<u8> = Vec::with_capacity(3);
+                    bytes.write_u24::<BigEndian>(source.0 as u32).unwrap();
                     buffer.append(&mut bytes);
-                    for source in sources.iter() {
-                        // Write source
-                        let mut bytes: Vec<u8> = Vec::with_capacity(3);
-                        bytes.write_u24::<BigEndian>(source.0 as u32).unwrap();
-                        buffer.append(&mut bytes);
-                    }
                 }
-                None => {}
             };
         }
         // Create or open file
@@ -629,7 +628,12 @@ mod tests {
         assert_eq!(wot.get_non_sentries(3).len(), 12); // 12 - 0
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 1).len(), 0); // KO
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
-        assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2)[0].len(), 3); // It exists 3 -> 2 -> 0
+        assert!(wot.get_paths(NodeId(3), NodeId(0), 2).contains(&vec![
+            NodeId(3),
+            NodeId(2),
+            NodeId(0),
+        ]));
+
         assert_eq!(
             wot.is_outdistanced(WotDistanceParameters {
                 node: NodeId(0),
@@ -684,7 +688,12 @@ mod tests {
         assert_eq!(wot.get_non_sentries(3).len(), 12); // 12 - 0
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 1).len(), 0); // KO
         assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
-        assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2)[0].len(), 3); // It exists 3 -> 2 -> 0
+        assert!(wot.get_paths(NodeId(3), NodeId(0), 2).contains(&vec![
+            NodeId(3),
+            NodeId(2),
+            NodeId(0),
+        ]));
+
         assert_eq!(
             wot.is_outdistanced(WotDistanceParameters {
                 node: NodeId(0),
