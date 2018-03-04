@@ -48,6 +48,7 @@
 
 use std::fmt::Display;
 use std::fmt::Debug;
+use std::hash::Hash;
 
 use base58::ToBase58;
 
@@ -97,7 +98,7 @@ pub trait Signature: Clone + Display + Debug + PartialEq + Eq {
 /// with the associated [`PrivateKey`].
 ///
 /// [`PrivateKey`]: trait.PrivateKey.html
-pub trait PublicKey: Clone + Display + Debug + PartialEq + Eq + ToBase58 {
+pub trait PublicKey: Clone + Display + Debug + PartialEq + Eq + Hash + ToBase58 {
     /// Signature type of associated cryptosystem.
     type Signature: Signature;
 
