@@ -92,7 +92,7 @@ impl Eq for Signature {}
 /// Can be generated with [`KeyPairGenerator`].
 ///
 /// [`KeyPairGenerator`]: struct.KeyPairGenerator.html
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct PublicKey(pub [u8; 32]);
 
 impl ToBase58 for PublicKey {
