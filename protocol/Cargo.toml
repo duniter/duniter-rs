@@ -19,3 +19,7 @@ base64 = "0.8.0"
 lazy_static = "1.0.0"
 regex = "0.2"
 duniter-crypto = { path = "../crypto" }
+
+[features]
+# Treat warnings as a build error.
+strict = []

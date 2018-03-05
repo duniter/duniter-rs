@@ -12,7 +12,7 @@ build:stable:
   tags:
     - redshift-rs-stable
   script:
-    - cargo build
+    - cargo build --all-features
     
 tests:stable:
   stage: tests
