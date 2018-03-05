@@ -387,7 +387,12 @@ mod tests {
     ///
     /// Clone and file tests are not included in this generic test and should be done in
     /// the implementation test.
-    pub fn generic_wot_test<T: WebOfTrust>(wot: &mut T, wot2: &mut T) {
+    pub fn generic_wot_test<T: WebOfTrust, F>(generator: F)
+    where
+        F: Fn(usize) -> T,
+    {
+        let mut wot = generator(3);
+
         // should have an initial size of 0
         assert_eq!(wot.size(), 0);
 
@@ -763,6 +768,8 @@ mod tests {
             ).unwrap(),
             ()
         );
+
+        let mut wot2 = generator(3);
 
         // Read wot from file
         {

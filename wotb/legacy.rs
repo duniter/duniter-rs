@@ -553,33 +553,6 @@ mod tests {
     /// This test is a translation of https://github.com/duniter/wotb/blob/master/tests/test.js
     #[test]
     fn wot_tests() {
-        let mut wot = LegacyWebOfTrust::new(3);
-        let mut wot2 = LegacyWebOfTrust::new(3);
-        generic_wot_test(&mut wot, &mut wot2);
-
-        // should be able to make a mem copy
-        {
-            let wot2 = wot.clone();
-
-            assert_eq!(wot.size(), wot2.size());
-            assert_eq!(
-                wot.get_non_sentries(1).len(),
-                wot2.get_non_sentries(1).len()
-            );
-        }
-
-        // serialization
-        assert_eq!(wot.legacy_to_file("test.wot"), true);
-
-        // deserialization
-        {
-            let wot2 = LegacyWebOfTrust::legacy_from_file("test.wot").unwrap();
-
-            assert_eq!(wot.size(), wot2.size());
-            assert_eq!(
-                wot.get_non_sentries(1).len(),
-                wot2.get_non_sentries(1).len()
-            );
-        }
+        generic_wot_test(LegacyWebOfTrust::new);
     }
 }
