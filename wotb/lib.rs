@@ -85,7 +85,7 @@ pub enum RemLinkResult {
     UnknownTarget(),
 }
 
-/// Results of WebOfTrust parsing from binary file.
+/// Results of `WebOfTrust` parsing from binary file.
 #[derive(Debug)]
 pub enum WotParseError {
     /// FailToOpenFile
@@ -101,7 +101,7 @@ impl From<std::io::Error> for WotParseError {
     }
 }
 
-/// Results of WebOfTrust writing to binary file.
+/// Results of `WebOfTrust` writing to binary file.
 #[derive(Debug)]
 pub enum WotWriteError {
     /// WrongWotSize
@@ -131,7 +131,7 @@ pub enum HasLinkResult {
     UnknownTarget(),
 }
 
-/// Paramters for *WoT* distance calculations
+/// Paramters for `WoT` distance calculations
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct WotDistanceParameters {
     /// Node from where distances are calculated.
@@ -158,7 +158,7 @@ pub struct WotDistance {
 }
 
 /// Trait for a Web Of Trust.
-/// Allow to provide other implementations of the *WoT* logic instead of the legacy C++
+/// Allow to provide other implementations of the `WoT` logic instead of the legacy C++
 /// translated one.
 pub trait WebOfTrust {
     /// Get the maximum number of links per user.
@@ -359,7 +359,7 @@ pub trait WebOfTrust {
                 let mut bytes = Vec::with_capacity(1);
                 bytes.write_u8(sources.len() as u8).unwrap();
                 buffer.append(&mut bytes);
-                for source in sources {
+                for source in &sources {
                     // Write source
                     let mut bytes: Vec<u8> = Vec::with_capacity(3);
                     bytes.write_u24::<BigEndian>(source.0 as u32).unwrap();

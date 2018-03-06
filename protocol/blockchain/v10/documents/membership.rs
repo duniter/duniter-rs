@@ -26,10 +26,10 @@ use blockchain::v10::documents::{StandardTextDocumentParser, TextDocument, TextD
 lazy_static! {
     static ref MEMBERSHIP_REGEX: Regex = Regex::new(
         "^Issuer: (?P<issuer>[1-9A-Za-z][^OIl]{43,44})\n\
-Block: (?P<blockstamp>[0-9]+-[0-9A-F]{64})\n\
-Membership: (?P<membership>(IN|OUT))\n\
-UserID: (?P<ity_user>[[:alnum:]_-]+)\n\
-CertTS: (?P<ity_block>[0-9]+-[0-9A-F]{64})\n$"
+         Block: (?P<blockstamp>[0-9]+-[0-9A-F]{64})\n\
+         Membership: (?P<membership>(IN|OUT))\n\
+         UserID: (?P<ity_user>[[:alnum:]_-]+)\n\
+         CertTS: (?P<ity_block>[0-9]+-[0-9A-F]{64})\n$"
     ).unwrap();
 }
 
@@ -141,7 +141,7 @@ impl<'a> MembershipDocumentBuilder<'a> {
         signatures: Vec<ed25519::Signature>,
     ) -> MembershipDocument {
         MembershipDocument {
-            text: text,
+            text,
             currency: self.currency.to_string(),
             issuers: vec![*self.issuer],
             blockstamp: *self.blockstamp,
@@ -227,7 +227,7 @@ impl StandardTextDocumentParser for MembershipDocumentParser {
                 text: doc.to_owned(),
                 issuers: vec![issuer],
                 currency: currency.to_owned(),
-                blockstamp: blockstamp,
+                blockstamp,
                 membership,
                 identity_username: username.to_owned(),
                 identity_blockstamp: ity_block,

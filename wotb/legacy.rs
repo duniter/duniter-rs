@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Provide a legacy implementation of *WoT* storage and calculations.
+//! Provide a legacy implementation of `WebOfTrust` storage and calculations.
 //! Its mostly translated directly from the original C++ code.
 
 use WotDistance;
@@ -143,7 +143,7 @@ impl LegacyWebOfTrust {
         }
     }
 
-    /// Read *WoT* from file.
+    /// Read `WoT` from file.
     pub fn legacy_from_file(path: &str) -> Option<LegacyWebOfTrust> {
         let mut file = match File::open(path) {
             Ok(file) => file,
@@ -161,7 +161,7 @@ impl LegacyWebOfTrust {
         }
     }
 
-    /// Write *WoT* to file.
+    /// Write `WoT` to file.
     pub fn legacy_to_file(&self, path: &str) -> bool {
         let encoded: Vec<u8> = serialize(self, Infinite).unwrap();
 

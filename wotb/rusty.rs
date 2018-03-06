@@ -27,7 +27,7 @@ use NewLinkResult;
 
 use NodeId;
 
-/// A node in the *WoT* graph.
+/// A node in the `WoT` graph.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Node {
     /// Is this node enabled ?

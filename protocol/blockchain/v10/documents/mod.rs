@@ -30,15 +30,12 @@ pub use blockchain::v10::documents::membership::{MembershipDocument, MembershipD
 lazy_static! {
     static ref DOCUMENT_REGEX: Regex = Regex::new(
         "^(?P<doc>Version: 10\n\
-        Type: (?P<type>[[:alpha:]]+)\n\
-        Currency: (?P<currency>[[:alnum:] _-]+)\n\
-        (?P<body>(?:.*\n)+?))\
-        (?P<sigs>([[:alnum:]+/=]+\n)*([[:alnum:]+/=]+))$"
+         Type: (?P<type>[[:alpha:]]+)\n\
+         Currency: (?P<currency>[[:alnum:] _-]+)\n\
+         (?P<body>(?:.*\n)+?))\
+         (?P<sigs>([[:alnum:]+/=]+\n)*([[:alnum:]+/=]+))$"
     ).unwrap();
-
-    static ref SIGNATURES_REGEX: Regex = Regex::new(
-        "[[:alnum:]+/=]+\n?"
-    ).unwrap();
+    static ref SIGNATURES_REGEX: Regex = Regex::new("[[:alnum:]+/=]+\n?").unwrap();
 }
 
 /// List of wrapped document types.

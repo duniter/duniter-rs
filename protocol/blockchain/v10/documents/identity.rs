@@ -116,7 +116,7 @@ impl<'a> IdentityDocumentBuilder<'a> {
         signatures: Vec<ed25519::Signature>,
     ) -> IdentityDocument {
         IdentityDocument {
-            text: text,
+            text,
             currency: self.currency.to_string(),
             unique_id: self.unique_id.to_string(),
             blockstamp: *self.blockstamp,
@@ -183,7 +183,7 @@ impl StandardTextDocumentParser for IdentityDocumentParser {
                 text: doc.to_owned(),
                 currency: currency.to_owned(),
                 unique_id: uid.to_owned(),
-                blockstamp: blockstamp,
+                blockstamp,
                 issuers: vec![issuer],
                 signatures,
             }))
