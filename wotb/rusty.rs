@@ -316,8 +316,6 @@ mod tests {
 
     #[test]
     fn wot_tests() {
-        let mut wot1 = RustyWebOfTrust::new(3);
-        let mut wot2 = RustyWebOfTrust::new(3);
-        generic_wot_test(&mut wot1, &mut wot2);
+        generic_wot_test(RustyWebOfTrust::new);
     }
 }
