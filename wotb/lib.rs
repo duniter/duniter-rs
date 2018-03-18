@@ -151,8 +151,12 @@ pub struct WotDistance {
     pub sentries: u32,
     /// Success count
     pub success: u32,
+    /// Succes at border count
+    pub success_at_border: u32,
     /// Reached count
     pub reached: u32,
+    /// Reached at border count
+    pub reached_at_border: u32,
     /// Is the node outdistanced ?
     pub outdistanced: bool,
 }
@@ -588,7 +592,7 @@ mod tests {
                 sentry_requirement: 1,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         );
         // => no because 2,4,5 have certified him
@@ -598,7 +602,7 @@ mod tests {
                 sentry_requirement: 2,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         );
         // => no because only member 2 has 2 certs, and has certified him
@@ -608,7 +612,7 @@ mod tests {
                 sentry_requirement: 3,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         );
         // => no because no member has issued 3 certifications
@@ -646,7 +650,7 @@ mod tests {
                 sentry_requirement: 1,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         ); // OK : 2 -> 0
         assert_eq!(
@@ -655,7 +659,7 @@ mod tests {
                 sentry_requirement: 2,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         ); // OK : 2 -> 0
         assert_eq!(
@@ -664,7 +668,7 @@ mod tests {
                 sentry_requirement: 3,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         ); // OK : no stry \w 3 lnk
         assert_eq!(
@@ -673,7 +677,7 @@ mod tests {
                 sentry_requirement: 2,
                 step_max: 2,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         ); // OK : 2 -> 0
 
@@ -706,7 +710,7 @@ mod tests {
                 sentry_requirement: 1,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(true)
         ); // KO : No path 3 -> 0
         assert_eq!(
@@ -715,7 +719,7 @@ mod tests {
                 sentry_requirement: 2,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(true)
         ); // KO : No path 3 -> 0
         assert_eq!(
@@ -724,7 +728,7 @@ mod tests {
                 sentry_requirement: 3,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         ); // OK : no stry \w 3 lnk
         assert_eq!(
@@ -733,7 +737,7 @@ mod tests {
                 sentry_requirement: 2,
                 step_max: 2,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         ); // OK : 3 -> 2 -> 0
 
@@ -756,7 +760,7 @@ mod tests {
                 sentry_requirement: 2,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         ); // OK : Disabled
 
@@ -791,7 +795,7 @@ mod tests {
                     sentry_requirement: 2,
                     step_max: 1,
                     x_percent: 1.0,
-                }),
+                },),
                 Some(false)
             );
         }

@@ -1,6 +1,6 @@
 [package]
 name = "duniter-wotb"
-version = "0.6.2"
+version = "0.7.0"
 authors = ["nanocryk <nanocryk@duniter.org>", "elois <elois@duniter.org>"]
 description = "Makes Web of Trust computations for the Duniter project."
 repository = "https://git.duniter.org/nodes/rust/duniter-rs"

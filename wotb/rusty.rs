@@ -286,8 +286,8 @@ impl WebOfTrust for RustyWebOfTrust {
         }
 
         let sentries: Vec<_> = self.get_sentries(sentry_requirement as usize);
-
         let success = area.iter().filter(|n| sentries.contains(n)).count() as u32;
+        let success_at_border = border.iter().filter(|n| sentries.contains(n)).count() as u32;
         let sentries = sentries.len() as u32
             - if self.is_sentry(node, sentry_requirement as usize).unwrap() {
                 1
@@ -298,7 +298,9 @@ impl WebOfTrust for RustyWebOfTrust {
         Some(WotDistance {
             sentries,
             reached: (area.len() - 1) as u32,
+            reached_at_border: (border.len() - 1) as u32,
             success,
+            success_at_border,
             outdistanced: f64::from(success) < x_percent * f64::from(sentries),
         })
     }
