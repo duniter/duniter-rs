@@ -290,8 +290,8 @@ impl WebOfTrust for RustyWebOfTrust {
         let success_at_border = border.iter().filter(|n| sentries.contains(n)).count() as u32;
         let mut sentries = sentries.len() as u32;
         if self.is_sentry(node, sentry_requirement as usize).unwrap() {
-            sentries = sentries - 1;
-            success = success - 1;
+            sentries -= 1;
+            success -= 1;
         }
 
         Some(WotDistance {

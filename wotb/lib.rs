@@ -826,7 +826,7 @@ mod tests {
                 reached: 52,
                 reached_at_border: 3,
                 outdistanced: false,
-            })
+            },)
         );
     }
 }
