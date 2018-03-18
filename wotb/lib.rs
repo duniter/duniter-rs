@@ -151,8 +151,12 @@ pub struct WotDistance {
     pub sentries: u32,
     /// Success count
     pub success: u32,
+    /// Succes at border count
+    pub success_at_border: u32,
     /// Reached count
     pub reached: u32,
+    /// Reached at border count
+    pub reached_at_border: u32,
     /// Is the node outdistanced ?
     pub outdistanced: bool,
 }
@@ -267,15 +271,10 @@ pub trait WebOfTrust {
                     if byte_integer >= factor {
                         byte_integer -= factor;
                     } else {
-                        println!(
-                            "DEBUG : set_enabled({})",
-                            (nodes_count - count_remaining_nodes)
-                        );
-                        let test = self.set_enabled(
+                        let _test = self.set_enabled(
                             NodeId((nodes_count - count_remaining_nodes) as usize),
                             false,
                         );
-                        println!("DEBUG {:?}", test);
                     }
                     count_remaining_nodes -= 1;
                 }
@@ -588,7 +587,7 @@ mod tests {
                 sentry_requirement: 1,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         );
         // => no because 2,4,5 have certified him
@@ -598,7 +597,7 @@ mod tests {
                 sentry_requirement: 2,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         );
         // => no because only member 2 has 2 certs, and has certified him
@@ -608,7 +607,7 @@ mod tests {
                 sentry_requirement: 3,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         );
         // => no because no member has issued 3 certifications
@@ -646,7 +645,7 @@ mod tests {
                 sentry_requirement: 1,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         ); // OK : 2 -> 0
         assert_eq!(
@@ -655,7 +654,7 @@ mod tests {
                 sentry_requirement: 2,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         ); // OK : 2 -> 0
         assert_eq!(
@@ -664,7 +663,7 @@ mod tests {
                 sentry_requirement: 3,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         ); // OK : no stry \w 3 lnk
         assert_eq!(
@@ -673,7 +672,7 @@ mod tests {
                 sentry_requirement: 2,
                 step_max: 2,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         ); // OK : 2 -> 0
 
@@ -706,7 +705,7 @@ mod tests {
                 sentry_requirement: 1,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(true)
         ); // KO : No path 3 -> 0
         assert_eq!(
@@ -715,7 +714,7 @@ mod tests {
                 sentry_requirement: 2,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(true)
         ); // KO : No path 3 -> 0
         assert_eq!(
@@ -724,7 +723,7 @@ mod tests {
                 sentry_requirement: 3,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         ); // OK : no stry \w 3 lnk
         assert_eq!(
@@ -733,7 +732,7 @@ mod tests {
                 sentry_requirement: 2,
                 step_max: 2,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         ); // OK : 3 -> 2 -> 0
 
@@ -756,14 +755,14 @@ mod tests {
                 sentry_requirement: 2,
                 step_max: 1,
                 x_percent: 1.0,
-            }),
+            },),
             Some(false)
         ); // OK : Disabled
 
         // Write wot in file
         assert_eq!(
             wot.to_file(
-                "test.bin",
+                "test.wot",
                 &[0b0000_0000, 0b0000_0001, 0b0000_0001, 0b0000_0000]
             ).unwrap(),
             ()
@@ -774,7 +773,7 @@ mod tests {
         // Read wot from file
         {
             assert_eq!(
-                wot2.from_file("test.bin").unwrap(),
+                wot2.from_file("test.wot").unwrap(),
                 vec![0b0000_0000, 0b0000_0001, 0b0000_0001, 0b0000_0000]
             );
             assert_eq!(wot.size(), wot2.size());
@@ -791,9 +790,43 @@ mod tests {
                     sentry_requirement: 2,
                     step_max: 1,
                     x_percent: 1.0,
-                }),
+                },),
                 Some(false)
             );
         }
+
+        // Read g1_genesis wot
+        let mut wot3 = generator(100);
+        assert_eq!(
+            wot3.from_file("tests/g1_genesis.bin").unwrap(),
+            vec![
+                57, 57, 45, 48, 48, 48, 48, 49, 50, 65, 68, 52, 57, 54, 69, 67, 65, 53, 54, 68, 69,
+                48, 66, 56, 69, 53, 68, 54, 70, 55, 52, 57, 66, 55, 67, 66, 69, 55, 56, 53, 53, 51,
+                69, 54, 51, 56, 53, 51, 51, 51, 65, 52, 52, 69, 48, 52, 51, 55, 55, 69, 70, 70, 67,
+                67, 65, 53, 51,
+            ]
+        );
+
+        // Check g1_genesis wot members_count
+        let members_count = wot3.get_enabled().len() as u64;
+        assert_eq!(members_count, 59);
+
+        // Test compute_distance in g1_genesis wot
+        assert_eq!(
+            wot3.compute_distance(WotDistanceParameters {
+                node: NodeId(37),
+                sentry_requirement: 3,
+                step_max: 5,
+                x_percent: 0.8,
+            },),
+            Some(WotDistance {
+                sentries: 48,
+                success: 48,
+                success_at_border: 3,
+                reached: 52,
+                reached_at_border: 3,
+                outdistanced: false,
+            },)
+        );
     }
 }

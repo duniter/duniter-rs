@@ -398,7 +398,9 @@ impl WebOfTrust for LegacyWebOfTrust {
         let mut result = WotDistance {
             sentries: 0,
             success: 0,
+            success_at_border: 0,
             reached: 0,
+            reached_at_border: 0,
             outdistanced: false,
         };
 
@@ -412,17 +414,30 @@ impl WebOfTrust for LegacyWebOfTrust {
         sentries[node.0] = false;
 
         let mut checked: Vec<bool> = self.nodes.iter().map(|_| false).collect();
+        let mut checked_without_border: Vec<bool> = checked.clone();
 
         if step_max >= 1 {
             checked = self.check_matches(node, 1, step_max, checked);
+            if step_max >= 2 {
+                checked_without_border =
+                    self.check_matches(node, 1, step_max - 1, checked_without_border);
+            }
         }
 
-        for (&sentry, &check) in sentries.iter().zip(checked.iter()) {
+        for ((&sentry, &check), &check_without_border) in sentries
+            .iter()
+            .zip(checked.iter())
+            .zip(checked_without_border.iter())
+        {
             if sentry {
                 result.sentries += 1;
                 if check {
                     result.success += 1;
                     result.reached += 1;
+                    if !check_without_border {
+                        result.success_at_border += 1;
+                        result.reached_at_border += 1;
+                    }
                 }
             } else if check {
                 result.reached += 1;
