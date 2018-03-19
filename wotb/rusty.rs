@@ -260,12 +260,20 @@ impl WebOfTrust for RustyWebOfTrust {
             let mut new_paths = vec![];
 
             for path in &paths {
-                let sources = &graph[path.last().unwrap().0];
-                for source in &sources.1 {
-                    let mut new_path = path.clone();
-                    new_path.push(NodeId(*source));
-                    new_paths.push(new_path);
-                }
+                let node = path.last().unwrap();
+
+                if node == &to {
+                    // If path is complete, we keep it.
+                    new_paths.push(path.clone())
+                } else {
+                    // If not complete we comlete paths
+                    let sources = &graph[node.0];
+                    for source in &sources.1 {
+                        let mut new_path = path.clone();
+                        new_path.push(NodeId(*source));
+                        new_paths.push(new_path);
+                    }
+                }                
             }
 
             paths = new_paths;
