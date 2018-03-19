@@ -828,5 +828,39 @@ mod tests {
                 outdistanced: false,
             },)
         );
+
+        // Test centralities computation in g1_genesis wot
+        let wot_size = wot3.size();
+        let members_count = wot3.get_enabled().len() as u64;
+        assert_eq!(members_count, 59);
+        let oriented_couples_count: u64 = members_count * (members_count - 1);
+        let mut centralities = vec![0; wot_size];
+        for i in 0..wot_size {
+            for j in 0..wot_size {
+                let paths = wot3.get_paths(NodeId(i), NodeId(j), 5);
+                let mut intermediate_members: Vec<NodeId> = Vec::new();
+                for path in paths {
+                    if path.len() > 2 {
+                        for node_id in &path[1..path.len() - 1] {
+                            if !intermediate_members.contains(node_id) {
+                                intermediate_members.push(*node_id);
+                            }
+                        }
+                    }
+                }
+                let centralities_copy = centralities.clone();
+                for node_id in intermediate_members {
+                    let centrality = &centralities_copy[node_id.0];
+                    if let Some(tmp) = centralities.get_mut(node_id.0) {
+                        *tmp = *centrality + 1;
+                    }
+                }
+            }
+        }
+        let mut relative_centralities = Vec::with_capacity(wot_size);
+        for centrality in centralities {
+            relative_centralities.push((centrality * 100_000 / oriented_couples_count) as usize);
+        }
+        assert_eq!(relative_centralities.len(), 59);
     }
 }
