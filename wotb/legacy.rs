@@ -20,7 +20,6 @@ use std::collections::hash_set::Iter;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
-use std::rc::Rc;
 use WotDistance;
 
 use bincode::{deserialize, serialize, Infinite};
@@ -104,19 +103,6 @@ impl Node {
     }
 }
 
-#[derive(Debug)]
-struct WotStep {
-    pub previous: Option<Rc<Box<WotStep>>>,
-    pub node: NodeId,
-    pub distance: u32,
-}
-
-struct LookupStep {
-    paths: Vec<Rc<Box<WotStep>>>,
-    matching_paths: Vec<Rc<Box<WotStep>>>,
-    distances: Vec<u32>,
-}
-
 /// Store a Web of Trust.
 ///
 /// Allow to create/remove nodes and links between them.
@@ -186,52 +172,6 @@ impl LegacyWebOfTrust {
         }
 
         checked
-    }
-
-    fn lookup(
-        &self,
-        source: NodeId,
-        target: NodeId,
-        distance: u32,
-        distance_max: u32,
-        previous: &Rc<Box<WotStep>>,
-        mut lookup_step: LookupStep,
-    ) -> LookupStep {
-        if source != target && distance <= distance_max {
-            let mut local_paths: Vec<Rc<Box<WotStep>>> = vec![];
-
-            for &by in self.nodes[target.0].links_iter() {
-                if distance < lookup_step.distances[by.0] {
-                    lookup_step.distances[by.0] = distance;
-                    let step = Rc::new(Box::new(WotStep {
-                        previous: Some(Rc::clone(previous)),
-                        node: by,
-                        distance,
-                    }));
-
-                    lookup_step.paths.push(Rc::clone(&step));
-                    local_paths.push(Rc::clone(&step));
-                    if by == source {
-                        lookup_step.matching_paths.push(Rc::clone(&step));
-                    }
-                }
-            }
-
-            if distance <= distance_max {
-                for path in &local_paths {
-                    lookup_step = self.lookup(
-                        source,
-                        path.node,
-                        distance + 1,
-                        distance_max,
-                        &Rc::clone(path),
-                        lookup_step,
-                    );
-                }
-            }
-        }
-
-        lookup_step
     }
 }
 
@@ -460,51 +400,13 @@ impl WebOfTrust for LegacyWebOfTrust {
             }
         }
     }
-
-    fn get_paths(&self, from: NodeId, to: NodeId, step_max: u32) -> Vec<Vec<NodeId>> {
-        let mut lookup_step = LookupStep {
-            paths: vec![],
-            matching_paths: vec![],
-            distances: self.nodes.iter().map(|_| step_max + 1).collect(),
-        };
-
-        lookup_step.distances[to.0] = 0;
-
-        let root = Rc::new(Box::new(WotStep {
-            previous: None,
-            node: to,
-            distance: 0,
-        }));
-
-        lookup_step.paths.push(Rc::clone(&root));
-
-        lookup_step = self.lookup(from, to, 1, step_max, &root, lookup_step);
-
-        let mut result: Vec<Vec<NodeId>> = Vec::with_capacity(lookup_step.matching_paths.len());
-
-        for step in &lookup_step.matching_paths {
-            let mut vecpath = vec![];
-            let mut step = Rc::clone(step);
-
-            loop {
-                vecpath.push(step.node);
-                if step.previous.is_none() {
-                    break;
-                }
-                step = step.previous.clone().unwrap();
-            }
-
-            result.push(vecpath);
-        }
-
-        result
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use tests::generic_wot_test;
+    use rusty::RustyPathFinder;
 
     #[test]
     fn node_tests() {
@@ -568,6 +470,6 @@ mod tests {
     /// This test is a translation of https://github.com/duniter/wotb/blob/master/tests/test.js
     #[test]
     fn wot_tests() {
-        generic_wot_test(LegacyWebOfTrust::new);
+        generic_wot_test::<_, _, RustyPathFinder>(LegacyWebOfTrust::new);
     }
 }

@@ -27,11 +27,9 @@
 //! [js-tests]: https://github.com/duniter/wotb/blob/master/wotcpp/webOfTrust.cpp
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![deny(
-    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
-    trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
-    unused_qualifications
-)]
+#![deny(missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
+        trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+        unused_qualifications)]
 
 extern crate bincode;
 extern crate byteorder;
@@ -220,9 +218,6 @@ pub trait WebOfTrust: Clone {
     /// Get non sentries array.
     fn get_non_sentries(&self, sentry_requirement: usize) -> Vec<NodeId>;
 
-    /// Get paths from one node to the other.
-    fn get_paths(&self, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>>;
-
     /// Compute distance between a node and the network.
     /// Returns `None` if this node doesn't exist.
     fn compute_distance(&self, params: WotDistanceParameters) -> Option<WotDistance>;
@@ -380,6 +375,12 @@ pub trait WebOfTrust: Clone {
     }
 }
 
+/// Find paths between 2 nodes of a `WebOfTrust`.
+pub trait PathFinder<T: WebOfTrust> {
+    /// Get paths from one node to the other.
+    fn find_paths(wot: &T, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>>;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -388,9 +389,11 @@ mod tests {
     ///
     /// Clone and file tests are not included in this generic test and should be done in
     /// the implementation test.
-    pub fn generic_wot_test<T: WebOfTrust, F>(generator: F)
+    pub fn generic_wot_test<W, G, P>(generator: G)
     where
-        F: Fn(usize) -> T,
+        W: WebOfTrust,
+        G: Fn(usize) -> W,
+        P: PathFinder<W>,
     {
         let mut wot = generator(3);
 
@@ -633,9 +636,9 @@ mod tests {
         assert_eq!(wot.get_non_sentries(1).len(), 11); // 12 - 1
         assert_eq!(wot.get_non_sentries(2).len(), 12); // 12 - 0
         assert_eq!(wot.get_non_sentries(3).len(), 12); // 12 - 0
-        assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 1).len(), 0); // KO
-        assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
-        assert!(wot.get_paths(NodeId(3), NodeId(0), 2).contains(&vec![
+        assert_eq!(P::find_paths(&wot, NodeId(3), NodeId(0), 1).len(), 0); // KO
+        assert_eq!(P::find_paths(&wot, NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
+        assert!(P::find_paths(&wot, NodeId(3), NodeId(0), 2).contains(&vec![
             NodeId(3),
             NodeId(2),
             NodeId(0),
@@ -693,9 +696,9 @@ mod tests {
         assert_eq!(wot.get_non_sentries(1).len(), 9); // 12 - 3
         assert_eq!(wot.get_non_sentries(2).len(), 11); // 12 - 1
         assert_eq!(wot.get_non_sentries(3).len(), 12); // 12 - 0
-        assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 1).len(), 0); // KO
-        assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
-        assert!(wot.get_paths(NodeId(3), NodeId(0), 2).contains(&vec![
+        assert_eq!(P::find_paths(&wot, NodeId(3), NodeId(0), 1).len(), 0); // KO
+        assert_eq!(P::find_paths(&wot, NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
+        assert!(P::find_paths(&wot, NodeId(3), NodeId(0), 2).contains(&vec![
             NodeId(3),
             NodeId(2),
             NodeId(0),
@@ -839,7 +842,7 @@ mod tests {
         let mut centralities = vec![0; wot_size];
         for i in 0..wot_size {
             for j in 0..wot_size {
-                let paths = wot3.get_paths(NodeId(i), NodeId(j), 5);
+                let paths = P::find_paths(&wot3, NodeId(i), NodeId(j), 5);
                 let mut intermediate_members: Vec<NodeId> = Vec::new();
                 for path in paths {
                     if path.len() > 2 {

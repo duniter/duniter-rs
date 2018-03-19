@@ -15,9 +15,10 @@
 
 //! Experimental implementation of the Web of Trust in a more "rusty" style.
 
-use rayon::prelude::*;
 use std::collections::HashSet;
+use rayon::prelude::*;
 
+use PathFinder;
 use HasLinkResult;
 use NewLinkResult;
 use RemLinkResult;
@@ -218,70 +219,6 @@ impl WebOfTrust for RustyWebOfTrust {
             .collect()
     }
 
-    fn get_paths(&self, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>> {
-        // 1. We explore the k_max area around `to`, and only remember backward
-        //    links of the smallest distance.
-
-        // Stores for each node its distance to `to` node and its backward links.
-        // By default all nodes are out of range (`k_max + 1`) and links are known.
-        let mut graph: Vec<(u32, Vec<usize>)> =
-            self.nodes.iter().map(|_| (k_max + 1, vec![])).collect();
-        // `to` node is at distance 0, and have no backward links.
-        graph[to.0] = (0, vec![]);
-        // Explored zone border.
-        let mut border = HashSet::new();
-        border.insert(to.0);
-
-        for distance in 1..(k_max + 1) {
-            let mut next_border = HashSet::new();
-
-            for node in border {
-                for source in &self.nodes[node].links_source {
-                    if graph[source.0].0 > distance {
-                        // shorter path, we replace
-                        graph[source.0] = (distance, vec![node]);
-                        next_border.insert(source.0);
-                    } else if graph[source.0].0 == distance {
-                        // same length, we combine
-                        graph[source.0].1.push(node);
-                        next_border.insert(source.0);
-                    }
-                }
-            }
-
-            border = next_border;
-        }
-
-        // 2. If `from` is found, we follow the backward links and build paths.
-        //    For each path, we look at the last element sources and build new paths with them.
-        let mut paths = vec![vec![from]];
-
-        for _ in 1..(k_max + 1) {
-            let mut new_paths = vec![];
-
-            for path in &paths {
-                let node = path.last().unwrap();
-
-                if node == &to {
-                    // If path is complete, we keep it.
-                    new_paths.push(path.clone())
-                } else {
-                    // If not complete we comlete paths
-                    let sources = &graph[node.0];
-                    for source in &sources.1 {
-                        let mut new_path = path.clone();
-                        new_path.push(NodeId(*source));
-                        new_paths.push(new_path);
-                    }
-                }
-            }
-
-            paths = new_paths;
-        }
-
-        paths
-    }
-
     fn compute_distance(&self, params: WotDistanceParameters) -> Option<WotDistance> {
         let WotDistanceParameters {
             node,
@@ -344,6 +281,82 @@ impl WebOfTrust for RustyWebOfTrust {
     }
 }
 
+/// A new "rusty-er" implementation of `WoT` path finding.
+#[derive(Debug, Clone, Copy)]
+pub struct RustyPathFinder;
+
+impl<T: WebOfTrust> PathFinder<T> for RustyPathFinder {
+    fn find_paths(wot: &T, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>> {
+        if from.0 >= wot.size() || to.0 >= wot.size() {
+            return vec![];
+        }
+
+        // 1. We explore the k_max area around `to`, and only remember backward
+        //    links of the smallest distance.
+
+        // Stores for each node its distance to `to` node and its backward links.
+        // By default all nodes are out of range (`k_max + 1`) and links are known.
+        let mut graph: Vec<(u32, Vec<NodeId>)> = (0..wot.size())
+            .into_iter()
+            .map(|_| (k_max + 1, vec![]))
+            .collect();
+        // `to` node is at distance 0, and have no backward links.
+        graph[to.0] = (0, vec![]);
+        // Explored zone border.
+        let mut border = HashSet::new();
+        border.insert(to);
+
+        for distance in 1..(k_max + 1) {
+            let mut next_border = HashSet::new();
+
+            for node in border {
+                for source in &wot.get_links_source(node).unwrap() {
+                    if graph[source.0].0 > distance {
+                        // shorter path, we replace
+                        graph[source.0] = (distance, vec![node]);
+                        next_border.insert(*source);
+                    } else if graph[source.0].0 == distance {
+                        // same length, we combine
+                        graph[source.0].1.push(node);
+                        next_border.insert(*source);
+                    }
+                }
+            }
+
+            border = next_border;
+        }
+
+        // 2. If `from` is found, we follow the backward links and build paths.
+        //    For each path, we look at the last element sources and build new paths with them.
+        let mut paths = vec![vec![from]];
+
+        for _ in 1..(k_max + 1) {
+            let mut new_paths = vec![];
+
+            for path in &paths {
+                let node = path.last().unwrap();
+
+                if node == &to {
+                    // If path is complete, we keep it.
+                    new_paths.push(path.clone())
+                } else {
+                    // If not complete we comlete paths
+                    let sources = &graph[node.0];
+                    for source in &sources.1 {
+                        let mut new_path = path.clone();
+                        new_path.push(*source);
+                        new_paths.push(new_path);
+                    }
+                }
+            }
+
+            paths = new_paths;
+        }
+
+        paths
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -351,6 +364,6 @@ mod tests {
 
     #[test]
     fn wot_tests() {
-        generic_wot_test(RustyWebOfTrust::new);
+        generic_wot_test::<_, _, RustyPathFinder>(RustyWebOfTrust::new);
     }
 }
