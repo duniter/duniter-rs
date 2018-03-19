@@ -219,33 +219,59 @@ impl WebOfTrust for RustyWebOfTrust {
     }
 
     fn get_paths(&self, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>> {
-        if from == to {
-            vec![vec![to]]
-        } else if k_max > 0 {
-            self.nodes[to.0]
-                .links_source
-                .par_iter()
-                .map(|&source| self.get_paths(from, source, k_max - 1))
-                .map(|paths| {
-                    paths
-                        .iter()
-                        .map(|path| {
-                            let mut path = path.clone();
-                            path.push(to);
-                            path
-                        })
-                        .collect::<Vec<Vec<NodeId>>>()
-                })
-                .reduce(
-                    || vec![],
-                    |mut acc, mut paths| {
-                        acc.append(&mut paths);
-                        acc
-                    },
-                )
-        } else {
-            vec![]
+        // 1. We explore the k_max area around `to`, and only remember backward
+        //    links of the smallest distance.
+
+        // Stores for each node its distance to `to` node and its backward links.
+        // By default all nodes are out of range (`k_max + 1`) and links are known.
+        let mut graph: Vec<(u32, Vec<usize>)> =
+            self.nodes.iter().map(|_| (k_max + 1, vec![])).collect();
+        // `to` node is at distance 0, and have no backward links.
+        graph[to.0] = (0, vec![]);
+        // Explored zone border.
+        let mut border = HashSet::new();
+        border.insert(to.0);
+
+        for distance in 1..(k_max + 1) {
+            let mut next_border = HashSet::new();
+
+            for node in border {
+                for source in &self.nodes[node].links_source {
+                    if graph[source.0].0 > distance {
+                        // shorter path, we replace
+                        graph[source.0] = (distance, vec![node]);
+                        next_border.insert(source.0);
+                    } else if graph[source.0].0 == distance {
+                        // same length, we combine
+                        graph[source.0].1.push(node);
+                        next_border.insert(source.0);
+                    }
+                }
+            }
+
+            border = next_border;
         }
+
+        // 2. If `from` is found, we follow the backward links and build paths.
+        //    For each path, we look at the last element sources and build new paths with them.
+        let mut paths = vec![vec![from]];
+
+        for _ in 1..(k_max + 1) {
+            let mut new_paths = vec![];
+
+            for path in &paths {
+                let sources = &graph[path.last().unwrap().0];
+                for source in &sources.1 {
+                    let mut new_path = path.clone();
+                    new_path.push(NodeId(*source));
+                    new_paths.push(new_path);
+                }
+            }
+
+            paths = new_paths;
+        }
+
+        paths
     }
 
     fn compute_distance(&self, params: WotDistanceParameters) -> Option<WotDistance> {

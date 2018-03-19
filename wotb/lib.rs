@@ -828,7 +828,7 @@ mod tests {
                 outdistanced: false,
             },)
         );
-        
+
         // Test centralities computation in g1_genesis wot
         let wot_size = wot3.size();
         let members_count = wot3.get_enabled().len() as u64;
