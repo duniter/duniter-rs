@@ -23,10 +23,8 @@ use std::io::prelude::*;
 
 use bincode::{deserialize, serialize, Infinite};
 
-use HasLinkResult;
+use super::{HasLinkResult, NewLinkResult, RemLinkResult};
 use WebOfTrust;
-use RemLinkResult;
-use NewLinkResult;
 use NodeId;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -319,7 +317,8 @@ impl WebOfTrust for LegacyWebOfTrust {
 mod tests {
     use super::*;
     use tests::generic_wot_test;
-    use rusty::{RustyDistanceCalculator, RustyPathFinder};
+    use path::RustyPathFinder;
+    use distance::RustyDistanceCalculator;
 
     #[test]
     fn node_tests() {

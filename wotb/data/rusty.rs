@@ -17,16 +17,8 @@
 
 use std::collections::HashSet;
 use rayon::prelude::*;
-
-use DistanceCalculator;
-use PathFinder;
-use HasLinkResult;
-use NewLinkResult;
-use RemLinkResult;
 use WebOfTrust;
-use WotDistance;
-use WotDistanceParameters;
-
+use super::{HasLinkResult, NewLinkResult, RemLinkResult};
 use NodeId;
 
 /// A node in the `WoT` graph.
@@ -34,10 +26,8 @@ use NodeId;
 struct Node {
     /// Is this node enabled ?
     enabled: bool,
-
     /// Set of links this node is the target.
     links_source: HashSet<NodeId>,
-
     /// Number of links the node issued.
     issued_count: usize,
 }
@@ -217,152 +207,12 @@ impl WebOfTrust for RustyWebOfTrust {
     }
 }
 
-/// A new "rusty-er" implementation of `WoT` path finding.
-#[derive(Debug, Clone, Copy)]
-pub struct RustyPathFinder;
-
-impl<T: WebOfTrust> PathFinder<T> for RustyPathFinder {
-    fn find_paths(wot: &T, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>> {
-        if from.0 >= wot.size() || to.0 >= wot.size() {
-            return vec![];
-        }
-
-        // 1. We explore the k_max area around `to`, and only remember backward
-        //    links of the smallest distance.
-
-        // Stores for each node its distance to `to` node and its backward links.
-        // By default all nodes are out of range (`k_max + 1`) and links are known.
-        let mut graph: Vec<(u32, Vec<NodeId>)> = (0..wot.size())
-            .into_iter()
-            .map(|_| (k_max + 1, vec![]))
-            .collect();
-        // `to` node is at distance 0, and have no backward links.
-        graph[to.0] = (0, vec![]);
-        // Explored zone border.
-        let mut border = HashSet::new();
-        border.insert(to);
-
-        for distance in 1..(k_max + 1) {
-            let mut next_border = HashSet::new();
-
-            for node in border {
-                for source in &wot.get_links_source(node).unwrap() {
-                    if graph[source.0].0 > distance {
-                        // shorter path, we replace
-                        graph[source.0] = (distance, vec![node]);
-                        next_border.insert(*source);
-                    } else if graph[source.0].0 == distance {
-                        // same length, we combine
-                        graph[source.0].1.push(node);
-                        next_border.insert(*source);
-                    }
-                }
-            }
-
-            border = next_border;
-        }
-
-        // 2. If `from` is found, we follow the backward links and build paths.
-        //    For each path, we look at the last element sources and build new paths with them.
-        let mut paths = vec![vec![from]];
-
-        for _ in 1..(k_max + 1) {
-            let mut new_paths = vec![];
-
-            for path in &paths {
-                let node = path.last().unwrap();
-
-                if node == &to {
-                    // If path is complete, we keep it.
-                    new_paths.push(path.clone())
-                } else {
-                    // If not complete we comlete paths
-                    let sources = &graph[node.0];
-                    for source in &sources.1 {
-                        let mut new_path = path.clone();
-                        new_path.push(*source);
-                        new_paths.push(new_path);
-                    }
-                }
-            }
-
-            paths = new_paths;
-        }
-
-        paths
-    }
-}
-
-/// Calculate distances between 2 members in a `WebOfTrust`.
-#[derive(Debug, Clone, Copy)]
-pub struct RustyDistanceCalculator;
-
-impl<T: WebOfTrust + Sync> DistanceCalculator<T> for RustyDistanceCalculator {
-    fn compute_distance(wot: &T, params: WotDistanceParameters) -> Option<WotDistance> {
-        let WotDistanceParameters {
-            node,
-            sentry_requirement,
-            step_max,
-            x_percent,
-        } = params;
-
-        if node.0 >= wot.size() {
-            return None;
-        }
-
-        let mut area = HashSet::new();
-        area.insert(node);
-        let mut border = HashSet::new();
-        border.insert(node);
-
-        for _ in 0..step_max {
-            border = border
-                .par_iter()
-                .map(|&id| {
-                    wot.get_links_source(id)
-                        .unwrap()
-                        .iter()
-                        .filter(|source| !area.contains(source))
-                        .cloned()
-                        .collect::<HashSet<_>>()
-                })
-                .reduce(HashSet::new, |mut acc, sources| {
-                    for source in sources {
-                        acc.insert(source);
-                    }
-                    acc
-                });
-            area.extend(border.iter());
-        }
-
-        let sentries: Vec<_> = wot.get_sentries(sentry_requirement as usize);
-        let mut success = area.iter().filter(|n| sentries.contains(n)).count() as u32;
-        let success_at_border = border.iter().filter(|n| sentries.contains(n)).count() as u32;
-        let mut sentries = sentries.len() as u32;
-        if wot.is_sentry(node, sentry_requirement as usize).unwrap() {
-            sentries -= 1;
-            success -= 1;
-        }
-
-        Some(WotDistance {
-            sentries,
-            reached: area.len() as u32,
-            reached_at_border: border.len() as u32,
-            success,
-            success_at_border,
-            outdistanced: f64::from(success) < x_percent * f64::from(sentries),
-        })
-    }
-
-    fn is_outdistanced(wot: &T, params: WotDistanceParameters) -> Option<bool> {
-        Self::compute_distance(wot, params).map(|result| result.outdistanced)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use tests::generic_wot_test;
+    use path::RustyPathFinder;
+    use distance::RustyDistanceCalculator;
 
     #[test]
     fn wot_tests() {
