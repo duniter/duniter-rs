@@ -121,14 +121,6 @@ pub struct LegacyWebOfTrust {
 }
 
 impl LegacyWebOfTrust {
-    /// Create a new Web of Trust with the maxium certificications count.
-    pub fn new(max_cert: usize) -> LegacyWebOfTrust {
-        LegacyWebOfTrust {
-            nodes: vec![],
-            max_cert,
-        }
-    }
-
     /// Read `WoT` from file.
     pub fn legacy_from_file(path: &str) -> Option<LegacyWebOfTrust> {
         let mut file = match File::open(path) {
@@ -176,6 +168,13 @@ impl LegacyWebOfTrust {
 }
 
 impl WebOfTrust for LegacyWebOfTrust {
+    fn new(max_cert: usize) -> LegacyWebOfTrust {
+        LegacyWebOfTrust {
+            nodes: vec![],
+            max_cert,
+        }
+    }
+
     fn get_max_link(&self) -> usize {
         self.max_cert
     }
@@ -467,9 +466,8 @@ mod tests {
         assert!(node2.has_link_from(&node1));
     }
 
-    /// This test is a translation of https://github.com/duniter/wotb/blob/master/tests/test.js
     #[test]
     fn wot_tests() {
-        generic_wot_test::<_, _, RustyPathFinder>(LegacyWebOfTrust::new);
+        generic_wot_test::<LegacyWebOfTrust, RustyPathFinder>();
     }
 }

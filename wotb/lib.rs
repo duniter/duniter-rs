@@ -164,7 +164,10 @@ pub struct WotDistance {
 /// Trait for a Web Of Trust.
 /// Allow to provide other implementations of the `WoT` logic instead of the legacy C++
 /// translated one.
-pub trait WebOfTrust: Clone {
+pub trait WebOfTrust : Clone {
+    /// Create a new Web of Trust with the maximum of links a node can issue.
+    fn new(max_links: usize) -> Self;
+
     /// Get the maximum number of links per user.
     fn get_max_link(&self) -> usize;
 
@@ -389,13 +392,12 @@ mod tests {
     ///
     /// Clone and file tests are not included in this generic test and should be done in
     /// the implementation test.
-    pub fn generic_wot_test<W, G, P>(generator: G)
+    pub fn generic_wot_test<W, P>()
     where
         W: WebOfTrust,
-        G: Fn(usize) -> W,
         P: PathFinder<W>,
     {
-        let mut wot = generator(3);
+        let mut wot = W::new(3);
 
         // should have an initial size of 0
         assert_eq!(wot.size(), 0);
@@ -773,7 +775,7 @@ mod tests {
             ()
         );
 
-        let mut wot2 = generator(3);
+        let mut wot2 = W::new(3);
 
         // Read wot from file
         {
@@ -801,7 +803,7 @@ mod tests {
         }
 
         // Read g1_genesis wot
-        let mut wot3 = generator(100);
+        let mut wot3 = W::new(100);
         assert_eq!(
             wot3.from_file("tests/g1_genesis.bin").unwrap(),
             vec![

@@ -62,14 +62,6 @@ pub struct RustyWebOfTrust {
 }
 
 impl RustyWebOfTrust {
-    /// Create a new Web of Trust with the maximum of links a node can issue.
-    pub fn new(max_links: usize) -> RustyWebOfTrust {
-        RustyWebOfTrust {
-            nodes: vec![],
-            max_links,
-        }
-    }
-
     /// Test if a node is a sentry.
     pub fn is_sentry(&self, node: NodeId, sentry_requirement: usize) -> Option<bool> {
         if node.0 >= self.size() {
@@ -86,6 +78,13 @@ impl RustyWebOfTrust {
 }
 
 impl WebOfTrust for RustyWebOfTrust {
+    fn new(max_links: usize) -> RustyWebOfTrust {
+        RustyWebOfTrust {
+            nodes: vec![],
+            max_links,
+        }
+    }
+
     fn get_max_link(&self) -> usize {
         self.max_links
     }
@@ -364,6 +363,6 @@ mod tests {
 
     #[test]
     fn wot_tests() {
-        generic_wot_test::<_, _, RustyPathFinder>(RustyWebOfTrust::new);
+        generic_wot_test::<RustyWebOfTrust, RustyPathFinder>();
     }
 }
