@@ -16,20 +16,18 @@
 //! Provide a legacy implementation of `WebOfTrust` storage and calculations.
 //! Its mostly translated directly from the original C++ code.
 
-use std::collections::hash_set::Iter;
 use std::collections::HashSet;
+use std::collections::hash_set::Iter;
 use std::fs::File;
 use std::io::prelude::*;
-use WotDistance;
 
 use bincode::{deserialize, serialize, Infinite};
 
 use HasLinkResult;
+use WebOfTrust;
+use RemLinkResult;
 use NewLinkResult;
 use NodeId;
-use RemLinkResult;
-use WebOfTrust;
-use WotDistanceParameters;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Node {
@@ -148,23 +146,6 @@ impl LegacyWebOfTrust {
             Err(_) => false,
         }
     }
-
-    fn check_matches(&self, node: NodeId, d: u32, d_max: u32, mut checked: Vec<bool>) -> Vec<bool> {
-        let mut linked_nodes = Vec::new();
-
-        for linked_node in self.nodes[node.0].links_iter() {
-            checked[linked_node.0] = true;
-            linked_nodes.push(*linked_node);
-        }
-
-        if d < d_max {
-            for linked_node in &linked_nodes {
-                checked = self.check_matches(*linked_node, d + 1, d_max, checked);
-            }
-        }
-
-        checked
-    }
 }
 
 impl WebOfTrust for LegacyWebOfTrust {
@@ -281,6 +262,19 @@ impl WebOfTrust for LegacyWebOfTrust {
         }
     }
 
+    fn is_sentry(&self, node: NodeId, sentry_requirement: usize) -> Option<bool> {
+        if node.0 >= self.size() {
+            return None;
+        }
+
+        let node = &self.nodes[node.0];
+
+        Some(
+            node.enabled && node.issued_count() >= sentry_requirement
+                && node.links_iter().count() >= sentry_requirement,
+        )
+    }
+
     fn get_sentries(&self, sentry_requirement: usize) -> Vec<NodeId> {
         self.nodes
             .iter()
@@ -319,93 +313,13 @@ impl WebOfTrust for LegacyWebOfTrust {
             Some(self.nodes[id.0].issued_count)
         }
     }
-
-    fn compute_distance(&self, params: WotDistanceParameters) -> Option<WotDistance> {
-        let WotDistanceParameters {
-            node,
-            sentry_requirement,
-            step_max,
-            x_percent,
-        } = params;
-
-        if node.0 >= self.size() {
-            return None;
-        }
-
-        let sentry_requirement = sentry_requirement as usize;
-
-        let mut result = WotDistance {
-            sentries: 0,
-            success: 0,
-            success_at_border: 0,
-            reached: 0,
-            reached_at_border: 0,
-            outdistanced: false,
-        };
-
-        let mut sentries: Vec<bool> = self.nodes
-            .iter()
-            .map(|x| {
-                x.enabled && x.issued_count() >= sentry_requirement
-                    && x.links_iter().count() >= sentry_requirement
-            })
-            .collect();
-        sentries[node.0] = false;
-
-        let mut checked: Vec<bool> = self.nodes.iter().map(|_| false).collect();
-        let mut checked_without_border: Vec<bool> = checked.clone();
-
-        if step_max >= 1 {
-            checked = self.check_matches(node, 1, step_max, checked);
-            if step_max >= 2 {
-                checked_without_border =
-                    self.check_matches(node, 1, step_max - 1, checked_without_border);
-            }
-        }
-
-        for ((&sentry, &check), &check_without_border) in sentries
-            .iter()
-            .zip(checked.iter())
-            .zip(checked_without_border.iter())
-        {
-            if sentry {
-                result.sentries += 1;
-                if check {
-                    result.success += 1;
-                    result.reached += 1;
-                    if !check_without_border {
-                        result.success_at_border += 1;
-                        result.reached_at_border += 1;
-                    }
-                }
-            } else if check {
-                result.reached += 1;
-            }
-        }
-
-        result.outdistanced = f64::from(result.success) < x_percent * f64::from(result.sentries);
-        Some(result)
-    }
-
-    fn is_outdistanced(&self, params: WotDistanceParameters) -> Option<bool> {
-        let WotDistanceParameters { node, .. } = params;
-
-        if node.0 >= self.size() {
-            None
-        } else {
-            match self.compute_distance(params) {
-                Some(distance) => Some(distance.outdistanced),
-                None => None,
-            }
-        }
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use tests::generic_wot_test;
-    use rusty::RustyPathFinder;
+    use rusty::{RustyDistanceCalculator, RustyPathFinder};
 
     #[test]
     fn node_tests() {
@@ -468,6 +382,6 @@ mod tests {
 
     #[test]
     fn wot_tests() {
-        generic_wot_test::<LegacyWebOfTrust, RustyPathFinder>();
+        generic_wot_test::<LegacyWebOfTrust, RustyPathFinder, RustyDistanceCalculator>();
     }
 }

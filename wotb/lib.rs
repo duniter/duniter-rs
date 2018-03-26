@@ -215,19 +215,14 @@ pub trait WebOfTrust : Clone {
     /// Returns `None` if this node doesn't exist.
     fn issued_count(&self, id: NodeId) -> Option<usize>;
 
+    /// Test if a node is a sentry.
+    fn is_sentry(&self, node: NodeId, sentry_requirement: usize) -> Option<bool>;
+
     /// Get sentries array.
     fn get_sentries(&self, sentry_requirement: usize) -> Vec<NodeId>;
 
     /// Get non sentries array.
     fn get_non_sentries(&self, sentry_requirement: usize) -> Vec<NodeId>;
-
-    /// Compute distance between a node and the network.
-    /// Returns `None` if this node doesn't exist.
-    fn compute_distance(&self, params: WotDistanceParameters) -> Option<WotDistance>;
-
-    /// Test if a node is outdistanced in the network.
-    /// Returns `Node` if this node doesn't exist.
-    fn is_outdistanced(&self, params: WotDistanceParameters) -> Option<bool>;
 
     /// Load WebOfTrust from binary file
     fn from_file(&mut self, path: &str) -> Result<Vec<u8>, WotParseError> {
@@ -384,6 +379,17 @@ pub trait PathFinder<T: WebOfTrust> {
     fn find_paths(wot: &T, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>>;
 }
 
+/// Compute distance between nodes of a `WebOfTrust`.
+pub trait DistanceCalculator<T: WebOfTrust> {
+    /// Compute distance between a node and the network.
+    /// Returns `None` if this node doesn't exist.
+    fn compute_distance(wot: &T, params: WotDistanceParameters) -> Option<WotDistance>;
+
+    /// Test if a node is outdistanced in the network.
+    /// Returns `Node` if this node doesn't exist.
+    fn is_outdistanced(wot: &T, params: WotDistanceParameters) -> Option<bool>;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -392,10 +398,11 @@ mod tests {
     ///
     /// Clone and file tests are not included in this generic test and should be done in
     /// the implementation test.
-    pub fn generic_wot_test<W, P>()
+    pub fn generic_wot_test<W, P, D>()
     where
         W: WebOfTrust,
         P: PathFinder<W>,
+        D: DistanceCalculator<W>,
     {
         let mut wot = W::new(3);
 
@@ -589,32 +596,41 @@ mod tests {
 
         // should successfully use distance rule
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 1,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            D::is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 1,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         );
         // => no because 2,4,5 have certified him
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 2,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            D::is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 2,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         );
         // => no because only member 2 has 2 certs, and has certified him
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 3,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            D::is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 3,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         );
         // => no because no member has issued 3 certifications
@@ -647,39 +663,51 @@ mod tests {
         ]));
 
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 1,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            D::is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 1,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         ); // OK : 2 -> 0
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 2,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            D::is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 2,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         ); // OK : 2 -> 0
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 3,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            D::is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 3,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         ); // OK : no stry \w 3 lnk
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 2,
-                step_max: 2,
-                x_percent: 1.0,
-            },),
+            D::is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 2,
+                    step_max: 2,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         ); // OK : 2 -> 0
 
@@ -707,39 +735,51 @@ mod tests {
         ]));
 
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 1,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            D::is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 1,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(true)
         ); // KO : No path 3 -> 0
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 2,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            D::is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 2,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(true)
         ); // KO : No path 3 -> 0
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 3,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            D::is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 3,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         ); // OK : no stry \w 3 lnk
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 2,
-                step_max: 2,
-                x_percent: 1.0,
-            },),
+            D::is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 2,
+                    step_max: 2,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         ); // OK : 3 -> 2 -> 0
 
@@ -757,12 +797,15 @@ mod tests {
         assert_eq!(wot.set_enabled(NodeId(3), false), Some(false));
         assert_eq!(wot.get_disabled().len(), 1);
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 2,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            D::is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 2,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         ); // OK : Disabled
 
@@ -792,12 +835,15 @@ mod tests {
             assert_eq!(wot2.get_disabled().len(), 1);
             assert_eq!(wot2.is_enabled(NodeId(3)), Some(false));
             assert_eq!(
-                wot2.is_outdistanced(WotDistanceParameters {
-                    node: NodeId(0),
-                    sentry_requirement: 2,
-                    step_max: 1,
-                    x_percent: 1.0,
-                },),
+                D::is_outdistanced(
+                    &wot2,
+                    WotDistanceParameters {
+                        node: NodeId(0),
+                        sentry_requirement: 2,
+                        step_max: 1,
+                        x_percent: 1.0,
+                    },
+                ),
                 Some(false)
             );
         }
@@ -820,12 +866,15 @@ mod tests {
 
         // Test compute_distance in g1_genesis wot
         assert_eq!(
-            wot3.compute_distance(WotDistanceParameters {
-                node: NodeId(37),
-                sentry_requirement: 3,
-                step_max: 5,
-                x_percent: 0.8,
-            },),
+            D::compute_distance(
+                &wot3,
+                WotDistanceParameters {
+                    node: NodeId(37),
+                    sentry_requirement: 3,
+                    step_max: 5,
+                    x_percent: 0.8,
+                },
+            ),
             Some(WotDistance {
                 sentries: 48,
                 success: 48,

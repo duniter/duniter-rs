@@ -18,6 +18,7 @@
 use std::collections::HashSet;
 use rayon::prelude::*;
 
+use DistanceCalculator;
 use PathFinder;
 use HasLinkResult;
 use NewLinkResult;
@@ -59,22 +60,6 @@ pub struct RustyWebOfTrust {
     nodes: Vec<Node>,
     /// Maximum number of links a node can issue.
     max_links: usize,
-}
-
-impl RustyWebOfTrust {
-    /// Test if a node is a sentry.
-    pub fn is_sentry(&self, node: NodeId, sentry_requirement: usize) -> Option<bool> {
-        if node.0 >= self.size() {
-            return None;
-        }
-
-        let node = &self.nodes[node.0];
-
-        Some(
-            node.enabled && node.issued_count >= sentry_requirement
-                && node.links_source.len() >= sentry_requirement,
-        )
-    }
 }
 
 impl WebOfTrust for RustyWebOfTrust {
@@ -193,6 +178,19 @@ impl WebOfTrust for RustyWebOfTrust {
         self.nodes.get(id.0).map(|n| n.issued_count)
     }
 
+    fn is_sentry(&self, node: NodeId, sentry_requirement: usize) -> Option<bool> {
+        if node.0 >= self.size() {
+            return None;
+        }
+
+        let node = &self.nodes[node.0];
+
+        Some(
+            node.enabled && node.issued_count >= sentry_requirement
+                && node.links_source.len() >= sentry_requirement,
+        )
+    }
+
     fn get_sentries(&self, sentry_requirement: usize) -> Vec<NodeId> {
         self.nodes
             .par_iter()
@@ -216,67 +214,6 @@ impl WebOfTrust for RustyWebOfTrust {
             })
             .map(|(i, _)| NodeId(i))
             .collect()
-    }
-
-    fn compute_distance(&self, params: WotDistanceParameters) -> Option<WotDistance> {
-        let WotDistanceParameters {
-            node,
-            sentry_requirement,
-            step_max,
-            x_percent,
-        } = params;
-
-        if node.0 >= self.size() {
-            return None;
-        }
-
-        let mut area = HashSet::new();
-        area.insert(node);
-        let mut border = HashSet::new();
-        border.insert(node);
-
-        for _ in 0..step_max {
-            border = border
-                .par_iter()
-                .map(|&id| {
-                    self.nodes[id.0]
-                        .links_source
-                        .iter()
-                        .filter(|source| !area.contains(source))
-                        .cloned()
-                        .collect::<HashSet<_>>()
-                })
-                .reduce(HashSet::new, |mut acc, sources| {
-                    for source in sources {
-                        acc.insert(source);
-                    }
-                    acc
-                });
-            area.extend(border.iter());
-        }
-
-        let sentries: Vec<_> = self.get_sentries(sentry_requirement as usize);
-        let mut success = area.iter().filter(|n| sentries.contains(n)).count() as u32;
-        let success_at_border = border.iter().filter(|n| sentries.contains(n)).count() as u32;
-        let mut sentries = sentries.len() as u32;
-        if self.is_sentry(node, sentry_requirement as usize).unwrap() {
-            sentries -= 1;
-            success -= 1;
-        }
-
-        Some(WotDistance {
-            sentries,
-            reached: area.len() as u32,
-            reached_at_border: border.len() as u32,
-            success,
-            success_at_border,
-            outdistanced: f64::from(success) < x_percent * f64::from(sentries),
-        })
-    }
-
-    fn is_outdistanced(&self, params: WotDistanceParameters) -> Option<bool> {
-        self.compute_distance(params)
-            .map(|result| result.outdistanced)
     }
 }
 
@@ -356,6 +293,72 @@ impl<T: WebOfTrust> PathFinder<T> for RustyPathFinder {
     }
 }
 
+/// Calculate distances between 2 members in a `WebOfTrust`.
+#[derive(Debug, Clone, Copy)]
+pub struct RustyDistanceCalculator;
+
+impl<T: WebOfTrust + Sync> DistanceCalculator<T> for RustyDistanceCalculator {
+    fn compute_distance(wot: &T, params: WotDistanceParameters) -> Option<WotDistance> {
+        let WotDistanceParameters {
+            node,
+            sentry_requirement,
+            step_max,
+            x_percent,
+        } = params;
+
+        if node.0 >= wot.size() {
+            return None;
+        }
+
+        let mut area = HashSet::new();
+        area.insert(node);
+        let mut border = HashSet::new();
+        border.insert(node);
+
+        for _ in 0..step_max {
+            border = border
+                .par_iter()
+                .map(|&id| {
+                    wot.get_links_source(id)
+                        .unwrap()
+                        .iter()
+                        .filter(|source| !area.contains(source))
+                        .cloned()
+                        .collect::<HashSet<_>>()
+                })
+                .reduce(HashSet::new, |mut acc, sources| {
+                    for source in sources {
+                        acc.insert(source);
+                    }
+                    acc
+                });
+            area.extend(border.iter());
+        }
+
+        let sentries: Vec<_> = wot.get_sentries(sentry_requirement as usize);
+        let mut success = area.iter().filter(|n| sentries.contains(n)).count() as u32;
+        let success_at_border = border.iter().filter(|n| sentries.contains(n)).count() as u32;
+        let mut sentries = sentries.len() as u32;
+        if wot.is_sentry(node, sentry_requirement as usize).unwrap() {
+            sentries -= 1;
+            success -= 1;
+        }
+
+        Some(WotDistance {
+            sentries,
+            reached: area.len() as u32,
+            reached_at_border: border.len() as u32,
+            success,
+            success_at_border,
+            outdistanced: f64::from(success) < x_percent * f64::from(sentries),
+        })
+    }
+
+    fn is_outdistanced(wot: &T, params: WotDistanceParameters) -> Option<bool> {
+        Self::compute_distance(wot, params).map(|result| result.outdistanced)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -363,6 +366,6 @@ mod tests {
 
     #[test]
     fn wot_tests() {
-        generic_wot_test::<RustyWebOfTrust, RustyPathFinder>();
+        generic_wot_test::<RustyWebOfTrust, RustyPathFinder, RustyDistanceCalculator>();
     }
 }
