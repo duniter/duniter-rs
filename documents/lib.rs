@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Implements the Duniter Protocol.
+//! Implements the Duniter Documents Protocol.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
