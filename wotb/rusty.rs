@@ -273,7 +273,7 @@ impl WebOfTrust for RustyWebOfTrust {
                         new_path.push(NodeId(*source));
                         new_paths.push(new_path);
                     }
-                }                
+                }
             }
 
             paths = new_paths;

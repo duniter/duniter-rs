@@ -63,8 +63,7 @@ pub enum V10Document {
 }
 
 /// Trait for a V10 document.
-pub trait TextDocument
-    : Document<PublicKey = ed25519::PublicKey, CurrencyType = str> {
+pub trait TextDocument: Document<PublicKey = ed25519::PublicKey, CurrencyType = str> {
     /// Return document as text.
     fn as_text(&self) -> &str;
 
