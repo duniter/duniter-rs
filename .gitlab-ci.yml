@@ -48,9 +48,9 @@ clippy:
     - redshift-rs-nightly
   before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
-    - cargo install --force clippy
+    - cargo install --force clippy --verbose
   script:
-    - cargo clippy --all -- -D warnings
+    - cargo clippy --all -- -D warnings --verbose
   allow_failure: true  
   
 fmt:
