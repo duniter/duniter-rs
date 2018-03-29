@@ -93,7 +93,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "duniter-protocol"
+name = "duniter-documents"
 version = "0.4.1"
 dependencies = [
  "base58 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
