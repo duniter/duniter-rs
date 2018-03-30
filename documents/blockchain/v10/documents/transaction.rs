@@ -435,7 +435,7 @@ impl TextDocument for TransactionDocument {
 
 impl IntoSpecializedDocument<BlockchainProtocol> for TransactionDocument {
     fn into_specialized(self) -> BlockchainProtocol {
-        BlockchainProtocol::V10(V10Document::Transaction(Box::new(self)))
+        BlockchainProtocol::V10(Box::new(V10Document::Transaction(Box::new(self))))
     }
 }
 
