@@ -14,6 +14,18 @@ build:stable:
   script:
     - cargo build --all-features
     
+tests:coverage:
+  stage: tests
+  tags:
+    - redshift-kcov-rs-stable
+  image: registry.duniter.org/docker/rust/kcov:v0.0.4
+  script:
+    - RUSTFLAGS="-C link-dead-code" cargo test --no-run
+    - kcov --exclude-pattern ".cargo" --include-path=$(pwd)/wotb --verify target/cov target/debug/duniter_wotb-*
+    - kcov --exclude-pattern ".cargo" --include-path=$(pwd)/crypto --verify target/cov target/debug/duniter_crypto-*
+    - cat target/cov/index.json
+  allow_failure: true
+
 tests:stable:
   stage: tests
   tags:
