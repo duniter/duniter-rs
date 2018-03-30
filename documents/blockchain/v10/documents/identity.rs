@@ -32,7 +32,7 @@ lazy_static! {
 /// Wrap an Identity document.
 ///
 /// Must be created by parsing a text document or using a builder.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct IdentityDocument {
     /// Document as text.
     ///
@@ -92,7 +92,7 @@ impl TextDocument for IdentityDocument {
 
 impl IntoSpecializedDocument<BlockchainProtocol> for IdentityDocument {
     fn into_specialized(self) -> BlockchainProtocol {
-        BlockchainProtocol::V10(V10Document::Identity(self))
+        BlockchainProtocol::V10(Box::new(V10Document::Identity(self)))
     }
 }
 

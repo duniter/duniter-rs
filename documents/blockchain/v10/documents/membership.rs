@@ -34,7 +34,7 @@ lazy_static! {
 }
 
 /// Type of a Membership.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
 pub enum MembershipType {
     /// The member wishes to opt-in.
     In(),
@@ -45,7 +45,7 @@ pub enum MembershipType {
 /// Wrap an Membership document.
 ///
 /// Must be created by parsing a text document or using a builder.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct MembershipDocument {
     /// Document as text.
     ///
@@ -113,7 +113,7 @@ impl TextDocument for MembershipDocument {
 
 impl IntoSpecializedDocument<BlockchainProtocol> for MembershipDocument {
     fn into_specialized(self) -> BlockchainProtocol {
-        BlockchainProtocol::V10(V10Document::Membership(self))
+        BlockchainProtocol::V10(Box::new(V10Document::Membership(self)))
     }
 }
 

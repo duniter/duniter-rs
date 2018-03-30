@@ -19,10 +19,12 @@
 //!
 //! [`KeyPairGenerator`]: struct.KeyPairGenerator.html
 
+use std::collections::hash_map::DefaultHasher;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::fmt::Debug;
+use std::hash::{Hash, Hasher};
 
 use base58::{FromBase58, FromBase58Error, ToBase58};
 use base64;
@@ -34,6 +36,13 @@ use super::{BaseConvertionError, PrivateKey as PrivateKeyMethods, PublicKey as P
 /// Store a ed25519 signature.
 #[derive(Clone, Copy)]
 pub struct Signature(pub [u8; 64]);
+
+impl Hash for Signature {
+    fn hash<H: Hasher>(&self, _state: &mut H) {
+        let mut hasher = DefaultHasher::new();
+        Hash::hash_slice(&self.0, &mut hasher);
+    }
+}
 
 impl super::Signature for Signature {
     fn from_base64(base64_data: &str) -> Result<Signature, BaseConvertionError> {

@@ -25,7 +25,7 @@ pub mod v10;
 #[derive(Debug)]
 pub enum BlockchainProtocol {
     /// Version 10.
-    V10(v10::documents::V10Document),
+    V10(Box<v10::documents::V10Document>),
     /// Version 11. (not done yet, but defined for tests)
     V11(),
 }

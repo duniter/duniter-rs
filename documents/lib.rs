@@ -36,7 +36,7 @@ use duniter_crypto::keys::BaseConvertionError;
 pub mod blockchain;
 
 /// A block Id.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct BlockId(pub u32);
 
 impl Display for BlockId {
@@ -48,7 +48,7 @@ impl Display for BlockId {
 /// A hash wrapper.
 ///
 /// A hash is often provided as string composed of 64 hexadecimal character (0 to 9 then A to F).
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Hash(pub [u8; 32]);
 
 impl Display for Hash {
@@ -110,7 +110,7 @@ impl Hash {
 }
 
 /// Wrapper of a block hash.
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct BlockHash(Hash);
 
 impl Display for BlockHash {
@@ -148,7 +148,7 @@ pub enum BlockUIdParseError {
 ///
 /// [`BlockId`]: struct.BlockId.html
 /// [`BlockHash`]: struct.BlockHash.html
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Blockstamp {
     /// Block Id.
     pub id: BlockId,
