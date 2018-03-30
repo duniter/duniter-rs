@@ -235,7 +235,7 @@ impl StandardTextDocumentParser for MembershipDocumentParser {
             }))
         } else {
             Err(V10DocumentParsingError::InvalidInnerFormat(
-                "Identity".to_string(),
+                "Membership".to_string(),
             ))
         }
     }
