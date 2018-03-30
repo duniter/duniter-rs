@@ -92,7 +92,7 @@ impl TextDocument for IdentityDocument {
 
 impl IntoSpecializedDocument<BlockchainProtocol> for IdentityDocument {
     fn into_specialized(self) -> BlockchainProtocol {
-        BlockchainProtocol::V10(V10Document::Identity(self))
+        BlockchainProtocol::V10(Box::new(V10Document::Identity(self)))
     }
 }
 
