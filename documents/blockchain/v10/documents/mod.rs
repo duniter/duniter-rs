@@ -15,6 +15,10 @@
 
 //! Provide wrappers around Duniter blockchain documents for protocol version 10.
 
+extern crate crypto;
+
+use self::crypto::digest::Digest;
+
 use duniter_crypto::keys::{Signature, ed25519};
 use regex::Regex;
 use blockchain::{Document, DocumentBuilder, DocumentParser};
@@ -71,6 +75,12 @@ pub enum V10Document {
 pub trait TextDocument: Document<PublicKey = ed25519::PublicKey, CurrencyType = str> {
     /// Return document as text.
     fn as_text(&self) -> &str;
+
+    /// Return sha256 hash of text document
+    fn hash<H: Digest>(&self, digest: &mut H) -> String {
+        digest.input_str(self.as_text());
+        digest.result_str()
+    }
 
     /// Return document as text with leading signatures.
     fn as_text_with_signatures(&self) -> String {
