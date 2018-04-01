@@ -1,43 +1,35 @@
 stages:
-    - builds
-    - tests
+    - build_and_tests
     - clippy
     - fmt
     
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
     
-build:stable:
-  stage: builds
+build_and_tests:stable:
+  stage: build_and_tests
   tags:
     - redshift-rs-stable
   script:
-    - cargo build --all-features
-    
-tests:stable:
-  stage: tests
-  tags:
-    - redshift-rs-stable
-  script:
-    - cargo test
+    - cargo test --all-features
     
 build_and_tests:beta:
-  stage: tests
+  stage: build_and_tests
   tags:
     - redshift-rs-beta
   script:
     - rustup update
-    - cargo test
+    - cargo test --all-features
   when: manual
   allow_failure: true
     
 build_and_tests:nightly:
-  stage: tests
+  stage: build_and_tests
   image: rustlang/rust:nightly
   tags:
     - redshift-rs-nightly
   script:
-    - cargo test
+    - cargo test --all-features
   when: manual
   allow_failure: true
   
