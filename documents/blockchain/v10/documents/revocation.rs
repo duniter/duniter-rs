@@ -165,6 +165,13 @@ IdtySignature: {idty_sig}
             idty_sig = self.identity_sig,
         )
     }
+    fn generate_compact_text(&self, signatures: Vec<ed25519::Signature>) -> String {
+        format!(
+            "{issuer}:{signature}",
+            issuer = self.issuer,
+            signature = signatures[0],
+        )
+    }
 }
 
 /// Revocation document parser

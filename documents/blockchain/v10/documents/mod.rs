@@ -28,17 +28,20 @@ pub mod identity;
 pub mod membership;
 pub mod certification;
 pub mod revocation;
+pub mod transaction;
 
 pub use blockchain::v10::documents::identity::{IdentityDocument, IdentityDocumentBuilder};
 pub use blockchain::v10::documents::membership::{MembershipDocument, MembershipDocumentParser};
 pub use blockchain::v10::documents::certification::{CertificationDocument,
                                                     CertificationDocumentParser};
 pub use blockchain::v10::documents::revocation::{RevocationDocument, RevocationDocumentParser};
+pub use blockchain::v10::documents::transaction::{TransactionDocument, TransactionDocumentBuilder,
+                                                  TransactionDocumentParser};
 
 // Use of lazy_static so the regex is only compiled at first use.
 lazy_static! {
     static ref DOCUMENT_REGEX: Regex = Regex::new(
-        "^(?P<doc>Version: 10\n\
+        "^(?P<doc>Version: (?P<version>[0-9]+)\n\
          Type: (?P<type>[[:alpha:]]+)\n\
          Currency: (?P<currency>[[:alnum:] _-]+)\n\
          (?P<body>(?:.*\n)+?))\
@@ -56,7 +59,7 @@ pub enum V10Document {
     Block(),
 
     /// Transaction document.
-    Transaction(),
+    Transaction(Box<TransactionDocument>),
 
     /// Identity document.
     Identity(IdentityDocument),
@@ -102,6 +105,13 @@ pub trait TextDocumentBuilder: DocumentBuilder {
     /// - Contains line breaks on all line.
     fn generate_text(&self) -> String;
 
+    /// Generate document compact text.
+    /// the compact format is the one used in the blocks.
+    ///
+    /// - Don't contains leading signatures
+    /// - Contains line breaks on all line.
+    fn generate_compact_text(&self, signatures: Vec<ed25519::Signature>) -> String;
+
     /// Generate final document with signatures, and also return them in an array.
     ///
     /// Returns :
@@ -139,6 +149,19 @@ pub enum V10DocumentParsingError {
     UnknownDocumentType(String),
 }
 
+/// V10 Documents in separated parts
+#[derive(Debug, Clone)]
+pub struct V10DocumentParts {
+    /// Whole document in text
+    pub doc: String,
+    /// Payload
+    pub body: String,
+    /// Currency
+    pub currency: String,
+    /// Signatures
+    pub signatures: Vec<ed25519::Signature>,
+}
+
 trait StandardTextDocumentParser {
     fn parse_standard(
         doc: &str,
@@ -146,15 +169,6 @@ trait StandardTextDocumentParser {
         currency: &str,
         signatures: Vec<ed25519::Signature>,
     ) -> Result<V10Document, V10DocumentParsingError>;
-}
-
-trait CompactTextDocumentParser<D: TextDocument> {
-    fn parse_compact(
-        doc: &str,
-        body: &str,
-        currency: &str,
-        signatures: Vec<ed25519::Signature>,
-    ) -> Result<D, V10DocumentParsingError>;
 }
 
 /// A V10 document parser.
@@ -178,6 +192,13 @@ impl<'a> DocumentParser<&'a str, V10Document, V10DocumentParsingError> for V10Do
             match doctype {
                 "Identity" => IdentityDocumentParser::parse_standard(doc, body, currency, sigs),
                 "Membership" => MembershipDocumentParser::parse_standard(doc, body, currency, sigs),
+                "Certification" => {
+                    CertificationDocumentParser::parse_standard(doc, body, currency, sigs)
+                }
+                "Revocation" => RevocationDocumentParser::parse_standard(doc, body, currency, sigs),
+                "Transaction" => {
+                    TransactionDocumentParser::parse_standard(doc, body, currency, sigs)
+                }
                 _ => Err(V10DocumentParsingError::UnknownDocumentType(
                     doctype.to_string(),
                 )),
@@ -275,11 +296,11 @@ SoKwoa8PFfCDJWZ6dNCv7XstezHcc2BbKiJgVDXv82R5zYR83nis9dShLgWJ5w48noVUHimdngzYQneN
     fn parse_identity_document() {
         let text = "Version: 10
 Type: Identity
-Currency: duniter_unit_test_currency
-Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
-UniqueID: tic
+Currency: g1
+Issuer: D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx
+UniqueID: elois
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
-1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==";
+Ydnclvw76/JHcKSmU9kl9Ie0ne5/X8NYOqPqbGnufIK3eEPRYYdEYaQh+zffuFhbtIRjv6m/DkVLH5cLy/IyAg==";
 
         let doc = V10DocumentParser::parse(text).unwrap();
         if let V10Document::Identity(doc) = doc {
@@ -294,16 +315,87 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
     fn parse_membership_document() {
         let text = "Version: 10
 Type: Membership
-Currency: duniter_unit_test_currency
-Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+Currency: g1
+Issuer: D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx
 Block: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 Membership: IN
-UserID: tic
+UserID: elois
 CertTS: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
-s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw==";
+FFeyrvYio9uYwY5aMcDGswZPNjGLrl8THn9l3EPKSNySD3SDSHjCljSfFEwb87sroyzJQoVzPwER0sW/cbZMDg==";
 
         let doc = V10DocumentParser::parse(text).unwrap();
         if let V10Document::Membership(doc) = doc {
+            println!("Doc : {:?}", doc);
+            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+        } else {
+            panic!("Wrong document type");
+        }
+    }
+
+    #[test]
+    fn parse_certification_document() {
+        let text = "Version: 10
+Type: Certification
+Currency: g1
+Issuer: 2sZF6j2PkxBDNAqUde7Dgo5x3crkerZpQ4rBqqJGn8QT
+IdtyIssuer: 7jzkd8GiFnpys4X7mP78w2Y3y3kwdK6fVSLEaojd3aH9
+IdtyUniqueID: fbarbut
+IdtyTimestamp: 98221-000000575AC04F5164F7A307CDB766139EA47DD249E4A2444F292BC8AAB408B3
+IdtySignature: DjeipIeb/RF0tpVCnVnuw6mH1iLJHIsDfPGLR90Twy3PeoaDz6Yzhc/UjLWqHCi5Y6wYajV0dNg4jQRUneVBCQ==
+CertTimestamp: 99956-00000472758331FDA8388E30E50CA04736CBFD3B7C21F34E74707107794B56DD
+Hkps1QU4HxIcNXKT8YmprYTVByBhPP1U2tIM7Z8wENzLKIWAvQClkAvBE7pW9dnVa18sJIJhVZUcRrPAZfmjBA==";
+
+        let doc = V10DocumentParser::parse(text).unwrap();
+        if let V10Document::Certification(doc) = doc {
+            println!("Doc : {:?}", doc);
+            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+        } else {
+            panic!("Wrong document type");
+        }
+    }
+
+    #[test]
+    fn parse_revocation_document() {
+        let text = "Version: 10
+Type: Revocation
+Currency: g1
+Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+IdtyUniqueID: tic
+IdtyTimestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+IdtySignature: 1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==
+XXOgI++6qpY9O31ml/FcfbXCE6aixIrgkT5jL7kBle3YOMr+8wrp7Rt+z9hDVjrNfYX2gpeJsuMNfG4T/fzVDQ==";
+
+        let doc = V10DocumentParser::parse(text).unwrap();
+        if let V10Document::Revocation(doc) = doc {
+            println!("Doc : {:?}", doc);
+            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+        } else {
+            panic!("Wrong document type");
+        }
+    }
+
+    #[test]
+    fn parse_transaction_document() {
+        let text = "Version: 10
+Type: Transaction
+Currency: g1
+Blockstamp: 107702-0000017CDBE974DC9A46B89EE7DC2BEE4017C43A005359E0853026C21FB6A084
+Locktime: 0
+Issuers:
+Do6Y6nQ2KTo5fB4MXbSwabXVmXHxYRB9UUAaTPKn1XqC
+Inputs:
+1002:0:D:Do6Y6nQ2KTo5fB4MXbSwabXVmXHxYRB9UUAaTPKn1XqC:104937
+1002:0:D:Do6Y6nQ2KTo5fB4MXbSwabXVmXHxYRB9UUAaTPKn1XqC:105214
+Unlocks:
+0:SIG(0)
+1:SIG(0)
+Outputs:
+2004:0:SIG(DTgQ97AuJ8UgVXcxmNtULAs8Fg1kKC1Wr9SAS96Br9NG)
+Comment: c est pour 2 mois d adhesion ressourcerie
+lnpuFsIymgz7qhKF/GsZ3n3W8ZauAAfWmT4W0iJQBLKJK2GFkesLWeMj/+GBfjD6kdkjreg9M6VfkwIZH+hCCQ==";
+
+        let doc = V10DocumentParser::parse(text).unwrap();
+        if let V10Document::Transaction(doc) = doc {
             println!("Doc : {:?}", doc);
             assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
         } else {

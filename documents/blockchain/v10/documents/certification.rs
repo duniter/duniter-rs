@@ -191,6 +191,16 @@ CertTimestamp: {blockstamp}
             blockstamp = self.blockstamp,
         )
     }
+
+    fn generate_compact_text(&self, signatures: Vec<ed25519::Signature>) -> String {
+        format!(
+            "{issuer}:{target}:{block_number}:{signature}",
+            issuer = self.issuer,
+            target = self.target,
+            block_number = self.blockstamp.id.0,
+            signature = signatures[0],
+        )
+    }
 }
 
 /// Certification document parser
@@ -296,6 +306,12 @@ mod tests {
         assert_eq!(
             builder.build_and_sign(vec![prikey]).verify_signatures(),
             VerificationResult::Valid()
+        );
+        assert_eq!(
+            builder.generate_compact_text(vec![sig]),
+            "4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR:\
+            DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV:36:\
+            qfR6zqT1oJbqIsppOi64gC9yTtxb6g6XA9RYpulkq9ehMvqg2VYVigCbR0yVpqKFsnYiQTrnjgFuFRSJCJDfCw=="
         );
     }
 

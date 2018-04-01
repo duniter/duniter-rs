@@ -190,6 +190,17 @@ CertTS: {ity_blockstamp}
             ity_blockstamp = self.identity_blockstamp,
         )
     }
+
+    fn generate_compact_text(&self, signatures: Vec<ed25519::Signature>) -> String {
+        format!(
+            "{issuer}:{signature}:{blockstamp}:{idty_blockstamp}:{username}",
+            issuer = self.issuer,
+            signature = signatures[0],
+            blockstamp = self.blockstamp,
+            idty_blockstamp = self.identity_blockstamp,
+            username = self.identity_username,
+        )
+    }
 }
 
 /// Membership document parser
@@ -283,6 +294,14 @@ mod tests {
         assert_eq!(
             builder.build_and_sign(vec![prikey]).verify_signatures(),
             VerificationResult::Valid()
+        );
+        assert_eq!(
+            builder.generate_compact_text(vec![sig]),
+            "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV:\
+            s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw==:\
+            0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855:\
+            0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855:\
+            tic"
         );
     }
 

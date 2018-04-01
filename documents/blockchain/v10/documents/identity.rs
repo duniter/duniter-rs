@@ -43,7 +43,7 @@ pub struct IdentityDocument {
     /// Currency.
     currency: String,
     /// Unique ID
-    unique_id: String,
+    username: String,
     /// Blockstamp
     blockstamp: Blockstamp,
     /// Document issuer (there should be only one).
@@ -54,8 +54,8 @@ pub struct IdentityDocument {
 
 impl IdentityDocument {
     /// Unique ID
-    pub fn unique_id(&self) -> &str {
-        &self.unique_id
+    pub fn username(&self) -> &str {
+        &self.username
     }
 }
 
@@ -102,7 +102,7 @@ pub struct IdentityDocumentBuilder<'a> {
     /// Document currency.
     pub currency: &'a str,
     /// Identity unique id.
-    pub unique_id: &'a str,
+    pub username: &'a str,
     /// Reference blockstamp.
     pub blockstamp: &'a Blockstamp,
     /// Document/identity issuer.
@@ -118,7 +118,7 @@ impl<'a> IdentityDocumentBuilder<'a> {
         IdentityDocument {
             text,
             currency: self.currency.to_string(),
-            unique_id: self.unique_id.to_string(),
+            username: self.username.to_string(),
             blockstamp: *self.blockstamp,
             issuers: vec![*self.issuer],
             signatures,
@@ -147,13 +147,23 @@ impl<'a> TextDocumentBuilder for IdentityDocumentBuilder<'a> {
 Type: Identity
 Currency: {currency}
 Issuer: {issuer}
-UniqueID: {unique_id}
+UniqueID: {username}
 Timestamp: {blockstamp}
 ",
             currency = self.currency,
             issuer = self.issuer,
-            unique_id = self.unique_id,
+            username = self.username,
             blockstamp = self.blockstamp
+        )
+    }
+
+    fn generate_compact_text(&self, signatures: Vec<ed25519::Signature>) -> String {
+        format!(
+            "{issuer}:{signature}:{blockstamp}:{username}",
+            issuer = self.issuer,
+            signature = signatures[0],
+            blockstamp = self.blockstamp,
+            username = self.username,
         )
     }
 }
@@ -182,7 +192,7 @@ impl StandardTextDocumentParser for IdentityDocumentParser {
             Ok(V10Document::Identity(IdentityDocument {
                 text: doc.to_owned(),
                 currency: currency.to_owned(),
-                unique_id: uid.to_owned(),
+                username: uid.to_owned(),
                 blockstamp,
                 issuers: vec![issuer],
                 signatures,
@@ -223,7 +233,7 @@ mod tests {
 
         let builder = IdentityDocumentBuilder {
             currency: "duniter_unit_test_currency",
-            unique_id: "tic",
+            username: "tic",
             blockstamp: &block,
             issuer: &pubkey,
         };
