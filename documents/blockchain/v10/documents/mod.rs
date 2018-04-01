@@ -30,17 +30,18 @@ pub mod certification;
 pub mod revocation;
 pub mod transaction;
 
-pub use blockchain::v10::documents::transaction::{TransactionDocument, TransactionDocumentBuilder};
 pub use blockchain::v10::documents::identity::{IdentityDocument, IdentityDocumentBuilder};
 pub use blockchain::v10::documents::membership::{MembershipDocument, MembershipDocumentParser};
 pub use blockchain::v10::documents::certification::{CertificationDocument,
                                                     CertificationDocumentParser};
 pub use blockchain::v10::documents::revocation::{RevocationDocument, RevocationDocumentParser};
+pub use blockchain::v10::documents::transaction::{TransactionDocument, TransactionDocumentBuilder,
+                                                  TransactionDocumentParser};
 
 // Use of lazy_static so the regex is only compiled at first use.
 lazy_static! {
     static ref DOCUMENT_REGEX: Regex = Regex::new(
-        "^(?P<doc>Version: 10\n\
+        "^(?P<doc>Version: (?P<version>[0-9]+)\n\
          Type: (?P<type>[[:alpha:]]+)\n\
          Currency: (?P<currency>[[:alnum:] _-]+)\n\
          (?P<body>(?:.*\n)+?))\
@@ -141,6 +142,19 @@ pub enum V10DocumentParsingError {
     UnknownDocumentType(String),
 }
 
+/// V10 Documents in separated parts
+#[derive(Debug, Clone)]
+pub struct V10DocumentParts {
+    /// Whole document in text
+    pub doc: String,
+    /// Payload
+    pub body: String,
+    /// Currency
+    pub currency: String,
+    /// Signatures
+    pub signatures: Vec<ed25519::Signature>,
+}
+
 trait StandardTextDocumentParser {
     fn parse_standard(
         doc: &str,
@@ -180,6 +194,13 @@ impl<'a> DocumentParser<&'a str, V10Document, V10DocumentParsingError> for V10Do
             match doctype {
                 "Identity" => IdentityDocumentParser::parse_standard(doc, body, currency, sigs),
                 "Membership" => MembershipDocumentParser::parse_standard(doc, body, currency, sigs),
+                "Certification" => {
+                    CertificationDocumentParser::parse_standard(doc, body, currency, sigs)
+                }
+                "Revocation" => RevocationDocumentParser::parse_standard(doc, body, currency, sigs),
+                "Transaction" => {
+                    TransactionDocumentParser::parse_standard(doc, body, currency, sigs)
+                }
                 _ => Err(V10DocumentParsingError::UnknownDocumentType(
                     doctype.to_string(),
                 )),
@@ -306,6 +327,77 @@ s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrD
 
         let doc = V10DocumentParser::parse(text).unwrap();
         if let V10Document::Membership(doc) = doc {
+            println!("Doc : {:?}", doc);
+            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+        } else {
+            panic!("Wrong document type");
+        }
+    }
+
+    #[test]
+    fn parse_certification_document() {
+        let text = "Version: 10
+Type: Certification
+Currency: g1
+Issuer: 2sZF6j2PkxBDNAqUde7Dgo5x3crkerZpQ4rBqqJGn8QT
+IdtyIssuer: 7jzkd8GiFnpys4X7mP78w2Y3y3kwdK6fVSLEaojd3aH9
+IdtyUniqueID: fbarbut
+IdtyTimestamp: 98221-000000575AC04F5164F7A307CDB766139EA47DD249E4A2444F292BC8AAB408B3
+IdtySignature: DjeipIeb/RF0tpVCnVnuw6mH1iLJHIsDfPGLR90Twy3PeoaDz6Yzhc/UjLWqHCi5Y6wYajV0dNg4jQRUneVBCQ==
+CertTimestamp: 99956-00000472758331FDA8388E30E50CA04736CBFD3B7C21F34E74707107794B56DD
+Hkps1QU4HxIcNXKT8YmprYTVByBhPP1U2tIM7Z8wENzLKIWAvQClkAvBE7pW9dnVa18sJIJhVZUcRrPAZfmjBA==";
+
+        let doc = V10DocumentParser::parse(text).unwrap();
+        if let V10Document::Certification(doc) = doc {
+            println!("Doc : {:?}", doc);
+            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+        } else {
+            panic!("Wrong document type");
+        }
+    }
+
+    #[test]
+    fn parse_revocation_document() {
+        let text = "Version: 10
+Type: Revocation
+Currency: g1
+Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+IdtyUniqueID: tic
+IdtyTimestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+IdtySignature: 1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==
+XXOgI++6qpY9O31ml/FcfbXCE6aixIrgkT5jL7kBle3YOMr+8wrp7Rt+z9hDVjrNfYX2gpeJsuMNfG4T/fzVDQ==";
+
+        let doc = V10DocumentParser::parse(text).unwrap();
+        if let V10Document::Revocation(doc) = doc {
+            println!("Doc : {:?}", doc);
+            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+        } else {
+            panic!("Wrong document type");
+        }
+    }
+
+    #[test]
+    fn parse_transaction_document() {
+        let text = "Version: 10
+Type: Transaction
+Currency: g1
+Blockstamp: 107702-0000017CDBE974DC9A46B89EE7DC2BEE4017C43A005359E0853026C21FB6A084
+Locktime: 0
+Issuers:
+Do6Y6nQ2KTo5fB4MXbSwabXVmXHxYRB9UUAaTPKn1XqC
+Inputs:
+1002:0:D:Do6Y6nQ2KTo5fB4MXbSwabXVmXHxYRB9UUAaTPKn1XqC:104937
+1002:0:D:Do6Y6nQ2KTo5fB4MXbSwabXVmXHxYRB9UUAaTPKn1XqC:105214
+Unlocks:
+0:SIG(0)
+1:SIG(0)
+Outputs:
+2004:0:SIG(DTgQ97AuJ8UgVXcxmNtULAs8Fg1kKC1Wr9SAS96Br9NG)
+Comment: c est pour 2 mois d adhesion ressourcerie
+lnpuFsIymgz7qhKF/GsZ3n3W8ZauAAfWmT4W0iJQBLKJK2GFkesLWeMj/+GBfjD6kdkjreg9M6VfkwIZH+hCCQ==";
+
+        let doc = V10DocumentParser::parse(text).unwrap();
+        if let V10Document::Transaction(doc) = doc {
             println!("Doc : {:?}", doc);
             assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
         } else {
