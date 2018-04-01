@@ -535,6 +535,52 @@ Issuers:
             comment = self.comment,
         )
     }
+
+    fn generate_compact_text(&self, signatures: Vec<ed25519::Signature>) -> String {
+        let mut issuers_str = String::from("");
+        for issuer in self.issuers {
+            issuers_str.push_str(&issuer.to_string());
+        }
+        let mut inputs_str = String::from("");
+        for input in self.inputs {
+            inputs_str.push_str(&input.to_string());
+        }
+        let mut unlocks_str = String::from("");
+        for unlock in self.unlocks {
+            unlocks_str.push_str(&unlock.to_string());
+        }
+        let mut outputs_str = String::from("");
+        for output in self.outputs {
+            outputs_str.push_str(&output.to_string());
+        }
+        let mut signatures_str = String::from("");
+        for sig in signatures {
+            signatures_str.push_str(&sig.to_string());
+        }
+        format!(
+            "TX:10:{issuers_count}:{inputs_count}:{unlocks_count}:{outputs_count}:{has_comment}:{locktime}
+{blockstamp}
+{issuers}
+{inputs}
+{unlocks}
+{outputs}
+{comment}
+{signatures}",
+            issuers_count = self.issuers.len(),
+            inputs_count = self.inputs.len(),
+            unlocks_count = self.unlocks.len(),
+            outputs_count = self.outputs.len(),
+            has_comment = if self.comment.is_empty() { 0 } else { 1 },
+            locktime = self.locktime,
+            blockstamp = self.blockstamp,
+            issuers = issuers_str,
+            inputs = inputs_str,
+            unlocks = unlocks_str,
+            outputs = outputs_str,
+            comment = self.comment,
+            signatures = signatures_str,
+        )
+    }
 }
 
 /// Transaction document parser
@@ -553,20 +599,18 @@ impl StandardTextDocumentParser for TransactionDocumentParser {
             .build()
             .expect("fail to build TRANSACTION_REGEX !");
         if let Some(caps) = tx_regex.captures(body) {
-            let blockstamp = &caps["blockstamp"];
-            let locktime = &caps["locktime"];
-            let issuers_string = &caps["issuers"];
+            let blockstamp =
+                Blockstamp::from_string(&caps["blockstamp"]).expect("fail to parse blockstamp");
+            let locktime = caps["locktime"].parse().expect("fail to parse locktime");
+            let issuers_str = &caps["issuers"];
             let inputs = &caps["inputs"];
             let unlocks = &caps["unlocks"];
             let outputs = &caps["outputs"];
-            let comment = &caps["comment"];
+            let comment = String::from(&caps["comment"]);
 
-            // Regex match so should not fail.
-            // TODO : Test it anyway
-            let blockstamp = Blockstamp::from_string(blockstamp).expect("fail to parse blockstamp");
-            let locktime = locktime.parse().expect("fail to parse locktime");
             let mut issuers = Vec::new();
-            for caps in ISSUER_REGEX.captures_iter(issuers_string) {
+            for caps in ISSUER_REGEX.captures_iter(issuers_str) {
+                println!("{:?}", &caps["issuer"]);
                 issuers.push(
                     ed25519::PublicKey::from_base58(&caps["issuer"]).expect("fail to parse issuer"),
                 );
@@ -592,8 +636,6 @@ impl StandardTextDocumentParser for TransactionDocumentParser {
                     outputs.push(TransactionOuput::parse_from_str(output)?);
                 }
             }
-            let comment = String::from(comment);
-            // let re = Regex::new(r"[ \t]+").unwrap();
 
             Ok(V10Document::Transaction(Box::new(TransactionDocument {
                 text: doc.to_owned(),
@@ -672,6 +714,18 @@ mod tests {
         assert_eq!(
             builder.build_and_sign(vec![prikey]).verify_signatures(),
             VerificationResult::Valid()
+        );
+
+        assert_eq!(
+            builder.generate_compact_text(vec![sig]),
+            "TX:10:1:1:1:1:1:0
+0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+10:0:D:DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV:0
+0:SIG(0)
+10:0:SIG(FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa)
+test
+pRQeKlzCsvPNmYAAkEP5jPPQO1RwrtFMRfCajEfkkrG0UQE0DhoTkxG3Zs2JFmvAFLw67pn1V5NQ08zsSfJkBg=="
         );
     }
 

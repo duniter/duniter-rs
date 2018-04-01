@@ -105,6 +105,13 @@ pub trait TextDocumentBuilder: DocumentBuilder {
     /// - Contains line breaks on all line.
     fn generate_text(&self) -> String;
 
+    /// Generate document compact text.
+    /// the compact format is the one used in the blocks.
+    ///
+    /// - Don't contains leading signatures
+    /// - Contains line breaks on all line.
+    fn generate_compact_text(&self, signatures: Vec<ed25519::Signature>) -> String;
+
     /// Generate final document with signatures, and also return them in an array.
     ///
     /// Returns :
@@ -162,15 +169,6 @@ trait StandardTextDocumentParser {
         currency: &str,
         signatures: Vec<ed25519::Signature>,
     ) -> Result<V10Document, V10DocumentParsingError>;
-}
-
-trait CompactTextDocumentParser<D: TextDocument> {
-    fn parse_compact(
-        doc: &str,
-        body: &str,
-        currency: &str,
-        signatures: Vec<ed25519::Signature>,
-    ) -> Result<D, V10DocumentParsingError>;
 }
 
 /// A V10 document parser.
@@ -298,11 +296,11 @@ SoKwoa8PFfCDJWZ6dNCv7XstezHcc2BbKiJgVDXv82R5zYR83nis9dShLgWJ5w48noVUHimdngzYQneN
     fn parse_identity_document() {
         let text = "Version: 10
 Type: Identity
-Currency: duniter_unit_test_currency
-Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
-UniqueID: tic
+Currency: g1
+Issuer: D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx
+UniqueID: elois
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
-1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==";
+Ydnclvw76/JHcKSmU9kl9Ie0ne5/X8NYOqPqbGnufIK3eEPRYYdEYaQh+zffuFhbtIRjv6m/DkVLH5cLy/IyAg==";
 
         let doc = V10DocumentParser::parse(text).unwrap();
         if let V10Document::Identity(doc) = doc {
@@ -317,13 +315,13 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
     fn parse_membership_document() {
         let text = "Version: 10
 Type: Membership
-Currency: duniter_unit_test_currency
-Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+Currency: g1
+Issuer: D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx
 Block: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 Membership: IN
-UserID: tic
+UserID: elois
 CertTS: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
-s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw==";
+FFeyrvYio9uYwY5aMcDGswZPNjGLrl8THn9l3EPKSNySD3SDSHjCljSfFEwb87sroyzJQoVzPwER0sW/cbZMDg==";
 
         let doc = V10DocumentParser::parse(text).unwrap();
         if let V10Document::Membership(doc) = doc {
