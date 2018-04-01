@@ -112,7 +112,7 @@ impl TextDocument for CertificationDocument {
 
 impl IntoSpecializedDocument<BlockchainProtocol> for CertificationDocument {
     fn into_specialized(self) -> BlockchainProtocol {
-        BlockchainProtocol::V10(V10Document::Certification(Box::new(self)))
+        BlockchainProtocol::V10(Box::new(V10Document::Certification(Box::new(self))))
     }
 }
 

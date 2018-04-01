@@ -96,7 +96,7 @@ impl TextDocument for RevocationDocument {
 
 impl IntoSpecializedDocument<BlockchainProtocol> for RevocationDocument {
     fn into_specialized(self) -> BlockchainProtocol {
-        BlockchainProtocol::V10(V10Document::Revocation(Box::new(self)))
+        BlockchainProtocol::V10(Box::new(V10Document::Revocation(Box::new(self))))
     }
 }
 
