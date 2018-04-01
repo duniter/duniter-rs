@@ -28,7 +28,9 @@ pub mod identity;
 pub mod membership;
 pub mod certification;
 pub mod revocation;
+pub mod transaction;
 
+pub use blockchain::v10::documents::transaction::{TransactionDocument, TransactionDocumentBuilder};
 pub use blockchain::v10::documents::identity::{IdentityDocument, IdentityDocumentBuilder};
 pub use blockchain::v10::documents::membership::{MembershipDocument, MembershipDocumentParser};
 pub use blockchain::v10::documents::certification::{CertificationDocument,
@@ -56,7 +58,7 @@ pub enum V10Document {
     Block(),
 
     /// Transaction document.
-    Transaction(),
+    Transaction(Box<TransactionDocument>),
 
     /// Identity document.
     Identity(IdentityDocument),
