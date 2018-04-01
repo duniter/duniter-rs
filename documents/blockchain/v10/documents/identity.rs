@@ -88,6 +88,16 @@ impl TextDocument for IdentityDocument {
     fn as_text(&self) -> &str {
         &self.text
     }
+
+    fn generate_compact_text(&self) -> String {
+        format!(
+            "{issuer}:{signature}:{blockstamp}:{username}",
+            issuer = self.issuers[0],
+            signature = self.signatures[0],
+            blockstamp = self.blockstamp,
+            username = self.username,
+        )
+    }
 }
 
 impl IntoSpecializedDocument<BlockchainProtocol> for IdentityDocument {
@@ -154,16 +164,6 @@ Timestamp: {blockstamp}
             issuer = self.issuer,
             username = self.username,
             blockstamp = self.blockstamp
-        )
-    }
-
-    fn generate_compact_text(&self, signatures: Vec<ed25519::Signature>) -> String {
-        format!(
-            "{issuer}:{signature}:{blockstamp}:{username}",
-            issuer = self.issuer,
-            signature = signatures[0],
-            blockstamp = self.blockstamp,
-            username = self.username,
         )
     }
 }

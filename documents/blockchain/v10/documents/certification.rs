@@ -108,6 +108,16 @@ impl TextDocument for CertificationDocument {
     fn as_text(&self) -> &str {
         &self.text
     }
+
+    fn generate_compact_text(&self) -> String {
+        format!(
+            "{issuer}:{target}:{block_number}:{signature}",
+            issuer = self.issuers[0],
+            target = self.target,
+            block_number = self.blockstamp.id.0,
+            signature = self.signatures[0],
+        )
+    }
 }
 
 impl IntoSpecializedDocument<BlockchainProtocol> for CertificationDocument {
@@ -189,16 +199,6 @@ CertTimestamp: {blockstamp}
             idty_blockstamp = self.identity_blockstamp,
             idty_sig = self.identity_sig,
             blockstamp = self.blockstamp,
-        )
-    }
-
-    fn generate_compact_text(&self, signatures: Vec<ed25519::Signature>) -> String {
-        format!(
-            "{issuer}:{target}:{block_number}:{signature}",
-            issuer = self.issuer,
-            target = self.target,
-            block_number = self.blockstamp.id.0,
-            signature = signatures[0],
         )
     }
 }
@@ -307,12 +307,6 @@ mod tests {
             builder.build_and_sign(vec![prikey]).verify_signatures(),
             VerificationResult::Valid()
         );
-        assert_eq!(
-            builder.generate_compact_text(vec![sig]),
-            "4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR:\
-            DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV:36:\
-            qfR6zqT1oJbqIsppOi64gC9yTtxb6g6XA9RYpulkq9ehMvqg2VYVigCbR0yVpqKFsnYiQTrnjgFuFRSJCJDfCw=="
-        );
     }
 
     #[test]
@@ -359,7 +353,13 @@ CertTimestamp: 99956-00000472758331FDA8388E30E50CA04736CBFD3B7C21F34E74707107794
             CertificationDocumentParser::parse_standard(doc, body, currency, signatures).unwrap();
         if let V10Document::Certification(doc) = doc {
             println!("Doc : {:?}", doc);
-            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+            assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
+            assert_eq!(
+                doc.generate_compact_text(),
+                "2sZF6j2PkxBDNAqUde7Dgo5x3crkerZpQ4rBqqJGn8QT:\
+                7jzkd8GiFnpys4X7mP78w2Y3y3kwdK6fVSLEaojd3aH9:99956:\
+                Hkps1QU4HxIcNXKT8YmprYTVByBhPP1U2tIM7Z8wENzLKIWAvQClkAvBE7pW9dnVa18sJIJhVZUcRrPAZfmjBA=="
+            );
         } else {
             panic!("Wrong document type");
         }

@@ -109,6 +109,17 @@ impl TextDocument for MembershipDocument {
     fn as_text(&self) -> &str {
         &self.text
     }
+
+    fn generate_compact_text(&self) -> String {
+        format!(
+            "{issuer}:{signature}:{blockstamp}:{idty_blockstamp}:{username}",
+            issuer = self.issuers[0],
+            signature = self.signatures[0],
+            blockstamp = self.blockstamp,
+            idty_blockstamp = self.identity_blockstamp,
+            username = self.identity_username,
+        )
+    }
 }
 
 impl IntoSpecializedDocument<BlockchainProtocol> for MembershipDocument {
@@ -188,17 +199,6 @@ CertTS: {ity_blockstamp}
             },
             username = self.identity_username,
             ity_blockstamp = self.identity_blockstamp,
-        )
-    }
-
-    fn generate_compact_text(&self, signatures: Vec<ed25519::Signature>) -> String {
-        format!(
-            "{issuer}:{signature}:{blockstamp}:{idty_blockstamp}:{username}",
-            issuer = self.issuer,
-            signature = signatures[0],
-            blockstamp = self.blockstamp,
-            idty_blockstamp = self.identity_blockstamp,
-            username = self.identity_username,
         )
     }
 }
@@ -295,14 +295,6 @@ mod tests {
             builder.build_and_sign(vec![prikey]).verify_signatures(),
             VerificationResult::Valid()
         );
-        assert_eq!(
-            builder.generate_compact_text(vec![sig]),
-            "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV:\
-            s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw==:\
-            0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855:\
-            0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855:\
-            tic"
-        );
     }
 
     #[test]
@@ -346,7 +338,15 @@ CertTS: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
             MembershipDocumentParser::parse_standard(doc, body, currency, signatures).unwrap();
         if let V10Document::Membership(doc) = doc {
             println!("Doc : {:?}", doc);
-            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+            assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
+            assert_eq!(
+            doc.generate_compact_text(),
+                "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV:\
+                s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw==:\
+                0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855:\
+                0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855:\
+                tic"
+            );
         } else {
             panic!("Wrong document type");
         }

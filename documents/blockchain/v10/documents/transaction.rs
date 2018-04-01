@@ -431,6 +431,52 @@ impl TextDocument for TransactionDocument {
     fn as_text(&self) -> &str {
         &self.text
     }
+
+    fn generate_compact_text(&self) -> String {
+        let mut issuers_str = String::from("");
+        for issuer in self.issuers.clone() {
+            issuers_str.push_str("\n");
+            issuers_str.push_str(&issuer.to_string());
+        }
+        let mut inputs_str = String::from("");
+        for input in self.inputs.clone() {
+            inputs_str.push_str("\n");
+            inputs_str.push_str(&input.to_string());
+        }
+        let mut unlocks_str = String::from("");
+        for unlock in self.unlocks.clone() {
+            unlocks_str.push_str("\n");
+            unlocks_str.push_str(&unlock.to_string());
+        }
+        let mut outputs_str = String::from("");
+        for output in self.outputs.clone() {
+            outputs_str.push_str("\n");
+            outputs_str.push_str(&output.to_string());
+        }
+        let mut signatures_str = String::from("");
+        for sig in self.signatures.clone() {
+            signatures_str.push_str("\n");
+            signatures_str.push_str(&sig.to_string());
+        }
+        format!(
+            "TX:10:{issuers_count}:{inputs_count}:{unlocks_count}:{outputs_count}:{has_comment}:{locktime}
+{blockstamp}{issuers}{inputs}{unlocks}{outputs}
+{comment}{signatures}",
+            issuers_count = self.issuers.len(),
+            inputs_count = self.inputs.len(),
+            unlocks_count = self.unlocks.len(),
+            outputs_count = self.outputs.len(),
+            has_comment = if self.comment.is_empty() { 0 } else { 1 },
+            locktime = self.locktime,
+            blockstamp = self.blockstamp,
+            issuers = issuers_str,
+            inputs = inputs_str,
+            unlocks = unlocks_str,
+            outputs = outputs_str,
+            comment = self.comment,
+            signatures = signatures_str,
+        )
+    }
 }
 
 impl IntoSpecializedDocument<BlockchainProtocol> for TransactionDocument {
@@ -533,52 +579,6 @@ Issuers:
             unlocks = unlocks_string,
             outputs = outputs_string,
             comment = self.comment,
-        )
-    }
-
-    fn generate_compact_text(&self, signatures: Vec<ed25519::Signature>) -> String {
-        let mut issuers_str = String::from("");
-        for issuer in self.issuers {
-            issuers_str.push_str(&issuer.to_string());
-        }
-        let mut inputs_str = String::from("");
-        for input in self.inputs {
-            inputs_str.push_str(&input.to_string());
-        }
-        let mut unlocks_str = String::from("");
-        for unlock in self.unlocks {
-            unlocks_str.push_str(&unlock.to_string());
-        }
-        let mut outputs_str = String::from("");
-        for output in self.outputs {
-            outputs_str.push_str(&output.to_string());
-        }
-        let mut signatures_str = String::from("");
-        for sig in signatures {
-            signatures_str.push_str(&sig.to_string());
-        }
-        format!(
-            "TX:10:{issuers_count}:{inputs_count}:{unlocks_count}:{outputs_count}:{has_comment}:{locktime}
-{blockstamp}
-{issuers}
-{inputs}
-{unlocks}
-{outputs}
-{comment}
-{signatures}",
-            issuers_count = self.issuers.len(),
-            inputs_count = self.inputs.len(),
-            unlocks_count = self.unlocks.len(),
-            outputs_count = self.outputs.len(),
-            has_comment = if self.comment.is_empty() { 0 } else { 1 },
-            locktime = self.locktime,
-            blockstamp = self.blockstamp,
-            issuers = issuers_str,
-            inputs = inputs_str,
-            unlocks = unlocks_str,
-            outputs = outputs_str,
-            comment = self.comment,
-            signatures = signatures_str,
         )
     }
 }
@@ -715,18 +715,6 @@ mod tests {
             builder.build_and_sign(vec![prikey]).verify_signatures(),
             VerificationResult::Valid()
         );
-
-        assert_eq!(
-            builder.generate_compact_text(vec![sig]),
-            "TX:10:1:1:1:1:1:0
-0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
-DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
-10:0:D:DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV:0
-0:SIG(0)
-10:0:SIG(FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa)
-test
-pRQeKlzCsvPNmYAAkEP5jPPQO1RwrtFMRfCajEfkkrG0UQE0DhoTkxG3Zs2JFmvAFLw67pn1V5NQ08zsSfJkBg=="
-        );
     }
 
     #[test]
@@ -842,8 +830,33 @@ Comment: -----@@@----- (why not this comment?)
         let doc = TransactionDocumentParser::parse_standard(doc, body, currency, signatures)
             .expect("fail to parse test transaction document !");
         if let V10Document::Transaction(doc) = doc {
-            println!("Doc : {:?}", doc);
-            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+            //println!("Doc : {:?}", doc);
+            println!("{}", doc.generate_compact_text());
+            assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
+            assert_eq!(
+                doc.generate_compact_text(),
+                "TX:10:3:6:6:3:1:0
+204-00003E2B8A35370BA5A7064598F628A62D4E9EC1936BE8651CE9A85F2E06981B
+DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR
+FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa
+40:2:T:6991C993631BED4733972ED7538E41CCC33660F554E3C51963E2A0AC4D6453D3:2
+70:2:T:3A09A20E9014110FD224889F13357BAB4EC78A72F95CA03394D8CCA2936A7435:8
+20:2:D:DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV:46
+70:2:T:A0D9B4CDC113ECE1145C5525873821398890AE842F4B318BD076095A23E70956:3
+20:2:T:67F2045B5318777CC52CD38B424F3E40DDA823FA0364625F124BABE0030E7B5B:5
+15:2:D:FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa:46
+0:SIG(0)
+1:XHX(7665798292)
+2:SIG(0)
+3:SIG(0) SIG(2)
+4:SIG(0) SIG(1) SIG(2)
+5:SIG(2)
+120:2:SIG(BYfWYFrsyjpvpFysgu19rGK3VHBkz4MqmQbNyEuVU64g)
+146:2:SIG(DSz4rgncXCytsUMW2JU2yhLquZECD2XpEkpP9gG5HyAx)
+49:2:(SIG(6DyGr5LFtFmbaJYRvcs9WmBsr4cbJbJ1EV9zBbqG7A6i) || XHX(3EB4702F2AC2FD3FA4FDC46A4FC05AE8CDEE1A85F2AC2FD3FA4FDC46A4FC01CA))
+-----@@@----- (why not this comment?)"
+            );
         } else {
             panic!("Wrong document type");
         }
