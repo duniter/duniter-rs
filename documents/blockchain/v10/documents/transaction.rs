@@ -29,7 +29,7 @@ use blockchain::v10::documents::{StandardTextDocumentParser, TextDocument, TextD
 lazy_static! {
     static ref TRANSACTION_REGEX_SIZE: &'static usize = &40_000_000;
     static ref TRANSACTION_REGEX_BUILDER: &'static str =
-        r"^Blockstamp: (?P<blockstamp>[0-9]+-[0-9A-F]{64})\nLocktime: (?P<locktime>[0-9]+)\nIssuers:(?P<issuers>(?:\n[1-9A-Za-z][^OIl]{43,44})+)Inputs:\n(?P<inputs>([0-9A-Za-z:]+\n)+)Unlocks:\n(?P<unlocks>([0-9]+:(SIG\([0-9]+\) ?|XHX\(\w+\) ?)+\n)+)Outputs:\n(?P<outputs>([0-9A-Za-z()&|: ]+\n)+)Comment:(?P<comment>[\\\w:/;*\[\]()?!^+=@&~#{}|<>%. -]{0,255})\n$";
+        r"^Blockstamp: (?P<blockstamp>[0-9]+-[0-9A-F]{64})\nLocktime: (?P<locktime>[0-9]+)\nIssuers:(?P<issuers>(?:\n[1-9A-Za-z][^OIl]{43,44})+)Inputs:\n(?P<inputs>([0-9A-Za-z:]+\n)+)Unlocks:\n(?P<unlocks>([0-9]+:(SIG\([0-9]+\) ?|XHX\(\w+\) ?)+\n)+)Outputs:\n(?P<outputs>([0-9A-Za-z()&|: ]+\n)+)Comment: (?P<comment>[\\\w:/;*\[\]()?!^+=@&~#{}|<>%. -]{0,255})\n$";
     static ref ISSUER_REGEX: Regex = Regex::new("(?P<issuer>[1-9A-Za-z][^OIl]{43,44})\n").unwrap();
     static ref D_INPUT_REGEX: Regex = Regex::new(
         "^(?P<amount>[1-9][0-9]*):(?P<base>[0-9]+):D:(?P<pubkey>[1-9A-Za-z][^OIl]{43,44}):(?P<block_number>[0-9]+)$"
@@ -460,8 +460,7 @@ impl TextDocument for TransactionDocument {
         }
         format!(
             "TX:10:{issuers_count}:{inputs_count}:{unlocks_count}:{outputs_count}:{has_comment}:{locktime}
-{blockstamp}{issuers}{inputs}{unlocks}{outputs}
-{comment}{signatures}",
+{blockstamp}{issuers}{inputs}{unlocks}{outputs}\n{comment}{signatures}",
             issuers_count = self.issuers.len(),
             inputs_count = self.inputs.len(),
             unlocks_count = self.unlocks.len(),
@@ -610,7 +609,6 @@ impl StandardTextDocumentParser for TransactionDocumentParser {
 
             let mut issuers = Vec::new();
             for caps in ISSUER_REGEX.captures_iter(issuers_str) {
-                println!("{:?}", &caps["issuer"]);
                 issuers.push(
                     ed25519::PublicKey::from_base58(&caps["issuer"]).expect("fail to parse issuer"),
                 );
@@ -855,7 +853,7 @@ FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa
 120:2:SIG(BYfWYFrsyjpvpFysgu19rGK3VHBkz4MqmQbNyEuVU64g)
 146:2:SIG(DSz4rgncXCytsUMW2JU2yhLquZECD2XpEkpP9gG5HyAx)
 49:2:(SIG(6DyGr5LFtFmbaJYRvcs9WmBsr4cbJbJ1EV9zBbqG7A6i) || XHX(3EB4702F2AC2FD3FA4FDC46A4FC05AE8CDEE1A85F2AC2FD3FA4FDC46A4FC01CA))
- -----@@@----- (why not this comment?)
+-----@@@----- (why not this comment?)
 kL59C1izKjcRN429AlKdshwhWbasvyL7sthI757zm1DfZTdTIctDWlKbYeG/tS7QyAgI3gcfrTHPhu1E1lKCBw==
 e3LpgB2RZ/E/BCxPJsn+TDDyxGYzrIsMyDt//KhJCjIQD6pNUxr5M5jrq2OwQZgwmz91YcmoQ2XRQAUDpe4BAw==
 w69bYgiQxDmCReB0Dugt9BstXlAKnwJkKCdWvCeZ9KnUCv0FJys6klzYk/O/b9t74tYhWZSX0bhETWHiwfpWBw=="

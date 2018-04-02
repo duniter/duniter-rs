@@ -172,32 +172,32 @@ impl BlockDocument {
         let mut identities_str = String::from("");
         for identity in self.identities.clone() {
             identities_str.push_str("\n");
-            identities_str.push_str(identity.as_text());
+            identities_str.push_str(&identity.generate_compact_text());
         }
         let mut joiners_str = String::from("");
         for joiner in self.joiners.clone() {
             joiners_str.push_str("\n");
-            joiners_str.push_str(joiner.as_text());
+            joiners_str.push_str(&joiner.generate_compact_text());
         }
         let mut actives_str = String::from("");
         for active in self.actives.clone() {
             actives_str.push_str("\n");
-            actives_str.push_str(active.as_text());
+            actives_str.push_str(&active.generate_compact_text());
         }
         let mut leavers_str = String::from("");
         for leaver in self.leavers.clone() {
             leavers_str.push_str("\n");
-            leavers_str.push_str(leaver.as_text());
+            leavers_str.push_str(&leaver.generate_compact_text());
         }
         let mut identities_str = String::from("");
         for identity in self.identities.clone() {
             identities_str.push_str("\n");
-            identities_str.push_str(identity.as_text());
+            identities_str.push_str(&identity.generate_compact_text());
         }
         let mut revokeds_str = String::from("");
         for revocation in self.revoked.clone() {
             revokeds_str.push_str("\n");
-            revokeds_str.push_str(revocation.as_text());
+            revokeds_str.push_str(&revocation.generate_compact_text());
         }
         let mut excludeds_str = String::from("");
         for exclusion in self.excluded.clone() {
@@ -207,12 +207,12 @@ impl BlockDocument {
         let mut certifications_str = String::from("");
         for certification in self.certifications.clone() {
             certifications_str.push_str("\n");
-            certifications_str.push_str(certification.as_text());
+            certifications_str.push_str(&certification.generate_compact_text());
         }
         let mut transactions_str = String::from("");
         for transaction in self.transactions.clone() {
             transactions_str.push_str("\n");
-            transactions_str.push_str(transaction.as_text());
+            transactions_str.push_str(&transaction.generate_compact_text());
         }
         format!(
             "Version: 10
@@ -313,11 +313,13 @@ impl IntoSpecializedDocument<BlockchainProtocol> for BlockDocument {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ops::Deref;
     use duniter_crypto::keys::{PublicKey, Signature};
-    use blockchain::{Document, VerificationResult};
+    use blockchain::{Document, DocumentParser, VerificationResult};
+    use blockchain::v10::documents::V10DocumentParser;
 
     #[test]
-    fn generate_raw_and_verify() {
+    fn generate_and_verify_empty_block() {
         let mut block = BlockDocument {
             nonce: 10_500_000_089_933,
             number: 107_777,
@@ -337,7 +339,7 @@ mod tests {
             parameters: None,
             previous_hash: Some(Hash::from_hex("0000001F8AACF6764135F3E5D0D4E8358A3CBE537A4BF71152A00CC442EFD136").expect("fail to parse previous_hash")),
             previous_issuer: Some(ed25519::PublicKey::from_base58("38MEAZN68Pz1DTvT3tqgxx4yQP6snJCQhPqEFxbDk4aE").unwrap()),
-            inner_hash: Some(Hash::from_hex("95948AC4D45E46DA07CE0713EDE1CE0295C227EE4CA5557F73F56B7DD46FE89C").expect("fail to parse inner_hash")),
+            inner_hash: None,
             dividend: None,
             identities: Vec::new(),
             joiners: Vec::new(),
@@ -351,6 +353,7 @@ mod tests {
         };
         // test inner_hash computation
         block._compute_inner_hash();
+        println!("{}", block.generate_compact_text());
         assert_eq!(
             block.inner_hash.unwrap().to_hex(),
             "95948AC4D45E46DA07CE0713EDE1CE0295C227EE4CA5557F73F56B7DD46FE89C"
@@ -385,13 +388,165 @@ InnerHash: 95948AC4D45E46DA07CE0713EDE1CE0295C227EE4CA5557F73F56B7DD46FE89C
 Nonce: "
         );
         // Test signature validity
-        block._change_nonce(10500000089933);
+        block._change_nonce(10_500_000_089_933);
         assert_eq!(block.verify_signatures(), VerificationResult::Valid());
         // Test hash computation
         block._compute_hash();
         assert_eq!(
             block.hash.unwrap().to_hex(),
             "000002D3296A2D257D01F6FEE8AEC5C3E5779D04EA43F08901F41998FA97D9A1"
+        );
+    }
+
+    #[test]
+    fn generate_and_verify_block() {
+        let cert1_ = V10DocumentParser::parse("Version: 10
+Type: Certification
+Currency: g1
+Issuer: 6TAzLWuNcSqgNDNpAutrKpPXcGJwy1ZEMeVvZSZNs2e3
+IdtyIssuer: CYPsYTdt87Tx6cCiZs9KD4jqPgYxbcVEqVZpRgJ9jjoV
+IdtyUniqueID: PascaleM
+IdtyTimestamp: 97401-0000003821911909F98519CC773D2D3E5CFE3D5DBB39F4F4FF33B96B4D41800E
+IdtySignature: QncUVXxZ2NfARjdJOn6luILvDuG1NuK9qSoaU4CST2Ij8z7oeVtEgryHl+EXOjSe6XniALsCT0gU8wtadcA/Cw==
+CertTimestamp: 106669-000003682E6FE38C44433DCE92E8B2A26C69B6D7867A2BAED231E788DDEF4251
+UmseG2XKNwKcY8RFi6gUCT91udGnnNmSh7se10J1jeRVlwf+O2Tyb2Cccot9Dt7BO4+Kx2P6vFJB3oVGGHMxBA==").unwrap();
+        let cert1 = match cert1_ {
+            V10Document::Certification(doc) => (*doc.deref()).clone(),
+            _ => panic!("Wrong document type"),
+        };
+
+        let tx1_ = V10DocumentParser::parse("Version: 10
+Type: Transaction
+Currency: g1
+Blockstamp: 107982-000001242F6DA51C06A915A96C58BAA37AB3D1EB51F6E1C630C707845ACF764B
+Locktime: 0
+Issuers:
+8dkCwvAqSczUjKsoVMDPVbQ3i6bBQeBQYawL87kqTSQ3
+Inputs:
+1002:0:D:8dkCwvAqSczUjKsoVMDPVbQ3i6bBQeBQYawL87kqTSQ3:106345
+Unlocks:
+0:SIG(0)
+Outputs:
+1002:0:SIG(CitdnuQgZ45tNFCagay7Wh12gwwHM8VLej1sWmfHWnQX)
+Comment: DU symbolique pour demander le codage de nouvelles fonctionnalites cf. https://forum.monnaie-libre.fr/t/creer-de-nouvelles-fonctionnalites-dans-cesium-les-autres-applications/2025  Merci
+T0LlCcbIn7xDFws48H8LboN6NxxwNXXTovG4PROLf7tkUAueHFWjfwZFKQXeZEHxfaL1eYs3QspGtLWUHPRVCQ==").unwrap();
+        let tx1 = match tx1_ {
+            V10Document::Transaction(doc) => (*doc.deref()).clone(),
+            _ => panic!("Wrong document type"),
+        };
+
+        let tx2_ = V10DocumentParser::parse("Version: 10
+Type: Transaction
+Currency: g1
+Blockstamp: 107982-000001242F6DA51C06A915A96C58BAA37AB3D1EB51F6E1C630C707845ACF764B
+Locktime: 0
+Issuers:
+8dkCwvAqSczUjKsoVMDPVbQ3i6bBQeBQYawL87kqTSQ3
+Inputs:
+1002:0:D:8dkCwvAqSczUjKsoVMDPVbQ3i6bBQeBQYawL87kqTSQ3:106614
+Unlocks:
+0:SIG(0)
+Outputs:
+1002:0:SIG(78ZwwgpgdH5uLZLbThUQH7LKwPgjMunYfLiCfUCySkM8)
+Comment: DU symbolique pour demander le codage de nouvelles fonctionnalites cf. https://forum.monnaie-libre.fr/t/creer-de-nouvelles-fonctionnalites-dans-cesium-les-autres-applications/2025  Merci
+a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8xrNcCg==").unwrap();
+        let tx2 = match tx2_ {
+            V10Document::Transaction(doc) => (*doc.deref()).clone(),
+            _ => panic!("Wrong document type"),
+        };
+
+        let mut block = BlockDocument {
+            nonce: 0,
+            number: 107_984,
+            pow_min: 88,
+            time: 1_522_685_861,
+            median_time: 1522683184,
+            members_count: 896,
+            monetary_mass: 140_469_765,
+            unit_base: 0,
+            issuers_count: 42,
+            issuers_frame: 211,
+            issuers_frame_var: 0,
+            currency: String::from("g1"),
+            issuers: vec![ed25519::PublicKey::from_base58("DA4PYtXdvQqk1nCaprXH52iMsK5Ahxs1nRWbWKLhpVkQ").unwrap()],
+            signatures: vec![ed25519::Signature::from_base64("92id58VmkhgVNee4LDqBGSm8u/ooHzAD67JM6fhAE/CV8LCz7XrMF1DvRl+eRpmlaVkp6I+Iy8gmZ1WUM5C8BA==").unwrap()],
+            hash: None,
+            parameters: None,
+            previous_hash: Some(Hash::from_hex("000001144968D0C3516BE6225E4662F182E28956AF46DD7FB228E3D0F9413FEB").expect("fail to parse previous_hash")),
+            previous_issuer: Some(ed25519::PublicKey::from_base58("D3krfq6J9AmfpKnS3gQVYoy7NzGCc61vokteTS8LJ4YH").unwrap()),
+            inner_hash: None,
+            dividend: None,
+            identities: Vec::new(),
+            joiners: Vec::new(),
+            actives: Vec::new(),
+            leavers: Vec::new(),
+            revoked: Vec::new(),
+            excluded: Vec::new(),
+            certifications: vec![cert1],
+            transactions: vec![tx1, tx2],
+            inner_hash_and_nonce_str: String::new(),
+        };
+        // test inner_hash computation
+        block._compute_inner_hash();
+        println!("{}", block.generate_compact_text());
+        assert_eq!(
+            block.inner_hash.unwrap().to_hex(),
+            "C8AB69E33ECE2612EADC7AB30D069B1F1A3D8C95EBBFD50DE583AC8E3666CCA1"
+        );
+        // test generate_compact_text()
+        assert_eq!(
+            block.generate_compact_text(),
+            "Version: 10
+Type: Block
+Currency: g1
+Number: 107984
+PoWMin: 88
+Time: 1522685861
+MedianTime: 1522683184
+UnitBase: 0
+Issuer: DA4PYtXdvQqk1nCaprXH52iMsK5Ahxs1nRWbWKLhpVkQ
+IssuersFrame: 211
+IssuersFrameVar: 0
+DifferentIssuersCount: 42
+PreviousHash: 000001144968D0C3516BE6225E4662F182E28956AF46DD7FB228E3D0F9413FEB
+PreviousIssuer: D3krfq6J9AmfpKnS3gQVYoy7NzGCc61vokteTS8LJ4YH
+MembersCount: 896
+Identities:
+Joiners:
+Actives:
+Leavers:
+Revoked:
+Excluded:
+Certifications:
+6TAzLWuNcSqgNDNpAutrKpPXcGJwy1ZEMeVvZSZNs2e3:CYPsYTdt87Tx6cCiZs9KD4jqPgYxbcVEqVZpRgJ9jjoV:106669:UmseG2XKNwKcY8RFi6gUCT91udGnnNmSh7se10J1jeRVlwf+O2Tyb2Cccot9Dt7BO4+Kx2P6vFJB3oVGGHMxBA==
+Transactions:
+TX:10:1:1:1:1:1:0
+107982-000001242F6DA51C06A915A96C58BAA37AB3D1EB51F6E1C630C707845ACF764B
+8dkCwvAqSczUjKsoVMDPVbQ3i6bBQeBQYawL87kqTSQ3
+1002:0:D:8dkCwvAqSczUjKsoVMDPVbQ3i6bBQeBQYawL87kqTSQ3:106345
+0:SIG(0)
+1002:0:SIG(CitdnuQgZ45tNFCagay7Wh12gwwHM8VLej1sWmfHWnQX)
+DU symbolique pour demander le codage de nouvelles fonctionnalites cf. https://forum.monnaie-libre.fr/t/creer-de-nouvelles-fonctionnalites-dans-cesium-les-autres-applications/2025  Merci
+T0LlCcbIn7xDFws48H8LboN6NxxwNXXTovG4PROLf7tkUAueHFWjfwZFKQXeZEHxfaL1eYs3QspGtLWUHPRVCQ==
+TX:10:1:1:1:1:1:0
+107982-000001242F6DA51C06A915A96C58BAA37AB3D1EB51F6E1C630C707845ACF764B
+8dkCwvAqSczUjKsoVMDPVbQ3i6bBQeBQYawL87kqTSQ3
+1002:0:D:8dkCwvAqSczUjKsoVMDPVbQ3i6bBQeBQYawL87kqTSQ3:106614
+0:SIG(0)
+1002:0:SIG(78ZwwgpgdH5uLZLbThUQH7LKwPgjMunYfLiCfUCySkM8)
+DU symbolique pour demander le codage de nouvelles fonctionnalites cf. https://forum.monnaie-libre.fr/t/creer-de-nouvelles-fonctionnalites-dans-cesium-les-autres-applications/2025  Merci
+a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8xrNcCg==
+InnerHash: C8AB69E33ECE2612EADC7AB30D069B1F1A3D8C95EBBFD50DE583AC8E3666CCA1
+Nonce: "
+        );
+        // Test signature validity
+        block._change_nonce(10_300_000_018_323);
+        assert_eq!(block.verify_signatures(), VerificationResult::Valid());
+        // Test hash computation
+        block._compute_hash();
+        assert_eq!(
+            block.hash.unwrap().to_hex(),
+            "000004F8B84A3590243BA562E5F2BA379F55A0B387C5D6FAC1022DFF7FFE6014"
         );
     }
 }
