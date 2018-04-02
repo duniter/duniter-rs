@@ -63,6 +63,13 @@ impl Debug for Hash {
     }
 }
 
+impl Default for Hash {
+    fn default() -> Hash {
+        let default: [u8; 32] = [0; 32];
+        Hash(default)
+    }
+}
+
 impl Hash {
     /// Convert a `Hash` to an hex string.
     pub fn to_hex(&self) -> String {
@@ -165,6 +172,15 @@ impl Display for Blockstamp {
 impl Debug for Blockstamp {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "BlockUId({})", self)
+    }
+}
+
+impl Default for Blockstamp {
+    fn default() -> Blockstamp {
+        Blockstamp {
+            id: BlockId(0),
+            hash: BlockHash(Hash::default()),
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "duniter-documents"
-version = "0.7.0"
+version = "0.7.1"
 authors = ["nanocryk <nanocryk@duniter.org>", "elois <elois@ifee.fr>"]
 description = "Handles Duniter documents"
 repository = "https://git.duniter.org/nodes/rust/duniter-rs"
