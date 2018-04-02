@@ -92,6 +92,14 @@ impl TextDocument for RevocationDocument {
     fn as_text(&self) -> &str {
         &self.text
     }
+
+    fn generate_compact_text(&self) -> String {
+        format!(
+            "{issuer}:{signature}",
+            issuer = self.issuers[0],
+            signature = self.signatures[0],
+        )
+    }
 }
 
 impl IntoSpecializedDocument<BlockchainProtocol> for RevocationDocument {
@@ -163,13 +171,6 @@ IdtySignature: {idty_sig}
             idty_uid = self.identity_username,
             idty_blockstamp = self.identity_blockstamp,
             idty_sig = self.identity_sig,
-        )
-    }
-    fn generate_compact_text(&self, signatures: Vec<ed25519::Signature>) -> String {
-        format!(
-            "{issuer}:{signature}",
-            issuer = self.issuer,
-            signature = signatures[0],
         )
     }
 }

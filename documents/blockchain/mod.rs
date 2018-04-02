@@ -22,7 +22,7 @@ use duniter_crypto::keys::{PrivateKey, PublicKey};
 pub mod v10;
 
 /// List of blockchain protocol versions.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BlockchainProtocol {
     /// Version 10.
     V10(Box<v10::documents::V10Document>),
@@ -36,7 +36,7 @@ pub enum BlockchainProtocol {
 ///
 /// Allow only ed25519 for protocol 10 and many differents
 /// schemes for protocol 11 through a proxy type.
-pub trait Document: Debug {
+pub trait Document: Debug + Clone {
     /// Type of the `PublicKey` used by the document.
     type PublicKey: PublicKey;
     /// Data type of the currency code used by the document.
