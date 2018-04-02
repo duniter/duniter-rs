@@ -15,7 +15,9 @@
 
 //! Wrappers around Block document.
 
-use duniter_crypto::keys::ed25519;
+use crypto::digest::Digest;
+use crypto::sha2::Sha256;
+use duniter_crypto::keys::{PrivateKey, ed25519};
 
 use Hash;
 use blockchain::{BlockchainProtocol, Document, IntoSpecializedDocument};
@@ -116,7 +118,7 @@ pub struct BlockDocument {
     /// Issuer of the previous block
     previous_issuer: Option<ed25519::PublicKey>,
     /// Hash of the deterministic content of the block
-    inner_hash: Hash,
+    inner_hash: Option<Hash>,
     /// Amount of new dividend created at this block, None if no dividend is created at this block
     dividend: Option<usize>,
     /// Identities
@@ -135,45 +137,38 @@ pub struct BlockDocument {
     certifications: Vec<CertificationDocument>,
     /// Transactions
     transactions: Vec<TransactionDocument>,
-    /// Raw format
-    raw: Option<String>,
+    /// Part to sign
+    inner_hash_and_nonce_str: String,
 }
 
-impl Document for BlockDocument {
-    type PublicKey = ed25519::PublicKey;
-    type CurrencyType = str;
-
-    fn version(&self) -> u16 {
-        10
+impl BlockDocument {
+    fn _compute_inner_hash(&mut self) {
+        let mut sha256 = Sha256::new();
+        sha256.input_str(&self.generate_compact_inner_text());
+        self.inner_hash = Some(Hash::from_hex(&sha256.result_str()).unwrap());
     }
-
-    fn currency(&self) -> &str {
-        &self.currency
+    fn _change_nonce(&mut self, new_nonce: u64) {
+        self.nonce = new_nonce;
+        self.inner_hash_and_nonce_str = format!(
+            "InnerHash: {}\nNonce: {}\n",
+            self.inner_hash.unwrap().to_hex(),
+            self.nonce
+        );
     }
-
-    fn issuers(&self) -> &Vec<ed25519::PublicKey> {
-        &self.issuers
+    fn _sign(&mut self, privkey: ed25519::PrivateKey) {
+        self.signatures = vec![privkey.sign(self.inner_hash_and_nonce_str.as_bytes())];
     }
-
-    fn signatures(&self) -> &Vec<ed25519::Signature> {
-        &self.signatures
+    fn _compute_hash(&mut self) {
+        let mut sha256 = Sha256::new();
+        sha256.input_str(&format!(
+            "InnerHash: {}\nNonce: {}\n{}\n",
+            self.inner_hash.unwrap().to_hex(),
+            self.nonce,
+            self.signatures[0]
+        ));
+        self.hash = Some(Hash::from_hex(&sha256.result_str()).unwrap());
     }
-
-    fn as_bytes(&self) -> &[u8] {
-        if let Some(ref raw_block) = self.raw {
-            raw_block.as_bytes()
-        } else {
-            panic!("Fatal error: try to call block.as_bytes() before generate raw format !");
-        }
-    }
-}
-
-impl TextDocument for BlockDocument {
-    fn as_text(&self) -> &str {
-        panic!();
-    }
-
-    fn generate_compact_text(&self) -> String {
+    fn generate_compact_inner_text(&self) -> String {
         let mut identities_str = String::from("");
         for identity in self.identities.clone() {
             identities_str.push_str("\n");
@@ -223,7 +218,7 @@ impl TextDocument for BlockDocument {
             "Version: 10
 Type: Block
 Currency: {currency}
-Number:  {block_number}
+Number: {block_number}
 PoWMin: {pow_min}
 Time: {time}
 MedianTime: {median_time}
@@ -243,8 +238,7 @@ Revoked:{revoked}
 Excluded:{excluded}
 Certifications:{certifications}
 Transactions:{transactions}
-InnerHash: {inner_hash}
-Nonce: ",
+",
             currency = self.currency,
             block_number = self.number,
             pow_min = self.pow_min,
@@ -266,7 +260,46 @@ Nonce: ",
             excluded = excludeds_str,
             certifications = certifications_str,
             transactions = transactions_str,
-            inner_hash = self.inner_hash,
+        )
+    }
+}
+
+impl Document for BlockDocument {
+    type PublicKey = ed25519::PublicKey;
+    type CurrencyType = str;
+
+    fn version(&self) -> u16 {
+        10
+    }
+
+    fn currency(&self) -> &str {
+        &self.currency
+    }
+
+    fn issuers(&self) -> &Vec<ed25519::PublicKey> {
+        &self.issuers
+    }
+
+    fn signatures(&self) -> &Vec<ed25519::Signature> {
+        &self.signatures
+    }
+
+    fn as_bytes(&self) -> &[u8] {
+        self.inner_hash_and_nonce_str.as_bytes()
+    }
+}
+
+impl TextDocument for BlockDocument {
+    fn as_text(&self) -> &str {
+        panic!();
+    }
+
+    fn generate_compact_text(&self) -> String {
+        let compact_inner_text = self.generate_compact_inner_text();
+        format!(
+            "{}InnerHash: {}\nNonce: ",
+            compact_inner_text,
+            self.inner_hash.unwrap().to_hex()
         )
     }
 }
@@ -280,7 +313,7 @@ impl IntoSpecializedDocument<BlockchainProtocol> for BlockDocument {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use duniter_crypto::keys::{PrivateKey, PublicKey, Signature};
+    use duniter_crypto::keys::{PublicKey, Signature};
     use blockchain::{Document, VerificationResult};
 
     #[test]
@@ -304,7 +337,7 @@ mod tests {
             parameters: None,
             previous_hash: Some(Hash::from_hex("0000001F8AACF6764135F3E5D0D4E8358A3CBE537A4BF71152A00CC442EFD136").expect("fail to parse previous_hash")),
             previous_issuer: Some(ed25519::PublicKey::from_base58("38MEAZN68Pz1DTvT3tqgxx4yQP6snJCQhPqEFxbDk4aE").unwrap()),
-            inner_hash: Hash::from_hex("95948AC4D45E46DA07CE0713EDE1CE0295C227EE4CA5557F73F56B7DD46FE89C").expect("fail to parse inner_hash"),
+            inner_hash: Some(Hash::from_hex("95948AC4D45E46DA07CE0713EDE1CE0295C227EE4CA5557F73F56B7DD46FE89C").expect("fail to parse inner_hash")),
             dividend: None,
             identities: Vec::new(),
             joiners: Vec::new(),
@@ -314,12 +347,17 @@ mod tests {
             excluded: Vec::new(),
             certifications: Vec::new(),
             transactions: Vec::new(),
-            raw: None,
+            inner_hash_and_nonce_str: String::new(),
         };
-        let mut raw_block = block.generate_compact_text();
-        println!("{}", raw_block);
+        // test inner_hash computation
+        block._compute_inner_hash();
         assert_eq!(
-            raw_block,
+            block.inner_hash.unwrap().to_hex(),
+            "95948AC4D45E46DA07CE0713EDE1CE0295C227EE4CA5557F73F56B7DD46FE89C"
+        );
+        // test generate_compact_text()
+        assert_eq!(
+            block.generate_compact_text(),
             "Version: 10
 Type: Block
 Currency: g1
@@ -346,8 +384,14 @@ Transactions:
 InnerHash: 95948AC4D45E46DA07CE0713EDE1CE0295C227EE4CA5557F73F56B7DD46FE89C
 Nonce: "
         );
-        raw_block.push_str("10500000089933");
-        block.raw = Some(raw_block.clone());
+        // Test signature validity
+        block._change_nonce(10500000089933);
         assert_eq!(block.verify_signatures(), VerificationResult::Valid());
+        // Test hash computation
+        block._compute_hash();
+        assert_eq!(
+            block.hash.unwrap().to_hex(),
+            "000002D3296A2D257D01F6FEE8AEC5C3E5779D04EA43F08901F41998FA97D9A1"
+        );
     }
 }

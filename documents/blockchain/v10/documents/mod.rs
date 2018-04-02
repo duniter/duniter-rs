@@ -29,6 +29,7 @@ pub mod membership;
 pub mod certification;
 pub mod revocation;
 pub mod transaction;
+pub mod block;
 
 pub use blockchain::v10::documents::identity::{IdentityDocument, IdentityDocumentBuilder};
 pub use blockchain::v10::documents::membership::{MembershipDocument, MembershipDocumentParser};
@@ -37,6 +38,7 @@ pub use blockchain::v10::documents::certification::{CertificationDocument,
 pub use blockchain::v10::documents::revocation::{RevocationDocument, RevocationDocumentParser};
 pub use blockchain::v10::documents::transaction::{TransactionDocument, TransactionDocumentBuilder,
                                                   TransactionDocumentParser};
+pub use blockchain::v10::documents::block::BlockDocument;
 
 // Use of lazy_static so the regex is only compiled at first use.
 lazy_static! {
@@ -56,7 +58,7 @@ lazy_static! {
 #[derive(Debug, Clone)]
 pub enum V10Document {
     /// Block document.
-    Block(),
+    Block(Box<BlockDocument>),
 
     /// Transaction document.
     Transaction(Box<TransactionDocument>),
@@ -95,6 +97,13 @@ pub trait TextDocument: Document<PublicKey = ed25519::PublicKey, CurrencyType = 
 
         text
     }
+
+    /// Generate document compact text.
+    /// the compact format is the one used in the blocks.
+    ///
+    /// - Don't contains leading signatures
+    /// - Contains line breaks on all line.
+    fn generate_compact_text(&self) -> String;
 }
 
 /// Trait for a V10 document builder.
@@ -104,13 +113,6 @@ pub trait TextDocumentBuilder: DocumentBuilder {
     /// - Don't contains leading signatures
     /// - Contains line breaks on all line.
     fn generate_text(&self) -> String;
-
-    /// Generate document compact text.
-    /// the compact format is the one used in the blocks.
-    ///
-    /// - Don't contains leading signatures
-    /// - Contains line breaks on all line.
-    fn generate_compact_text(&self, signatures: Vec<ed25519::Signature>) -> String;
 
     /// Generate final document with signatures, and also return them in an array.
     ///
