@@ -120,7 +120,7 @@ impl Hash {
 
 /// Wrapper of a block hash.
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
-pub struct BlockHash(Hash);
+pub struct BlockHash(pub Hash);
 
 impl Display for BlockHash {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {

@@ -19,6 +19,8 @@
 //!
 //! [`KeyPairGenerator`]: struct.KeyPairGenerator.html
 
+extern crate serde;
+
 use std::collections::hash_map::DefaultHasher;
 use std::fmt::Debug;
 use std::fmt::Display;
@@ -30,6 +32,7 @@ use base58::{FromBase58, FromBase58Error, ToBase58};
 use base64;
 use base64::DecodeError;
 use crypto;
+use self::serde::ser::{Serialize, Serializer};
 
 use super::{BaseConvertionError, PrivateKey as PrivateKeyMethods, PublicKey as PublicKeyMethods};
 
@@ -120,6 +123,15 @@ impl Debug for PublicKey {
     // PublicKey { DNann1L... }
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "PublicKey {{ {} }}", self)
+    }
+}
+
+impl Serialize for PublicKey {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&format!("{}", self))
     }
 }
 

@@ -15,8 +15,11 @@
 
 //! Wrappers around Identity documents.
 
-use duniter_crypto::keys::{ed25519, PublicKey};
+extern crate serde;
+
+use duniter_crypto::keys::{PublicKey, ed25519};
 use regex::Regex;
+use self::serde::ser::{Serialize, Serializer};
 
 use blockchain::v10::documents::{StandardTextDocumentParser, TextDocument, TextDocumentBuilder,
                                  V10Document, V10DocumentParsingError};
@@ -97,6 +100,15 @@ impl TextDocument for IdentityDocument {
             blockstamp = self.blockstamp,
             username = self.username,
         )
+    }
+}
+
+impl Serialize for IdentityDocument {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.generate_compact_text())
     }
 }
 
