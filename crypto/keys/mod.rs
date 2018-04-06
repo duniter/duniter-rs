@@ -75,7 +75,7 @@ pub enum BaseConvertionError {
 ///
 /// [`PrivateKey`]: trait.PrivateKey.html
 /// [`PublicKey`]: trait.PublicKey.html
-pub trait Signature: Clone + Display + Debug + PartialEq + Eq  + Hash {
+pub trait Signature: Clone + Display + Debug + PartialEq + Eq + Hash {
     /// Create a `Signature` from a Base64 string.
     ///
     /// The Base64 string should contains only valid Base64 characters

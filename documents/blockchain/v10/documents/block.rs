@@ -19,7 +19,7 @@ use crypto::digest::Digest;
 use crypto::sha2::Sha256;
 use duniter_crypto::keys::{PrivateKey, ed25519};
 
-use Hash;
+use {BlockHash, BlockId, Blockstamp, Hash};
 use blockchain::{BlockchainProtocol, Document, IntoSpecializedDocument};
 use blockchain::v10::documents::{TextDocument, V10Document};
 use blockchain::v10::documents::identity::IdentityDocument;
@@ -83,7 +83,7 @@ pub struct BlockDocument {
     /// Nonce
     nonce: u64,
     /// number
-    number: u64,
+    number: BlockId,
     /// Minimal proof of work difficulty
     pow_min: usize,
     /// Local time of the block issuer
@@ -110,7 +110,7 @@ pub struct BlockDocument {
     /// This vector is empty, when the block is generated but the proof of work has not yet started
     signatures: Vec<ed25519::Signature>,
     /// The hash is None, when the block is generated but the proof of work has not yet started
-    hash: Option<Hash>,
+    hash: Option<BlockHash>,
     /// Currency parameters (only in genesis block)
     parameters: Option<BlockParameters>,
     /// Hash of the previous block
@@ -142,12 +142,21 @@ pub struct BlockDocument {
 }
 
 impl BlockDocument {
-    fn _compute_inner_hash(&mut self) {
+    /// Return blockstamp
+    pub fn blockstamp(&self) -> Blockstamp {
+        Blockstamp {
+            id: self.number,
+            hash: self.hash.unwrap(),
+        }
+    }
+    /// Compute inner hash
+    pub fn compute_inner_hash(&mut self) {
         let mut sha256 = Sha256::new();
         sha256.input_str(&self.generate_compact_inner_text());
         self.inner_hash = Some(Hash::from_hex(&sha256.result_str()).unwrap());
     }
-    fn _change_nonce(&mut self, new_nonce: u64) {
+    /// Change nonce
+    pub fn change_nonce(&mut self, new_nonce: u64) {
         self.nonce = new_nonce;
         self.inner_hash_and_nonce_str = format!(
             "InnerHash: {}\nNonce: {}\n",
@@ -155,10 +164,12 @@ impl BlockDocument {
             self.nonce
         );
     }
-    fn _sign(&mut self, privkey: ed25519::PrivateKey) {
+    /// Sign block
+    pub fn sign(&mut self, privkey: ed25519::PrivateKey) {
         self.signatures = vec![privkey.sign(self.inner_hash_and_nonce_str.as_bytes())];
     }
-    fn _compute_hash(&mut self) {
+    /// Compute hash
+    pub fn compute_hash(&mut self) {
         let mut sha256 = Sha256::new();
         sha256.input_str(&format!(
             "InnerHash: {}\nNonce: {}\n{}\n",
@@ -166,7 +177,7 @@ impl BlockDocument {
             self.nonce,
             self.signatures[0]
         ));
-        self.hash = Some(Hash::from_hex(&sha256.result_str()).unwrap());
+        self.hash = Some(BlockHash(Hash::from_hex(&sha256.result_str()).unwrap()));
     }
     fn generate_compact_inner_text(&self) -> String {
         let mut identities_str = String::from("");
@@ -322,7 +333,7 @@ mod tests {
     fn generate_and_verify_empty_block() {
         let mut block = BlockDocument {
             nonce: 10_500_000_089_933,
-            number: 107_777,
+            number: BlockId(107_777),
             pow_min: 89,
             time: 1_522_624_657,
             median_time: 1_522_616_790,
@@ -352,7 +363,7 @@ mod tests {
             inner_hash_and_nonce_str: String::new(),
         };
         // test inner_hash computation
-        block._compute_inner_hash();
+        block.compute_inner_hash();
         println!("{}", block.generate_compact_text());
         assert_eq!(
             block.inner_hash.unwrap().to_hex(),
@@ -388,12 +399,12 @@ InnerHash: 95948AC4D45E46DA07CE0713EDE1CE0295C227EE4CA5557F73F56B7DD46FE89C
 Nonce: "
         );
         // Test signature validity
-        block._change_nonce(10_500_000_089_933);
+        block.change_nonce(10_500_000_089_933);
         assert_eq!(block.verify_signatures(), VerificationResult::Valid());
         // Test hash computation
-        block._compute_hash();
+        block.compute_hash();
         assert_eq!(
-            block.hash.unwrap().to_hex(),
+            block.hash.unwrap().0.to_hex(),
             "000002D3296A2D257D01F6FEE8AEC5C3E5779D04EA43F08901F41998FA97D9A1"
         );
     }
@@ -457,7 +468,7 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
 
         let mut block = BlockDocument {
             nonce: 0,
-            number: 107_984,
+            number: BlockId(107_984),
             pow_min: 88,
             time: 1_522_685_861,
             median_time: 1522683184,
@@ -487,7 +498,7 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
             inner_hash_and_nonce_str: String::new(),
         };
         // test inner_hash computation
-        block._compute_inner_hash();
+        block.compute_inner_hash();
         println!("{}", block.generate_compact_text());
         assert_eq!(
             block.inner_hash.unwrap().to_hex(),
@@ -540,12 +551,12 @@ InnerHash: C8AB69E33ECE2612EADC7AB30D069B1F1A3D8C95EBBFD50DE583AC8E3666CCA1
 Nonce: "
         );
         // Test signature validity
-        block._change_nonce(10_300_000_018_323);
+        block.change_nonce(10_300_000_018_323);
         assert_eq!(block.verify_signatures(), VerificationResult::Valid());
         // Test hash computation
-        block._compute_hash();
+        block.compute_hash();
         assert_eq!(
-            block.hash.unwrap().to_hex(),
+            block.hash.unwrap().0.to_hex(),
             "000004F8B84A3590243BA562E5F2BA379F55A0B387C5D6FAC1022DFF7FFE6014"
         );
     }
