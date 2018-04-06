@@ -81,64 +81,64 @@ pub struct BlockParameters {
 #[derive(Debug, Clone)]
 pub struct BlockDocument {
     /// Nonce
-    nonce: u64,
+    pub nonce: u64,
     /// number
-    number: BlockId,
+    pub number: BlockId,
     /// Minimal proof of work difficulty
-    pow_min: usize,
+    pub pow_min: usize,
     /// Local time of the block issuer
-    time: u64,
+    pub time: u64,
     /// Average time
-    median_time: u64,
+    pub median_time: u64,
     /// Members count
-    members_count: usize,
+    pub members_count: usize,
     /// Monetary mass
-    monetary_mass: usize,
+    pub monetary_mass: usize,
     /// Unit base (power of ten)
-    unit_base: usize,
+    pub unit_base: usize,
     /// Number of compute members in the current frame
-    issuers_count: usize,
+    pub issuers_count: usize,
     /// Current frame size (in blocks)
-    issuers_frame: isize,
+    pub issuers_frame: isize,
     /// Current frame variation buffer
-    issuers_frame_var: isize,
+    pub issuers_frame_var: isize,
     /// Currency.
-    currency: String,
+    pub currency: String,
     /// Document issuer (there should be only one).
-    issuers: Vec<ed25519::PublicKey>,
+    pub issuers: Vec<ed25519::PublicKey>,
     /// Document signature (there should be only one).
     /// This vector is empty, when the block is generated but the proof of work has not yet started
-    signatures: Vec<ed25519::Signature>,
+    pub signatures: Vec<ed25519::Signature>,
     /// The hash is None, when the block is generated but the proof of work has not yet started
-    hash: Option<BlockHash>,
+    pub hash: Option<BlockHash>,
     /// Currency parameters (only in genesis block)
-    parameters: Option<BlockParameters>,
+    pub parameters: Option<BlockParameters>,
     /// Hash of the previous block
-    previous_hash: Option<Hash>,
+    pub previous_hash: Option<Hash>,
     /// Issuer of the previous block
-    previous_issuer: Option<ed25519::PublicKey>,
+    pub previous_issuer: Option<ed25519::PublicKey>,
     /// Hash of the deterministic content of the block
-    inner_hash: Option<Hash>,
+    pub inner_hash: Option<Hash>,
     /// Amount of new dividend created at this block, None if no dividend is created at this block
-    dividend: Option<usize>,
+    pub dividend: Option<usize>,
     /// Identities
-    identities: Vec<IdentityDocument>,
+    pub identities: Vec<IdentityDocument>,
     /// joiners
-    joiners: Vec<MembershipDocument>,
+    pub joiners: Vec<MembershipDocument>,
     /// Actives (=renewals)
-    actives: Vec<MembershipDocument>,
+    pub actives: Vec<MembershipDocument>,
     /// Leavers
-    leavers: Vec<MembershipDocument>,
+    pub leavers: Vec<MembershipDocument>,
     /// Revokeds
-    revoked: Vec<RevocationDocument>,
+    pub revoked: Vec<RevocationDocument>,
     /// Excludeds
-    excluded: Vec<ed25519::PublicKey>,
+    pub excluded: Vec<ed25519::PublicKey>,
     /// Certifications
-    certifications: Vec<CertificationDocument>,
+    pub certifications: Vec<CertificationDocument>,
     /// Transactions
-    transactions: Vec<TransactionDocument>,
+    pub transactions: Vec<TransactionDocument>,
     /// Part to sign
-    inner_hash_and_nonce_str: String,
+    pub inner_hash_and_nonce_str: String,
 }
 
 impl BlockDocument {
