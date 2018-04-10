@@ -39,9 +39,7 @@ extern crate serde;
 extern crate serde_derive;
 
 pub mod data;
-pub mod path;
-pub mod distance;
-pub mod file;
+pub mod operations;
 
 pub use data::{NodeId, WebOfTrust};
 
@@ -49,9 +47,9 @@ pub use data::{NodeId, WebOfTrust};
 mod tests {
     use super::*;
     use data::*;
-    use path::*;
-    use distance::*;
-    use file::*;
+    use operations::distance::*;
+    use operations::path::*;
+    use operations::file::*;
 
     /// Test translated from https://github.com/duniter/wotb/blob/master/tests/test.js
     ///

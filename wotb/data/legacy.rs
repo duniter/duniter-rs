@@ -317,8 +317,8 @@ impl WebOfTrust for LegacyWebOfTrust {
 mod tests {
     use super::*;
     use tests::generic_wot_test;
-    use path::RustyPathFinder;
-    use distance::RustyDistanceCalculator;
+    use operations::path::RustyPathFinder;
+    use operations::distance::RustyDistanceCalculator;
 
     #[test]
     fn node_tests() {
