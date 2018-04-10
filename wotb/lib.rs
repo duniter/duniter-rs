@@ -41,6 +41,7 @@ extern crate serde_derive;
 pub mod data;
 pub mod path;
 pub mod distance;
+pub mod file;
 
 pub use data::{NodeId, WebOfTrust};
 
@@ -48,8 +49,9 @@ pub use data::{NodeId, WebOfTrust};
 mod tests {
     use super::*;
     use data::*;
-    use path::PathFinder;
+    use path::*;
     use distance::*;
+    use file::*;
 
     /// Test translated from https://github.com/duniter/wotb/blob/master/tests/test.js
     ///
@@ -466,21 +468,23 @@ mod tests {
             Some(false)
         ); // OK : Disabled
 
+        let file_formater = BinaryFileFormater {};
+
         // Write wot in file
         assert_eq!(
-            wot.to_file(
-                "test.wot",
-                &[0b0000_0000, 0b0000_0001, 0b0000_0001, 0b0000_0000]
+            file_formater.to_file(&wot,
+                &[0b0000_0000, 0b0000_0001, 0b0000_0001, 0b0000_0000],
+                "test.wot",                
             ).unwrap(),
             ()
         );
 
-        let mut wot2 = W::new(3);
+        let (wot2, blockstamp2) = file_formater.from_file::<W>("test.wot", 3).unwrap();
 
         // Read wot from file
         {
             assert_eq!(
-                wot2.from_file("test.wot").unwrap(),
+                blockstamp2,
                 vec![0b0000_0000, 0b0000_0001, 0b0000_0001, 0b0000_0000]
             );
             assert_eq!(wot.size(), wot2.size());
@@ -506,9 +510,9 @@ mod tests {
         }
 
         // Read g1_genesis wot
-        let mut wot3 = W::new(100);
+        let (wot3, blockstamp3) = file_formater.from_file::<W>("tests/g1_genesis.bin", 100).unwrap();
         assert_eq!(
-            wot3.from_file("tests/g1_genesis.bin").unwrap(),
+            blockstamp3,
             vec![
                 57, 57, 45, 48, 48, 48, 48, 49, 50, 65, 68, 52, 57, 54, 69, 67, 65, 53, 54, 68, 69,
                 48, 66, 56, 69, 53, 68, 54, 70, 55, 52, 57, 66, 55, 67, 66, 69, 55, 56, 53, 53, 51,
