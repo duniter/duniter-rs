@@ -453,6 +453,19 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
     }
 
     #[test]
+    fn keypair_generate_() {
+        let keypair = KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(
+            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV".as_bytes(),
+            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV_".as_bytes(),
+        );
+
+        assert_eq!(
+            keypair.pubkey.to_string(),
+            "7iMV3b6j2hSj5WtrfchfvxivS9swN3opDgxudeHq64fb"
+        );
+    }
+
+    #[test]
     fn keypair_generate_sign_and_verify() {
         let keypair = KeyPairFromSaltedPasswordGenerator::with_default_parameters()
             .generate("password".as_bytes(), "salt".as_bytes());
