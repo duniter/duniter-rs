@@ -19,6 +19,8 @@ use std::fmt::Debug;
 
 use duniter_crypto::keys::{PrivateKey, PublicKey};
 
+use super::Blockstamp;
+
 pub mod v10;
 
 /// List of blockchain protocol versions.
@@ -47,6 +49,9 @@ pub trait Document: Debug + Clone {
 
     /// Get document currency.
     fn currency(&self) -> &Self::CurrencyType;
+
+    /// Get document blockstamp
+    fn blockstamp(&self) -> Blockstamp;
 
     /// Iterate over document issuers.
     fn issuers(&self) -> &Vec<Self::PublicKey>;
@@ -157,6 +162,10 @@ mod tests {
         }
 
         fn currency(&self) -> &str {
+            unimplemented!()
+        }
+
+        fn blockstamp(&self) -> Blockstamp {
             unimplemented!()
         }
 

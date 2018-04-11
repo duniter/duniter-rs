@@ -95,6 +95,10 @@ impl Document for MembershipDocument {
         &self.currency
     }
 
+    fn blockstamp(&self) -> Blockstamp {
+        self.blockstamp
+    }
+
     fn issuers(&self) -> &Vec<ed25519::PublicKey> {
         &self.issuers
     }

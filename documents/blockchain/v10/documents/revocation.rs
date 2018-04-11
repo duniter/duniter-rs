@@ -78,6 +78,10 @@ impl Document for RevocationDocument {
         &self.currency
     }
 
+    fn blockstamp(&self) -> Blockstamp {
+        unimplemented!()
+    }
+
     fn issuers(&self) -> &Vec<ed25519::PublicKey> {
         &self.issuers
     }

@@ -114,7 +114,7 @@ pub struct BlockDocument {
     /// Currency parameters (only in genesis block)
     pub parameters: Option<BlockParameters>,
     /// Hash of the previous block
-    pub previous_hash: Option<Hash>,
+    pub previous_hash: Hash,
     /// Issuer of the previous block
     pub previous_issuer: Option<ed25519::PublicKey>,
     /// Hash of the deterministic content of the block
@@ -142,13 +142,6 @@ pub struct BlockDocument {
 }
 
 impl BlockDocument {
-    /// Return blockstamp
-    pub fn blockstamp(&self) -> Blockstamp {
-        Blockstamp {
-            id: self.number,
-            hash: self.hash.unwrap(),
-        }
-    }
     /// Compute inner hash
     pub fn compute_inner_hash(&mut self) {
         let mut sha256 = Sha256::new();
@@ -269,7 +262,7 @@ Transactions:{transactions}
             issuers_frame = self.issuers_frame,
             issuers_frame_var = self.issuers_frame_var,
             issuers_count = self.issuers_count,
-            previous_hash = self.previous_hash.unwrap(),
+            previous_hash = self.previous_hash,
             previous_issuer = self.previous_issuer.unwrap(),
             members_count = self.members_count,
             identities = identities_str,
@@ -294,6 +287,13 @@ impl Document for BlockDocument {
 
     fn currency(&self) -> &str {
         &self.currency
+    }
+
+    fn blockstamp(&self) -> Blockstamp {
+        Blockstamp {
+            id: self.number,
+            hash: self.hash.unwrap(),
+        }
     }
 
     fn issuers(&self) -> &Vec<ed25519::PublicKey> {
@@ -357,7 +357,7 @@ mod tests {
             signatures: vec![ed25519::Signature::from_base64("FsRxB+NOiL+8zTr2d3B2j2KBItDuCa0KjFMF6hXmdQzfqXAs9g3m7DlGgYLcqzqe6JXjx/Lyzqze1HBR4cS0Aw==").unwrap()],
             hash: None,
             parameters: None,
-            previous_hash: Some(Hash::from_hex("0000001F8AACF6764135F3E5D0D4E8358A3CBE537A4BF71152A00CC442EFD136").expect("fail to parse previous_hash")),
+            previous_hash: Hash::from_hex("0000001F8AACF6764135F3E5D0D4E8358A3CBE537A4BF71152A00CC442EFD136").expect("fail to parse previous_hash"),
             previous_issuer: Some(ed25519::PublicKey::from_base58("38MEAZN68Pz1DTvT3tqgxx4yQP6snJCQhPqEFxbDk4aE").unwrap()),
             inner_hash: None,
             dividend: None,
@@ -492,7 +492,7 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
             signatures: vec![ed25519::Signature::from_base64("92id58VmkhgVNee4LDqBGSm8u/ooHzAD67JM6fhAE/CV8LCz7XrMF1DvRl+eRpmlaVkp6I+Iy8gmZ1WUM5C8BA==").unwrap()],
             hash: None,
             parameters: None,
-            previous_hash: Some(Hash::from_hex("000001144968D0C3516BE6225E4662F182E28956AF46DD7FB228E3D0F9413FEB").expect("fail to parse previous_hash")),
+            previous_hash: Hash::from_hex("000001144968D0C3516BE6225E4662F182E28956AF46DD7FB228E3D0F9413FEB").expect("fail to parse previous_hash"),
             previous_issuer: Some(ed25519::PublicKey::from_base58("D3krfq6J9AmfpKnS3gQVYoy7NzGCc61vokteTS8LJ4YH").unwrap()),
             inner_hash: None,
             dividend: None,

@@ -30,15 +30,17 @@ extern crate duniter_crypto;
 extern crate lazy_static;
 extern crate linked_hash_map;
 extern crate regex;
+extern crate serde;
 
 use std::fmt::{Debug, Display, Error, Formatter};
 
 use duniter_crypto::keys::BaseConvertionError;
+use self::serde::ser::{Serialize, Serializer};
 
 pub mod blockchain;
 
 /// A block Id.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Eq, Hash)]
 pub struct BlockId(pub u32);
 
 impl Display for BlockId {
@@ -183,6 +185,15 @@ impl Default for Blockstamp {
             id: BlockId(0),
             hash: BlockHash(Hash::default()),
         }
+    }
+}
+
+impl Serialize for Blockstamp {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&format!("{}-{}", self.id, self.hash))
     }
 }
 

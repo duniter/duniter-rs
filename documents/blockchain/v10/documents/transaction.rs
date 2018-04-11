@@ -15,11 +15,15 @@
 
 //! Wrappers around Transaction documents.
 
+extern crate serde;
+
 use std::ops::Deref;
 
 use duniter_crypto::keys::{ed25519, PublicKey};
 use regex::Regex;
 use regex::RegexBuilder;
+
+use self::serde::ser::{Serialize, Serializer};
 
 use blockchain::v10::documents::{StandardTextDocumentParser, TextDocument, TextDocumentBuilder,
                                  V10Document, V10DocumentParsingError};
@@ -419,6 +423,10 @@ impl Document for TransactionDocument {
         &self.currency
     }
 
+    fn blockstamp(&self) -> Blockstamp {
+        self.blockstamp
+    }
+
     fn issuers(&self) -> &Vec<ed25519::PublicKey> {
         &self.issuers
     }
@@ -480,6 +488,16 @@ impl TextDocument for TransactionDocument {
             comment = self.comment,
             signatures = signatures_str,
         )
+    }
+}
+
+impl Serialize for TransactionDocument {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let compact_text = self.generate_compact_text();
+        serializer.serialize_str(&compact_text.replace("\n", "$"))
     }
 }
 
