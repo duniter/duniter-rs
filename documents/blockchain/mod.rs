@@ -138,7 +138,7 @@ pub trait DocumentParser<S, D, E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use duniter_crypto::keys::{Signature, ed25519};
+    use duniter_crypto::keys::{ed25519, Signature};
 
     // simple text document for signature testing
     #[derive(Debug, Clone)]

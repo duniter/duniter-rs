@@ -15,13 +15,13 @@
 
 //! Wrappers around Identity documents.
 
-use duniter_crypto::keys::{PublicKey, ed25519};
+use duniter_crypto::keys::{ed25519, PublicKey};
 use regex::Regex;
 
-use Blockstamp;
-use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
 use blockchain::v10::documents::{StandardTextDocumentParser, TextDocument, TextDocumentBuilder,
                                  V10Document, V10DocumentParsingError};
+use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
+use Blockstamp;
 
 lazy_static! {
     static ref IDENTITY_REGEX: Regex = Regex::new(
@@ -208,8 +208,8 @@ impl StandardTextDocumentParser for IdentityDocumentParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use duniter_crypto::keys::{PrivateKey, PublicKey, Signature};
     use blockchain::{Document, VerificationResult};
+    use duniter_crypto::keys::{PrivateKey, PublicKey, Signature};
 
     #[test]
     fn generate_real_document() {

@@ -27,9 +27,11 @@
 //! [js-tests]: https://github.com/duniter/wotb/blob/master/wotcpp/webOfTrust.cpp
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![deny(missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
-        trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
-        unused_qualifications)]
+#![deny(
+    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
+    trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+    unused_qualifications
+)]
 
 extern crate bincode;
 extern crate byteorder;
@@ -45,9 +47,9 @@ pub use legacy::LegacyWebOfTrust;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
-use std::io::prelude::*;
 use std::fs;
 use std::fs::File;
+use std::io::prelude::*;
 
 /// Wrapper for a node id.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

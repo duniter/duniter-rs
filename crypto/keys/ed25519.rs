@@ -20,10 +20,10 @@
 //! [`KeyPairGenerator`]: struct.KeyPairGenerator.html
 
 use std::collections::hash_map::DefaultHasher;
+use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
-use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 
 use base58::{FromBase58, FromBase58Error, ToBase58};
