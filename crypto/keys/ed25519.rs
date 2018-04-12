@@ -304,8 +304,8 @@ impl KeyPairFromSaltedPasswordGenerator {
     pub fn generate(&self, password: &[u8], salt: &[u8]) -> KeyPair {
         let mut seed = [0u8; 32];
         crypto::scrypt::scrypt(
-            password,
             salt,
+            password,
             &crypto::scrypt::ScryptParams::new(self.log_n, self.r, self.p),
             &mut seed,
         );
