@@ -19,26 +19,26 @@ extern crate crypto;
 
 use self::crypto::digest::Digest;
 
-use duniter_crypto::keys::{Signature, ed25519};
-use regex::Regex;
-use blockchain::{Document, DocumentBuilder, DocumentParser};
 use blockchain::v10::documents::identity::IdentityDocumentParser;
+use blockchain::{Document, DocumentBuilder, DocumentParser};
+use duniter_crypto::keys::{ed25519, Signature};
+use regex::Regex;
 
+pub mod block;
+pub mod certification;
 pub mod identity;
 pub mod membership;
-pub mod certification;
 pub mod revocation;
 pub mod transaction;
-pub mod block;
 
-pub use blockchain::v10::documents::identity::{IdentityDocument, IdentityDocumentBuilder};
-pub use blockchain::v10::documents::membership::{MembershipDocument, MembershipDocumentParser};
+pub use blockchain::v10::documents::block::BlockDocument;
 pub use blockchain::v10::documents::certification::{CertificationDocument,
                                                     CertificationDocumentParser};
+pub use blockchain::v10::documents::identity::{IdentityDocument, IdentityDocumentBuilder};
+pub use blockchain::v10::documents::membership::{MembershipDocument, MembershipDocumentParser};
 pub use blockchain::v10::documents::revocation::{RevocationDocument, RevocationDocumentParser};
 pub use blockchain::v10::documents::transaction::{TransactionDocument, TransactionDocumentBuilder,
                                                   TransactionDocumentParser};
-pub use blockchain::v10::documents::block::BlockDocument;
 
 // Use of lazy_static so the regex is only compiled at first use.
 lazy_static! {

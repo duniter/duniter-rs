@@ -20,10 +20,10 @@
 //! [`KeyPairGenerator`]: struct.KeyPairGenerator.html
 
 use std::collections::hash_map::DefaultHasher;
+use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
-use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 
 use base58::{FromBase58, FromBase58Error, ToBase58};
@@ -304,8 +304,8 @@ impl KeyPairFromSaltedPasswordGenerator {
     pub fn generate(&self, password: &[u8], salt: &[u8]) -> KeyPair {
         let mut seed = [0u8; 32];
         crypto::scrypt::scrypt(
-            password,
             salt,
+            password,
             &crypto::scrypt::ScryptParams::new(self.log_n, self.r, self.p),
             &mut seed,
         );
@@ -450,6 +450,19 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 
         assert_eq!(sig, expected_signature);
         assert!(pubkey.verify(message.as_bytes(), &sig));
+    }
+
+    #[test]
+    fn keypair_generate_() {
+        let keypair = KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(
+            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV".as_bytes(),
+            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV_".as_bytes(),
+        );
+
+        assert_eq!(
+            keypair.pubkey.to_string(),
+            "7iMV3b6j2hSj5WtrfchfvxivS9swN3opDgxudeHq64fb"
+        );
     }
 
     #[test]

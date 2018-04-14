@@ -46,8 +46,8 @@
 //! `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/`
 //! with `=` as padding character.
 
-use std::fmt::Display;
 use std::fmt::Debug;
+use std::fmt::Display;
 use std::hash::Hash;
 
 use base58::ToBase58;

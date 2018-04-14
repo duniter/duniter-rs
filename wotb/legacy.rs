@@ -16,21 +16,21 @@
 //! Provide a legacy implementation of `WebOfTrust` storage and calculations.
 //! Its mostly translated directly from the original C++ code.
 
-use WotDistance;
-use std::collections::HashSet;
 use std::collections::hash_set::Iter;
-use std::rc::Rc;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
+use std::rc::Rc;
+use WotDistance;
 
 use bincode::{deserialize, serialize, Infinite};
 
 use HasLinkResult;
-use WotDistanceParameters;
-use WebOfTrust;
-use RemLinkResult;
 use NewLinkResult;
 use NodeId;
+use RemLinkResult;
+use WebOfTrust;
+use WotDistanceParameters;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Node {

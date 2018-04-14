@@ -15,15 +15,15 @@
 
 //! Experimental implementation of the Web of Trust in a more "rusty" style.
 
-use std::collections::HashSet;
 use rayon::prelude::*;
+use std::collections::HashSet;
 
+use HasLinkResult;
+use NewLinkResult;
+use RemLinkResult;
 use WebOfTrust;
 use WotDistance;
 use WotDistanceParameters;
-use HasLinkResult;
-use RemLinkResult;
-use NewLinkResult;
 
 use NodeId;
 

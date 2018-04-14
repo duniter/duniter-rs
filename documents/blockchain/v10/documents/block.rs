@@ -17,16 +17,16 @@
 
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
-use duniter_crypto::keys::{PrivateKey, ed25519};
+use duniter_crypto::keys::{ed25519, PrivateKey};
 
-use {BlockHash, BlockId, Blockstamp, Hash};
-use blockchain::{BlockchainProtocol, Document, IntoSpecializedDocument};
-use blockchain::v10::documents::{TextDocument, V10Document};
+use blockchain::v10::documents::certification::CertificationDocument;
 use blockchain::v10::documents::identity::IdentityDocument;
 use blockchain::v10::documents::membership::MembershipDocument;
-use blockchain::v10::documents::certification::CertificationDocument;
 use blockchain::v10::documents::revocation::RevocationDocument;
 use blockchain::v10::documents::transaction::TransactionDocument;
+use blockchain::v10::documents::{TextDocument, V10Document};
+use blockchain::{BlockchainProtocol, Document, IntoSpecializedDocument};
+use {BlockHash, BlockId, Blockstamp, Hash};
 
 /// Currency parameters
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -324,10 +324,10 @@ impl IntoSpecializedDocument<BlockchainProtocol> for BlockDocument {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ops::Deref;
-    use duniter_crypto::keys::{PublicKey, Signature};
-    use blockchain::{Document, DocumentParser, VerificationResult};
     use blockchain::v10::documents::V10DocumentParser;
+    use blockchain::{Document, DocumentParser, VerificationResult};
+    use duniter_crypto::keys::{PublicKey, Signature};
+    use std::ops::Deref;
 
     #[test]
     fn generate_and_verify_empty_block() {
