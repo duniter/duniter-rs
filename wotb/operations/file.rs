@@ -63,10 +63,15 @@ impl From<io::Error> for WotWriteError {
 /// Provide Read/Write functions for `WebOfTrust` objects.
 pub trait FileFormater {
     /// Try to read a `WebOfTrust` from a file.
-    fn from_file<T: WebOfTrust>(&self, path: &str, max_links: usize) -> Result<(T, Vec<u8>), WotParseError>;
+    fn from_file<T: WebOfTrust>(
+        &self,
+        path: &str,
+        max_links: usize,
+    ) -> Result<(T, Vec<u8>), WotParseError>;
 
     /// Tru to write a `WebOfTrust` in a file.
-    fn to_file<T: WebOfTrust>(&self, wot: &T, data: &[u8], path: &str) -> Result<(), WotWriteError>;
+    fn to_file<T: WebOfTrust>(&self, wot: &T, data: &[u8], path: &str)
+        -> Result<(), WotWriteError>;
 }
 
 /// Read and write WebOfTrust in a binary format.
@@ -75,7 +80,11 @@ pub struct BinaryFileFormater;
 
 impl FileFormater for BinaryFileFormater {
     /// Try to read a `WebOfTrust` from a file.
-    fn from_file<T: WebOfTrust>(&self, path: &str, max_links: usize) -> Result<(T, Vec<u8>), WotParseError> {
+    fn from_file<T: WebOfTrust>(
+        &self,
+        path: &str,
+        max_links: usize,
+    ) -> Result<(T, Vec<u8>), WotParseError> {
         let mut wot = T::new(max_links);
 
         let file_size = fs::metadata(path).expect("fail to read wotb file !").len();
@@ -154,7 +163,12 @@ impl FileFormater for BinaryFileFormater {
     }
 
     /// Tru to write a `WebOfTrust` in a file.
-    fn to_file<T: WebOfTrust>(&self, wot: &T, data: &[u8], path: &str) -> Result<(), WotWriteError> {
+    fn to_file<T: WebOfTrust>(
+        &self,
+        wot: &T,
+        data: &[u8],
+        path: &str,
+    ) -> Result<(), WotWriteError> {
         let mut buffer: Vec<u8> = Vec::new();
         // Write blockstamp size
         let blockstamp_size = data.len() as u32;

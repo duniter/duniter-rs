@@ -54,11 +54,11 @@ pub struct WotDistance {
 pub trait DistanceCalculator<T: WebOfTrust> {
     /// Compute distance between a node and the network.
     /// Returns `None` if this node doesn't exist.
-    fn compute_distance(wot: &T, params: WotDistanceParameters) -> Option<WotDistance>;
+    fn compute_distance(&self, wot: &T, params: WotDistanceParameters) -> Option<WotDistance>;
 
     /// Test if a node is outdistanced in the network.
     /// Returns `Node` if this node doesn't exist.
-    fn is_outdistanced(wot: &T, params: WotDistanceParameters) -> Option<bool>;
+    fn is_outdistanced(&self, wot: &T, params: WotDistanceParameters) -> Option<bool>;
 }
 
 /// Calculate distances between 2 members in a `WebOfTrust`.
@@ -66,7 +66,7 @@ pub trait DistanceCalculator<T: WebOfTrust> {
 pub struct RustyDistanceCalculator;
 
 impl<T: WebOfTrust + Sync> DistanceCalculator<T> for RustyDistanceCalculator {
-    fn compute_distance(wot: &T, params: WotDistanceParameters) -> Option<WotDistance> {
+    fn compute_distance(&self, wot: &T, params: WotDistanceParameters) -> Option<WotDistance> {
         let WotDistanceParameters {
             node,
             sentry_requirement,
@@ -122,7 +122,7 @@ impl<T: WebOfTrust + Sync> DistanceCalculator<T> for RustyDistanceCalculator {
         })
     }
 
-    fn is_outdistanced(wot: &T, params: WotDistanceParameters) -> Option<bool> {
-        Self::compute_distance(wot, params).map(|result| result.outdistanced)
+    fn is_outdistanced(&self, wot: &T, params: WotDistanceParameters) -> Option<bool> {
+        Self::compute_distance(&self, wot, params).map(|result| result.outdistanced)
     }
 }

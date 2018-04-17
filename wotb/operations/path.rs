@@ -22,7 +22,7 @@ use data::WebOfTrust;
 /// Find paths between 2 nodes of a `WebOfTrust`.
 pub trait PathFinder<T: WebOfTrust> {
     /// Get paths from one node to the other.
-    fn find_paths(wot: &T, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>>;
+    fn find_paths(&self, wot: &T, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>>;
 }
 
 /// A new "rusty-er" implementation of `WoT` path finding.
@@ -30,7 +30,7 @@ pub trait PathFinder<T: WebOfTrust> {
 pub struct RustyPathFinder;
 
 impl<T: WebOfTrust> PathFinder<T> for RustyPathFinder {
-    fn find_paths(wot: &T, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>> {
+    fn find_paths(&self, wot: &T, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>> {
         if from.0 >= wot.size() || to.0 >= wot.size() {
             return vec![];
         }

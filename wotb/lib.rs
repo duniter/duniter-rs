@@ -55,12 +55,12 @@ mod tests {
     ///
     /// Clone and file tests are not included in this generic test and should be done in
     /// the implementation test.
-    pub fn generic_wot_test<W, P, D>()
+    pub fn generic_wot_test<W>()
     where
-        W: WebOfTrust,
-        P: PathFinder<W>,
-        D: DistanceCalculator<W>,
+        W: WebOfTrust + Sync,
     {
+        let path_finder = RustyPathFinder {};
+        let distance_calculator = RustyDistanceCalculator {};
         let mut wot = W::new(3);
 
         // should have an initial size of 0
@@ -253,7 +253,7 @@ mod tests {
 
         // should successfully use distance rule
         assert_eq!(
-            D::is_outdistanced(
+            distance_calculator.is_outdistanced(
                 &wot,
                 WotDistanceParameters {
                     node: NodeId(0),
@@ -266,7 +266,7 @@ mod tests {
         );
         // => no because 2,4,5 have certified him
         assert_eq!(
-            D::is_outdistanced(
+            distance_calculator.is_outdistanced(
                 &wot,
                 WotDistanceParameters {
                     node: NodeId(0),
@@ -279,7 +279,7 @@ mod tests {
         );
         // => no because only member 2 has 2 certs, and has certified him
         assert_eq!(
-            D::is_outdistanced(
+            distance_calculator.is_outdistanced(
                 &wot,
                 WotDistanceParameters {
                     node: NodeId(0),
@@ -311,16 +311,22 @@ mod tests {
         assert_eq!(wot.get_non_sentries(1).len(), 11); // 12 - 1
         assert_eq!(wot.get_non_sentries(2).len(), 12); // 12 - 0
         assert_eq!(wot.get_non_sentries(3).len(), 12); // 12 - 0
-        assert_eq!(P::find_paths(&wot, NodeId(3), NodeId(0), 1).len(), 0); // KO
-        assert_eq!(P::find_paths(&wot, NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
-        assert!(P::find_paths(&wot, NodeId(3), NodeId(0), 2).contains(&vec![
-            NodeId(3),
-            NodeId(2),
-            NodeId(0),
-        ]));
+        assert_eq!(
+            path_finder.find_paths(&wot, NodeId(3), NodeId(0), 1).len(),
+            0
+        ); // KO
+        assert_eq!(
+            path_finder.find_paths(&wot, NodeId(3), NodeId(0), 2).len(),
+            1
+        ); // It exists 3 -> 2 -> 0
+        assert!(
+            path_finder
+                .find_paths(&wot, NodeId(3), NodeId(0), 2)
+                .contains(&vec![NodeId(3), NodeId(2), NodeId(0)])
+        );
 
         assert_eq!(
-            D::is_outdistanced(
+            distance_calculator.is_outdistanced(
                 &wot,
                 WotDistanceParameters {
                     node: NodeId(0),
@@ -332,7 +338,7 @@ mod tests {
             Some(false)
         ); // OK : 2 -> 0
         assert_eq!(
-            D::is_outdistanced(
+            distance_calculator.is_outdistanced(
                 &wot,
                 WotDistanceParameters {
                     node: NodeId(0),
@@ -344,7 +350,7 @@ mod tests {
             Some(false)
         ); // OK : 2 -> 0
         assert_eq!(
-            D::is_outdistanced(
+            distance_calculator.is_outdistanced(
                 &wot,
                 WotDistanceParameters {
                     node: NodeId(0),
@@ -356,7 +362,7 @@ mod tests {
             Some(false)
         ); // OK : no stry \w 3 lnk
         assert_eq!(
-            D::is_outdistanced(
+            distance_calculator.is_outdistanced(
                 &wot,
                 WotDistanceParameters {
                     node: NodeId(0),
@@ -383,16 +389,22 @@ mod tests {
         assert_eq!(wot.get_non_sentries(1).len(), 9); // 12 - 3
         assert_eq!(wot.get_non_sentries(2).len(), 11); // 12 - 1
         assert_eq!(wot.get_non_sentries(3).len(), 12); // 12 - 0
-        assert_eq!(P::find_paths(&wot, NodeId(3), NodeId(0), 1).len(), 0); // KO
-        assert_eq!(P::find_paths(&wot, NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
-        assert!(P::find_paths(&wot, NodeId(3), NodeId(0), 2).contains(&vec![
-            NodeId(3),
-            NodeId(2),
-            NodeId(0),
-        ]));
+        assert_eq!(
+            path_finder.find_paths(&wot, NodeId(3), NodeId(0), 1).len(),
+            0
+        ); // KO
+        assert_eq!(
+            path_finder.find_paths(&wot, NodeId(3), NodeId(0), 2).len(),
+            1
+        ); // It exists 3 -> 2 -> 0
+        assert!(
+            path_finder
+                .find_paths(&wot, NodeId(3), NodeId(0), 2)
+                .contains(&vec![NodeId(3), NodeId(2), NodeId(0)])
+        );
 
         assert_eq!(
-            D::is_outdistanced(
+            distance_calculator.is_outdistanced(
                 &wot,
                 WotDistanceParameters {
                     node: NodeId(0),
@@ -404,7 +416,7 @@ mod tests {
             Some(true)
         ); // KO : No path 3 -> 0
         assert_eq!(
-            D::is_outdistanced(
+            distance_calculator.is_outdistanced(
                 &wot,
                 WotDistanceParameters {
                     node: NodeId(0),
@@ -416,7 +428,7 @@ mod tests {
             Some(true)
         ); // KO : No path 3 -> 0
         assert_eq!(
-            D::is_outdistanced(
+            distance_calculator.is_outdistanced(
                 &wot,
                 WotDistanceParameters {
                     node: NodeId(0),
@@ -428,7 +440,7 @@ mod tests {
             Some(false)
         ); // OK : no stry \w 3 lnk
         assert_eq!(
-            D::is_outdistanced(
+            distance_calculator.is_outdistanced(
                 &wot,
                 WotDistanceParameters {
                     node: NodeId(0),
@@ -454,7 +466,7 @@ mod tests {
         assert_eq!(wot.set_enabled(NodeId(3), false), Some(false));
         assert_eq!(wot.get_disabled().len(), 1);
         assert_eq!(
-            D::is_outdistanced(
+            distance_calculator.is_outdistanced(
                 &wot,
                 WotDistanceParameters {
                     node: NodeId(0),
@@ -470,10 +482,13 @@ mod tests {
 
         // Write wot in file
         assert_eq!(
-            file_formater.to_file(&wot,
-                &[0b0000_0000, 0b0000_0001, 0b0000_0001, 0b0000_0000],
-                "test.wot",                
-            ).unwrap(),
+            file_formater
+                .to_file(
+                    &wot,
+                    &[0b0000_0000, 0b0000_0001, 0b0000_0001, 0b0000_0000],
+                    "test.wot"
+                )
+                .unwrap(),
             ()
         );
 
@@ -494,7 +509,7 @@ mod tests {
             assert_eq!(wot2.get_disabled().len(), 1);
             assert_eq!(wot2.is_enabled(NodeId(3)), Some(false));
             assert_eq!(
-                D::is_outdistanced(
+                distance_calculator.is_outdistanced(
                     &wot2,
                     WotDistanceParameters {
                         node: NodeId(0),
@@ -508,7 +523,9 @@ mod tests {
         }
 
         // Read g1_genesis wot
-        let (wot3, blockstamp3) = file_formater.from_file::<W>("tests/g1_genesis.bin", 100).unwrap();
+        let (wot3, blockstamp3) = file_formater
+            .from_file::<W>("tests/g1_genesis.bin", 100)
+            .unwrap();
         assert_eq!(
             blockstamp3,
             vec![
@@ -525,7 +542,7 @@ mod tests {
 
         // Test compute_distance in g1_genesis wot
         assert_eq!(
-            D::compute_distance(
+            distance_calculator.compute_distance(
                 &wot3,
                 WotDistanceParameters {
                     node: NodeId(37),
@@ -552,7 +569,7 @@ mod tests {
         let mut centralities = vec![0; wot_size];
         for i in 0..wot_size {
             for j in 0..wot_size {
-                let paths = P::find_paths(&wot3, NodeId(i), NodeId(j), 5);
+                let paths = path_finder.find_paths(&wot3, NodeId(i), NodeId(j), 5);
                 let mut intermediate_members: Vec<NodeId> = Vec::new();
                 for path in paths {
                     if path.len() > 2 {

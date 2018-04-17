@@ -211,11 +211,9 @@ impl WebOfTrust for RustyWebOfTrust {
 mod tests {
     use super::*;
     use tests::generic_wot_test;
-    use operations::path::RustyPathFinder;
-    use operations::distance::RustyDistanceCalculator;
 
     #[test]
     fn wot_tests() {
-        generic_wot_test::<RustyWebOfTrust, RustyPathFinder, RustyDistanceCalculator>();
+        generic_wot_test::<RustyWebOfTrust>();
     }
 }
