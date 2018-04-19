@@ -29,10 +29,10 @@ use Blockstamp;
 lazy_static! {
     static ref TRANSACTION_REGEX_SIZE: &'static usize = &40_000_000;
     static ref TRANSACTION_REGEX_BUILDER: &'static str =
-        r"^Blockstamp: (?P<blockstamp>[0-9]+-[0-9A-F]{64})\nLocktime: (?P<locktime>[0-9]+)\nIssuers:(?P<issuers>(?:\n[1-9A-Za-z][^OIl]{43,44})+)Inputs:\n(?P<inputs>([0-9A-Za-z:]+\n)+)Unlocks:\n(?P<unlocks>([0-9]+:(SIG\([0-9]+\) ?|XHX\(\w+\) ?)+\n)+)Outputs:\n(?P<outputs>([0-9A-Za-z()&|: ]+\n)+)Comment: (?P<comment>[\\\w:/;*\[\]()?!^+=@&~#{}|<>%. -]{0,255})\n$";
-    static ref ISSUER_REGEX: Regex = Regex::new("(?P<issuer>[1-9A-Za-z][^OIl]{43,44})\n").unwrap();
+        r"^Blockstamp: (?P<blockstamp>[0-9]+-[0-9A-F]{64})\nLocktime: (?P<locktime>[0-9]+)\nIssuers:(?P<issuers>(?:\n[1-9A-Za-z][^OIl]{43,44})+)Inputs:\n(?P<inputs>([0-9A-Za-z:]+\n)+)Unlocks:\n(?P<unlocks>([0-9]+:(SIG\([0-9]+\) ?|XHX\(\w+\) ?)+\n)+)Outputs:\n(?P<outputs>([0-9A-Za-z()&|: ]+\n)+)Comment: (?P<comment>[\\\w:/;*\[\]()?!^+=@&~#{}|<>%. -]{0,255})\n";
+    static ref ISSUER_REGEX: Regex = Regex::new("(?P<issuer>[1-9A-Za-z]{43,44})\n").unwrap();
     static ref D_INPUT_REGEX: Regex = Regex::new(
-        "^(?P<amount>[1-9][0-9]*):(?P<base>[0-9]+):D:(?P<pubkey>[1-9A-Za-z][^OIl]{43,44}):(?P<block_number>[0-9]+)$"
+        "^(?P<amount>[1-9][0-9]*):(?P<base>[0-9]+):D:(?P<pubkey>[1-9A-Za-z]{43,44}):(?P<block_number>[0-9]+)$"
     ).unwrap();
     static ref T_INPUT_REGEX: Regex = Regex::new(
         "^(?P<amount>[1-9][0-9]*):(?P<base>[0-9]+):T:(?P<tx_hash>[0-9A-F]{64}):(?P<tx_index>[0-9]+)$"
@@ -43,7 +43,7 @@ lazy_static! {
     static ref UNLOCK_SIG_REGEX: Regex =
         Regex::new(r"^SIG\((?P<index>[0-9]+)\)$").unwrap();
     static ref UNLOCK_XHX_REGEX: Regex = Regex::new(r"^XHX\((?P<code>\w+)\)$").unwrap();
-    static ref OUTPUT_COND_SIG_REGEX: Regex = Regex::new(r"^SIG\((?P<pubkey>[1-9A-Za-z][^OIl]{43,44})\)$").unwrap();
+    static ref OUTPUT_COND_SIG_REGEX: Regex = Regex::new(r"^SIG\((?P<pubkey>[1-9A-Za-z]{43,44})\)$").unwrap();
     static ref OUTPUT_COND_XHX_REGEX: Regex = Regex::new(r"^XHX\((?P<hash>[0-9A-F]{64})\)$").unwrap();
     static ref OUTPUT_COND_CLTV_REGEX: Regex = Regex::new(r"^CLTV\((?P<timestamp>[0-9]+)\)$").unwrap();
     static ref OUTPUT_COND_CSV_REGEX: Regex = Regex::new(r"^CSV\((?P<timestamp>[0-9]+)\)$").unwrap();
@@ -51,12 +51,12 @@ lazy_static! {
     static ref OUPUT_CONDS_AND: Regex = Regex::new(r"^(?P<conditions_group_1>[0-9A-Za-z()&| ]+) && (?P<conditions_group_2>[0-9A-Za-z()&| ]+)$").unwrap();
     static ref OUPUT_CONDS_OR: Regex = Regex::new(r"^(?P<conditions_group_1>[0-9A-Za-z()&| ]+) \|\| (?P<conditions_group_2>[0-9A-Za-z()&| ]+)$").unwrap();
     static ref OUTPUT_REGEX: Regex = Regex::new(
-        "^(?P<amount>[1-9][0-9]+):(?P<base>[0-9]+):(?P<conditions>[0-9A-Za-z()&| ]+)$"
+        "^(?P<amount>[1-9][0-9]*):(?P<base>[0-9]+):(?P<conditions>[0-9A-Za-z()&| ]+)$"
     ).unwrap();
 }
 
 /// Wrap a transaction input
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionInput {
     /// Universal Dividend Input
     D(isize, usize, ed25519::PublicKey, u64),
@@ -78,7 +78,8 @@ impl ToString for TransactionInput {
 }
 
 impl TransactionInput {
-    fn parse_from_str(source: &str) -> Result<TransactionInput, V10DocumentParsingError> {
+    /// Parse Transaction Input from string.
+    pub fn parse_from_str(source: &str) -> Result<TransactionInput, V10DocumentParsingError> {
         if let Some(caps) = D_INPUT_REGEX.captures(source) {
             let amount = &caps["amount"];
             let base = &caps["base"];
@@ -114,7 +115,7 @@ impl TransactionInput {
 }
 
 /// Wrap a transaction unlock proof
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionUnlockProof {
     /// Indicates that the signature of the corresponding key is at the bottom of the document
     Sig(usize),
@@ -150,7 +151,7 @@ impl TransactionUnlockProof {
 }
 
 /// Wrap a transaction unlocks input
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionInputUnlocks {
     /// Input index
     pub index: usize,
@@ -171,7 +172,10 @@ impl ToString for TransactionInputUnlocks {
 }
 
 impl TransactionInputUnlocks {
-    fn parse_from_str(source: &str) -> Result<TransactionInputUnlocks, V10DocumentParsingError> {
+    /// Parse Transaction Unlock from string.
+    pub fn parse_from_str(
+        source: &str,
+    ) -> Result<TransactionInputUnlocks, V10DocumentParsingError> {
         if let Some(caps) = UNLOCKS_REGEX.captures(source) {
             let index = &caps["index"].parse().expect("fail to parse unlock index");
             let unlocks = &caps["unlocks"];
@@ -195,8 +199,8 @@ impl TransactionInputUnlocks {
 }
 
 /// Wrap a transaction ouput condition
-#[derive(Debug, Clone)]
-pub enum TransactionOuputCondition {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TransactionOutputCondition {
     /// The consumption of funds will require a valid signature of the specified key
     Sig(ed25519::PublicKey),
     /// The consumption of funds will require to provide a code with the hash indicated
@@ -207,37 +211,37 @@ pub enum TransactionOuputCondition {
     Csv(u64),
 }
 
-impl ToString for TransactionOuputCondition {
+impl ToString for TransactionOutputCondition {
     fn to_string(&self) -> String {
         match *self {
-            TransactionOuputCondition::Sig(ref pubkey) => format!("SIG({})", pubkey),
-            TransactionOuputCondition::Xhx(ref hash) => format!("XHX({})", hash),
-            TransactionOuputCondition::Cltv(timestamp) => format!("CLTV({})", timestamp),
-            TransactionOuputCondition::Csv(duration) => format!("CSV({})", duration),
+            TransactionOutputCondition::Sig(ref pubkey) => format!("SIG({})", pubkey),
+            TransactionOutputCondition::Xhx(ref hash) => format!("XHX({})", hash),
+            TransactionOutputCondition::Cltv(timestamp) => format!("CLTV({})", timestamp),
+            TransactionOutputCondition::Csv(duration) => format!("CSV({})", duration),
         }
     }
 }
 
-impl TransactionOuputCondition {
-    fn parse_from_str(source: &str) -> Result<TransactionOuputCondition, V10DocumentParsingError> {
+impl TransactionOutputCondition {
+    fn parse_from_str(source: &str) -> Result<TransactionOutputCondition, V10DocumentParsingError> {
         if let Some(caps) = OUTPUT_COND_SIG_REGEX.captures(source) {
-            Ok(TransactionOuputCondition::Sig(
+            Ok(TransactionOutputCondition::Sig(
                 ed25519::PublicKey::from_base58(&caps["pubkey"])
-                    .expect("fail to parse SIG TransactionOuputCondition"),
+                    .expect("fail to parse SIG TransactionOutputCondition"),
             ))
         } else if let Some(caps) = OUTPUT_COND_XHX_REGEX.captures(source) {
-            Ok(TransactionOuputCondition::Xhx(String::from(&caps["hash"])))
+            Ok(TransactionOutputCondition::Xhx(String::from(&caps["hash"])))
         } else if let Some(caps) = OUTPUT_COND_CLTV_REGEX.captures(source) {
-            Ok(TransactionOuputCondition::Cltv(
+            Ok(TransactionOutputCondition::Cltv(
                 caps["timestamp"]
                     .parse()
-                    .expect("fail to parse CLTV TransactionOuputCondition"),
+                    .expect("fail to parse CLTV TransactionOutputCondition"),
             ))
         } else if let Some(caps) = OUTPUT_COND_CSV_REGEX.captures(source) {
-            Ok(TransactionOuputCondition::Csv(
+            Ok(TransactionOutputCondition::Csv(
                 caps["duration"]
                     .parse()
-                    .expect("fail to parse CSV TransactionOuputCondition"),
+                    .expect("fail to parse CSV TransactionOutputCondition"),
             ))
         } else {
             Err(V10DocumentParsingError::InvalidInnerFormat(
@@ -248,39 +252,39 @@ impl TransactionOuputCondition {
 }
 
 /// Wrap a transaction ouput condition group
-#[derive(Debug, Clone)]
-pub enum TransactionOuputConditionGroup {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TransactionOutputConditionGroup {
     /// Single
-    Single(TransactionOuputCondition),
+    Single(TransactionOutputCondition),
     /// Brackets
-    Brackets(Box<TransactionOuputConditionGroup>),
+    Brackets(Box<TransactionOutputConditionGroup>),
     /// And operator
     And(
-        Box<TransactionOuputConditionGroup>,
-        Box<TransactionOuputConditionGroup>,
+        Box<TransactionOutputConditionGroup>,
+        Box<TransactionOutputConditionGroup>,
     ),
     /// Or operator
     Or(
-        Box<TransactionOuputConditionGroup>,
-        Box<TransactionOuputConditionGroup>,
+        Box<TransactionOutputConditionGroup>,
+        Box<TransactionOutputConditionGroup>,
     ),
 }
 
-impl ToString for TransactionOuputConditionGroup {
+impl ToString for TransactionOutputConditionGroup {
     fn to_string(&self) -> String {
         match *self {
-            TransactionOuputConditionGroup::Single(ref condition) => condition.to_string(),
-            TransactionOuputConditionGroup::Brackets(ref condition_group) => {
+            TransactionOutputConditionGroup::Single(ref condition) => condition.to_string(),
+            TransactionOutputConditionGroup::Brackets(ref condition_group) => {
                 format!("({})", condition_group.deref().to_string())
             }
-            TransactionOuputConditionGroup::And(ref condition_group_1, ref condition_group_2) => {
+            TransactionOutputConditionGroup::And(ref condition_group_1, ref condition_group_2) => {
                 format!(
                     "{} && {}",
                     condition_group_1.deref().to_string(),
                     condition_group_2.deref().to_string()
                 )
             }
-            TransactionOuputConditionGroup::Or(ref condition_group_1, ref condition_group_2) => {
+            TransactionOutputConditionGroup::Or(ref condition_group_1, ref condition_group_2) => {
                 format!(
                     "{} || {}",
                     condition_group_1.deref().to_string(),
@@ -291,33 +295,33 @@ impl ToString for TransactionOuputConditionGroup {
     }
 }
 
-impl TransactionOuputConditionGroup {
+impl TransactionOutputConditionGroup {
     fn parse_from_str(
         conditions: &str,
-    ) -> Result<TransactionOuputConditionGroup, V10DocumentParsingError> {
-        if let Ok(single_condition) = TransactionOuputCondition::parse_from_str(conditions) {
-            Ok(TransactionOuputConditionGroup::Single(single_condition))
+    ) -> Result<TransactionOutputConditionGroup, V10DocumentParsingError> {
+        if let Ok(single_condition) = TransactionOutputCondition::parse_from_str(conditions) {
+            Ok(TransactionOutputConditionGroup::Single(single_condition))
         } else if let Some(caps) = OUPUT_CONDS_BRAKETS.captures(conditions) {
             let inner_conditions =
-                TransactionOuputConditionGroup::parse_from_str(&caps["conditions"])?;
-            Ok(TransactionOuputConditionGroup::Brackets(Box::new(
+                TransactionOutputConditionGroup::parse_from_str(&caps["conditions"])?;
+            Ok(TransactionOutputConditionGroup::Brackets(Box::new(
                 inner_conditions,
             )))
         } else if let Some(caps) = OUPUT_CONDS_AND.captures(conditions) {
             let conditions_group_1 =
-                TransactionOuputConditionGroup::parse_from_str(&caps["conditions_group_1"])?;
+                TransactionOutputConditionGroup::parse_from_str(&caps["conditions_group_1"])?;
             let conditions_group_2 =
-                TransactionOuputConditionGroup::parse_from_str(&caps["conditions_group_2"])?;
-            Ok(TransactionOuputConditionGroup::And(
+                TransactionOutputConditionGroup::parse_from_str(&caps["conditions_group_2"])?;
+            Ok(TransactionOutputConditionGroup::And(
                 Box::new(conditions_group_1),
                 Box::new(conditions_group_2),
             ))
         } else if let Some(caps) = OUPUT_CONDS_OR.captures(conditions) {
             let conditions_group_1 =
-                TransactionOuputConditionGroup::parse_from_str(&caps["conditions_group_1"])?;
+                TransactionOutputConditionGroup::parse_from_str(&caps["conditions_group_1"])?;
             let conditions_group_2 =
-                TransactionOuputConditionGroup::parse_from_str(&caps["conditions_group_2"])?;
-            Ok(TransactionOuputConditionGroup::Or(
+                TransactionOutputConditionGroup::parse_from_str(&caps["conditions_group_2"])?;
+            Ok(TransactionOutputConditionGroup::Or(
                 Box::new(conditions_group_1),
                 Box::new(conditions_group_2),
             ))
@@ -331,17 +335,17 @@ impl TransactionOuputConditionGroup {
 }
 
 /// Wrap a transaction ouput
-#[derive(Debug, Clone)]
-pub struct TransactionOuput {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransactionOutput {
     /// Amount
     pub amount: isize,
     /// Base
     pub base: usize,
     /// List of conditions for consum this output
-    pub conditions: TransactionOuputConditionGroup,
+    pub conditions: TransactionOutputConditionGroup,
 }
 
-impl ToString for TransactionOuput {
+impl ToString for TransactionOutput {
     fn to_string(&self) -> String {
         format!(
             "{}:{}:{}",
@@ -352,13 +356,14 @@ impl ToString for TransactionOuput {
     }
 }
 
-impl TransactionOuput {
-    fn parse_from_str(source: &str) -> Result<TransactionOuput, V10DocumentParsingError> {
+impl TransactionOutput {
+    /// Parse Transaction Ouput from string.
+    pub fn parse_from_str(source: &str) -> Result<TransactionOutput, V10DocumentParsingError> {
         if let Some(caps) = OUTPUT_REGEX.captures(source) {
             let amount = caps["amount"].parse().expect("fail to parse output amount");
             let base = caps["base"].parse().expect("fail to parse base amount");
-            let conditions = TransactionOuputConditionGroup::parse_from_str(&caps["conditions"])?;
-            Ok(TransactionOuput {
+            let conditions = TransactionOutputConditionGroup::parse_from_str(&caps["conditions"])?;
+            Ok(TransactionOutput {
                 conditions,
                 amount,
                 base,
@@ -374,7 +379,7 @@ impl TransactionOuput {
 /// Wrap a Transaction document.
 ///
 /// Must be created by parsing a text document or using a builder.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionDocument {
     /// Document as text.
     ///
@@ -395,7 +400,7 @@ pub struct TransactionDocument {
     /// Inputs unlocks.
     unlocks: Vec<TransactionInputUnlocks>,
     /// Transaction outputs.
-    outputs: Vec<TransactionOuput>,
+    outputs: Vec<TransactionOutput>,
     /// Transaction comment
     comment: String,
     /// Document signature (there should be only one).
@@ -500,7 +505,7 @@ pub struct TransactionDocumentBuilder<'a> {
     /// Inputs unlocks.
     pub unlocks: &'a Vec<TransactionInputUnlocks>,
     /// Transaction ouputs.
-    pub outputs: &'a Vec<TransactionOuput>,
+    pub outputs: &'a Vec<TransactionOutput>,
     /// Transaction comment
     pub comment: &'a str,
 }
@@ -631,7 +636,7 @@ impl StandardTextDocumentParser for TransactionDocumentParser {
             let mut outputs = Vec::new();
             for output in outputs_array {
                 if !output.is_empty() {
-                    outputs.push(TransactionOuput::parse_from_str(output)?);
+                    outputs.push(TransactionOutput::parse_from_str(output)?);
                 }
             }
 
@@ -695,7 +700,7 @@ mod tests {
                     .expect("fail to parse unlock !"),
             ],
             outputs: &vec![
-                TransactionOuput::parse_from_str(
+                TransactionOutput::parse_from_str(
                     "10:0:SIG(FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa)",
                 ).expect("fail to parse output !"),
             ],
