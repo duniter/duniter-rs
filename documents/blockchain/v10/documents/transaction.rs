@@ -361,7 +361,7 @@ impl ToString for TransactionOutput {
 }
 
 impl TransactionOutput {
-    /// Parse Transaction Ouput from string.
+    /// Parse Transaction Output from string.
     pub fn parse_from_str(source: &str) -> Result<TransactionOutput, V10DocumentParsingError> {
         if let Some(caps) = OUTPUT_REGEX.captures(source) {
             let amount = caps["amount"].parse().expect("fail to parse output amount");
