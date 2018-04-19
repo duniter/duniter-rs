@@ -166,7 +166,7 @@ pub struct WotDistance {
 /// Trait for a Web Of Trust.
 /// Allow to provide other implementations of the `WoT` logic instead of the legacy C++
 /// translated one.
-pub trait WebOfTrust {
+pub trait WebOfTrust: Clone {
     /// Get the maximum number of links per user.
     fn get_max_link(&self) -> usize;
 
