@@ -15,10 +15,10 @@
 
 //! Provide a trait and implementations to compute distances.
 
-use std::collections::HashSet;
-use rayon::prelude::*;
-use data::WebOfTrust;
 use data::NodeId;
+use data::WebOfTrust;
+use rayon::prelude::*;
+use std::collections::HashSet;
 
 /// Paramters for `WoT` distance calculations
 #[derive(Debug, Copy, Clone, PartialEq)]

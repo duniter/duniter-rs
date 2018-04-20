@@ -16,10 +16,10 @@
 //! Provide a trait and implementation to read and write `WebOfTrust` to disk.
 
 use data::NodeId;
-use std::io::prelude::*;
-use std::io;
 use std::fs;
 use std::fs::File;
+use std::io;
+use std::io::prelude::*;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
