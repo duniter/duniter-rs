@@ -27,11 +27,9 @@
 //! [js-tests]: https://github.com/duniter/wotb/blob/master/wotcpp/webOfTrust.cpp
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![deny(
-    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
-    trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
-    unused_qualifications
-)]
+#![deny(missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
+        trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+        unused_qualifications)]
 
 extern crate bincode;
 extern crate byteorder;
@@ -40,359 +38,30 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-pub mod legacy;
-pub mod rusty;
+pub mod data;
+pub mod operations;
 
-pub use legacy::LegacyWebOfTrust;
-
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-
-use std::fs;
-use std::fs::File;
-use std::io::prelude::*;
-
-/// Wrapper for a node id.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct NodeId(pub usize);
-
-/// Results of a certification, with the current certification count
-/// of the destination as parameter.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum NewLinkResult {
-    /// Certification worked.
-    Ok(usize),
-    /// This certification already exist.
-    AlreadyCertified(usize),
-    /// All available certifications has been used.
-    AllCertificationsUsed(usize),
-    /// Unknown source.
-    UnknownSource(),
-    /// Unknown target.
-    UnknownTarget(),
-    /// Self linking is forbidden.
-    SelfLinkingForbidden(),
-}
-
-/// Results of a certification removal, with the current certification count
-/// of the destination as parameter.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RemLinkResult {
-    /// Certification has been removed.
-    Removed(usize),
-    /// Requested certification doesn't exist.
-    UnknownCert(usize),
-    /// Unknown source.
-    UnknownSource(),
-    /// Unknown target.
-    UnknownTarget(),
-}
-
-/// Results of `WebOfTrust` parsing from binary file.
-#[derive(Debug)]
-pub enum WotParseError {
-    /// FailToOpenFile
-    FailToOpenFile(std::io::Error),
-
-    /// IOError
-    IOError(std::io::Error),
-}
-
-impl From<std::io::Error> for WotParseError {
-    fn from(e: std::io::Error) -> WotParseError {
-        WotParseError::IOError(e)
-    }
-}
-
-/// Results of `WebOfTrust` writing to binary file.
-#[derive(Debug)]
-pub enum WotWriteError {
-    /// WrongWotSize
-    WrongWotSize(),
-
-    /// FailToCreateFile
-    FailToCreateFile(std::io::Error),
-
-    /// FailToWriteInFile
-    FailToWriteInFile(std::io::Error),
-}
-
-impl From<std::io::Error> for WotWriteError {
-    fn from(e: std::io::Error) -> WotWriteError {
-        WotWriteError::FailToWriteInFile(e)
-    }
-}
-
-/// Results of a certification test.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum HasLinkResult {
-    /// Both nodes are known, here is the result.
-    Link(bool),
-    /// Unknown source.
-    UnknownSource(),
-    /// Unknown target.
-    UnknownTarget(),
-}
-
-/// Paramters for `WoT` distance calculations
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct WotDistanceParameters {
-    /// Node from where distances are calculated.
-    pub node: NodeId,
-    /// Links count received AND issued to be a sentry.
-    pub sentry_requirement: u32,
-    /// Currency parameter.
-    pub step_max: u32,
-    /// Currency parameter.
-    pub x_percent: f64,
-}
-
-/// Results of `WebOfTrust::compute_distance`.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct WotDistance {
-    /// Sentries count
-    pub sentries: u32,
-    /// Success count
-    pub success: u32,
-    /// Succes at border count
-    pub success_at_border: u32,
-    /// Reached count
-    pub reached: u32,
-    /// Reached at border count
-    pub reached_at_border: u32,
-    /// Is the node outdistanced ?
-    pub outdistanced: bool,
-}
-
-/// Trait for a Web Of Trust.
-/// Allow to provide other implementations of the `WoT` logic instead of the legacy C++
-/// translated one.
-pub trait WebOfTrust: Clone {
-    /// Get the maximum number of links per user.
-    fn get_max_link(&self) -> usize;
-
-    /// Set the maximum number of links per user.
-    fn set_max_link(&mut self, max_link: usize);
-
-    /// Add a new node.
-    fn add_node(&mut self) -> NodeId;
-
-    /// Remove the last node.
-    /// Returns `None` if the WoT was empty, otherwise new top node id.
-    fn rem_node(&mut self) -> Option<NodeId>;
-
-    /// Get the size of the WoT.
-    fn size(&self) -> usize;
-
-    /// Check if given node is enabled.
-    /// Returns `None` if this node doesn't exist.
-    fn is_enabled(&self, id: NodeId) -> Option<bool>;
-
-    /// Set the enabled state of given node.
-    /// Returns `Null` if this node doesn't exist, `enabled` otherwise.
-    fn set_enabled(&mut self, id: NodeId, enabled: bool) -> Option<bool>;
-
-    /// Get enabled node array.
-    fn get_enabled(&self) -> Vec<NodeId>;
-
-    /// Get disabled node array.
-    fn get_disabled(&self) -> Vec<NodeId>;
-
-    /// Try to add a link from the source to the target.
-    fn add_link(&mut self, source: NodeId, target: NodeId) -> NewLinkResult;
-
-    /// Try to remove a link from the source to the target.
-    fn rem_link(&mut self, source: NodeId, target: NodeId) -> RemLinkResult;
-
-    /// Test if there is a link from the source to the target.
-    fn has_link(&self, source: NodeId, target: NodeId) -> HasLinkResult;
-
-    /// Get the list of links source for this target.
-    /// Returns `None` if this node doesn't exist.
-    fn get_links_source(&self, target: NodeId) -> Option<Vec<NodeId>>;
-
-    /// Get the number of issued links by a node.
-    /// Returns `None` if this node doesn't exist.
-    fn issued_count(&self, id: NodeId) -> Option<usize>;
-
-    /// Get sentries array.
-    fn get_sentries(&self, sentry_requirement: usize) -> Vec<NodeId>;
-
-    /// Get non sentries array.
-    fn get_non_sentries(&self, sentry_requirement: usize) -> Vec<NodeId>;
-
-    /// Get paths from one node to the other.
-    fn get_paths(&self, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>>;
-
-    /// Compute distance between a node and the network.
-    /// Returns `None` if this node doesn't exist.
-    fn compute_distance(&self, params: WotDistanceParameters) -> Option<WotDistance>;
-
-    /// Test if a node is outdistanced in the network.
-    /// Returns `Node` if this node doesn't exist.
-    fn is_outdistanced(&self, params: WotDistanceParameters) -> Option<bool>;
-
-    /// Load WebOfTrust from binary file
-    fn from_file(&mut self, path: &str) -> Result<Vec<u8>, WotParseError> {
-        let file_size = fs::metadata(path).expect("fail to read wotb file !").len();
-        let mut file_pointing_to_blockstamp_size: Vec<u8> = vec![0; file_size as usize];
-        match File::open(path) {
-            Ok(mut file) => {
-                file.read_exact(&mut file_pointing_to_blockstamp_size.as_mut_slice())?;
-            }
-            Err(e) => return Err(WotParseError::FailToOpenFile(e)),
-        };
-        // Read up to 4 bytes (blockstamp_size)
-        let mut file_pointing_to_blockstamp = file_pointing_to_blockstamp_size.split_off(4);
-        // Get blockstamp size
-        let mut buf = &file_pointing_to_blockstamp_size[..];
-        let blockstamp_size = buf.read_u32::<BigEndian>().unwrap();
-        // Read up to blockstamp_size bytes (blockstamp)
-        let mut file_pointing_to_nodes_count =
-            file_pointing_to_blockstamp.split_off(blockstamp_size as usize);
-        // Read up to 4 bytes (nodes_count)
-        let mut file_pointing_to_nodes_states = file_pointing_to_nodes_count.split_off(4);
-        // Read nodes_count
-        let mut buf = &file_pointing_to_nodes_count[..];
-        let nodes_count = buf.read_u32::<BigEndian>().unwrap();
-        // Calcule nodes_state size
-        let nodes_states_size = match nodes_count % 8 {
-            0 => nodes_count / 8,
-            _ => (nodes_count / 8) + 1,
-        };
-        // Read up to nodes_states_size bytes (nodes_states)
-        let file_pointing_to_links =
-            file_pointing_to_nodes_states.split_off(nodes_states_size as usize);
-        // Apply nodes state
-        let mut count_remaining_nodes = nodes_count;
-        for byte in file_pointing_to_nodes_states {
-            let mut byte_integer = u8::from_be(byte);
-            let mut factor: u8 = 128;
-            for _i in 0..8 {
-                if count_remaining_nodes > 0 {
-                    self.add_node();
-                    if byte_integer >= factor {
-                        byte_integer -= factor;
-                    } else {
-                        let _test = self.set_enabled(
-                            NodeId((nodes_count - count_remaining_nodes) as usize),
-                            false,
-                        );
-                    }
-                    count_remaining_nodes -= 1;
-                }
-                factor /= 2;
-            }
-        }
-        // Apply links
-        let mut buffer_3b: Vec<u8> = Vec::with_capacity(3);
-        let mut count_bytes = 0;
-        let mut remaining_links: u8 = 0;
-        let mut target: u32 = 0;
-        for byte in file_pointing_to_links {
-            if remaining_links == 0 {
-                target += 1;
-                remaining_links = u8::from_be(byte);
-                count_bytes = 0;
-            } else {
-                buffer_3b.push(byte);
-                if count_bytes % 3 == 2 {
-                    let mut buf = &buffer_3b.clone()[..];
-                    let source = buf.read_u24::<BigEndian>().expect("fail to parse source");
-                    self.add_link(NodeId(source as usize), NodeId((target - 1) as usize));
-                    remaining_links -= 1;
-                    buffer_3b.clear();
-                }
-                count_bytes += 1;
-            }
-        }
-        Ok(file_pointing_to_blockstamp)
-    }
-
-    /// Write WebOfTrust to binary file
-    fn to_file(&self, path: &str, blockstamp: &[u8]) -> Result<(), WotWriteError> {
-        let mut buffer: Vec<u8> = Vec::new();
-        // Write blockstamp size
-        let blockstamp_size = blockstamp.len() as u32;
-        let mut bytes: Vec<u8> = Vec::with_capacity(4);
-        bytes.write_u32::<BigEndian>(blockstamp_size).unwrap();
-        buffer.append(&mut bytes);
-        // Write blockstamp
-        buffer.append(&mut blockstamp.to_vec());
-        // Write nodes_count
-        let nodes_count = self.size() as u32;
-        let mut bytes: Vec<u8> = Vec::with_capacity(4);
-        bytes.write_u32::<BigEndian>(nodes_count).unwrap();
-        buffer.append(&mut bytes);
-        // Write enable state by groups of 8 (count links at the same time)
-        let mut enable_states: u8 = 0;
-        let mut factor: u8 = 128;
-        for n in 0..nodes_count {
-            match self.is_enabled(NodeId(n as usize)) {
-                Some(enable) => {
-                    if enable {
-                        enable_states += factor;
-                    }
-                }
-                None => {
-                    return Err(WotWriteError::WrongWotSize());
-                }
-            }
-            if n % 8 == 7 {
-                factor = 128;
-                let mut tmp_buf = Vec::with_capacity(1);
-                tmp_buf.write_u8(enable_states).unwrap();
-                buffer.append(&mut tmp_buf);
-                enable_states = 0;
-            } else {
-                factor /= 2;
-            }
-        }
-        // nodes_states padding
-        if nodes_count % 8 != 7 {
-            let mut tmp_buf = Vec::with_capacity(1);
-            tmp_buf.write_u8(enable_states).unwrap();
-            buffer.append(&mut tmp_buf);
-        }
-        // Write links
-        for n in 0..nodes_count {
-            if let Some(sources) = self.get_links_source(NodeId(n as usize)) {
-                // Write sources_counts
-                let mut bytes = Vec::with_capacity(1);
-                bytes.write_u8(sources.len() as u8).unwrap();
-                buffer.append(&mut bytes);
-                for source in &sources {
-                    // Write source
-                    let mut bytes: Vec<u8> = Vec::with_capacity(3);
-                    bytes.write_u24::<BigEndian>(source.0 as u32).unwrap();
-                    buffer.append(&mut bytes);
-                }
-            };
-        }
-        // Create or open file
-        let mut file = match File::create(path) {
-            Ok(file) => file,
-            Err(e) => return Err(WotWriteError::FailToCreateFile(e)),
-        };
-        // Write buffer in file
-        file.write_all(&buffer)?;
-
-        Ok(())
-    }
-}
+pub use data::{NodeId, WebOfTrust};
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use data::*;
+    use operations::distance::*;
+    use operations::path::*;
+    use operations::file::*;
 
     /// Test translated from https://github.com/duniter/wotb/blob/master/tests/test.js
     ///
     /// Clone and file tests are not included in this generic test and should be done in
     /// the implementation test.
-    pub fn generic_wot_test<T: WebOfTrust, F>(generator: F)
+    pub fn generic_wot_test<W>()
     where
-        F: Fn(usize) -> T,
+        W: WebOfTrust + Sync,
     {
-        let mut wot = generator(3);
+        let path_finder = RustyPathFinder {};
+        let distance_calculator = RustyDistanceCalculator {};
+        let mut wot = W::new(3);
 
         // should have an initial size of 0
         assert_eq!(wot.size(), 0);
@@ -584,32 +253,41 @@ mod tests {
 
         // should successfully use distance rule
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 1,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            distance_calculator.is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 1,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         );
         // => no because 2,4,5 have certified him
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 2,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            distance_calculator.is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 2,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         );
         // => no because only member 2 has 2 certs, and has certified him
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 3,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            distance_calculator.is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 3,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         );
         // => no because no member has issued 3 certifications
@@ -633,48 +311,66 @@ mod tests {
         assert_eq!(wot.get_non_sentries(1).len(), 11); // 12 - 1
         assert_eq!(wot.get_non_sentries(2).len(), 12); // 12 - 0
         assert_eq!(wot.get_non_sentries(3).len(), 12); // 12 - 0
-        assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 1).len(), 0); // KO
-        assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
-        assert!(wot.get_paths(NodeId(3), NodeId(0), 2).contains(&vec![
-            NodeId(3),
-            NodeId(2),
-            NodeId(0),
-        ]));
+        assert_eq!(
+            path_finder.find_paths(&wot, NodeId(3), NodeId(0), 1).len(),
+            0
+        ); // KO
+        assert_eq!(
+            path_finder.find_paths(&wot, NodeId(3), NodeId(0), 2).len(),
+            1
+        ); // It exists 3 -> 2 -> 0
+        assert!(
+            path_finder
+                .find_paths(&wot, NodeId(3), NodeId(0), 2)
+                .contains(&vec![NodeId(3), NodeId(2), NodeId(0)])
+        );
 
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 1,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            distance_calculator.is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 1,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         ); // OK : 2 -> 0
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 2,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            distance_calculator.is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 2,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         ); // OK : 2 -> 0
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 3,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            distance_calculator.is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 3,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         ); // OK : no stry \w 3 lnk
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 2,
-                step_max: 2,
-                x_percent: 1.0,
-            },),
+            distance_calculator.is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 2,
+                    step_max: 2,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         ); // OK : 2 -> 0
 
@@ -693,48 +389,66 @@ mod tests {
         assert_eq!(wot.get_non_sentries(1).len(), 9); // 12 - 3
         assert_eq!(wot.get_non_sentries(2).len(), 11); // 12 - 1
         assert_eq!(wot.get_non_sentries(3).len(), 12); // 12 - 0
-        assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 1).len(), 0); // KO
-        assert_eq!(wot.get_paths(NodeId(3), NodeId(0), 2).len(), 1); // It exists 3 -> 2 -> 0
-        assert!(wot.get_paths(NodeId(3), NodeId(0), 2).contains(&vec![
-            NodeId(3),
-            NodeId(2),
-            NodeId(0),
-        ]));
+        assert_eq!(
+            path_finder.find_paths(&wot, NodeId(3), NodeId(0), 1).len(),
+            0
+        ); // KO
+        assert_eq!(
+            path_finder.find_paths(&wot, NodeId(3), NodeId(0), 2).len(),
+            1
+        ); // It exists 3 -> 2 -> 0
+        assert!(
+            path_finder
+                .find_paths(&wot, NodeId(3), NodeId(0), 2)
+                .contains(&vec![NodeId(3), NodeId(2), NodeId(0)])
+        );
 
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 1,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            distance_calculator.is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 1,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(true)
         ); // KO : No path 3 -> 0
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 2,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            distance_calculator.is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 2,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(true)
         ); // KO : No path 3 -> 0
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 3,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            distance_calculator.is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 3,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         ); // OK : no stry \w 3 lnk
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 2,
-                step_max: 2,
-                x_percent: 1.0,
-            },),
+            distance_calculator.is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 2,
+                    step_max: 2,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         ); // OK : 3 -> 2 -> 0
 
@@ -752,30 +466,38 @@ mod tests {
         assert_eq!(wot.set_enabled(NodeId(3), false), Some(false));
         assert_eq!(wot.get_disabled().len(), 1);
         assert_eq!(
-            wot.is_outdistanced(WotDistanceParameters {
-                node: NodeId(0),
-                sentry_requirement: 2,
-                step_max: 1,
-                x_percent: 1.0,
-            },),
+            distance_calculator.is_outdistanced(
+                &wot,
+                WotDistanceParameters {
+                    node: NodeId(0),
+                    sentry_requirement: 2,
+                    step_max: 1,
+                    x_percent: 1.0,
+                },
+            ),
             Some(false)
         ); // OK : Disabled
 
+        let file_formater = BinaryFileFormater {};
+
         // Write wot in file
         assert_eq!(
-            wot.to_file(
-                "test.wot",
-                &[0b0000_0000, 0b0000_0001, 0b0000_0001, 0b0000_0000]
-            ).unwrap(),
+            file_formater
+                .to_file(
+                    &wot,
+                    &[0b0000_0000, 0b0000_0001, 0b0000_0001, 0b0000_0000],
+                    "test.wot"
+                )
+                .unwrap(),
             ()
         );
 
-        let mut wot2 = generator(3);
+        let (wot2, blockstamp2) = file_formater.from_file::<W>("test.wot", 3).unwrap();
 
         // Read wot from file
         {
             assert_eq!(
-                wot2.from_file("test.wot").unwrap(),
+                blockstamp2,
                 vec![0b0000_0000, 0b0000_0001, 0b0000_0001, 0b0000_0000]
             );
             assert_eq!(wot.size(), wot2.size());
@@ -787,20 +509,25 @@ mod tests {
             assert_eq!(wot2.get_disabled().len(), 1);
             assert_eq!(wot2.is_enabled(NodeId(3)), Some(false));
             assert_eq!(
-                wot2.is_outdistanced(WotDistanceParameters {
-                    node: NodeId(0),
-                    sentry_requirement: 2,
-                    step_max: 1,
-                    x_percent: 1.0,
-                },),
+                distance_calculator.is_outdistanced(
+                    &wot2,
+                    WotDistanceParameters {
+                        node: NodeId(0),
+                        sentry_requirement: 2,
+                        step_max: 1,
+                        x_percent: 1.0,
+                    },
+                ),
                 Some(false)
             );
         }
 
         // Read g1_genesis wot
-        let mut wot3 = generator(100);
+        let (wot3, blockstamp3) = file_formater
+            .from_file::<W>("tests/g1_genesis.bin", 100)
+            .unwrap();
         assert_eq!(
-            wot3.from_file("tests/g1_genesis.bin").unwrap(),
+            blockstamp3,
             vec![
                 57, 57, 45, 48, 48, 48, 48, 49, 50, 65, 68, 52, 57, 54, 69, 67, 65, 53, 54, 68, 69,
                 48, 66, 56, 69, 53, 68, 54, 70, 55, 52, 57, 66, 55, 67, 66, 69, 55, 56, 53, 53, 51,
@@ -815,12 +542,15 @@ mod tests {
 
         // Test compute_distance in g1_genesis wot
         assert_eq!(
-            wot3.compute_distance(WotDistanceParameters {
-                node: NodeId(37),
-                sentry_requirement: 3,
-                step_max: 5,
-                x_percent: 0.8,
-            },),
+            distance_calculator.compute_distance(
+                &wot3,
+                WotDistanceParameters {
+                    node: NodeId(37),
+                    sentry_requirement: 3,
+                    step_max: 5,
+                    x_percent: 0.8,
+                },
+            ),
             Some(WotDistance {
                 sentries: 48,
                 success: 48,
@@ -839,7 +569,7 @@ mod tests {
         let mut centralities = vec![0; wot_size];
         for i in 0..wot_size {
             for j in 0..wot_size {
-                let paths = wot3.get_paths(NodeId(i), NodeId(j), 5);
+                let paths = path_finder.find_paths(&wot3, NodeId(i), NodeId(j), 5);
                 let mut intermediate_members: Vec<NodeId> = Vec::new();
                 for path in paths {
                     if path.len() > 2 {

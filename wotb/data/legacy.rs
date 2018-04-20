@@ -16,21 +16,16 @@
 //! Provide a legacy implementation of `WebOfTrust` storage and calculations.
 //! Its mostly translated directly from the original C++ code.
 
-use std::collections::hash_set::Iter;
 use std::collections::HashSet;
+use std::collections::hash_set::Iter;
 use std::fs::File;
 use std::io::prelude::*;
-use std::rc::Rc;
-use WotDistance;
 
 use bincode::{deserialize, serialize, Infinite};
 
-use HasLinkResult;
-use NewLinkResult;
-use NodeId;
-use RemLinkResult;
+use super::{HasLinkResult, NewLinkResult, RemLinkResult};
 use WebOfTrust;
-use WotDistanceParameters;
+use NodeId;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Node {
@@ -104,19 +99,6 @@ impl Node {
     }
 }
 
-#[derive(Debug)]
-struct WotStep {
-    pub previous: Option<Rc<Box<WotStep>>>,
-    pub node: NodeId,
-    pub distance: u32,
-}
-
-struct LookupStep {
-    paths: Vec<Rc<Box<WotStep>>>,
-    matching_paths: Vec<Rc<Box<WotStep>>>,
-    distances: Vec<u32>,
-}
-
 /// Store a Web of Trust.
 ///
 /// Allow to create/remove nodes and links between them.
@@ -135,14 +117,6 @@ pub struct LegacyWebOfTrust {
 }
 
 impl LegacyWebOfTrust {
-    /// Create a new Web of Trust with the maxium certificications count.
-    pub fn new(max_cert: usize) -> LegacyWebOfTrust {
-        LegacyWebOfTrust {
-            nodes: vec![],
-            max_cert,
-        }
-    }
-
     /// Read `WoT` from file.
     pub fn legacy_from_file(path: &str) -> Option<LegacyWebOfTrust> {
         let mut file = match File::open(path) {
@@ -170,72 +144,16 @@ impl LegacyWebOfTrust {
             Err(_) => false,
         }
     }
-
-    fn check_matches(&self, node: NodeId, d: u32, d_max: u32, mut checked: Vec<bool>) -> Vec<bool> {
-        let mut linked_nodes = Vec::new();
-
-        for linked_node in self.nodes[node.0].links_iter() {
-            checked[linked_node.0] = true;
-            linked_nodes.push(*linked_node);
-        }
-
-        if d < d_max {
-            for linked_node in &linked_nodes {
-                checked = self.check_matches(*linked_node, d + 1, d_max, checked);
-            }
-        }
-
-        checked
-    }
-
-    fn lookup(
-        &self,
-        source: NodeId,
-        target: NodeId,
-        distance: u32,
-        distance_max: u32,
-        previous: &Rc<Box<WotStep>>,
-        mut lookup_step: LookupStep,
-    ) -> LookupStep {
-        if source != target && distance <= distance_max {
-            let mut local_paths: Vec<Rc<Box<WotStep>>> = vec![];
-
-            for &by in self.nodes[target.0].links_iter() {
-                if distance < lookup_step.distances[by.0] {
-                    lookup_step.distances[by.0] = distance;
-                    let step = Rc::new(Box::new(WotStep {
-                        previous: Some(Rc::clone(previous)),
-                        node: by,
-                        distance,
-                    }));
-
-                    lookup_step.paths.push(Rc::clone(&step));
-                    local_paths.push(Rc::clone(&step));
-                    if by == source {
-                        lookup_step.matching_paths.push(Rc::clone(&step));
-                    }
-                }
-            }
-
-            if distance <= distance_max {
-                for path in &local_paths {
-                    lookup_step = self.lookup(
-                        source,
-                        path.node,
-                        distance + 1,
-                        distance_max,
-                        &Rc::clone(path),
-                        lookup_step,
-                    );
-                }
-            }
-        }
-
-        lookup_step
-    }
 }
 
 impl WebOfTrust for LegacyWebOfTrust {
+    fn new(max_cert: usize) -> LegacyWebOfTrust {
+        LegacyWebOfTrust {
+            nodes: vec![],
+            max_cert,
+        }
+    }
+
     fn get_max_link(&self) -> usize {
         self.max_cert
     }
@@ -342,6 +260,19 @@ impl WebOfTrust for LegacyWebOfTrust {
         }
     }
 
+    fn is_sentry(&self, node: NodeId, sentry_requirement: usize) -> Option<bool> {
+        if node.0 >= self.size() {
+            return None;
+        }
+
+        let node = &self.nodes[node.0];
+
+        Some(
+            node.enabled && node.issued_count() >= sentry_requirement
+                && node.links_iter().count() >= sentry_requirement,
+        )
+    }
+
     fn get_sentries(&self, sentry_requirement: usize) -> Vec<NodeId> {
         self.nodes
             .iter()
@@ -379,125 +310,6 @@ impl WebOfTrust for LegacyWebOfTrust {
         } else {
             Some(self.nodes[id.0].issued_count)
         }
-    }
-
-    fn compute_distance(&self, params: WotDistanceParameters) -> Option<WotDistance> {
-        let WotDistanceParameters {
-            node,
-            sentry_requirement,
-            step_max,
-            x_percent,
-        } = params;
-
-        if node.0 >= self.size() {
-            return None;
-        }
-
-        let sentry_requirement = sentry_requirement as usize;
-
-        let mut result = WotDistance {
-            sentries: 0,
-            success: 0,
-            success_at_border: 0,
-            reached: 0,
-            reached_at_border: 0,
-            outdistanced: false,
-        };
-
-        let mut sentries: Vec<bool> = self.nodes
-            .iter()
-            .map(|x| {
-                x.enabled && x.issued_count() >= sentry_requirement
-                    && x.links_iter().count() >= sentry_requirement
-            })
-            .collect();
-        sentries[node.0] = false;
-
-        let mut checked: Vec<bool> = self.nodes.iter().map(|_| false).collect();
-        let mut checked_without_border: Vec<bool> = checked.clone();
-
-        if step_max >= 1 {
-            checked = self.check_matches(node, 1, step_max, checked);
-            if step_max >= 2 {
-                checked_without_border =
-                    self.check_matches(node, 1, step_max - 1, checked_without_border);
-            }
-        }
-
-        for ((&sentry, &check), &check_without_border) in sentries
-            .iter()
-            .zip(checked.iter())
-            .zip(checked_without_border.iter())
-        {
-            if sentry {
-                result.sentries += 1;
-                if check {
-                    result.success += 1;
-                    result.reached += 1;
-                    if !check_without_border {
-                        result.success_at_border += 1;
-                        result.reached_at_border += 1;
-                    }
-                }
-            } else if check {
-                result.reached += 1;
-            }
-        }
-
-        result.outdistanced = f64::from(result.success) < x_percent * f64::from(result.sentries);
-        Some(result)
-    }
-
-    fn is_outdistanced(&self, params: WotDistanceParameters) -> Option<bool> {
-        let WotDistanceParameters { node, .. } = params;
-
-        if node.0 >= self.size() {
-            None
-        } else {
-            match self.compute_distance(params) {
-                Some(distance) => Some(distance.outdistanced),
-                None => None,
-            }
-        }
-    }
-
-    fn get_paths(&self, from: NodeId, to: NodeId, step_max: u32) -> Vec<Vec<NodeId>> {
-        let mut lookup_step = LookupStep {
-            paths: vec![],
-            matching_paths: vec![],
-            distances: self.nodes.iter().map(|_| step_max + 1).collect(),
-        };
-
-        lookup_step.distances[to.0] = 0;
-
-        let root = Rc::new(Box::new(WotStep {
-            previous: None,
-            node: to,
-            distance: 0,
-        }));
-
-        lookup_step.paths.push(Rc::clone(&root));
-
-        lookup_step = self.lookup(from, to, 1, step_max, &root, lookup_step);
-
-        let mut result: Vec<Vec<NodeId>> = Vec::with_capacity(lookup_step.matching_paths.len());
-
-        for step in &lookup_step.matching_paths {
-            let mut vecpath = vec![];
-            let mut step = Rc::clone(step);
-
-            loop {
-                vecpath.push(step.node);
-                if step.previous.is_none() {
-                    break;
-                }
-                step = step.previous.clone().unwrap();
-            }
-
-            result.push(vecpath);
-        }
-
-        result
     }
 }
 
@@ -565,9 +377,8 @@ mod tests {
         assert!(node2.has_link_from(&node1));
     }
 
-    /// This test is a translation of https://github.com/duniter/wotb/blob/master/tests/test.js
     #[test]
     fn wot_tests() {
-        generic_wot_test(LegacyWebOfTrust::new);
+        generic_wot_test::<LegacyWebOfTrust>();
     }
 }
