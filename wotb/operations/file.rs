@@ -162,7 +162,7 @@ impl FileFormater for BinaryFileFormater {
         Ok((wot, file_pointing_to_blockstamp))
     }
 
-    /// Tru to write a `WebOfTrust` in a file.
+    /// Try to write a `WebOfTrust` in a file.
     fn to_file<T: WebOfTrust>(
         &self,
         wot: &T,
