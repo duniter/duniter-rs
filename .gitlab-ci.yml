@@ -2,6 +2,7 @@ stages:
     - build_and_tests
     - clippy
     - fmt
+    - publish
     
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
@@ -56,3 +57,15 @@ fmt:
   script:
     - cargo fmt -- --write-mode=diff
   allow_failure: true
+
+publish:
+  stage: publish
+  tags:
+    - redshift-rs-stable
+  script:
+    - chmod +x gitlab/publish.sh
+    - ./gitlab/publish.sh
+  only:
+    - tags
+  allow_failure: false
+  when: manual
