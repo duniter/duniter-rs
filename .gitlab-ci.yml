@@ -58,7 +58,7 @@ fmt:
     - cargo fmt -- --write-mode=diff
   allow_failure: true
 
-publish:
+publish:crate:
   stage: publish
   tags:
     - redshift-rs-stable
