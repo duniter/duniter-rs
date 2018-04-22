@@ -15,6 +15,7 @@
 
 //! Provide operation traits and implementations on `WebOfTrust` objects.
 
-pub mod path;
+pub mod centrality;
 pub mod distance;
 pub mod file;
+pub mod path;

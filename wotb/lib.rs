@@ -27,9 +27,11 @@
 //! [js-tests]: https://github.com/duniter/wotb/blob/master/wotcpp/webOfTrust.cpp
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![deny(missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
-        trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
-        unused_qualifications)]
+#![deny(
+    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
+    trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+    unused_qualifications
+)]
 
 extern crate bincode;
 extern crate byteorder;
@@ -47,9 +49,10 @@ pub use data::{NodeId, WebOfTrust};
 mod tests {
     use super::*;
     use data::*;
+    use operations::centrality::*;
     use operations::distance::*;
-    use operations::path::*;
     use operations::file::*;
+    use operations::path::*;
 
     /// Test translated from https://github.com/duniter/wotb/blob/master/tests/test.js
     ///
@@ -59,8 +62,9 @@ mod tests {
     where
         W: WebOfTrust + Sync,
     {
-        let path_finder = RustyPathFinder {};
+        let centralities_calculator = UlrikBrandesCentralityCalculator {};
         let distance_calculator = RustyDistanceCalculator {};
+        let path_finder = RustyPathFinder {};
         let mut wot = W::new(3);
 
         // should have an initial size of 0
@@ -561,8 +565,31 @@ mod tests {
             },)
         );
 
-        // Test centralities computation in g1_genesis wot
-        let wot_size = wot3.size();
+        // Test betweenness centralities computation in g1_genesis wot
+        let centralities = centralities_calculator.betweenness_centralities(&wot3);
+        assert_eq!(centralities.len(), 59);
+        assert_eq!(
+            centralities,
+            vec![
+                148, 30, 184, 11, 60, 51, 40, 115, 24, 140, 47, 69, 16, 34, 94, 126, 151, 0, 34,
+                133, 20, 103, 38, 144, 73, 523, 124, 23, 47, 17, 9, 64, 77, 281, 6, 105, 54, 0,
+                111, 21, 6, 2, 0, 1, 47, 59, 28, 236, 0, 0, 0, 0, 60, 6, 0, 1, 8, 33, 169,
+            ]
+        );
+
+        // Test stress centralities computation in g1_genesis wot
+        let stress_centralities = centralities_calculator.stress_centralities(&wot3);
+        assert_eq!(stress_centralities.len(), 59);
+        assert_eq!(
+            stress_centralities,
+            vec![
+                848, 240, 955, 80, 416, 203, 290, 645, 166, 908, 313, 231, 101, 202, 487, 769, 984,
+                0, 154, 534, 105, 697, 260, 700, 496, 1726, 711, 160, 217, 192, 89, 430, 636, 1276,
+                41, 420, 310, 0, 357, 125, 50, 15, 0, 12, 275, 170, 215, 1199, 0, 0, 0, 0, 201, 31,
+                0, 9, 55, 216, 865,
+            ]
+        );
+        /*let wot_size = wot3.size();
         let members_count = wot3.get_enabled().len() as u64;
         assert_eq!(members_count, 59);
         let oriented_couples_count: u64 = members_count * (members_count - 1);
@@ -593,6 +620,6 @@ mod tests {
         for centrality in centralities {
             relative_centralities.push((centrality * 100_000 / oriented_couples_count) as usize);
         }
-        assert_eq!(relative_centralities.len(), 59);
+        assert_eq!(relative_centralities.len(), 59);*/
     }
 }

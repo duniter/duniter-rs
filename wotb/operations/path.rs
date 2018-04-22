@@ -15,9 +15,9 @@
 
 //! Provide a trait and implementations to find paths between nodes.
 
-use std::collections::HashSet;
 use data::NodeId;
 use data::WebOfTrust;
+use std::collections::HashSet;
 
 /// Find paths between 2 nodes of a `WebOfTrust`.
 pub trait PathFinder<T: WebOfTrust> {

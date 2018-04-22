@@ -16,16 +16,16 @@
 //! Provide a legacy implementation of `WebOfTrust` storage and calculations.
 //! Its mostly translated directly from the original C++ code.
 
-use std::collections::HashSet;
 use std::collections::hash_set::Iter;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 
 use bincode::{deserialize, serialize, Infinite};
 
 use super::{HasLinkResult, NewLinkResult, RemLinkResult};
-use WebOfTrust;
 use NodeId;
+use WebOfTrust;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Node {

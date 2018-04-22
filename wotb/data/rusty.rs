@@ -15,11 +15,11 @@
 
 //! Experimental implementation of the Web of Trust in a more "rusty" style.
 
-use std::collections::HashSet;
-use rayon::prelude::*;
-use WebOfTrust;
 use super::{HasLinkResult, NewLinkResult, RemLinkResult};
+use rayon::prelude::*;
+use std::collections::HashSet;
 use NodeId;
+use WebOfTrust;
 
 /// A node in the `WoT` graph.
 #[derive(Debug, Clone, PartialEq, Eq)]
