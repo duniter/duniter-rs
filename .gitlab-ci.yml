@@ -2,6 +2,7 @@ stages:
     - build_and_tests
     - clippy
     - fmt
+    - publish
     
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
@@ -56,3 +57,17 @@ fmt:
   script:
     - cargo fmt -- --write-mode=diff
   allow_failure: true
+
+publish:crate:
+  stage: publish
+  tags:
+    - redshift-rs-stable
+  script:
+    - IFS='/' read -r first a <<< "$CI_COMMIT_TAG"
+    - cd $first
+    - cargo login $DUNITER_CRATES_TOKEN
+    - cargo publish
+  only:
+    - tags
+  allow_failure: false
+  when: manual
