@@ -114,7 +114,7 @@ impl<T: WebOfTrust + Sync> DistanceCalculator<T> for RustyDistanceCalculator {
 
         Some(WotDistance {
             sentries,
-            reached: area.len() as u32,
+            reached: area.len() as u32 - 1,
             reached_at_border: border.len() as u32,
             success,
             success_at_border,
