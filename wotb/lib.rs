@@ -559,7 +559,7 @@ mod tests {
                 sentries: 48,
                 success: 48,
                 success_at_border: 3,
-                reached: 52,
+                reached: 51,
                 reached_at_border: 3,
                 outdistanced: false,
             },)
