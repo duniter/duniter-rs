@@ -589,37 +589,19 @@ mod tests {
                 0, 9, 55, 216, 865,
             ]
         );
-        /*let wot_size = wot3.size();
-        let members_count = wot3.get_enabled().len() as u64;
-        assert_eq!(members_count, 59);
-        let oriented_couples_count: u64 = members_count * (members_count - 1);
-        let mut centralities = vec![0; wot_size];
-        for i in 0..wot_size {
-            for j in 0..wot_size {
-                let paths = path_finder.find_paths(&wot3, NodeId(i), NodeId(j), 5);
-                let mut intermediate_members: Vec<NodeId> = Vec::new();
-                for path in paths {
-                    if path.len() > 2 {
-                        for node_id in &path[1..path.len() - 1] {
-                            if !intermediate_members.contains(node_id) {
-                                intermediate_members.push(*node_id);
-                            }
-                        }
-                    }
-                }
-                let centralities_copy = centralities.clone();
-                for node_id in intermediate_members {
-                    let centrality = &centralities_copy[node_id.0];
-                    if let Some(tmp) = centralities.get_mut(node_id.0) {
-                        *tmp = *centrality + 1;
-                    }
-                }
-            }
-        }
-        let mut relative_centralities = Vec::with_capacity(wot_size);
-        for centrality in centralities {
-            relative_centralities.push((centrality * 100_000 / oriented_couples_count) as usize);
-        }
-        assert_eq!(relative_centralities.len(), 59);*/
+
+        // Test distance stress centralities computation in g1_genesis wot
+        let distance_stress_centralities =
+            centralities_calculator.distance_stress_centralities(&wot3, 5);
+        assert_eq!(distance_stress_centralities.len(), 59);
+        assert_eq!(
+            distance_stress_centralities,
+            vec![
+                848, 240, 955, 80, 416, 203, 290, 645, 166, 908, 313, 231, 101, 202, 487, 769, 984,
+                0, 154, 534, 105, 697, 260, 700, 496, 1726, 711, 160, 217, 192, 89, 430, 636, 1276,
+                41, 420, 310, 0, 357, 125, 50, 15, 0, 12, 275, 170, 215, 1199, 0, 0, 0, 0, 201, 31,
+                0, 9, 55, 216, 865,
+            ]
+        );
     }
 }
