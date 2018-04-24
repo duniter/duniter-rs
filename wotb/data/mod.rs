@@ -70,7 +70,7 @@ pub enum HasLinkResult {
 /// Trait for a Web Of Trust.
 /// Allow to provide other implementations of the `WoT` logic instead of the legacy C++
 /// translated one.
-pub trait WebOfTrust {
+pub trait WebOfTrust: Clone + Sync {
     /// Create a new Web of Trust with the maximum of links a node can issue.
     fn new(max_links: usize) -> Self;
 
