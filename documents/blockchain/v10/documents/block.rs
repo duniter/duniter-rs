@@ -225,6 +225,14 @@ impl BlockDocument {
             transactions_str.push_str("\n");
             transactions_str.push_str(&transaction.generate_compact_text());
         }
+        let mut dividend_str = String::from("");
+        if let Some(dividend) = self.dividend {
+            if dividend > 0 {
+                dividend_str.push_str("UniversalDividend: ");
+                dividend_str.push_str(&dividend.to_string());
+                dividend_str.push_str("\n");
+            }
+        }
         format!(
             "Version: 10
 Type: Block
@@ -233,7 +241,7 @@ Number: {block_number}
 PoWMin: {pow_min}
 Time: {time}
 MedianTime: {median_time}
-UnitBase: {unit_base}
+{dividend}UnitBase: {unit_base}
 Issuer: {issuer}
 IssuersFrame: {issuers_frame}
 IssuersFrameVar: {issuers_frame_var}
@@ -255,6 +263,7 @@ Transactions:{transactions}
             pow_min = self.pow_min,
             time = self.time,
             median_time = self.median_time,
+            dividend = dividend_str,
             unit_base = self.unit_base,
             issuer = self.issuers[0],
             issuers_frame = self.issuers_frame,
