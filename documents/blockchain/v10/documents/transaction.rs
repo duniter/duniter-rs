@@ -25,8 +25,10 @@ use regex::RegexBuilder;
 
 use self::serde::ser::{Serialize, Serializer};
 
-use blockchain::v10::documents::{StandardTextDocumentParser, TextDocument, TextDocumentBuilder,
-                                 V10Document, V10DocumentParsingError};
+use blockchain::v10::documents::{
+    StandardTextDocumentParser, TextDocument, TextDocumentBuilder, V10Document,
+    V10DocumentParsingError,
+};
 use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
 use Blockstamp;
 

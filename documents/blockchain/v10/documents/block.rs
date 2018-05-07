@@ -114,11 +114,7 @@ pub struct BlockDocument {
     /// Currency parameters (only in genesis block)
     pub parameters: Option<BlockParameters>,
     /// Hash of the previous block
-<<<<<<< HEAD
     pub previous_hash: Hash,
-=======
-    pub previous_hash: Option<Hash>,
->>>>>>> ab39d74... [fix] passBlockDocument fields in public
     /// Issuer of the previous block
     pub previous_issuer: Option<ed25519::PublicKey>,
     /// Hash of the deterministic content of the block
