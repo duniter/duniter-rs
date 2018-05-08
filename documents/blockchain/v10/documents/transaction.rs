@@ -466,11 +466,17 @@ impl TextDocument for TransactionDocument {
             outputs_str.push_str("\n");
             outputs_str.push_str(&output.to_string());
         }
+        let mut comment_str = self.comment.clone();
+        if !comment_str.is_empty() {
+            comment_str.push_str("\n");
+        }
         let mut signatures_str = String::from("");
         for sig in self.signatures.clone() {
-            signatures_str.push_str("\n");
             signatures_str.push_str(&sig.to_string());
+            signatures_str.push_str("\n");
         }
+        // Remove end line step
+        signatures_str.pop();
         format!(
             "TX:10:{issuers_count}:{inputs_count}:{unlocks_count}:{outputs_count}:{has_comment}:{locktime}
 {blockstamp}{issuers}{inputs}{unlocks}{outputs}\n{comment}{signatures}",
@@ -485,7 +491,7 @@ impl TextDocument for TransactionDocument {
             inputs = inputs_str,
             unlocks = unlocks_str,
             outputs = outputs_str,
-            comment = self.comment,
+            comment = comment_str,
             signatures = signatures_str,
         )
     }

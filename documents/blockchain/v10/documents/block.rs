@@ -145,7 +145,11 @@ impl BlockDocument {
     /// Compute inner hash
     pub fn compute_inner_hash(&mut self) {
         let mut sha256 = Sha256::new();
-        sha256.input_str(&self.generate_compact_inner_text());
+        let inner_text = self.generate_compact_inner_text();
+        /*if self.number.0 == 46473 {
+            println!("#46473 raw_format=\"{}\"", inner_text);
+        }*/
+        sha256.input_str(&inner_text);
         self.inner_hash = Some(Hash::from_hex(&sha256.result_str()).unwrap());
     }
     /// Change nonce
