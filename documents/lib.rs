@@ -34,8 +34,8 @@ extern crate serde;
 
 use std::fmt::{Debug, Display, Error, Formatter};
 
-use duniter_crypto::keys::BaseConvertionError;
 use self::serde::ser::{Serialize, Serializer};
+use duniter_crypto::keys::BaseConvertionError;
 
 pub mod blockchain;
 

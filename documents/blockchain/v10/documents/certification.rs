@@ -17,12 +17,14 @@
 
 extern crate serde;
 
-use duniter_crypto::keys::{PublicKey, Signature, ed25519};
-use regex::Regex;
 use self::serde::ser::{Serialize, Serializer};
+use duniter_crypto::keys::{ed25519, PublicKey, Signature};
+use regex::Regex;
 
-use blockchain::v10::documents::{StandardTextDocumentParser, TextDocument, TextDocumentBuilder,
-                                 V10Document, V10DocumentParsingError};
+use blockchain::v10::documents::{
+    StandardTextDocumentParser, TextDocument, TextDocumentBuilder, V10Document,
+    V10DocumentParsingError,
+};
 use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
 use Blockstamp;
 

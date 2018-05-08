@@ -28,11 +28,11 @@ use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
 
+use self::serde::ser::{Serialize, Serializer};
 use base58::{FromBase58, FromBase58Error, ToBase58};
 use base64;
 use base64::DecodeError;
 use crypto;
-use self::serde::ser::{Serialize, Serializer};
 
 use super::{BaseConvertionError, PrivateKey as PrivateKeyMethods, PublicKey as PublicKeyMethods};
 

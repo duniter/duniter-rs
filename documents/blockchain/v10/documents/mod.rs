@@ -32,13 +32,15 @@ pub mod revocation;
 pub mod transaction;
 
 pub use blockchain::v10::documents::block::BlockDocument;
-pub use blockchain::v10::documents::certification::{CertificationDocument,
-                                                    CertificationDocumentParser};
+pub use blockchain::v10::documents::certification::{
+    CertificationDocument, CertificationDocumentParser,
+};
 pub use blockchain::v10::documents::identity::{IdentityDocument, IdentityDocumentBuilder};
 pub use blockchain::v10::documents::membership::{MembershipDocument, MembershipDocumentParser};
 pub use blockchain::v10::documents::revocation::{RevocationDocument, RevocationDocumentParser};
-pub use blockchain::v10::documents::transaction::{TransactionDocument, TransactionDocumentBuilder,
-                                                  TransactionDocumentParser};
+pub use blockchain::v10::documents::transaction::{
+    TransactionDocument, TransactionDocumentBuilder, TransactionDocumentParser,
+};
 
 // Use of lazy_static so the regex is only compiled at first use.
 lazy_static! {
