@@ -15,11 +15,16 @@
 
 //! Wrappers around Membership documents.
 
+extern crate serde;
+
+use self::serde::ser::{Serialize, Serializer};
 use duniter_crypto::keys::{ed25519, PublicKey};
 use regex::Regex;
 
-use blockchain::v10::documents::{StandardTextDocumentParser, TextDocument, TextDocumentBuilder,
-                                 V10Document, V10DocumentParsingError};
+use blockchain::v10::documents::{
+    StandardTextDocumentParser, TextDocument, TextDocumentBuilder, V10Document,
+    V10DocumentParsingError,
+};
 use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
 use Blockstamp;
 
@@ -92,6 +97,10 @@ impl Document for MembershipDocument {
         &self.currency
     }
 
+    fn blockstamp(&self) -> Blockstamp {
+        self.blockstamp
+    }
+
     fn issuers(&self) -> &Vec<ed25519::PublicKey> {
         &self.issuers
     }
@@ -119,6 +128,15 @@ impl TextDocument for MembershipDocument {
             idty_blockstamp = self.identity_blockstamp,
             username = self.identity_username,
         )
+    }
+}
+
+impl Serialize for MembershipDocument {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.generate_compact_text())
     }
 }
 

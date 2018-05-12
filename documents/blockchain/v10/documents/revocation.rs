@@ -15,11 +15,16 @@
 
 //! Wrappers around Revocation documents.
 
+extern crate serde;
+
+use self::serde::ser::{Serialize, Serializer};
 use duniter_crypto::keys::{ed25519, PublicKey, Signature};
 use regex::Regex;
 
-use blockchain::v10::documents::{StandardTextDocumentParser, TextDocument, TextDocumentBuilder,
-                                 V10Document, V10DocumentParsingError};
+use blockchain::v10::documents::{
+    StandardTextDocumentParser, TextDocument, TextDocumentBuilder, V10Document,
+    V10DocumentParsingError,
+};
 use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
 use Blockstamp;
 
@@ -75,6 +80,10 @@ impl Document for RevocationDocument {
         &self.currency
     }
 
+    fn blockstamp(&self) -> Blockstamp {
+        unimplemented!()
+    }
+
     fn issuers(&self) -> &Vec<ed25519::PublicKey> {
         &self.issuers
     }
@@ -99,6 +108,15 @@ impl TextDocument for RevocationDocument {
             issuer = self.issuers[0],
             signature = self.signatures[0],
         )
+    }
+}
+
+impl Serialize for RevocationDocument {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.generate_compact_text())
     }
 }
 

@@ -81,78 +81,75 @@ pub struct BlockParameters {
 #[derive(Debug, Clone)]
 pub struct BlockDocument {
     /// Nonce
-    nonce: u64,
+    pub nonce: u64,
     /// number
-    number: BlockId,
+    pub number: BlockId,
     /// Minimal proof of work difficulty
-    pow_min: usize,
+    pub pow_min: usize,
     /// Local time of the block issuer
-    time: u64,
+    pub time: u64,
     /// Average time
-    median_time: u64,
+    pub median_time: u64,
     /// Members count
-    members_count: usize,
+    pub members_count: usize,
     /// Monetary mass
-    monetary_mass: usize,
+    pub monetary_mass: usize,
     /// Unit base (power of ten)
-    unit_base: usize,
+    pub unit_base: usize,
     /// Number of compute members in the current frame
-    issuers_count: usize,
+    pub issuers_count: usize,
     /// Current frame size (in blocks)
-    issuers_frame: isize,
+    pub issuers_frame: isize,
     /// Current frame variation buffer
-    issuers_frame_var: isize,
+    pub issuers_frame_var: isize,
     /// Currency.
-    currency: String,
+    pub currency: String,
     /// Document issuer (there should be only one).
-    issuers: Vec<ed25519::PublicKey>,
+    pub issuers: Vec<ed25519::PublicKey>,
     /// Document signature (there should be only one).
     /// This vector is empty, when the block is generated but the proof of work has not yet started
-    signatures: Vec<ed25519::Signature>,
+    pub signatures: Vec<ed25519::Signature>,
     /// The hash is None, when the block is generated but the proof of work has not yet started
-    hash: Option<BlockHash>,
+    pub hash: Option<BlockHash>,
     /// Currency parameters (only in genesis block)
-    parameters: Option<BlockParameters>,
+    pub parameters: Option<BlockParameters>,
     /// Hash of the previous block
-    previous_hash: Option<Hash>,
+    pub previous_hash: Hash,
     /// Issuer of the previous block
-    previous_issuer: Option<ed25519::PublicKey>,
+    pub previous_issuer: Option<ed25519::PublicKey>,
     /// Hash of the deterministic content of the block
-    inner_hash: Option<Hash>,
+    pub inner_hash: Option<Hash>,
     /// Amount of new dividend created at this block, None if no dividend is created at this block
-    dividend: Option<usize>,
+    pub dividend: Option<usize>,
     /// Identities
-    identities: Vec<IdentityDocument>,
+    pub identities: Vec<IdentityDocument>,
     /// joiners
-    joiners: Vec<MembershipDocument>,
+    pub joiners: Vec<MembershipDocument>,
     /// Actives (=renewals)
-    actives: Vec<MembershipDocument>,
+    pub actives: Vec<MembershipDocument>,
     /// Leavers
-    leavers: Vec<MembershipDocument>,
+    pub leavers: Vec<MembershipDocument>,
     /// Revokeds
-    revoked: Vec<RevocationDocument>,
+    pub revoked: Vec<RevocationDocument>,
     /// Excludeds
-    excluded: Vec<ed25519::PublicKey>,
+    pub excluded: Vec<ed25519::PublicKey>,
     /// Certifications
-    certifications: Vec<CertificationDocument>,
+    pub certifications: Vec<CertificationDocument>,
     /// Transactions
-    transactions: Vec<TransactionDocument>,
+    pub transactions: Vec<TransactionDocument>,
     /// Part to sign
-    inner_hash_and_nonce_str: String,
+    pub inner_hash_and_nonce_str: String,
 }
 
 impl BlockDocument {
-    /// Return blockstamp
-    pub fn blockstamp(&self) -> Blockstamp {
-        Blockstamp {
-            id: self.number,
-            hash: self.hash.unwrap(),
-        }
-    }
     /// Compute inner hash
     pub fn compute_inner_hash(&mut self) {
         let mut sha256 = Sha256::new();
-        sha256.input_str(&self.generate_compact_inner_text());
+        let inner_text = self.generate_compact_inner_text();
+        /*if self.number.0 == 46473 {
+            println!("#46473 raw_format=\"{}\"", inner_text);
+        }*/
+        sha256.input_str(&inner_text);
         self.inner_hash = Some(Hash::from_hex(&sha256.result_str()).unwrap());
     }
     /// Change nonce
@@ -269,7 +266,7 @@ Transactions:{transactions}
             issuers_frame = self.issuers_frame,
             issuers_frame_var = self.issuers_frame_var,
             issuers_count = self.issuers_count,
-            previous_hash = self.previous_hash.unwrap(),
+            previous_hash = self.previous_hash,
             previous_issuer = self.previous_issuer.unwrap(),
             members_count = self.members_count,
             identities = identities_str,
@@ -294,6 +291,13 @@ impl Document for BlockDocument {
 
     fn currency(&self) -> &str {
         &self.currency
+    }
+
+    fn blockstamp(&self) -> Blockstamp {
+        Blockstamp {
+            id: self.number,
+            hash: self.hash.unwrap(),
+        }
     }
 
     fn issuers(&self) -> &Vec<ed25519::PublicKey> {
@@ -357,7 +361,7 @@ mod tests {
             signatures: vec![ed25519::Signature::from_base64("FsRxB+NOiL+8zTr2d3B2j2KBItDuCa0KjFMF6hXmdQzfqXAs9g3m7DlGgYLcqzqe6JXjx/Lyzqze1HBR4cS0Aw==").unwrap()],
             hash: None,
             parameters: None,
-            previous_hash: Some(Hash::from_hex("0000001F8AACF6764135F3E5D0D4E8358A3CBE537A4BF71152A00CC442EFD136").expect("fail to parse previous_hash")),
+            previous_hash: Hash::from_hex("0000001F8AACF6764135F3E5D0D4E8358A3CBE537A4BF71152A00CC442EFD136").expect("fail to parse previous_hash"),
             previous_issuer: Some(ed25519::PublicKey::from_base58("38MEAZN68Pz1DTvT3tqgxx4yQP6snJCQhPqEFxbDk4aE").unwrap()),
             inner_hash: None,
             dividend: None,
@@ -492,7 +496,7 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
             signatures: vec![ed25519::Signature::from_base64("92id58VmkhgVNee4LDqBGSm8u/ooHzAD67JM6fhAE/CV8LCz7XrMF1DvRl+eRpmlaVkp6I+Iy8gmZ1WUM5C8BA==").unwrap()],
             hash: None,
             parameters: None,
-            previous_hash: Some(Hash::from_hex("000001144968D0C3516BE6225E4662F182E28956AF46DD7FB228E3D0F9413FEB").expect("fail to parse previous_hash")),
+            previous_hash: Hash::from_hex("000001144968D0C3516BE6225E4662F182E28956AF46DD7FB228E3D0F9413FEB").expect("fail to parse previous_hash"),
             previous_issuer: Some(ed25519::PublicKey::from_base58("D3krfq6J9AmfpKnS3gQVYoy7NzGCc61vokteTS8LJ4YH").unwrap()),
             inner_hash: None,
             dividend: None,

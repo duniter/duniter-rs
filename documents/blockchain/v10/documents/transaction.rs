@@ -15,14 +15,20 @@
 
 //! Wrappers around Transaction documents.
 
+extern crate serde;
+
 use std::ops::Deref;
 
 use duniter_crypto::keys::{ed25519, PublicKey};
 use regex::Regex;
 use regex::RegexBuilder;
 
-use blockchain::v10::documents::{StandardTextDocumentParser, TextDocument, TextDocumentBuilder,
-                                 V10Document, V10DocumentParsingError};
+use self::serde::ser::{Serialize, Serializer};
+
+use blockchain::v10::documents::{
+    StandardTextDocumentParser, TextDocument, TextDocumentBuilder, V10Document,
+    V10DocumentParsingError,
+};
 use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
 use Blockstamp;
 
@@ -357,7 +363,7 @@ impl ToString for TransactionOutput {
 }
 
 impl TransactionOutput {
-    /// Parse Transaction Ouput from string.
+    /// Parse Transaction Output from string.
     pub fn parse_from_str(source: &str) -> Result<TransactionOutput, V10DocumentParsingError> {
         if let Some(caps) = OUTPUT_REGEX.captures(source) {
             let amount = caps["amount"].parse().expect("fail to parse output amount");
@@ -419,6 +425,10 @@ impl Document for TransactionDocument {
         &self.currency
     }
 
+    fn blockstamp(&self) -> Blockstamp {
+        self.blockstamp
+    }
+
     fn issuers(&self) -> &Vec<ed25519::PublicKey> {
         &self.issuers
     }
@@ -458,11 +468,17 @@ impl TextDocument for TransactionDocument {
             outputs_str.push_str("\n");
             outputs_str.push_str(&output.to_string());
         }
+        let mut comment_str = self.comment.clone();
+        if !comment_str.is_empty() {
+            comment_str.push_str("\n");
+        }
         let mut signatures_str = String::from("");
         for sig in self.signatures.clone() {
-            signatures_str.push_str("\n");
             signatures_str.push_str(&sig.to_string());
+            signatures_str.push_str("\n");
         }
+        // Remove end line step
+        signatures_str.pop();
         format!(
             "TX:10:{issuers_count}:{inputs_count}:{unlocks_count}:{outputs_count}:{has_comment}:{locktime}
 {blockstamp}{issuers}{inputs}{unlocks}{outputs}\n{comment}{signatures}",
@@ -477,9 +493,19 @@ impl TextDocument for TransactionDocument {
             inputs = inputs_str,
             unlocks = unlocks_str,
             outputs = outputs_str,
-            comment = self.comment,
+            comment = comment_str,
             signatures = signatures_str,
         )
+    }
+}
+
+impl Serialize for TransactionDocument {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let compact_text = self.generate_compact_text();
+        serializer.serialize_str(&compact_text.replace("\n", "$"))
     }
 }
 
