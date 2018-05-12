@@ -20,6 +20,8 @@ use std::collections::hash_set::Iter;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
+use std::rc::Rc;
+use WotDistance;
 
 use bincode::{deserialize, serialize, Infinite};
 
