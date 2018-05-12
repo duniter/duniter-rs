@@ -17,9 +17,9 @@
 
 extern crate serde;
 
-use self::serde::ser::{Serialize, Serializer};
-use duniter_crypto::keys::{ed25519, PublicKey};
+use duniter_crypto::keys::{PublicKey, ed25519};
 use regex::Regex;
+use self::serde::ser::{Serialize, Serializer};
 
 use blockchain::v10::documents::{
     StandardTextDocumentParser, TextDocument, TextDocumentBuilder, V10Document,
