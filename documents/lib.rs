@@ -32,6 +32,7 @@ extern crate linked_hash_map;
 extern crate regex;
 extern crate serde;
 
+use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Error, Formatter};
 
 use self::serde::ser::{Serialize, Serializer};
@@ -40,7 +41,7 @@ use duniter_crypto::keys::BaseConvertionError;
 pub mod blockchain;
 
 /// A block Id.
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Eq, Hash)]
+#[derive(Debug, Copy, Clone, Ord, PartialEq, PartialOrd, Eq, Hash)]
 pub struct BlockId(pub u32);
 
 impl Display for BlockId {
@@ -52,7 +53,7 @@ impl Display for BlockId {
 /// A hash wrapper.
 ///
 /// A hash is often provided as string composed of 64 hexadecimal character (0 to 9 then A to F).
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Hash)]
 pub struct Hash(pub [u8; 32]);
 
 impl Display for Hash {
@@ -121,7 +122,7 @@ impl Hash {
 }
 
 /// Wrapper of a block hash.
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Hash)]
 pub struct BlockHash(pub Hash);
 
 impl Display for BlockHash {
@@ -194,6 +195,22 @@ impl Serialize for Blockstamp {
         S: Serializer,
     {
         serializer.serialize_str(&format!("{}-{}", self.id, self.hash))
+    }
+}
+
+impl PartialOrd for Blockstamp {
+    fn partial_cmp(&self, other: &Blockstamp) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Blockstamp {
+    fn cmp(&self, other: &Blockstamp) -> Ordering {
+        if self.id == other.id {
+            self.hash.cmp(&other.hash)
+        } else {
+            self.id.cmp(&other.id)
+        }
     }
 }
 
