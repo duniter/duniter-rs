@@ -1,0 +1,28 @@
+[package]
+name = "duniter-core"
+version = "0.1.0"
+authors = ["librelois <elois@ifee.fr>"]
+description = "Duniter-rs core."
+license = "AGPL-3.0"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+clap = {version = "2.31.2", features = ["yaml"]}
+duniter-blockchain = { path = "../blockchain" }
+duniter-conf = { path = "../conf" }
+duniter-crypto = { path = "../crypto" }
+duniter-message =  { path = "../message" }
+duniter-module = { path = "../module" }
+lazy_static = "1.0.0"
+log = "0.4.1"
+rand = "0.4.2"
+regex = "0.2.6"
+rust-crypto = "0.2.36"
+serde = "1.0.24"
+serde_derive = "1.0.24"
+serde_json = "1.0.9"
+simplelog = "0.5.1"
+sqlite = "0.23.9"
+threadpool = "1.7.1"

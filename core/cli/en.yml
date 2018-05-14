@@ -1,0 +1,64 @@
+name: durs
+version: "0.1.0"
+author: Elois L. <elois@duniter.org>
+about: Rust implementation of Duniter
+args:
+    - profile:
+        short: p
+        long: profile
+        value_name: CUSTOM_PROFILE
+        help: Set a custom datas folder
+        takes_value: true
+    - logs:
+        short: l
+        long : logs
+        value_name: LOGS_LEVEL
+        takes_value: true
+        possible_values: ["e", "w", "i", "d", "t", "error", "warn", "info", "debug", "trace"]
+        help: Set the level of logs verbosity
+        long_help: "Set the level of logs verbosity :\n
+          error : print serious errors\n
+          warn : print hazardous situations\n
+          info : default level\n
+          debug : print a lot of debug informations\n
+          trace : print all traces (highly verbose)"
+subcommands:
+    - start:
+        about: start duniter server
+        version: "0.1.0"
+        author: Elois L. <elois@duniter.org>
+    - sync_ts:
+        about: synchronization via a duniter-ts database
+        version: "0.1.0"
+        author: Elois L. <elois@duniter.org>
+        args:
+            - TS_PROFILE:
+                help: Set the ts profile to use
+                index: 1
+            - cautious:
+                short: c
+                long: cautious
+                help: cautious mode (check all protocol rules, very slow)
+    - msync_ts:
+        about: synchronization in memory mode via a duniter-ts database
+        version: "0.1.0"
+        author: Elois L. <elois@duniter.org>
+        args:
+            - TS_PROFILE:
+                help: Set the ts profile to use
+                index: 1
+            - cautious:
+                short: c
+                long: cautious
+                help: cautious mode (check all protocol rules, very slow)
+    - reset:
+        about: reset data or conf or all
+        version: "0.1.0"
+        author: Elois L. <elois@duniter.org>
+        args:
+            - DATAS_TYPE:
+                help : choose type datas to reset
+                index: 1
+                possible_values: ["data","conf","all"]
+                required: true
+            
