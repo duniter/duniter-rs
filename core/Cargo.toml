@@ -26,3 +26,7 @@ serde_json = "1.0.9"
 simplelog = "0.5.1"
 sqlite = "0.23.9"
 threadpool = "1.7.1"
+
+[features]
+# Treat warnings as a build error.
+strict = []

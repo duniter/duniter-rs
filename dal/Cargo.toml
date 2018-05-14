@@ -27,3 +27,5 @@ websocket = "0.20.2"
 
 [features]
 exp = []
+# Treat warnings as a build error.
+strict = []

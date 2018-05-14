@@ -354,7 +354,6 @@ pub fn get_wot_path(profile: String, currency: &Currency) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use duniter_module::ModuleId;
 
     #[test]
     fn load_conf_file() {

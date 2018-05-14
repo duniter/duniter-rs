@@ -11,8 +11,9 @@ build_and_tests:stable:
   stage: build_and_tests
   tags:
     - redshift-rs-stable
-  script:
-    - cargo test --all-features
+  script: 
+    - cargo build --features strict
+    - cargo test --all
     
 build_and_tests:beta:
   stage: build_and_tests
@@ -20,7 +21,8 @@ build_and_tests:beta:
     - redshift-rs-beta
   script:
     - rustup update
-    - cargo test --all-features
+    - cargo build --features strict
+    - cargo test --all
   when: manual
   allow_failure: true
     
@@ -30,7 +32,8 @@ build_and_tests:nightly:
   tags:
     - redshift-rs-nightly
   script:
-    - cargo test --all-features
+    - cargo build --features strict
+    - cargo test --all
   when: manual
   allow_failure: true
   
