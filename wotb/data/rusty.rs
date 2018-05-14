@@ -176,7 +176,8 @@ impl WebOfTrust for RustyWebOfTrust {
         let node = &self.nodes[node.0];
 
         Some(
-            node.enabled && node.issued_count >= sentry_requirement
+            node.enabled
+                && node.issued_count >= sentry_requirement
                 && node.links_source.len() >= sentry_requirement,
         )
     }
@@ -186,7 +187,8 @@ impl WebOfTrust for RustyWebOfTrust {
             .par_iter()
             .enumerate()
             .filter(|&(_, n)| {
-                n.enabled && n.issued_count >= sentry_requirement
+                n.enabled
+                    && n.issued_count >= sentry_requirement
                     && n.links_source.len() >= sentry_requirement
             })
             .map(|(i, _)| NodeId(i))
