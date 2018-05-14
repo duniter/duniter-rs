@@ -139,6 +139,7 @@ pub struct WS2PModuleDatas {
     pub threads_senders_channels: HashMap<NodeFullId, mpsc::Sender<WS2POrderForListeningThread>>,
     pub requests_awaiting_response: HashMap<ModuleReqId, (NetworkRequest, NodeFullId, SystemTime)>,
     pub heads_cache: HashMap<NodeFullId, NetworkHead>,
+    pub my_head: Option<NetworkHead>,
     pub uids_cache: HashMap<ed25519::PublicKey, String>,
 }
 
@@ -208,7 +209,7 @@ impl DuniterModule<ed25519::PublicKey, ed25519::KeyPair, DuniterMessage> for WS2
         keys: RequiredKeysContent<ed25519::PublicKey, ed25519::KeyPair>,
         duniter_conf: &DuniterConf,
         module_conf: &serde_json::Value,
-        main_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
+        rooter_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
         load_conf_only: bool,
     ) -> Result<(), ModuleInitError> {
         let start_time = SystemTime::now();
@@ -224,6 +225,7 @@ impl DuniterModule<ed25519::PublicKey, ed25519::KeyPair, DuniterMessage> for WS2
             threads_senders_channels: HashMap::new(),
             requests_awaiting_response: HashMap::new(),
             heads_cache: HashMap::new(),
+            my_head: None,
             uids_cache: HashMap::new(),
         };
 
@@ -259,12 +261,13 @@ impl DuniterModule<ed25519::PublicKey, ed25519::KeyPair, DuniterMessage> for WS2
         // Launch a proxy thread that transform DuniterMessage to WS2PThreadSignal(DuniterMessage)
         thread::spawn(move || {
             // Send proxy sender to main
-            match main_sender.send(RooterThreadMessage::ModuleSender(proxy_sender_clone)) {
+            match rooter_sender.send(RooterThreadMessage::ModuleSender(proxy_sender_clone)) {
                 Ok(_) => {
                     debug!("Send ws2p sender to main thread.");
                 }
                 Err(_) => panic!("Fatal error : ws2p module fail to send is sender channel !"),
             }
+            //drop(rooter_sender);
             loop {
                 match proxy_receiver.recv() {
                     Ok(message) => match ws2p_sender_clone
@@ -335,13 +338,34 @@ impl DuniterModule<ed25519::PublicKey, ed25519::KeyPair, DuniterMessage> for WS2
                                 for new_follower in new_followers {
                                     debug!("WS2PModule : push one follower.");
                                     ws2p_module.followers.push(new_follower.clone());
-                                    // Request local current blockstamp
-                                    ws2p_module.send_dal_request(&DALRequest::BlockchainRequest(
-                                        DALReqBlockchain::CurrentBlock(ModuleReqFullId(
-                                            WS2PModule::id(),
-                                            ModuleReqId(0),
-                                        )),
-                                    ));
+                                    if current_blockstamp == Blockstamp::default() {
+                                        // Request local current blockstamp
+                                        ws2p_module.send_dal_request(
+                                            &DALRequest::BlockchainRequest(
+                                                DALReqBlockchain::CurrentBlock(ModuleReqFullId(
+                                                    WS2PModule::id(),
+                                                    ModuleReqId(0),
+                                                )),
+                                            ),
+                                        );
+                                    } else {
+                                        if ws2p_module.my_head.is_none() {
+                                            ws2p_module.my_head =
+                                                Some(WS2PModuleDatas::generate_my_head(
+                                                    &key_pair.clone(),
+                                                    &conf.clone(),
+                                                    soft_name,
+                                                    soft_version,
+                                                    &current_blockstamp,
+                                                    None,
+                                                ));
+                                        }
+                                        ws2p_module.send_network_event(
+                                            &NetworkEvent::ReceiveHeads(vec![
+                                                ws2p_module.my_head.clone().unwrap(),
+                                            ]),
+                                        );
+                                    }
                                 }
                             }
                             &DuniterMessage::NetworkRequest(ref request) => match request {
@@ -414,16 +438,16 @@ impl DuniterModule<ed25519::PublicKey, ed25519::KeyPair, DuniterMessage> for WS2
                                         "WS2PModule : current_blockstamp = {}",
                                         current_blockstamp
                                     );
-                                    let my_head = WS2PModuleDatas::generate_my_head(
+                                    ws2p_module.my_head = Some(WS2PModuleDatas::generate_my_head(
                                         &key_pair.clone(),
                                         &conf.clone(),
                                         soft_name,
                                         soft_version,
                                         &current_blockstamp,
                                         None,
-                                    );
+                                    ));
                                     ws2p_module.send_network_event(&NetworkEvent::ReceiveHeads(
-                                        vec![my_head],
+                                        vec![ws2p_module.my_head.clone().unwrap()],
                                     ));
                                 }
                                 _ => {}
@@ -439,6 +463,22 @@ impl DuniterModule<ed25519::PublicKey, ed25519::KeyPair, DuniterMessage> for WS2
                                             current_block.blockstamp()
                                         );
                                         current_blockstamp = current_block.blockstamp();
+                                        if ws2p_module.my_head.is_none() {
+                                            ws2p_module.my_head =
+                                                Some(WS2PModuleDatas::generate_my_head(
+                                                    &key_pair.clone(),
+                                                    &conf.clone(),
+                                                    soft_name,
+                                                    soft_version,
+                                                    &current_blockstamp,
+                                                    None,
+                                                ));
+                                        }
+                                        ws2p_module.send_network_event(
+                                            &NetworkEvent::ReceiveHeads(vec![
+                                                ws2p_module.my_head.clone().unwrap(),
+                                            ]),
+                                        );
                                     }
                                     &DALResBlockchain::UIDs(ref uids) => {
                                         // Add uids to heads
