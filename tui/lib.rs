@@ -26,7 +26,6 @@
 #[macro_use]
 extern crate log;
 
-extern crate chrono;
 extern crate duniter_conf;
 extern crate duniter_crypto;
 extern crate duniter_dal;
@@ -37,7 +36,6 @@ extern crate duniter_network;
 extern crate serde_json;
 extern crate termion;
 
-use chrono::prelude::*;
 use duniter_crypto::keys::ed25519;
 use duniter_dal::dal_event::DALEvent;
 use duniter_message::DuniterMessage;
@@ -106,7 +104,7 @@ impl TuiModuleDatas {
     fn draw_term<W: Write>(
         &self,
         stdout: &mut RawTerminal<W>,
-        start_time: &DateTime<Utc>,
+        start_time: SystemTime,
         heads_cache: &HashMap<NodeFullId, NetworkHead>,
         heads_index: usize,
         out_connections_status: &HashMap<NodeFullId, Connection>,
@@ -190,8 +188,13 @@ impl TuiModuleDatas {
             ).unwrap();
         } else {
             let mut count_conns = 0;
-            let conns_index_use = if conns_index > (out_established_conns.len() - 5) {
+            let max_index = if out_established_conns.len() < 5 {
+                0
+            } else {
                 out_established_conns.len() - 5
+            };
+            let conns_index_use = if conns_index > max_index {
+                max_index
             } else {
                 conns_index
             };
@@ -322,11 +325,21 @@ impl TuiModuleDatas {
         }
 
         // Draw footer
-        let runtime_in_secs = Utc::now().timestamp() - (*start_time).timestamp();
-        let runtime_str =
-            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(runtime_in_secs, 0), Utc)
+        let mut runtime_in_secs = SystemTime::now()
+            .duration_since(start_time)
+            .expect("Fail to get runtime")
+            .as_secs();
+        let runtime_hours = runtime_in_secs / 3600;
+        runtime_in_secs -= runtime_hours * 3600;
+        let runtime_mins = runtime_in_secs / 60;
+        let runtime_secs = runtime_in_secs % 60;
+        let runtime_str = format!(
+            "{:02}:{:02}:{:02}",
+            runtime_hours, runtime_mins, runtime_secs
+        );
+        /*DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(runtime_in_secs, 0), Utc)
                 .format("%H:%M:%S")
-                .to_string();
+                .to_string();*/
         write!(
             stdout,
             "{}{}{}runtime : {}",
@@ -377,7 +390,7 @@ impl DuniterModule<ed25519::PublicKey, ed25519::KeyPair, DuniterMessage> for Tui
         main_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
         load_conf_only: bool,
     ) -> Result<(), ModuleInitError> {
-        let start_time: DateTime<Utc> = Utc::now();
+        let start_time = SystemTime::now(); //: DateTime<Utc> = Utc::now();
 
         // load conf
         let _conf = TuiModuleDatas::parse_tui_conf(module_conf);
@@ -445,7 +458,7 @@ impl DuniterModule<ed25519::PublicKey, ed25519::KeyPair, DuniterMessage> for Tui
         let mut last_draw = SystemTime::now();
         tui.draw_term(
             &mut stdout,
-            &start_time,
+            start_time,
             &tui.heads_cache,
             tui.heads_index,
             &tui.connections_status,
@@ -520,7 +533,10 @@ impl DuniterModule<ed25519::PublicKey, ed25519::KeyPair, DuniterMessage> for Tui
                                 if let Some(conn) = tui.connections_status.get(node_full_id) {
                                     if *status == 12 && (*conn).status != 12 {
                                         tui.established_conns_count += 1;
-                                    } else if *status != 12 && (*conn).status == 12 {
+                                    } else if *status != 12
+                                        && (*conn).status == 12
+                                        && tui.established_conns_count > 0
+                                    {
                                         tui.established_conns_count -= 1;
                                     }
                                 };
@@ -641,7 +657,7 @@ impl DuniterModule<ed25519::PublicKey, ed25519::KeyPair, DuniterMessage> for Tui
                 last_draw = now;
                 tui.draw_term(
                     &mut stdout,
-                    &start_time,
+                    start_time,
                     &tui.heads_cache,
                     tui.heads_index,
                     &tui.connections_status,

@@ -359,7 +359,6 @@ dependencies = [
 name = "duniter-tui"
 version = "0.1.0"
 dependencies = [
- "chrono 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "duniter-conf 0.1.0",
  "duniter-crypto 0.1.2",
  "duniter-dal 0.1.0",
