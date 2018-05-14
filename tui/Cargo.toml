@@ -1,0 +1,22 @@
+[package]
+name = "duniter-tui"
+version = "0.1.0"
+authors = ["librelois <elois@ifee.fr>"]
+description = "Terminal user interface for Duniter-Rs."
+license = "AGPL-3.0"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+chrono = "0.4.2"
+duniter-conf = { path = "../conf" }
+duniter-crypto = { path = "../crypto" }
+duniter-dal = { path = "../dal" }
+duniter-documents = { path = "../documents" }
+duniter-message =  { path = "../message" }
+duniter-module = { path = "../module" }
+duniter-network = { path = "../network" }
+log = "0.4.1"
+serde_json = "1.0.9"
+termion = "1.5.1"
