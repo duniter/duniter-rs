@@ -301,24 +301,24 @@ impl BlockchainModule {
                     }*/
                 }
                 &NetworkDocument::Identity(ref doc) => blockchain_documents.push(
-                    BlockchainProtocol::V10(Box::new(V10Document::Identity(doc.clone()))),
+                    BlockchainProtocol::V10(Box::new(V10Document::Identity(doc.deref().clone()))),
                 ),
                 &NetworkDocument::Membership(ref doc) => blockchain_documents.push(
-                    BlockchainProtocol::V10(Box::new(V10Document::Membership(doc.clone()))),
+                    BlockchainProtocol::V10(Box::new(V10Document::Membership(doc.deref().clone()))),
                 ),
                 &NetworkDocument::Certification(ref doc) => {
                     blockchain_documents.push(BlockchainProtocol::V10(Box::new(
-                        V10Document::Certification(Box::new(doc.clone())),
+                        V10Document::Certification(Box::new(doc.deref().clone())),
                     )))
                 }
                 &NetworkDocument::Revocation(ref doc) => {
                     blockchain_documents.push(BlockchainProtocol::V10(Box::new(
-                        V10Document::Revocation(Box::new(doc.clone())),
+                        V10Document::Revocation(Box::new(doc.deref().clone())),
                     )))
                 }
                 &NetworkDocument::Transaction(ref doc) => {
                     blockchain_documents.push(BlockchainProtocol::V10(Box::new(
-                        V10Document::Transaction(Box::new(doc.clone())),
+                        V10Document::Transaction(Box::new(doc.deref().clone())),
                     )))
                 }
             }

@@ -126,7 +126,7 @@ impl NetworkHeadMessageV2 {
                 api = short_api,
             )
         } else {
-            format!("Term width insufficient")
+            String::from("Term width insufficient")
         }
     }
 }
@@ -284,7 +284,7 @@ impl NetworkHeadV2 {
                     .to_human_string(max_len - 2, self.uid.clone())
             )
         } else {
-            format!(".")
+            String::from(".")
         }
     }
     /// Get uid of head issuer

@@ -133,8 +133,8 @@ pub enum NetworkBlock {
 impl NetworkBlock {
     /// Return blockstamp
     pub fn blockstamp(&self) -> Blockstamp {
-        match self {
-            &NetworkBlock::V10(ref network_block_v10) => {
+        match *self {
+            NetworkBlock::V10(ref network_block_v10) => {
                 network_block_v10.deref().uncompleted_block_doc.blockstamp()
             }
             _ => panic!("Block version not supported !"),
@@ -142,8 +142,8 @@ impl NetworkBlock {
     }
     /// Return previous blockstamp
     pub fn previous_blockstamp(&self) -> Blockstamp {
-        match self {
-            &NetworkBlock::V10(ref network_block_v10) => Blockstamp {
+        match *self {
+            NetworkBlock::V10(ref network_block_v10) => Blockstamp {
                 id: BlockId(network_block_v10.deref().uncompleted_block_doc.number.0 - 1),
                 hash: BlockHash(
                     network_block_v10
@@ -163,15 +163,15 @@ pub enum NetworkDocument {
     /// Network Block
     Block(NetworkBlock),
     /// Identity Document
-    Identity(IdentityDocument),
+    Identity(Box<IdentityDocument>),
     /// Membership Document
-    Membership(MembershipDocument),
+    Membership(Box<MembershipDocument>),
     /// Certification Document
-    Certification(CertificationDocument),
+    Certification(Box<CertificationDocument>),
     /// Revocation Document
-    Revocation(RevocationDocument),
+    Revocation(Box<RevocationDocument>),
     /// Transaction Document
-    Transaction(TransactionDocument),
+    Transaction(Box<TransactionDocument>),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -210,7 +210,7 @@ impl NetworkRequest {
             | NetworkRequest::GetRequirementsPending(ref req_id, _, _)
             | NetworkRequest::GetConsensus(ref req_id)
             | NetworkRequest::GetHeadsCache(ref req_id)
-            | NetworkRequest::GetEndpoints(ref req_id) => req_id.clone(),
+            | NetworkRequest::GetEndpoints(ref req_id) => *req_id,
         }
     }
     /// Get request identitifier
@@ -258,7 +258,7 @@ impl NetworkResponse {
             | NetworkResponse::Chunk(ref req_id, _, _)
             | NetworkResponse::PendingDocuments(ref req_id, _)
             | NetworkResponse::Consensus(ref req_id, _)
-            | NetworkResponse::HeadsCache(ref req_id, _) => req_id.clone(),
+            | NetworkResponse::HeadsCache(ref req_id, _) => *req_id,
         }
     }
     /// Get request identifier

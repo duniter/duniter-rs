@@ -302,8 +302,8 @@ pub fn write_keypairs_file(
 
 /// Save configuration in profile folder
 pub fn write_conf_file(file_path: &PathBuf, conf: &DuniterConf) -> Result<(), std::io::Error> {
-    match conf {
-        &DuniterConf::V1(ref conf_v1) => {
+    match *conf {
+        DuniterConf::V1(ref conf_v1) => {
             let mut f = try!(File::create(file_path.as_path()));
             try!(
                 f.write_all(
@@ -314,7 +314,7 @@ pub fn write_conf_file(file_path: &PathBuf, conf: &DuniterConf) -> Result<(), st
             );
             try!(f.sync_all());
         }
-        &_ => {
+        _ => {
             panic!("Fatal error : Conf version is not supported !");
         }
     }
