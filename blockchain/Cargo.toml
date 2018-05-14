@@ -1,0 +1,26 @@
+[package]
+name = "duniter-blockchain"
+version = "0.1.0"
+authors = ["librelois <elois@ifee.fr>"]
+description = "Blockchain module for the Duniter project."
+license = "AGPL-3.0"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+duniter-conf = { path = "../conf" }
+duniter-crypto = { path = "../crypto" }
+duniter-dal = { path = "../dal" }
+duniter-documents = { path = "../documents" }
+duniter-message =  { path = "../message" }
+duniter-module = { path = "../module" }
+duniter-network = { path = "../network" }
+duniter-wotb = { path = "../wotb" }
+log = "0.4.1"
+pbr = "1.0.0"
+rand = "0.4.2"
+serde = "1.0.24"
+serde_derive = "1.0.24"
+serde_json = "1.0.9"
+sqlite = "0.23.9"
