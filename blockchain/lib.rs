@@ -139,7 +139,7 @@ impl BlockchainModule {
     /// Loading blockchain configuration
     pub fn load_blockchain_conf(
         conf: &DuniterConf,
-        _keys: RequiredKeysContent<ed25519::PublicKey, ed25519::KeyPair>,
+        _keys: RequiredKeysContent<ed25519::KeyPair>,
         sync: bool,
     ) -> BlockchainModule {
         // Get db path

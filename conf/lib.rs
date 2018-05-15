@@ -89,7 +89,7 @@ impl DuniterKeyPairs {
     pub fn get_required_keys_content(
         required_keys: RequiredKeys,
         keypairs: DuniterKeyPairs,
-    ) -> RequiredKeysContent<ed25519::PublicKey, ed25519::KeyPair> {
+    ) -> RequiredKeysContent<ed25519::KeyPair> {
         match required_keys {
             RequiredKeys::MemberKeyPair() => {
                 RequiredKeysContent::MemberKeyPair(keypairs.member_keypair)

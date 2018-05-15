@@ -199,7 +199,7 @@ impl DuniterCore {
         }
     }
     /// Plug a module
-    pub fn plug<M: DuniterModule<ed25519::PublicKey, ed25519::KeyPair, DuniterMessage>>(&mut self) {
+    pub fn plug<M: DuniterModule<ed25519::KeyPair, DuniterMessage>>(&mut self) {
         if self.start {
             // Start module in a new thread
             let soft_name_clone = self.soft_name.clone();

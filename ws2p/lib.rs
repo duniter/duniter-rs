@@ -185,7 +185,7 @@ impl Default for WS2PModule {
     }
 }
 
-impl DuniterModule<ed25519::PublicKey, ed25519::KeyPair, DuniterMessage> for WS2PModule {
+impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
     fn id() -> ModuleId {
         ModuleId::Str("ws2p")
     }
@@ -206,7 +206,7 @@ impl DuniterModule<ed25519::PublicKey, ed25519::KeyPair, DuniterMessage> for WS2
     fn start(
         soft_name: &str,
         soft_version: &str,
-        keys: RequiredKeysContent<ed25519::PublicKey, ed25519::KeyPair>,
+        keys: RequiredKeysContent<ed25519::KeyPair>,
         duniter_conf: &DuniterConf,
         module_conf: &serde_json::Value,
         rooter_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,

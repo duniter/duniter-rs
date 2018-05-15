@@ -368,7 +368,7 @@ impl Default for TuiModule {
     }
 }
 
-impl DuniterModule<ed25519::PublicKey, ed25519::KeyPair, DuniterMessage> for TuiModule {
+impl DuniterModule<ed25519::KeyPair, DuniterMessage> for TuiModule {
     fn id() -> ModuleId {
         ModuleId::Str("tui")
     }
@@ -384,7 +384,7 @@ impl DuniterModule<ed25519::PublicKey, ed25519::KeyPair, DuniterMessage> for Tui
     fn start(
         _soft_name: &str,
         _soft_version: &str,
-        _keys: RequiredKeysContent<ed25519::PublicKey, ed25519::KeyPair>,
+        _keys: RequiredKeysContent<ed25519::KeyPair>,
         _conf: &DuniterConf,
         module_conf: &serde_json::Value,
         main_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
