@@ -1,7 +1,7 @@
 stages:
     - build_and_tests
-    - clippy
     - fmt
+    - clippy
     - publish
     
 before_script:
@@ -37,18 +37,6 @@ build_and_tests:nightly:
   when: manual
   allow_failure: true
   
-clippy:
-  stage: clippy
-  image: rustlang/rust:nightly
-  tags:
-    - redshift-rs-nightly
-  before_script:
-    - export PATH="$HOME/.cargo/bin:$PATH"
-    - cargo install --force clippy --verbose
-  script:
-    - cargo clippy --all -- -D warnings --verbose
-  allow_failure: true  
-  
 fmt:
   stage: fmt
   image: rustlang/rust:nightly
@@ -60,6 +48,18 @@ fmt:
   script:
     - cargo fmt -- --check
   allow_failure: true
+
+clippy:
+  stage: clippy
+  image: rustlang/rust:nightly
+  tags:
+    - redshift-rs-nightly
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - cargo install --force clippy --verbose
+  script:
+    - cargo clippy --all -- -D warnings --verbose
+  allow_failure: true  
 
 publish:crate:
   stage: publish
@@ -73,4 +73,21 @@ publish:crate:
   only:
     - tags
   allow_failure: false
+  when: manual
+
+pages:
+  stage: publish
+  tags:
+    - redshift-rs-stable
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+  script:
+    - cargo doc
+    - mv target/doc public
+    - ls public
+  artifacts:
+    untracked: true
+    paths:
+      - public
+  allow_failure: true
   when: manual
