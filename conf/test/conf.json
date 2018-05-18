@@ -1,0 +1,19 @@
+{
+    "currency": "g1",
+    "node_id": "357fb4b",
+    "modules": {
+      "tui": null,
+      "ws2p": {
+        "sync_peers": [{
+            "pubkey": "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx",
+            "ws2p_endpoints": ["WS2P c1c39a0a i3.ifee.fr 80 /ws2p"]
+        },{
+            "pubkey": "BoZP6aqtErHjiKLosLrQxBafi4ATciyDZQ6XRQkNefqG",
+            "ws2p_endpoints": ["WS2P 15af24db g1.ifee.fr 80 /ws2p"]
+        },{
+            "pubkey": "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef",
+            "ws2p_endpoints": ["WS2P b48824f0 g1.monnaielibreoccitanie.org 80 /ws2p"]
+        }]
+      }
+    }
+}

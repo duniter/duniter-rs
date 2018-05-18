@@ -1,0 +1,24 @@
+[package]
+name = "duniter-network"
+version = "0.1.0"
+authors = ["librelois <elois@duniter.org>"]
+description = "network model for the Duniter project."
+license = "AGPL-3.0"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+duniter-crypto = { path = "../crypto" }
+duniter-documents = { path = "../documents" }
+duniter-module = { path = "../module" }
+lazy_static = "1.0.0"
+regex = "0.2.6"
+rust-crypto = "0.2.36"
+serde = "1.0.24"
+serde_derive = "1.0.24"
+serde_json = "1.0.9"
+
+[features]
+# Treat warnings as a build error.
+strict = []

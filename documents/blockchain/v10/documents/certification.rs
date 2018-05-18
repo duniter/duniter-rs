@@ -21,17 +21,40 @@ use self::serde::ser::{Serialize, Serializer};
 use duniter_crypto::keys::{ed25519, PublicKey, Signature};
 use regex::Regex;
 
-use blockchain::v10::documents::{
-    StandardTextDocumentParser, TextDocument, TextDocumentBuilder, V10Document,
-    V10DocumentParsingError,
-};
+use blockchain::v10::documents::*;
 use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
+use BlockId;
 use Blockstamp;
 
 lazy_static! {
     static ref CERTIFICATION_REGEX: Regex = Regex::new(
         "^Issuer: (?P<issuer>[1-9A-Za-z]{43,44})\nIdtyIssuer: (?P<target>[1-9A-Za-z]{43,44})\nIdtyUniqueID: (?P<idty_uid>[[:alnum:]_-]+)\nIdtyTimestamp: (?P<idty_blockstamp>[0-9]+-[0-9A-F]{64})\nIdtySignature: (?P<idty_sig>(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)\nCertTimestamp: (?P<blockstamp>[0-9]+-[0-9A-F]{64})\n$"
     ).unwrap();
+}
+
+#[derive(Debug, Copy, Clone)]
+/// Wrap an Compact Revocation document (in block content)
+pub struct CompactCertificationDocument {
+    /// Issuer
+    pub issuer: ed25519::PublicKey,
+    /// Target
+    pub target: ed25519::PublicKey,
+    /// Blockstamp
+    pub block_number: BlockId,
+    /// Signature
+    pub signature: ed25519::Signature,
+}
+
+impl CompactTextDocument for CompactCertificationDocument {
+    fn as_compact_text(&self) -> String {
+        format!(
+            "{issuer}:{target}:{block_number}:{signature}",
+            issuer = self.issuer,
+            target = self.target,
+            block_number = self.block_number.0,
+            signature = self.signature,
+        )
+    }
 }
 
 /// Wrap an Certification document.
@@ -109,27 +132,28 @@ impl Document for CertificationDocument {
 }
 
 impl TextDocument for CertificationDocument {
+    type CompactTextDocument_ = CompactCertificationDocument;
+
     fn as_text(&self) -> &str {
         &self.text
     }
 
-    fn generate_compact_text(&self) -> String {
-        format!(
-            "{issuer}:{target}:{block_number}:{signature}",
-            issuer = self.issuers[0],
-            target = self.target,
-            block_number = self.blockstamp.id.0,
-            signature = self.signatures[0],
-        )
+    fn to_compact_document(&self) -> Self::CompactTextDocument_ {
+        CompactCertificationDocument {
+            issuer: self.issuers[0],
+            target: self.target,
+            block_number: self.blockstamp().id,
+            signature: self.signatures()[0],
+        }
     }
 }
 
-impl Serialize for CertificationDocument {
+impl Serialize for TextDocumentFormat<CertificationDocument> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.generate_compact_text())
+        serializer.serialize_str(&self.as_compact_text())
     }
 }
 

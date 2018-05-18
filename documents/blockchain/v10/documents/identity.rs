@@ -21,10 +21,7 @@ use self::serde::ser::{Serialize, Serializer};
 use duniter_crypto::keys::{ed25519, PublicKey};
 use regex::Regex;
 
-use blockchain::v10::documents::{
-    StandardTextDocumentParser, TextDocument, TextDocumentBuilder, V10Document,
-    V10DocumentParsingError,
-};
+use blockchain::v10::documents::*;
 use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
 use Blockstamp;
 
@@ -93,12 +90,8 @@ impl Document for IdentityDocument {
     }
 }
 
-impl TextDocument for IdentityDocument {
-    fn as_text(&self) -> &str {
-        &self.text
-    }
-
-    fn generate_compact_text(&self) -> String {
+impl CompactTextDocument for IdentityDocument {
+    fn as_compact_text(&self) -> String {
         format!(
             "{issuer}:{signature}:{blockstamp}:{username}",
             issuer = self.issuers[0],
@@ -106,6 +99,18 @@ impl TextDocument for IdentityDocument {
             blockstamp = self.blockstamp,
             username = self.username,
         )
+    }
+}
+
+impl TextDocument for IdentityDocument {
+    type CompactTextDocument_ = IdentityDocument;
+
+    fn as_text(&self) -> &str {
+        &self.text
+    }
+
+    fn to_compact_document(&self) -> Self::CompactTextDocument_ {
+        self.clone()
     }
 }
 

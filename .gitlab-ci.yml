@@ -1,7 +1,7 @@
 stages:
     - build_and_tests
-    - clippy
     - fmt
+    - clippy
     - publish
     
 before_script:
@@ -11,8 +11,9 @@ build_and_tests:stable:
   stage: build_and_tests
   tags:
     - redshift-rs-stable
-  script:
-    - cargo test --all-features
+  script: 
+    - cargo build --features strict
+    - cargo test --all
     
 build_and_tests:beta:
   stage: build_and_tests
@@ -20,7 +21,8 @@ build_and_tests:beta:
     - redshift-rs-beta
   script:
     - rustup update
-    - cargo test --all-features
+    - cargo build --features strict
+    - cargo test --all
   when: manual
   allow_failure: true
     
@@ -30,10 +32,23 @@ build_and_tests:nightly:
   tags:
     - redshift-rs-nightly
   script:
-    - cargo test --all-features
+    - cargo build --features strict
+    - cargo test --all
   when: manual
   allow_failure: true
   
+fmt:
+  stage: fmt
+  image: rustlang/rust:nightly
+  tags:
+    - redshift-rs-nightly
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - cargo install --force rustfmt-nightly
+  script:
+    - cargo fmt -- --check
+  allow_failure: true
+
 clippy:
   stage: clippy
   image: rustlang/rust:nightly
@@ -45,18 +60,6 @@ clippy:
   script:
     - cargo clippy --all -- -D warnings --verbose
   allow_failure: true  
-  
-fmt:
-  stage: fmt
-  image: rustlang/rust:nightly
-  tags:
-    - redshift-rs-nightly
-  before_script:
-    - export PATH="$HOME/.cargo/bin:$PATH"
-    - cargo install --force rustfmt-nightly
-  script:
-    - cargo fmt -- --write-mode=diff
-  allow_failure: true
 
 publish:crate:
   stage: publish
@@ -70,4 +73,21 @@ publish:crate:
   only:
     - tags
   allow_failure: false
+  when: manual
+
+pages:
+  stage: publish
+  tags:
+    - redshift-rs-stable
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+  script:
+    - cargo doc
+    - mv target/doc public
+    - ls public
+  artifacts:
+    untracked: true
+    paths:
+      - public
+  allow_failure: true
   when: manual

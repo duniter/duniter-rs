@@ -21,10 +21,7 @@ use self::serde::ser::{Serialize, Serializer};
 use duniter_crypto::keys::{ed25519, PublicKey};
 use regex::Regex;
 
-use blockchain::v10::documents::{
-    StandardTextDocumentParser, TextDocument, TextDocumentBuilder, V10Document,
-    V10DocumentParsingError,
-};
+use blockchain::v10::documents::*;
 use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
 use Blockstamp;
 
@@ -114,12 +111,8 @@ impl Document for MembershipDocument {
     }
 }
 
-impl TextDocument for MembershipDocument {
-    fn as_text(&self) -> &str {
-        &self.text
-    }
-
-    fn generate_compact_text(&self) -> String {
+impl CompactTextDocument for MembershipDocument {
+    fn as_compact_text(&self) -> String {
         format!(
             "{issuer}:{signature}:{blockstamp}:{idty_blockstamp}:{username}",
             issuer = self.issuers[0],
@@ -128,6 +121,18 @@ impl TextDocument for MembershipDocument {
             idty_blockstamp = self.identity_blockstamp,
             username = self.identity_username,
         )
+    }
+}
+
+impl TextDocument for MembershipDocument {
+    type CompactTextDocument_ = MembershipDocument;
+
+    fn as_text(&self) -> &str {
+        &self.text
+    }
+
+    fn to_compact_document(&self) -> Self::CompactTextDocument_ {
+        self.clone()
     }
 }
 

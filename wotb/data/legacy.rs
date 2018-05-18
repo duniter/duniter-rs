@@ -268,7 +268,8 @@ impl WebOfTrust for LegacyWebOfTrust {
         let node = &self.nodes[node.0];
 
         Some(
-            node.enabled && node.issued_count() >= sentry_requirement
+            node.enabled
+                && node.issued_count() >= sentry_requirement
                 && node.links_iter().count() >= sentry_requirement,
         )
     }
@@ -277,7 +278,8 @@ impl WebOfTrust for LegacyWebOfTrust {
         self.nodes
             .iter()
             .filter(|x| {
-                x.enabled && x.issued_count() >= sentry_requirement
+                x.enabled
+                    && x.issued_count() >= sentry_requirement
                     && x.links_iter().count() >= sentry_requirement
             })
             .map(|x| x.id())

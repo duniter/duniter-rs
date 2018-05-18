@@ -25,10 +25,7 @@ use regex::RegexBuilder;
 
 use self::serde::ser::{Serialize, Serializer};
 
-use blockchain::v10::documents::{
-    StandardTextDocumentParser, TextDocument, TextDocumentBuilder, V10Document,
-    V10DocumentParsingError,
-};
+use blockchain::v10::documents::*;
 use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
 use Blockstamp;
 
@@ -442,12 +439,8 @@ impl Document for TransactionDocument {
     }
 }
 
-impl TextDocument for TransactionDocument {
-    fn as_text(&self) -> &str {
-        &self.text
-    }
-
-    fn generate_compact_text(&self) -> String {
+impl CompactTextDocument for TransactionDocument {
+    fn as_compact_text(&self) -> String {
         let mut issuers_str = String::from("");
         for issuer in self.issuers.clone() {
             issuers_str.push_str("\n");
@@ -499,12 +492,24 @@ impl TextDocument for TransactionDocument {
     }
 }
 
+impl TextDocument for TransactionDocument {
+    type CompactTextDocument_ = TransactionDocument;
+
+    fn as_text(&self) -> &str {
+        &self.text
+    }
+
+    fn to_compact_document(&self) -> Self::CompactTextDocument_ {
+        self.clone()
+    }
+}
+
 impl Serialize for TransactionDocument {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        let compact_text = self.generate_compact_text();
+        let compact_text = self.to_compact_document().generate_compact_text();
         serializer.serialize_str(&compact_text.replace("\n", "$"))
     }
 }
