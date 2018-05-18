@@ -150,7 +150,7 @@ impl NetworkEndpoint {
         }
     }
     /// Generate endpoint url
-    pub fn get_url(&self) -> String {
+    pub fn get_url(&self, get_protocol: bool) -> String {
         match *self {
             NetworkEndpoint::V1(ref ep) => {
                 let protocol = match &ep.api.0[..] {
@@ -165,7 +165,11 @@ impl NetworkEndpoint {
                     Some(ref path_string) => path_string.clone(),
                     None => String::new(),
                 };
-                format!("{}{}://{}:{}/{}", protocol, tls, ep.host, ep.port, path)
+                if get_protocol {
+                    format!("{}{}://{}:{}/{}", protocol, tls, ep.host, ep.port, path)
+                } else {
+                    format!("{}:{}/{}", ep.host, ep.port, path)
+                }
             }
             _ => panic!("Endpoint version is not supported !"),
         }

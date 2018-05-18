@@ -72,8 +72,10 @@ pub struct TuiModule {}
 #[derive(Debug, Clone)]
 /// Network connexion (data to display)
 pub struct Connection {
-    /// connexion status
+    /// Connexion status
     status: u32,
+    /// Endpoint url
+    url: String,
     /// Node uid at the other end of the connection (member nodes only)
     uid: Option<String>,
 }
@@ -91,8 +93,6 @@ pub struct TuiModuleDatas {
     pub connections_status: HashMap<NodeFullId, Connection>,
     /// Number of connections in `Established` status
     pub established_conns_count: usize,
-    /// Position of the 1st connection displayed on the screen
-    pub conns_index: usize,
 }
 
 impl TuiModuleDatas {
@@ -109,7 +109,6 @@ impl TuiModuleDatas {
         heads_index: usize,
         out_connections_status: &HashMap<NodeFullId, Connection>,
         _in_connections_status: &HashMap<NodeFullId, Connection>,
-        conns_index: usize,
     ) {
         // Get Terminal size
         let (w, h) = termion::terminal_size().expect("Fail to get terminal size !");
@@ -128,7 +127,11 @@ impl TuiModuleDatas {
                 1 | 3 | 5 | 7 | 8 | 9 => out_trying_conns_count += 1,
                 10 => out_denial_conns_count += 1,
                 11 => out_disconnected_conns_count += 1,
-                12 => out_established_conns.push((node_full_id, connection.uid.clone())),
+                12 => out_established_conns.push((
+                    node_full_id,
+                    connection.uid.clone(),
+                    connection.url.clone(),
+                )),
                 _ => {}
             }
         }
@@ -168,13 +171,6 @@ impl TuiModuleDatas {
             color::Fg(color::White),
             style::Italic,
         ).unwrap();
-        line += 1;
-        write!(
-            stdout,
-            "{}{}/\\",
-            cursor::Goto(29, line),
-            color::Fg(color::Black),
-        ).unwrap();
 
         // Draw inter-nodes established connections
         if out_established_conns.is_empty() {
@@ -187,38 +183,19 @@ impl TuiModuleDatas {
                 style::Bold,
             ).unwrap();
         } else {
-            let mut count_conns = 0;
-            let max_index = if out_established_conns.len() < 5 {
-                0
-            } else {
-                out_established_conns.len() - 5
-            };
-            let conns_index_use = if conns_index > max_index {
-                max_index
-            } else {
-                conns_index
-            };
-            for &(node_full_id, ref uid) in &out_established_conns[conns_index_use..] {
+            for (ref node_full_id, ref uid, ref url) in out_established_conns {
                 line += 1;
-                count_conns += 1;
+                let mut uid_string = uid.clone().unwrap_or(String::from("----------------"));
+                uid_string.truncate(16);
                 write!(
                     stdout,
-                    "{}{} {} {}",
+                    "{}{} {} {:16} {}",
                     cursor::Goto(2, line),
                     color::Fg(color::Green),
-                    node_full_id,
-                    uid.clone().unwrap_or_else(String::new),
+                    node_full_id.to_human_string(),
+                    uid_string,
+                    url,
                 ).unwrap();
-                if count_conns == 5 {
-                    line += 1;
-                    write!(
-                        stdout,
-                        "{}{}\\/",
-                        cursor::Goto(29, line),
-                        color::Fg(color::Black)
-                    ).unwrap();
-                    break;
-                }
             }
         }
 
@@ -405,7 +382,6 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for TuiModule {
             heads_index: 0,
             connections_status: HashMap::new(),
             established_conns_count: 0,
-            conns_index: 0,
         };
 
         // Create tui main thread channel
@@ -463,7 +439,6 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for TuiModule {
             tui.heads_index,
             &tui.connections_status,
             &HashMap::with_capacity(0),
-            tui.conns_index,
         );
 
         // Launch stdin thread
@@ -529,8 +504,9 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for TuiModule {
                                 ref node_full_id,
                                 ref status,
                                 ref uid,
+                                ref url,
                             ) => {
-                                if let Some(conn) = tui.connections_status.get(node_full_id) {
+                                if let Some(conn) = tui.connections_status.get(&node_full_id) {
                                     if *status == 12 && (*conn).status != 12 {
                                         tui.established_conns_count += 1;
                                     } else if *status != 12
@@ -544,6 +520,7 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for TuiModule {
                                     *node_full_id,
                                     Connection {
                                         status: *status,
+                                        url: url.clone(),
                                         uid: uid.clone(),
                                     },
                                 );
@@ -581,55 +558,32 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for TuiModule {
                             break;
                         }
                         &Event::Mouse(ref me) => match me {
-                            &MouseEvent::Press(ref button, ref _a, ref b) => match button {
+                            &MouseEvent::Press(ref button, ref _a, ref _b) => match button {
                                 &MouseButton::WheelDown => {
                                     // Get Terminal size
                                     let (_w, h) = termion::terminal_size()
                                         .expect("Fail to get terminal size !");
-                                    if *b < 11 {
-                                        // conns_index
-                                        let conns_index_max = if tui.established_conns_count > 5 {
-                                            tui.established_conns_count - 5
-                                        } else {
-                                            0
-                                        };
-                                        if tui.heads_index < conns_index_max {
-                                            tui.conns_index += 1;
+                                    // heads_index
+                                    if h > 16 {
+                                        let heads_index_max =
+                                            if tui.heads_cache.len() > (h - 16) as usize {
+                                                tui.heads_cache.len() - (h - 16) as usize
+                                            } else {
+                                                0
+                                            };
+                                        if tui.heads_index < heads_index_max {
+                                            tui.heads_index += 1;
                                             user_event = true;
                                         } else {
-                                            tui.conns_index = conns_index_max;
-                                        }
-                                    } else {
-                                        // heads_index
-                                        if h > 16 {
-                                            let heads_index_max =
-                                                if tui.heads_cache.len() > (h - 16) as usize {
-                                                    tui.heads_cache.len() - (h - 16) as usize
-                                                } else {
-                                                    0
-                                                };
-                                            if tui.heads_index < heads_index_max {
-                                                tui.heads_index += 1;
-                                                user_event = true;
-                                            } else {
-                                                tui.heads_index = heads_index_max;
-                                            }
+                                            tui.heads_index = heads_index_max;
                                         }
                                     }
                                 }
                                 &MouseButton::WheelUp => {
-                                    if *b < 11 {
-                                        // conns_index
-                                        if tui.conns_index > 0 {
-                                            tui.conns_index -= 1;
-                                            user_event = true;
-                                        }
-                                    } else {
-                                        // heads_index
-                                        if tui.heads_index > 0 {
-                                            tui.heads_index -= 1;
-                                            user_event = true;
-                                        }
+                                    // heads_index
+                                    if tui.heads_index > 0 {
+                                        tui.heads_index -= 1;
+                                        user_event = true;
                                     }
                                 }
                                 _ => {}
@@ -662,7 +616,6 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for TuiModule {
                     tui.heads_index,
                     &tui.connections_status,
                     &HashMap::with_capacity(0),
-                    tui.conns_index,
                 );
             }
         }

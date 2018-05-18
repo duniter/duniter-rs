@@ -99,6 +99,12 @@ impl NodeFullId {
         sha256.input_str(&format!("{}", self));
         Hash::from_hex(&sha256.result_str()).unwrap()
     }
+    /// To human string
+    pub fn to_human_string(&self) -> String {
+        let mut pubkey_string = self.1.to_string();
+        pubkey_string.truncate(8);
+        format!("{:8x}-{:8}", (self.0).0, pubkey_string)
+    }
 }
 
 /// Trait to be implemented by the configuration object of the module managing the inter-node network.
@@ -267,7 +273,7 @@ pub enum NetworkEvent {
     /// Receiving a response to a network request
     ReqResponse(Box<NetworkResponse>),
     /// A connection has changed state(`u32` is the new state, `Option<String>` est l'uid du noeud)
-    ConnectionStateChange(NodeFullId, u32, Option<String>),
+    ConnectionStateChange(NodeFullId, u32, Option<String>, String),
     /// Receiving Pending Documents
     ReceiveDocuments(Vec<NetworkDocument>),
     /// Receipt of peer cards
