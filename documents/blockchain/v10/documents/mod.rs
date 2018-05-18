@@ -42,6 +42,8 @@ pub use blockchain::v10::documents::transaction::{
     TransactionDocument, TransactionDocumentBuilder, TransactionDocumentParser,
 };
 
+use std::marker::Sized;
+
 // Use of lazy_static so the regex is only compiled at first use.
 lazy_static! {
     static ref DOCUMENT_REGEX: Regex = Regex::new(
@@ -52,6 +54,25 @@ lazy_static! {
          (?P<sigs>([[:alnum:]+/=]+\n)*([[:alnum:]+/=]+))$"
     ).unwrap();
     static ref SIGNATURES_REGEX: Regex = Regex::new("[[:alnum:]+/=]+\n?").unwrap();
+}
+
+#[derive(Debug, Clone)]
+/// Contains a document in full or compact format
+pub enum TextDocumentFormat<D: TextDocument> {
+    /// Complete format (Allows to check the validity of the signature)
+    Complete(D),
+    /// Format present in the blocks (does not always allow to verify the signature)
+    Compact(D::CompactTextDocument_),
+}
+
+impl<D: TextDocument> TextDocumentFormat<D> {
+    /// To compact document
+    pub fn to_compact_document(&self) -> D::CompactTextDocument_ {
+        match *self {
+            TextDocumentFormat::Complete(ref doc) => doc.to_compact_document(),
+            TextDocumentFormat::Compact(ref compact_doc) => (*compact_doc).clone(),
+        }
+    }
 }
 
 /// List of wrapped document types.
@@ -78,8 +99,30 @@ pub enum V10Document {
     Revocation(Box<RevocationDocument>),
 }
 
+/// Trait for a compact V10 document.
+pub trait CompactTextDocument: Sized + Clone {
+    /// Generate document compact text.
+    /// the compact format is the one used in the blocks.
+    ///
+    /// - Don't contains leading signatures
+    /// - Contains line breaks on all line.
+    fn as_compact_text(&self) -> String;
+}
+
+impl<D: TextDocument> CompactTextDocument for TextDocumentFormat<D> {
+    fn as_compact_text(&self) -> String {
+        match *self {
+            TextDocumentFormat::Complete(ref doc) => doc.generate_compact_text(),
+            TextDocumentFormat::Compact(ref doc) => doc.as_compact_text(),
+        }
+    }
+}
+
 /// Trait for a V10 document.
 pub trait TextDocument: Document<PublicKey = ed25519::PublicKey, CurrencyType = str> {
+    /// Type of associated compact document.
+    type CompactTextDocument_: CompactTextDocument;
+
     /// Return document as text.
     fn as_text(&self) -> &str;
 
@@ -100,12 +143,19 @@ pub trait TextDocument: Document<PublicKey = ed25519::PublicKey, CurrencyType = 
         text
     }
 
+    /// Generate compact document.
+    /// the compact format is the one used in the blocks.
+    /// - Don't contains leading signatures
+    fn to_compact_document(&self) -> Self::CompactTextDocument_;
+
     /// Generate document compact text.
     /// the compact format is the one used in the blocks.
     ///
     /// - Don't contains leading signatures
     /// - Contains line breaks on all line.
-    fn generate_compact_text(&self) -> String;
+    fn generate_compact_text(&self) -> String {
+        self.to_compact_document().as_compact_text()
+    }
 }
 
 /// Trait for a V10 document builder.

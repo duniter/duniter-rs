@@ -109,12 +109,6 @@ pub trait NetworkConf: Debug + Copy + Clone + PartialEq {}
 pub struct NetworkBlockV10 {
     /// Uncompleted block document
     pub uncompleted_block_doc: BlockDocument,
-    /// Joiners
-    pub joiners: Vec<serde_json::Value>,
-    /// actives
-    pub actives: Vec<serde_json::Value>,
-    /// leavers
-    pub leavers: Vec<serde_json::Value>,
     /// revoked
     pub revoked: Vec<serde_json::Value>,
     /// certifications

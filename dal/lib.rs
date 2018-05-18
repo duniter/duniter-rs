@@ -44,11 +44,10 @@ pub mod parsers;
 pub mod tools;
 pub mod writers;
 
-use duniter_crypto::keys::{ed25519, PublicKey, Signature};
+use duniter_crypto::keys::{PublicKey, Signature};
 use duniter_documents::blockchain::v10::documents::BlockDocument;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, Hash};
 use duniter_wotb::NodeId;
-use std::collections::HashMap;
 use std::fmt::Debug;
 use std::marker;
 use std::path::PathBuf;
@@ -144,7 +143,7 @@ pub fn close_db(db: &DuniterDB) {
 pub fn get_uid(db: &DuniterDB, wotb_id: NodeId) -> Option<String> {
     let mut cursor: sqlite::Cursor = db
         .0
-        .prepare("SELECT uid FROM identities WHERE wotb_id=? LIMIT 1;")
+        .prepare("SELECT uid FROM identities WHERE wotb_id=? AND state=0 LIMIT 1;")
         .expect("Request SQL get_current_block is wrong !")
         .cursor();
     cursor
@@ -217,11 +216,7 @@ pub fn new_get_current_block(db: &DuniterDB) -> Option<BlockDocument> {
     None
 }
 
-pub fn get_current_block(
-    currency: &str,
-    db: &DuniterDB,
-    wotb_index: &HashMap<ed25519::PublicKey, NodeId>,
-) -> Option<DALBlock> {
+pub fn get_current_block(currency: &str, db: &DuniterDB) -> Option<DALBlock> {
     let mut cursor: sqlite::Cursor = db
         .0
         .prepare("SELECT number, hash FROM blocks WHERE fork=0 ORDER BY median_time DESC LIMIT ?;")
@@ -235,7 +230,7 @@ pub fn get_current_block(
             id: BlockId(row[0].as_integer().unwrap() as u32),
             hash: BlockHash(Hash::from_hex(row[1].as_string().unwrap()).unwrap()),
         };
-        DALBlock::get_block(currency, db, wotb_index, &blockstamp)
+        DALBlock::get_block(currency, db, &blockstamp)
     } else {
         None
     }

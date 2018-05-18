@@ -8,6 +8,7 @@ use super::excluded::parse_exclusions_from_json_value;
 use super::identities::parse_compact_identity;
 use super::transactions::parse_transaction;
 use duniter_crypto::keys::{PublicKey, Signature};
+use duniter_documents::blockchain::v10::documents::membership::MembershipType;
 use duniter_documents::blockchain::v10::documents::BlockDocument;
 use duniter_documents::{BlockHash, BlockId, Hash};
 
@@ -60,6 +61,42 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
     for raw_idty in source.get("identities")?.as_array()? {
         identities.push(parse_compact_identity(&currency, &raw_idty)?);
     }
+    let mut joiners = Vec::new();
+    for joiner in super::memberships::parse_memberships_from_json_value(
+        &currency,
+        MembershipType::In(),
+        &source.get("joiners")?.as_array()?,
+    ) {
+        if let Ok(joiner) = joiner {
+            joiners.push(joiner);
+        } else {
+            return None;
+        }
+    }
+    let mut actives = Vec::new();
+    for active in super::memberships::parse_memberships_from_json_value(
+        &currency,
+        MembershipType::In(),
+        &source.get("actives")?.as_array()?,
+    ) {
+        if let Ok(active) = active {
+            actives.push(active);
+        } else {
+            return None;
+        }
+    }
+    let mut leavers = Vec::new();
+    for leaver in super::memberships::parse_memberships_from_json_value(
+        &currency,
+        MembershipType::Out(),
+        &source.get("leavers")?.as_array()?,
+    ) {
+        if let Ok(leaver) = leaver {
+            leavers.push(leaver);
+        } else {
+            return None;
+        }
+    }
     let mut transactions = Vec::new();
     for json_tx in source.get("transactions")?.as_array()? {
         transactions.push(parse_transaction("g1", &json_tx)?);
@@ -86,9 +123,9 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
         inner_hash,
         dividend,
         identities,
-        joiners: Vec::with_capacity(0),
-        actives: Vec::with_capacity(0),
-        leavers: Vec::with_capacity(0),
+        joiners,
+        actives,
+        leavers,
         revoked: Vec::with_capacity(0),
         excluded: parse_exclusions_from_json_value(&source.get("excluded")?.as_array()?),
         certifications: Vec::with_capacity(0),
@@ -101,9 +138,6 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
     };
     Some(NetworkBlock::V10(Box::new(NetworkBlockV10 {
         uncompleted_block_doc: block_doc,
-        joiners: source.get("joiners")?.as_array()?.clone(),
-        actives: source.get("actives")?.as_array()?.clone(),
-        leavers: source.get("leavers")?.as_array()?.clone(),
         revoked: source.get("revoked")?.as_array()?.clone(),
         certifications: source.get("certifications")?.as_array()?.clone(),
     })))

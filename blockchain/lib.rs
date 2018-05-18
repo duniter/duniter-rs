@@ -37,6 +37,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate sqlite;
 
+mod stack_up_block;
 mod sync;
 
 use std::collections::HashMap;
@@ -47,6 +48,7 @@ use std::str;
 use std::sync::mpsc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use self::stack_up_block::try_stack_up_completed_block;
 use duniter_crypto::keys::ed25519;
 use duniter_dal::block::{DALBlock, WotEvent};
 use duniter_dal::constants::MAX_FORKS;
@@ -54,9 +56,8 @@ use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALReqBlockchain, DALRequest, DALResBlockchain, DALResponse};
 use duniter_dal::identity::DALIdentity;
 use duniter_dal::parsers::memberships::MembershipParseError;
-use duniter_dal::writers::certification::write_certification;
+use duniter_dal::writers::requests::DBWriteRequest;
 use duniter_dal::{DuniterDB, ForkState};
-use duniter_documents::blockchain::v10::documents::membership::MembershipType;
 use duniter_documents::blockchain::v10::documents::{BlockDocument, V10Document};
 use duniter_documents::blockchain::{BlockchainProtocol, Document, VerificationResult};
 use duniter_documents::{BlockHash, BlockId, Blockstamp};
@@ -446,25 +447,27 @@ impl BlockchainModule {
                 "stackable_block : block {} chainable !",
                 block_doc.blockstamp()
             );
-            let (success, wot_events) = match block {
+            let (success, db_requests, wot_events) = match block {
                 &Block::NetworkBlock(network_block) => self.try_stack_up_block(
                     &network_block,
                     wotb_index,
                     wot,
                     SyncVerificationLevel::Cautious(),
                 ),
-                &Block::LocalBlock(block_doc) => self.try_stack_up_completed_block(
-                    &block_doc,
-                    wotb_index,
-                    wot,
-                    SyncVerificationLevel::Cautious(),
-                ),
+                &Block::LocalBlock(block_doc) => {
+                    try_stack_up_completed_block(&block_doc, wotb_index, wot)
+                }
             };
             debug!(
                 "stackable_block_ : block {} chainable !",
                 block_doc.blockstamp()
             );
             if success {
+                // Apply db requests
+                db_requests
+                    .iter()
+                    .map(|req| req.apply(&block_doc.currency, &self.db))
+                    .collect::<()>();
                 info!("StackUpValidBlock({})", block_doc.number.0);
                 self.send_event(DALEvent::StackUpValidBlock(Box::new(block_doc.clone())));
                 return (true, Vec::with_capacity(0), wot_events);
@@ -491,11 +494,7 @@ impl BlockchainModule {
                 },
             ) {
                 Some(fork) => if forks.len() > fork {
-                    if fork > 0 {
-                        (fork, forks[fork])
-                    } else {
-                        panic!("fork must be positive !")
-                    }
+                    (fork, forks[fork])
                 } else {
                     panic!(format!("Error: fork n° {} is indicated as non-existent whereas it exists in database !", fork));
                 },
@@ -534,9 +533,6 @@ impl BlockchainModule {
                             &network_block_v10.uncompleted_block_doc,
                             fork,
                             isolate,
-                            &network_block_v10.joiners,
-                            &network_block_v10.actives,
-                            &network_block_v10.leavers,
                             &network_block_v10.revoked,
                             &network_block_v10.certifications,
                         )
@@ -563,265 +559,17 @@ impl BlockchainModule {
         wotb_index: &HashMap<ed25519::PublicKey, NodeId>,
         wot: &W,
         verif_level: SyncVerificationLevel,
-    ) -> (bool, Vec<WotEvent>) {
-        let block_doc =
-            match self.complete_network_block(network_block, wotb_index, verif_level.clone()) {
-                Ok(block_doc) => block_doc,
-                Err(_) => return (false, Vec::with_capacity(0)),
-            };
-        self.try_stack_up_completed_block::<W>(&block_doc, wotb_index, wot, verif_level)
-    }
-    fn complete_network_block(
-        &self,
-        network_block: &NetworkBlock,
-        wotb_index: &HashMap<ed25519::PublicKey, NodeId>,
-        verif_level: SyncVerificationLevel,
-    ) -> Result<BlockDocument, CompletedBlockError> {
-        let db = &self.db;
-        if let &NetworkBlock::V10(ref network_block_v10) = network_block {
-            let mut block_doc = network_block_v10.uncompleted_block_doc.clone();
-            // Indexing block_identities
-            let mut block_identities = HashMap::new();
-            block_doc
-                .identities
-                .iter()
-                .map(|idty| {
-                    if idty.issuers().is_empty() {
-                        panic!("idty without issuer !")
-                    }
-                    block_identities.insert(idty.issuers()[0], idty.clone());
-                })
-                .collect::<()>();
-            /*for idty in block_doc.clone().identities {
-                if idty.issuers().is_empty() {
-                    panic!("idty without issuer !")
-                }
-                block_identities.insert(idty.issuers()[0], idty);
-            }*/
-            for joiner in duniter_dal::parsers::memberships::parse_memberships_from_json_value(
-                &self.currency.to_string(),
-                MembershipType::In(),
-                &network_block_v10.joiners,
-            ) {
-                block_doc.joiners.push(joiner?);
-            }
-            for active in duniter_dal::parsers::memberships::parse_memberships_from_json_value(
-                &self.currency.to_string(),
-                MembershipType::In(),
-                &network_block_v10.actives,
-            ) {
-                block_doc.actives.push(active?);
-            }
-            for leaver in duniter_dal::parsers::memberships::parse_memberships_from_json_value(
-                &self.currency.to_string(),
-                MembershipType::Out(),
-                &network_block_v10.leavers,
-            ) {
-                block_doc.leavers.push(leaver?);
-            }
-            block_doc.certifications =
-                duniter_dal::parsers::certifications::parse_certifications_from_json_value(
-                    &self.currency.to_string(),
-                    db,
-                    &wotb_index,
-                    &block_identities,
-                    &network_block_v10.certifications,
-                );
-            block_doc.revoked = duniter_dal::parsers::revoked::parse_revocations_from_json_value(
-                &self.currency.to_string(),
-                db,
-                &wotb_index,
-                &block_identities,
-                &network_block_v10.revoked,
-            );
-            // In cautions mode, verify all signatures !
-            if verif_level == SyncVerificationLevel::Cautious() {
-                for idty in block_doc.clone().identities {
-                    if idty.verify_signatures() != VerificationResult::Valid() {
-                        error!(
-                            "Fail to sync block #{} : Idty with invalid singature !",
-                            block_doc.number
-                        );
-                        panic!("Idty with invalid singature !");
-                    }
-                }
-            }
-            let inner_hash = block_doc.inner_hash.expect("BlockchainModule : complete_network_block() : fatal error : block.inner_hash = None");
-            if block_doc.number.0 > 0 {
-                block_doc.compute_inner_hash();
-            }
-            let hash = block_doc.hash;
-            block_doc.compute_hash();
-            if block_doc.inner_hash.expect("BlockchainModule : complete_network_block() : fatal error : block.inner_hash = None") == inner_hash {
-                let nonce = block_doc.nonce;
-                block_doc.change_nonce(nonce);
-                if verif_level == SyncVerificationLevel::FastSync()
-                || block_doc.verify_signatures() == VerificationResult::Valid()
-                || block_doc.number.0 <= 1 {
-                    if block_doc.hash == hash {
-                        Ok(block_doc)
-                    } else {
-                        warn!("BlockchainModule : Refuse Bloc : invalid hash !");
-                        Err(CompletedBlockError::InvalidHash())
-                    }
-                } else {
-                    warn!("BlockchainModule : Refuse Bloc : invalid signature !");
-                    Err(CompletedBlockError::InvalidSig())
-                }
-            } else {
-                warn!("BlockchainModule : Refuse Bloc : invalid inner hash !");
-                Err(CompletedBlockError::InvalidInnerHash())
-            }
-        } else {
-            Err(CompletedBlockError::InvalidVersion())
-        }
-    }
-    fn try_stack_up_completed_block<W: WebOfTrust + Sync>(
-        &self,
-        block: &BlockDocument,
-        wotb_index: &HashMap<ed25519::PublicKey, NodeId>,
-        wot: &W,
-        _verif_level: SyncVerificationLevel,
-    ) -> (bool, Vec<WotEvent>) {
-        debug!(
-            "BlockchainModule : try stack up block {}",
-            block.blockstamp()
-        );
-        let db = &self.db;
-        let mut wot_events = Vec::new();
-        let mut wot_copy: W = wot.clone();
-        let mut wotb_index_copy: HashMap<ed25519::PublicKey, NodeId> = wotb_index.clone();
-        let current_blockstamp = block.blockstamp();
-        let mut identities = HashMap::with_capacity(block.identities.len());
-        for identity in block.identities.clone() {
-            identities.insert(identity.issuers()[0], identity);
-        }
-        for joiner in block.joiners.clone() {
-            let pubkey = joiner.clone().issuers()[0];
-            if let Some(compact_idty) = identities.get(&pubkey) {
-                // Newcomer
-                let wotb_id = NodeId(wot_copy.size());
-                wot_events.push(WotEvent::AddNode(pubkey, wotb_id));
-                wot_copy.add_node();
-                wotb_index_copy.insert(pubkey, wotb_id);
-                let idty = DALIdentity::create_identity(
-                    db,
-                    wotb_id,
-                    compact_idty,
-                    current_blockstamp.clone(),
-                );
-                duniter_dal::writers::identity::write(
-                    &idty,
-                    db,
-                    current_blockstamp.clone(),
-                    block.median_time,
-                );
-            } else {
-                // Renewer
-                let wotb_id = wotb_index_copy[&joiner.issuers()[0]];
-                wot_events.push(WotEvent::EnableNode(wotb_id));
-                wot_copy.set_enabled(wotb_id, true);
-                let mut idty =
-                    DALIdentity::get_identity(&self.currency.to_string(), db, &wotb_id).unwrap();
-                idty.renewal_identity(
-                    db,
-                    &wotb_index_copy,
-                    &block.blockstamp(),
-                    block.median_time,
-                    false,
-                );
-            }
-        }
-        for active in block.actives.clone() {
-            let wotb_id = wotb_index_copy[&active.issuers()[0]];
-            wot_events.push(WotEvent::EnableNode(wotb_id));
-            wot_copy.set_enabled(wotb_id, true);
-            let mut idty =
-                DALIdentity::get_identity(&self.currency.to_string(), db, &wotb_id).unwrap();
-            idty.renewal_identity(
-                db,
-                &wotb_index_copy,
-                &block.blockstamp(),
-                block.median_time,
-                false,
-            );
-        }
-        for exclusion in block.excluded.clone() {
-            let wotb_id = wotb_index_copy[&exclusion];
-            wot_events.push(WotEvent::DisableNode(wotb_id));
-            wot_copy.set_enabled(wotb_id, false);
-            DALIdentity::exclude_identity(db, wotb_id, block.blockstamp(), false);
-        }
-        for revocation in block.revoked.clone() {
-            let wotb_id = wotb_index_copy[&revocation.issuers()[0]];
-            wot_events.push(WotEvent::DisableNode(wotb_id));
-            wot_copy.set_enabled(wotb_id, false);
-            DALIdentity::revoke_identity(db, wotb_id, &block.blockstamp(), false);
-        }
-        for certification in block.certifications.clone() {
-            let wotb_node_from = wotb_index_copy[&certification.issuers()[0]];
-            let wotb_node_to = wotb_index_copy[&certification.target()];
-            wot_events.push(WotEvent::AddLink(wotb_node_from, wotb_node_to));
-            wot_copy.add_link(wotb_node_from, wotb_node_to);
-            write_certification(
-                &certification,
-                db,
-                current_blockstamp.clone(),
-                block.median_time,
-            );
-        }
-
-        /*// Calculate the state of the wot
-        if !wot_events.is_empty() && verif_level != SyncVerificationLevel::FastSync() {
-            // Calculate sentries_count
-            let sentries_count = wot_copy.get_sentries(3).len();
-            // Calculate average_density
-            let average_density = calculate_average_density::<W>(&wot_copy);
-            let sentry_requirement =
-                get_sentry_requirement(block.members_count, G1_PARAMS.step_max);
-            // Calculate distances and connectivities
-            let (average_distance, distances, average_connectivity, connectivities) =
-                compute_distances::<W>(
-                    &wot_copy,
-                    sentry_requirement,
-                    G1_PARAMS.step_max,
-                    G1_PARAMS.x_percent,
-                );
-            // Calculate centralities and average_centrality
-            let centralities =
-                calculate_distance_stress_centralities::<W>(&wot_copy, G1_PARAMS.step_max);
-            let average_centrality =
-                (centralities.iter().sum::<u64>() as f64 / centralities.len() as f64) as usize;
-            // Register the state of the wot
-            duniter_dal::register_wot_state(
-                db,
-                &WotState {
-                    block_number: block.number.0,
-                    block_hash: block.hash.unwrap().to_string(),
-                    sentries_count,
-                    average_density,
-                    average_distance,
-                    distances,
-                    average_connectivity,
-                    connectivities: connectivities
-                        .iter()
-                        .map(|c| {
-                            if *c > *G1_CONNECTIVITY_MAX {
-                                *G1_CONNECTIVITY_MAX
-                            } else {
-                                *c
-                            }
-                        })
-                        .collect(),
-                    average_centrality,
-                    centralities,
-                },
-            );
-        }*/
-        // Write block in bdd
-        duniter_dal::writers::block::write(db, block, 0, false);
-
-        (true, wot_events)
+    ) -> (bool, Vec<DBWriteRequest>, Vec<WotEvent>) {
+        let block_doc = match complete_network_block(
+            &self.currency.to_string(),
+            Some(&self.db),
+            network_block,
+            verif_level.clone(),
+        ) {
+            Ok(block_doc) => block_doc,
+            Err(_) => return (false, Vec::with_capacity(0), Vec::with_capacity(0)),
+        };
+        try_stack_up_completed_block::<W>(&block_doc, wotb_index, wot)
     }
     /// Start blockchain module.
     pub fn start_blockchain(&mut self, blockchain_receiver: mpsc::Receiver<DuniterMessage>) -> () {
@@ -926,7 +674,6 @@ impl BlockchainModule {
                                     if let Some(current_block) = DALBlock::get_block(
                                         &self.currency.to_string(),
                                         &self.db,
-                                        &wotb_index,
                                         &current_blockstamp,
                                     ) {
                                         debug!("BlockchainModule : send_req_response(CurrentBlock({}))", current_block.block.blockstamp());
@@ -1052,7 +799,6 @@ impl BlockchainModule {
                     let stackable_blocks = duniter_dal::block::DALBlock::get_stackables_blocks(
                         &self.currency.to_string(),
                         &self.db,
-                        &wotb_index,
                         &current_blockstamp,
                     );
                     if stackable_blocks.is_empty() {
@@ -1152,5 +898,109 @@ impl BlockchainModule {
                 )
                 .expect("Fatal Error: Fail to write wotb in file !");
         }
+    }
+}
+
+/// Complete Network Block
+pub fn complete_network_block(
+    currency: &str,
+    db: Option<&DuniterDB>,
+    network_block: &NetworkBlock,
+    verif_level: SyncVerificationLevel,
+) -> Result<BlockDocument, CompletedBlockError> {
+    if let &NetworkBlock::V10(ref network_block_v10) = network_block {
+        let mut block_doc = network_block_v10.uncompleted_block_doc.clone();
+        trace!("complete_network_block #{}...", block_doc.number);
+        if verif_level == SyncVerificationLevel::Cautious() {
+            // Indexing block_identities
+            let mut block_identities = HashMap::new();
+            block_doc
+                .identities
+                .iter()
+                .map(|idty| {
+                    if idty.issuers().is_empty() {
+                        panic!("idty without issuer !")
+                    }
+                    block_identities.insert(idty.issuers()[0], idty.clone());
+                })
+                .collect::<()>();
+            block_doc.certifications =
+                    duniter_dal::parsers::certifications::parse_certifications_from_json_value(
+                        currency,
+                        db.expect("complete_network_block() : Cautious mode need access to blockchain database !"),
+                        &block_identities,
+                        &network_block_v10.certifications,
+                    );
+            trace!("Success to complete certs.");
+            block_doc.revoked = duniter_dal::parsers::revoked::parse_revocations_from_json_value(
+                currency,
+                db.expect(
+                    "complete_network_block() : Cautious mode need access to blockchain database !",
+                ),
+                &block_identities,
+                &network_block_v10.revoked,
+            );
+        } else {
+            block_doc.certifications =
+                duniter_dal::parsers::certifications::parse_certifications_into_compact(
+                    &network_block_v10.certifications,
+                );
+            trace!("Success to complete certs.");
+            block_doc.revoked = duniter_dal::parsers::revoked::parse_revocations_into_compact(
+                &network_block_v10.revoked,
+            );
+        }
+        trace!("Success to complete certs & revocations.");
+        // In cautions mode, verify all signatures !
+        if verif_level == SyncVerificationLevel::Cautious() {
+            for idty in block_doc.clone().identities {
+                if idty.verify_signatures() != VerificationResult::Valid() {
+                    error!(
+                        "Fail to sync block #{} : Idty with invalid singature !",
+                        block_doc.number
+                    );
+                    panic!("Idty with invalid singature !");
+                }
+            }
+        }
+        let inner_hash = block_doc.inner_hash.expect(
+            "BlockchainModule : complete_network_block() : fatal error : block.inner_hash = None",
+        );
+        if block_doc.number.0 > 0 {
+            block_doc.compute_inner_hash();
+        }
+        let hash = block_doc.hash;
+        block_doc.compute_hash();
+        if block_doc.inner_hash.expect(
+            "BlockchainModule : complete_network_block() : fatal error : block.inner_hash = None",
+        ) == inner_hash
+        {
+            let nonce = block_doc.nonce;
+            block_doc.change_nonce(nonce);
+            if verif_level == SyncVerificationLevel::FastSync()
+                || block_doc.verify_signatures() == VerificationResult::Valid()
+                || block_doc.number.0 <= 1
+            {
+                if block_doc.hash == hash {
+                    trace!("Succes to complete_network_block #{}", block_doc.number.0);
+                    Ok(block_doc)
+                } else {
+                    warn!("BlockchainModule : Refuse Bloc : invalid hash !");
+                    Err(CompletedBlockError::InvalidHash())
+                }
+            } else {
+                warn!("BlockchainModule : Refuse Bloc : invalid signature !");
+                Err(CompletedBlockError::InvalidSig())
+            }
+        } else {
+            warn!("BlockchainModule : Refuse Bloc : invalid inner hash !");
+            debug!(
+                "BlockInnerFormat={}",
+                block_doc.generate_compact_inner_text()
+            );
+            Err(CompletedBlockError::InvalidInnerHash())
+        }
+    } else {
+        Err(CompletedBlockError::InvalidVersion())
     }
 }

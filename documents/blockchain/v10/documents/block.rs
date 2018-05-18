@@ -24,7 +24,7 @@ use blockchain::v10::documents::identity::IdentityDocument;
 use blockchain::v10::documents::membership::MembershipDocument;
 use blockchain::v10::documents::revocation::RevocationDocument;
 use blockchain::v10::documents::transaction::TransactionDocument;
-use blockchain::v10::documents::{TextDocument, V10Document};
+use blockchain::v10::documents::*;
 use blockchain::{BlockchainProtocol, Document, IntoSpecializedDocument};
 use {BlockHash, BlockId, Blockstamp, Hash};
 
@@ -130,11 +130,11 @@ pub struct BlockDocument {
     /// Leavers
     pub leavers: Vec<MembershipDocument>,
     /// Revokeds
-    pub revoked: Vec<RevocationDocument>,
+    pub revoked: Vec<TextDocumentFormat<RevocationDocument>>,
     /// Excludeds
     pub excluded: Vec<ed25519::PublicKey>,
     /// Certifications
-    pub certifications: Vec<CertificationDocument>,
+    pub certifications: Vec<TextDocumentFormat<CertificationDocument>>,
     /// Transactions
     pub transactions: Vec<TransactionDocument>,
     /// Part to sign
@@ -146,9 +146,6 @@ impl BlockDocument {
     pub fn compute_inner_hash(&mut self) {
         let mut sha256 = Sha256::new();
         let inner_text = self.generate_compact_inner_text();
-        /*if self.number.0 == 46473 {
-            println!("#46473 raw_format=\"{}\"", inner_text);
-        }*/
         sha256.input_str(&inner_text);
         self.inner_hash = Some(Hash::from_hex(&sha256.result_str()).unwrap());
     }
@@ -176,7 +173,8 @@ impl BlockDocument {
         ));
         self.hash = Some(BlockHash(Hash::from_hex(&sha256.result_str()).unwrap()));
     }
-    fn generate_compact_inner_text(&self) -> String {
+    /// Generate compact inner text (for compute inner_hash)
+    pub fn generate_compact_inner_text(&self) -> String {
         let mut identities_str = String::from("");
         for identity in self.identities.clone() {
             identities_str.push_str("\n");
@@ -205,7 +203,7 @@ impl BlockDocument {
         let mut revokeds_str = String::from("");
         for revocation in self.revoked.clone() {
             revokeds_str.push_str("\n");
-            revokeds_str.push_str(&revocation.generate_compact_text());
+            revokeds_str.push_str(&revocation.as_compact_text());
         }
         let mut excludeds_str = String::from("");
         for exclusion in self.excluded.clone() {
@@ -215,7 +213,7 @@ impl BlockDocument {
         let mut certifications_str = String::from("");
         for certification in self.certifications.clone() {
             certifications_str.push_str("\n");
-            certifications_str.push_str(&certification.generate_compact_text());
+            certifications_str.push_str(&certification.as_compact_text());
         }
         let mut transactions_str = String::from("");
         for transaction in self.transactions.clone() {
@@ -313,18 +311,26 @@ impl Document for BlockDocument {
     }
 }
 
-impl TextDocument for BlockDocument {
-    fn as_text(&self) -> &str {
-        panic!();
-    }
-
-    fn generate_compact_text(&self) -> String {
+impl CompactTextDocument for BlockDocument {
+    fn as_compact_text(&self) -> String {
         let compact_inner_text = self.generate_compact_inner_text();
         format!(
             "{}InnerHash: {}\nNonce: ",
             compact_inner_text,
             self.inner_hash.unwrap().to_hex()
         )
+    }
+}
+
+impl TextDocument for BlockDocument {
+    type CompactTextDocument_ = BlockDocument;
+
+    fn as_text(&self) -> &str {
+        panic!();
+    }
+
+    fn to_compact_document(&self) -> Self::CompactTextDocument_ {
+        self.clone()
     }
 }
 
@@ -506,7 +512,7 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
             leavers: Vec::new(),
             revoked: Vec::new(),
             excluded: Vec::new(),
-            certifications: vec![cert1],
+            certifications: vec![TextDocumentFormat::Complete(cert1)],
             transactions: vec![tx1, tx2],
             inner_hash_and_nonce_str: String::new(),
         };

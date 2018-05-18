@@ -15,9 +15,6 @@ pub fn write_network_block(
     block: &BlockDocument,
     fork: usize,
     isolate: bool,
-    joiners: &Vec<serde_json::Value>,
-    actives: &Vec<serde_json::Value>,
-    leavers: &Vec<serde_json::Value>,
     revoked: &Vec<serde_json::Value>,
     certifications: &Vec<serde_json::Value>,
 ) {
@@ -32,8 +29,8 @@ pub fn write_network_block(
                 block.previous_hash.to_string(), block.inner_hash.unwrap().to_string(),
                 block.dividend.unwrap_or(0),
                 serde_json::to_string(&block.identities).unwrap(),
-                serde_json::to_string(joiners).unwrap(), serde_json::to_string(actives).unwrap(),
-                serde_json::to_string(leavers).unwrap(), serde_json::to_string(revoked).unwrap(),
+                serde_json::to_string(&block.joiners).unwrap(), serde_json::to_string(&block.actives).unwrap(),
+                serde_json::to_string(&block.leavers).unwrap(), serde_json::to_string(revoked).unwrap(),
                 serde_json::to_string(&block.excluded).unwrap(), serde_json::to_string(certifications).unwrap(),
                 serde_json::to_string(&block.transactions).unwrap()
             ))

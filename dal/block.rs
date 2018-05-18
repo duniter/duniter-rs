@@ -79,8 +79,6 @@ pub struct DALBlock {
     pub fork: usize,
     pub isolate: bool,
     pub block: BlockDocument,
-    pub median_frame: usize,
-    pub second_tiercile_frame: usize,
 }
 
 impl DALBlock {
@@ -195,7 +193,6 @@ impl DALBlock {
     pub fn get_stackables_blocks(
         currency: &str,
         db: &DuniterDB,
-        wotb_index: &HashMap<ed25519::PublicKey, NodeId>,
         current_blockstamp: &Blockstamp,
     ) -> Vec<DALBlock> {
         debug!("get_stackables_blocks() after {}", current_blockstamp);
@@ -204,12 +201,9 @@ impl DALBlock {
         let (hashs, previous_hashs) = DALBlock::get_blocks_hashs_all_forks(db, &block_id);
         for (hash, previous_hash) in hashs.into_iter().zip(previous_hashs) {
             if previous_hash == current_blockstamp.hash.0 {
-                if let Some(dal_block) = DALBlock::get_block(
-                    currency,
-                    db,
-                    wotb_index,
-                    &Blockstamp { id: block_id, hash },
-                ) {
+                if let Some(dal_block) =
+                    DALBlock::get_block(currency, db, &Blockstamp { id: block_id, hash })
+                {
                     stackables_blocks.push(dal_block);
                 } else {
                     panic!(format!(
@@ -237,12 +231,7 @@ impl DALBlock {
         }
         stackables_forks
     }
-    pub fn get_block(
-        currency: &str,
-        db: &DuniterDB,
-        wotb_index: &HashMap<ed25519::PublicKey, NodeId>,
-        blockstamp: &Blockstamp,
-    ) -> Option<DALBlock> {
+    pub fn get_block(currency: &str, db: &DuniterDB, blockstamp: &Blockstamp) -> Option<DALBlock> {
         let mut cursor = db
             .0
             .prepare(
@@ -410,7 +399,6 @@ impl DALBlock {
                     revoked: parse_revocations(
                         currency,
                         db,
-                        wotb_index,
                         &hashmap_identities,
                         row[25]
                             .as_string()
@@ -424,7 +412,6 @@ impl DALBlock {
                     certifications: parse_certifications(
                         currency,
                         db,
-                        wotb_index,
                         &hashmap_identities,
                         row[27]
                             .as_string()
@@ -444,8 +431,8 @@ impl DALBlock {
                         nonce
                     ),
                 },
-                median_frame: row[13].as_integer().unwrap_or(0) as usize,
-                second_tiercile_frame: row[14].as_integer().unwrap_or(0) as usize,
+                //median_frame: row[13].as_integer().unwrap_or(0) as usize,
+                //second_tiercile_frame: row[14].as_integer().unwrap_or(0) as usize,
             })
         } else {
             None
@@ -499,7 +486,7 @@ impl DALBlock {
             let mut current_frame_vec: Vec<_> = current_frame.values().cloned().collect();
             current_frame_vec.sort_unstable();
 
-            // Calculate median
+            /*// Calculate median
             let mut median_index = match self.block.issuers_count % 2 {
                 1 => (self.block.issuers_count / 2) + 1,
                 _ => self.block.issuers_count / 2,
@@ -517,7 +504,7 @@ impl DALBlock {
             if second_tiercile_index >= self.block.issuers_count {
                 second_tiercile_index = self.block.issuers_count - 1;
             }
-            self.second_tiercile_frame = current_frame_vec[second_tiercile_index];
+            self.second_tiercile_frame = current_frame_vec[second_tiercile_index];*/
         }
     }
 }

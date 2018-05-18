@@ -21,10 +21,7 @@ use self::serde::ser::{Serialize, Serializer};
 use duniter_crypto::keys::{ed25519, PublicKey, Signature};
 use regex::Regex;
 
-use blockchain::v10::documents::{
-    StandardTextDocumentParser, TextDocument, TextDocumentBuilder, V10Document,
-    V10DocumentParsingError,
-};
+use blockchain::v10::documents::*;
 use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
 use Blockstamp;
 
@@ -35,6 +32,25 @@ lazy_static! {
          IdtyTimestamp: (?P<idty_blockstamp>[0-9]+-[0-9A-F]{64})\n\
          IdtySignature: (?P<idty_sig>(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)\n$"
     ).unwrap();
+}
+
+#[derive(Debug, Copy, Clone)]
+/// Wrap an Compact Revocation document (in block content)
+pub struct CompactRevocationDocument {
+    /// Issuer
+    pub issuer: ed25519::PublicKey,
+    /// Signature
+    pub signature: ed25519::Signature,
+}
+
+impl CompactTextDocument for CompactRevocationDocument {
+    fn as_compact_text(&self) -> String {
+        format!(
+            "{issuer}:{signature}",
+            issuer = self.issuer,
+            signature = self.signature,
+        )
+    }
 }
 
 /// Wrap an Revocation document.
@@ -98,25 +114,26 @@ impl Document for RevocationDocument {
 }
 
 impl TextDocument for RevocationDocument {
+    type CompactTextDocument_ = CompactRevocationDocument;
+
     fn as_text(&self) -> &str {
         &self.text
     }
 
-    fn generate_compact_text(&self) -> String {
-        format!(
-            "{issuer}:{signature}",
-            issuer = self.issuers[0],
-            signature = self.signatures[0],
-        )
+    fn to_compact_document(&self) -> Self::CompactTextDocument_ {
+        CompactRevocationDocument {
+            issuer: self.issuers[0],
+            signature: self.signatures[0],
+        }
     }
 }
 
-impl Serialize for RevocationDocument {
+impl Serialize for TextDocumentFormat<RevocationDocument> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.generate_compact_text())
+        serializer.serialize_str(&self.as_compact_text())
     }
 }
 

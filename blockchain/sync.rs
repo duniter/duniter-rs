@@ -29,6 +29,8 @@ use self::pbr::ProgressBar;
 use duniter_crypto::keys::{ed25519, PublicKey, Signature};
 use duniter_dal::parsers::identities::parse_compact_identity;
 use duniter_dal::parsers::transactions::parse_transaction;
+//use duniter_dal::writers::requests::DBWriteRequest;
+use duniter_documents::blockchain::v10::documents::membership::MembershipType;
 use duniter_documents::blockchain::v10::documents::BlockDocument;
 use duniter_documents::{BlockHash, BlockId, Hash};
 use duniter_network::{NetworkBlock, NetworkBlockV10};
@@ -51,6 +53,7 @@ pub struct BlockHeader {
 enum ParserWorkMess {
     TargetBlockstamp(Blockstamp),
     NetworkBlock(NetworkBlock),
+    //DBWriteRequest(DBWriteRequest),
     End(),
 }
 
@@ -102,8 +105,8 @@ pub fn sync_ts(
         info!("Start cautious sync...");
         SyncVerificationLevel::Cautious()
     } else {
-        println!("Start cautious sync...");
-        info!("Start cautious sync...");
+        println!("Start fast sync...");
+        info!("Start fast sync...");
         SyncVerificationLevel::FastSync()
     };
 
@@ -244,8 +247,21 @@ pub fn sync_ts(
 
     // Apply blocks
     while let Ok(ParserWorkMess::NetworkBlock(network_block)) = recv_sync_thread.recv() {
+        // Complete block
+        let block_doc = match complete_network_block(
+            &blockchain_module.currency.to_string(),
+            None,
+            &network_block,
+            SyncVerificationLevel::FastSync(),
+        ) {
+            Ok(block_doc) => block_doc,
+            Err(_) => panic!("Receive wrong block, please reset data and resync !"),
+        };
         // Apply block
-        let (success, new_wot_events) = blockchain_module.try_stack_up_block::<RustyWebOfTrust>(
+        let (success, db_requests, new_wot_events) =
+            try_stack_up_completed_block::<RustyWebOfTrust>(&block_doc, &wotb_index, &wot);
+
+        blockchain_module.try_stack_up_block::<RustyWebOfTrust>(
             &network_block,
             &wotb_index,
             &wot,
@@ -253,6 +269,13 @@ pub fn sync_ts(
         );
         if success {
             current_blockstamp = network_block.blockstamp();
+            debug!("Apply db requests...");
+            // Apply db requests
+            db_requests
+                .iter()
+                .map(|req| req.apply(&conf.currency().to_string(), &blockchain_module.db))
+                .collect::<()>();
+            debug!("Finish to apply db requests.");
             // Apply WotEvents
             if !new_wot_events.is_empty() {
                 for wot_event in new_wot_events {
@@ -430,9 +453,21 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
         ),
         dividend: dividend,
         identities,
-        joiners: Vec::new(),
-        actives: Vec::new(),
-        leavers: Vec::new(),
+        joiners: duniter_dal::parsers::memberships::parse_memberships(
+            currency,
+            MembershipType::In(),
+            row[21].as_string().expect("Fail to parse joiners"),
+        ).expect("Fail to parse joiners (2)"),
+        actives: duniter_dal::parsers::memberships::parse_memberships(
+            currency,
+            MembershipType::In(),
+            row[22].as_string().expect("Fail to parse actives"),
+        ).expect("Fail to parse actives (2)"),
+        leavers: duniter_dal::parsers::memberships::parse_memberships(
+            currency,
+            MembershipType::In(),
+            row[23].as_string().expect("Fail to parse leavers"),
+        ).expect("Fail to parse leavers (2)"),
         revoked: Vec::new(),
         excluded: excluded
             .as_array()
@@ -448,15 +483,6 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
         transactions,
         inner_hash_and_nonce_str: String::new(),
     };
-    let joiners: serde_json::Value = serde_json::from_str(
-        row[21].as_string().expect("Fail to parse joiners"),
-    ).expect("Fail to parse joiners (2)");
-    let actives: serde_json::Value = serde_json::from_str(
-        row[22].as_string().expect("Fail to parse actives"),
-    ).expect("Fail to parse actives (2)");
-    let leavers: serde_json::Value = serde_json::from_str(
-        row[23].as_string().expect("Fail to parse leavers"),
-    ).expect("Fail to parse leavers (2)");
     let revoked: serde_json::Value = serde_json::from_str(
         row[24].as_string().expect("Fail to parse revoked"),
     ).expect("Fail to parse revoked (2)");
@@ -466,18 +492,6 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
     // return NetworkBlock
     NetworkBlock::V10(Box::new(NetworkBlockV10 {
         uncompleted_block_doc,
-        joiners: joiners
-            .as_array()
-            .expect("Fail to parse joiners (3)")
-            .to_vec(),
-        actives: actives
-            .as_array()
-            .expect("Fail to parse actives (3)")
-            .to_vec(),
-        leavers: leavers
-            .as_array()
-            .expect("Fail to parse leavers (3)")
-            .to_vec(),
         revoked: revoked
             .as_array()
             .expect("Fail to parse revoked (3)")

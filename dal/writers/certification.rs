@@ -4,12 +4,11 @@ extern crate sqlite;
 
 use super::super::DuniterDB;
 use duniter_crypto::keys::ed25519;
-use duniter_documents::blockchain::v10::documents::CertificationDocument;
-use duniter_documents::blockchain::Document;
+use duniter_documents::blockchain::v10::documents::certification::CompactCertificationDocument;
 use duniter_documents::Blockstamp;
 
 pub fn write_certification(
-    cert: &CertificationDocument,
+    cert: &CompactCertificationDocument,
     db: &DuniterDB,
     written_blockstamp: Blockstamp,
     written_timestamp: u64,
@@ -17,11 +16,11 @@ pub fn write_certification(
     let mut cursor = db
         .0
         .prepare("SELECT median_time FROM blocks WHERE number=? AND fork=0 LIMIT 1;")
-        .unwrap()
+        .expect("invalid write_certification sql request")
         .cursor();
 
     cursor
-        .bind(&[sqlite::Value::Integer(cert.blockstamp().id.0 as i64)])
+        .bind(&[sqlite::Value::Integer(cert.block_number.0 as i64)])
         .expect("convert blockstamp to timestamp failure at step 1 !");
 
     let mut created_timestamp: i64 = 0;
@@ -29,18 +28,20 @@ pub fn write_certification(
         .next()
         .expect("convert blockstamp to timestamp failure at step 2 !")
     {
-        created_timestamp = row[0].as_integer().unwrap();
+        created_timestamp = row[0]
+            .as_integer()
+            .expect("Fail to write cert, impossible to get created_timestamp !");
     }
 
     db.0
         .execute(
             format!("INSERT INTO certifications (pubkey_from, pubkey_to, created_on, signature, written_on, expires_on, chainable_on) VALUES ('{}', '{}', '{}', '{}', '{}', {}, {});",
-                cert.issuers()[0], cert.target(), cert.blockstamp().id.0, cert.signatures()[0],
+                cert.issuer, cert.target, cert.block_number.0, cert.signature,
                 written_blockstamp.to_string(),
                 created_timestamp+super::super::constants::G1_PARAMS.sig_validity,
                 written_timestamp+super::super::constants::G1_PARAMS.sig_period
             ))
-        .unwrap();
+        .expect("Fail to execute INSERT certification !");
 }
 
 pub fn remove_certification(from: ed25519::PublicKey, to: ed25519::PublicKey, db: &DuniterDB) {
@@ -49,5 +50,5 @@ pub fn remove_certification(from: ed25519::PublicKey, to: ed25519::PublicKey, db
             "DELETE FROM certifications WHERE pubkey_from={} AND pubkey_to={}",
             from, to
         ))
-        .unwrap();
+        .expect("Fail to execute DELETE certification !");
 }

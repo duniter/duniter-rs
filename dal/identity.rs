@@ -12,7 +12,6 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct DALIdentity {
-    pub wotb_id: NodeId,
     pub hash: String,
     pub state: isize,
     pub joined_on: Blockstamp,
@@ -78,7 +77,6 @@ impl DALIdentity {
 
     pub fn create_identity(
         db: &DuniterDB,
-        wotb_id: NodeId,
         idty_doc: &IdentityDocument,
         current_blockstamp: Blockstamp,
     ) -> DALIdentity {
@@ -87,7 +85,6 @@ impl DALIdentity {
             .expect("convert blockstamp to timestamp failure !");
 
         DALIdentity {
-            wotb_id,
             hash: "0".to_string(),
             state: 0,
             joined_on: current_blockstamp,
@@ -131,7 +128,7 @@ impl DALIdentity {
     pub fn renewal_identity(
         &mut self,
         db: &DuniterDB,
-        wotb_index: &HashMap<ed25519::PublicKey, NodeId>,
+        pubkey: &ed25519::PublicKey,
         renewal_blockstamp: &Blockstamp,
         renawal_timestamp: u64,
         revert: bool,
@@ -142,9 +139,8 @@ impl DALIdentity {
                 DALBlock::get_block(
                     self.idty_doc.currency(),
                     db,
-                    wotb_index,
                     &self.penultimate_renewed_on.clone(),
-                ).unwrap(),
+                ).expect("renewal_identity: Fail to get penultimate_renewed_block"),
             );
             penultimate_renewed_block.clone().unwrap().block.median_time
                 + super::constants::G1_PARAMS.ms_validity < renawal_timestamp
@@ -160,7 +156,7 @@ impl DALIdentity {
         };
         let mut cursor = db.0
             .prepare(
-                "UPDATE identities SET state=?, last_renewed_on=?, expires_on=?, revokes_on=?  WHERE wotb_id=?;",
+                "UPDATE identities SET state=?, last_renewed_on=?, expires_on=?, revokes_on=?  WHERE pubkey=?;",
             )
             .expect("Fail to renewal idty !")
             .cursor();
@@ -173,7 +169,7 @@ impl DALIdentity {
                 sqlite::Value::Integer(
                     (renawal_timestamp + (super::constants::G1_PARAMS.ms_validity * 2)) as i64,
                 ),
-                sqlite::Value::Integer(self.wotb_id.0 as i64),
+                sqlite::Value::String(pubkey.to_string()),
             ])
             .expect("Fail to renewal idty !");
     }
@@ -187,62 +183,92 @@ impl DALIdentity {
             .unwrap();
     }
 
-    pub fn get_identity(currency: &str, db: &DuniterDB, wotb_id: &NodeId) -> Option<DALIdentity> {
+    pub fn get_identity(
+        currency: &str,
+        db: &DuniterDB,
+        pubkey: &ed25519::PublicKey,
+    ) -> Option<DALIdentity> {
         let mut cursor = db
             .0
             .prepare(
-                "SELECT uid, pubkey, hash, sig,
+                "SELECT uid, hash, sig,
                 state, created_on, joined_on, penultimate_renewed_on, last_renewed_on,
-                expires_on, revokes_on, expired_on, revoked_on FROM identities WHERE wotb_id=?;",
+                expires_on, revokes_on, expired_on, revoked_on FROM identities WHERE pubkey=?;",
             )
             .expect("Fail to get idty !")
             .cursor();
 
         cursor
-            .bind(&[sqlite::Value::Integer(wotb_id.0 as i64)])
+            .bind(&[sqlite::Value::String(pubkey.to_string())])
             .expect("Fail to get idty !");
 
-        if let Some(row) = cursor.next().unwrap() {
+        if let Some(row) = cursor.next().expect("get_identity: cursor error") {
             let idty_doc_builder = IdentityDocumentBuilder {
                 currency,
-                username: row[0].as_string().unwrap(),
+                username: row[0]
+                    .as_string()
+                    .expect("get_identity: fail to parse username"),
                 blockstamp: &Blockstamp::from_string(
-                    row[5]
+                    row[4]
                         .as_string()
                         .expect("DB Error : idty created_on invalid !"),
                 ).expect("DB Error : idty created_on invalid (2) !"),
-                issuer: &PublicKey::from_base58(row[1].as_string().unwrap()).unwrap(),
+                issuer: &pubkey,
             };
-            let idty_sig = Signature::from_base64(row[3].as_string().unwrap()).unwrap();
+            let idty_sig = Signature::from_base64(
+                row[2].as_string().expect("get_identity: fail to parse sig"),
+            ).expect("get_identity: fail to parse sig (2)");
             let idty_doc = idty_doc_builder.build_with_signature(vec![idty_sig]);
 
-            let expired_on = match Blockstamp::from_string(row[11].as_string().unwrap()) {
+            let expired_on = match Blockstamp::from_string(
+                row[10]
+                    .as_string()
+                    .expect("get_identity: fail to parse expire on"),
+            ) {
                 Ok(blockstamp) => Some(blockstamp),
                 Err(_) => None,
             };
-            let revoked_on = match Blockstamp::from_string(row[12].as_string().unwrap()) {
+            let revoked_on = match Blockstamp::from_string(
+                row[11]
+                    .as_string()
+                    .expect("get_identity: fail to parse revoked on"),
+            ) {
                 Ok(blockstamp) => Some(blockstamp),
                 Err(_) => None,
             };
             Some(DALIdentity {
-                wotb_id: wotb_id.clone(),
-                hash: row[2].as_string().unwrap().to_string(),
-                state: row[4].as_integer().unwrap() as isize,
+                hash: row[2]
+                    .as_string()
+                    .expect("get_identity: fail to parse hash")
+                    .to_string(),
+                state: row[3]
+                    .as_integer()
+                    .expect("get_identity: fail to parse state") as isize,
                 joined_on: Blockstamp::from_string(
-                    row[6]
+                    row[5]
                         .as_string()
                         .expect("DB Error : idty joined_on invalid !"),
                 ).expect("DB Error : idty joined_on invalid !"),
                 penultimate_renewed_on: Blockstamp::from_string(
-                    row[7]
+                    row[6]
                         .as_string()
                         .expect("DB Error : idty penultimate_renewed_on invalid !"),
                 ).expect(
                     "DB Error : idty penultimate_renewed_on invalid (2) !",
                 ),
-                last_renewed_on: Blockstamp::from_string(row[8].as_string().unwrap()).unwrap(),
-                expires_on: row[9].as_integer().unwrap() as u64,
-                revokes_on: row[10].as_integer().unwrap() as u64,
+                last_renewed_on: Blockstamp::from_string(
+                    row[7]
+                        .as_string()
+                        .expect("get_identity: fail to parse last_renewed_on"),
+                ).expect("get_identity: fail to parse last_renewed_on (2)"),
+                expires_on: row[8]
+                    .as_integer()
+                    .expect("get_identity: fail to parse expires_on")
+                    as u64,
+                revokes_on: row[9]
+                    .as_integer()
+                    .expect("get_identity: fail to parse revokes_on")
+                    as u64,
                 expired_on,
                 revoked_on,
                 idty_doc,

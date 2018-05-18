@@ -1063,22 +1063,28 @@ impl WS2PModuleDatas {
     pub fn connect_to_know_endpoints(&mut self) -> () {
         let mut count_established_connections = 0;
         let mut reachable_endpoints = Vec::new();
+        let mut unreachable_endpoints = Vec::new();
         for (_ws2p_full_id, (ep, state)) in self.ws2p_endpoints.clone() {
             match state {
                 WS2PConnectionState::Established => count_established_connections += 1,
                 WS2PConnectionState::NeverTry
                 | WS2PConnectionState::Close
                 | WS2PConnectionState::Denial => reachable_endpoints.push(ep),
-                _ => {}
+                _ => unreachable_endpoints.push(ep),
             }
         }
         let mut free_outcoming_rooms =
             self.conf.clone().unwrap().outcoming_quota - count_established_connections;
-        for ep in reachable_endpoints {
-            if free_outcoming_rooms > 0 {
-                free_outcoming_rooms -= 1;
-                self.connect_to_without_checking_quotas(ep);
-            }
+        while free_outcoming_rooms > 0 {
+            let ep = if !reachable_endpoints.is_empty() {
+                reachable_endpoints.pop().unwrap()
+            } else if !unreachable_endpoints.is_empty() {
+                unreachable_endpoints.pop().unwrap()
+            } else {
+                break;
+            };
+            self.connect_to_without_checking_quotas(ep);
+            free_outcoming_rooms -= 1;
         }
     }
     pub fn connect_to(&mut self, endpoint: NetworkEndpoint) -> () {
