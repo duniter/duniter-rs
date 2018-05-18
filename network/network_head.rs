@@ -386,7 +386,8 @@ impl NetworkHead {
         if let Some(head) = heads_cache_copy.get(&self.node_full_id()) {
             if self.blockstamp().id.0 > head.blockstamp().id.0
                 || (self.blockstamp().id.0 == head.blockstamp().id.0
-                    && (self.version() >= head.version() || self.step() <= head.step()))
+                    && self.version() >= head.version()
+                    && self.step() < head.step())
             {
                 if let Some(head_mut) = heads_cache.get_mut(&self.node_full_id()) {
                     *head_mut = self.clone();

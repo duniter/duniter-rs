@@ -69,6 +69,7 @@ mod ack_message;
 mod connect_message;
 pub mod constants;
 mod ok_message;
+pub mod serializer;
 pub mod ws2p_connection;
 pub mod ws2p_db;
 pub mod ws2p_requests;
@@ -449,6 +450,28 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                     ws2p_module.send_network_event(&NetworkEvent::ReceiveHeads(
                                         vec![ws2p_module.my_head.clone().unwrap()],
                                     ));
+                                    // Send my head to all connections
+                                    let my_json_head = serializer::serialize_head(
+                                        ws2p_module.my_head.clone().unwrap(),
+                                    );
+                                    trace!("Send my HEAD: {:#?}", my_json_head);
+                                    let _results: Result<
+                                        (),
+                                        websocket::WebSocketError,
+                                    > = ws2p_module
+                                        .websockets
+                                        .iter_mut()
+                                        .map(|ws| {
+                                            (ws.1).0.send_message(&Message::text(
+                                                json!({
+                                                "name": "HEAD",
+                                                "body": {
+                                                    "heads": [my_json_head]
+                                                }
+                                            }).to_string(),
+                                            ))
+                                        })
+                                        .collect();
                                 }
                                 _ => {}
                             },
@@ -505,7 +528,7 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                             ),
                                         );
                                         // Resent to other modules connections that match receive uids
-                                        for (node_full_id, (_ep, conn_state)) in
+                                        for (node_full_id, (ep, conn_state)) in
                                             ws2p_module.ws2p_endpoints.clone()
                                         {
                                             if let Some(uid_option) = uids.get(&node_full_id.1) {
@@ -514,6 +537,7 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                                         node_full_id,
                                                         conn_state as u32,
                                                         uid_option.clone(),
+                                                        ep.get_url(false),
                                                     ),
                                                 );
                                             }
@@ -550,6 +574,12 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                 ws2p_full_id,
                                 WS2PConnectionState::Established as u32,
                                 ws2p_module.uids_cache.get(&ws2p_full_id.1).cloned(),
+                                ws2p_module
+                                    .ws2p_endpoints
+                                    .get(&ws2p_full_id)
+                                    .unwrap()
+                                    .0
+                                    .get_url(false),
                             ));
                         }
                         WS2PSignal::WSError(ws2p_full_id) => {
@@ -558,6 +588,12 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                 ws2p_full_id,
                                 WS2PConnectionState::WSError as u32,
                                 ws2p_module.uids_cache.get(&ws2p_full_id.1).cloned(),
+                                ws2p_module
+                                    .ws2p_endpoints
+                                    .get(&ws2p_full_id)
+                                    .unwrap()
+                                    .0
+                                    .get_url(false),
                             ));
                         }
                         WS2PSignal::NegociationTimeout(ws2p_full_id) => {
@@ -566,6 +602,12 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                 ws2p_full_id,
                                 WS2PConnectionState::Denial as u32,
                                 ws2p_module.uids_cache.get(&ws2p_full_id.1).cloned(),
+                                ws2p_module
+                                    .ws2p_endpoints
+                                    .get(&ws2p_full_id)
+                                    .unwrap()
+                                    .0
+                                    .get_url(false),
                             ));
                         }
                         WS2PSignal::Timeout(ws2p_full_id) => {
@@ -574,6 +616,12 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                 ws2p_full_id,
                                 WS2PConnectionState::Close as u32,
                                 ws2p_module.uids_cache.get(&ws2p_full_id.1).cloned(),
+                                ws2p_module
+                                    .ws2p_endpoints
+                                    .get(&ws2p_full_id)
+                                    .unwrap()
+                                    .0
+                                    .get_url(false),
                             ));
                         }
                         WS2PSignal::PeerCard(_ws2p_full_id, _peer_card, ws2p_endpoints) => {
@@ -764,13 +812,12 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                 // Print network consensus
                 match ws2p_module.get_network_consensus() {
                     Ok(consensus_blockstamp) => {
-                        /*writeln!(
+                        debug!(
                             "WS2PModule : get_network_consensus() = {:?}",
                             consensus_blockstamp
-                        );*/
-
-                        while current_blockstamp.id > consensus_blockstamp.id {
-                            warn!("Need to revert !");
+                        );
+                        if current_blockstamp.id.0 < (consensus_blockstamp.id.0 + 2) {
+                            warn!("We probably are in a fork branch !");
                         }
                     }
                     Err(e) => warn!("{:?}", e),
@@ -1208,7 +1255,11 @@ impl WS2PModuleDatas {
                 for head in heads {
                     if let Some(head) = NetworkHead::from_json_value(&head) {
                         if head.verify() {
-                            if head.apply(&mut self.heads_cache) {
+                            if (self.my_head.is_none()
+                                || head.node_full_id()
+                                    != self.my_head.clone().unwrap().node_full_id())
+                                && head.apply(&mut self.heads_cache)
+                            {
                                 applied_heads.push(head);
                             }
                         }
@@ -1391,7 +1442,7 @@ impl WS2PModuleDatas {
             .1 = WS2PConnectionState::TryToOpenWS;
 
         // get endpoint url
-        let ws_url = endpoint.get_url();
+        let ws_url = endpoint.get_url(true);
 
         // Create WS2PConnection
         let mut conn_meta_datas = WS2PConnectionMetaData::new(
