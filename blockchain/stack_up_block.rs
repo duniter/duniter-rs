@@ -55,9 +55,9 @@ pub fn try_stack_up_completed_block<W: WebOfTrust + Sync>(
             wotb_index_copy.insert(pubkey, wotb_id);
             db_requests.push(DBWriteRequest::CreateIdentity(
                 wotb_id,
-                current_blockstamp.clone(),
+                current_blockstamp,
                 block.median_time,
-                idty_doc.clone(),
+                Box::new(idty_doc.clone()),
             ));
         } else {
             // Renewer
@@ -168,11 +168,11 @@ pub fn try_stack_up_completed_block<W: WebOfTrust + Sync>(
             );
         }*/
     // Write block in bdd
-    db_requests.push(DBWriteRequest::WriteBlock(DALBlock {
+    db_requests.push(DBWriteRequest::WriteBlock(Box::new(DALBlock {
         block: block.clone(),
         fork: 0,
         isolate: false,
-    }));
+    })));
 
     (true, db_requests, wot_events)
 }

@@ -15,8 +15,8 @@ pub fn write_network_block(
     block: &BlockDocument,
     fork: usize,
     isolate: bool,
-    revoked: &Vec<serde_json::Value>,
-    certifications: &Vec<serde_json::Value>,
+    revoked: &[serde_json::Value],
+    certifications: &[serde_json::Value],
 ) {
     db.0
         .execute(

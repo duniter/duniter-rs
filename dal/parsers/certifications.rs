@@ -17,7 +17,7 @@ use duniter_documents::{BlockHash, BlockId, Blockstamp, Hash};
 use std::collections::HashMap;
 
 pub fn parse_certifications_into_compact(
-    json_certs: &Vec<serde_json::Value>,
+    json_certs: &[serde_json::Value],
 ) -> Vec<TextDocumentFormat<CertificationDocument>> {
     let mut certifications: Vec<TextDocumentFormat<CertificationDocument>> = Vec::new();
     for certification in json_certs.iter() {

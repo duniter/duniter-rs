@@ -16,6 +16,7 @@
 //! Crate containing Duniter-rust core.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
+#![cfg_attr(feature = "cargo-clippy", allow(cyclomatic_complexity))]
 #![deny(
     missing_debug_implementations, missing_copy_implementations, trivial_casts, unsafe_code,
     unstable_features, unused_import_braces, unused_qualifications
@@ -146,7 +147,7 @@ pub struct WS2PModuleDatas {
 
 #[derive(Debug)]
 pub enum WS2PThreadSignal {
-    DuniterMessage(DuniterMessage),
+    DuniterMessage(Box<DuniterMessage>),
     WS2PConnectionMessage(WS2PConnectionMessage),
 }
 
@@ -160,19 +161,19 @@ pub trait WS2PMessage: Sized {
     //fn parse_and_verify(v: serde_json::Value, currency: String) -> bool;
 }
 
-pub fn get_random_connection(
-    connections: &HashMap<NodeFullId, (NetworkEndpoint, WS2PConnectionState)>,
+pub fn get_random_connection<S: ::std::hash::BuildHasher>(
+    connections: &HashMap<NodeFullId, (NetworkEndpoint, WS2PConnectionState), S>,
 ) -> NodeFullId {
     let mut rng = rand::thread_rng();
     let mut loop_count = 0;
     loop {
-        for (ws2p_full_id, (_ep, state)) in connections.clone() {
+        for (ws2p_full_id, (_ep, state)) in &(*connections) {
             if loop_count > 10 {
-                return ws2p_full_id;
+                return *ws2p_full_id;
             }
             if let WS2PConnectionState::Established = state {
                 if rng.gen::<bool>() {
-                    return ws2p_full_id;
+                    return *ws2p_full_id;
                 }
             }
         }
@@ -244,7 +245,7 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
             );
             info!("Load sync endpoint {}", ep.raw());
         }
-        ws2p_module.key_pair = Some(key_pair.clone());
+        ws2p_module.key_pair = Some(key_pair);
         ws2p_module.currency = Some(duniter_conf.currency().to_string());
         ws2p_module.conf = Some(conf.clone());
         ws2p_module.ws2p_endpoints = ws2p_endpoints;
@@ -262,27 +263,22 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
         // Launch a proxy thread that transform DuniterMessage to WS2PThreadSignal(DuniterMessage)
         thread::spawn(move || {
             // Send proxy sender to main
-            match rooter_sender.send(RooterThreadMessage::ModuleSender(proxy_sender_clone)) {
-                Ok(_) => {
-                    debug!("Send ws2p sender to main thread.");
-                }
-                Err(_) => panic!("Fatal error : ws2p module fail to send is sender channel !"),
-            }
-            //drop(rooter_sender);
+            rooter_sender
+                .send(RooterThreadMessage::ModuleSender(proxy_sender_clone))
+                .expect("Fatal error : ws2p module fail to send is sender channel !");
+            debug!("Send ws2p sender to main thread.");
             loop {
                 match proxy_receiver.recv() {
-                    Ok(message) => match ws2p_sender_clone
-                        .send(WS2PThreadSignal::DuniterMessage(message.clone()))
-                    {
-                        Ok(_) => {
-                            if let DuniterMessage::Stop() = message {
-                                break;
-                            };
-                        }
-                        Err(_) => panic!(
-                            "Fatal error : fail to relay DuniterMessage to ws2p main thread !"
-                        ),
-                    },
+                    Ok(message) => {
+                        ws2p_sender_clone
+                            .send(WS2PThreadSignal::DuniterMessage(Box::new(message.clone())))
+                            .expect(
+                                "Fatal error : fail to relay DuniterMessage to ws2p main thread !",
+                            );
+                        if let DuniterMessage::Stop() = message {
+                            break;
+                        };
+                    }
                     Err(e) => panic!(format!("{}", e)),
                 }
             }
@@ -292,12 +288,12 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
         let mut db_path =
             duniter_conf::datas_path(duniter_conf.profile().as_str(), &duniter_conf.currency());
         db_path.push("ws2p.db");
-        let db = WS2PModuleDatas::open_db(db_path).expect("Fatal error : fail to open WS2P DB !");
+        let db = WS2PModuleDatas::open_db(&db_path).expect("Fatal error : fail to open WS2P DB !");
 
         // Get ws2p endpoints in BDD
         let mut count = 0;
         let dal_enpoints =
-            ws2p_db::get_endpoints_for_api(&db, NetworkEndpointApi(String::from("WS2P")));
+            ws2p_db::get_endpoints_for_api(&db, &NetworkEndpointApi(String::from("WS2P")));
         for ep in dal_enpoints {
             if ep.api() == NetworkEndpointApi(String::from("WS2P")) && ep.port() != 443 {
                 count += 1;
@@ -332,9 +328,9 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
             {
                 Ok(message) => match message {
                     WS2PThreadSignal::DuniterMessage(ref duniter_mesage) => {
-                        match duniter_mesage {
-                            &DuniterMessage::Stop() => break,
-                            &DuniterMessage::Followers(ref new_followers) => {
+                        match *duniter_mesage.deref() {
+                            DuniterMessage::Stop() => break,
+                            DuniterMessage::Followers(ref new_followers) => {
                                 info!("WS2P module receive followers !");
                                 for new_follower in new_followers {
                                     debug!("WS2PModule : push one follower.");
@@ -353,7 +349,7 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                         if ws2p_module.my_head.is_none() {
                                             ws2p_module.my_head =
                                                 Some(WS2PModuleDatas::generate_my_head(
-                                                    &key_pair.clone(),
+                                                    &key_pair,
                                                     &conf.clone(),
                                                     soft_name,
                                                     soft_version,
@@ -369,8 +365,8 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                     }
                                 }
                             }
-                            &DuniterMessage::NetworkRequest(ref request) => match request {
-                                &NetworkRequest::GetBlocks(
+                            DuniterMessage::NetworkRequest(ref request) => match *request {
+                                NetworkRequest::GetBlocks(
                                     ref req_id,
                                     ref receiver,
                                     ref count,
@@ -408,10 +404,7 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                                 .send_request_to_specific_node(
                                                     &real_receiver,
                                                     &NetworkRequest::GetBlocks(
-                                                        req_id.clone(),
-                                                        receiver.clone(),
-                                                        count.clone(),
-                                                        from.clone(),
+                                                        *req_id, *receiver, *count, *from,
                                                     ),
                                                 );
                                         } else {
@@ -422,25 +415,23 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                             .send_request_to_specific_node(
                                                 &receiver,
                                                 &NetworkRequest::GetBlocks(
-                                                    req_id.clone(),
-                                                    receiver.clone(),
-                                                    count.clone(),
-                                                    from.clone(),
+                                                    *req_id, *receiver, *count, *from,
                                                 ),
                                             );
                                     }
                                 }
+                                NetworkRequest::GetEndpoints(ref _request) => {}
                                 _ => {}
                             },
-                            &DuniterMessage::DALEvent(ref dal_event) => match dal_event {
-                                &DALEvent::StackUpValidBlock(ref block) => {
+                            DuniterMessage::DALEvent(ref dal_event) => match *dal_event {
+                                DALEvent::StackUpValidBlock(ref block) => {
                                     current_blockstamp = block.deref().blockstamp();
                                     debug!(
                                         "WS2PModule : current_blockstamp = {}",
                                         current_blockstamp
                                     );
                                     ws2p_module.my_head = Some(WS2PModuleDatas::generate_my_head(
-                                        &key_pair.clone(),
+                                        &key_pair,
                                         &conf.clone(),
                                         soft_name,
                                         soft_version,
@@ -473,79 +464,86 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                         })
                                         .collect();
                                 }
+                                DALEvent::RevertBlocks(ref _blocks) => {}
                                 _ => {}
                             },
-                            &DuniterMessage::DALResponse(ref dal_res) => match dal_res {
-                                &DALResponse::Blockchain(ref dal_res_bc) => match dal_res_bc {
-                                    &DALResBlockchain::CurrentBlock(
-                                        ref _requester_full_id,
-                                        ref current_block,
-                                    ) => {
-                                        debug!(
-                                            "WS2PModule : receive DALResBc::CurrentBlock({})",
-                                            current_block.blockstamp()
-                                        );
-                                        current_blockstamp = current_block.blockstamp();
-                                        if ws2p_module.my_head.is_none() {
-                                            ws2p_module.my_head =
-                                                Some(WS2PModuleDatas::generate_my_head(
-                                                    &key_pair.clone(),
-                                                    &conf.clone(),
-                                                    soft_name,
-                                                    soft_version,
-                                                    &current_blockstamp,
-                                                    None,
-                                                ));
+                            DuniterMessage::DALResponse(ref dal_res) => match *dal_res.deref() {
+                                DALResponse::Blockchain(ref dal_res_bc) => {
+                                    match *dal_res_bc.deref() {
+                                        DALResBlockchain::CurrentBlock(
+                                            ref _requester_full_id,
+                                            ref current_block,
+                                        ) => {
+                                            let current_block = current_block.deref();
+                                            debug!(
+                                                "WS2PModule : receive DALResBc::CurrentBlock({})",
+                                                current_block.blockstamp()
+                                            );
+                                            current_blockstamp = current_block.blockstamp();
+                                            if ws2p_module.my_head.is_none() {
+                                                ws2p_module.my_head =
+                                                    Some(WS2PModuleDatas::generate_my_head(
+                                                        &key_pair,
+                                                        &conf.clone(),
+                                                        soft_name,
+                                                        soft_version,
+                                                        &current_blockstamp,
+                                                        None,
+                                                    ));
+                                            }
+                                            ws2p_module.send_network_event(
+                                                &NetworkEvent::ReceiveHeads(vec![
+                                                    ws2p_module.my_head.clone().unwrap(),
+                                                ]),
+                                            );
                                         }
-                                        ws2p_module.send_network_event(
-                                            &NetworkEvent::ReceiveHeads(vec![
-                                                ws2p_module.my_head.clone().unwrap(),
-                                            ]),
-                                        );
-                                    }
-                                    &DALResBlockchain::UIDs(ref uids) => {
-                                        // Add uids to heads
-                                        for (_, head) in ws2p_module.heads_cache.iter_mut() {
-                                            if let Some(uid_option) = uids.get(&head.pubkey()) {
-                                                if let &Some(ref uid) = uid_option {
-                                                    head.set_uid(uid);
+                                        DALResBlockchain::UIDs(ref uids) => {
+                                            // Add uids to heads
+                                            for head in ws2p_module.heads_cache.values_mut() {
+                                                if let Some(uid_option) = uids.get(&head.pubkey()) {
+                                                    if let Some(ref uid) = *uid_option {
+                                                        head.set_uid(uid);
+                                                        ws2p_module
+                                                            .uids_cache
+                                                            .insert(head.pubkey(), uid.to_string());
+                                                    } else {
+                                                        ws2p_module
+                                                            .uids_cache
+                                                            .remove(&head.pubkey());
+                                                    }
+                                                }
+                                            }
+                                            // Resent heads to other modules
+                                            ws2p_module.send_network_event(
+                                                &NetworkEvent::ReceiveHeads(
                                                     ws2p_module
-                                                        .uids_cache
-                                                        .insert(head.pubkey(), uid.to_string());
-                                                } else {
-                                                    ws2p_module.uids_cache.remove(&head.pubkey());
+                                                        .heads_cache
+                                                        .values()
+                                                        .cloned()
+                                                        .collect(),
+                                                ),
+                                            );
+                                            // Resent to other modules connections that match receive uids
+                                            for (node_full_id, (ep, conn_state)) in
+                                                ws2p_module.ws2p_endpoints.clone()
+                                            {
+                                                if let Some(uid_option) = uids.get(&node_full_id.1)
+                                                {
+                                                    ws2p_module.send_network_event(
+                                                        &NetworkEvent::ConnectionStateChange(
+                                                            node_full_id,
+                                                            conn_state as u32,
+                                                            uid_option.clone(),
+                                                            ep.get_url(false),
+                                                        ),
+                                                    );
                                                 }
                                             }
                                         }
-                                        // Resent heads to other modules
-                                        ws2p_module.send_network_event(
-                                            &NetworkEvent::ReceiveHeads(
-                                                ws2p_module
-                                                    .heads_cache
-                                                    .values()
-                                                    .map(|h| h.clone())
-                                                    .collect(),
-                                            ),
-                                        );
-                                        // Resent to other modules connections that match receive uids
-                                        for (node_full_id, (ep, conn_state)) in
-                                            ws2p_module.ws2p_endpoints.clone()
-                                        {
-                                            if let Some(uid_option) = uids.get(&node_full_id.1) {
-                                                ws2p_module.send_network_event(
-                                                    &NetworkEvent::ConnectionStateChange(
-                                                        node_full_id,
-                                                        conn_state as u32,
-                                                        uid_option.clone(),
-                                                        ep.get_url(false),
-                                                    ),
-                                                );
-                                            }
-                                        }
+                                        _ => {}
                                     }
-                                    _ => {}
-                                },
-                                _ => {}
+                                }
+                                DALResponse::Pendings(_, _) => {}
                             },
                             _ => {}
                         }
@@ -574,12 +572,7 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                 ws2p_full_id,
                                 WS2PConnectionState::Established as u32,
                                 ws2p_module.uids_cache.get(&ws2p_full_id.1).cloned(),
-                                ws2p_module
-                                    .ws2p_endpoints
-                                    .get(&ws2p_full_id)
-                                    .unwrap()
-                                    .0
-                                    .get_url(false),
+                                ws2p_module.ws2p_endpoints[&ws2p_full_id].0.get_url(false),
                             ));
                         }
                         WS2PSignal::WSError(ws2p_full_id) => {
@@ -588,12 +581,7 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                 ws2p_full_id,
                                 WS2PConnectionState::WSError as u32,
                                 ws2p_module.uids_cache.get(&ws2p_full_id.1).cloned(),
-                                ws2p_module
-                                    .ws2p_endpoints
-                                    .get(&ws2p_full_id)
-                                    .unwrap()
-                                    .0
-                                    .get_url(false),
+                                ws2p_module.ws2p_endpoints[&ws2p_full_id].0.get_url(false),
                             ));
                         }
                         WS2PSignal::NegociationTimeout(ws2p_full_id) => {
@@ -602,12 +590,7 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                 ws2p_full_id,
                                 WS2PConnectionState::Denial as u32,
                                 ws2p_module.uids_cache.get(&ws2p_full_id.1).cloned(),
-                                ws2p_module
-                                    .ws2p_endpoints
-                                    .get(&ws2p_full_id)
-                                    .unwrap()
-                                    .0
-                                    .get_url(false),
+                                ws2p_module.ws2p_endpoints[&ws2p_full_id].0.get_url(false),
                             ));
                         }
                         WS2PSignal::Timeout(ws2p_full_id) => {
@@ -616,12 +599,7 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                 ws2p_full_id,
                                 WS2PConnectionState::Close as u32,
                                 ws2p_module.uids_cache.get(&ws2p_full_id.1).cloned(),
-                                ws2p_module
-                                    .ws2p_endpoints
-                                    .get(&ws2p_full_id)
-                                    .unwrap()
-                                    .0
-                                    .get_url(false),
+                                ws2p_module.ws2p_endpoints[&ws2p_full_id].0.get_url(false),
                             ));
                         }
                         WS2PSignal::PeerCard(_ws2p_full_id, _peer_card, ws2p_endpoints) => {
@@ -643,7 +621,7 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
                                                     SystemTime::now(),
                                                 );
                                             }
-                                            ws2p_module.connect_to(ep);
+                                            ws2p_module.connect_to(&ep);
                                         }
                                     };
                                 }
@@ -926,7 +904,7 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
 }
 
 impl WS2PModuleDatas {
-    fn open_db(db_path: PathBuf) -> Result<sqlite::Connection, sqlite::Error> {
+    fn open_db(db_path: &PathBuf) -> Result<sqlite::Connection, sqlite::Error> {
         let conn: sqlite::Connection;
         if !db_path.as_path().exists() {
             conn = sqlite::open(db_path.as_path())?;
@@ -1000,9 +978,11 @@ impl WS2PModuleDatas {
     }
     pub fn send_dal_request(&self, req: &DALRequest) {
         for follower in &self.followers {
-            match follower.send(DuniterMessage::DALRequest(req.clone())) {
-                Ok(_) => {}
-                Err(_) => {}
+            if follower
+                .send(DuniterMessage::DALRequest(req.clone()))
+                .is_err()
+            {
+                // handle error
             }
         }
     }
@@ -1030,7 +1010,7 @@ impl WS2PModuleDatas {
             api: String::from("WS2POCA"),
             version: 1,
             pubkey: network_keypair.pubkey,
-            blockstamp: my_current_blockstamp.clone(),
+            blockstamp: *my_current_blockstamp,
             node_uuid: conf.node_id,
             software: String::from(soft_name),
             soft_version: String::from(soft_version),
@@ -1042,7 +1022,7 @@ impl WS2PModuleDatas {
             api: String::from("WS2POCA"),
             version: 2,
             pubkey: network_keypair.pubkey,
-            blockstamp: my_current_blockstamp.clone(),
+            blockstamp: *my_current_blockstamp,
             node_uuid: conf.node_id,
             software: String::from(soft_name),
             soft_version: String::from(soft_version),
@@ -1078,15 +1058,15 @@ impl WS2PModuleDatas {
                     *occurences_mut += 1;
                     if *occurences > dominant_blockstamp_occurences {
                         dominant_blockstamp_occurences = *occurences;
-                        dominant_blockstamp = head.blockstamp().clone();
+                        dominant_blockstamp = head.blockstamp();
                     }
                 }
                 None => {
-                    blockstamps_occurences.insert(head.blockstamp().clone(), 0);
+                    blockstamps_occurences.insert(head.blockstamp(), 0);
                 }
             }
             if head.blockstamp().id.0 > farthest_blockstamp.id.0 {
-                farthest_blockstamp = head.blockstamp().clone();
+                farthest_blockstamp = head.blockstamp();
             }
         }
         if count_known_blockstamps < 5 {
@@ -1130,11 +1110,11 @@ impl WS2PModuleDatas {
             } else {
                 break;
             };
-            self.connect_to_without_checking_quotas(ep);
+            self.connect_to_without_checking_quotas(&ep);
             free_outcoming_rooms -= 1;
         }
     }
-    pub fn connect_to(&mut self, endpoint: NetworkEndpoint) -> () {
+    pub fn connect_to(&mut self, endpoint: &NetworkEndpoint) -> () {
         // Add endpoint to endpoints list (if there isn't already)
         match self.ws2p_endpoints.get(&endpoint.node_full_id().unwrap()) {
             Some(_) => {
@@ -1151,7 +1131,7 @@ impl WS2PModuleDatas {
             }
         };
         if self.conf.clone().unwrap().outcoming_quota > self.count_established_connections() {
-            self.connect_to_without_checking_quotas(endpoint);
+            self.connect_to_without_checking_quotas(&endpoint);
         }
     }
     fn close_connection(&mut self, ws2p_full_id: &NodeFullId, reason: WS2PCloseConnectionReason) {
@@ -1254,14 +1234,13 @@ impl WS2PModuleDatas {
                 let mut applied_heads = Vec::with_capacity(heads.len());
                 for head in heads {
                     if let Some(head) = NetworkHead::from_json_value(&head) {
-                        if head.verify() {
-                            if (self.my_head.is_none()
+                        if head.verify()
+                            && (self.my_head.is_none()
                                 || head.node_full_id()
                                     != self.my_head.clone().unwrap().node_full_id())
-                                && head.apply(&mut self.heads_cache)
-                            {
-                                applied_heads.push(head);
-                            }
+                            && head.apply(&mut self.heads_cache)
+                        {
+                            applied_heads.push(head);
                         }
                     }
                 }
@@ -1277,7 +1256,7 @@ impl WS2PModuleDatas {
                     {
                         return WS2PSignal::ReqResponse(
                             req_id,
-                            ws2p_request.clone(),
+                            *ws2p_request,
                             *recipient_fulld_id,
                             response,
                         );
@@ -1353,13 +1332,13 @@ impl WS2PModuleDatas {
     ) -> Result<(), SendRequestError> {
         let mut count_successful_sending: usize = 0;
         let mut errors: Vec<websocket::WebSocketError> = Vec::new();
-        match ws2p_request.clone() {
+        match *ws2p_request {
             NetworkRequest::GetCurrent(req_full_id, _receiver) => {
                 for (ws2p_full_id, (_ep, state)) in self.ws2p_endpoints.clone() {
                     if let WS2PConnectionState::Established = state {
                         let ws2p_request = NetworkRequest::GetCurrent(
                             ModuleReqFullId(
-                                req_full_id.clone().0,
+                                req_full_id.0,
                                 ModuleReqId(
                                     (self.requests_awaiting_response.len()
                                         + count_successful_sending)
@@ -1382,7 +1361,7 @@ impl WS2PModuleDatas {
                     if let WS2PConnectionState::Established = state {
                         let ws2p_request = NetworkRequest::GetRequirementsPending(
                             ModuleReqFullId(
-                                req_full_id.clone().0,
+                                req_full_id.0,
                                 ModuleReqId(self.requests_awaiting_response.len() as u32),
                             ),
                             ws2p_full_id,
@@ -1420,11 +1399,7 @@ impl WS2PModuleDatas {
             ))?;
         self.requests_awaiting_response.insert(
             ws2p_request.get_req_id(),
-            (
-                ws2p_request.clone(),
-                *receiver_ws2p_full_id,
-                SystemTime::now(),
-            ),
+            (*ws2p_request, *receiver_ws2p_full_id, SystemTime::now()),
         );
         debug!(
             "send request {} to {}",
@@ -1434,7 +1409,7 @@ impl WS2PModuleDatas {
         Ok(())
     }
 
-    fn connect_to_without_checking_quotas(&mut self, endpoint: NetworkEndpoint) -> () {
+    fn connect_to_without_checking_quotas(&mut self, endpoint: &NetworkEndpoint) -> () {
         // update connection state
         self.ws2p_endpoints
             .get_mut(&endpoint.node_full_id().unwrap())
@@ -1883,7 +1858,7 @@ mod tests {
         if test_db_path.as_path().exists() {
             fs::remove_file(&test_db_path).unwrap();
         }
-        let db = WS2PModuleDatas::open_db(test_db_path).unwrap();
+        let db = WS2PModuleDatas::open_db(&test_db_path).unwrap();
 
         let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
@@ -1897,14 +1872,14 @@ mod tests {
 
         ws2p_db::write_endpoint(&db, &endpoint, 1, current_time.as_secs());
         let mut written_endpoints =
-            ws2p_db::get_endpoints_for_api(&db, NetworkEndpointApi(String::from("WS2P")));
+            ws2p_db::get_endpoints_for_api(&db, &NetworkEndpointApi(String::from("WS2P")));
         assert_eq!(endpoint, written_endpoints.pop().unwrap());
 
         // Test status update
         endpoint.set_status(3);
         ws2p_db::write_endpoint(&db, &endpoint, 3, current_time.as_secs());
         let mut written_endpoints =
-            ws2p_db::get_endpoints_for_api(&db, NetworkEndpointApi(String::from("WS2P")));
+            ws2p_db::get_endpoints_for_api(&db, &NetworkEndpointApi(String::from("WS2P")));
         assert_eq!(endpoint, written_endpoints.pop().unwrap());
     }
 

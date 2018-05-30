@@ -15,7 +15,7 @@ use super::super::DuniterDB;
 use std::collections::HashMap;
 
 pub fn parse_revocations_into_compact(
-    json_recocations: &Vec<serde_json::Value>,
+    json_recocations: &[serde_json::Value],
 ) -> Vec<TextDocumentFormat<RevocationDocument>> {
     let mut revocations: Vec<TextDocumentFormat<RevocationDocument>> = Vec::new();
     for revocation in json_recocations.iter() {

@@ -35,7 +35,7 @@ pub fn blockstamp_to_timestamp(blockstamp: &Blockstamp, db: &DuniterDB) -> Optio
 
     cursor
         .bind(&[
-            sqlite::Value::Integer(blockstamp.id.0 as i64),
+            sqlite::Value::Integer(i64::from(blockstamp.id.0)),
             sqlite::Value::String(blockstamp.hash.0.to_hex()),
         ])
         .expect("convert blockstamp to timestamp failure at step 1 !");
@@ -135,7 +135,7 @@ impl DALBlock {
 
         cursor
             .bind(&[
-                sqlite::Value::Integer(blockstamp.id.0 as i64),
+                sqlite::Value::Integer(i64::from(blockstamp.id.0)),
                 sqlite::Value::String(blockstamp.hash.0.to_string()),
             ])
             .expect("Fail to get block !");
@@ -154,7 +154,7 @@ impl DALBlock {
             .cursor();
 
         cursor
-            .bind(&[sqlite::Value::Integer(block_number.0 as i64)])
+            .bind(&[sqlite::Value::Integer(i64::from(block_number.0))])
             .expect("Fail to get block !");
 
         if let Some(row) = cursor.next().unwrap() {
@@ -177,7 +177,7 @@ impl DALBlock {
             .cursor();
 
         cursor
-            .bind(&[sqlite::Value::Integer(block_number.0 as i64)])
+            .bind(&[sqlite::Value::Integer(i64::from(block_number.0))])
             .expect("Fail to get block !");
 
         let mut hashs = Vec::new();
@@ -249,7 +249,7 @@ impl DALBlock {
 
         cursor
             .bind(&[
-                sqlite::Value::Integer(blockstamp.id.0 as i64),
+                sqlite::Value::Integer(i64::from(blockstamp.id.0)),
                 sqlite::Value::String(blockstamp.hash.0.to_string()),
             ])
             .expect("Fail to get block !");
@@ -288,15 +288,10 @@ impl DALBlock {
                     .as_integer()
                     .expect("dal::get_block() : fail to parse fork !")
                     as usize,
-                isolate: if row[1]
+                isolate: !row[1]
                     .as_integer()
                     .expect("dal::get_block() : fail to parse isolate !")
-                    == 0
-                {
-                    false
-                } else {
-                    true
-                },
+                    == 0,
                 block: BlockDocument {
                     nonce,
                     number: BlockId(
@@ -443,7 +438,7 @@ impl DALBlock {
     }
 
     pub fn get_current_frame(&self, db: &DuniterDB) -> HashMap<keys::ed25519::PublicKey, usize> {
-        let frame_begin = self.block.number.0 as i64 - (self.block.issuers_frame as i64);
+        let frame_begin = i64::from(self.block.number.0) - (self.block.issuers_frame as i64);
         let mut current_frame: HashMap<keys::ed25519::PublicKey, usize> = HashMap::new();
         let mut cursor = db
             .0

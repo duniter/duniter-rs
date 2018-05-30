@@ -183,7 +183,7 @@ impl WS2PConnectionMetaData {
                                     response.signature = Some(response.sign(key_pair));
                                     return WS2PConnectionMessagePayload::ValidConnectMessage(
                                         serde_json::to_string(&response).unwrap(),
-                                        self.state.clone(),
+                                        self.state,
                                     );
                                 }
                                 _ => return WS2PConnectionMessagePayload::InvalidMessage,
@@ -216,7 +216,7 @@ impl WS2PConnectionMetaData {
                             response.signature = Some(response.sign(key_pair));
                             return WS2PConnectionMessagePayload::ValidAckMessage(
                                 serde_json::to_string(&response).unwrap(),
-                                self.state.clone(),
+                                self.state,
                             );
                         } else {
                             warn!("The signature of message ACK is invalid !")
@@ -233,9 +233,7 @@ impl WS2PConnectionMetaData {
                             match self.state {
                                 WS2PConnectionState::ConnectMessOk => {
                                     self.state = WS2PConnectionState::OkMessOkWaitingAckMess;
-                                    return WS2PConnectionMessagePayload::ValidOk(
-                                        self.state.clone(),
-                                    );
+                                    return WS2PConnectionMessagePayload::ValidOk(self.state);
                                 }
                                 WS2PConnectionState::AckMessOk => {
                                     info!(
@@ -243,9 +241,7 @@ impl WS2PConnectionMetaData {
                                         self.remote_pubkey.expect("fail to get remote pubkey !")
                                     );
                                     self.state = WS2PConnectionState::Established;
-                                    return WS2PConnectionMessagePayload::ValidOk(
-                                        self.state.clone(),
-                                    );
+                                    return WS2PConnectionMessagePayload::ValidOk(self.state);
                                 }
                                 _ => {
                                     warn!("WS2P Error : OK message not expected !");
