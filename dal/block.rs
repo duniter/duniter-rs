@@ -44,10 +44,11 @@ pub fn blockstamp_to_timestamp(blockstamp: &Blockstamp, db: &DuniterDB) -> Optio
         .next()
         .expect("convert blockstamp to timestamp failure at step 2 !")
     {
-        return Some(row[0]
-            .as_integer()
-            .expect("convert blockstamp to timestamp failure at step 3 !")
-            as u64);
+        return Some(
+            row[0]
+                .as_integer()
+                .expect("convert blockstamp to timestamp failure at step 3 !") as u64,
+        );
     }
     None
 }
@@ -298,10 +299,12 @@ impl DALBlock {
                 },
                 block: BlockDocument {
                     nonce,
-                    number: BlockId(row[3]
-                        .as_integer()
-                        .expect("dal::get_block() : fail to parse number !")
-                        as u32),
+                    number: BlockId(
+                        row[3]
+                            .as_integer()
+                            .expect("dal::get_block() : fail to parse number !")
+                            as u32,
+                    ),
                     pow_min: row[4]
                         .as_integer()
                         .expect("dal::get_block() : fail to parse pow min !")

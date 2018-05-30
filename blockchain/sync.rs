@@ -130,10 +130,11 @@ pub fn sync_ts(
             .bind(&[sqlite::Value::Integer(0)])
             .expect("Fail to get ts current block !");
         let current_ts_blockstamp = if let Some(row) = cursor.next().expect("cursor error") {
-            let block_id = BlockId(row[1]
-                .as_integer()
-                .expect("Fail to parse current ts blockstamp !")
-                as u32);
+            let block_id = BlockId(
+                row[1]
+                    .as_integer()
+                    .expect("Fail to parse current ts blockstamp !") as u32,
+            );
             let block_hash = BlockHash(
                 Hash::from_hex(
                     row[0]
