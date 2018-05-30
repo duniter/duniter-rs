@@ -409,13 +409,9 @@ dependencies = [
 name = "durs"
 version = "0.1.0"
 dependencies = [
- "clap 2.31.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "duniter-core 0.1.0",
  "duniter-tui 0.1.0",
  "duniter-ws2p 0.1.0",
- "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "websocket 0.20.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
