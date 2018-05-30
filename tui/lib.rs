@@ -36,7 +36,6 @@ extern crate duniter_network;
 extern crate serde_json;
 extern crate termion;
 
-use duniter_crypto::keys::ed25519;
 use duniter_dal::dal_event::DALEvent;
 use duniter_message::DuniterMessage;
 use duniter_module::*;
@@ -348,7 +347,7 @@ impl Default for TuiModule {
     }
 }
 
-impl DuniterModule<ed25519::KeyPair, DuniterMessage> for TuiModule {
+impl DuniterModule<DuniterMessage> for TuiModule {
     fn id() -> ModuleId {
         ModuleId::Str("tui")
     }
@@ -364,7 +363,7 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for TuiModule {
     fn start(
         _soft_name: &str,
         _soft_version: &str,
-        _keys: RequiredKeysContent<ed25519::KeyPair>,
+        _keys: RequiredKeysContent,
         _conf: &DuniterConf,
         module_conf: &serde_json::Value,
         main_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,

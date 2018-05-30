@@ -1,6 +1,6 @@
 extern crate serde_json;
 
-use duniter_crypto::keys::{ed25519, PublicKey, Signature};
+use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::revocation::{
     CompactRevocationDocument, RevocationDocumentBuilder,
 };
@@ -26,10 +26,14 @@ pub fn parse_revocations_into_compact(
             .collect();
         if revocations_datas.len() == 2 {
             revocations.push(TextDocumentFormat::Compact(CompactRevocationDocument {
-                issuer: PublicKey::from_base58(revocations_datas[0])
-                    .expect("Receive block in wrong format !"),
-                signature: Signature::from_base64(revocations_datas[1])
-                    .expect("Receive block in wrong format !"),
+                issuer: PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58(revocations_datas[0])
+                        .expect("Receive block in wrong format !"),
+                ),
+                signature: Sig::Ed25519(
+                    ed25519::Signature::from_base64(revocations_datas[1])
+                        .expect("Receive block in wrong format !"),
+                ),
             }));
         }
     }
@@ -39,7 +43,7 @@ pub fn parse_revocations_into_compact(
 pub fn parse_revocations(
     currency: &str,
     db: &DuniterDB,
-    block_identities: &HashMap<ed25519::PublicKey, IdentityDocument>,
+    block_identities: &HashMap<PubKey, IdentityDocument>,
     json_datas: &str,
 ) -> Option<Vec<TextDocumentFormat<RevocationDocument>>> {
     let raw_revocations: serde_json::Value = serde_json::from_str(json_datas).unwrap();
@@ -59,15 +63,15 @@ pub fn parse_revocations(
 pub fn parse_revocations_from_json_value(
     currency: &str,
     db: &DuniterDB,
-    block_identities: &HashMap<ed25519::PublicKey, IdentityDocument>,
+    block_identities: &HashMap<PubKey, IdentityDocument>,
     array_revocations: &[serde_json::Value],
 ) -> Vec<TextDocumentFormat<RevocationDocument>> {
     let mut revocations: Vec<TextDocumentFormat<RevocationDocument>> = Vec::new();
     for revocation in array_revocations.iter() {
         let revocations_datas: Vec<&str> = revocation.as_str().unwrap().split(':').collect();
         if revocations_datas.len() == 2 {
-            let idty_pubkey: ed25519::PublicKey =
-                PublicKey::from_base58(revocations_datas[0]).unwrap();
+            let idty_pubkey =
+                PubKey::Ed25519(ed25519::PublicKey::from_base58(revocations_datas[0]).unwrap());
             let idty_doc: IdentityDocument = match block_identities.get(&idty_pubkey) {
                 Some(idty_doc) => idty_doc.clone(),
                 None => {
@@ -82,7 +86,8 @@ pub fn parse_revocations_from_json_value(
                 identity_blockstamp: &idty_doc.blockstamp(),
                 identity_sig: &idty_doc.signatures()[0],
             };
-            let revoc_sig = Signature::from_base64(revocations_datas[1]).unwrap();
+            let revoc_sig =
+                Sig::Ed25519(ed25519::Signature::from_base64(revocations_datas[1]).unwrap());
             revocations.push(TextDocumentFormat::Complete(
                 revoc_doc_builder.build_with_signature(vec![revoc_sig]),
             ));

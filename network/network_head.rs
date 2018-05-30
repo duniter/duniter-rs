@@ -20,7 +20,7 @@ extern crate duniter_documents;
 extern crate serde_json;
 
 use super::{NodeFullId, NodeUUID};
-use duniter_crypto::keys::{ed25519, PublicKey, Signature};
+use duniter_crypto::keys::*;
 use duniter_documents::Blockstamp;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -34,7 +34,7 @@ pub struct NetworkHeadMessageV2 {
     /// Head version
     pub version: usize,
     /// Head pubkey
-    pub pubkey: ed25519::PublicKey,
+    pub pubkey: PubKey,
     /// Head blockstamp
     pub blockstamp: Blockstamp,
     /// Head node id
@@ -151,11 +151,11 @@ impl NetworkHeadMessage {
     /// Parse head from string
     fn from_str(source: &str) -> Option<NetworkHeadMessage> {
         let source_array: Vec<&str> = source.split(':').collect();
-        if let Ok(pubkey) = PublicKey::from_base58(&source_array[3].to_string()) {
+        if let Ok(pubkey) = ed25519::PublicKey::from_base58(&source_array[3].to_string()) {
             Some(NetworkHeadMessage::V2(NetworkHeadMessageV2 {
                 api: source_array[0].to_string(),
                 version: source_array[2].parse().unwrap(),
-                pubkey,
+                pubkey: PubKey::Ed25519(pubkey),
                 blockstamp: Blockstamp::from_string(source_array[4]).unwrap(),
                 node_uuid: NodeUUID(u32::from_str_radix(source_array[5], 16).unwrap()),
                 software: source_array[6].to_string(),
@@ -191,7 +191,7 @@ impl NetworkHeadMessage {
         }
     }
     /// Get head issuer public key
-    fn _pubkey(&self) -> ed25519::PublicKey {
+    fn _pubkey(&self) -> PubKey {
         match *self {
             NetworkHeadMessage::V2(ref head_message_v2) => head_message_v2.pubkey,
             _ => panic!("This HEAD version is not supported !"),
@@ -244,11 +244,11 @@ pub struct NetworkHeadV2 {
     /// Head V1 Message
     pub message: NetworkHeadMessage,
     /// signature of V1 Message
-    pub sig: ed25519::Signature,
+    pub sig: Sig,
     /// Head V2 Message
     pub message_v2: NetworkHeadMessage,
     /// signature of V2 Message
-    pub sig_v2: ed25519::Signature,
+    pub sig_v2: Sig,
     /// Head step
     pub step: u32,
     /// Head issuer uid
@@ -327,7 +327,7 @@ impl NetworkHead {
         }
     }
     /// Get pubkey of head issuer
-    pub fn pubkey(&self) -> ed25519::PublicKey {
+    pub fn pubkey(&self) -> PubKey {
         match *self {
             NetworkHead::V2(ref head_v2) => match head_v2.message_v2 {
                 NetworkHeadMessage::V2(ref head_message_v2) => head_message_v2.pubkey,
@@ -361,10 +361,11 @@ impl NetworkHead {
     pub fn verify(&self) -> bool {
         match *self {
             NetworkHead::V2(ref head_v2) => {
-                let pubkey: ed25519::PublicKey =
-                    PublicKey::from_base58(&self.pubkey().to_string()).unwrap();
-                pubkey.verify(head_v2.message.to_string().as_bytes(), &head_v2.sig)
-                    && pubkey.verify(head_v2.message_v2.to_string().as_bytes(), &head_v2.sig_v2)
+                self.pubkey()
+                    .verify(head_v2.message.to_string().as_bytes(), &head_v2.sig)
+                    && self
+                        .pubkey()
+                        .verify(head_v2.message_v2.to_string().as_bytes(), &head_v2.sig_v2)
             }
             _ => panic!("This HEAD version is not supported !"),
         }
@@ -409,11 +410,16 @@ impl NetworkHead {
         match message {
             NetworkHeadMessage::V2(_) => Some(NetworkHead::V2(Box::new(NetworkHeadV2 {
                 message,
-                sig: Signature::from_base64(source.get("sig")?.as_str().unwrap()).unwrap(),
+                sig: Sig::Ed25519(
+                    ed25519::Signature::from_base64(source.get("sig")?.as_str().unwrap()).unwrap(),
+                ),
                 message_v2: NetworkHeadMessage::from_str(
                     source.get("messageV2")?.as_str().unwrap(),
                 )?,
-                sig_v2: Signature::from_base64(source.get("sigV2")?.as_str().unwrap()).unwrap(),
+                sig_v2: Sig::Ed25519(
+                    ed25519::Signature::from_base64(source.get("sigV2")?.as_str().unwrap())
+                        .unwrap(),
+                ),
                 step: source.get("step")?.as_u64().unwrap() as u32,
                 uid: None,
             }))),

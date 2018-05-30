@@ -27,7 +27,7 @@ extern crate duniter_crypto;
 extern crate serde;
 extern crate serde_json;
 
-use duniter_crypto::keys::KeyPair;
+use duniter_crypto::keys::{KeyPair, KeyPairEnum};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use std::fmt::Debug;
 use std::sync::mpsc;
@@ -225,17 +225,17 @@ pub enum RequiredKeys {
     None(),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// Contains the keys the module needs
-pub enum RequiredKeysContent<K: KeyPair> {
+pub enum RequiredKeysContent {
     /// Contains the member keypair (private key included).
-    MemberKeyPair(Option<K>),
+    MemberKeyPair(Option<KeyPairEnum>),
     /// Contains the member public key.
-    MemberPublicKey(Option<K::PublicKey>),
+    MemberPublicKey(Option<<KeyPairEnum as KeyPair>::PublicKey>),
     /// Contains the network keypair (private key included).
-    NetworkKeyPair(K),
+    NetworkKeyPair(KeyPairEnum),
     /// Contains the network public key.
-    NetworkPublicKey(K::PublicKey),
+    NetworkPublicKey(<KeyPairEnum as KeyPair>::PublicKey),
     /// Does not contain any keys
     None(),
 }
@@ -252,7 +252,7 @@ pub enum ModulePriority {
 }
 
 /// All Duniter-rs modules must implement this trait.
-pub trait DuniterModule<K: KeyPair, M: ModuleMessage> {
+pub trait DuniterModule<M: ModuleMessage> {
     /// Returns the module identifier
     fn id() -> ModuleId;
     /// Returns the module priority
@@ -265,7 +265,7 @@ pub trait DuniterModule<K: KeyPair, M: ModuleMessage> {
     fn start(
         soft_name: &str,
         soft_version: &str,
-        keys: RequiredKeysContent<K>,
+        keys: RequiredKeysContent,
         conf: &DuniterConf,
         module_conf: &serde_json::Value,
         main_sender: mpsc::Sender<RooterThreadMessage<M>>,

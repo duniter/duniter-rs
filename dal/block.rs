@@ -5,8 +5,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate sqlite;
 
-use self::duniter_crypto::keys;
-use self::duniter_crypto::keys::{ed25519, PublicKey, Signature};
+use self::duniter_crypto::keys::*;
 use self::duniter_documents::blockchain::v10::documents::identity::IdentityDocument;
 use self::duniter_documents::blockchain::v10::documents::membership::MembershipType;
 use self::duniter_documents::blockchain::v10::documents::BlockDocument;
@@ -55,8 +54,8 @@ pub fn blockstamp_to_timestamp(blockstamp: &Blockstamp, db: &DuniterDB) -> Optio
 
 #[derive(Debug, Copy, Clone)]
 pub enum WotEvent {
-    AddNode(ed25519::PublicKey, NodeId),
-    RemNode(ed25519::PublicKey),
+    AddNode(PubKey, NodeId),
+    RemNode(PubKey),
     AddLink(NodeId, NodeId),
     RemLink(NodeId, NodeId),
     EnableNode(NodeId),
@@ -282,7 +281,7 @@ impl DALBlock {
             let hashmap_identities = identities
                 .iter()
                 .map(|i| (i.issuers()[0], i.clone()))
-                .collect::<HashMap<ed25519::PublicKey, IdentityDocument>>();
+                .collect::<HashMap<PubKey, IdentityDocument>>();
             Some(DALBlock {
                 fork: row[0]
                     .as_integer()
@@ -340,20 +339,20 @@ impl DALBlock {
                         .as_string()
                         .expect("dal::get_block() : fail to parse currency !")
                         .to_string(),
-                    issuers: vec![
-                        PublicKey::from_base58(
+                    issuers: vec![PubKey::Ed25519(
+                        ed25519::PublicKey::from_base58(
                             row[16]
                                 .as_string()
                                 .expect("dal::get_block() : fail to parse issuer !"),
                         ).expect("dal::get_block() : fail to parse pubkey !"),
-                    ],
-                    signatures: vec![
-                        Signature::from_base64(
+                    )],
+                    signatures: vec![Sig::Ed25519(
+                        ed25519::Signature::from_base64(
                             row[17]
                                 .as_string()
                                 .expect("dal::get_block() : fail to parse signature !"),
                         ).expect("dal::get_block() : fail to parse signature (2) !"),
-                    ],
+                    )],
                     hash: Some(BlockHash(
                         Hash::from_hex(
                             row[18]
@@ -437,9 +436,9 @@ impl DALBlock {
         }
     }
 
-    pub fn get_current_frame(&self, db: &DuniterDB) -> HashMap<keys::ed25519::PublicKey, usize> {
+    pub fn get_current_frame(&self, db: &DuniterDB) -> HashMap<PubKey, usize> {
         let frame_begin = i64::from(self.block.number.0) - (self.block.issuers_frame as i64);
-        let mut current_frame: HashMap<keys::ed25519::PublicKey, usize> = HashMap::new();
+        let mut current_frame: HashMap<PubKey, usize> = HashMap::new();
         let mut cursor = db
             .0
             .prepare("SELECT issuer FROM blocks WHERE fork=0 AND number>=? LIMIT ?;")
@@ -457,19 +456,21 @@ impl DALBlock {
             .expect("get current frame blocks failure at step 3 !")
         {
             let current_frame_copy = current_frame.clone();
-            match current_frame_copy
-                .get(&PublicKey::from_base58(row[0].as_string().unwrap()).unwrap())
-            {
+            match current_frame_copy.get(&PubKey::Ed25519(
+                ed25519::PublicKey::from_base58(row[0].as_string().unwrap()).unwrap(),
+            )) {
                 Some(blocks_count) => {
-                    if let Some(new_blocks_count) = current_frame
-                        .get_mut(&PublicKey::from_base58(row[0].as_string().unwrap()).unwrap())
-                    {
+                    if let Some(new_blocks_count) = current_frame.get_mut(&PubKey::Ed25519(
+                        ed25519::PublicKey::from_base58(row[0].as_string().unwrap()).unwrap(),
+                    )) {
                         *new_blocks_count = *blocks_count + 1;
                     }
                 }
                 None => {
                     current_frame.insert(
-                        PublicKey::from_base58(row[0].as_string().unwrap()).unwrap(),
+                        PubKey::Ed25519(
+                            ed25519::PublicKey::from_base58(row[0].as_string().unwrap()).unwrap(),
+                        ),
                         0,
                     );
                 }

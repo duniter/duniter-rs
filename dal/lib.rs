@@ -44,7 +44,7 @@ pub mod parsers;
 pub mod tools;
 pub mod writers;
 
-use duniter_crypto::keys::{PublicKey, Signature};
+use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::BlockDocument;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, Hash};
 use duniter_wotb::operations::file::FileFormater;
@@ -191,10 +191,12 @@ pub fn new_get_current_block(db: &DuniterDB) -> Option<BlockDocument> {
             issuers_frame: row[10].as_integer().expect("issuers_frame") as isize,
             issuers_frame_var: row[11].as_integer().expect("issuers_frame_var") as isize,
             currency: row[14].as_string().expect("currency").to_string(),
-            issuers: vec![PublicKey::from_base58(row[15].as_string().expect("issuer")).unwrap()],
-            signatures: vec![
-                Signature::from_base64(row[16].as_string().expect("signature")).unwrap(),
-            ],
+            issuers: vec![PubKey::Ed25519(
+                ed25519::PublicKey::from_base58(row[15].as_string().expect("issuer")).unwrap(),
+            )],
+            signatures: vec![Sig::Ed25519(
+                ed25519::Signature::from_base64(row[16].as_string().expect("signature")).unwrap(),
+            )],
             hash: Some(BlockHash(
                 Hash::from_hex(row[17].as_string().expect("hash")).unwrap(),
             )),

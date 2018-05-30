@@ -143,18 +143,18 @@ pub trait DocumentParser<S, D, E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use duniter_crypto::keys::{ed25519, Signature};
+    use duniter_crypto::keys::*;
 
     // simple text document for signature testing
     #[derive(Debug, Clone)]
     struct PlainTextDocument {
         pub text: &'static str,
-        pub issuers: Vec<ed25519::PublicKey>,
-        pub signatures: Vec<ed25519::Signature>,
+        pub issuers: Vec<PubKey>,
+        pub signatures: Vec<Sig>,
     }
 
     impl Document for PlainTextDocument {
-        type PublicKey = ed25519::PublicKey;
+        type PublicKey = PubKey;
         type CurrencyType = str;
 
         fn version(&self) -> u16 {
@@ -169,11 +169,11 @@ mod tests {
             unimplemented!()
         }
 
-        fn issuers(&self) -> &Vec<ed25519::PublicKey> {
+        fn issuers(&self) -> &Vec<PubKey> {
             &self.issuers
         }
 
-        fn signatures(&self) -> &Vec<ed25519::Signature> {
+        fn signatures(&self) -> &Vec<Sig> {
             &self.signatures
         }
 
@@ -193,24 +193,30 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 ";
 
         // good pair
-        let issuer1 = ed25519::PublicKey::from_base58(
-            "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV",
-        ).unwrap();
+        let issuer1 = PubKey::Ed25519(
+            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
+                .unwrap(),
+        );
 
-        let sig1 = ed25519::Signature::from_base64(
-            "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMM\
-             mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
-        ).unwrap();
+        let sig1 = Sig::Ed25519(
+            ed25519::Signature::from_base64(
+                "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMM\
+                 mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
+            ).unwrap(),
+        );
 
         // incorrect pair
-        let issuer2 = ed25519::PublicKey::from_base58(
-            "DNann1Lh55eZMEDXeYt32bzHbA3NJR46DeQYCS2qQdLV",
-        ).unwrap();
+        let issuer2 = PubKey::Ed25519(
+            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt32bzHbA3NJR46DeQYCS2qQdLV")
+                .unwrap(),
+        );
 
-        let sig2 = ed25519::Signature::from_base64(
-            "1eubHHbuNfilHHH0G2bI30iZzebQ2cQ1PC7uPAw08FGMM\
-             mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
-        ).unwrap();
+        let sig2 = Sig::Ed25519(
+            ed25519::Signature::from_base64(
+                "1eubHHbuNfilHHH0G2bI30iZzebQ2cQ1PC7uPAw08FGMM\
+                 mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
+            ).unwrap(),
+        );
 
         {
             let doc = PlainTextDocument {

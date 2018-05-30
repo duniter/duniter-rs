@@ -4,15 +4,14 @@ extern crate serde_json;
 
 use self::serde::ser::{Serialize, SerializeStruct, Serializer};
 use super::WS2PMessage;
-use duniter_crypto::keys::ed25519::PublicKey as ed25519PublicKey;
-use duniter_crypto::keys::PublicKey;
+use duniter_crypto::keys::*;
 
 #[derive(Debug, Clone)]
 pub struct WS2POkMessageV1 {
     pub currency: String,
-    pub pubkey: ed25519PublicKey,
+    pub pubkey: PubKey,
     pub challenge: String,
-    pub signature: Option<duniter_crypto::keys::ed25519::Signature>,
+    pub signature: Option<Sig>,
 }
 
 impl WS2PMessage for WS2POkMessageV1 {
@@ -24,13 +23,14 @@ impl WS2PMessage for WS2POkMessageV1 {
                 .to_string(),
             None => return None,
         };
-        let pubkey: ed25519PublicKey = ed25519PublicKey::from_base58(
-            "969qRJs8KhsnkyzqarpL4RKZGMdVKNbZgu8fhsigM7Lj",
-        ).expect("fail to create default pubkey !");
-        let signature: Option<duniter_crypto::keys::ed25519::Signature> = Some(
+        let pubkey: PubKey = PubKey::Ed25519(
+            ed25519::PublicKey::from_base58("969qRJs8KhsnkyzqarpL4RKZGMdVKNbZgu8fhsigM7Lj")
+                .expect("fail to create default pubkey !"),
+        );
+        let signature: Option<Sig> = Some(Sig::Ed25519(
             duniter_crypto::keys::Signature::from_base64(&signature)
                 .expect("fail to parse signature of OK message !"),
-        );
+        ));
         Some(WS2POkMessageV1 {
             currency,
             pubkey,

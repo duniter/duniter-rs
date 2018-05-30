@@ -1,7 +1,7 @@
 extern crate serde_json;
 extern crate sqlite;
 
-use duniter_crypto::keys::{PublicKey, Signature};
+use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::membership::{
     MembershipDocumentBuilder, MembershipType,
 };
@@ -50,13 +50,16 @@ pub fn parse_memberships_from_json_value(
             if membership_datas.len() == 5 {
                 let membership_doc_builder = MembershipDocumentBuilder {
                     currency,
-                    issuer: &PublicKey::from_base58(membership_datas[0]).unwrap(),
+                    issuer: &PubKey::Ed25519(
+                        ed25519::PublicKey::from_base58(membership_datas[0]).unwrap(),
+                    ),
                     blockstamp: &Blockstamp::from_string(membership_datas[2]).unwrap(),
                     membership: membership_type,
                     identity_username: membership_datas[4],
                     identity_blockstamp: &Blockstamp::from_string(membership_datas[3]).unwrap(),
                 };
-                let membership_sig = Signature::from_base64(membership_datas[1]).unwrap();
+                let membership_sig =
+                    Sig::Ed25519(ed25519::Signature::from_base64(membership_datas[1]).unwrap());
                 Ok(membership_doc_builder.build_with_signature(vec![membership_sig]))
             } else {
                 Err(MembershipParseError::WrongFormat())

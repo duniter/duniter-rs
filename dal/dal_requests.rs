@@ -3,7 +3,7 @@ extern crate duniter_documents;
 extern crate duniter_module;
 extern crate serde;
 
-use self::duniter_crypto::keys::ed25519;
+use self::duniter_crypto::keys::*;
 use self::duniter_documents::blockchain::v10::documents::{
     BlockDocument, CertificationDocument, IdentityDocument, MembershipDocument, RevocationDocument,
 };
@@ -15,7 +15,7 @@ use std::collections::HashMap;
 pub enum DALReqPendings {
     AllPendingIdentyties(ModuleReqFullId, usize),
     AllPendingIdentytiesWithoutCerts(ModuleReqFullId, usize),
-    PendingWotDatasForPubkey(ModuleReqFullId, ed25519::PublicKey),
+    PendingWotDatasForPubkey(ModuleReqFullId, PubKey),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -23,7 +23,7 @@ pub enum DALReqBlockchain {
     CurrentBlock(ModuleReqFullId),
     BlockByNumber(ModuleReqFullId, u64),
     Chunk(ModuleReqFullId, u64, usize),
-    UIDs(Vec<ed25519::PublicKey>),
+    UIDs(Vec<PubKey>),
 }
 
 #[derive(Debug, Clone)]
@@ -53,7 +53,7 @@ pub enum DALResBlockchain {
     CurrentBlock(ModuleReqFullId, Box<BlockDocument>),
     BlockByNumber(ModuleReqFullId, Box<BlockDocument>),
     Chunk(ModuleReqFullId, Vec<BlockDocument>),
-    UIDs(HashMap<ed25519::PublicKey, Option<String>>),
+    UIDs(HashMap<PubKey, Option<String>>),
 }
 
 #[derive(Debug, Clone)]

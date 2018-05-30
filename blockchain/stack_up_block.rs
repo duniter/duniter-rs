@@ -18,7 +18,7 @@ extern crate duniter_dal;
 extern crate duniter_documents;
 extern crate duniter_wotb;
 
-use duniter_crypto::keys::ed25519;
+use duniter_crypto::keys::*;
 use duniter_dal::block::{DALBlock, WotEvent};
 use duniter_dal::writers::requests::DBWriteRequest;
 use duniter_documents::blockchain::v10::documents::BlockDocument;
@@ -29,7 +29,7 @@ use std::collections::HashMap;
 
 pub fn try_stack_up_completed_block<W: WebOfTrust + Sync>(
     block: &BlockDocument,
-    wotb_index: &HashMap<ed25519::PublicKey, NodeId>,
+    wotb_index: &HashMap<PubKey, NodeId>,
     wot: &W,
 ) -> (bool, Vec<DBWriteRequest>, Vec<WotEvent>) {
     debug!(
@@ -39,7 +39,7 @@ pub fn try_stack_up_completed_block<W: WebOfTrust + Sync>(
     let mut db_requests = Vec::new();
     let mut wot_events = Vec::new();
     let mut wot_copy: W = wot.clone();
-    let mut wotb_index_copy: HashMap<ed25519::PublicKey, NodeId> = wotb_index.clone();
+    let mut wotb_index_copy: HashMap<PubKey, NodeId> = wotb_index.clone();
     let current_blockstamp = block.blockstamp();
     let mut identities = HashMap::with_capacity(block.identities.len());
     for identity in block.identities.clone() {

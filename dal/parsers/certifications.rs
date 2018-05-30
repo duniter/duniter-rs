@@ -5,7 +5,7 @@ extern crate sqlite;
 use super::super::block::DALBlock;
 use super::super::identity::DALIdentity;
 use super::super::DuniterDB;
-use duniter_crypto::keys::{ed25519, PublicKey, Signature};
+use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::certification::{
     CertificationDocumentBuilder, CompactCertificationDocument,
 };
@@ -28,17 +28,23 @@ pub fn parse_certifications_into_compact(
             .collect();
         if certifications_datas.len() == 4 {
             certifications.push(TextDocumentFormat::Compact(CompactCertificationDocument {
-                issuer: PublicKey::from_base58(certifications_datas[0])
-                    .expect("Receive block in wrong format : fail to parse issuer !"),
-                target: PublicKey::from_base58(certifications_datas[1])
-                    .expect("Receive block in wrong format : fail to parse target !"),
+                issuer: PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58(certifications_datas[0])
+                        .expect("Receive block in wrong format : fail to parse issuer !"),
+                ),
+                target: PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58(certifications_datas[1])
+                        .expect("Receive block in wrong format : fail to parse target !"),
+                ),
                 block_number: BlockId(
                     certifications_datas[2]
                         .parse()
                         .expect("Receive block in wrong format : fail to parse block number !"),
                 ),
-                signature: Signature::from_base64(certifications_datas[3])
-                    .expect("Receive block in wrong format : fail to parse signature !"),
+                signature: Sig::Ed25519(
+                    ed25519::Signature::from_base64(certifications_datas[3])
+                        .expect("Receive block in wrong format : fail to parse signature !"),
+                ),
             }));
         }
     }
@@ -48,7 +54,7 @@ pub fn parse_certifications_into_compact(
 pub fn parse_certifications_from_json_value(
     currency: &str,
     db: &DuniterDB,
-    block_identities: &HashMap<ed25519::PublicKey, IdentityDocument>,
+    block_identities: &HashMap<PubKey, IdentityDocument>,
     array_certifications: &[serde_json::Value],
 ) -> Vec<TextDocumentFormat<CertificationDocument>> {
     let mut certifications: Vec<TextDocumentFormat<CertificationDocument>> = Vec::new();
@@ -59,8 +65,10 @@ pub fn parse_certifications_from_json_value(
             .split(':')
             .collect();
         if certification_datas.len() == 4 {
-            let target = PublicKey::from_base58(certification_datas[1])
-                .expect("Fail to parse cert target !");
+            let target = PubKey::Ed25519(
+                ed25519::PublicKey::from_base58(certification_datas[1])
+                    .expect("Fail to parse cert target !"),
+            );
             let target_idty_doc: IdentityDocument = match block_identities.get(&target) {
                 Some(idty_doc) => idty_doc.clone(),
                 None => {
@@ -77,8 +85,10 @@ pub fn parse_certifications_from_json_value(
             let cert_builder =
                 CertificationDocumentBuilder {
                     currency,
-                    issuer: &PublicKey::from_base58(certification_datas[0])
-                        .expect("Fail to parse cert issuer !"),
+                    issuer: &PubKey::Ed25519(
+                        ed25519::PublicKey::from_base58(certification_datas[0])
+                            .expect("Fail to parse cert issuer !"),
+                    ),
                     blockstamp: &Blockstamp {
                         id: cert_blockstamp_id,
                         hash: if cert_blockstamp_id == BlockId(0) {
@@ -97,8 +107,10 @@ pub fn parse_certifications_from_json_value(
                     identity_blockstamp: &target_idty_doc.blockstamp(),
                     identity_sig: &target_idty_doc.signatures()[0],
                 };
-            let cert_sig =
-                Signature::from_base64(certification_datas[3]).expect("Fail to parse cert sig !");
+            let cert_sig = Sig::Ed25519(
+                ed25519::Signature::from_base64(certification_datas[3])
+                    .expect("Fail to parse cert sig !"),
+            );
             certifications.push(TextDocumentFormat::Complete(
                 cert_builder.build_with_signature(vec![cert_sig]),
             ));
@@ -110,7 +122,7 @@ pub fn parse_certifications_from_json_value(
 pub fn parse_certifications(
     currency: &str,
     db: &DuniterDB,
-    block_identities: &HashMap<ed25519::PublicKey, IdentityDocument>,
+    block_identities: &HashMap<PubKey, IdentityDocument>,
     json_datas: &str,
 ) -> Option<Vec<TextDocumentFormat<CertificationDocument>>> {
     let raw_certifications: serde_json::Value =

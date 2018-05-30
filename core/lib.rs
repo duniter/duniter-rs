@@ -42,7 +42,6 @@ use self::threadpool::ThreadPool;
 use clap::{App, ArgMatches};
 use duniter_blockchain::BlockchainModule;
 use duniter_conf::DuniterKeyPairs;
-use duniter_crypto::keys::ed25519;
 use duniter_message::DuniterMessage;
 use duniter_module::*;
 use log::Level;
@@ -199,7 +198,7 @@ impl DuniterCore {
         }
     }
     /// Plug a module
-    pub fn plug<M: DuniterModule<ed25519::KeyPair, DuniterMessage>>(&mut self) {
+    pub fn plug<M: DuniterModule<DuniterMessage>>(&mut self) {
         if self.start {
             // Start module in a new thread
             let soft_name_clone = &(*self.soft_name);

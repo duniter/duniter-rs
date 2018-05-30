@@ -19,7 +19,7 @@ extern crate serde;
 
 use std::ops::Deref;
 
-use duniter_crypto::keys::{ed25519, PublicKey};
+use duniter_crypto::keys::*;
 use regex::Regex;
 use regex::RegexBuilder;
 
@@ -62,7 +62,7 @@ lazy_static! {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionInput {
     /// Universal Dividend Input
-    D(isize, usize, ed25519::PublicKey, u64),
+    D(isize, usize, PubKey, u64),
     /// Previous Transaction Input
     T(isize, usize, String, usize),
 }
@@ -91,12 +91,14 @@ impl TransactionInput {
             Ok(TransactionInput::D(
                 amount.parse().expect("fail to parse input amount !"),
                 base.parse().expect("fail to parse input base !"),
-                ed25519::PublicKey::from_base58(pubkey).expect("fail to parse input pubkey !"),
+                PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58(pubkey).expect("fail to parse input pubkey !"),
+                ),
                 block_number
                     .parse()
                     .expect("fail to parse input block_number !"),
             ))
-        //Ok(TransactionInput::D(10, 0, PublicKey::from_base58("FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa").unwrap(), 0))
+        //Ok(TransactionInput::D(10, 0, PubKey::Ed25519(ed25519::PublicKey::from_base58("FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa").unwrap(), 0)))
         } else if let Some(caps) = T_INPUT_REGEX.captures(source) {
             let amount = &caps["amount"];
             let base = &caps["base"];
@@ -205,7 +207,7 @@ impl TransactionInputUnlocks {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransactionOutputCondition {
     /// The consumption of funds will require a valid signature of the specified key
-    Sig(ed25519::PublicKey),
+    Sig(PubKey),
     /// The consumption of funds will require to provide a code with the hash indicated
     Xhx(String),
     /// Funds may not be consumed until the blockchain reaches the timestamp indicated.
@@ -228,10 +230,10 @@ impl ToString for TransactionOutputCondition {
 impl TransactionOutputCondition {
     fn parse_from_str(source: &str) -> Result<TransactionOutputCondition, V10DocumentParsingError> {
         if let Some(caps) = OUTPUT_COND_SIG_REGEX.captures(source) {
-            Ok(TransactionOutputCondition::Sig(
+            Ok(TransactionOutputCondition::Sig(PubKey::Ed25519(
                 ed25519::PublicKey::from_base58(&caps["pubkey"])
                     .expect("fail to parse SIG TransactionOutputCondition"),
-            ))
+            )))
         } else if let Some(caps) = OUTPUT_COND_XHX_REGEX.captures(source) {
             Ok(TransactionOutputCondition::Xhx(String::from(&caps["hash"])))
         } else if let Some(caps) = OUTPUT_COND_CLTV_REGEX.captures(source) {
@@ -397,7 +399,7 @@ pub struct TransactionDocument {
     /// Locktime
     locktime: u64,
     /// Document issuer (there should be only one).
-    issuers: Vec<ed25519::PublicKey>,
+    issuers: Vec<PubKey>,
     /// Transaction inputs.
     inputs: Vec<TransactionInput>,
     /// Inputs unlocks.
@@ -407,11 +409,11 @@ pub struct TransactionDocument {
     /// Transaction comment
     comment: String,
     /// Document signature (there should be only one).
-    signatures: Vec<ed25519::Signature>,
+    signatures: Vec<Sig>,
 }
 
 impl Document for TransactionDocument {
-    type PublicKey = ed25519::PublicKey;
+    type PublicKey = PubKey;
     type CurrencyType = str;
 
     fn version(&self) -> u16 {
@@ -426,11 +428,11 @@ impl Document for TransactionDocument {
         self.blockstamp
     }
 
-    fn issuers(&self) -> &Vec<ed25519::PublicKey> {
+    fn issuers(&self) -> &Vec<PubKey> {
         &self.issuers
     }
 
-    fn signatures(&self) -> &Vec<ed25519::Signature> {
+    fn signatures(&self) -> &Vec<Sig> {
         &self.signatures
     }
 
@@ -530,7 +532,7 @@ pub struct TransactionDocumentBuilder<'a> {
     /// Locktime
     pub locktime: &'a u64,
     /// Transaction Document issuers.
-    pub issuers: &'a Vec<ed25519::PublicKey>,
+    pub issuers: &'a Vec<PubKey>,
     /// Transaction inputs.
     pub inputs: &'a Vec<TransactionInput>,
     /// Inputs unlocks.
@@ -542,11 +544,7 @@ pub struct TransactionDocumentBuilder<'a> {
 }
 
 impl<'a> TransactionDocumentBuilder<'a> {
-    fn build_with_text_and_sigs(
-        self,
-        text: String,
-        signatures: Vec<ed25519::Signature>,
-    ) -> TransactionDocument {
+    fn build_with_text_and_sigs(self, text: String, signatures: Vec<Sig>) -> TransactionDocument {
         TransactionDocument {
             text,
             currency: self.currency.to_string(),
@@ -564,13 +562,13 @@ impl<'a> TransactionDocumentBuilder<'a> {
 
 impl<'a> DocumentBuilder for TransactionDocumentBuilder<'a> {
     type Document = TransactionDocument;
-    type PrivateKey = ed25519::PrivateKey;
+    type PrivateKey = PrivKey;
 
-    fn build_with_signature(&self, signatures: Vec<ed25519::Signature>) -> TransactionDocument {
+    fn build_with_signature(&self, signatures: Vec<Sig>) -> TransactionDocument {
         self.build_with_text_and_sigs(self.generate_text(), signatures)
     }
 
-    fn build_and_sign(&self, private_keys: Vec<ed25519::PrivateKey>) -> TransactionDocument {
+    fn build_and_sign(&self, private_keys: Vec<PrivKey>) -> TransactionDocument {
         let (text, signatures) = self.build_signed_text(private_keys);
         self.build_with_text_and_sigs(text, signatures)
     }
@@ -627,7 +625,7 @@ impl StandardTextDocumentParser for TransactionDocumentParser {
         doc: &str,
         body: &str,
         currency: &str,
-        signatures: Vec<ed25519::Signature>,
+        signatures: Vec<Sig>,
     ) -> Result<V10Document, V10DocumentParsingError> {
         let tx_regex: Regex = RegexBuilder::new(&TRANSACTION_REGEX_BUILDER)
             .size_limit(**TRANSACTION_REGEX_SIZE)
@@ -645,9 +643,9 @@ impl StandardTextDocumentParser for TransactionDocumentParser {
 
             let mut issuers = Vec::new();
             for caps in ISSUER_REGEX.captures_iter(issuers_str) {
-                issuers.push(
+                issuers.push(PubKey::Ed25519(
                     ed25519::PublicKey::from_base58(&caps["issuer"]).expect("fail to parse issuer"),
-                );
+                ));
             }
             let inputs_array: Vec<&str> = inputs.split('\n').collect();
             let mut inputs = Vec::new();
@@ -695,22 +693,24 @@ impl StandardTextDocumentParser for TransactionDocumentParser {
 mod tests {
     use super::*;
     use blockchain::{Document, VerificationResult};
-    use duniter_crypto::keys::{PrivateKey, PublicKey, Signature};
 
     #[test]
     fn generate_real_document() {
-        let pubkey = ed25519::PublicKey::from_base58(
-            "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV",
-        ).unwrap();
+        let pubkey = PubKey::Ed25519(
+            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
+                .unwrap(),
+        );
 
-        let prikey = ed25519::PrivateKey::from_base58(
-            "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5G\
-             iERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
-        ).unwrap();
+        let prikey = PrivKey::Ed25519(
+            ed25519::PrivateKey::from_base58(
+                "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5G\
+                 iERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
+            ).unwrap(),
+        );
 
-        let sig = ed25519::Signature::from_base64(
+        let sig = Sig::Ed25519(ed25519::Signature::from_base64(
             "pRQeKlzCsvPNmYAAkEP5jPPQO1RwrtFMRfCajEfkkrG0UQE0DhoTkxG3Zs2JFmvAFLw67pn1V5NQ08zsSfJkBg==",
-        ).unwrap();
+        ).unwrap());
 
         let block = Blockstamp::from_string(
             "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
@@ -850,15 +850,15 @@ Comment: -----@@@----- (why not this comment?)
         let currency = "duniter_unit_test_currency";
 
         let signatures = vec![
-            Signature::from_base64(
+            Sig::Ed25519(ed25519::Signature::from_base64(
 "kL59C1izKjcRN429AlKdshwhWbasvyL7sthI757zm1DfZTdTIctDWlKbYeG/tS7QyAgI3gcfrTHPhu1E1lKCBw=="
-        ).expect("fail to parse test signature"),
-            Signature::from_base64(
+        ).expect("fail to parse test signature")),
+            Sig::Ed25519(ed25519::Signature::from_base64(
 "e3LpgB2RZ/E/BCxPJsn+TDDyxGYzrIsMyDt//KhJCjIQD6pNUxr5M5jrq2OwQZgwmz91YcmoQ2XRQAUDpe4BAw=="
-            ).expect("fail to parse test signature"),
-            Signature::from_base64(
+            ).expect("fail to parse test signature")),
+            Sig::Ed25519(ed25519::Signature::from_base64(
 "w69bYgiQxDmCReB0Dugt9BstXlAKnwJkKCdWvCeZ9KnUCv0FJys6klzYk/O/b9t74tYhWZSX0bhETWHiwfpWBw=="
-            ).expect("fail to parse test signature"),
+            ).expect("fail to parse test signature")),
         ];
 
         let doc = TransactionDocumentParser::parse_standard(doc, body, currency, signatures)

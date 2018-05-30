@@ -5,7 +5,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate sqlite;
 
-use self::duniter_crypto::keys::ed25519;
+use self::duniter_crypto::keys::PubKey;
 use self::duniter_documents::blockchain::v10::documents::certification::CompactCertificationDocument;
 use self::duniter_documents::blockchain::v10::documents::identity::IdentityDocument;
 use self::duniter_documents::Blockstamp;
@@ -21,7 +21,7 @@ pub enum DBWriteRequest {
     /// Newcomer
     CreateIdentity(NodeId, Blockstamp, u64, Box<IdentityDocument>),
     /// Active
-    RenewalIdentity(ed25519::PublicKey, Blockstamp, u64),
+    RenewalIdentity(PubKey, Blockstamp, u64),
     /// Excluded
     ExcludeIdentity(NodeId, Blockstamp, u64),
     /// Revoked

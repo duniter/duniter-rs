@@ -40,7 +40,7 @@ use self::network_head::NetworkHead;
 use self::network_peer::NetworkPeer;
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
-use duniter_crypto::keys::{ed25519, PublicKey};
+use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::{
     BlockDocument, CertificationDocument, IdentityDocument, MembershipDocument, RevocationDocument,
     TransactionDocument,
@@ -75,13 +75,16 @@ impl<'a> From<&'a str> for NodeUUID {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// Complete identifier of a duniter node.
-pub struct NodeFullId(pub NodeUUID, pub ed25519::PublicKey);
+pub struct NodeFullId(pub NodeUUID, pub PubKey);
 
 impl Default for NodeFullId {
     fn default() -> NodeFullId {
         NodeFullId(
             NodeUUID::default(),
-            PublicKey::from_base58("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").unwrap(),
+            PubKey::Ed25519(
+                ed25519::PublicKey::from_base58("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+                    .unwrap(),
+            ),
         )
     }
 }
@@ -290,8 +293,10 @@ mod tests {
 
     #[test]
     fn parse_endpoint() {
-        let issuer =
-            PublicKey::from_base58("D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx").unwrap();
+        let issuer = PubKey::Ed25519(
+            ed25519::PublicKey::from_base58("D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx")
+                .unwrap(),
+        );
         let node_id = NodeUUID(u32::from_str_radix("c1c39a0a", 16).unwrap());
         let full_id = NodeFullId(node_id, issuer);
         assert_eq!(
@@ -314,8 +319,10 @@ mod tests {
 
     #[test]
     fn parse_endpoint2() {
-        let issuer =
-            PublicKey::from_base58("5gJYnQp8v7bWwk7EWRoL8vCLof1r3y9c6VDdnGSM1GLv").unwrap();
+        let issuer = PubKey::Ed25519(
+            ed25519::PublicKey::from_base58("5gJYnQp8v7bWwk7EWRoL8vCLof1r3y9c6VDdnGSM1GLv")
+                .unwrap(),
+        );
         let node_id = NodeUUID(u32::from_str_radix("cb06a19b", 16).unwrap());
         let full_id = NodeFullId(node_id, issuer);
         assert_eq!(
