@@ -13,12 +13,13 @@ use self::duniter_wotb::NodeId;
 use super::super::block::DALBlock;
 use super::super::identity::DALIdentity;
 use super::super::DuniterDB;
+use std::ops::Deref;
 
 #[derive(Debug)]
 /// Contain a pending write request for blockchain database
 pub enum DBWriteRequest {
     /// Newcomer
-    CreateIdentity(NodeId, Blockstamp, u64, IdentityDocument),
+    CreateIdentity(NodeId, Blockstamp, u64, Box<IdentityDocument>),
     /// Active
     RenewalIdentity(ed25519::PublicKey, Blockstamp, u64),
     /// Excluded
@@ -30,9 +31,9 @@ pub enum DBWriteRequest {
     /// Certification expiry
     CertExpiry(NodeId, NodeId, Blockstamp, u64),
     /// Write block
-    WriteBlock(DALBlock),
+    WriteBlock(Box<DALBlock>),
     /// Revert block
-    RevertBlock(DALBlock),
+    RevertBlock(Box<DALBlock>),
 }
 
 impl DBWriteRequest {
@@ -45,8 +46,8 @@ impl DBWriteRequest {
                 ref idty_doc,
             ) => {
                 trace!("DBWriteRequest::CreateIdentity...");
-                let idty = DALIdentity::create_identity(db, idty_doc, blockstamp.clone());
-                super::identity::write(&idty, wotb_id, db, blockstamp.clone(), *median_time);
+                let idty = DALIdentity::create_identity(db, idty_doc.deref(), *blockstamp);
+                super::identity::write(&idty, wotb_id, db, *blockstamp, *median_time);
                 trace!("DBWriteRequest::CreateIdentity...finish.");
             }
             DBWriteRequest::RenewalIdentity(ref pubkey, ref blockstamp, ref median_time) => {
@@ -67,12 +68,13 @@ impl DBWriteRequest {
                 super::certification::write_certification(
                     compact_cert,
                     db,
-                    blockstamp.clone(),
+                    *blockstamp,
                     *median_time,
                 );
                 trace!("DBWriteRequest::CreateCert...finish");
             }
             DBWriteRequest::WriteBlock(ref dal_block) => {
+                let dal_block = dal_block.deref();
                 trace!("DBWriteRequest::WriteBlock...");
                 super::block::write(db, &dal_block.block, dal_block.fork, dal_block.isolate);
                 trace!("DBWriteRequest::WriteBlock...finish");

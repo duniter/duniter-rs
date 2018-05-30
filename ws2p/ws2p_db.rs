@@ -54,7 +54,7 @@ pub fn api_to_integer(api: &NetworkEndpointApi) -> i64 {
 
 pub fn get_endpoints_for_api(
     db: &sqlite::Connection,
-    api: NetworkEndpointApi,
+    api: &NetworkEndpointApi,
 ) -> Vec<NetworkEndpoint> {
     let mut cursor:sqlite::Cursor = db
         .prepare("SELECT hash_full_id, status, node_id, pubkey, api, version, endpoint, last_check FROM endpoints WHERE api=? ORDER BY status DESC;")
@@ -119,9 +119,8 @@ pub fn write_endpoint(
                 hash_full_id
             )).expect("Fail to parse SQL request update endpoint  status !");
         }
-    } else {
-        if let &NetworkEndpoint::V1(ref ep_v1) = endpoint {
-            db
+    } else if let NetworkEndpoint::V1(ref ep_v1) = *endpoint {
+        db
                     .execute(
                         format!(
                             "INSERT INTO endpoints (hash_full_id, status, node_id, pubkey, api, version, endpoint, last_check) VALUES ('{}', {}, {}, '{}', {}, {}, '{}', {});",
@@ -131,8 +130,7 @@ pub fn write_endpoint(
                         )
                     )
                     .expect("Fail to parse SQL request INSERT endpoint !");
-        } else {
-            panic!("write_endpoint() : Endpoint version is not supported !")
-        }
+    } else {
+        panic!("write_endpoint() : Endpoint version is not supported !")
     }
 }

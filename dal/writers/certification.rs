@@ -20,7 +20,7 @@ pub fn write_certification(
         .cursor();
 
     cursor
-        .bind(&[sqlite::Value::Integer(cert.block_number.0 as i64)])
+        .bind(&[sqlite::Value::Integer(i64::from(cert.block_number.0))])
         .expect("convert blockstamp to timestamp failure at step 1 !");
 
     let mut created_timestamp: i64 = 0;

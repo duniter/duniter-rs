@@ -123,7 +123,7 @@ impl DuniterCore {
             ))
         } else if let Some(matches) = cli_args.subcommand_matches("sync_ts") {
             let ts_profile = matches.value_of("TS_PROFILE").unwrap_or("duniter_default");
-            sync_ts(conf, ts_profile, matches.is_present("cautious"));
+            sync_ts(&conf, ts_profile, matches.is_present("cautious"));
             None
         } else if let Some(matches) = cli_args.subcommand_matches("reset") {
             let mut profile_path = match env::home_dir() {
@@ -195,19 +195,17 @@ impl DuniterCore {
             info!("Success to load Blockchain module.");
 
             // Start blockchain module in main thread
-            blockchain_module.start_blockchain(blockchain_receiver);
+            blockchain_module.start_blockchain(&blockchain_receiver);
         }
     }
     /// Plug a module
     pub fn plug<M: DuniterModule<ed25519::KeyPair, DuniterMessage>>(&mut self) {
         if self.start {
             // Start module in a new thread
-            let soft_name_clone = self.soft_name.clone();
-            let soft_version_clone = self.soft_version.clone();
-            let required_keys = DuniterKeyPairs::get_required_keys_content(
-                M::ask_required_keys(),
-                self.keypairs.clone(),
-            );
+            let soft_name_clone = &(*self.soft_name);
+            let soft_version_clone = &(*self.soft_version);
+            let required_keys =
+                DuniterKeyPairs::get_required_keys_content(M::ask_required_keys(), self.keypairs);
             let module_conf = if let Some(module_conf_) = self
                 .conf
                 .clone()
@@ -364,7 +362,7 @@ pub fn start(
 }
 
 /// Launch synchronisation from a duniter-ts database
-pub fn sync_ts(conf: DuniterConf, ts_profile: &str, cautious: bool) {
+pub fn sync_ts(conf: &DuniterConf, ts_profile: &str, cautious: bool) {
     // Launch sync-ts
     BlockchainModule::sync_ts(&conf, ts_profile, cautious);
 }

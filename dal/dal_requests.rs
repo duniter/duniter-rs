@@ -50,14 +50,14 @@ pub enum DALResPendings {
 
 #[derive(Debug, Clone)]
 pub enum DALResBlockchain {
-    CurrentBlock(ModuleReqFullId, BlockDocument),
-    BlockByNumber(ModuleReqFullId, BlockDocument),
+    CurrentBlock(ModuleReqFullId, Box<BlockDocument>),
+    BlockByNumber(ModuleReqFullId, Box<BlockDocument>),
     Chunk(ModuleReqFullId, Vec<BlockDocument>),
     UIDs(HashMap<ed25519::PublicKey, Option<String>>),
 }
 
 #[derive(Debug, Clone)]
 pub enum DALResponse {
-    Blockchain(DALResBlockchain),
+    Blockchain(Box<DALResBlockchain>),
     Pendings(ModuleReqFullId, DALResPendings),
 }

@@ -7,10 +7,56 @@ use self::duniter_network::{NetworkBlock, NetworkBlockV10};
 use super::excluded::parse_exclusions_from_json_value;
 use super::identities::parse_compact_identity;
 use super::transactions::parse_transaction;
-use duniter_crypto::keys::{PublicKey, Signature};
-use duniter_documents::blockchain::v10::documents::membership::MembershipType;
+use duniter_crypto::keys::{ed25519, PublicKey, Signature};
+use duniter_documents::blockchain::v10::documents::membership::{
+    MembershipDocument, MembershipType,
+};
 use duniter_documents::blockchain::v10::documents::BlockDocument;
 use duniter_documents::{BlockHash, BlockId, Hash};
+
+fn parse_previous_hash(block_number: &BlockId, source: &serde_json::Value) -> Option<Hash> {
+    match source.get("previousHash")?.as_str() {
+        Some(hash_str) => match Hash::from_hex(hash_str) {
+            Ok(hash) => Some(hash),
+            Err(_) => None,
+        },
+        None => if block_number.0 > 0 {
+            None
+        } else {
+            Some(Hash::default())
+        },
+    }
+}
+
+fn parse_previous_issuer(source: &serde_json::Value) -> Option<ed25519::PublicKey> {
+    match source.get("previousIssuer")?.as_str() {
+        Some(pubkey_str) => match PublicKey::from_base58(pubkey_str) {
+            Ok(pubkey) => Some(pubkey),
+            Err(_) => None,
+        },
+        None => None,
+    }
+}
+
+fn parse_memberships(
+    currency: &str,
+    membership_type: MembershipType,
+    json_memberships: &serde_json::Value,
+) -> Option<Vec<MembershipDocument>> {
+    let mut memberships = Vec::new();
+    for membership in super::memberships::parse_memberships_from_json_value(
+        currency,
+        membership_type,
+        &json_memberships.as_array()?,
+    ) {
+        if let Ok(membership) = membership {
+            memberships.push(membership);
+        } else {
+            warn!("dal::parsers::blocks::parse_memberships() : MembershipParseError !")
+        }
+    }
+    Some(memberships)
+}
 
 pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
     let number = BlockId(source.get("number")?.as_u64()? as u32);
@@ -27,28 +73,8 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
         Ok(hash) => hash,
         Err(_) => return None,
     };
-    let previous_hash = match source.get("previousHash")?.as_str() {
-        Some(hash_str) => match Hash::from_hex(hash_str) {
-            Ok(hash) => hash,
-            Err(_) => return None,
-        },
-        None => if number.0 > 0 {
-            return None;
-        } else {
-            Hash::default()
-        },
-    };
-    let previous_issuer = match source.get("previousIssuer")?.as_str() {
-        Some(pubkey_str) => match PublicKey::from_base58(pubkey_str) {
-            Ok(pubkey) => Some(pubkey),
-            Err(_) => return None,
-        },
-        None => if number.0 > 0 {
-            return None;
-        } else {
-            None
-        },
-    };
+    let previous_hash = parse_previous_hash(&number, source)?;
+    let previous_issuer = parse_previous_issuer(source);
     let inner_hash = match Hash::from_hex(source.get("inner_hash")?.as_str()?) {
         Ok(hash) => Some(hash),
         Err(_) => return None,
@@ -61,42 +87,9 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
     for raw_idty in source.get("identities")?.as_array()? {
         identities.push(parse_compact_identity(&currency, &raw_idty)?);
     }
-    let mut joiners = Vec::new();
-    for joiner in super::memberships::parse_memberships_from_json_value(
-        &currency,
-        MembershipType::In(),
-        &source.get("joiners")?.as_array()?,
-    ) {
-        if let Ok(joiner) = joiner {
-            joiners.push(joiner);
-        } else {
-            return None;
-        }
-    }
-    let mut actives = Vec::new();
-    for active in super::memberships::parse_memberships_from_json_value(
-        &currency,
-        MembershipType::In(),
-        &source.get("actives")?.as_array()?,
-    ) {
-        if let Ok(active) = active {
-            actives.push(active);
-        } else {
-            return None;
-        }
-    }
-    let mut leavers = Vec::new();
-    for leaver in super::memberships::parse_memberships_from_json_value(
-        &currency,
-        MembershipType::Out(),
-        &source.get("leavers")?.as_array()?,
-    ) {
-        if let Ok(leaver) = leaver {
-            leavers.push(leaver);
-        } else {
-            return None;
-        }
-    }
+    let joiners = parse_memberships(&currency, MembershipType::In(), source.get("joiners")?)?;
+    let actives = parse_memberships(&currency, MembershipType::In(), source.get("actives")?)?;
+    let leavers = parse_memberships(&currency, MembershipType::Out(), source.get("actives")?)?;
     let mut transactions = Vec::new();
     for json_tx in source.get("transactions")?.as_array()? {
         transactions.push(parse_transaction("g1", &json_tx)?);

@@ -16,6 +16,7 @@
 //! Module managing the Duniter blockchain.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
+#![cfg_attr(feature = "cargo-clippy", allow(unused_collect))]
 #![deny(
     missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
     trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
@@ -190,12 +191,12 @@ impl BlockchainModule {
     /// Request chunk from network (chunk = group of blocks)
     fn request_chunk(&self, req_id: &ModuleReqId, from: u32) -> (ModuleReqId, NetworkRequest) {
         let req = NetworkRequest::GetBlocks(
-            ModuleReqFullId(BlockchainModule::id(), req_id.clone()),
+            ModuleReqFullId(BlockchainModule::id(), *req_id),
             NodeFullId::default(),
             *CHUNK_SIZE,
             from,
         );
-        (self.request_network(req.clone()), req)
+        (self.request_network(req), req)
     }
     /// Requests blocks from current to `to`
     fn request_blocks_to(
@@ -216,10 +217,11 @@ impl BlockchainModule {
         );
         let mut requests_ids = HashMap::new();
         if current_blockstamp.id < to {
-            let mut real_to = to.0;
-            if (to.0 - current_blockstamp.id.0) > *MAX_BLOCKS_REQUEST {
-                real_to = current_blockstamp.id.0 + *MAX_BLOCKS_REQUEST;
-            }
+            let real_to = if (to.0 - current_blockstamp.id.0) > *MAX_BLOCKS_REQUEST {
+                current_blockstamp.id.0 + *MAX_BLOCKS_REQUEST
+            } else {
+                to.0
+            };
             while from <= real_to {
                 let mut req_id = ModuleReqId(0);
                 while pending_network_requests.contains_key(&req_id)
@@ -238,7 +240,7 @@ impl BlockchainModule {
     fn request_network(&self, request: NetworkRequest) -> ModuleReqId {
         for follower in &self.followers {
             if follower
-                .send(DuniterMessage::NetworkRequest(request.clone()))
+                .send(DuniterMessage::NetworkRequest(request))
                 .is_err()
             {
                 debug!("BlockchainModule : one follower is unreachable !");
@@ -247,36 +249,40 @@ impl BlockchainModule {
         request.get_req_id()
     }
     /// Send blockchain event
-    fn send_event(&self, event: DALEvent) {
+    fn send_event(&self, event: &DALEvent) {
         for follower in &self.followers {
-            match follower.send(DuniterMessage::DALEvent(event.clone())) {
-                Ok(_) => {}
-                Err(_) => {}
+            if follower
+                .send(DuniterMessage::DALEvent(event.clone()))
+                .is_err()
+            {
+                // Handle error
             }
         }
     }
-    fn send_req_response(&self, response: DALResponse) {
+    fn send_req_response(&self, response: &DALResponse) {
         for follower in &self.followers {
-            match follower.send(DuniterMessage::DALResponse(response.clone())) {
-                Ok(_) => {}
-                Err(_) => {}
+            if follower
+                .send(DuniterMessage::DALResponse(Box::new(response.clone())))
+                .is_err()
+            {
+                // Handle error
             }
         }
     }
     fn receive_network_documents<W: WebOfTrust + Sync>(
         &self,
-        network_documents: &Vec<NetworkDocument>,
+        network_documents: &[NetworkDocument],
         current_blockstamp: &Blockstamp,
         forks: &mut Vec<ForkState>,
         wotb_index: &HashMap<ed25519::PublicKey, NodeId>,
         wot: &W,
     ) -> (Blockstamp, Vec<WotEvent>) {
         let mut blockchain_documents = Vec::new();
-        let mut current_blockstamp = current_blockstamp.clone();
+        let mut current_blockstamp = *current_blockstamp;
         let mut wot_events = Vec::new();
         for network_document in network_documents {
-            match network_document {
-                &NetworkDocument::Block(ref network_block) => {
+            match *network_document {
+                NetworkDocument::Block(ref network_block) => {
                     let (success, _new_forks, mut new_wot_events) = self.apply_block(
                         &Block::NetworkBlock(network_block),
                         &current_blockstamp,
@@ -301,23 +307,23 @@ impl BlockchainModule {
                         forks = new_forks;
                     }*/
                 }
-                &NetworkDocument::Identity(ref doc) => blockchain_documents.push(
+                NetworkDocument::Identity(ref doc) => blockchain_documents.push(
                     BlockchainProtocol::V10(Box::new(V10Document::Identity(doc.deref().clone()))),
                 ),
-                &NetworkDocument::Membership(ref doc) => blockchain_documents.push(
+                NetworkDocument::Membership(ref doc) => blockchain_documents.push(
                     BlockchainProtocol::V10(Box::new(V10Document::Membership(doc.deref().clone()))),
                 ),
-                &NetworkDocument::Certification(ref doc) => {
+                NetworkDocument::Certification(ref doc) => {
                     blockchain_documents.push(BlockchainProtocol::V10(Box::new(
                         V10Document::Certification(Box::new(doc.deref().clone())),
                     )))
                 }
-                &NetworkDocument::Revocation(ref doc) => {
+                NetworkDocument::Revocation(ref doc) => {
                     blockchain_documents.push(BlockchainProtocol::V10(Box::new(
                         V10Document::Revocation(Box::new(doc.deref().clone())),
                     )))
                 }
-                &NetworkDocument::Transaction(ref doc) => {
+                NetworkDocument::Transaction(ref doc) => {
                     blockchain_documents.push(BlockchainProtocol::V10(Box::new(
                         V10Document::Transaction(Box::new(doc.deref().clone())),
                     )))
@@ -329,31 +335,31 @@ impl BlockchainModule {
         }
         (current_blockstamp, wot_events)
     }
-    fn receive_documents(&self, documents: &Vec<BlockchainProtocol>) {
+    fn receive_documents(&self, documents: &[BlockchainProtocol]) {
         debug!("BlockchainModule : receive_documents()");
         for document in documents {
             trace!("BlockchainModule : Treat one document.");
-            match document {
-                &BlockchainProtocol::V10(ref doc_v10) => match doc_v10.deref() {
+            match *document {
+                BlockchainProtocol::V10(ref doc_v10) => match doc_v10.deref() {
                     _ => {}
                 },
-                _ => self.send_event(DALEvent::RefusedPendingDoc(document.clone())),
+                _ => self.send_event(&DALEvent::RefusedPendingDoc(document.clone())),
             }
         }
     }
     fn receive_blocks<W: WebOfTrust + Sync>(
         &self,
-        blocks_in_box: &Vec<Box<NetworkBlock>>,
+        blocks_in_box: &[Box<NetworkBlock>],
         current_blockstamp: &Blockstamp,
-        forks: &Vec<ForkState>,
+        forks: &[ForkState],
         wotb_index: &HashMap<ed25519::PublicKey, NodeId>,
         wot: &W,
     ) -> (Blockstamp, Vec<ForkState>, Vec<WotEvent>) {
         debug!("BlockchainModule : receive_blocks()");
         let blocks: Vec<&NetworkBlock> = blocks_in_box.into_iter().map(|b| b.deref()).collect();
-        let mut current_blockstamp = current_blockstamp.clone();
+        let mut current_blockstamp = *current_blockstamp;
         let mut all_wot_events = Vec::new();
-        let mut forks = forks.clone();
+        let mut forks = forks.to_owned();
         let mut wot_copy: W = wot.clone();
         let mut wotb_index_copy = wotb_index.clone();
         for block in blocks {
@@ -418,9 +424,9 @@ impl BlockchainModule {
         wot: &W,
     ) -> (bool, Vec<ForkState>, Vec<WotEvent>) {
         let mut already_have_block = false;
-        let block_doc = match block {
-            &Block::NetworkBlock(network_block) => match network_block {
-                &NetworkBlock::V10(ref network_block_v10) => {
+        let block_doc = match *block {
+            Block::NetworkBlock(network_block) => match *network_block {
+                NetworkBlock::V10(ref network_block_v10) => {
                     let (hashs, _) = DALBlock::get_blocks_hashs_all_forks(
                         &self.db,
                         &network_block_v10.uncompleted_block_doc.number,
@@ -434,27 +440,27 @@ impl BlockchainModule {
                 }
                 _ => return (false, Vec::with_capacity(0), Vec::with_capacity(0)),
             },
-            &Block::LocalBlock(block_doc) => {
+            Block::LocalBlock(block_doc) => {
                 already_have_block = true;
                 block_doc
             }
         };
         if (block_doc.number.0 == current_blockstamp.id.0 + 1
             && block_doc.previous_hash.to_string() == current_blockstamp.hash.0.to_string())
-            || (block_doc.number.0 == 0 && current_blockstamp.clone() == Blockstamp::default())
+            || (block_doc.number.0 == 0 && *current_blockstamp == Blockstamp::default())
         {
             debug!(
                 "stackable_block : block {} chainable !",
                 block_doc.blockstamp()
             );
-            let (success, db_requests, wot_events) = match block {
-                &Block::NetworkBlock(network_block) => self.try_stack_up_block(
+            let (success, db_requests, wot_events) = match *block {
+                Block::NetworkBlock(network_block) => self.try_stack_up_block(
                     &network_block,
                     wotb_index,
                     wot,
                     SyncVerificationLevel::Cautious(),
                 ),
-                &Block::LocalBlock(block_doc) => {
+                Block::LocalBlock(block_doc) => {
                     try_stack_up_completed_block(&block_doc, wotb_index, wot)
                 }
             };
@@ -469,11 +475,11 @@ impl BlockchainModule {
                     .map(|req| req.apply(&block_doc.currency, &self.db))
                     .collect::<()>();
                 info!("StackUpValidBlock({})", block_doc.number.0);
-                self.send_event(DALEvent::StackUpValidBlock(Box::new(block_doc.clone())));
+                self.send_event(&DALEvent::StackUpValidBlock(Box::new(block_doc.clone())));
                 return (true, Vec::with_capacity(0), wot_events);
             } else {
                 warn!("RefusedBlock({})", block_doc.number.0);
-                self.send_event(DALEvent::RefusedPendingDoc(BlockchainProtocol::V10(
+                self.send_event(&DALEvent::RefusedPendingDoc(BlockchainProtocol::V10(
                     Box::new(V10Document::Block(Box::new(block_doc.clone()))),
                 )));
             }
@@ -525,9 +531,9 @@ impl BlockchainModule {
                     forks[fork] = ForkState::Isolate();
                 }
             }
-            match block {
-                &Block::NetworkBlock(network_block) => match network_block {
-                    &NetworkBlock::V10(ref network_block_v10) => {
+            match *block {
+                Block::NetworkBlock(network_block) => match *network_block {
+                    NetworkBlock::V10(ref network_block_v10) => {
                         duniter_dal::writers::block::write_network_block(
                             &self.db,
                             &network_block_v10.uncompleted_block_doc,
@@ -539,7 +545,7 @@ impl BlockchainModule {
                     }
                     _ => return (false, Vec::with_capacity(0), Vec::with_capacity(0)),
                 },
-                &Block::LocalBlock(block_doc) => {
+                Block::LocalBlock(block_doc) => {
                     duniter_dal::writers::block::write(&self.db, &block_doc, fork, isolate)
                 }
             };
@@ -564,7 +570,7 @@ impl BlockchainModule {
             &self.currency.to_string(),
             Some(&self.db),
             network_block,
-            verif_level.clone(),
+            verif_level,
         ) {
             Ok(block_doc) => block_doc,
             Err(_) => return (false, Vec::with_capacity(0), Vec::with_capacity(0)),
@@ -572,7 +578,7 @@ impl BlockchainModule {
         try_stack_up_completed_block::<W>(&block_doc, wotb_index, wot)
     }
     /// Start blockchain module.
-    pub fn start_blockchain(&mut self, blockchain_receiver: mpsc::Receiver<DuniterMessage>) -> () {
+    pub fn start_blockchain(&mut self, blockchain_receiver: &mpsc::Receiver<DuniterMessage>) -> () {
         info!("BlockchainModule::start_blockchain()");
 
         // Get wot path
@@ -583,26 +589,10 @@ impl BlockchainModule {
             DALIdentity::get_wotb_index(&self.db);
 
         // Open wot file
-        let (mut wot, mut _wot_blockstamp): (RustyWebOfTrust, Blockstamp) = if wot_path
-            .as_path()
-            .exists()
-        {
-            match WOT_FILE_FORMATER.from_file(
-                wot_path.as_path().to_str().unwrap(),
-                duniter_dal::constants::G1_PARAMS.sig_stock as usize,
-            ) {
-                Ok((wot, binary_blockstamp)) => match str::from_utf8(&binary_blockstamp) {
-                    Ok(str_blockstamp) => (wot, Blockstamp::from_string(str_blockstamp).unwrap()),
-                    Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-                },
-                Err(e) => panic!("Fatal Error : fail to read wot file : {:?}", e),
-            }
-        } else {
-            (
-                RustyWebOfTrust::new(duniter_dal::constants::G1_PARAMS.sig_stock as usize),
-                Blockstamp::default(),
-            )
-        };
+        let (mut wot, mut _wot_blockstamp) = duniter_dal::open_wot_file::<
+            RustyWebOfTrust,
+            BinaryFileFormater,
+        >(&WOT_FILE_FORMATER, &wot_path);
 
         // Get forks
         let mut forks: Vec<ForkState> = duniter_dal::block::get_forks(&self.db);
@@ -627,7 +617,7 @@ impl BlockchainModule {
                 BlockchainModule::id(),
                 ModuleReqId(pending_network_requests.len() as u32),
             ));
-            let req_id = self.request_network(req.clone());
+            let req_id = self.request_network(req);
             pending_network_requests.insert(req_id, req);
             // Request Blocks
             let now = SystemTime::now();
@@ -658,17 +648,17 @@ impl BlockchainModule {
                 }
             }
             match blockchain_receiver.recv_timeout(Duration::from_millis(1000)) {
-                Ok(ref message) => match message {
-                    &DuniterMessage::Followers(ref new_followers) => {
+                Ok(ref message) => match *message {
+                    DuniterMessage::Followers(ref new_followers) => {
                         info!("Blockchain module receive followers !");
                         for new_follower in new_followers {
                             self.followers.push(new_follower.clone());
                         }
                     }
-                    &DuniterMessage::DALRequest(ref dal_request) => match dal_request {
-                        &DALRequest::BlockchainRequest(ref blockchain_req) => {
-                            match blockchain_req {
-                                &DALReqBlockchain::CurrentBlock(ref requester_full_id) => {
+                    DuniterMessage::DALRequest(ref dal_request) => match *dal_request {
+                        DALRequest::BlockchainRequest(ref blockchain_req) => {
+                            match *blockchain_req {
+                                DALReqBlockchain::CurrentBlock(ref requester_full_id) => {
                                     debug!("BlockchainModule : receive DALReqBc::CurrentBlock()");
 
                                     if let Some(current_block) = DALBlock::get_block(
@@ -677,44 +667,44 @@ impl BlockchainModule {
                                         &current_blockstamp,
                                     ) {
                                         debug!("BlockchainModule : send_req_response(CurrentBlock({}))", current_block.block.blockstamp());
-                                        self.send_req_response(DALResponse::Blockchain(
+                                        self.send_req_response(&DALResponse::Blockchain(Box::new(
                                             DALResBlockchain::CurrentBlock(
-                                                requester_full_id.clone(),
-                                                current_block.block,
+                                                *requester_full_id,
+                                                Box::new(current_block.block),
                                             ),
-                                        ));
+                                        )));
                                     } else {
                                         warn!("BlockchainModule : Req : fail to get current_block in bdd !");
                                     }
                                 }
-                                &DALReqBlockchain::UIDs(ref pubkeys) => {
-                                    self.send_req_response(DALResponse::Blockchain(
+                                DALReqBlockchain::UIDs(ref pubkeys) => {
+                                    self.send_req_response(&DALResponse::Blockchain(Box::new(
                                         DALResBlockchain::UIDs(
                                             pubkeys
                                                 .iter()
                                                 .map(|p| {
                                                     if let Some(wotb_id) = wotb_index.get(p) {
                                                         (
-                                                            p.clone(),
+                                                            *p,
                                                             duniter_dal::get_uid(
                                                                 &self.db, *wotb_id,
                                                             ),
                                                         )
                                                     } else {
-                                                        (p.clone(), None)
+                                                        (*p, None)
                                                     }
                                                 })
                                                 .collect(),
                                         ),
-                                    ));
+                                    )));
                                 }
                                 _ => {}
                             }
                         }
-                        _ => {}
+                        DALRequest::PendingsRequest(ref _pending_req) => {}
                     },
-                    &DuniterMessage::NetworkEvent(ref network_event) => match network_event {
-                        &NetworkEvent::ReceiveDocuments(ref network_docs) => {
+                    DuniterMessage::NetworkEvent(ref network_event) => match *network_event {
+                        NetworkEvent::ReceiveDocuments(ref network_docs) => {
                             let (new_current_blockstamp, mut new_wot_events) = self
                                 .receive_network_documents(
                                     network_docs,
@@ -726,24 +716,24 @@ impl BlockchainModule {
                             current_blockstamp = new_current_blockstamp;
                             wot_events.append(&mut new_wot_events);
                         }
-                        &NetworkEvent::ReqResponse(ref network_response) => {
+                        NetworkEvent::ReqResponse(ref network_response) => {
                             debug!("BlockchainModule : receive NetworkEvent::ReqResponse() !");
                             if let Some(request) =
                                 pending_network_requests.remove(&network_response.get_req_id())
                             {
                                 match request {
                                     NetworkRequest::GetConsensus(_) => {
-                                        if let &NetworkResponse::Consensus(_, response) =
-                                            network_response.deref()
+                                        if let NetworkResponse::Consensus(_, response) =
+                                            *network_response.deref()
                                         {
                                             if let Ok(blockstamp) = response {
-                                                consensus = blockstamp.clone();
+                                                consensus = blockstamp;
                                             }
                                         }
                                     }
                                     NetworkRequest::GetBlocks(_, _, _, _) => {
-                                        if let &NetworkResponse::Chunk(_, _, ref blocks) =
-                                            network_response.deref()
+                                        if let NetworkResponse::Chunk(_, _, ref blocks) =
+                                            *network_response.deref()
                                         {
                                             let (
                                                 new_current_blockstamp,
@@ -769,10 +759,10 @@ impl BlockchainModule {
                         }
                         _ => {}
                     },
-                    &DuniterMessage::ReceiveDocsFromClient(ref docs) => {
+                    DuniterMessage::ReceiveDocsFromClient(ref docs) => {
                         self.receive_documents(docs);
                     }
-                    &DuniterMessage::Stop() => break,
+                    DuniterMessage::Stop() => break,
                     _ => {}
                 },
                 Err(e) => match e {
@@ -858,7 +848,7 @@ impl BlockchainModule {
         }
     }
     fn apply_wot_events<W: WebOfTrust + Sync>(
-        wot_events: &Vec<WotEvent>,
+        wot_events: &[WotEvent],
         wot_path: &PathBuf,
         current_blockstamp: &Blockstamp,
         wot: &mut W,
@@ -866,26 +856,26 @@ impl BlockchainModule {
     ) {
         if !wot_events.is_empty() {
             for wot_event in wot_events {
-                match wot_event {
-                    &WotEvent::AddNode(pubkey, wotb_id) => {
+                match *wot_event {
+                    WotEvent::AddNode(pubkey, wotb_id) => {
                         wot.add_node();
-                        wotb_index.insert(pubkey.clone(), wotb_id.clone());
+                        wotb_index.insert(pubkey, wotb_id);
                     }
-                    &WotEvent::RemNode(pubkey) => {
+                    WotEvent::RemNode(pubkey) => {
                         wot.rem_node();
                         wotb_index.remove(&pubkey);
                     }
-                    &WotEvent::AddLink(source, target) => {
-                        wot.add_link(source.clone(), target.clone());
+                    WotEvent::AddLink(source, target) => {
+                        wot.add_link(source, target);
                     }
-                    &WotEvent::RemLink(source, target) => {
-                        wot.rem_link(source.clone(), target.clone());
+                    WotEvent::RemLink(source, target) => {
+                        wot.rem_link(source, target);
                     }
-                    &WotEvent::EnableNode(wotb_id) => {
-                        wot.set_enabled(wotb_id.clone(), true);
+                    WotEvent::EnableNode(wotb_id) => {
+                        wot.set_enabled(wotb_id, true);
                     }
-                    &WotEvent::DisableNode(wotb_id) => {
-                        wot.set_enabled(wotb_id.clone(), false);
+                    WotEvent::DisableNode(wotb_id) => {
+                        wot.set_enabled(wotb_id, false);
                     }
                 }
             }
@@ -908,7 +898,7 @@ pub fn complete_network_block(
     network_block: &NetworkBlock,
     verif_level: SyncVerificationLevel,
 ) -> Result<BlockDocument, CompletedBlockError> {
-    if let &NetworkBlock::V10(ref network_block_v10) = network_block {
+    if let NetworkBlock::V10(ref network_block_v10) = *network_block {
         let mut block_doc = network_block_v10.uncompleted_block_doc.clone();
         trace!("complete_network_block #{}...", block_doc.number);
         if verif_level == SyncVerificationLevel::Cautious() {

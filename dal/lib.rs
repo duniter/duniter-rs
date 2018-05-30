@@ -47,7 +47,8 @@ pub mod writers;
 use duniter_crypto::keys::{PublicKey, Signature};
 use duniter_documents::blockchain::v10::documents::BlockDocument;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, Hash};
-use duniter_wotb::NodeId;
+use duniter_wotb::operations::file::FileFormater;
+use duniter_wotb::{NodeId, WebOfTrust};
 use std::fmt::Debug;
 use std::marker;
 use std::path::PathBuf;
@@ -233,6 +234,29 @@ pub fn get_current_block(currency: &str, db: &DuniterDB) -> Option<DALBlock> {
         DALBlock::get_block(currency, db, &blockstamp)
     } else {
         None
+    }
+}
+
+pub fn open_wot_file<W: WebOfTrust, WF: FileFormater>(
+    file_formater: &WF,
+    wot_path: &PathBuf,
+) -> (W, Blockstamp) {
+    if wot_path.as_path().exists() {
+        match file_formater.from_file(
+            wot_path.as_path().to_str().unwrap(),
+            constants::G1_PARAMS.sig_stock as usize,
+        ) {
+            Ok((wot, binary_blockstamp)) => match ::std::str::from_utf8(&binary_blockstamp) {
+                Ok(str_blockstamp) => (wot, Blockstamp::from_string(str_blockstamp).unwrap()),
+                Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+            },
+            Err(e) => panic!("Fatal Error : fail to read wot file : {:?}", e),
+        }
+    } else {
+        (
+            W::new(constants::G1_PARAMS.sig_stock as usize),
+            Blockstamp::default(),
+        )
     }
 }
 

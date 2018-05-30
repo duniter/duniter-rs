@@ -55,7 +55,7 @@ pub enum DuniterMessage {
     /// Blockchain datas request
     DALRequest(DALRequest),
     /// Response of DALRequest
-    DALResponse(DALResponse),
+    DALResponse(Box<DALResponse>),
     /// Blockchain event
     DALEvent(DALEvent),
     /// Request to the network module

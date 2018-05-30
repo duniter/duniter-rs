@@ -66,7 +66,7 @@ pub fn sync_ts(
     // get profile and currency and current_blockstamp
     let profile = &conf.profile();
     let currency = &conf.currency();
-    let mut current_blockstamp = current_blockstamp.clone();
+    let mut current_blockstamp = *current_blockstamp;
 
     // Copy blockchain db in ramfs
     let db_path = duniter_conf::get_db_path(profile, currency, false);
@@ -192,7 +192,7 @@ pub fn sync_ts(
         cursor
             .bind(&[
                 sqlite::Value::Integer(0),
-                sqlite::Value::Integer(current_blockstamp.id.0 as i64),
+                sqlite::Value::Integer(i64::from(current_blockstamp.id.0)),
             ])
             .expect("0");
 
@@ -249,15 +249,12 @@ pub fn sync_ts(
     // Apply blocks
     while let Ok(ParserWorkMess::NetworkBlock(network_block)) = recv_sync_thread.recv() {
         // Complete block
-        let block_doc = match complete_network_block(
+        let block_doc = complete_network_block(
             &blockchain_module.currency.to_string(),
             None,
             &network_block,
             SyncVerificationLevel::FastSync(),
-        ) {
-            Ok(block_doc) => block_doc,
-            Err(_) => panic!("Receive wrong block, please reset data and resync !"),
-        };
+        ).expect("Receive wrong block, please reset data and resync !");
         // Apply block
         let (success, db_requests, new_wot_events) =
             try_stack_up_completed_block::<RustyWebOfTrust>(&block_doc, &wotb_index, &wot);
@@ -452,7 +449,7 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
             Hash::from_hex(row[1].as_string().expect("Fail to parse block inner_hash"))
                 .expect("Fail to parse block inner_hash (2)"),
         ),
-        dividend: dividend,
+        dividend,
         identities,
         joiners: duniter_dal::parsers::memberships::parse_memberships(
             currency,

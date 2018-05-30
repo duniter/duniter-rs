@@ -46,12 +46,7 @@ impl DALIdentity {
         cursor
             .bind(&[
                 sqlite::Value::Integer(i64::from(state)),
-                sqlite::Value::String(
-                    expired_on
-                        .clone()
-                        .unwrap_or_else(Blockstamp::default)
-                        .to_string(),
-                ),
+                sqlite::Value::String(expired_on.unwrap_or_else(Blockstamp::default).to_string()),
                 sqlite::Value::Integer(wotb_id.0 as i64),
             ])
             .expect("Fail to exclude idty !");
@@ -88,7 +83,7 @@ impl DALIdentity {
             hash: "0".to_string(),
             state: 0,
             joined_on: current_blockstamp,
-            penultimate_renewed_on: created_on.clone(),
+            penultimate_renewed_on: created_on,
             last_renewed_on: created_on,
             expires_on: created_time + super::constants::G1_PARAMS.ms_validity,
             revokes_on: created_time + super::constants::G1_PARAMS.ms_validity,
@@ -136,11 +131,8 @@ impl DALIdentity {
         let mut penultimate_renewed_block: Option<DALBlock> = None;
         let revert_excluding = if revert {
             penultimate_renewed_block = Some(
-                DALBlock::get_block(
-                    self.idty_doc.currency(),
-                    db,
-                    &self.penultimate_renewed_on.clone(),
-                ).expect("renewal_identity: Fail to get penultimate_renewed_block"),
+                DALBlock::get_block(self.idty_doc.currency(), db, &self.penultimate_renewed_on)
+                    .expect("renewal_identity: Fail to get penultimate_renewed_block"),
             );
             penultimate_renewed_block.clone().unwrap().block.median_time
                 + super::constants::G1_PARAMS.ms_validity < renawal_timestamp
