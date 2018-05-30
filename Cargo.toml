@@ -6,13 +6,9 @@ description = "DUniter-RS (durs) is a new implementation of Duniter protocol and
 license = "AGPL-3.0"
 
 [dependencies]
-clap = "2.31.2"
 duniter-core = { path = "./core" }
 duniter-tui = { path = "./tui" }
 duniter-ws2p = { path = "./ws2p" }
-lazy_static = "1.0.0"
-serde_json = "1.0.17"
-websocket = "0.20.2"
 
 [features]
 # Treat warnings as a build error.
