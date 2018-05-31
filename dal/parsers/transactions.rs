@@ -1,7 +1,7 @@
 extern crate serde;
 extern crate serde_json;
 
-use duniter_crypto::keys::{PublicKey, Signature};
+use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::transaction::{
     TransactionDocument, TransactionDocumentBuilder, TransactionInput, TransactionInputUnlocks,
     TransactionOutput,
@@ -48,10 +48,10 @@ pub fn parse_compact_transactions(
             let mut line = 2;
             let mut issuers = Vec::new();
             for _ in 0..issuers_count {
-                issuers.push(
-                    PublicKey::from_base58(transaction_lines[line])
+                issuers.push(PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58(transaction_lines[line])
                         .expect("Fail to parse tx issuer !"),
-                );
+                ));
                 line += 1;
             }
             let mut inputs = Vec::new();
@@ -85,10 +85,10 @@ pub fn parse_compact_transactions(
             }
             let mut signatures = Vec::new();
             for _ in 0..issuers_count {
-                signatures.push(
-                    Signature::from_base64(transaction_lines[line])
+                signatures.push(Sig::Ed25519(
+                    ed25519::Signature::from_base64(transaction_lines[line])
                         .expect("Fail to parse tx signature !"),
-                );
+                ));
                 line += 1;
             }
             let tx_doc_builder = TransactionDocumentBuilder {
@@ -124,8 +124,8 @@ pub fn parse_transaction(
     let issuers_array = source.get("issuers")?.as_array()?;
     let mut issuers = Vec::with_capacity(issuers_array.len());
     for issuer in issuers_array {
-        match PublicKey::from_base58(issuer.as_str()?) {
-            Ok(pubkey) => issuers.push(pubkey),
+        match ed25519::PublicKey::from_base58(issuer.as_str()?) {
+            Ok(pubkey) => issuers.push(PubKey::Ed25519(pubkey)),
             Err(_) => {
                 return None;
             }
@@ -165,8 +165,8 @@ pub fn parse_transaction(
     let signatures_array = source.get("signatures")?.as_array()?;
     let mut signatures = Vec::with_capacity(signatures_array.len());
     for signature in signatures_array {
-        match Signature::from_base64(signature.as_str()?) {
-            Ok(signature) => signatures.push(signature),
+        match ed25519::Signature::from_base64(signature.as_str()?) {
+            Ok(signature) => signatures.push(Sig::Ed25519(signature)),
             Err(_) => {
                 return None;
             }
@@ -208,9 +208,10 @@ Merci pour la calligraphie ;) de Liam$\
                 "112533-000002150F2E805E604D9B31212D079570AAD8D3A4D8BB75F2C15A94A345B6B1",
             ).unwrap(),
             locktime: &0,
-            issuers: &vec![
-                PublicKey::from_base58("51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2").unwrap(),
-            ],
+            issuers: &vec![PubKey::Ed25519(
+                ed25519::PublicKey::from_base58("51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2")
+                    .unwrap(),
+            )],
             inputs: &vec![
                 TransactionInput::parse_from_str(
                     "1000:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:46496",
@@ -227,7 +228,7 @@ Merci pour la calligraphie ;) de Liam$\
 
         assert_eq!(
             parse_compact_transactions("g1", compact_txs).expect("Fail to parse compact transactions !"),
-            vec![tx_builder.build_with_signature(vec![Signature::from_base64("5olrjFylTCsVq8I5Yr7FpXeviynICyvIwe1yG5N0RJF+VZb+bCFBnLAMpmMCU2qzUvK7z41UXOrMRybXiLa2Dw==").unwrap()])]
+            vec![tx_builder.build_with_signature(vec![Sig::Ed25519(ed25519::Signature::from_base64("5olrjFylTCsVq8I5Yr7FpXeviynICyvIwe1yG5N0RJF+VZb+bCFBnLAMpmMCU2qzUvK7z41UXOrMRybXiLa2Dw==").unwrap())])]
         );
     }
 }

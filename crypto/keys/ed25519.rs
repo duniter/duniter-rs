@@ -233,7 +233,7 @@ impl super::PrivateKey for PrivateKey {
 }
 
 /// Store a ed25519 cryptographic key pair (`PublicKey` + `PrivateKey`)
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq)]
 pub struct KeyPair {
     /// Store a Ed25519 public key.
     pub pubkey: PublicKey,
@@ -252,8 +252,6 @@ impl PartialEq<KeyPair> for KeyPair {
         self.pubkey.eq(&other.pubkey) && self.privkey.eq(&other.privkey)
     }
 }
-
-impl Eq for KeyPair {}
 
 impl super::KeyPair for KeyPair {
     type Signature = Signature;

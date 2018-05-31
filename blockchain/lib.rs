@@ -50,7 +50,7 @@ use std::sync::mpsc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use self::stack_up_block::try_stack_up_completed_block;
-use duniter_crypto::keys::ed25519;
+use duniter_crypto::keys::*;
 use duniter_dal::block::{DALBlock, WotEvent};
 use duniter_dal::constants::MAX_FORKS;
 use duniter_dal::dal_event::DALEvent;
@@ -141,7 +141,7 @@ impl BlockchainModule {
     /// Loading blockchain configuration
     pub fn load_blockchain_conf(
         conf: &DuniterConf,
-        _keys: RequiredKeysContent<ed25519::KeyPair>,
+        _keys: RequiredKeysContent,
         sync: bool,
     ) -> BlockchainModule {
         // Get db path
@@ -274,7 +274,7 @@ impl BlockchainModule {
         network_documents: &[NetworkDocument],
         current_blockstamp: &Blockstamp,
         forks: &mut Vec<ForkState>,
-        wotb_index: &HashMap<ed25519::PublicKey, NodeId>,
+        wotb_index: &HashMap<PubKey, NodeId>,
         wot: &W,
     ) -> (Blockstamp, Vec<WotEvent>) {
         let mut blockchain_documents = Vec::new();
@@ -352,7 +352,7 @@ impl BlockchainModule {
         blocks_in_box: &[Box<NetworkBlock>],
         current_blockstamp: &Blockstamp,
         forks: &[ForkState],
-        wotb_index: &HashMap<ed25519::PublicKey, NodeId>,
+        wotb_index: &HashMap<PubKey, NodeId>,
         wot: &W,
     ) -> (Blockstamp, Vec<ForkState>, Vec<WotEvent>) {
         debug!("BlockchainModule : receive_blocks()");
@@ -408,7 +408,7 @@ impl BlockchainModule {
     /*fn apply_local_block<W: WebOfTrust>(
         db: &sqlite::connexion,
         current_blockstamp: &Blockstamp,
-        wotb_index: &HashMap<ed25519::PublicKey, NodeId>,
+        wotb_index: &HashMap<PubKey, NodeId>,
         wot: &W,
     ) {
         for f in 1..10 {
@@ -420,7 +420,7 @@ impl BlockchainModule {
         block: &Block,
         current_blockstamp: &Blockstamp,
         forks: &mut Vec<ForkState>,
-        wotb_index: &HashMap<ed25519::PublicKey, NodeId>,
+        wotb_index: &HashMap<PubKey, NodeId>,
         wot: &W,
     ) -> (bool, Vec<ForkState>, Vec<WotEvent>) {
         let mut already_have_block = false;
@@ -562,7 +562,7 @@ impl BlockchainModule {
     pub fn try_stack_up_block<W: WebOfTrust + Sync>(
         &self,
         network_block: &NetworkBlock,
-        wotb_index: &HashMap<ed25519::PublicKey, NodeId>,
+        wotb_index: &HashMap<PubKey, NodeId>,
         wot: &W,
         verif_level: SyncVerificationLevel,
     ) -> (bool, Vec<DBWriteRequest>, Vec<WotEvent>) {
@@ -585,8 +585,7 @@ impl BlockchainModule {
         let wot_path = duniter_conf::get_wot_path(self.conf_profile.clone(), &self.currency);
 
         // Get wotb index
-        let mut wotb_index: HashMap<ed25519::PublicKey, NodeId> =
-            DALIdentity::get_wotb_index(&self.db);
+        let mut wotb_index: HashMap<PubKey, NodeId> = DALIdentity::get_wotb_index(&self.db);
 
         // Open wot file
         let (mut wot, mut _wot_blockstamp) = duniter_dal::open_wot_file::<
@@ -852,7 +851,7 @@ impl BlockchainModule {
         wot_path: &PathBuf,
         current_blockstamp: &Blockstamp,
         wot: &mut W,
-        wotb_index: &mut HashMap<ed25519::PublicKey, NodeId>,
+        wotb_index: &mut HashMap<PubKey, NodeId>,
     ) {
         if !wot_events.is_empty() {
             for wot_event in wot_events {

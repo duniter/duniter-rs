@@ -18,7 +18,7 @@
 extern crate serde;
 
 use self::serde::ser::{Serialize, Serializer};
-use duniter_crypto::keys::{ed25519, PublicKey};
+use duniter_crypto::keys::*;
 use regex::Regex;
 
 use blockchain::v10::documents::*;
@@ -49,9 +49,9 @@ pub struct IdentityDocument {
     /// Blockstamp
     blockstamp: Blockstamp,
     /// Document issuer (there should be only one).
-    issuers: Vec<ed25519::PublicKey>,
+    issuers: Vec<PubKey>,
     /// Document signature (there should be only one).
-    signatures: Vec<ed25519::Signature>,
+    signatures: Vec<Sig>,
 }
 
 impl IdentityDocument {
@@ -62,7 +62,7 @@ impl IdentityDocument {
 }
 
 impl Document for IdentityDocument {
-    type PublicKey = ed25519::PublicKey;
+    type PublicKey = PubKey;
     type CurrencyType = str;
 
     fn version(&self) -> u16 {
@@ -77,11 +77,11 @@ impl Document for IdentityDocument {
         self.blockstamp
     }
 
-    fn issuers(&self) -> &Vec<ed25519::PublicKey> {
+    fn issuers(&self) -> &Vec<PubKey> {
         &self.issuers
     }
 
-    fn signatures(&self) -> &Vec<ed25519::Signature> {
+    fn signatures(&self) -> &Vec<Sig> {
         &self.signatures
     }
 
@@ -139,15 +139,11 @@ pub struct IdentityDocumentBuilder<'a> {
     /// Reference blockstamp.
     pub blockstamp: &'a Blockstamp,
     /// Document/identity issuer.
-    pub issuer: &'a ed25519::PublicKey,
+    pub issuer: &'a PubKey,
 }
 
 impl<'a> IdentityDocumentBuilder<'a> {
-    fn build_with_text_and_sigs(
-        self,
-        text: String,
-        signatures: Vec<ed25519::Signature>,
-    ) -> IdentityDocument {
+    fn build_with_text_and_sigs(self, text: String, signatures: Vec<Sig>) -> IdentityDocument {
         IdentityDocument {
             text,
             currency: self.currency.to_string(),
@@ -161,13 +157,13 @@ impl<'a> IdentityDocumentBuilder<'a> {
 
 impl<'a> DocumentBuilder for IdentityDocumentBuilder<'a> {
     type Document = IdentityDocument;
-    type PrivateKey = ed25519::PrivateKey;
+    type PrivateKey = PrivKey;
 
-    fn build_with_signature(&self, signatures: Vec<ed25519::Signature>) -> IdentityDocument {
+    fn build_with_signature(&self, signatures: Vec<Sig>) -> IdentityDocument {
         self.build_with_text_and_sigs(self.generate_text(), signatures)
     }
 
-    fn build_and_sign(&self, private_keys: Vec<ed25519::PrivateKey>) -> IdentityDocument {
+    fn build_and_sign(&self, private_keys: Vec<PrivKey>) -> IdentityDocument {
         let (text, signatures) = self.build_signed_text(private_keys);
         self.build_with_text_and_sigs(text, signatures)
     }
@@ -200,7 +196,7 @@ impl StandardTextDocumentParser for IdentityDocumentParser {
         doc: &str,
         body: &str,
         currency: &str,
-        signatures: Vec<ed25519::Signature>,
+        signatures: Vec<Sig>,
     ) -> Result<V10Document, V10DocumentParsingError> {
         if let Some(caps) = IDENTITY_REGEX.captures(body) {
             let issuer = &caps["issuer"];
@@ -209,7 +205,7 @@ impl StandardTextDocumentParser for IdentityDocumentParser {
 
             // Regex match so should not fail.
             // TODO : Test it anyway
-            let issuer = ed25519::PublicKey::from_base58(issuer).unwrap();
+            let issuer = PubKey::Ed25519(ed25519::PublicKey::from_base58(issuer).unwrap());
             let blockstamp = Blockstamp::from_string(blockstamp).unwrap();
 
             Ok(V10Document::Identity(IdentityDocument {
@@ -236,19 +232,24 @@ mod tests {
 
     #[test]
     fn generate_real_document() {
-        let pubkey = ed25519::PublicKey::from_base58(
-            "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV",
-        ).unwrap();
+        let pubkey = PubKey::Ed25519(
+            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
+                .unwrap(),
+        );
 
-        let prikey = ed25519::PrivateKey::from_base58(
-            "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5G\
-             iERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
-        ).unwrap();
+        let prikey = PrivKey::Ed25519(
+            ed25519::PrivateKey::from_base58(
+                "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5G\
+                 iERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
+            ).unwrap(),
+        );
 
-        let sig = ed25519::Signature::from_base64(
-            "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGM\
-             MmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
-        ).unwrap();
+        let sig = Sig::Ed25519(
+            ed25519::Signature::from_base64(
+                "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGM\
+                 MmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
+            ).unwrap(),
+        );
 
         let block = Blockstamp::from_string(
             "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
@@ -298,9 +299,9 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 
         let currency = "duniter_unit_test_currency";
 
-        let signatures = vec![Signature::from_base64(
+        let signatures = vec![Sig::Ed25519(ed25519::Signature::from_base64(
 "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg=="
-        ).unwrap(),];
+        ).unwrap())];
 
         let doc = IdentityDocumentParser::parse_standard(doc, body, currency, signatures).unwrap();
         if let V10Document::Identity(doc) = doc {

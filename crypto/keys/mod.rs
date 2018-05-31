@@ -46,13 +46,32 @@
 //! `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/`
 //! with `=` as padding character.
 
+extern crate serde;
+
+use self::serde::ser::{Serialize, Serializer};
+use base58::ToBase58;
 use std::fmt::Debug;
 use std::fmt::Display;
+use std::fmt::Error;
+use std::fmt::Formatter;
 use std::hash::Hash;
 
-use base58::ToBase58;
-
 pub mod ed25519;
+
+/// Cryptographic keys algorithms list
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum KeysAlgo {
+    /// Ed25519 algorithm
+    Ed25519 = 0,
+    /// Schnorr algorithm
+    Schnorr = 1,
+}
+
+/// Get the cryptographic algorithm.
+pub trait GetKeysAlgo: Clone + Debug + PartialEq + Eq {
+    /// Get the cryptographic algorithm.
+    fn algo(&self) -> KeysAlgo;
+}
 
 /// Errors enumeration for Base58/64 strings convertion.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -65,7 +84,7 @@ pub enum BaseConvertionError {
     InvalidBaseConverterLength(),
 }
 
-/// Store a cryptographic signature.
+/// Define the operations that can be performed on a cryptographic signature.
 ///
 /// A signature can be converted from/to Base64 format.
 /// When converted back and forth the value should be the same.
@@ -89,7 +108,43 @@ pub trait Signature: Clone + Display + Debug + PartialEq + Eq + Hash {
     fn to_base64(&self) -> String;
 }
 
-/// Store a cryptographic public key.
+/// Store a cryptographic signature.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum Sig {
+    /// Store a ed25519 Signature
+    Ed25519(ed25519::Signature),
+    /// Store a Schnorr Signature
+    Schnorr(),
+}
+
+impl Display for Sig {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "{}", self.to_base64())
+    }
+}
+
+impl GetKeysAlgo for Sig {
+    fn algo(&self) -> KeysAlgo {
+        match *self {
+            Sig::Ed25519(_) => KeysAlgo::Ed25519,
+            Sig::Schnorr() => KeysAlgo::Schnorr,
+        }
+    }
+}
+
+impl Signature for Sig {
+    fn from_base64(_base64_string: &str) -> Result<Self, BaseConvertionError> {
+        unimplemented!()
+    }
+    fn to_base64(&self) -> String {
+        match *self {
+            Sig::Ed25519(ed25519_sig) => ed25519_sig.to_base64(),
+            Sig::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
+    }
+}
+
+/// Define the operations that can be performed on a cryptographic public key.
 ///
 /// A `PublicKey` can be converted from/to Base64 format.
 /// When converted back and forth the value should be the same.
@@ -115,7 +170,67 @@ pub trait PublicKey: Clone + Display + Debug + PartialEq + Eq + Hash + ToBase58 
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool;
 }
 
-/// Store a cryptographic private key.
+/// Store a cryptographic public key.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum PubKey {
+    /// Store a ed25519 public key.
+    Ed25519(ed25519::PublicKey),
+    /// Store a Schnorr public key.
+    Schnorr(),
+}
+
+impl GetKeysAlgo for PubKey {
+    fn algo(&self) -> KeysAlgo {
+        match *self {
+            PubKey::Ed25519(_) => KeysAlgo::Ed25519,
+            PubKey::Schnorr() => KeysAlgo::Schnorr,
+        }
+    }
+}
+
+impl ToBase58 for PubKey {
+    fn to_base58(&self) -> String {
+        match *self {
+            PubKey::Ed25519(ed25519_pub) => ed25519_pub.to_base58(),
+            PubKey::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
+    }
+}
+
+impl Display for PubKey {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "{}", self.to_base58())
+    }
+}
+
+impl Serialize for PubKey {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&format!("{}", self))
+    }
+}
+
+impl PublicKey for PubKey {
+    type Signature = Sig;
+
+    fn from_base58(_base58_string: &str) -> Result<Self, BaseConvertionError> {
+        unimplemented!()
+    }
+    fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool {
+        match *self {
+            PubKey::Ed25519(ed25519_pubkey) => if let Sig::Ed25519(ed25519_sig) = signature {
+                ed25519_pubkey.verify(message, ed25519_sig)
+            } else {
+                panic!("Try to verify a signature with public key of a different algorithm !\nSignature={:?}\nPublickey={:?}", signature, self)
+            },
+            PubKey::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
+    }
+}
+
+/// Define the operations that can be performed on a cryptographic private key.
 ///
 /// A `PrivateKey` can be converted from/to Base58 format.
 /// When converted back and forth the value should be the same.
@@ -141,7 +256,53 @@ pub trait PrivateKey: Clone + Display + Debug + PartialEq + Eq + ToBase58 {
     fn sign(&self, message: &[u8]) -> Self::Signature;
 }
 
-/// Store a cryptographic key pair (`PublicKey` + `PrivateKey`)
+/// Store a cryptographic private key.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PrivKey {
+    /// Store a ed25519 private key.
+    Ed25519(ed25519::PrivateKey),
+    /// Store a Schnorr private key.
+    Schnorr(),
+}
+
+impl GetKeysAlgo for PrivKey {
+    fn algo(&self) -> KeysAlgo {
+        match *self {
+            PrivKey::Ed25519(_) => KeysAlgo::Ed25519,
+            PrivKey::Schnorr() => KeysAlgo::Schnorr,
+        }
+    }
+}
+
+impl ToBase58 for PrivKey {
+    fn to_base58(&self) -> String {
+        match *self {
+            PrivKey::Ed25519(ed25519_privkey) => ed25519_privkey.to_base58(),
+            PrivKey::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
+    }
+}
+
+impl Display for PrivKey {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "{}", self.to_base58())
+    }
+}
+
+impl PrivateKey for PrivKey {
+    type Signature = Sig;
+    fn from_base58(_base58_string: &str) -> Result<Self, BaseConvertionError> {
+        unimplemented!()
+    }
+    fn sign(&self, message: &[u8]) -> Self::Signature {
+        match *self {
+            PrivKey::Ed25519(ed25519_privkey) => Sig::Ed25519(ed25519_privkey.sign(message)),
+            PrivKey::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
+    }
+}
+
+/// Define the operations that can be performed on a cryptographic key pair.
 pub trait KeyPair: Clone + Display + Debug + PartialEq + Eq {
     /// Signature type of associated cryptosystem.
     type Signature: Signature;
@@ -161,4 +322,70 @@ pub trait KeyPair: Clone + Display + Debug + PartialEq + Eq {
 
     /// Verify a signature with public key.
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool;
+}
+
+/// Store a cryptographic key pair.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum KeyPairEnum {
+    /// Store a ed25519 key pair.
+    Ed25519(ed25519::KeyPair),
+    /// Store a Schnorr key pair.
+    Schnorr(),
+}
+
+impl GetKeysAlgo for KeyPairEnum {
+    fn algo(&self) -> KeysAlgo {
+        match *self {
+            KeyPairEnum::Ed25519(_) => KeysAlgo::Ed25519,
+            KeyPairEnum::Schnorr() => KeysAlgo::Schnorr,
+        }
+    }
+}
+
+impl Display for KeyPairEnum {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        match *self {
+            KeyPairEnum::Ed25519(ed25519_keypair) => {
+                write!(f, "({}, hidden)", ed25519_keypair.pubkey.to_base58())
+            }
+            KeyPairEnum::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
+    }
+}
+
+impl KeyPair for KeyPairEnum {
+    type Signature = Sig;
+    type PublicKey = PubKey;
+    type PrivateKey = PrivKey;
+
+    fn public_key(&self) -> Self::PublicKey {
+        match *self {
+            KeyPairEnum::Ed25519(ed25519_keypair) => PubKey::Ed25519(ed25519_keypair.public_key()),
+            KeyPairEnum::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
+    }
+    fn private_key(&self) -> Self::PrivateKey {
+        match *self {
+            KeyPairEnum::Ed25519(ed25519_keypair) => {
+                PrivKey::Ed25519(ed25519_keypair.private_key())
+            }
+            KeyPairEnum::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
+    }
+    fn verify(&self, message: &[u8], signature: &Sig) -> bool {
+        match *self {
+            KeyPairEnum::Ed25519(ed25519_keypair) => if let Sig::Ed25519(ed25519_sig) = signature {
+                ed25519_keypair.verify(message, ed25519_sig)
+            } else {
+                panic!("Try to verify a signature with key pair of a different algorithm !\nSignature={:?}\nKeyPair={:?}", signature, self)
+            },
+            KeyPairEnum::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
+    }
+    fn sign(&self, message: &[u8]) -> Sig {
+        match *self {
+            KeyPairEnum::Ed25519(ed25519_keypair) => Sig::Ed25519(ed25519_keypair.sign(message)),
+            KeyPairEnum::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
+    }
 }

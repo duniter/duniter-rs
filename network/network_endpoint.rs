@@ -25,7 +25,7 @@ extern crate serde_json;
 
 use self::regex::Regex;
 use super::{NodeFullId, NodeUUID};
-use duniter_crypto::keys::ed25519;
+use duniter_crypto::keys::PubKey;
 use duniter_documents::Hash;
 
 lazy_static! {
@@ -50,7 +50,7 @@ pub struct NetworkEndpointV1 {
     /// Node unique identifier
     pub node_id: Option<NodeUUID>,
     /// Public key of the node declaring this endpoint
-    pub issuer: ed25519::PublicKey,
+    pub issuer: PubKey,
     /// NodeFullID hash
     pub hash_full_id: Option<Hash>,
     /// hostname
@@ -101,7 +101,7 @@ impl NetworkEndpoint {
         }
     }
     /// Accessors providing node public key
-    pub fn pubkey(&self) -> ed25519::PublicKey {
+    pub fn pubkey(&self) -> PubKey {
         match *self {
             NetworkEndpoint::V1(ref ep) => ep.issuer,
             _ => panic!("Endpoint version is not supported !"),
@@ -177,7 +177,7 @@ impl NetworkEndpoint {
     /// Parse Endpoint from rax format
     pub fn parse_from_raw(
         raw_endpoint: &str,
-        issuer: ed25519::PublicKey,
+        issuer: PubKey,
         status: u32,
         last_check: u64,
     ) -> Option<NetworkEndpoint> {

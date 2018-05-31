@@ -26,7 +26,7 @@ extern crate serde_json;
 extern crate sqlite;
 
 use self::pbr::ProgressBar;
-use duniter_crypto::keys::{ed25519, PublicKey, Signature};
+use duniter_crypto::keys::*;
 use duniter_dal::parsers::identities::parse_compact_identity;
 use duniter_dal::parsers::transactions::parse_transaction;
 //use duniter_dal::writers::requests::DBWriteRequest;
@@ -47,7 +47,7 @@ use super::*;
 pub struct BlockHeader {
     pub number: BlockId,
     pub hash: BlockHash,
-    pub issuer: ed25519::PublicKey,
+    pub issuer: PubKey,
 }
 
 enum ParserWorkMess {
@@ -231,7 +231,7 @@ pub fn sync_ts(
     }
 
     // Get wotb index
-    let mut wotb_index: HashMap<ed25519::PublicKey, NodeId> =
+    let mut wotb_index: HashMap<PubKey, NodeId> =
         DALIdentity::get_wotb_index(&blockchain_module.db);
 
     // Start sync
@@ -358,8 +358,11 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
             Hash::from_hex(row[0].as_string().expect("Fail to parse block hash"))
                 .expect("Fail to parse block hash (2)"),
         ),
-        issuer: PublicKey::from_base58(row[4].as_string().expect("Fail to parse block issuer"))
-            .expect("Failt to parse block issuer (2)"),
+        issuer: PubKey::Ed25519(
+            ed25519::PublicKey::from_base58(
+                row[4].as_string().expect("Fail to parse block issuer"),
+            ).expect("Failt to parse block issuer (2)"),
+        ),
     };
     let previous_header = if current_header.number.0 > 0 {
         Some(BlockHeader {
@@ -371,11 +374,13 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
                         .expect("Fail to parse block previous hash"),
                 ).expect("Fail to parse block previous hash (2)"),
             ),
-            issuer: PublicKey::from_base58(
-                row[7]
-                    .as_string()
-                    .expect("Fail to parse previous block issuer"),
-            ).expect("Fail to parse previous block issuer (2)"),
+            issuer: PubKey::Ed25519(
+                ed25519::PublicKey::from_base58(
+                    row[7]
+                        .as_string()
+                        .expect("Fail to parse previous block issuer"),
+                ).expect("Fail to parse previous block issuer (2)"),
+            ),
         })
     } else {
         None
@@ -433,14 +438,14 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
             .as_integer()
             .expect("Fail to parse issuers_frame_var") as isize,
         currency: String::from(currency),
-        issuers: vec![
-            PublicKey::from_base58(row[4].as_string().expect("Fail to parse issuer"))
+        issuers: vec![PubKey::Ed25519(
+            ed25519::PublicKey::from_base58(row[4].as_string().expect("Fail to parse issuer"))
                 .expect("Fail to parse issuer '2)"),
-        ],
-        signatures: vec![
-            Signature::from_base64(row[2].as_string().expect("Fail to parse signature"))
+        )],
+        signatures: vec![Sig::Ed25519(
+            ed25519::Signature::from_base64(row[2].as_string().expect("Fail to parse signature"))
                 .expect("Fail to parse signature (2)"),
-        ],
+        )],
         hash: Some(current_header.hash),
         parameters: None,
         previous_hash,
@@ -473,8 +478,11 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
             .to_vec()
             .into_iter()
             .map(|e| {
-                PublicKey::from_base58(e.as_str().expect("Fail to parse excluded (4)"))
-                    .expect("Fail to parse excluded (5)")
+                PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58(
+                        e.as_str().expect("Fail to parse excluded (4)"),
+                    ).expect("Fail to parse excluded (5)"),
+                )
             })
             .collect(),
         certifications: Vec::new(),

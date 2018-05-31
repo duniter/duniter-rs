@@ -33,7 +33,7 @@ extern crate serde_json;
 
 use std::sync::mpsc;
 
-use duniter_crypto::keys::ed25519;
+use duniter_crypto::keys::Sig;
 use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALRequest, DALResponse};
 use duniter_documents::blockchain::BlockchainProtocol;
@@ -65,7 +65,7 @@ pub enum DuniterMessage {
     /// Request to the pow module
     ProverRequest(BlockId, Hash),
     /// Pow module response
-    ProverResponse(BlockId, ed25519::Signature, u64),
+    ProverResponse(BlockId, Sig, u64),
     /// Client API event
     ReceiveDocsFromClient(Vec<BlockchainProtocol>),
     /// Stop signal

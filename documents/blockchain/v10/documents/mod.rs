@@ -21,7 +21,7 @@ use self::crypto::digest::Digest;
 
 use blockchain::v10::documents::identity::IdentityDocumentParser;
 use blockchain::{Document, DocumentBuilder, DocumentParser};
-use duniter_crypto::keys::{ed25519, Signature};
+use duniter_crypto::keys::*;
 use regex::Regex;
 
 pub mod block;
@@ -119,7 +119,7 @@ impl<D: TextDocument> CompactTextDocument for TextDocumentFormat<D> {
 }
 
 /// Trait for a V10 document.
-pub trait TextDocument: Document<PublicKey = ed25519::PublicKey, CurrencyType = str> {
+pub trait TextDocument: Document<PublicKey = PubKey, CurrencyType = str> {
     /// Type of associated compact document.
     type CompactTextDocument_: CompactTextDocument;
 
@@ -172,12 +172,7 @@ pub trait TextDocumentBuilder: DocumentBuilder {
     ///
     /// - Text without signatures
     /// - Signatures
-    fn build_signed_text(
-        &self,
-        private_keys: Vec<ed25519::PrivateKey>,
-    ) -> (String, Vec<ed25519::Signature>) {
-        use duniter_crypto::keys::PrivateKey;
-
+    fn build_signed_text(&self, private_keys: Vec<PrivKey>) -> (String, Vec<Sig>) {
         let text = self.generate_text();
 
         let signatures: Vec<_> = {
@@ -213,7 +208,7 @@ pub struct V10DocumentParts {
     /// Currency
     pub currency: String,
     /// Signatures
-    pub signatures: Vec<ed25519::Signature>,
+    pub signatures: Vec<Sig>,
 }
 
 trait StandardTextDocumentParser {
@@ -221,7 +216,7 @@ trait StandardTextDocumentParser {
         doc: &str,
         body: &str,
         currency: &str,
-        signatures: Vec<ed25519::Signature>,
+        signatures: Vec<Sig>,
     ) -> Result<V10Document, V10DocumentParsingError>;
 }
 
@@ -238,7 +233,7 @@ impl<'a> DocumentParser<&'a str, V10Document, V10DocumentParsingError> for V10Do
             let body = &caps["body"];
             let sigs = SIGNATURES_REGEX
                 .captures_iter(&caps["sigs"])
-                .map(|capture| ed25519::Signature::from_base64(&capture[0]).unwrap())
+                .map(|capture| Sig::Ed25519(ed25519::Signature::from_base64(&capture[0]).unwrap()))
                 .collect::<Vec<_>>();
 
             // TODO : Improve error handling of Signature::from_base64 failure

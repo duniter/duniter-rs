@@ -7,7 +7,7 @@ extern crate serde_json;
 extern crate sqlite;
 extern crate websocket;
 
-use duniter_crypto::keys::{ed25519, PublicKey};
+use duniter_crypto::keys::*;
 use duniter_network::network_endpoint::{NetworkEndpoint, NetworkEndpointApi};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -70,7 +70,8 @@ pub fn get_endpoints_for_api(
         .expect("get_endpoints_for_api() : Error in cursor.next()")
     {
         let raw_ep = row[6].as_string().unwrap().to_string();
-        let ep_issuer = ed25519::PublicKey::from_base58(row[3].as_string().unwrap()).unwrap();
+        let ep_issuer =
+            PubKey::Ed25519(ed25519::PublicKey::from_base58(row[3].as_string().unwrap()).unwrap());
         let mut ep = match NetworkEndpoint::parse_from_raw(
             &raw_ep,
             ep_issuer,

@@ -1,8 +1,7 @@
 extern crate serde_json;
 extern crate websocket;
 
-use duniter_crypto::keys::ed25519;
-use duniter_crypto::keys::PublicKey;
+use duniter_crypto::keys::*;
 use duniter_dal::parsers::blocks::parse_json_block;
 use duniter_module::ModuleReqId;
 use duniter_network::network_endpoint::{NetworkEndpoint, NetworkEndpointApi};
@@ -122,7 +121,7 @@ pub enum WS2PCloseConnectionReason {
 pub struct WS2PConnectionMetaData {
     pub state: WS2PConnectionState,
     pub remote_uuid: Option<NodeUUID>,
-    pub remote_pubkey: Option<ed25519::PublicKey>,
+    pub remote_pubkey: Option<PubKey>,
     pub challenge: String,
     pub remote_challenge: String,
     pub current_blockstamp: Option<(u32, String)>,
@@ -132,7 +131,7 @@ pub struct WS2PConnectionMetaData {
 pub struct WS2PDatasForListeningThread {
     pub conn_meta_datas: WS2PConnectionMetaData,
     pub currency: String,
-    pub key_pair: ed25519::KeyPair,
+    pub key_pair: KeyPairEnum,
 }
 
 impl WS2PConnectionMetaData {
@@ -159,7 +158,7 @@ impl WS2PConnectionMetaData {
     pub fn parse_and_check_incoming_message(
         &mut self,
         currency: &str,
-        key_pair: ed25519::KeyPair,
+        key_pair: KeyPairEnum,
         m: &serde_json::Value,
     ) -> WS2PConnectionMessagePayload {
         if let Some(s) = m.get("auth") {
@@ -176,7 +175,7 @@ impl WS2PConnectionMetaData {
                                     self.remote_challenge = message.challenge.clone();
                                     let mut response = WS2PAckMessageV1 {
                                         currency: currency.to_string(),
-                                        pubkey: key_pair.pubkey,
+                                        pubkey: key_pair.public_key(),
                                         challenge: self.remote_challenge.clone(),
                                         signature: None,
                                     };
@@ -209,7 +208,7 @@ impl WS2PConnectionMetaData {
                             };
                             let mut response = WS2POkMessageV1 {
                                 currency: currency.to_string(),
-                                pubkey: key_pair.pubkey,
+                                pubkey: key_pair.public_key(),
                                 challenge: self.challenge.to_string(),
                                 signature: None,
                             };
@@ -359,8 +358,9 @@ impl WS2PConnectionMetaData {
     ) -> WS2PConnectionMessagePayload {
         match body.get("peer") {
             Some(peer) => match peer.get("pubkey") {
-                Some(raw_pubkey) => match PublicKey::from_base58(raw_pubkey.as_str().unwrap_or(""))
-                {
+                Some(raw_pubkey) => match ed25519::PublicKey::from_base58(
+                    raw_pubkey.as_str().unwrap_or(""),
+                ) {
                     Ok(pubkey) => {
                         let mut ws2p_endpoints: Vec<NetworkEndpoint> = Vec::new();
                         match peer.get("endpoints") {
@@ -369,7 +369,7 @@ impl WS2PConnectionMetaData {
                                     for endpoint in array_endpoints {
                                         if let Some(ep) = NetworkEndpoint::parse_from_raw(
                                             endpoint.as_str().unwrap_or(""),
-                                            pubkey,
+                                            PubKey::Ed25519(pubkey),
                                             0,
                                             0,
                                         ) {

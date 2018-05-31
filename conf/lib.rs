@@ -30,7 +30,7 @@ extern crate duniter_crypto;
 extern crate duniter_module;
 extern crate rand;
 extern crate serde;
-use duniter_crypto::keys::{ed25519, KeyPair, PrivateKey, PublicKey};
+use duniter_crypto::keys::*;
 use duniter_module::{Currency, DuniterConf, DuniterConfV1, RequiredKeys, RequiredKeysContent};
 use rand::Rng;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
@@ -49,9 +49,9 @@ pub static DEFAULT_CURRRENCY: &'static str = "g1";
 /// Keypairs filled in by the user (via a file or by direct entry in the terminal).
 pub struct DuniterKeyPairs {
     /// Keypair used by the node to sign its communications with other nodes. This keypair is mandatory, if it's not filled in, a random keypair is generated.
-    pub network_keypair: ed25519::KeyPair,
+    pub network_keypair: KeyPairEnum,
     /// Keypair used to sign the blocks forged by this node. If this keypair is'nt filled in, the node will not calculate blocks.
-    pub member_keypair: Option<ed25519::KeyPair>,
+    pub member_keypair: Option<KeyPairEnum>,
 }
 
 impl Serialize for DuniterKeyPairs {
@@ -65,7 +65,7 @@ impl Serialize for DuniterKeyPairs {
             String::from("")
         };
         let member_pub = if let Some(member_keypair) = self.member_keypair {
-            member_keypair.pubkey.to_string()
+            member_keypair.public_key().to_string()
         } else {
             String::from("")
         };
@@ -76,7 +76,7 @@ impl Serialize for DuniterKeyPairs {
         )?;
         state.serialize_field(
             "network_pub",
-            &self.network_keypair.pubkey.to_string().as_str(),
+            &self.network_keypair.public_key().to_string().as_str(),
         )?;
         state.serialize_field("member_sec", member_sec.as_str())?;
         state.serialize_field("member_pub", member_pub.as_str())?;
@@ -89,14 +89,14 @@ impl DuniterKeyPairs {
     pub fn get_required_keys_content(
         required_keys: RequiredKeys,
         keypairs: DuniterKeyPairs,
-    ) -> RequiredKeysContent<ed25519::KeyPair> {
+    ) -> RequiredKeysContent {
         match required_keys {
             RequiredKeys::MemberKeyPair() => {
                 RequiredKeysContent::MemberKeyPair(keypairs.member_keypair)
             }
             RequiredKeys::MemberPublicKey() => {
                 RequiredKeysContent::MemberPublicKey(if let Some(keys) = keypairs.member_keypair {
-                    Some(keys.pubkey)
+                    Some(keys.public_key())
                 } else {
                     None
                 })
@@ -105,7 +105,7 @@ impl DuniterKeyPairs {
                 RequiredKeysContent::NetworkKeyPair(keypairs.network_keypair)
             }
             RequiredKeys::NetworkPublicKey() => {
-                RequiredKeysContent::NetworkPublicKey(keypairs.network_keypair.pubkey)
+                RequiredKeysContent::NetworkPublicKey(keypairs.network_keypair.public_key())
             }
             RequiredKeys::None() => RequiredKeysContent::None(),
         }
@@ -116,10 +116,15 @@ fn _use_json_macro() -> serde_json::Value {
     json!({})
 }
 
-fn generate_random_keypair() -> ed25519::KeyPair {
+fn generate_random_keypair(algo: KeysAlgo) -> KeyPairEnum {
     let mut rng = rand::thread_rng();
-    let generator = ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters();
-    generator.generate(&[rng.gen::<u8>(); 8], &[rng.gen::<u8>(); 8])
+    match algo {
+        KeysAlgo::Ed25519 => {
+            let generator = ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters();
+            KeyPairEnum::Ed25519(generator.generate(&[rng.gen::<u8>(); 8], &[rng.gen::<u8>(); 8]))
+        }
+        KeysAlgo::Schnorr => panic!("Schnorr algo not yet supported !"),
+    }
 }
 
 fn generate_random_node_id() -> u32 {
@@ -209,12 +214,12 @@ pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuniterConf,
                             .as_str()
                             .expect("Conf: Fail to parse keypairs file !");
                         DuniterKeyPairs {
-                            network_keypair: ed25519::KeyPair {
-                                privkey: PrivateKey::from_base58(network_sec)
+                            network_keypair: KeyPairEnum::Ed25519(ed25519::KeyPair {
+                                privkey: ed25519::PrivateKey::from_base58(network_sec)
                                     .expect("conf : keypairs file : fail to parse network_sec !"),
-                                pubkey: PublicKey::from_base58(network_pub)
+                                pubkey: ed25519::PublicKey::from_base58(network_pub)
                                     .expect("conf : keypairs file : fail to parse network_pub !"),
-                            },
+                            }),
                             member_keypair: None,
                         }
                     } else {
@@ -232,7 +237,7 @@ pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuniterConf,
     } else {
         // Create keypairs file with random keypair
         let keypairs = DuniterKeyPairs {
-            network_keypair: generate_random_keypair(),
+            network_keypair: generate_random_keypair(KeysAlgo::Ed25519),
             member_keypair: None,
         };
         write_keypairs_file(&keypairs_path, &keypairs)

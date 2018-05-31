@@ -7,7 +7,7 @@ use self::duniter_network::{NetworkBlock, NetworkBlockV10};
 use super::excluded::parse_exclusions_from_json_value;
 use super::identities::parse_compact_identity;
 use super::transactions::parse_transaction;
-use duniter_crypto::keys::{ed25519, PublicKey, Signature};
+use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::membership::{
     MembershipDocument, MembershipType,
 };
@@ -28,10 +28,10 @@ fn parse_previous_hash(block_number: &BlockId, source: &serde_json::Value) -> Op
     }
 }
 
-fn parse_previous_issuer(source: &serde_json::Value) -> Option<ed25519::PublicKey> {
+fn parse_previous_issuer(source: &serde_json::Value) -> Option<PubKey> {
     match source.get("previousIssuer")?.as_str() {
-        Some(pubkey_str) => match PublicKey::from_base58(pubkey_str) {
-            Ok(pubkey) => Some(pubkey),
+        Some(pubkey_str) => match ed25519::PublicKey::from_base58(pubkey_str) {
+            Ok(pubkey) => Some(PubKey::Ed25519(pubkey)),
             Err(_) => None,
         },
         None => None,
@@ -61,12 +61,12 @@ fn parse_memberships(
 pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
     let number = BlockId(source.get("number")?.as_u64()? as u32);
     let currency = source.get("currency")?.as_str()?.to_string();
-    let issuer = match PublicKey::from_base58(source.get("issuer")?.as_str()?) {
-        Ok(pubkey) => pubkey,
+    let issuer = match ed25519::PublicKey::from_base58(source.get("issuer")?.as_str()?) {
+        Ok(pubkey) => PubKey::Ed25519(pubkey),
         Err(_) => return None,
     };
-    let sig = match Signature::from_base64(source.get("signature")?.as_str()?) {
-        Ok(sig) => sig,
+    let sig = match ed25519::Signature::from_base64(source.get("signature")?.as_str()?) {
+        Ok(sig) => Sig::Ed25519(sig),
         Err(_) => return None,
     };
     let hash = match Hash::from_hex(source.get("hash")?.as_str()?) {

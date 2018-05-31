@@ -2,7 +2,7 @@ extern crate sqlite;
 
 use super::block::{blockstamp_to_timestamp, DALBlock};
 use super::DuniterDB;
-use duniter_crypto::keys::{ed25519, PublicKey, Signature};
+use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::identity::IdentityDocumentBuilder;
 use duniter_documents::blockchain::v10::documents::IdentityDocument;
 use duniter_documents::blockchain::{Document, DocumentBuilder};
@@ -52,8 +52,8 @@ impl DALIdentity {
             .expect("Fail to exclude idty !");
     }
 
-    pub fn get_wotb_index(db: &DuniterDB) -> HashMap<ed25519::PublicKey, NodeId> {
-        let mut wotb_index: HashMap<ed25519::PublicKey, NodeId> = HashMap::new();
+    pub fn get_wotb_index(db: &DuniterDB) -> HashMap<PubKey, NodeId> {
+        let mut wotb_index: HashMap<PubKey, NodeId> = HashMap::new();
 
         let mut cursor = db
             .0
@@ -63,7 +63,9 @@ impl DALIdentity {
 
         while let Some(row) = cursor.next().unwrap() {
             wotb_index.insert(
-                PublicKey::from_base58(row[1].as_string().unwrap()).unwrap(),
+                PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58(row[1].as_string().unwrap()).unwrap(),
+                ),
                 NodeId(row[0].as_integer().unwrap() as usize),
             );
         }
@@ -123,7 +125,7 @@ impl DALIdentity {
     pub fn renewal_identity(
         &mut self,
         db: &DuniterDB,
-        pubkey: &ed25519::PublicKey,
+        pubkey: &PubKey,
         renewal_blockstamp: &Blockstamp,
         renawal_timestamp: u64,
         revert: bool,
@@ -175,11 +177,7 @@ impl DALIdentity {
             .unwrap();
     }
 
-    pub fn get_identity(
-        currency: &str,
-        db: &DuniterDB,
-        pubkey: &ed25519::PublicKey,
-    ) -> Option<DALIdentity> {
+    pub fn get_identity(currency: &str, db: &DuniterDB, pubkey: &PubKey) -> Option<DALIdentity> {
         let mut cursor = db
             .0
             .prepare(
@@ -207,9 +205,11 @@ impl DALIdentity {
                 ).expect("DB Error : idty created_on invalid (2) !"),
                 issuer: &pubkey,
             };
-            let idty_sig = Signature::from_base64(
-                row[2].as_string().expect("get_identity: fail to parse sig"),
-            ).expect("get_identity: fail to parse sig (2)");
+            let idty_sig = Sig::Ed25519(
+                ed25519::Signature::from_base64(
+                    row[2].as_string().expect("get_identity: fail to parse sig"),
+                ).expect("get_identity: fail to parse sig (2)"),
+            );
             let idty_doc = idty_doc_builder.build_with_signature(vec![idty_sig]);
 
             let expired_on = match Blockstamp::from_string(

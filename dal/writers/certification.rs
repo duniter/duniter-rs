@@ -3,7 +3,7 @@ extern crate serde_json;
 extern crate sqlite;
 
 use super::super::DuniterDB;
-use duniter_crypto::keys::ed25519;
+use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::certification::CompactCertificationDocument;
 use duniter_documents::Blockstamp;
 
@@ -44,7 +44,7 @@ pub fn write_certification(
         .expect("Fail to execute INSERT certification !");
 }
 
-pub fn remove_certification(from: ed25519::PublicKey, to: ed25519::PublicKey, db: &DuniterDB) {
+pub fn remove_certification(from: PubKey, to: PubKey, db: &DuniterDB) {
     db.0
         .execute(format!(
             "DELETE FROM certifications WHERE pubkey_from={} AND pubkey_to={}",

@@ -9,7 +9,7 @@ pub mod transactions;
 #[cfg(test)]
 mod tests {
     use super::transactions::*;
-    use duniter_crypto::keys::{PublicKey, Signature};
+    use duniter_crypto::keys::*;
     use duniter_documents::blockchain::v10::documents::transaction::*;
     use duniter_documents::blockchain::DocumentBuilder;
     use duniter_documents::Blockstamp;
@@ -47,9 +47,10 @@ mod tests {
                 "112533-000002150F2E805E604D9B31212D079570AAD8D3A4D8BB75F2C15A94A345B6B1",
             ).unwrap(),
             locktime: &0,
-            issuers: &vec![
-                PublicKey::from_base58("51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2").unwrap(),
-            ],
+            issuers: &vec![PubKey::Ed25519(
+                ed25519::PublicKey::from_base58("51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2")
+                    .unwrap(),
+            )],
             inputs: &vec![
                 TransactionInput::parse_from_str(
                     "1000:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:46496",
@@ -66,7 +67,7 @@ mod tests {
 
         assert_eq!(
             parse_transaction("g1", &tx_json).expect("Fail to parse transaction !"),
-            tx_builder.build_with_signature(vec![Signature::from_base64("5olrjFylTCsVq8I5Yr7FpXeviynICyvIwe1yG5N0RJF+VZb+bCFBnLAMpmMCU2qzUvK7z41UXOrMRybXiLa2Dw==").unwrap()])
+            tx_builder.build_with_signature(vec![Sig::Ed25519(ed25519::Signature::from_base64("5olrjFylTCsVq8I5Yr7FpXeviynICyvIwe1yG5N0RJF+VZb+bCFBnLAMpmMCU2qzUvK7z41UXOrMRybXiLa2Dw==").unwrap())])
         );
     }
 
@@ -104,9 +105,10 @@ mod tests {
                 "58-00005B9167EBA1E32C6EAD42AE7F72D8F14B765D3C9E47D233B553D47C5AEE0C",
             ).unwrap(),
             locktime: &0,
-            issuers: &vec![
-                PublicKey::from_base58("FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD").unwrap(),
-            ],
+            issuers: &vec![PubKey::Ed25519(
+                ed25519::PublicKey::from_base58("FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD")
+                    .unwrap(),
+            )],
             inputs: &vec![
                 TransactionInput::parse_from_str(
                     "1000:0:D:FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD:1",
@@ -126,7 +128,7 @@ mod tests {
 
         assert_eq!(
             parse_transaction("g1", &tx_json).expect("Fail to parse transaction !"),
-            tx_builder.build_with_signature(vec![Signature::from_base64("VWbvsiybM4L2X5+o+6lIiuKNw5KrD1yGZqmV+lHtA28XoRUFzochSIgfoUqBsTAaYEHY45vSX917LDXudTEzBg==").unwrap()])
+            tx_builder.build_with_signature(vec![Sig::Ed25519(ed25519::Signature::from_base64("VWbvsiybM4L2X5+o+6lIiuKNw5KrD1yGZqmV+lHtA28XoRUFzochSIgfoUqBsTAaYEHY45vSX917LDXudTEzBg==").unwrap())])
         );
     }
 }

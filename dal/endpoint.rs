@@ -6,8 +6,7 @@ use std::time::Duration;
 
 use self::crypto::digest::Digest;
 use self::crypto::sha2::Sha256;
-use self::duniter_crypto::keys::PublicKey;
-use self::duniter_crypto::keys::ed25519::PublicKey as ed25519PublicKey;
+use self::duniter_crypto::keys::*;
 use super::DuniterDB;
 use super::WriteToDuniterDB;
 
@@ -57,7 +56,7 @@ pub struct DALEndpoint {
     pub hash_full_id: String,
     pub status: u32,
     pub node_id: u32,
-    pub pubkey: ed25519PublicKey,
+    pub pubkey: PubKey,
     pub api: DALEndpointApi,
     pub version: usize,
     pub endpoint: String,
@@ -68,7 +67,7 @@ impl DALEndpoint {
     pub fn new(
         status: u32,
         node_id: u32,
-        pubkey: ed25519PublicKey,
+        pubkey: PubKey,
         api: DALEndpointApi,
         version: usize,
         endpoint: String,
@@ -111,7 +110,7 @@ impl DALEndpoint {
                 hash_full_id: row[0].as_string().unwrap().to_string(),
                 status: row[1].as_integer().unwrap() as u32,
                 node_id: row[2].as_integer().unwrap() as u32,
-                pubkey: ed25519PublicKey::from_base58(row[3].as_string().unwrap()).unwrap(),
+                pubkey: PubKey::Ed25519(ed25519::PublicKey::from_base58(row[3].as_string().unwrap()).unwrap()),
                 api: DALEndpointApi::from(row[4].as_integer().unwrap() as u32),
                 version: row[5].as_integer().unwrap() as usize,
                 endpoint: row[6].as_string().unwrap().to_string(),

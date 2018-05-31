@@ -17,7 +17,7 @@
 
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
-use duniter_crypto::keys::{ed25519, PrivateKey};
+use duniter_crypto::keys::*;
 
 use blockchain::v10::documents::certification::CertificationDocument;
 use blockchain::v10::documents::identity::IdentityDocument;
@@ -105,10 +105,10 @@ pub struct BlockDocument {
     /// Currency.
     pub currency: String,
     /// Document issuer (there should be only one).
-    pub issuers: Vec<ed25519::PublicKey>,
+    pub issuers: Vec<PubKey>,
     /// Document signature (there should be only one).
     /// This vector is empty, when the block is generated but the proof of work has not yet started
-    pub signatures: Vec<ed25519::Signature>,
+    pub signatures: Vec<Sig>,
     /// The hash is None, when the block is generated but the proof of work has not yet started
     pub hash: Option<BlockHash>,
     /// Currency parameters (only in genesis block)
@@ -116,7 +116,7 @@ pub struct BlockDocument {
     /// Hash of the previous block
     pub previous_hash: Hash,
     /// Issuer of the previous block
-    pub previous_issuer: Option<ed25519::PublicKey>,
+    pub previous_issuer: Option<PubKey>,
     /// Hash of the deterministic content of the block
     pub inner_hash: Option<Hash>,
     /// Amount of new dividend created at this block, None if no dividend is created at this block
@@ -132,7 +132,7 @@ pub struct BlockDocument {
     /// Revokeds
     pub revoked: Vec<TextDocumentFormat<RevocationDocument>>,
     /// Excludeds
-    pub excluded: Vec<ed25519::PublicKey>,
+    pub excluded: Vec<PubKey>,
     /// Certifications
     pub certifications: Vec<TextDocumentFormat<CertificationDocument>>,
     /// Transactions
@@ -159,7 +159,7 @@ impl BlockDocument {
         );
     }
     /// Sign block
-    pub fn sign(&mut self, privkey: ed25519::PrivateKey) {
+    pub fn sign(&mut self, privkey: PrivKey) {
         self.signatures = vec![privkey.sign(self.inner_hash_and_nonce_str.as_bytes())];
     }
     /// Compute hash
@@ -280,7 +280,7 @@ Transactions:{transactions}
 }
 
 impl Document for BlockDocument {
-    type PublicKey = ed25519::PublicKey;
+    type PublicKey = PubKey;
     type CurrencyType = str;
 
     fn version(&self) -> u16 {
@@ -298,11 +298,11 @@ impl Document for BlockDocument {
         }
     }
 
-    fn issuers(&self) -> &Vec<ed25519::PublicKey> {
+    fn issuers(&self) -> &Vec<PubKey> {
         &self.issuers
     }
 
-    fn signatures(&self) -> &Vec<ed25519::Signature> {
+    fn signatures(&self) -> &Vec<Sig> {
         &self.signatures
     }
 
@@ -345,7 +345,6 @@ mod tests {
     use super::*;
     use blockchain::v10::documents::V10DocumentParser;
     use blockchain::{Document, DocumentParser, VerificationResult};
-    use duniter_crypto::keys::{PublicKey, Signature};
     use std::ops::Deref;
 
     #[test]
@@ -363,12 +362,12 @@ mod tests {
             issuers_frame: 201,
             issuers_frame_var: 5,
             currency: String::from("g1"),
-            issuers: vec![ed25519::PublicKey::from_base58("2sZF6j2PkxBDNAqUde7Dgo5x3crkerZpQ4rBqqJGn8QT").unwrap()],
-            signatures: vec![ed25519::Signature::from_base64("FsRxB+NOiL+8zTr2d3B2j2KBItDuCa0KjFMF6hXmdQzfqXAs9g3m7DlGgYLcqzqe6JXjx/Lyzqze1HBR4cS0Aw==").unwrap()],
+            issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58("2sZF6j2PkxBDNAqUde7Dgo5x3crkerZpQ4rBqqJGn8QT").unwrap())],
+            signatures: vec![Sig::Ed25519(ed25519::Signature::from_base64("FsRxB+NOiL+8zTr2d3B2j2KBItDuCa0KjFMF6hXmdQzfqXAs9g3m7DlGgYLcqzqe6JXjx/Lyzqze1HBR4cS0Aw==").unwrap())],
             hash: None,
             parameters: None,
             previous_hash: Hash::from_hex("0000001F8AACF6764135F3E5D0D4E8358A3CBE537A4BF71152A00CC442EFD136").expect("fail to parse previous_hash"),
-            previous_issuer: Some(ed25519::PublicKey::from_base58("38MEAZN68Pz1DTvT3tqgxx4yQP6snJCQhPqEFxbDk4aE").unwrap()),
+            previous_issuer: Some(PubKey::Ed25519(ed25519::PublicKey::from_base58("38MEAZN68Pz1DTvT3tqgxx4yQP6snJCQhPqEFxbDk4aE").unwrap())),
             inner_hash: None,
             dividend: None,
             identities: Vec::new(),
@@ -498,12 +497,12 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
             issuers_frame: 211,
             issuers_frame_var: 0,
             currency: String::from("g1"),
-            issuers: vec![ed25519::PublicKey::from_base58("DA4PYtXdvQqk1nCaprXH52iMsK5Ahxs1nRWbWKLhpVkQ").unwrap()],
-            signatures: vec![ed25519::Signature::from_base64("92id58VmkhgVNee4LDqBGSm8u/ooHzAD67JM6fhAE/CV8LCz7XrMF1DvRl+eRpmlaVkp6I+Iy8gmZ1WUM5C8BA==").unwrap()],
+            issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58("DA4PYtXdvQqk1nCaprXH52iMsK5Ahxs1nRWbWKLhpVkQ").unwrap())],
+            signatures: vec![Sig::Ed25519(ed25519::Signature::from_base64("92id58VmkhgVNee4LDqBGSm8u/ooHzAD67JM6fhAE/CV8LCz7XrMF1DvRl+eRpmlaVkp6I+Iy8gmZ1WUM5C8BA==").unwrap())],
             hash: None,
             parameters: None,
             previous_hash: Hash::from_hex("000001144968D0C3516BE6225E4662F182E28956AF46DD7FB228E3D0F9413FEB").expect("fail to parse previous_hash"),
-            previous_issuer: Some(ed25519::PublicKey::from_base58("D3krfq6J9AmfpKnS3gQVYoy7NzGCc61vokteTS8LJ4YH").unwrap()),
+            previous_issuer: Some(PubKey::Ed25519(ed25519::PublicKey::from_base58("D3krfq6J9AmfpKnS3gQVYoy7NzGCc61vokteTS8LJ4YH").unwrap())),
             inner_hash: None,
             dividend: None,
             identities: Vec::new(),

@@ -23,7 +23,7 @@ extern crate serde;
 extern crate serde_json;
 
 use super::network_endpoint::NetworkEndpoint;
-use duniter_crypto::keys::ed25519;
+use duniter_crypto::keys::*;
 use duniter_documents::Blockstamp;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -32,7 +32,7 @@ pub struct NetworkPeerV10 {
     /// Peer card Blockstamp
     pub blockstamp: Blockstamp,
     /// Peer card issuer
-    pub issuer: ed25519::PublicKey,
+    pub issuer: PubKey,
     /// Peer card endpoints list
     pub endpoints: Vec<NetworkEndpoint>,
 }
@@ -62,7 +62,7 @@ impl NetworkPeer {
         }
     }
     /// Get peer card issuer
-    pub fn issuer(&self) -> ed25519::PublicKey {
+    pub fn issuer(&self) -> PubKey {
         match *self {
             NetworkPeer::V10(ref peer_v10) => peer_v10.issuer,
             _ => panic!("Peer version is not supported !"),

@@ -51,8 +51,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use duniter_crypto::keys::ed25519::Signature;
-use duniter_crypto::keys::{ed25519, KeyPair, PrivateKey, PublicKey};
+use duniter_crypto::keys::*;
 use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALReqBlockchain, DALRequest, DALResBlockchain, DALResponse};
 use duniter_dal::parsers::blocks::parse_json_block;
@@ -129,7 +128,7 @@ pub struct WS2PModule {}
 pub struct WS2PModuleDatas {
     pub followers: Vec<mpsc::Sender<DuniterMessage>>,
     pub currency: Option<String>,
-    pub key_pair: Option<ed25519::KeyPair>,
+    pub key_pair: Option<KeyPairEnum>,
     pub conf: Option<WS2PConf>,
     pub main_thread_channel: (
         mpsc::Sender<WS2PThreadSignal>,
@@ -142,7 +141,7 @@ pub struct WS2PModuleDatas {
     pub requests_awaiting_response: HashMap<ModuleReqId, (NetworkRequest, NodeFullId, SystemTime)>,
     pub heads_cache: HashMap<NodeFullId, NetworkHead>,
     pub my_head: Option<NetworkHead>,
-    pub uids_cache: HashMap<ed25519::PublicKey, String>,
+    pub uids_cache: HashMap<PubKey, String>,
 }
 
 #[derive(Debug)]
@@ -154,7 +153,7 @@ pub enum WS2PThreadSignal {
 pub trait WS2PMessage: Sized {
     fn parse(v: &serde_json::Value, currency: String) -> Option<Self>;
     fn to_raw(&self) -> String;
-    fn sign(&self, key_pair: ed25519::KeyPair) -> Signature {
+    fn sign(&self, key_pair: KeyPairEnum) -> Sig {
         key_pair.sign(self.to_raw().as_bytes())
     }
     fn verify(&self) -> bool;
@@ -187,7 +186,7 @@ impl Default for WS2PModule {
     }
 }
 
-impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
+impl DuniterModule<DuniterMessage> for WS2PModule {
     fn id() -> ModuleId {
         ModuleId::Str("ws2p")
     }
@@ -208,7 +207,7 @@ impl DuniterModule<ed25519::KeyPair, DuniterMessage> for WS2PModule {
     fn start(
         soft_name: &str,
         soft_version: &str,
-        keys: RequiredKeysContent<ed25519::KeyPair>,
+        keys: RequiredKeysContent,
         duniter_conf: &DuniterConf,
         module_conf: &serde_json::Value,
         rooter_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
@@ -927,13 +926,13 @@ impl WS2PModuleDatas {
                 let array_peers = peers.as_array().expect("Conf: Fail to parse conf file !");
                 for peer in array_peers {
                     let pubkey = match peer.get("pubkey") {
-                        Some(pubkey) => {
-                            PublicKey::from_base58(
+                        Some(pubkey) => PubKey::Ed25519(
+                            ed25519::PublicKey::from_base58(
                                 pubkey
                                     .as_str()
                                     .expect("WS2PConf Error : fail to parse sync endpoint pubkey"),
-                            ).expect("WS2PConf Error : fail to parse sync endpoint pubkey")
-                        }
+                            ).expect("WS2PConf Error : fail to parse sync endpoint pubkey"),
+                        ),
                         None => panic!(
                             "Fail to load ws2p conf : \
                              WrongFormat : not found pubkey field !"
@@ -999,7 +998,7 @@ impl WS2PModuleDatas {
         }
     }
     pub fn generate_my_head(
-        network_keypair: &ed25519::KeyPair,
+        network_keypair: &KeyPairEnum,
         conf: &WS2PConf,
         soft_name: &str,
         soft_version: &str,
@@ -1009,7 +1008,7 @@ impl WS2PModuleDatas {
         let message = NetworkHeadMessage::V2(NetworkHeadMessageV2 {
             api: String::from("WS2POCA"),
             version: 1,
-            pubkey: network_keypair.pubkey,
+            pubkey: network_keypair.public_key(),
             blockstamp: *my_current_blockstamp,
             node_uuid: conf.node_id,
             software: String::from(soft_name),
@@ -1021,7 +1020,7 @@ impl WS2PModuleDatas {
         let message_v2 = NetworkHeadMessage::V2(NetworkHeadMessageV2 {
             api: String::from("WS2POCA"),
             version: 2,
-            pubkey: network_keypair.pubkey,
+            pubkey: network_keypair.public_key(),
             blockstamp: *my_current_blockstamp,
             node_uuid: conf.node_id,
             software: String::from(soft_name),
@@ -1032,10 +1031,12 @@ impl WS2PModuleDatas {
         });
         NetworkHead::V2(Box::new(NetworkHeadV2 {
             message: message.clone(),
-            sig: network_keypair.privkey.sign(message.to_string().as_bytes()),
+            sig: network_keypair
+                .private_key()
+                .sign(message.to_string().as_bytes()),
             message_v2: message_v2.clone(),
             sig_v2: network_keypair
-                .privkey
+                .private_key()
                 .sign(message_v2.to_string().as_bytes()),
             step: 0,
             uid: my_uid,
@@ -1436,7 +1437,7 @@ impl WS2PModuleDatas {
         // Create CONNECT Message
         let mut connect_message = WS2PConnectMessageV1 {
             currency: self.currency.clone().unwrap(),
-            pubkey: self.key_pair.unwrap().pubkey,
+            pubkey: self.key_pair.unwrap().public_key(),
             challenge: conn_meta_datas.challenge.clone(),
             signature: None,
         };
@@ -1676,8 +1677,8 @@ mod tests {
     extern crate duniter_module;
     extern crate duniter_network;
 
-    use self::duniter_crypto::keys::ed25519;
     use self::duniter_crypto::keys::PublicKey;
+    use self::duniter_crypto::keys::*;
     use self::duniter_dal::parsers::blocks::parse_json_block;
     use self::duniter_documents::blockchain::v10::documents::BlockDocument;
     use self::duniter_module::DuniterModule;
@@ -1864,8 +1865,10 @@ mod tests {
 
         let mut endpoint = NetworkEndpoint::parse_from_raw(
             "WS2P cb06a19b g1.imirhil.fr 53012 /",
-            ed25519::PublicKey::from_base58("5gJYnQp8v7bWwk7EWRoL8vCLof1r3y9c6VDdnGSM1GLv")
-                .unwrap(),
+            PubKey::Ed25519(
+                ed25519::PublicKey::from_base58("5gJYnQp8v7bWwk7EWRoL8vCLof1r3y9c6VDdnGSM1GLv")
+                    .unwrap(),
+            ),
             1,
             current_time.as_secs(),
         ).expect("Failt to parse test endpoint !");

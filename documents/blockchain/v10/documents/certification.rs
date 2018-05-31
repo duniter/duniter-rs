@@ -18,7 +18,7 @@
 extern crate serde;
 
 use self::serde::ser::{Serialize, Serializer};
-use duniter_crypto::keys::{ed25519, PublicKey, Signature};
+use duniter_crypto::keys::*;
 use regex::Regex;
 
 use blockchain::v10::documents::*;
@@ -36,13 +36,13 @@ lazy_static! {
 /// Wrap an Compact Revocation document (in block content)
 pub struct CompactCertificationDocument {
     /// Issuer
-    pub issuer: ed25519::PublicKey,
+    pub issuer: PubKey,
     /// Target
-    pub target: ed25519::PublicKey,
+    pub target: PubKey,
     /// Blockstamp
     pub block_number: BlockId,
     /// Signature
-    pub signature: ed25519::Signature,
+    pub signature: Sig,
 }
 
 impl CompactTextDocument for CompactCertificationDocument {
@@ -70,19 +70,19 @@ pub struct CertificationDocument {
     /// Name of the currency.
     currency: String,
     /// Document issuer (there should be only one).
-    issuers: Vec<ed25519::PublicKey>,
+    issuers: Vec<PubKey>,
     /// issuer of target identity.
-    target: ed25519::PublicKey,
+    target: PubKey,
     /// Username of target identity
     identity_username: String,
     /// Target Identity document blockstamp.
     identity_blockstamp: Blockstamp,
     /// Target Identity document signature.
-    identity_sig: ed25519::Signature,
+    identity_sig: Sig,
     /// Blockstamp
     blockstamp: Blockstamp,
     /// Document signature (there should be only one).
-    signatures: Vec<ed25519::Signature>,
+    signatures: Vec<Sig>,
 }
 
 impl CertificationDocument {
@@ -92,18 +92,18 @@ impl CertificationDocument {
     }
 
     /// Pubkey of source identity
-    pub fn source(&self) -> &ed25519::PublicKey {
+    pub fn source(&self) -> &PubKey {
         &self.issuers[0]
     }
 
     /// Pubkey of target identity
-    pub fn target(&self) -> &ed25519::PublicKey {
+    pub fn target(&self) -> &PubKey {
         &self.target
     }
 }
 
 impl Document for CertificationDocument {
-    type PublicKey = ed25519::PublicKey;
+    type PublicKey = PubKey;
     type CurrencyType = str;
 
     fn version(&self) -> u16 {
@@ -118,11 +118,11 @@ impl Document for CertificationDocument {
         self.blockstamp
     }
 
-    fn issuers(&self) -> &Vec<ed25519::PublicKey> {
+    fn issuers(&self) -> &Vec<PubKey> {
         &self.issuers
     }
 
-    fn signatures(&self) -> &Vec<ed25519::Signature> {
+    fn signatures(&self) -> &Vec<Sig> {
         &self.signatures
     }
 
@@ -169,25 +169,21 @@ pub struct CertificationDocumentBuilder<'a> {
     /// Document currency.
     pub currency: &'a str,
     /// Certification issuer (=source).
-    pub issuer: &'a ed25519::PublicKey,
+    pub issuer: &'a PubKey,
     /// Reference blockstamp.
     pub blockstamp: &'a Blockstamp,
     /// Pubkey of target identity.
-    pub target: &'a ed25519::PublicKey,
+    pub target: &'a PubKey,
     /// Username of target Identity.
     pub identity_username: &'a str,
     /// Blockstamp of target Identity.
     pub identity_blockstamp: &'a Blockstamp,
     /// Signature of target Identity.
-    pub identity_sig: &'a ed25519::Signature,
+    pub identity_sig: &'a Sig,
 }
 
 impl<'a> CertificationDocumentBuilder<'a> {
-    fn build_with_text_and_sigs(
-        self,
-        text: String,
-        signatures: Vec<ed25519::Signature>,
-    ) -> CertificationDocument {
+    fn build_with_text_and_sigs(self, text: String, signatures: Vec<Sig>) -> CertificationDocument {
         CertificationDocument {
             text,
             currency: self.currency.to_string(),
@@ -204,13 +200,13 @@ impl<'a> CertificationDocumentBuilder<'a> {
 
 impl<'a> DocumentBuilder for CertificationDocumentBuilder<'a> {
     type Document = CertificationDocument;
-    type PrivateKey = ed25519::PrivateKey;
+    type PrivateKey = PrivKey;
 
-    fn build_with_signature(&self, signatures: Vec<ed25519::Signature>) -> CertificationDocument {
+    fn build_with_signature(&self, signatures: Vec<Sig>) -> CertificationDocument {
         self.build_with_text_and_sigs(self.generate_text(), signatures)
     }
 
-    fn build_and_sign(&self, private_keys: Vec<ed25519::PrivateKey>) -> CertificationDocument {
+    fn build_and_sign(&self, private_keys: Vec<PrivKey>) -> CertificationDocument {
         let (text, signatures) = self.build_signed_text(private_keys);
         self.build_with_text_and_sigs(text, signatures)
     }
@@ -249,7 +245,7 @@ impl StandardTextDocumentParser for CertificationDocumentParser {
         doc: &str,
         body: &str,
         currency: &str,
-        signatures: Vec<ed25519::Signature>,
+        signatures: Vec<Sig>,
     ) -> Result<V10Document, V10DocumentParsingError> {
         if let Some(caps) = CERTIFICATION_REGEX.captures(body) {
             let issuer = &caps["issuer"];
@@ -261,11 +257,11 @@ impl StandardTextDocumentParser for CertificationDocumentParser {
 
             // Regex match so should not fail.
             // TODO : Test it anyway
-            let issuer = ed25519::PublicKey::from_base58(issuer).unwrap();
-            let target = ed25519::PublicKey::from_base58(target).unwrap();
+            let issuer = PubKey::Ed25519(ed25519::PublicKey::from_base58(issuer).unwrap());
+            let target = PubKey::Ed25519(ed25519::PublicKey::from_base58(target).unwrap());
             let identity_username = String::from(identity_username);
             let identity_blockstamp = Blockstamp::from_string(identity_blockstamp).unwrap();
-            let identity_sig = ed25519::Signature::from_base64(identity_sig).unwrap();
+            let identity_sig = Sig::Ed25519(ed25519::Signature::from_base64(identity_sig).unwrap());
             let blockstamp = Blockstamp::from_string(blockstamp).unwrap();
 
             Ok(V10Document::Certification(Box::new(
@@ -297,29 +293,31 @@ mod tests {
 
     #[test]
     fn generate_real_document() {
-        let pubkey = ed25519::PublicKey::from_base58(
-            "4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR",
-        ).unwrap();
+        let pubkey = PubKey::Ed25519(
+            ed25519::PublicKey::from_base58("4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR")
+                .unwrap(),
+        );
 
-        let prikey = ed25519::PrivateKey::from_base58(
+        let prikey = PrivKey::Ed25519(ed25519::PrivateKey::from_base58(
             "3XGWuuU1dQ7zaYPzE76ATfY71STzRkbT3t4DE1bSjMhYje81XdJFeXVG9uMPi3oDeRTosT2dmBAFH8VydrAUWXRZ",
-        ).unwrap();
+        ).unwrap());
 
-        let sig = ed25519::Signature::from_base64(
+        let sig = Sig::Ed25519(ed25519::Signature::from_base64(
             "qfR6zqT1oJbqIsppOi64gC9yTtxb6g6XA9RYpulkq9ehMvqg2VYVigCbR0yVpqKFsnYiQTrnjgFuFRSJCJDfCw==",
-        ).unwrap();
+        ).unwrap());
 
-        let target = ed25519::PublicKey::from_base58(
-            "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV",
-        ).unwrap();
+        let target = PubKey::Ed25519(
+            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
+                .unwrap(),
+        );
 
         let identity_blockstamp = Blockstamp::from_string(
             "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
         ).unwrap();
 
-        let identity_sig = ed25519::Signature::from_base64(
+        let identity_sig = Sig::Ed25519(ed25519::Signature::from_base64(
             "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
-        ).unwrap();
+        ).unwrap());
 
         let blockstamp = Blockstamp::from_string(
             "36-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B865",
@@ -382,9 +380,9 @@ CertTimestamp: 167884-0001DFCA28002A8C96575E53B8CEF8317453A7B0BA255542CCF0EC8AB5
 
         let currency = "g1-test";
 
-        let signatures = vec![Signature::from_base64(
+        let signatures = vec![Sig::Ed25519(ed25519::Signature::from_base64(
 "wqZxPEGxLrHGv8VdEIfUGvUcf+tDdNTMXjLzVRCQ4UhlhDRahOMjfcbP7byNYr5OfIl83S1MBxF7VJgu8YasCA=="
-        ).unwrap(),];
+        ).unwrap())];
 
         let doc =
             CertificationDocumentParser::parse_standard(doc, body, currency, signatures).unwrap();
