@@ -54,7 +54,7 @@ use duniter_documents::blockchain::v10::documents::transaction::*;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, Hash, PreviousBlockstamp};
 use duniter_wotb::operations::file::FileFormater;
 use duniter_wotb::{NodeId, WebOfTrust};
-use rustbreak::backend::{FileBackend, MemoryBackend};
+use rustbreak::backend::{Backend, FileBackend, MemoryBackend};
 use rustbreak::error::{RustbreakError, RustbreakErrorKind};
 use rustbreak::{deser::Bincode, Database, FileDatabase, MemoryDatabase};
 use serde::de::DeserializeOwned;
@@ -166,20 +166,31 @@ impl WotsV10DBs {
 
 #[derive(Debug)]
 /// Set of databases storing currency information
-pub struct CurrencyV10DBs {
+pub struct CurrencyV10DBs<B: Backend + Debug> {
     /// Store all DU sources
-    pub du_db: BinFileDB<DUsV10Datas>,
+    pub du_db: BinDB<DUsV10Datas, B>,
     /// Store all Transactions
-    pub tx_db: BinFileDB<TxV10Datas>,
+    pub tx_db: BinDB<TxV10Datas, B>,
     /// Store all UTXOs
-    pub utxos_db: BinFileDB<UTXOsV10Datas>,
+    pub utxos_db: BinDB<UTXOsV10Datas, B>,
     /// Store balances of all address (and theirs UTXOs indexs)
-    pub balances_db: BinFileDB<BalancesV10Datas>,
+    pub balances_db: BinDB<BalancesV10Datas, B>,
 }
 
-impl CurrencyV10DBs {
+impl CurrencyV10DBs<MemoryBackend> {
+    pub fn open_memory_mode() -> CurrencyV10DBs<MemoryBackend> {
+        CurrencyV10DBs {
+            du_db: open_memory_db::<DUsV10Datas>().expect("Fail to open DUsV10DB"),
+            tx_db: open_memory_db::<TxV10Datas>().expect("Fail to open TxV10DB"),
+            utxos_db: open_memory_db::<UTXOsV10Datas>().expect("Fail to open UTXOsV10DB"),
+            balances_db: open_memory_db::<BalancesV10Datas>().expect("Fail to open BalancesV10DB"),
+        }
+    }
+}
+
+impl CurrencyV10DBs<FileBackend> {
     /// Open currency databases from their respective files
-    pub fn open(db_path: &PathBuf, _memory_mode: bool) -> CurrencyV10DBs {
+    pub fn open(db_path: &PathBuf) -> CurrencyV10DBs<FileBackend> {
         CurrencyV10DBs {
             du_db: open_db::<DUsV10Datas>(&db_path, "du.db").expect("Fail to open DUsV10DB"),
             tx_db: open_db::<TxV10Datas>(&db_path, "tx.db").expect("Fail to open TxV10DB"),

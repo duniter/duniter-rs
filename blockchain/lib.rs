@@ -34,6 +34,7 @@ extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
 extern crate duniter_wotb;
+extern crate rustbreak;
 extern crate serde;
 extern crate serde_json;
 extern crate sqlite;
@@ -74,6 +75,7 @@ use duniter_network::{
 use duniter_wotb::data::rusty::RustyWebOfTrust;
 use duniter_wotb::operations::file::BinaryFileFormater;
 use duniter_wotb::{NodeId, WebOfTrust};
+use rustbreak::backend::FileBackend;
 
 /// The blocks are requested by packet groups. This constant sets the block packet size.
 pub static CHUNK_SIZE: &'static u32 = &50;
@@ -100,7 +102,7 @@ pub struct BlockchainModule {
     /// Blocks Databases
     pub blocks_databases: BlocksV10DBs,
     /// Currency databases
-    currency_databases: CurrencyV10DBs,
+    currency_databases: CurrencyV10DBs<FileBackend>,
     /// The block under construction
     pub pending_block: Option<Box<BlockDocument>>,
     /// Current state of all forks
@@ -154,7 +156,7 @@ impl BlockchainModule {
         // Open databases
         let blocks_databases = BlocksV10DBs::open(&db_path, false);
         let wot_databases = WotsV10DBs::open(&db_path, false);
-        let currency_databases = CurrencyV10DBs::open(&db_path, false);
+        let currency_databases = CurrencyV10DBs::<FileBackend>::open(&db_path);
 
         // Get current blockstamp
         let current_blockstamp = duniter_dal::block::get_current_blockstamp(&blocks_databases)

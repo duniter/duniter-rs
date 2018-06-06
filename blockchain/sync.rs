@@ -15,12 +15,10 @@
 
 extern crate num_cpus;
 extern crate pbr;
-extern crate rustbreak;
 extern crate sqlite;
 extern crate threadpool;
 
 use self::pbr::ProgressBar;
-use self::rustbreak::{deser::Bincode, MemoryDatabase};
 use self::threadpool::ThreadPool;
 use duniter_crypto::keys::*;
 use duniter_dal::currency_params::CurrencyParameters;
@@ -30,6 +28,7 @@ use duniter_documents::{BlockHash, BlockId, Hash};
 use duniter_network::NetworkBlock;
 use duniter_wotb::operations::file::FileFormater;
 use duniter_wotb::{NodeId, WebOfTrust};
+use rustbreak::{deser::Bincode, MemoryDatabase};
 use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::ops::Deref;
@@ -437,7 +436,7 @@ pub fn sync_ts(
         let tx_job_begin = SystemTime::now();
         // Open databases
         let db_path = duniter_conf::get_blockchain_db_path(&profile_copy, &currency_copy);
-        let databases = CurrencyV10DBs::open(&db_path, false);
+        let databases = CurrencyV10DBs::<FileBackend>::open(&db_path);
 
         // Listen db requets
         let mut all_wait_duration = Duration::from_millis(0);

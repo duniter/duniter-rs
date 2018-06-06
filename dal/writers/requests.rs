@@ -8,7 +8,9 @@ use duniter_documents::blockchain::v10::documents::identity::IdentityDocument;
 use duniter_documents::Blockstamp;
 use duniter_wotb::NodeId;
 use identity::DALIdentity;
+use rustbreak::backend::Backend;
 use sources::SourceAmount;
+use std::fmt::Debug;
 use std::ops::Deref;
 use *;
 
@@ -181,10 +183,10 @@ pub enum CurrencyDBsWriteQuery {
 }
 
 impl CurrencyDBsWriteQuery {
-    pub fn apply(&self, databases: &CurrencyV10DBs) -> Result<(), DALError> {
+    pub fn apply<B: Backend + Debug>(&self, databases: &CurrencyV10DBs<B>) -> Result<(), DALError> {
         match *self {
             CurrencyDBsWriteQuery::WriteTx(ref tx_doc) => {
-                super::transaction::apply_and_write_tx(
+                super::transaction::apply_and_write_tx::<B>(
                     &databases.tx_db,
                     &databases.utxos_db,
                     &databases.du_db,
@@ -193,7 +195,7 @@ impl CurrencyDBsWriteQuery {
                 )?;
             }
             CurrencyDBsWriteQuery::CreateDU(ref du_amount, ref block_id, ref members) => {
-                super::dividend::create_du(
+                super::dividend::create_du::<B>(
                     &databases.du_db,
                     &databases.balances_db,
                     du_amount,

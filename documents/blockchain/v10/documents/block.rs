@@ -264,9 +264,13 @@ pub struct BlockDocument {
 impl BlockDocument {
     /// Return previous blockstamp
     pub fn previous_blockstamp(&self) -> Blockstamp {
-        Blockstamp {
-            id: BlockId(self.number.0 - 1),
-            hash: BlockHash(self.previous_hash),
+        if self.number.0 > 0 {
+            Blockstamp {
+                id: BlockId(self.number.0 - 1),
+                hash: BlockHash(self.previous_hash),
+            }
+        } else {
+            Blockstamp::default()
         }
     }
     /// Compute inner hash
@@ -537,7 +541,6 @@ mod tests {
         assert_eq!(
             block
                 .inner_hash
-                .hash
                 .expect("Try to get inner_hash of an uncompleted or reduce block !")
                 .to_hex(),
             "95948AC4D45E46DA07CE0713EDE1CE0295C227EE4CA5557F73F56B7DD46FE89C"
@@ -578,7 +581,6 @@ Nonce: "
         block.compute_hash();
         assert_eq!(
             block
-                .hash
                 .hash
                 .expect("Try to get hash of an uncompleted or reduce block !")
                 .0

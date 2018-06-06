@@ -59,7 +59,7 @@ pub fn dbex_tx(conf: &DuniterConf, query: &DBExTxQuery) {
     // Open databases
     let load_dbs_begin = SystemTime::now();
     //let blocks_databases = BlocksV10DBs::open(&db_path, false);
-    let currency_databases = CurrencyV10DBs::open(&db_path, false);
+    let currency_databases = CurrencyV10DBs::<FileBackend>::open(&db_path);
     let wot_databases = WotsV10DBs::open(&db_path, false);
     let load_dbs_duration = SystemTime::now()
         .duration_since(load_dbs_begin)

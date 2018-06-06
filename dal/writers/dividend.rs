@@ -16,13 +16,15 @@
 use duniter_crypto::keys::PubKey;
 use duniter_documents::blockchain::v10::documents::transaction::*;
 use duniter_documents::BlockId;
+use rustbreak::backend::Backend;
 use sources::SourceAmount;
 use std::collections::{HashMap, HashSet};
+use std::fmt::Debug;
 use *;
 
-pub fn create_du(
-    du_db: &BinFileDB<DUsV10Datas>,
-    balances_db: &BinFileDB<BalancesV10Datas>,
+pub fn create_du<B: Backend + Debug>(
+    du_db: &BinDB<DUsV10Datas, B>,
+    balances_db: &BinDB<BalancesV10Datas, B>,
     du_amount: &SourceAmount,
     du_block_id: &BlockId,
     members: &[PubKey],
