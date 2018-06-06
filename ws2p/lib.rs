@@ -54,33 +54,32 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use duniter_crypto::keys::*;
 use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALReqBlockchain, DALRequest, DALResBlockchain, DALResponse};
-use duniter_dal::parsers::blocks::parse_json_block;
-use duniter_documents::blockchain::Document;
 use duniter_documents::Blockstamp;
 use duniter_message::DuniterMessage;
 use duniter_module::*;
 use duniter_network::network_endpoint::*;
 use duniter_network::network_head::*;
 use duniter_network::*;
-
+use parsers::blocks::parse_json_block;
 use websocket::{ClientBuilder, Message};
 
 mod ack_message;
 mod connect_message;
 pub mod constants;
 mod ok_message;
+pub mod parsers;
 pub mod serializer;
 pub mod ws2p_connection;
 pub mod ws2p_db;
 pub mod ws2p_requests;
 
-use self::ack_message::WS2PAckMessageV1;
-use self::connect_message::WS2PConnectMessageV1;
-use self::constants::*;
-use self::ok_message::WS2POkMessageV1;
-use self::rand::Rng;
-use self::ws2p_connection::*;
-use self::ws2p_requests::network_request_to_json;
+use ack_message::WS2PAckMessageV1;
+use connect_message::WS2PConnectMessageV1;
+use constants::*;
+use ok_message::WS2POkMessageV1;
+use rand::Rng;
+use ws2p_connection::*;
+use ws2p_requests::network_request_to_json;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WS2PConf {
@@ -239,7 +238,8 @@ impl DuniterModule<DuniterMessage> for WS2PModule {
         let mut ws2p_endpoints = HashMap::new();
         for ep in conf.sync_endpoints.clone() {
             ws2p_endpoints.insert(
-                ep.node_full_id().unwrap(),
+                ep.node_full_id()
+                    .expect("Fail to get endpoint node_full_id"),
                 (ep.clone(), WS2PConnectionState::Close),
             );
             info!("Load sync endpoint {}", ep.raw());
@@ -297,7 +297,8 @@ impl DuniterModule<DuniterMessage> for WS2PModule {
             if ep.api() == NetworkEndpointApi(String::from("WS2P")) && ep.port() != 443 {
                 count += 1;
                 ws2p_module.ws2p_endpoints.insert(
-                    ep.node_full_id().unwrap(),
+                    ep.node_full_id()
+                        .expect("WS2P: Fail to get ep.node_full_id() !"),
                     (ep.clone(), WS2PConnectionState::from(ep.status())),
                 );
             }
@@ -423,8 +424,8 @@ impl DuniterModule<DuniterMessage> for WS2PModule {
                                 _ => {}
                             },
                             DuniterMessage::DALEvent(ref dal_event) => match *dal_event {
-                                DALEvent::StackUpValidBlock(ref block) => {
-                                    current_blockstamp = block.deref().blockstamp();
+                                DALEvent::StackUpValidBlock(ref _block, ref blockstamp) => {
+                                    current_blockstamp = *blockstamp;
                                     debug!(
                                         "WS2PModule : current_blockstamp = {}",
                                         current_blockstamp
@@ -472,13 +473,14 @@ impl DuniterModule<DuniterMessage> for WS2PModule {
                                         DALResBlockchain::CurrentBlock(
                                             ref _requester_full_id,
                                             ref current_block,
+                                            ref current_blockstamp_,
                                         ) => {
-                                            let current_block = current_block.deref();
+                                            let _current_block = current_block.deref();
                                             debug!(
                                                 "WS2PModule : receive DALResBc::CurrentBlock({})",
-                                                current_block.blockstamp()
+                                                current_blockstamp
                                             );
-                                            current_blockstamp = current_block.blockstamp();
+                                            current_blockstamp = *current_blockstamp_;
                                             if ws2p_module.my_head.is_none() {
                                                 ws2p_module.my_head =
                                                     Some(WS2PModuleDatas::generate_my_head(
@@ -606,17 +608,19 @@ impl DuniterModule<DuniterMessage> for WS2PModule {
                             //ws2p_module.send_network_event(NetworkEvent::ReceivePeers(_));
                             for ep in ws2p_endpoints {
                                 if ep.port() != 443 {
-                                    match ws2p_module
-                                        .ws2p_endpoints
-                                        .get(&ep.node_full_id().unwrap())
-                                    {
+                                    match ws2p_module.ws2p_endpoints.get(
+                                        &ep.node_full_id()
+                                            .expect("WS2P: Fail to get ep.node_full_id() !"),
+                                    ) {
                                         Some(_) => {}
                                         None => {
                                             if let Some(_api) =
                                                 ws2p_db::string_to_api(&ep.api().0.clone())
                                             {
                                                 endpoints_to_update_status.insert(
-                                                    ep.node_full_id().unwrap(),
+                                                    ep.node_full_id().expect(
+                                                        "WS2P: Fail to get ep.node_full_id() !",
+                                                    ),
                                                     SystemTime::now(),
                                                 );
                                             }
@@ -946,13 +950,13 @@ impl WS2PModuleDatas {
                             for endpoint in array_endpoints {
                                 sync_endpoints.push(
                                     NetworkEndpoint::parse_from_raw(
-                                        endpoint.as_str().unwrap(),
+                                        endpoint.as_str().expect("WS2P: Fail to get ep.as_str() !"),
                                         pubkey,
                                         0,
                                         0,
                                     ).expect(&format!(
                                         "WS2PConf Error : fail to parse sync Endpoint = {:?}",
-                                        endpoint.as_str().unwrap()
+                                        endpoint.as_str().expect("WS2P: Fail to get ep.as_str() !")
                                     )),
                                 );
                             }
@@ -1054,8 +1058,9 @@ impl WS2PModuleDatas {
             let blockstamps_occurences_copy = blockstamps_occurences.clone();
             match blockstamps_occurences_copy.get(&head.blockstamp()) {
                 Some(occurences) => {
-                    let mut occurences_mut =
-                        blockstamps_occurences.get_mut(&head.blockstamp()).unwrap();
+                    let mut occurences_mut = blockstamps_occurences
+                        .get_mut(&head.blockstamp())
+                        .expect("WS2P: Fail to get_mut blockstamps_occurences !");
                     *occurences_mut += 1;
                     if *occurences > dominant_blockstamp_occurences {
                         dominant_blockstamp_occurences = *occurences;
@@ -1101,13 +1106,20 @@ impl WS2PModuleDatas {
                 _ => unreachable_endpoints.push(ep),
             }
         }
-        let mut free_outcoming_rooms =
-            self.conf.clone().unwrap().outcoming_quota - count_established_connections;
+        let mut free_outcoming_rooms = self
+            .conf
+            .clone()
+            .expect("WS2P: Fail to get conf !")
+            .outcoming_quota - count_established_connections;
         while free_outcoming_rooms > 0 {
             let ep = if !reachable_endpoints.is_empty() {
-                reachable_endpoints.pop().unwrap()
+                reachable_endpoints
+                    .pop()
+                    .expect("WS2P: Fail to pop() reachable_endpoints !")
             } else if !unreachable_endpoints.is_empty() {
-                unreachable_endpoints.pop().unwrap()
+                unreachable_endpoints
+                    .pop()
+                    .expect("WS2P: Fail to pop() unreachable_endpoints !")
             } else {
                 break;
             };
@@ -1117,21 +1129,36 @@ impl WS2PModuleDatas {
     }
     pub fn connect_to(&mut self, endpoint: &NetworkEndpoint) -> () {
         // Add endpoint to endpoints list (if there isn't already)
-        match self.ws2p_endpoints.get(&endpoint.node_full_id().unwrap()) {
+        match self.ws2p_endpoints.get(
+            &endpoint
+                .node_full_id()
+                .expect("WS2P: Fail to get ep.node_full_id() !"),
+        ) {
             Some(_) => {
                 self.ws2p_endpoints
-                    .get_mut(&endpoint.node_full_id().unwrap())
-                    .unwrap()
+                    .get_mut(
+                        &endpoint
+                            .node_full_id()
+                            .expect("WS2P: Fail to get ep.node_full_id() !"),
+                    )
+                    .expect("WS2P: Fail to get_mut() a ws2p_endpoint !")
                     .1 = WS2PConnectionState::NeverTry;
             }
             None => {
                 self.ws2p_endpoints.insert(
-                    endpoint.node_full_id().unwrap(),
+                    endpoint
+                        .node_full_id()
+                        .expect("WS2P: Fail to get ep.node_full_id() !"),
                     (endpoint.clone(), WS2PConnectionState::NeverTry),
                 );
             }
         };
-        if self.conf.clone().unwrap().outcoming_quota > self.count_established_connections() {
+        if self
+            .conf
+            .clone()
+            .expect("WS2P: Fail to get conf !")
+            .outcoming_quota > self.count_established_connections()
+        {
             self.connect_to_without_checking_quotas(&endpoint);
         }
     }
@@ -1164,23 +1191,32 @@ impl WS2PModuleDatas {
             WS2PConnectionMessagePayload::WrongUrl
             | WS2PConnectionMessagePayload::FailOpenWS
             | WS2PConnectionMessagePayload::FailToSplitWS => {
-                self.ws2p_endpoints.get_mut(&ws2p_full_id).unwrap().1 =
-                    WS2PConnectionState::WSError;
+                self.ws2p_endpoints
+                    .get_mut(&ws2p_full_id)
+                    .expect("WS2P: Fail to get mut ep !")
+                    .1 = WS2PConnectionState::WSError;
                 return WS2PSignal::WSError(ws2p_full_id);
             }
             WS2PConnectionMessagePayload::TryToSendConnectMess => {
-                self.ws2p_endpoints.get_mut(&ws2p_full_id).unwrap().1 =
-                    WS2PConnectionState::TryToSendConnectMess;
+                self.ws2p_endpoints
+                    .get_mut(&ws2p_full_id)
+                    .expect("WS2P: Fail to get mut ep !")
+                    .1 = WS2PConnectionState::TryToSendConnectMess;
             }
             WS2PConnectionMessagePayload::FailSendConnectMess => {
-                self.ws2p_endpoints.get_mut(&ws2p_full_id).unwrap().1 =
-                    WS2PConnectionState::Unreachable;
+                self.ws2p_endpoints
+                    .get_mut(&ws2p_full_id)
+                    .expect("WS2P: Fail to mut ep !")
+                    .1 = WS2PConnectionState::Unreachable;
             }
             WS2PConnectionMessagePayload::WebsocketOk(sender) => {
                 self.websockets.insert(ws2p_full_id, sender);
             }
             WS2PConnectionMessagePayload::ValidConnectMessage(response, new_con_state) => {
-                self.ws2p_endpoints.get_mut(&ws2p_full_id).unwrap().1 = new_con_state;
+                self.ws2p_endpoints
+                    .get_mut(&ws2p_full_id)
+                    .expect("WS2P: Fail to get mut ep !")
+                    .1 = new_con_state;
                 if let WS2PConnectionState::ConnectMessOk = self.ws2p_endpoints[&ws2p_full_id].1 {
                     trace!("Send: {:#?}", response);
                     self.websockets
@@ -1191,11 +1227,14 @@ impl WS2PModuleDatas {
                         ))
                         .0
                         .send_message(&Message::text(response))
-                        .unwrap();
+                        .expect("WS2P: Fail to send OK Message !");
                 }
             }
             WS2PConnectionMessagePayload::ValidAckMessage(r, new_con_state) => {
-                self.ws2p_endpoints.get_mut(&ws2p_full_id).unwrap().1 = new_con_state;
+                self.ws2p_endpoints
+                    .get_mut(&ws2p_full_id)
+                    .expect("WS2P: Fail to get mut ep !")
+                    .1 = new_con_state;
                 if let WS2PConnectionState::AckMessOk = self.ws2p_endpoints[&ws2p_full_id].1 {
                     trace!("DEBUG : Send: {:#?}", r);
                     self.websockets
@@ -1206,11 +1245,14 @@ impl WS2PModuleDatas {
                         ))
                         .0
                         .send_message(&Message::text(r))
-                        .unwrap();
+                        .expect("WS2P: Fail to send Message in websocket !");
                 }
             }
             WS2PConnectionMessagePayload::ValidOk(new_con_state) => {
-                self.ws2p_endpoints.get_mut(&ws2p_full_id).unwrap().1 = new_con_state;
+                self.ws2p_endpoints
+                    .get_mut(&ws2p_full_id)
+                    .expect("WS2P: Fail to get mut ep !")
+                    .1 = new_con_state;
                 match self.ws2p_endpoints[&ws2p_full_id].1 {
                     WS2PConnectionState::OkMessOkWaitingAckMess => {}
                     WS2PConnectionState::Established => {
@@ -1219,7 +1261,7 @@ impl WS2PModuleDatas {
                     _ => {
                         self.threads_senders_channels[&ws2p_full_id]
                             .send(WS2POrderForListeningThread::Close)
-                            .unwrap();
+                            .expect("WS2P: Fail to send Close signel to connections threads !");
                         self.close_connection(&ws2p_full_id, WS2PCloseConnectionReason::Unknow);
                         return WS2PSignal::Empty;
                     }
@@ -1238,7 +1280,11 @@ impl WS2PModuleDatas {
                         if head.verify()
                             && (self.my_head.is_none()
                                 || head.node_full_id()
-                                    != self.my_head.clone().unwrap().node_full_id())
+                                    != self
+                                        .my_head
+                                        .clone()
+                                        .expect("WS2P: Fail to clone my_head")
+                                        .node_full_id())
                             && head.apply(&mut self.heads_cache)
                         {
                             applied_heads.push(head);
@@ -1267,16 +1313,22 @@ impl WS2PModuleDatas {
             WS2PConnectionMessagePayload::NegociationTimeout => {
                 match self.ws2p_endpoints[&ws2p_full_id].1 {
                     WS2PConnectionState::AckMessOk | WS2PConnectionState::ConnectMessOk => {
-                        self.ws2p_endpoints.get_mut(&ws2p_full_id).unwrap().1 =
-                            WS2PConnectionState::Denial
+                        self.ws2p_endpoints
+                            .get_mut(&ws2p_full_id)
+                            .expect("WS2P: Fail to get mut ep !")
+                            .1 = WS2PConnectionState::Denial
                     }
                     WS2PConnectionState::WaitingConnectMess => {
-                        self.ws2p_endpoints.get_mut(&ws2p_full_id).unwrap().1 =
-                            WS2PConnectionState::NoResponse
+                        self.ws2p_endpoints
+                            .get_mut(&ws2p_full_id)
+                            .expect("WS2P: Fail to get mut ep !")
+                            .1 = WS2PConnectionState::NoResponse
                     }
                     _ => {
-                        self.ws2p_endpoints.get_mut(&ws2p_full_id).unwrap().1 =
-                            WS2PConnectionState::Unreachable
+                        self.ws2p_endpoints
+                            .get_mut(&ws2p_full_id)
+                            .expect("WS2P: Fail to get mut ep !")
+                            .1 = WS2PConnectionState::Unreachable
                     }
                 }
                 self.close_connection(&ws2p_full_id, WS2PCloseConnectionReason::NegociationTimeout);
@@ -1290,13 +1342,13 @@ impl WS2PModuleDatas {
                 "WS2P : Receive Unknow Message from {}.",
                 &self.connections_meta_datas[&ws2p_full_id]
                     .remote_pubkey
-                    .unwrap()
+                    .expect("WS2P: UnknowMessage : Fail to get remote_pubkey !")
             ),
             WS2PConnectionMessagePayload::WrongFormatMessage => warn!(
                 "WS2P : Receive Wrong Format Message from {}.",
                 &self.connections_meta_datas[&ws2p_full_id]
                     .remote_pubkey
-                    .unwrap()
+                    .expect("WS2P: WrongFormatMessage : Fail to get remote_pubkey !")
             ),
             WS2PConnectionMessagePayload::InvalidMessage => return WS2PSignal::Empty,
             WS2PConnectionMessagePayload::Close => {
@@ -1393,7 +1445,7 @@ impl WS2PModuleDatas {
     ) -> Result<(), websocket::WebSocketError> {
         self.websockets
             .get_mut(receiver_ws2p_full_id)
-            .unwrap()
+            .expect("WS2P: Fail to get mut websocket !")
             .0
             .send_message(&Message::text(
                 network_request_to_json(ws2p_request).to_string(),
@@ -1413,7 +1465,11 @@ impl WS2PModuleDatas {
     fn connect_to_without_checking_quotas(&mut self, endpoint: &NetworkEndpoint) -> () {
         // update connection state
         self.ws2p_endpoints
-            .get_mut(&endpoint.node_full_id().unwrap())
+            .get_mut(
+                &endpoint
+                    .node_full_id()
+                    .expect("WS2P: Fail to get ep.node_full_id() !"),
+            )
             .expect("Fatal error: try to connect to unlisted endpoint ! ")
             .1 = WS2PConnectionState::TryToOpenWS;
 
@@ -1425,23 +1481,31 @@ impl WS2PModuleDatas {
             "b60a14fd-0826-4ae0-83eb-1a92cd59fd5308535fd3-78f2-4678-9315-cd6e3b7871b1".to_string(),
         );
         conn_meta_datas.remote_pubkey = Some(endpoint.pubkey());
-        conn_meta_datas.remote_uuid = Some(endpoint.node_uuid().unwrap());
+        conn_meta_datas.remote_uuid = Some(
+            endpoint
+                .node_uuid()
+                .expect("WS2P: Fail to get ep.node_uuid() !"),
+        );
 
         // Prepare datas for listening thread
         let mut datas_for_listening_thread = WS2PDatasForListeningThread {
             conn_meta_datas: conn_meta_datas.clone(),
-            currency: self.currency.clone().unwrap(),
-            key_pair: self.key_pair.unwrap(),
+            currency: self.currency.clone().expect("WS2P: Fail to get currency !"),
+            key_pair: self.key_pair.expect("WS2P: Fail to get key_pair!"),
         };
 
         // Create CONNECT Message
         let mut connect_message = WS2PConnectMessageV1 {
-            currency: self.currency.clone().unwrap(),
-            pubkey: self.key_pair.unwrap().public_key(),
+            currency: self.currency.clone().expect("WS2P: Fail to getcurrency !"),
+            pubkey: self
+                .key_pair
+                .expect("WS2P: Fail to get key_pair!")
+                .public_key(),
             challenge: conn_meta_datas.challenge.clone(),
             signature: None,
         };
-        connect_message.signature = Some(connect_message.sign(self.key_pair.unwrap()));
+        connect_message.signature =
+            Some(connect_message.sign(self.key_pair.expect("WS2P: Fail to get key_pair !")));
         let json_connect_message =
             serde_json::to_string(&connect_message).expect("Fail to serialize CONNECT message !");
 
@@ -1619,11 +1683,11 @@ impl WS2PModuleDatas {
                                                 // Parse message
                                                 let m = Message::from(message);
                                                 let s: String = from_utf8(&m.payload)
-                                                    .unwrap()
+                                                    .expect("WS2P: Fail to convert message payload to String !")
                                                     .to_string();
                                                 let message: serde_json::Value =
                                                     serde_json::from_str(&s)
-                                                    .unwrap();
+                                                    .expect("WS2P: Fail to convert string message ton json value !");
                                                 let result = sender_to_main_thread.send(
                                                     WS2PThreadSignal::WS2PConnectionMessage(
                                                         WS2PConnectionMessage(
@@ -1677,14 +1741,13 @@ mod tests {
     extern crate duniter_module;
     extern crate duniter_network;
 
-    use self::duniter_crypto::keys::PublicKey;
-    use self::duniter_crypto::keys::*;
-    use self::duniter_dal::parsers::blocks::parse_json_block;
-    use self::duniter_documents::blockchain::v10::documents::BlockDocument;
-    use self::duniter_module::DuniterModule;
-    use self::duniter_network::network_endpoint::{NetworkEndpoint, NetworkEndpointApi};
-    use self::duniter_network::NetworkBlock;
+    use super::parsers::blocks::parse_json_block;
     use super::*;
+    use duniter_crypto::keys::PublicKey;
+    use duniter_documents::blockchain::v10::documents::BlockDocument;
+    use duniter_module::DuniterModule;
+    use duniter_network::network_endpoint::{NetworkEndpoint, NetworkEndpointApi};
+    use duniter_network::NetworkBlock;
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -1843,12 +1906,19 @@ mod tests {
                 }
             };
         assert_eq!(
-            block.inner_hash.unwrap().to_hex(),
+            block
+                .inner_hash
+                .expect("Try to get inner_hash of an uncompleted or reduce block !")
+                .to_hex(),
             "61F02B1A6AE2E4B9A1FD66CE673258B4B21C0076795571EE3C9DC440DD06C46C"
         );
         block.compute_hash();
         assert_eq!(
-            block.hash.unwrap().0.to_hex(),
+            block
+                .hash
+                .expect("Try to get hash of an uncompleted or reduce block !")
+                .0
+                .to_hex(),
             "000000EF5B2AA849F4C3AF3D35E1284EA1F34A9F617EA806CE8371619023DC74"
         );
     }

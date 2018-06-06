@@ -36,8 +36,6 @@ pub mod network_endpoint;
 pub mod network_head;
 pub mod network_peer;
 
-use self::network_head::NetworkHead;
-use self::network_peer::NetworkPeer;
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
 use duniter_crypto::keys::*;
@@ -48,6 +46,8 @@ use duniter_documents::blockchain::v10::documents::{
 use duniter_documents::blockchain::Document;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, Hash};
 use duniter_module::{ModuleReqFullId, ModuleReqId};
+use network_head::NetworkHead;
+use network_peer::NetworkPeer;
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::ops::Deref;
 
@@ -134,6 +134,15 @@ pub enum NetworkBlock {
 }
 
 impl NetworkBlock {
+    /// Return uncompleted block document
+    pub fn uncompleted_block_doc(&self) -> BlockDocument {
+        match *self {
+            NetworkBlock::V10(ref network_block_v10) => {
+                network_block_v10.deref().uncompleted_block_doc.clone()
+            }
+            _ => panic!("Block version not supported !"),
+        }
+    }
     /// Return blockstamp
     pub fn blockstamp(&self) -> Blockstamp {
         match *self {

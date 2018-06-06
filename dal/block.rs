@@ -1,84 +1,25 @@
-extern crate duniter_crypto;
-extern crate duniter_documents;
-extern crate duniter_wotb;
+extern crate rustbreak;
 extern crate serde;
 extern crate serde_json;
-extern crate sqlite;
 
-use self::duniter_crypto::keys::*;
-use self::duniter_documents::blockchain::v10::documents::identity::IdentityDocument;
-use self::duniter_documents::blockchain::v10::documents::membership::MembershipType;
-use self::duniter_documents::blockchain::v10::documents::BlockDocument;
-use self::duniter_documents::blockchain::Document;
-use self::duniter_documents::{BlockHash, BlockId, Blockstamp, Hash};
-use self::duniter_wotb::NodeId;
 use super::constants::MAX_FORKS;
-use super::parsers::certifications::parse_certifications;
-use super::parsers::excluded::parse_exclusions;
-use super::parsers::identities::parse_identities;
-use super::parsers::memberships::parse_memberships;
-use super::parsers::revoked::parse_revocations;
-use super::parsers::transactions::parse_compact_transactions;
-use super::{DuniterDB, ForkState};
+use duniter_crypto::keys::*;
+use duniter_documents::blockchain::v10::documents::BlockDocument;
+use duniter_documents::blockchain::Document;
+use duniter_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
+use duniter_wotb::NodeId;
 use std::collections::HashMap;
+use *;
 
-pub fn blockstamp_to_timestamp(blockstamp: &Blockstamp, db: &DuniterDB) -> Option<u64> {
-    if blockstamp.id.0 == 0 {
-        return Some(1_488_987_127);
-    }
-    let mut cursor = db
-        .0
-        .prepare("SELECT median_time FROM blocks WHERE number=? AND hash=? LIMIT 1;")
-        .expect("convert blockstamp to timestamp failure at step 0 !")
-        .cursor();
-
-    cursor
-        .bind(&[
-            sqlite::Value::Integer(i64::from(blockstamp.id.0)),
-            sqlite::Value::String(blockstamp.hash.0.to_hex()),
-        ])
-        .expect("convert blockstamp to timestamp failure at step 1 !");
-
-    if let Some(row) = cursor
-        .next()
-        .expect("convert blockstamp to timestamp failure at step 2 !")
-    {
-        return Some(
-            row[0]
-                .as_integer()
-                .expect("convert blockstamp to timestamp failure at step 3 !") as u64,
-        );
-    }
-    None
-}
-
-#[derive(Debug, Copy, Clone)]
-pub enum WotEvent {
-    AddNode(PubKey, NodeId),
-    RemNode(PubKey),
-    AddLink(NodeId, NodeId),
-    RemLink(NodeId, NodeId),
-    EnableNode(NodeId),
-    DisableNode(NodeId),
-}
-
-#[derive(Debug, Clone)]
-pub struct BlockContext {
-    pub blockstamp: Blockstamp,
-    pub wot_events: Vec<WotEvent>,
-}
-
-#[derive(Debug, Clone)]
-pub struct BlockContextV2 {
-    pub blockstamp: Blockstamp,
-    pub wot_events: Vec<WotEvent>,
-}
-
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DALBlock {
-    pub fork: usize,
+    pub fork_id: ForkId,
     pub isolate: bool,
     pub block: BlockDocument,
+    /// List of certifications that expire in this block.
+    /// Warning : BlockId contain the emission block, not the written block !
+    /// HashMap<(Source, Target), CreatedBlockId>
+    pub expire_certs: Option<HashMap<(NodeId, NodeId), BlockId>>,
 }
 
 impl DALBlock {
@@ -87,400 +28,334 @@ impl DALBlock {
     }
 }
 
-pub fn get_forks(db: &DuniterDB) -> Vec<ForkState> {
-    let mut forks = Vec::new();
-    forks.push(ForkState::Full());
-    for fork in 1..*MAX_FORKS {
-        let mut cursor = db
-            .0
-            .prepare("SELECT isolate FROM blocks WHERE fork=? ORDER BY median_time DESC LIMIT 1;")
-            .expect("Fail to get block !")
-            .cursor();
-
-        cursor
-            .bind(&[sqlite::Value::Integer(fork as i64)])
-            .expect("Fail to get block !");
-
-        if let Some(row) = cursor.next().unwrap() {
-            if row[0].as_integer().unwrap() == 0 {
-                forks.push(ForkState::Full())
+pub fn get_forks(
+    forks_db: &BinFileDB<ForksV10Datas>,
+    current_blockstamp: Blockstamp,
+) -> Result<Vec<ForkStatus>, DALError> {
+    Ok(forks_db.read(|forks_db| {
+        let blockchain_meta_datas = forks_db
+            .get(&ForkId(0))
+            .expect("Fatal error : ForksV10DB not contain local chain !");
+        let mut forks = Vec::new();
+        for fork_id in 1..*MAX_FORKS {
+            if let Some(fork_meta_datas) = forks_db.get(&ForkId(fork_id)) {
+                if fork_meta_datas.is_empty() {
+                    forks.push(ForkStatus::Free());
+                } else if fork_meta_datas.contains_key(&current_blockstamp) {
+                    forks.push(ForkStatus::Stackable(ForkAlreadyCheck(false)));
+                } else {
+                    let roll_back_max = if current_blockstamp.id.0 > 101 {
+                        current_blockstamp.id.0 - 101
+                    } else {
+                        0
+                    };
+                    let mut max_common_block_id = None;
+                    let mut too_old = false;
+                    for previous_blockstamp in fork_meta_datas.keys() {
+                        if blockchain_meta_datas.contains_key(&previous_blockstamp) {
+                            if previous_blockstamp.id.0 >= roll_back_max {
+                                if previous_blockstamp.id.0
+                                    >= max_common_block_id.unwrap_or(BlockId(0)).0
+                                {
+                                    max_common_block_id = Some(previous_blockstamp.id);
+                                    too_old = false;
+                                }
+                            } else {
+                                too_old = true;
+                            }
+                        }
+                    }
+                    if too_old {
+                        forks.push(ForkStatus::TooOld(ForkAlreadyCheck(false)));
+                    } else if let Some(max_common_block_id) = max_common_block_id {
+                        forks.push(ForkStatus::RollBack(
+                            ForkAlreadyCheck(false),
+                            max_common_block_id,
+                        ));
+                    } else {
+                        forks.push(ForkStatus::Isolate());
+                    }
+                }
             } else {
-                forks.push(ForkState::Isolate())
+                forks.push(ForkStatus::Free());
+            }
+        }
+        forks
+    })?)
+}
+
+pub fn get_current_blockstamp(blocks_db: &BlocksV10DBs) -> Result<Option<Blockstamp>, DALError> {
+    let current_previous_blockstamp = blocks_db.blockchain_db.read(|db| {
+        let blockchain_len = db.len() as u32;
+        if blockchain_len == 0 {
+            None
+        } else if let Some(dal_block) = db.get(&BlockId(blockchain_len - 1)) {
+            if blockchain_len > 1 {
+                Some(Blockstamp {
+                    id: BlockId(blockchain_len - 2),
+                    hash: BlockHash(dal_block.block.previous_hash),
+                })
+            } else {
+                Some(Blockstamp::default())
             }
         } else {
-            forks.push(ForkState::Free());
+            None
         }
+    })?;
+    if current_previous_blockstamp.is_none() {
+        return Ok(None);
     }
-    forks
+    let current_previous_blockstamp = current_previous_blockstamp.expect("safe unwrap");
+    if let Some(current_block_hash) = blocks_db.forks_db.read(|db| {
+        let blockchain_meta_datas = db
+            .get(&ForkId(0))
+            .expect("Fatal error : ForksDB is incoherent, please reset data and resync !");
+        blockchain_meta_datas
+            .get(&current_previous_blockstamp)
+            .cloned()
+    })? {
+        Ok(Some(Blockstamp {
+            id: BlockId(current_previous_blockstamp.id.0 + 1),
+            hash: current_block_hash,
+        }))
+    } else {
+        Ok(None)
+    }
+}
+
+/// Get block fork id
+pub fn get_fork_id_of_blockstamp(
+    forks_blocks_db: &BinFileDB<ForksBlocksV10Datas>,
+    blockstamp: &Blockstamp,
+) -> Result<Option<ForkId>, DALError> {
+    Ok(forks_blocks_db.read(|db| {
+        if let Some(dal_block) = db.get(blockstamp) {
+            Some(dal_block.fork_id)
+        } else {
+            None
+        }
+    })?)
 }
 
 impl DALBlock {
-    pub fn unisolate_fork(db: &DuniterDB, fork: usize) {
-        db.0
-            .execute(format!("UPDATE blocks SET isolate=0 WHERE fork={};", fork))
-            .unwrap();
+    pub fn delete_fork(
+        forks_db: &BinFileDB<ForksV10Datas>,
+        forks_blocks_db: &BinFileDB<ForksBlocksV10Datas>,
+        fork_id: ForkId,
+    ) -> Result<(), DALError> {
+        let fork_meta_datas = forks_db
+            .read(|forks_db| forks_db.get(&fork_id).cloned())?
+            .expect("Fatal error : try to delete unknow fork");
+        // Remove fork blocks
+        forks_blocks_db.write(|db| {
+            for (previous_blockstamp, hash) in fork_meta_datas {
+                let blockstamp = Blockstamp {
+                    id: BlockId(previous_blockstamp.id.0 + 1),
+                    hash,
+                };
+                db.remove(&blockstamp);
+            }
+        })?;
+        // Remove fork meta datas
+        forks_db.write_safe(|db| {
+            db.remove(&fork_id);
+        })?;
+        Ok(())
     }
-    pub fn delete_fork(db: &DuniterDB, fork: usize) {
-        db.0
-            .execute(format!("DELETE FROM blocks WHERE fork={};", fork))
-            .unwrap();
-    }
-    pub fn get_block_fork(db: &DuniterDB, blockstamp: &Blockstamp) -> Option<usize> {
-        let mut cursor = db
-            .0
-            .prepare("SELECT fork FROM blocks WHERE number=? AND hash=?;")
-            .expect("Fail to get block !")
-            .cursor();
-
-        cursor
-            .bind(&[
-                sqlite::Value::Integer(i64::from(blockstamp.id.0)),
-                sqlite::Value::String(blockstamp.hash.0.to_string()),
-            ])
-            .expect("Fail to get block !");
-
-        if let Some(row) = cursor.next().unwrap() {
-            Some(row[0].as_integer().unwrap() as usize)
-        } else {
-            None
+    pub fn assign_fork_to_new_block(
+        forks_db: &BinFileDB<ForksV10Datas>,
+        new_block_previous_blockstamp: &PreviousBlockstamp,
+        new_block_hash: &BlockHash,
+    ) -> Result<(Option<ForkId>, bool), DALError> {
+        let forks_meta_datas = forks_db.read(|forks_db| forks_db.clone())?;
+        // Try to assign block to an existing fork
+        for (fork_id, fork_meta_datas) in &forks_meta_datas {
+            let mut fork_datas = fork_meta_datas.clone();
+            for (previous_blockstamp, hash) in fork_meta_datas {
+                let blockstamp = Blockstamp {
+                    id: BlockId(previous_blockstamp.id.0 + 1),
+                    hash: *hash,
+                };
+                if *new_block_previous_blockstamp == blockstamp {
+                    fork_datas.insert(*new_block_previous_blockstamp, *new_block_hash);
+                    forks_db.write(|forks_db| {
+                        forks_db.insert(*fork_id, fork_datas);
+                    })?;
+                    return Ok((Some(*fork_id), false));
+                }
+            }
         }
-    }
-    pub fn get_block_hash(db: &DuniterDB, block_number: &BlockId) -> Option<BlockHash> {
-        let mut cursor = db
-            .0
-            .prepare("SELECT hash FROM blocks WHERE number=? AND fork=0;")
-            .expect("Fail to get block !")
-            .cursor();
-
-        cursor
-            .bind(&[sqlite::Value::Integer(i64::from(block_number.0))])
-            .expect("Fail to get block !");
-
-        if let Some(row) = cursor.next().unwrap() {
-            Some(BlockHash(
-                Hash::from_hex(row[0].as_string().unwrap()).unwrap(),
-            ))
-        } else {
-            None
+        // Find an available fork
+        let mut new_fork_id = ForkId(0);
+        for f in 0..*MAX_FORKS {
+            if !forks_meta_datas.contains_key(&ForkId(f)) {
+                new_fork_id = ForkId(f);
+                break;
+            }
         }
+        if new_fork_id.0 == 0 {
+            if forks_meta_datas.len() >= *MAX_FORKS {
+                return Ok((None, false));
+            } else {
+                new_fork_id = ForkId(forks_meta_datas.len());
+            }
+        }
+        // Create new fork
+        let mut new_fork = HashMap::new();
+        new_fork.insert(*new_block_previous_blockstamp, *new_block_hash);
+        forks_db.write(|forks_db| {
+            forks_db.insert(new_fork_id, new_fork);
+        })?;
+        Ok((Some(new_fork_id), true))
     }
-
-    pub fn get_blocks_hashs_all_forks(
-        db: &DuniterDB,
+    pub fn get_block_fork(
+        forks_db: &BinFileDB<ForksV10Datas>,
+        previous_blockstamp: &PreviousBlockstamp,
+    ) -> Result<Option<ForkId>, DALError> {
+        Ok(forks_db.read(|forks_db| {
+            for (fork_id, fork_meta_datas) in forks_db {
+                if fork_meta_datas.contains_key(&previous_blockstamp) {
+                    return Some(*fork_id);
+                }
+            }
+            None
+        })?)
+    }
+    pub fn get_block_hash(
+        db: &BinFileDB<LocalBlockchainV10Datas>,
         block_number: &BlockId,
-    ) -> (Vec<BlockHash>, Vec<Hash>) {
-        let mut cursor = db
-            .0
-            .prepare("SELECT hash, previous_hash FROM blocks WHERE number=?;")
-            .expect("Fail to get block !")
-            .cursor();
+    ) -> Result<Option<BlockHash>, DALError> {
+        Ok(db.read(|db| {
+            if let Some(dal_block) = db.get(block_number) {
+                dal_block.block.hash
+            } else {
+                None
+            }
+        })?)
+    }
 
-        cursor
-            .bind(&[sqlite::Value::Integer(i64::from(block_number.0))])
-            .expect("Fail to get block !");
-
-        let mut hashs = Vec::new();
-        let mut previous_hashs = Vec::new();
-        while let Some(row) = cursor.next().unwrap() {
-            hashs.push(BlockHash(
-                Hash::from_hex(row[0].as_string().unwrap()).unwrap(),
-            ));
-            previous_hashs.push(Hash::from_hex(row[1].as_string().unwrap()).unwrap());
+    pub fn already_have_block(
+        blockchain_db: &BinFileDB<LocalBlockchainV10Datas>,
+        forks_blocks_db: &BinFileDB<ForksBlocksV10Datas>,
+        blockstamp: Blockstamp,
+    ) -> Result<bool, DALError> {
+        let already_have_block = forks_blocks_db.read(|db| db.contains_key(&blockstamp))?;
+        if !already_have_block {
+            Ok(blockchain_db.read(|db| {
+                if let Some(dal_block) = db.get(&blockstamp.id) {
+                    if dal_block.block.hash.unwrap_or_default() == blockstamp.hash {
+                        return true;
+                    }
+                }
+                false
+            })?)
+        } else {
+            Ok(true)
         }
-        (hashs, previous_hashs)
     }
 
     pub fn get_stackables_blocks(
-        currency: &str,
-        db: &DuniterDB,
+        forks_db: &BinFileDB<ForksV10Datas>,
+        forks_blocks_db: &BinFileDB<ForksBlocksV10Datas>,
         current_blockstamp: &Blockstamp,
-    ) -> Vec<DALBlock> {
+    ) -> Result<Vec<DALBlock>, DALError> {
         debug!("get_stackables_blocks() after {}", current_blockstamp);
-        let mut stackables_blocks = Vec::new();
-        let block_id = BlockId(current_blockstamp.id.0 + 1);
-        let (hashs, previous_hashs) = DALBlock::get_blocks_hashs_all_forks(db, &block_id);
-        for (hash, previous_hash) in hashs.into_iter().zip(previous_hashs) {
-            if previous_hash == current_blockstamp.hash.0 {
-                if let Some(dal_block) =
-                    DALBlock::get_block(currency, db, &Blockstamp { id: block_id, hash })
-                {
-                    stackables_blocks.push(dal_block);
-                } else {
-                    panic!(format!(
-                        "Fail to get stackable block {} !",
-                        Blockstamp { id: block_id, hash }
-                    ));
+        let stackables_blocks_hashs = forks_db.read(|db| {
+            let mut stackables_blocks_hashs = Vec::new();
+            for fork_meta_datas in db.values() {
+                if let Some(block_hash) = fork_meta_datas.get(&current_blockstamp) {
+                    stackables_blocks_hashs.push(*block_hash);
                 }
             }
-        }
-        stackables_blocks
+            stackables_blocks_hashs
+        })?;
+        let stackables_blocks = forks_blocks_db.read(|db| {
+            let mut stackables_blocks = Vec::new();
+            for stackable_block_hash in stackables_blocks_hashs {
+                if let Some(dal_block) = db.get(&Blockstamp {
+                    id: BlockId(current_blockstamp.id.0 + 1),
+                    hash: stackable_block_hash,
+                }) {
+                    stackables_blocks.push(dal_block.clone());
+                }
+            }
+            stackables_blocks
+        })?;
+        Ok(stackables_blocks)
     }
-    pub fn get_stackables_forks(db: &DuniterDB, current_blockstamp: &Blockstamp) -> Vec<usize> {
-        let mut stackables_forks = Vec::new();
-        let block_id = BlockId(current_blockstamp.id.0 + 1);
-        let (hashs, previous_hashs) = DALBlock::get_blocks_hashs_all_forks(db, &block_id);
-        for (hash, previous_hash) in hashs.into_iter().zip(previous_hashs) {
-            if previous_hash == current_blockstamp.hash.0 {
-                if let Some(fork) = DALBlock::get_block_fork(db, &Blockstamp { id: block_id, hash })
-                {
-                    if fork > 0 {
-                        stackables_forks.push(fork);
+    pub fn get_stackables_forks(
+        db: &BinFileDB<ForksV10Datas>,
+        current_blockstamp: &Blockstamp,
+    ) -> Result<Vec<usize>, DALError> {
+        Ok(db.read(|db| {
+            let mut stackables_forks = Vec::new();
+            for f in 0..*MAX_FORKS {
+                if let Some(fork_meta_datas) = db.get(&ForkId(f)) {
+                    if fork_meta_datas.get(&current_blockstamp).is_some() {
+                        stackables_forks.push(f);
                     }
                 }
             }
-        }
-        stackables_forks
+            stackables_forks
+        })?)
     }
-    pub fn get_block(currency: &str, db: &DuniterDB, blockstamp: &Blockstamp) -> Option<DALBlock> {
-        let mut cursor = db
-            .0
-            .prepare(
-                "SELECT fork, isolate, nonce, number,
-            pow_min, time, median_time, members_count,
-            monetary_mass, unit_base, issuers_count, issuers_frame,
-            issuers_frame_var, median_frame, second_tiercile_frame,
-            currency, issuer, signature, hash, previous_hash, dividend, identities, joiners,
-            actives, leavers, revoked, excluded, certifications,
-            transactions FROM blocks WHERE number=? AND hash=?;",
-            )
-            .expect("Fail to get block !")
-            .cursor();
-
-        cursor
-            .bind(&[
-                sqlite::Value::Integer(i64::from(blockstamp.id.0)),
-                sqlite::Value::String(blockstamp.hash.0.to_string()),
-            ])
-            .expect("Fail to get block !");
-
-        if let Some(row) = cursor.next().expect("block not found in bdd !") {
-            let dividend_amount = row[20]
-                .as_integer()
-                .expect("dal::get_block() : fail to parse dividend !");
-            let dividend = if dividend_amount > 0 {
-                Some(dividend_amount as usize)
-            } else if dividend_amount == 0 {
-                None
-            } else {
-                return None;
-            };
-            let nonce = row[2]
-                .as_integer()
-                .expect("dal::get_block() : fail to parse nonce !") as u64;
-            let inner_hash = Hash::from_hex(
-                row[18]
-                    .as_string()
-                    .expect("dal::get_block() : fail to parse inner_hash !"),
-            ).expect("dal::get_block() : fail to parse inner_hash (2) !");
-            let identities = parse_identities(
-                currency,
-                row[21]
-                    .as_string()
-                    .expect("dal::get_block() : fail to parse identities !"),
-            ).expect("dal::get_block() : fail to parse identities (2) !");
-            let hashmap_identities = identities
-                .iter()
-                .map(|i| (i.issuers()[0], i.clone()))
-                .collect::<HashMap<PubKey, IdentityDocument>>();
-            Some(DALBlock {
-                fork: row[0]
-                    .as_integer()
-                    .expect("dal::get_block() : fail to parse fork !")
-                    as usize,
-                isolate: !row[1]
-                    .as_integer()
-                    .expect("dal::get_block() : fail to parse isolate !")
-                    == 0,
-                block: BlockDocument {
-                    nonce,
-                    number: BlockId(
-                        row[3]
-                            .as_integer()
-                            .expect("dal::get_block() : fail to parse number !")
-                            as u32,
-                    ),
-                    pow_min: row[4]
-                        .as_integer()
-                        .expect("dal::get_block() : fail to parse pow min !")
-                        as usize,
-                    time: row[5]
-                        .as_integer()
-                        .expect("dal::get_block() : fail to parse time !")
-                        as u64,
-                    median_time: row[6]
-                        .as_integer()
-                        .expect("dal::get_block() : fail to parse median_time !")
-                        as u64,
-                    members_count: row[7]
-                        .as_integer()
-                        .expect("dal::get_block() : fail to parse members_count !")
-                        as usize,
-                    monetary_mass: row[8]
-                        .as_integer()
-                        .expect("dal::get_block() : fail to parse monetary_mass !")
-                        as usize,
-                    unit_base: row[9]
-                        .as_integer()
-                        .expect("dal::get_block() : fail to parse unit_base !")
-                        as usize,
-                    issuers_count: row[10]
-                        .as_integer()
-                        .expect("dal::get_block() : fail to parse issuers_count !")
-                        as usize,
-                    issuers_frame: row[11]
-                        .as_integer()
-                        .expect("dal::get_block() : fail to parse issuers_frame !")
-                        as isize,
-                    issuers_frame_var: row[12]
-                        .as_integer()
-                        .expect("dal::get_block() : fail to parse issuers_frame_var !")
-                        as isize,
-                    currency: row[15]
-                        .as_string()
-                        .expect("dal::get_block() : fail to parse currency !")
-                        .to_string(),
-                    issuers: vec![PubKey::Ed25519(
-                        ed25519::PublicKey::from_base58(
-                            row[16]
-                                .as_string()
-                                .expect("dal::get_block() : fail to parse issuer !"),
-                        ).expect("dal::get_block() : fail to parse pubkey !"),
-                    )],
-                    signatures: vec![Sig::Ed25519(
-                        ed25519::Signature::from_base64(
-                            row[17]
-                                .as_string()
-                                .expect("dal::get_block() : fail to parse signature !"),
-                        ).expect("dal::get_block() : fail to parse signature (2) !"),
-                    )],
-                    hash: Some(BlockHash(
-                        Hash::from_hex(
-                            row[18]
-                                .as_string()
-                                .expect("dal::get_block() : fail to parse hash !"),
-                        ).expect("dal::get_block() : fail to parse hash (2) !"),
-                    )),
-                    parameters: None,
-                    previous_hash: Hash::from_hex(
-                        row[19]
-                            .as_string()
-                            .expect("dal::get_block() : fail to parse previous_hash !"),
-                    ).expect(
-                        "dal::get_block() : fail to parse previous_hash (2) !",
-                    ),
-                    previous_issuer: None,
-                    inner_hash: Some(inner_hash),
-                    dividend,
-                    identities: identities.clone(),
-                    joiners: parse_memberships(
-                        currency,
-                        MembershipType::In(),
-                        row[22]
-                            .as_string()
-                            .expect("dal::get_block() : fail to parse joiners !"),
-                    ).expect("dal::get_block() : fail to parse joiners (2) !"),
-                    actives: parse_memberships(
-                        currency,
-                        MembershipType::In(),
-                        row[23]
-                            .as_string()
-                            .expect("dal::get_block() : fail to parse actives !"),
-                    ).expect("dal::get_block() : fail to parse actives (2) !"),
-                    leavers: parse_memberships(
-                        currency,
-                        MembershipType::Out(),
-                        row[24]
-                            .as_string()
-                            .expect("dal::get_block() : fail to parse leavers !"),
-                    ).expect("dal::get_block() : fail to parse leavers (2) !"),
-                    revoked: parse_revocations(
-                        currency,
-                        db,
-                        &hashmap_identities,
-                        row[25]
-                            .as_string()
-                            .expect("dal::get_block() : fail to parse revoked !"),
-                    ).expect("dal::get_block() : fail to parse revoked (2) !"),
-                    excluded: parse_exclusions(
-                        row[26]
-                            .as_string()
-                            .expect("dal::get_block() : fail to parse excluded !"),
-                    ).expect("dal::get_block() : fail to parse excluded (2) !"),
-                    certifications: parse_certifications(
-                        currency,
-                        db,
-                        &hashmap_identities,
-                        row[27]
-                            .as_string()
-                            .expect("dal::get_block() : fail to parse certifications !"),
-                    ).expect(
-                        "dal::get_block() : fail to parse certifications (2) !",
-                    ),
-                    transactions: parse_compact_transactions(
-                        currency,
-                        row[28]
-                            .as_string()
-                            .expect("dal::get_block() : fail to parse transactions !"),
-                    ).expect("dal::get_block() : fail to parse transactions (2) !"),
-                    inner_hash_and_nonce_str: format!(
-                        "InnerHash: {}\nNonce: {}\n",
-                        inner_hash.to_hex(),
-                        nonce
-                    ),
-                },
-                //median_frame: row[13].as_integer().unwrap_or(0) as usize,
-                //second_tiercile_frame: row[14].as_integer().unwrap_or(0) as usize,
-            })
+    pub fn get_block(
+        blockchain_db: &BinFileDB<LocalBlockchainV10Datas>,
+        forks_blocks_db: Option<&BinFileDB<ForksBlocksV10Datas>>,
+        blockstamp: &Blockstamp,
+    ) -> Result<Option<DALBlock>, DALError> {
+        let dal_block = blockchain_db.read(|db| db.get(&blockstamp.id).cloned())?;
+        if dal_block.is_none() && forks_blocks_db.is_some() {
+            Ok(forks_blocks_db
+                .expect("safe unwrap")
+                .read(|db| db.get(&blockstamp).cloned())?)
         } else {
-            None
+            Ok(dal_block)
         }
     }
 
-    pub fn get_current_frame(&self, db: &DuniterDB) -> HashMap<PubKey, usize> {
-        let frame_begin = i64::from(self.block.number.0) - (self.block.issuers_frame as i64);
-        let mut current_frame: HashMap<PubKey, usize> = HashMap::new();
-        let mut cursor = db
-            .0
-            .prepare("SELECT issuer FROM blocks WHERE fork=0 AND number>=? LIMIT ?;")
-            .expect("get current frame blocks failure at step 1 !")
-            .cursor();
-        cursor
-            .bind(&[
-                sqlite::Value::Integer(frame_begin),
-                sqlite::Value::Integer(self.block.issuers_frame as i64),
-            ])
-            .expect("get current frame blocks failure at step 2 !");
-
-        while let Some(row) = cursor
-            .next()
-            .expect("get current frame blocks failure at step 3 !")
-        {
-            let current_frame_copy = current_frame.clone();
-            match current_frame_copy.get(&PubKey::Ed25519(
-                ed25519::PublicKey::from_base58(row[0].as_string().unwrap()).unwrap(),
-            )) {
-                Some(blocks_count) => {
-                    if let Some(new_blocks_count) = current_frame.get_mut(&PubKey::Ed25519(
-                        ed25519::PublicKey::from_base58(row[0].as_string().unwrap()).unwrap(),
-                    )) {
-                        *new_blocks_count = *blocks_count + 1;
-                    }
-                }
-                None => {
-                    current_frame.insert(
-                        PubKey::Ed25519(
-                            ed25519::PublicKey::from_base58(row[0].as_string().unwrap()).unwrap(),
-                        ),
-                        0,
-                    );
-                }
+    pub fn get_block_in_local_blockchain(
+        db: &BinFileDB<LocalBlockchainV10Datas>,
+        block_id: BlockId,
+    ) -> Result<Option<BlockDocument>, DALError> {
+        Ok(db.read(|db| {
+            if let Some(dal_block) = db.get(&block_id) {
+                Some(dal_block.block.clone())
+            } else {
+                None
             }
-        }
-        current_frame
+        })?)
     }
 
-    pub fn compute_median_issuers_frame(&mut self, db: &DuniterDB) -> () {
-        let current_frame = self.get_current_frame(db);
+    pub fn get_current_frame(
+        &self,
+        db: &BinFileDB<LocalBlockchainV10Datas>,
+    ) -> Result<HashMap<PubKey, usize>, DALError> {
+        let frame_begin = self.block.number.0 - self.block.issuers_frame as u32;
+        Ok(db.read(|db| {
+            let mut current_frame: HashMap<PubKey, usize> = HashMap::new();
+            for block_number in frame_begin..self.block.number.0 {
+                let issuer = db
+                    .get(&BlockId(block_number))
+                    .expect(&format!("Fail to get block #{} !", block_number))
+                    .block
+                    .issuers()[0];
+                let issuer_count_blocks =
+                    if let Some(issuer_count_blocks) = current_frame.get(&issuer) {
+                        issuer_count_blocks + 1
+                    } else {
+                        1
+                    };
+                current_frame.insert(issuer, issuer_count_blocks);
+            }
+            current_frame
+        })?)
+    }
+
+    pub fn compute_median_issuers_frame(&mut self, db: &BinFileDB<LocalBlockchainV10Datas>) -> () {
+        let current_frame = self
+            .get_current_frame(db)
+            .expect("Fatal error : fail to read LocalBlockchainV10DB !");
         if !current_frame.is_empty() {
             let mut current_frame_vec: Vec<_> = current_frame.values().cloned().collect();
             current_frame_vec.sort_unstable();

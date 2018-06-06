@@ -38,9 +38,8 @@ extern crate simplelog;
 extern crate sqlite;
 extern crate threadpool;
 
-use self::threadpool::ThreadPool;
 use clap::{App, ArgMatches};
-use duniter_blockchain::BlockchainModule;
+use duniter_blockchain::{BlockchainModule, DBExQuery, DBExTxQuery, DBExWotQuery};
 use duniter_conf::DuniterKeyPairs;
 use duniter_message::DuniterMessage;
 use duniter_module::*;
@@ -52,6 +51,7 @@ use std::fs::{File, OpenOptions};
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
+use threadpool::ThreadPool;
 
 #[derive(Debug)]
 /// Duniter Core Datas
@@ -124,6 +124,21 @@ impl DuniterCore {
             let ts_profile = matches.value_of("TS_PROFILE").unwrap_or("duniter_default");
             sync_ts(&conf, ts_profile, matches.is_present("cautious"));
             None
+        } else if let Some(matches) = cli_args.subcommand_matches("dbex") {
+            if let Some(member_matches) = matches.subcommand_matches("member") {
+                let uid = member_matches.value_of("UID").unwrap_or("");
+                dbex(
+                    &conf,
+                    &DBExQuery::WotQuery(DBExWotQuery::MemberDatas(String::from(uid))),
+                );
+            } else if let Some(balance_matches) = matches.subcommand_matches("balance") {
+                let address = balance_matches.value_of("ADDRESS").unwrap_or("");
+                dbex(
+                    &conf,
+                    &DBExQuery::TxQuery(DBExTxQuery::Balance(String::from(address))),
+                );
+            }
+            None
         } else if let Some(matches) = cli_args.subcommand_matches("reset") {
             let mut profile_path = match env::home_dir() {
                 Some(path) => path,
@@ -135,7 +150,10 @@ impl DuniterCore {
             if !profile_path.as_path().exists() {
                 panic!(format!("Error : {} profile don't exist !", profile));
             }
-            match matches.value_of("DATAS_TYPE").unwrap() {
+            match matches
+                .value_of("DATAS_TYPE")
+                .expect("cli param DATAS_TYPE is missing !")
+            {
                 "data" => {
                     let mut currency_datas_path = profile_path.clone();
                     currency_datas_path.push("g1");
@@ -189,7 +207,6 @@ impl DuniterCore {
             let mut blockchain_module = BlockchainModule::load_blockchain_conf(
                 &self.conf,
                 RequiredKeysContent::MemberKeyPair(None),
-                false,
             );
             info!("Success to load Blockchain module.");
 
@@ -265,7 +282,7 @@ pub fn start(
         let mut modules_senders: Vec<mpsc::Sender<DuniterMessage>> = Vec::new();
         let mut modules_count_expected = None;
         while modules_count_expected.is_none()
-            || modules_senders.len() < modules_count_expected.unwrap() + 1
+            || modules_senders.len() < modules_count_expected.expect("safe unwrap") + 1
         {
             match main_receiver.recv_timeout(Duration::from_secs(20)) {
                 Ok(mess) => {
@@ -363,7 +380,13 @@ pub fn start(
 /// Launch synchronisation from a duniter-ts database
 pub fn sync_ts(conf: &DuniterConf, ts_profile: &str, cautious: bool) {
     // Launch sync-ts
-    BlockchainModule::sync_ts(&conf, ts_profile, cautious);
+    BlockchainModule::sync_ts(conf, ts_profile, cautious);
+}
+
+/// Launch databases explorer
+pub fn dbex(conf: &DuniterConf, query: &DBExQuery) {
+    // Launch databases explorer
+    BlockchainModule::dbex(conf, query);
 }
 
 /// Initialize logger
@@ -418,20 +441,17 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
         ).expect("Fatal error : fail to create log file path !");
     }
 
-    CombinedLogger::init(vec![
-        TermLogger::new(LevelFilter::Error, logger_config).unwrap(),
-        WriteLogger::new(
-            log_level.to_level_filter(),
-            logger_config,
-            OpenOptions::new()
-                .write(true)
-                .append(true)
-                .open(
-                    log_file_path
-                        .to_str()
-                        .expect("Fatal error : fail to get log file path !"),
-                )
-                .expect("Fatal error : fail to open log file !"),
-        ),
-    ]).expect("Fatal error : fail to init logger !");
+    CombinedLogger::init(vec![WriteLogger::new(
+        log_level.to_level_filter(),
+        logger_config,
+        OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(
+                log_file_path
+                    .to_str()
+                    .expect("Fatal error : fail to get log file path !"),
+            )
+            .expect("Fatal error : fail to open log file !"),
+    )]).expect("Fatal error : fail to init logger !");
 }

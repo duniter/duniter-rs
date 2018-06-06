@@ -15,19 +15,17 @@
 
 //! Wrappers around Transaction documents.
 
-extern crate serde;
+use std::ops::{Add, Deref, Sub};
 
-use std::ops::Deref;
-
+use crypto::digest::Digest;
+use crypto::sha2::Sha256;
 use duniter_crypto::keys::*;
 use regex::Regex;
 use regex::RegexBuilder;
 
-use self::serde::ser::{Serialize, Serializer};
-
 use blockchain::v10::documents::*;
 use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
-use Blockstamp;
+use {BlockId, Blockstamp, Hash};
 
 lazy_static! {
     static ref TRANSACTION_REGEX_SIZE: &'static usize = &40_000_000;
@@ -58,23 +56,49 @@ lazy_static! {
     ).unwrap();
 }
 
+/// Wrap a transaction amout
+#[derive(Debug, Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Deserialize, Hash, Serialize)]
+pub struct TxAmount(pub isize);
+
+impl Add for TxAmount {
+    type Output = TxAmount;
+    fn add(self, a: TxAmount) -> Self::Output {
+        TxAmount(self.0 + a.0)
+    }
+}
+
+impl Sub for TxAmount {
+    type Output = TxAmount;
+    fn sub(self, a: TxAmount) -> Self::Output {
+        TxAmount(self.0 - a.0)
+    }
+}
+
+/// Wrap a transaction amout base
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Hash, Serialize)]
+pub struct TxBase(pub usize);
+
+/// Wrap a transaction index
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct TxIndex(pub usize);
+
 /// Wrap a transaction input
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum TransactionInput {
     /// Universal Dividend Input
-    D(isize, usize, PubKey, u64),
+    D(TxAmount, TxBase, PubKey, BlockId),
     /// Previous Transaction Input
-    T(isize, usize, String, usize),
+    T(TxAmount, TxBase, Hash, TxIndex),
 }
 
 impl ToString for TransactionInput {
     fn to_string(&self) -> String {
         match *self {
             TransactionInput::D(amount, base, pubkey, block_number) => {
-                format!("{}:{}:D:{}:{}", amount, base, pubkey, block_number)
+                format!("{}:{}:D:{}:{}", amount.0, base.0, pubkey, block_number.0)
             }
             TransactionInput::T(amount, base, ref tx_hash, tx_index) => {
-                format!("{}:{}:T:{}:{}", amount, base, tx_hash, tx_index)
+                format!("{}:{}:T:{}:{}", amount.0, base.0, tx_hash, tx_index.0)
             }
         }
     }
@@ -89,14 +113,16 @@ impl TransactionInput {
             let pubkey = &caps["pubkey"];
             let block_number = &caps["block_number"];
             Ok(TransactionInput::D(
-                amount.parse().expect("fail to parse input amount !"),
-                base.parse().expect("fail to parse input base !"),
+                TxAmount(amount.parse().expect("fail to parse input amount !")),
+                TxBase(base.parse().expect("fail to parse input base !")),
                 PubKey::Ed25519(
                     ed25519::PublicKey::from_base58(pubkey).expect("fail to parse input pubkey !"),
                 ),
-                block_number
-                    .parse()
-                    .expect("fail to parse input block_number !"),
+                BlockId(
+                    block_number
+                        .parse()
+                        .expect("fail to parse input block_number !"),
+                ),
             ))
         //Ok(TransactionInput::D(10, 0, PubKey::Ed25519(ed25519::PublicKey::from_base58("FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa").unwrap(), 0)))
         } else if let Some(caps) = T_INPUT_REGEX.captures(source) {
@@ -105,10 +131,10 @@ impl TransactionInput {
             let tx_hash = &caps["tx_hash"];
             let tx_index = &caps["tx_index"];
             Ok(TransactionInput::T(
-                amount.parse().expect("fail to parse input amount"),
-                base.parse().expect("fail to parse base amount"),
-                String::from(tx_hash),
-                tx_index.parse().expect("fail to parse tx_index amount"),
+                TxAmount(amount.parse().expect("fail to parse input amount")),
+                TxBase(base.parse().expect("fail to parse base amount")),
+                Hash::from_hex(tx_hash).expect("fail to parse tx_hash"),
+                TxIndex(tx_index.parse().expect("fail to parse tx_index amount")),
             ))
         } else {
             println!("Fail to parse this input = {:?}", source);
@@ -120,7 +146,7 @@ impl TransactionInput {
 }
 
 /// Wrap a transaction unlock proof
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum TransactionUnlockProof {
     /// Indicates that the signature of the corresponding key is at the bottom of the document
     Sig(usize),
@@ -156,7 +182,7 @@ impl TransactionUnlockProof {
 }
 
 /// Wrap a transaction unlocks input
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct TransactionInputUnlocks {
     /// Input index
     pub index: usize,
@@ -204,12 +230,12 @@ impl TransactionInputUnlocks {
 }
 
 /// Wrap a transaction ouput condition
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub enum TransactionOutputCondition {
     /// The consumption of funds will require a valid signature of the specified key
     Sig(PubKey),
     /// The consumption of funds will require to provide a code with the hash indicated
-    Xhx(String),
+    Xhx(Hash),
     /// Funds may not be consumed until the blockchain reaches the timestamp indicated.
     Cltv(u64),
     /// Funds may not be consumed before the duration indicated, starting from the timestamp of the block where the transaction is written.
@@ -230,24 +256,37 @@ impl ToString for TransactionOutputCondition {
 impl TransactionOutputCondition {
     fn parse_from_str(source: &str) -> Result<TransactionOutputCondition, V10DocumentParsingError> {
         if let Some(caps) = OUTPUT_COND_SIG_REGEX.captures(source) {
-            Ok(TransactionOutputCondition::Sig(PubKey::Ed25519(
-                ed25519::PublicKey::from_base58(&caps["pubkey"])
-                    .expect("fail to parse SIG TransactionOutputCondition"),
-            )))
+            if let Ok(pubkey) = ed25519::PublicKey::from_base58(&caps["pubkey"]) {
+                Ok(TransactionOutputCondition::Sig(PubKey::Ed25519(pubkey)))
+            } else {
+                Err(V10DocumentParsingError::InvalidInnerFormat(String::from(
+                    "OutputCondition : Fail to parse SIG pubkey.",
+                )))
+            }
         } else if let Some(caps) = OUTPUT_COND_XHX_REGEX.captures(source) {
-            Ok(TransactionOutputCondition::Xhx(String::from(&caps["hash"])))
+            if let Ok(hash) = Hash::from_hex(&caps["hash"]) {
+                Ok(TransactionOutputCondition::Xhx(hash))
+            } else {
+                Err(V10DocumentParsingError::InvalidInnerFormat(String::from(
+                    "OutputCondition : Fail to parse XHX Hash.",
+                )))
+            }
         } else if let Some(caps) = OUTPUT_COND_CLTV_REGEX.captures(source) {
-            Ok(TransactionOutputCondition::Cltv(
-                caps["timestamp"]
-                    .parse()
-                    .expect("fail to parse CLTV TransactionOutputCondition"),
-            ))
+            if let Ok(timestamp) = caps["timestamp"].parse() {
+                Ok(TransactionOutputCondition::Cltv(timestamp))
+            } else {
+                Err(V10DocumentParsingError::InvalidInnerFormat(String::from(
+                    "OutputCondition : Fail to parse CLTV timestamp.",
+                )))
+            }
         } else if let Some(caps) = OUTPUT_COND_CSV_REGEX.captures(source) {
-            Ok(TransactionOutputCondition::Csv(
-                caps["duration"]
-                    .parse()
-                    .expect("fail to parse CSV TransactionOutputCondition"),
-            ))
+            if let Ok(duration) = caps["duration"].parse() {
+                Ok(TransactionOutputCondition::Csv(duration))
+            } else {
+                Err(V10DocumentParsingError::InvalidInnerFormat(String::from(
+                    "OutputCondition : Fail to parse CSV duraion.",
+                )))
+            }
         } else {
             Err(V10DocumentParsingError::InvalidInnerFormat(
                 "Transaction5".to_string(),
@@ -257,7 +296,7 @@ impl TransactionOutputCondition {
 }
 
 /// Wrap a transaction ouput condition group
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub enum TransactionOutputConditionGroup {
     /// Single
     Single(TransactionOutputCondition),
@@ -340,12 +379,12 @@ impl TransactionOutputConditionGroup {
 }
 
 /// Wrap a transaction ouput
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct TransactionOutput {
     /// Amount
-    pub amount: isize,
+    pub amount: TxAmount,
     /// Base
-    pub base: usize,
+    pub base: TxBase,
     /// List of conditions for consum this output
     pub conditions: TransactionOutputConditionGroup,
 }
@@ -354,8 +393,8 @@ impl ToString for TransactionOutput {
     fn to_string(&self) -> String {
         format!(
             "{}:{}:{}",
-            self.amount,
-            self.base,
+            self.amount.0,
+            self.base.0,
             self.conditions.to_string()
         )
     }
@@ -365,8 +404,8 @@ impl TransactionOutput {
     /// Parse Transaction Output from string.
     pub fn parse_from_str(source: &str) -> Result<TransactionOutput, V10DocumentParsingError> {
         if let Some(caps) = OUTPUT_REGEX.captures(source) {
-            let amount = caps["amount"].parse().expect("fail to parse output amount");
-            let base = caps["base"].parse().expect("fail to parse base amount");
+            let amount = TxAmount(caps["amount"].parse().expect("fail to parse output amount"));
+            let base = TxBase(caps["base"].parse().expect("fail to parse base amount"));
             let conditions = TransactionOutputConditionGroup::parse_from_str(&caps["conditions"])?;
             Ok(TransactionOutput {
                 conditions,
@@ -384,13 +423,13 @@ impl TransactionOutput {
 /// Wrap a Transaction document.
 ///
 /// Must be created by parsing a text document or using a builder.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct TransactionDocument {
     /// Document as text.
     ///
     /// Is used to check signatures, and other values
     /// must be extracted from it.
-    text: String,
+    text: Option<String>,
 
     /// Currency.
     currency: String,
@@ -410,6 +449,47 @@ pub struct TransactionDocument {
     comment: String,
     /// Document signature (there should be only one).
     signatures: Vec<Sig>,
+    /// Transaction hash
+    hash: Option<Hash>,
+}
+
+impl TransactionDocument {
+    /// Compute transaction hash
+    pub fn compute_hash(&mut self) -> Hash {
+        let mut sha256 = Sha256::new();
+        let mut hashing_text = if let Some(ref text) = self.text {
+            text.clone()
+        } else {
+            panic!("Try to compute_hash of tx with None text !")
+        };
+        hashing_text.push_str(&self.signatures[0].to_string());
+        hashing_text.push_str("\n");
+        //println!("tx_text_hasing={}", hashing_text);
+        sha256.input_str(&hashing_text);
+        self.hash = Some(Hash::from_hex(&sha256.result_str()).unwrap());
+        self.hash.expect("Try to get hash of a reduce tx !")
+    }
+    /// Get transaction hash
+    pub fn get_hash(&mut self) -> Hash {
+        if let Some(hash) = self.hash {
+            hash
+        } else {
+            self.compute_hash()
+        }
+    }
+    /// Get transaction inputs
+    pub fn get_inputs(&self) -> &[TransactionInput] {
+        &self.inputs
+    }
+    /// Get transaction outputs
+    pub fn get_outputs(&self) -> &[TransactionOutput] {
+        &self.outputs
+    }
+    /// Lightens the transaction (for example to store it while minimizing the space required)
+    pub fn reduce(&mut self) {
+        self.text = None;
+        self.hash = None;
+    }
 }
 
 impl Document for TransactionDocument {
@@ -498,21 +578,15 @@ impl TextDocument for TransactionDocument {
     type CompactTextDocument_ = TransactionDocument;
 
     fn as_text(&self) -> &str {
-        &self.text
+        if let Some(ref text) = self.text {
+            text
+        } else {
+            panic!("Try to get text of tx whti None text !")
+        }
     }
 
     fn to_compact_document(&self) -> Self::CompactTextDocument_ {
         self.clone()
-    }
-}
-
-impl Serialize for TransactionDocument {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let compact_text = self.to_compact_document().generate_compact_text();
-        serializer.serialize_str(&compact_text.replace("\n", "$"))
     }
 }
 
@@ -546,7 +620,7 @@ pub struct TransactionDocumentBuilder<'a> {
 impl<'a> TransactionDocumentBuilder<'a> {
     fn build_with_text_and_sigs(self, text: String, signatures: Vec<Sig>) -> TransactionDocument {
         TransactionDocument {
-            text,
+            text: Some(text),
             currency: self.currency.to_string(),
             blockstamp: *self.blockstamp,
             locktime: *self.locktime,
@@ -556,6 +630,7 @@ impl<'a> TransactionDocumentBuilder<'a> {
             outputs: self.outputs.clone(),
             comment: String::from(self.comment),
             signatures,
+            hash: None,
         }
     }
 }
@@ -670,7 +745,7 @@ impl StandardTextDocumentParser for TransactionDocumentParser {
             }
 
             Ok(V10Document::Transaction(Box::new(TransactionDocument {
-                text: doc.to_owned(),
+                text: Some(doc.to_owned()),
                 currency: currency.to_owned(),
                 blockstamp,
                 locktime,
@@ -680,6 +755,7 @@ impl StandardTextDocumentParser for TransactionDocumentParser {
                 outputs,
                 comment,
                 signatures,
+                hash: None,
             })))
         } else {
             Err(V10DocumentParsingError::InvalidInnerFormat(
@@ -748,6 +824,54 @@ mod tests {
         assert_eq!(
             builder.build_and_sign(vec![prikey]).verify_signatures(),
             VerificationResult::Valid()
+        );
+    }
+
+    #[test]
+    fn compute_transaction_hash() {
+        let pubkey = PubKey::Ed25519(
+            ed25519::PublicKey::from_base58("FEkbc4BfJukSWnCU6Hed6dgwwTuPFTVdgz5LpL4iHr9J")
+                .unwrap(),
+        );
+
+        let sig = Sig::Ed25519(ed25519::Signature::from_base64(
+            "XEwKwKF8AI1gWPT7elR4IN+bW3Qn02Dk15TEgrKtY/S2qfZsNaodsLofqHLI24BBwZ5aadpC88ntmjo/UW9oDQ==",
+        ).unwrap());
+
+        let block = Blockstamp::from_string(
+            "60-00001FE00410FCD5991EDD18AA7DDF15F4C8393A64FA92A1DB1C1CA2E220128D",
+        ).unwrap();
+
+        let builder = TransactionDocumentBuilder {
+            currency: "g1",
+            blockstamp: &block,
+            locktime: &0,
+            issuers: &vec![pubkey],
+            inputs: &vec![
+                TransactionInput::parse_from_str(
+                    "950:0:T:2CF1ACD8FE8DC93EE39A1D55881C50D87C55892AE8E4DB71D4EBAB3D412AA8FD:1",
+                ).expect("fail to parse input !"),
+            ],
+            unlocks: &vec![
+                TransactionInputUnlocks::parse_from_str("0:SIG(0)")
+                    .expect("fail to parse unlock !"),
+            ],
+            outputs: &vec![
+                TransactionOutput::parse_from_str(
+                    "30:0:SIG(38MEAZN68Pz1DTvT3tqgxx4yQP6snJCQhPqEFxbDk4aE)",
+                ).expect("fail to parse output !"),
+                TransactionOutput::parse_from_str(
+                    "920:0:SIG(FEkbc4BfJukSWnCU6Hed6dgwwTuPFTVdgz5LpL4iHr9J)",
+                ).expect("fail to parse output !"),
+            ],
+            comment: "Pour cesium merci",
+        };
+        let mut tx_doc = builder.build_with_signature(vec![sig]);
+        assert_eq!(tx_doc.verify_signatures(), VerificationResult::Valid());
+        assert_eq!(
+            tx_doc.get_hash(),
+            Hash::from_hex("876D2430E0B66E2CE4467866D8F923D68896CACD6AA49CDD8BDD0096B834DEF1")
+                .expect("fail to parse hash")
         );
     }
 

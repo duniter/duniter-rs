@@ -327,19 +327,13 @@ pub fn write_conf_file(file_path: &PathBuf, conf: &DuniterConf) -> Result<(), st
 }
 
 /// Returns the path to the database containing the blockchain
-pub fn get_db_path(profile: &str, currency: &Currency, sync: bool) -> PathBuf {
-    if sync {
-        let mut db_path = PathBuf::new();
-        let mut db_name = String::from(profile);
-        db_name.push_str("_durs.db");
-        db_path.push("/dev/shm");
-        db_path.push(db_name);
-        db_path
-    } else {
-        let mut db_path = datas_path(profile, &currency);
-        db_path.push("blockchain.db");
-        db_path
+pub fn get_blockchain_db_path(profile: &str, currency: &Currency) -> PathBuf {
+    let mut db_path = datas_path(profile, &currency);
+    db_path.push("blockchain/");
+    if !db_path.as_path().exists() {
+        fs::create_dir(db_path.as_path()).expect("Impossible to create blockchain dir !");
     }
+    db_path
 }
 
 /// Returns the path to the binary file containing the state of the web of trust

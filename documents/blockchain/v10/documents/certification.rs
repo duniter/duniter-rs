@@ -15,9 +15,6 @@
 
 //! Wrappers around Certification documents.
 
-extern crate serde;
-
-use self::serde::ser::{Serialize, Serializer};
 use duniter_crypto::keys::*;
 use regex::Regex;
 
@@ -32,7 +29,7 @@ lazy_static! {
     ).unwrap();
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 /// Wrap an Compact Revocation document (in block content)
 pub struct CompactCertificationDocument {
     /// Issuer
@@ -60,7 +57,7 @@ impl CompactTextDocument for CompactCertificationDocument {
 /// Wrap an Certification document.
 ///
 /// Must be created by parsing a text document or using a builder.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CertificationDocument {
     /// Document as text.
     ///
@@ -145,15 +142,6 @@ impl TextDocument for CertificationDocument {
             block_number: self.blockstamp().id,
             signature: self.signatures()[0],
         }
-    }
-}
-
-impl Serialize for TextDocumentFormat<CertificationDocument> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.as_compact_text())
     }
 }
 

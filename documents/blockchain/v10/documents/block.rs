@@ -26,31 +26,64 @@ use blockchain::v10::documents::revocation::RevocationDocument;
 use blockchain::v10::documents::transaction::TransactionDocument;
 use blockchain::v10::documents::*;
 use blockchain::{BlockchainProtocol, Document, IntoSpecializedDocument};
+use std::fmt::{Display, Error, Formatter};
+use std::ops::Deref;
 use {BlockHash, BlockId, Blockstamp, Hash};
 
+/// Currency name
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub struct CurrencyName(pub String);
+
+impl Display for CurrencyName {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone)]
+/// Store error in block parameters parsing
+pub enum ParseParamsError {
+    /// ParseIntError
+    ParseIntError(::std::num::ParseIntError),
+    /// ParseFloatError
+    ParseFloatError(::std::num::ParseFloatError),
+}
+
+impl From<::std::num::ParseIntError> for ParseParamsError {
+    fn from(err: ::std::num::ParseIntError) -> ParseParamsError {
+        ParseParamsError::ParseIntError(err)
+    }
+}
+
+impl From<::std::num::ParseFloatError> for ParseParamsError {
+    fn from(err: ::std::num::ParseFloatError) -> ParseParamsError {
+        ParseParamsError::ParseFloatError(err)
+    }
+}
+
 /// Currency parameters
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct BlockParameters {
+#[derive(Debug, Copy, Clone, PartialEq, Deserialize, Serialize)]
+pub struct BlockV10Parameters {
     /// UD target growth rate (see Relative Theorie of Money)
     pub c: f64,
     /// Duration between the creation of two DU (in seconds)
-    pub dt: i64,
+    pub dt: u64,
     /// Amount of the initial UD
-    pub ud0: i64,
+    pub ud0: usize,
     /// Minimum duration between the writing of 2 certifications from the same issuer (in seconds)
     pub sig_period: u64,
     /// Maximum number of active certifications at the same time (for the same issuer)
-    pub sig_stock: i64,
+    pub sig_stock: usize,
     /// Maximum retention period of a pending certification
-    pub sig_window: i64,
+    pub sig_window: u64,
     /// Time to expiry of written certification
-    pub sig_validity: i64,
+    pub sig_validity: u64,
     /// Minimum number of certifications required to become a member
-    pub sig_qty: i64,
+    pub sig_qty: usize,
     /// Maximum retention period of a pending identity
-    pub idty_window: i64,
+    pub idty_window: u64,
     /// Maximum retention period of a pending membership
-    pub ms_window: i64,
+    pub ms_window: u64,
     /// Percentage of referring members who must be within step_max steps of each member
     pub x_percent: f64,
     /// Time to expiry of written membership
@@ -58,27 +91,114 @@ pub struct BlockParameters {
     /// For a member to respect the distance rule,
     /// there must exist for more than x_percent % of the referring members
     /// a path of less than step_max steps from the referring member to the evaluated member.
-    pub step_max: u32,
+    pub step_max: usize,
     /// Number of blocks used for calculating median time.
-    pub median_time_blocks: i64,
+    pub median_time_blocks: usize,
     /// The average time for writing 1 block (wished time)
-    pub avg_gen_time: i64,
+    pub avg_gen_time: u64,
     /// The number of blocks required to evaluate again PoWMin value
-    pub dt_diff_eval: i64,
+    pub dt_diff_eval: usize,
     /// The percent of previous issuers to reach for personalized difficulty
     pub percent_rot: f64,
     /// Time of first UD.
-    pub ud_time0: i64,
+    pub ud_time0: u64,
     /// Time of first reevaluation of the UD.
-    pub ud_reeval_time0: i64,
+    pub ud_reeval_time0: u64,
     /// Time period between two re-evaluation of the UD.
-    pub dt_reeval: i64,
+    pub dt_reeval: u64,
+}
+
+impl Default for BlockV10Parameters {
+    fn default() -> BlockV10Parameters {
+        BlockV10Parameters {
+            c: 0.0488,
+            dt: 86_400,
+            ud0: 1_000,
+            sig_period: 432_000,
+            sig_stock: 100,
+            sig_window: 5_259_600,
+            sig_validity: 63_115_200,
+            sig_qty: 5,
+            idty_window: 5_259_600,
+            ms_window: 5_259_600,
+            x_percent: 0.8,
+            ms_validity: 31_557_600,
+            step_max: 5,
+            median_time_blocks: 24,
+            avg_gen_time: 300,
+            dt_diff_eval: 12,
+            percent_rot: 0.67,
+            ud_time0: 1_488_970_800,
+            ud_reeval_time0: 1_490_094_000,
+            dt_reeval: 15_778_800,
+        }
+    }
+}
+
+impl ::std::str::FromStr for BlockV10Parameters {
+    type Err = ParseParamsError;
+
+    fn from_str(source: &str) -> Result<Self, Self::Err> {
+        let params: Vec<&str> = source.split(':').collect();
+        Ok(BlockV10Parameters {
+            c: params[0].parse()?,
+            dt: params[1].parse()?,
+            ud0: params[2].parse()?,
+            sig_period: params[3].parse()?,
+            sig_stock: params[4].parse()?,
+            sig_window: params[5].parse()?,
+            sig_validity: params[6].parse()?,
+            sig_qty: params[7].parse()?,
+            idty_window: params[8].parse()?,
+            ms_window: params[9].parse()?,
+            x_percent: params[10].parse()?,
+            ms_validity: params[11].parse()?,
+            step_max: params[12].parse()?,
+            median_time_blocks: params[13].parse()?,
+            avg_gen_time: params[14].parse()?,
+            dt_diff_eval: params[15].parse()?,
+            percent_rot: params[16].parse()?,
+            ud_time0: params[17].parse()?,
+            ud_reeval_time0: params[18].parse()?,
+            dt_reeval: params[19].parse()?,
+        })
+    }
+}
+
+/// Store a transaction document or just its hash.
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub enum TxDocOrTxHash {
+    /// Transaction document
+    TxDoc(Box<TransactionDocument>),
+    /// transaction hash
+    TxHash(Hash),
+}
+
+impl TxDocOrTxHash {
+    /// Lightens the TxDocOrTxHash (for example to store it while minimizing the space required)
+    /// lightening consists in transforming the document by its hash.
+    pub fn reduce(&self) -> TxDocOrTxHash {
+        if let TxDocOrTxHash::TxDoc(ref tx_doc) = self {
+            let mut tx_doc = tx_doc.deref().clone();
+            TxDocOrTxHash::TxHash(tx_doc.get_hash())
+        } else {
+            self.clone()
+        }
+    }
+    /// Get TxDoc variant
+    pub fn unwrap_doc(&self) -> TransactionDocument {
+        if let TxDocOrTxHash::TxDoc(ref tx_doc) = self {
+            tx_doc.deref().clone()
+        } else {
+            panic!("Try to unwrap_doc() in a TxHash() variant of TxDocOrTxHash !")
+        }
+    }
 }
 
 /// Wrap a Block document.
 ///
 /// Must be created by parsing a text document or using a builder.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct BlockDocument {
     /// Nonce
     pub nonce: u64,
@@ -103,7 +223,7 @@ pub struct BlockDocument {
     /// Current frame variation buffer
     pub issuers_frame_var: isize,
     /// Currency.
-    pub currency: String,
+    pub currency: CurrencyName,
     /// Document issuer (there should be only one).
     pub issuers: Vec<PubKey>,
     /// Document signature (there should be only one).
@@ -112,7 +232,7 @@ pub struct BlockDocument {
     /// The hash is None, when the block is generated but the proof of work has not yet started
     pub hash: Option<BlockHash>,
     /// Currency parameters (only in genesis block)
-    pub parameters: Option<BlockParameters>,
+    pub parameters: Option<BlockV10Parameters>,
     /// Hash of the previous block
     pub previous_hash: Hash,
     /// Issuer of the previous block
@@ -136,12 +256,19 @@ pub struct BlockDocument {
     /// Certifications
     pub certifications: Vec<TextDocumentFormat<CertificationDocument>>,
     /// Transactions
-    pub transactions: Vec<TransactionDocument>,
+    pub transactions: Vec<TxDocOrTxHash>,
     /// Part to sign
     pub inner_hash_and_nonce_str: String,
 }
 
 impl BlockDocument {
+    /// Return previous blockstamp
+    pub fn previous_blockstamp(&self) -> Blockstamp {
+        Blockstamp {
+            id: BlockId(self.number.0 - 1),
+            hash: BlockHash(self.previous_hash),
+        }
+    }
     /// Compute inner hash
     pub fn compute_inner_hash(&mut self) {
         let mut sha256 = Sha256::new();
@@ -154,7 +281,9 @@ impl BlockDocument {
         self.nonce = new_nonce;
         self.inner_hash_and_nonce_str = format!(
             "InnerHash: {}\nNonce: {}\n",
-            self.inner_hash.unwrap().to_hex(),
+            self.inner_hash
+                .expect("Try to get inner_hash of an uncompleted or reduce block !")
+                .to_hex(),
             self.nonce
         );
     }
@@ -167,11 +296,27 @@ impl BlockDocument {
         let mut sha256 = Sha256::new();
         sha256.input_str(&format!(
             "InnerHash: {}\nNonce: {}\n{}\n",
-            self.inner_hash.unwrap().to_hex(),
+            self.inner_hash
+                .expect("Try to get inner_hash of an uncompleted or reduce block !")
+                .to_hex(),
             self.nonce,
             self.signatures[0]
         ));
         self.hash = Some(BlockHash(Hash::from_hex(&sha256.result_str()).unwrap()));
+    }
+    /// Lightens the block (for example to store it while minimizing the space required)
+    pub fn reduce(&mut self) {
+        //self.hash = None;
+        self.inner_hash = None;
+        self.inner_hash_and_nonce_str = String::with_capacity(0);
+        self.identities
+            .iter_mut()
+            .map(|i| i.reduce())
+            .collect::<()>();
+        self.joiners.iter_mut().map(|i| i.reduce()).collect::<()>();
+        self.actives.iter_mut().map(|i| i.reduce()).collect::<()>();
+        self.leavers.iter_mut().map(|i| i.reduce()).collect::<()>();
+        self.transactions = self.transactions.iter_mut().map(|t| t.reduce()).collect();
     }
     /// Generate compact inner text (for compute inner_hash)
     pub fn generate_compact_inner_text(&self) -> String {
@@ -217,8 +362,10 @@ impl BlockDocument {
         }
         let mut transactions_str = String::from("");
         for transaction in self.transactions.clone() {
-            transactions_str.push_str("\n");
-            transactions_str.push_str(&transaction.generate_compact_text());
+            if let TxDocOrTxHash::TxDoc(transaction) = transaction {
+                transactions_str.push_str("\n");
+                transactions_str.push_str(&transaction.deref().generate_compact_text());
+            }
         }
         let mut dividend_str = String::from("");
         if let Some(dividend) = self.dividend {
@@ -288,13 +435,15 @@ impl Document for BlockDocument {
     }
 
     fn currency(&self) -> &str {
-        &self.currency
+        &self.currency.0
     }
 
     fn blockstamp(&self) -> Blockstamp {
         Blockstamp {
             id: self.number,
-            hash: self.hash.unwrap(),
+            hash: self
+                .hash
+                .expect("Fatal error : try to get blockstamp of an uncomplete or reduce block !"),
         }
     }
 
@@ -317,7 +466,9 @@ impl CompactTextDocument for BlockDocument {
         format!(
             "{}InnerHash: {}\nNonce: ",
             compact_inner_text,
-            self.inner_hash.unwrap().to_hex()
+            self.inner_hash
+                .expect("Try to get inner_hash of an uncompleted or reduce block !")
+                .to_hex()
         )
     }
 }
@@ -361,7 +512,7 @@ mod tests {
             issuers_count: 41,
             issuers_frame: 201,
             issuers_frame_var: 5,
-            currency: String::from("g1"),
+            currency: CurrencyName(String::from("g1")),
             issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58("2sZF6j2PkxBDNAqUde7Dgo5x3crkerZpQ4rBqqJGn8QT").unwrap())],
             signatures: vec![Sig::Ed25519(ed25519::Signature::from_base64("FsRxB+NOiL+8zTr2d3B2j2KBItDuCa0KjFMF6hXmdQzfqXAs9g3m7DlGgYLcqzqe6JXjx/Lyzqze1HBR4cS0Aw==").unwrap())],
             hash: None,
@@ -384,7 +535,11 @@ mod tests {
         block.compute_inner_hash();
         println!("{}", block.generate_compact_text());
         assert_eq!(
-            block.inner_hash.unwrap().to_hex(),
+            block
+                .inner_hash
+                .hash
+                .expect("Try to get inner_hash of an uncompleted or reduce block !")
+                .to_hex(),
             "95948AC4D45E46DA07CE0713EDE1CE0295C227EE4CA5557F73F56B7DD46FE89C"
         );
         // test generate_compact_text()
@@ -422,7 +577,12 @@ Nonce: "
         // Test hash computation
         block.compute_hash();
         assert_eq!(
-            block.hash.unwrap().0.to_hex(),
+            block
+                .hash
+                .hash
+                .expect("Try to get hash of an uncompleted or reduce block !")
+                .0
+                .to_hex(),
             "000002D3296A2D257D01F6FEE8AEC5C3E5779D04EA43F08901F41998FA97D9A1"
         );
     }
@@ -496,7 +656,7 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
             issuers_count: 42,
             issuers_frame: 211,
             issuers_frame_var: 0,
-            currency: String::from("g1"),
+            currency: CurrencyName(String::from("g1")),
             issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58("DA4PYtXdvQqk1nCaprXH52iMsK5Ahxs1nRWbWKLhpVkQ").unwrap())],
             signatures: vec![Sig::Ed25519(ed25519::Signature::from_base64("92id58VmkhgVNee4LDqBGSm8u/ooHzAD67JM6fhAE/CV8LCz7XrMF1DvRl+eRpmlaVkp6I+Iy8gmZ1WUM5C8BA==").unwrap())],
             hash: None,
@@ -512,14 +672,17 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
             revoked: Vec::new(),
             excluded: Vec::new(),
             certifications: vec![TextDocumentFormat::Complete(cert1)],
-            transactions: vec![tx1, tx2],
+            transactions: vec![TxDocOrTxHash::TxDoc(Box::new(tx1)), TxDocOrTxHash::TxDoc(Box::new(tx2))],
             inner_hash_and_nonce_str: String::new(),
         };
         // test inner_hash computation
         block.compute_inner_hash();
         println!("{}", block.generate_compact_text());
         assert_eq!(
-            block.inner_hash.unwrap().to_hex(),
+            block
+                .inner_hash
+                .expect("Try to get inner_hash of an uncompleted or reduce block !")
+                .to_hex(),
             "C8AB69E33ECE2612EADC7AB30D069B1F1A3D8C95EBBFD50DE583AC8E3666CCA1"
         );
         // test generate_compact_text()
@@ -574,7 +737,11 @@ Nonce: "
         // Test hash computation
         block.compute_hash();
         assert_eq!(
-            block.hash.unwrap().0.to_hex(),
+            block
+                .hash
+                .expect("Try to get hash of an uncompleted or reduce block !")
+                .0
+                .to_hex(),
             "000004F8B84A3590243BA562E5F2BA379F55A0B387C5D6FAC1022DFF7FFE6014"
         );
     }

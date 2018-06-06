@@ -492,7 +492,7 @@ impl DuniterModule<DuniterMessage> for TuiModule {
                                 }
                             }
                             DuniterMessage::DALEvent(ref dal_event) => match *dal_event {
-                                DALEvent::StackUpValidBlock(ref _block) => {}
+                                DALEvent::StackUpValidBlock(ref _block, ref _blockstamp) => {}
                                 DALEvent::RevertBlocks(ref _blocks) => {}
                                 _ => {}
                             },

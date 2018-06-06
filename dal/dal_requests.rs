@@ -1,14 +1,12 @@
-extern crate duniter_crypto;
-extern crate duniter_documents;
 extern crate duniter_module;
 extern crate serde;
 
-use self::duniter_crypto::keys::*;
-use self::duniter_documents::blockchain::v10::documents::{
+use self::duniter_module::ModuleReqFullId;
+use duniter_crypto::keys::*;
+use duniter_documents::blockchain::v10::documents::{
     BlockDocument, CertificationDocument, IdentityDocument, MembershipDocument, RevocationDocument,
 };
-use self::duniter_documents::Hash;
-use self::duniter_module::ModuleReqFullId;
+use duniter_documents::{Blockstamp, Hash};
 use std::collections::HashMap;
 
 #[derive(Debug, Copy, Clone)]
@@ -50,7 +48,7 @@ pub enum DALResPendings {
 
 #[derive(Debug, Clone)]
 pub enum DALResBlockchain {
-    CurrentBlock(ModuleReqFullId, Box<BlockDocument>),
+    CurrentBlock(ModuleReqFullId, Box<BlockDocument>, Blockstamp),
     BlockByNumber(ModuleReqFullId, Box<BlockDocument>),
     Chunk(ModuleReqFullId, Vec<BlockDocument>),
     UIDs(HashMap<PubKey, Option<String>>),

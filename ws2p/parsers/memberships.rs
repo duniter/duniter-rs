@@ -1,5 +1,4 @@
 extern crate serde_json;
-extern crate sqlite;
 
 use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::membership::{

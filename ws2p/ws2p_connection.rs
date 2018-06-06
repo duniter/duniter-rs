@@ -2,10 +2,10 @@ extern crate serde_json;
 extern crate websocket;
 
 use duniter_crypto::keys::*;
-use duniter_dal::parsers::blocks::parse_json_block;
 use duniter_module::ModuleReqId;
 use duniter_network::network_endpoint::{NetworkEndpoint, NetworkEndpointApi};
 use duniter_network::{NetworkDocument, NodeUUID};
+use parsers::blocks::parse_json_block;
 use std::fmt::Debug;
 use std::net::TcpStream;
 

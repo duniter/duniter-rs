@@ -1,18 +1,17 @@
-extern crate duniter_crypto;
-extern crate duniter_documents;
-extern crate duniter_network;
 extern crate serde_json;
 
-use self::duniter_network::{NetworkBlock, NetworkBlockV10};
 use super::excluded::parse_exclusions_from_json_value;
 use super::identities::parse_compact_identity;
 use super::transactions::parse_transaction;
 use duniter_crypto::keys::*;
-use duniter_documents::blockchain::v10::documents::membership::{
-    MembershipDocument, MembershipType,
+use duniter_documents::blockchain::v10::documents::block::{
+    BlockV10Parameters, CurrencyName, TxDocOrTxHash,
 };
+use duniter_documents::blockchain::v10::documents::membership::*;
 use duniter_documents::blockchain::v10::documents::BlockDocument;
 use duniter_documents::{BlockHash, BlockId, Hash};
+use duniter_network::{NetworkBlock, NetworkBlockV10};
+use std::str::FromStr;
 
 fn parse_previous_hash(block_number: &BlockId, source: &serde_json::Value) -> Option<Hash> {
     match source.get("previousHash")?.as_str() {
@@ -73,6 +72,15 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
         Ok(hash) => hash,
         Err(_) => return None,
     };
+    let parameters = if let Some(params_json) = source.get("parameters") {
+        if let Ok(params) = BlockV10Parameters::from_str(params_json.as_str()?) {
+            Some(params)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
     let previous_hash = parse_previous_hash(&number, source)?;
     let previous_issuer = parse_previous_issuer(source);
     let inner_hash = match Hash::from_hex(source.get("inner_hash")?.as_str()?) {
@@ -92,7 +100,9 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
     let leavers = parse_memberships(&currency, MembershipType::Out(), source.get("actives")?)?;
     let mut transactions = Vec::new();
     for json_tx in source.get("transactions")?.as_array()? {
-        transactions.push(parse_transaction("g1", &json_tx)?);
+        transactions.push(TxDocOrTxHash::TxDoc(Box::new(parse_transaction(
+            "g1", &json_tx,
+        )?)));
     }
     let block_doc = BlockDocument {
         nonce: source.get("nonce")?.as_i64()? as u64,
@@ -106,11 +116,11 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
         issuers_count: source.get("issuersCount")?.as_u64()? as usize,
         issuers_frame: source.get("issuersFrame")?.as_i64()? as isize,
         issuers_frame_var: source.get("issuersFrameVar")?.as_i64()? as isize,
-        currency,
+        currency: CurrencyName(currency),
         issuers: vec![issuer],
         signatures: vec![sig],
         hash: Some(BlockHash(hash)),
-        parameters: None,
+        parameters,
         previous_hash,
         previous_issuer,
         inner_hash,
@@ -125,7 +135,9 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
         transactions,
         inner_hash_and_nonce_str: format!(
             "InnerHash: {}\nNonce: {}\n",
-            inner_hash.unwrap().to_hex(),
+            inner_hash
+                .expect("Try to get inner_hash of an uncompleted or reduce block !")
+                .to_hex(),
             source.get("nonce")?.as_u64()?
         ),
     };
