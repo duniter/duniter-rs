@@ -13,8 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Defined the few global types used by all modules,
-//! as well as the DuniterModule trait that all modules must implement.
+//! Datas Access Layer
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
@@ -28,61 +27,256 @@
 extern crate log;
 #[macro_use]
 extern crate serde_json;
+#[macro_use]
+extern crate serde_derive;
 
 extern crate duniter_crypto;
 extern crate duniter_documents;
 extern crate duniter_wotb;
+extern crate rustbreak;
 extern crate serde;
-extern crate sqlite;
 
+pub mod balance;
 pub mod block;
+pub mod certs;
 pub mod constants;
+pub mod currency_params;
 pub mod dal_event;
 pub mod dal_requests;
 pub mod identity;
 pub mod parsers;
+pub mod sources;
 pub mod tools;
 pub mod writers;
 
 use duniter_crypto::keys::*;
-use duniter_documents::blockchain::v10::documents::BlockDocument;
-use duniter_documents::{BlockHash, BlockId, Blockstamp, Hash};
+use duniter_documents::blockchain::v10::documents::transaction::*;
+use duniter_documents::{BlockHash, BlockId, Blockstamp, Hash, PreviousBlockstamp};
 use duniter_wotb::operations::file::FileFormater;
 use duniter_wotb::{NodeId, WebOfTrust};
+use rustbreak::backend::{Backend, FileBackend, MemoryBackend};
+use rustbreak::error::{RustbreakError, RustbreakErrorKind};
+use rustbreak::{deser::Bincode, Database, FileDatabase, MemoryDatabase};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use std::collections::{HashMap, HashSet};
+use std::default::Default;
 use std::fmt::Debug;
-use std::marker;
+use std::fs;
 use std::path::PathBuf;
 
-use self::block::DALBlock;
+use block::DALBlock;
+use identity::DALIdentity;
+use sources::{SourceAmount, UTXOContentV10, UTXOIndexV10};
+use writers::transaction::DALTxV10;
 
-pub struct DuniterDB(pub sqlite::Connection);
+#[derive(Debug, Deserialize, Copy, Clone, Ord, PartialEq, PartialOrd, Eq, Hash, Serialize)]
+/// Each fork has a unique identifier. The local blockchain (also called local branch) has ForkId equal to zero.
+pub struct ForkId(pub usize);
 
-impl Debug for DuniterDB {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "DuniterDB {{ }}")
+pub type LocalBlockchainV10Datas = HashMap<BlockId, DALBlock>;
+pub type ForksV10Datas = HashMap<ForkId, HashMap<PreviousBlockstamp, BlockHash>>;
+pub type ForksBlocksV10Datas = HashMap<Blockstamp, DALBlock>;
+pub type IdentitiesV10Datas = HashMap<PubKey, DALIdentity>;
+pub type MsExpirV10Datas = HashMap<BlockId, HashSet<NodeId>>;
+pub type CertsExpirV10Datas = HashMap<BlockId, HashSet<(NodeId, NodeId)>>;
+pub type TxV10Datas = HashMap<Hash, DALTxV10>;
+pub type UTXOsV10Datas = HashMap<UTXOIndexV10, UTXOContentV10>;
+pub type DUsV10Datas = HashMap<PubKey, HashSet<BlockId>>;
+pub type BalancesV10Datas =
+    HashMap<TransactionOutputConditionGroup, (SourceAmount, HashSet<UTXOIndexV10>)>;
+
+pub type BinDB<D, B> = Database<D, B, Bincode>;
+pub type BinFileDB<D> = FileDatabase<D, Bincode>;
+pub type BinMemDB<D> = MemoryDatabase<D, Bincode>;
+
+#[derive(Debug)]
+/// Set of databases storing block information
+pub struct BlocksV10DBs {
+    /// Local blockchain database
+    pub blockchain_db: BinFileDB<LocalBlockchainV10Datas>,
+    /// Forks meta datas
+    pub forks_db: BinFileDB<ForksV10Datas>,
+    /// Forks blocks
+    pub forks_blocks_db: BinFileDB<ForksBlocksV10Datas>,
+}
+
+impl BlocksV10DBs {
+    /// Open blocks databases from their respective files
+    pub fn open(db_path: &PathBuf, _memory_mode: bool) -> BlocksV10DBs {
+        BlocksV10DBs {
+            blockchain_db: open_db::<LocalBlockchainV10Datas>(&db_path, "blockchain.db")
+                .expect("Fail to open LocalBlockchainV10DB"),
+            forks_db: open_db::<ForksV10Datas>(&db_path, "forks.db")
+                .expect("Fail to open ForksV10DB"),
+            forks_blocks_db: open_db::<ForksBlocksV10Datas>(&db_path, "forks_blocks.db")
+                .expect("Fail to open ForksBlocksV10DB"),
+        }
+    }
+    /// Open blocks databases from their respective files
+    pub fn save_dbs(&self) {
+        self.blockchain_db
+            .save()
+            .expect("Fatal error : fail to save LocalBlockchainV10DB !");
+        self.forks_db
+            .save()
+            .expect("Fatal error : fail to save ForksV10DB !");
+        self.forks_blocks_db
+            .save()
+            .expect("Fatal error : fail to save ForksBlocksV10DB !");
     }
 }
 
-pub trait FromJsonValue
-where
-    Self: marker::Sized,
-{
-    fn from_json_value(value: &serde_json::Value) -> Option<Self>;
+#[derive(Debug)]
+/// Set of databases storing web of trust information
+pub struct WotsV10DBs {
+    /// Store iedntities
+    pub identities_db: BinFileDB<IdentitiesV10Datas>,
+    /// Store memberships created_block_id (Use only to detect expirations)
+    pub ms_db: BinFileDB<MsExpirV10Datas>,
+    /// Store certifications created_block_id (Use only to detect expirations)
+    pub certs_db: BinFileDB<CertsExpirV10Datas>,
 }
 
-pub trait WriteToDuniterDB {
-    fn write(&self, db: &DuniterDB, written_blockstamp: Blockstamp, written_timestamp: u64);
+impl WotsV10DBs {
+    /// Open wot databases from their respective files
+    pub fn open(db_path: &PathBuf, _memory_mode: bool) -> WotsV10DBs {
+        WotsV10DBs {
+            identities_db: open_db::<IdentitiesV10Datas>(&db_path, "identities.db")
+                .expect("Fail to open IdentitiesV10DB"),
+            ms_db: open_db::<MsExpirV10Datas>(&db_path, "ms.db")
+                .expect("Fail to open MsExpirV10DB"),
+            certs_db: open_db::<CertsExpirV10Datas>(&db_path, "certs.db")
+                .expect("Fail to open CertsExpirV10DB"),
+        }
+    }
+    /// Save wot databases from their respective files
+    pub fn save_dbs(&self) {
+        self.identities_db
+            .save()
+            .expect("Fatal error : fail to save IdentitiesV10DB !");
+        self.ms_db
+            .save()
+            .expect("Fatal error : fail to save MsExpirV10DB !");
+        self.certs_db
+            .save()
+            .expect("Fatal error : fail to save CertsExpirV10DB !");
+    }
+}
+
+#[derive(Debug)]
+/// Set of databases storing currency information
+pub struct CurrencyV10DBs<B: Backend + Debug> {
+    /// Store all DU sources
+    pub du_db: BinDB<DUsV10Datas, B>,
+    /// Store all Transactions
+    pub tx_db: BinDB<TxV10Datas, B>,
+    /// Store all UTXOs
+    pub utxos_db: BinDB<UTXOsV10Datas, B>,
+    /// Store balances of all address (and theirs UTXOs indexs)
+    pub balances_db: BinDB<BalancesV10Datas, B>,
+}
+
+impl CurrencyV10DBs<MemoryBackend> {
+    pub fn open_memory_mode() -> CurrencyV10DBs<MemoryBackend> {
+        CurrencyV10DBs {
+            du_db: open_memory_db::<DUsV10Datas>().expect("Fail to open DUsV10DB"),
+            tx_db: open_memory_db::<TxV10Datas>().expect("Fail to open TxV10DB"),
+            utxos_db: open_memory_db::<UTXOsV10Datas>().expect("Fail to open UTXOsV10DB"),
+            balances_db: open_memory_db::<BalancesV10Datas>().expect("Fail to open BalancesV10DB"),
+        }
+    }
+}
+
+impl CurrencyV10DBs<FileBackend> {
+    /// Open currency databases from their respective files
+    pub fn open(db_path: &PathBuf) -> CurrencyV10DBs<FileBackend> {
+        CurrencyV10DBs {
+            du_db: open_db::<DUsV10Datas>(&db_path, "du.db").expect("Fail to open DUsV10DB"),
+            tx_db: open_db::<TxV10Datas>(&db_path, "tx.db").expect("Fail to open TxV10DB"),
+            utxos_db: open_db::<UTXOsV10Datas>(&db_path, "sources.db")
+                .expect("Fail to open UTXOsV10DB"),
+            balances_db: open_db::<BalancesV10Datas>(&db_path, "balances.db")
+                .expect("Fail to open BalancesV10DB"),
+        }
+    }
+    /// Save currency databases in their respective files
+    pub fn save_dbs(&self, tx: bool, du: bool) {
+        if tx {
+            self.tx_db
+                .save()
+                .expect("Fatal error : fail to save LocalBlockchainV10DB !");
+            self.utxos_db
+                .save()
+                .expect("Fatal error : fail to save UTXOsV10DB !");
+            self.balances_db
+                .save()
+                .expect("Fatal error : fail to save BalancesV10DB !");
+        }
+        if du {
+            self.du_db
+                .save()
+                .expect("Fatal error : fail to save DUsV10DB !");
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
+/// Data Access Layer Error
+pub enum DALError {
+    /// Error in write operation
+    WriteError,
+    /// Error in read operation
+    ReadError,
+    /// A database is corrupted, you have to reset the data completely
+    DBCorrupted,
+    /// Error with the file system
+    FileSystemError,
+    /// Capturing a panic signal during a write operation
+    WritePanic,
+    /// Unknown error
+    UnknowError,
+}
+
+impl From<RustbreakError> for DALError {
+    fn from(rust_break_error: RustbreakError) -> DALError {
+        match rust_break_error.kind() {
+            RustbreakErrorKind::Serialization => DALError::WriteError,
+            RustbreakErrorKind::Deserialization => DALError::ReadError,
+            RustbreakErrorKind::Poison => DALError::DBCorrupted,
+            RustbreakErrorKind::Backend => DALError::FileSystemError,
+            RustbreakErrorKind::WritePanic => DALError::WritePanic,
+            _ => DALError::UnknowError,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ForkState {
+/// ForkAlreadyCheck
+pub struct ForkAlreadyCheck(pub bool);
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// Stores a state associated with a ForkId
+pub enum ForkStatus {
+    /// This ForkId is empty (available to welcome a new fork)
     Free(),
-    Full(),
+    /// This ForkId points on a stackable fork with no roll back
+    Stackable(ForkAlreadyCheck),
+    /// This ForkId points on a stackable fork with roll back.
+    /// `BlockId` points to the last block in common
+    RollBack(ForkAlreadyCheck, BlockId),
+    /// This ForkId points on a stackable fork with roll back
+    /// but the last block in common is too old (beyond the maximum FORK_WINDOW_SIZE)
+    TooOld(ForkAlreadyCheck),
+    /// This ForkId points on an isolate fork
+    /// An isolated fork is a fork that has no block in common with the local blockchain.
     Isolate(),
+    /// This ForkId points on an invalid fork
+    Invalid(),
 }
 
-#[derive(Debug, Clone)]
-pub struct WotState {
+/*#[derive(Debug, Clone)]
+pub struct WotStats {
     pub block_number: u32,
     pub block_hash: String,
     pub sentries_count: usize,
@@ -93,200 +287,70 @@ pub struct WotState {
     pub connectivities: Vec<usize>,
     pub average_centrality: usize,
     pub centralities: Vec<u64>,
-}
+}*/
 
 fn _use_json_macro() -> serde_json::Value {
     json!({})
 }
 
-pub fn open_db(db_path: &PathBuf, memory_mode: bool) -> Result<DuniterDB, sqlite::Error> {
-    let conn: sqlite::Connection;
-    if memory_mode || !db_path.as_path().exists() {
-        if memory_mode {
-            conn = sqlite::open(":memory:")?;
-        } else {
-            conn = sqlite::open(db_path.as_path())?;
-        }
-        //conn.execute("PRAGMA synchronous = 0;")
-        //.expect("Fail to configure SQLite DB (PRAGMA) !");
-        conn.execute(
-            "
-        CREATE TABLE wot_history (block_number INTEGER, block_hash TEXT, sentries_count INTEGER,
-            average_density INTEGER, average_distance INTEGER,
-            distances TEXT, average_connectivity INTEGER, connectivities TEXT,
-            average_centrality INTEGER, centralities TEXT);
-        CREATE TABLE blocks (fork INTEGER, isolate INTEGER, version INTEGER, nonce INTEGER, number INTEGER,
-            pow_min INTEGER, time INTEGER, median_time INTEGER, members_count INTEGER,
-            monetary_mass INTEGER, unit_base INTEGER, issuers_count INTEGER, issuers_frame INTEGER,
-            issuers_frame_var INTEGER, median_frame INTEGER, second_tiercile_frame INTEGER,
-            currency TEXT, issuer TEXT, signature TEXT, hash TEXT, previous_hash TEXT, inner_hash TEXT, dividend INTEGER, identities TEXT, joiners TEXT,
-            actives TEXT, leavers TEXT, revoked TEXT, excluded TEXT, certifications TEXT,
-            transactions TEXT);
-        CREATE TABLE identities (wotb_id INTEGER, uid TEXT, pubkey TEXT, hash TEXT, sig TEXT,
-            state INTEGER, created_on TEXT, joined_on TEXT, penultimate_renewed_on TEXT, last_renewed_on TEXT,
-            expires_on INTEGER, revokes_on INTEGER, expired_on TEXT, revoked_on TEXT);
-        CREATE TABLE certifications (pubkey_from TEXT, pubkey_to TEXT, created_on TEXT,
-            signature TEXT, written_on TEXT, expires_on INTEGER, chainable_on INTEGER);
-        ",
-        )?;
+/// Open Rustbreak memory database
+pub fn open_memory_db<D: Serialize + DeserializeOwned + Debug + Default + Clone + Send>(
+) -> Result<BinMemDB<D>, DALError> {
+    let backend = MemoryBackend::new();
+    let db = MemoryDatabase::<D, Bincode>::from_parts(D::default(), backend, Bincode);
+    Ok(db)
+}
+
+/// Open Rustbreak database
+pub fn open_db<D: Serialize + DeserializeOwned + Debug + Default + Clone + Send>(
+    dbs_folder_path: &PathBuf,
+    db_file_name: &str,
+) -> Result<BinFileDB<D>, DALError> {
+    let mut db_path = dbs_folder_path.clone();
+    db_path.push(db_file_name);
+    let file_path = db_path.as_path();
+    if file_path.exists()
+        && fs::metadata(file_path)
+            .expect("fail to get file size")
+            .len() > 0
+    {
+        let backend = FileBackend::open(db_path.as_path())?;
+        let db = FileDatabase::<D, Bincode>::from_parts(D::default(), backend, Bincode);
+        db.load()?;
+        Ok(db)
     } else {
-        conn = sqlite::open(db_path.as_path())?;
-    }
-    Ok(DuniterDB(conn))
-}
-
-pub fn close_db(db: &DuniterDB) {
-    db.0
-        .execute("PRAGMA optimize;")
-        .expect("Fail to optimize SQLite DB !");
-}
-
-pub fn get_uid(db: &DuniterDB, wotb_id: NodeId) -> Option<String> {
-    let mut cursor: sqlite::Cursor = db
-        .0
-        .prepare("SELECT uid FROM identities WHERE wotb_id=? AND state=0 LIMIT 1;")
-        .expect("Request SQL get_current_block is wrong !")
-        .cursor();
-    cursor
-        .bind(&[sqlite::Value::Integer(wotb_id.0 as i64)])
-        .expect("0");
-    if let Some(row) = cursor.next().expect("fait to get_uid() : cursor error") {
-        Some(String::from(
-            row[0]
-                .as_string()
-                .expect("get_uid: Fail to parse uid field in str !"),
-        ))
-    } else {
-        None
+        Ok(FileDatabase::<D, Bincode>::from_path(
+            db_path.as_path(),
+            D::default(),
+        )?)
     }
 }
 
-pub fn new_get_current_block(db: &DuniterDB) -> Option<BlockDocument> {
-    let mut cursor: sqlite::Cursor = db.0
-        .prepare(
-            "SELECT version, nonce, number, pow_min, time, median_time, members_count, monetary_mass, unit_base, issuers_count, issuers_frame, issuers_frame_var, median_frame, second_tiercile_frame, currency, issuer, signature, hash, dividend, joiners, actives, leavers, revoked, excluded, certifications, transactions FROM blocks
-            WHERE fork=0 ORDER BY median_time DESC LIMIT ?;",
-        )
-        .expect("Request SQL get_current_block is wrong !")
-        .cursor();
-
-    cursor.bind(&[sqlite::Value::Integer(1)]).expect("0");
-    if let Some(row) = cursor.next().expect("1") {
-        let dividend = row[18].as_integer().expect("dividend");
-        let dividend = if dividend > 0 {
-            Some(dividend as usize)
-        } else {
-            None
-        };
-        return Some(BlockDocument {
-            nonce: row[1].as_integer().expect("nonce") as u64,
-            number: BlockId(row[2].as_integer().expect("2") as u32),
-            pow_min: row[3].as_integer().expect("version") as usize,
-            time: row[4].as_integer().expect("time") as u64,
-            median_time: row[5].as_integer().expect("median_time") as u64,
-            members_count: row[6].as_integer().expect("7") as usize,
-            monetary_mass: row[7].as_integer().expect("8") as usize,
-            unit_base: row[8].as_integer().expect("unit_base") as usize,
-            issuers_count: row[9].as_integer().expect("issuers_count") as usize,
-            issuers_frame: row[10].as_integer().expect("issuers_frame") as isize,
-            issuers_frame_var: row[11].as_integer().expect("issuers_frame_var") as isize,
-            currency: row[14].as_string().expect("currency").to_string(),
-            issuers: vec![PubKey::Ed25519(
-                ed25519::PublicKey::from_base58(row[15].as_string().expect("issuer")).unwrap(),
-            )],
-            signatures: vec![Sig::Ed25519(
-                ed25519::Signature::from_base64(row[16].as_string().expect("signature")).unwrap(),
-            )],
-            hash: Some(BlockHash(
-                Hash::from_hex(row[17].as_string().expect("hash")).unwrap(),
-            )),
-            parameters: None,
-            previous_hash: Hash::default(),
-            previous_issuer: None,
-            inner_hash: None,
-            dividend,
-            identities: Vec::with_capacity(0),
-            joiners: Vec::with_capacity(0),
-            actives: Vec::with_capacity(0),
-            leavers: Vec::with_capacity(0),
-            revoked: Vec::with_capacity(0),
-            excluded: Vec::with_capacity(0),
-            certifications: Vec::with_capacity(0),
-            transactions: Vec::with_capacity(0),
-            inner_hash_and_nonce_str: String::new(),
-        });
-    }
-    None
-}
-
-pub fn get_current_block(currency: &str, db: &DuniterDB) -> Option<DALBlock> {
-    let mut cursor: sqlite::Cursor = db
-        .0
-        .prepare("SELECT number, hash FROM blocks WHERE fork=0 ORDER BY median_time DESC LIMIT ?;")
-        .expect("Request SQL get_current_block is wrong !")
-        .cursor();
-
-    cursor.bind(&[sqlite::Value::Integer(1)]).expect("0");
-
-    if let Some(row) = cursor.next().unwrap() {
-        let blockstamp = Blockstamp {
-            id: BlockId(row[0].as_integer().unwrap() as u32),
-            hash: BlockHash(Hash::from_hex(row[1].as_string().unwrap()).unwrap()),
-        };
-        DALBlock::get_block(currency, db, &blockstamp)
-    } else {
-        None
-    }
-}
-
+/// Open wot file (cf. duniter-wot crate)
 pub fn open_wot_file<W: WebOfTrust, WF: FileFormater>(
     file_formater: &WF,
     wot_path: &PathBuf,
+    sig_stock: usize,
 ) -> (W, Blockstamp) {
     if wot_path.as_path().exists() {
         match file_formater.from_file(
-            wot_path.as_path().to_str().unwrap(),
-            constants::G1_PARAMS.sig_stock as usize,
+            wot_path
+                .as_path()
+                .to_str()
+                .expect("Fail to convert wo_path to str"),
+            sig_stock,
         ) {
             Ok((wot, binary_blockstamp)) => match ::std::str::from_utf8(&binary_blockstamp) {
-                Ok(str_blockstamp) => (wot, Blockstamp::from_string(str_blockstamp).unwrap()),
+                Ok(str_blockstamp) => (
+                    wot,
+                    Blockstamp::from_string(str_blockstamp)
+                        .expect("Fail to deserialize wot blockstamp"),
+                ),
                 Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
             },
             Err(e) => panic!("Fatal Error : fail to read wot file : {:?}", e),
         }
     } else {
-        (
-            W::new(constants::G1_PARAMS.sig_stock as usize),
-            Blockstamp::default(),
-        )
+        (W::new(sig_stock), Blockstamp::default())
     }
-}
-
-pub fn register_wot_state(db: &DuniterDB, wot_state: &WotState) {
-    if wot_state.block_number != 1 {
-        db.0
-            .execute(format!(
-                "INSERT INTO wot_history (block_number, block_hash, sentries_count,
-                average_density, average_distance, distances,
-                average_connectivity, connectivities, average_centrality, centralities)
-                VALUES ({}, '{}', {}, {}, {}, '{}', {}, '{}', {}, '{}');",
-                wot_state.block_number,
-                wot_state.block_hash,
-                wot_state.sentries_count,
-                wot_state.average_density,
-                wot_state.average_distance,
-                serde_json::to_string(&wot_state.distances).unwrap(),
-                wot_state.average_connectivity,
-                serde_json::to_string(&wot_state.connectivities).unwrap(),
-                wot_state.average_centrality,
-                serde_json::to_string(&wot_state.centralities).unwrap(),
-            ))
-            .unwrap();
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub enum BlockchainError {
-    UnexpectedBlockNumber(),
-    UnknowError(),
 }

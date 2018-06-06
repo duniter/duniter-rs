@@ -16,6 +16,7 @@ base58 = "0.1.0"
 base64 = "0.9.1"
 rust-crypto = "0.2.36"
 serde = "1.0.57"
+serde_derive = "1.0.57"
 
 [features]
 # Treat warnings as a build error.

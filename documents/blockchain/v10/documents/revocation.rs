@@ -15,9 +15,6 @@
 
 //! Wrappers around Revocation documents.
 
-extern crate serde;
-
-use self::serde::ser::{Serialize, Serializer};
 use duniter_crypto::keys::*;
 use regex::Regex;
 
@@ -34,7 +31,7 @@ lazy_static! {
     ).unwrap();
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 /// Wrap an Compact Revocation document (in block content)
 pub struct CompactRevocationDocument {
     /// Issuer
@@ -56,7 +53,7 @@ impl CompactTextDocument for CompactRevocationDocument {
 /// Wrap an Revocation document.
 ///
 /// Must be created by parsing a text document or using a builder.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RevocationDocument {
     /// Document as text.
     ///
@@ -125,15 +122,6 @@ impl TextDocument for RevocationDocument {
             issuer: self.issuers[0],
             signature: self.signatures[0],
         }
-    }
-}
-
-impl Serialize for TextDocumentFormat<RevocationDocument> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.as_compact_text())
     }
 }
 

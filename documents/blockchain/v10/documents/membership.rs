@@ -15,9 +15,6 @@
 
 //! Wrappers around Membership documents.
 
-extern crate serde;
-
-use self::serde::ser::{Serialize, Serializer};
 use duniter_crypto::keys::*;
 use regex::Regex;
 
@@ -36,7 +33,7 @@ lazy_static! {
 }
 
 /// Type of a Membership.
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Hash, Serialize)]
 pub enum MembershipType {
     /// The member wishes to opt-in.
     In(),
@@ -47,12 +44,12 @@ pub enum MembershipType {
 /// Wrap an Membership document.
 ///
 /// Must be created by parsing a text document or using a builder.
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Hash, Deserialize, Serialize)]
 pub struct MembershipDocument {
     /// Document as text.
     ///
     /// Is used to check signatures, and other values mut be extracted from it.
-    text: String,
+    text: Option<String>,
 
     /// Name of the currency.
     currency: String,
@@ -70,6 +67,32 @@ pub struct MembershipDocument {
     signatures: Vec<Sig>,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Hash, Deserialize, Serialize)]
+/// Membership event type (blockchain event)
+pub enum MembershipEventType {
+    /// Newcomer
+    Join(),
+    /// Renewal
+    Renewal(),
+    /// Renewal after expire or leave
+    Rejoin(),
+    /// Expire
+    Expire(),
+}
+
+#[derive(Debug, Clone, PartialEq, Hash, Deserialize, Serialize)]
+/// Membership event (blockchain event)
+pub struct MembershipEvent {
+    /// Blockstamp of block event
+    pub blockstamp: Blockstamp,
+    /// Membership document
+    pub doc: MembershipDocument,
+    /// Event type
+    pub event_type: MembershipEventType,
+    /// Chainable time
+    pub chainable_on: u64,
+}
+
 impl MembershipDocument {
     /// Membership message.
     pub fn membership(&self) -> MembershipType {
@@ -79,6 +102,11 @@ impl MembershipDocument {
     /// Identity to use for this public key.
     pub fn identity_username(&self) -> &str {
         &self.identity_username
+    }
+
+    /// Lightens the membership (for example to store it while minimizing the space required)
+    pub fn reduce(&mut self) {
+        self.text = None;
     }
 }
 
@@ -128,20 +156,15 @@ impl TextDocument for MembershipDocument {
     type CompactTextDocument_ = MembershipDocument;
 
     fn as_text(&self) -> &str {
-        &self.text
+        if let Some(ref text) = self.text {
+            text
+        } else {
+            panic!("Try to get text of reduce membership !")
+        }
     }
 
     fn to_compact_document(&self) -> Self::CompactTextDocument_ {
         self.clone()
-    }
-}
-
-impl Serialize for MembershipDocument {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.generate_compact_text())
     }
 }
 
@@ -171,7 +194,7 @@ pub struct MembershipDocumentBuilder<'a> {
 impl<'a> MembershipDocumentBuilder<'a> {
     fn build_with_text_and_sigs(self, text: String, signatures: Vec<Sig>) -> MembershipDocument {
         MembershipDocument {
-            text,
+            text: Some(text),
             currency: self.currency.to_string(),
             issuers: vec![*self.issuer],
             blockstamp: *self.blockstamp,
@@ -254,7 +277,7 @@ impl StandardTextDocumentParser for MembershipDocumentParser {
             let ity_block = Blockstamp::from_string(ity_block).unwrap();
 
             Ok(V10Document::Membership(MembershipDocument {
-                text: doc.to_owned(),
+                text: Some(doc.to_owned()),
                 issuers: vec![issuer],
                 currency: currency.to_owned(),
                 blockstamp,

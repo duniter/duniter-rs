@@ -13,50 +13,61 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-extern crate duniter_conf;
-extern crate duniter_crypto;
-extern crate duniter_dal;
-extern crate duniter_documents;
-extern crate duniter_message;
-extern crate duniter_module;
-extern crate duniter_network;
+extern crate num_cpus;
 extern crate pbr;
-extern crate serde;
-extern crate serde_json;
 extern crate sqlite;
+extern crate threadpool;
 
 use self::pbr::ProgressBar;
+use self::threadpool::ThreadPool;
 use duniter_crypto::keys::*;
-use duniter_dal::parsers::identities::parse_compact_identity;
-use duniter_dal::parsers::transactions::parse_transaction;
-//use duniter_dal::writers::requests::DBWriteRequest;
-use duniter_documents::blockchain::v10::documents::membership::MembershipType;
-use duniter_documents::blockchain::v10::documents::BlockDocument;
+use duniter_dal::currency_params::CurrencyParameters;
+use duniter_dal::writers::requests::*;
+use duniter_dal::ForkId;
 use duniter_documents::{BlockHash, BlockId, Hash};
-use duniter_network::{NetworkBlock, NetworkBlockV10};
+use duniter_network::NetworkBlock;
+use duniter_wotb::operations::file::FileFormater;
 use duniter_wotb::{NodeId, WebOfTrust};
-use std::collections::HashMap;
+use rustbreak::{deser::Bincode, MemoryDatabase};
+use std::collections::{HashMap, VecDeque};
 use std::fs;
+use std::ops::Deref;
 use std::sync::mpsc;
 use std::thread;
 use std::time::SystemTime;
+use ts_parsers::*;
+use *;
 
-use super::*;
+/// Number of sync jobs
+pub static NB_SYNC_JOBS: &'static usize = &4;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Block header
 pub struct BlockHeader {
     pub number: BlockId,
     pub hash: BlockHash,
     pub issuer: PubKey,
 }
 
-enum ParserWorkMess {
+#[derive(Debug)]
+/// Message for main sync thread
+enum MessForSyncThread {
     TargetBlockstamp(Blockstamp),
     NetworkBlock(NetworkBlock),
-    //DBWriteRequest(DBWriteRequest),
+    DownloadFinish(),
+    ApplyFinish(),
+}
+
+#[derive(Debug)]
+/// Message for a job thread
+enum SyncJobsMess {
+    BlocksDBsWriteQuery(BlocksDBsWriteQuery),
+    WotsDBsWriteQuery(WotsDBsWriteQuery, Box<CurrencyParameters>),
+    CurrencyDBsWriteQuery(CurrencyDBsWriteQuery),
     End(),
 }
 
+/// Sync from a duniter-ts database
 pub fn sync_ts(
     conf: &DuniterConf,
     current_blockstamp: &Blockstamp,
@@ -68,14 +79,6 @@ pub fn sync_ts(
     let currency = &conf.currency();
     let mut current_blockstamp = *current_blockstamp;
 
-    // Copy blockchain db in ramfs
-    let db_path = duniter_conf::get_db_path(profile, currency, false);
-    if db_path.as_path().exists() {
-        info!("Copy blockchain DB in ramfs...");
-        fs::copy(db_path, format!("/dev/shm/{}_durs.db", profile))
-            .expect("Fatal error : fail to copy DB in ramfs !");
-    }
-
     // Get wot path
     let wot_path = duniter_conf::get_wot_path(profile.clone().to_string(), currency);
 
@@ -83,24 +86,31 @@ pub fn sync_ts(
     let (mut wot, mut _wot_blockstamp): (RustyWebOfTrust, Blockstamp) =
         if wot_path.as_path().exists() {
             match WOT_FILE_FORMATER.from_file(
-                wot_path.as_path().to_str().unwrap(),
-                duniter_dal::constants::G1_PARAMS.sig_stock as usize,
+                wot_path
+                    .as_path()
+                    .to_str()
+                    .expect("Fail to convert path to str"),
+                *INFINITE_SIG_STOCK,
             ) {
                 Ok((wot, binary_blockstamp)) => match str::from_utf8(&binary_blockstamp) {
-                    Ok(str_blockstamp) => (wot, Blockstamp::from_string(str_blockstamp).unwrap()),
+                    Ok(str_blockstamp) => (
+                        wot,
+                        Blockstamp::from_string(str_blockstamp)
+                            .expect("Fail to deserialize wot blockcstamp"),
+                    ),
                     Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
                 },
                 Err(e) => panic!("Fatal Error : fail te read wot file : {:?}", e),
             }
         } else {
             (
-                RustyWebOfTrust::new(duniter_dal::constants::G1_PARAMS.sig_stock as usize),
+                RustyWebOfTrust::new(*INFINITE_SIG_STOCK),
                 Blockstamp::default(),
             )
         };
 
     // Get verification level
-    let verif_level = if cautious {
+    let _verif_level = if cautious {
         println!("Start cautious sync...");
         info!("Start cautious sync...");
         SyncVerificationLevel::Cautious()
@@ -110,14 +120,32 @@ pub fn sync_ts(
         SyncVerificationLevel::FastSync()
     };
 
-    // Create sync_thread channel
+    // Create sync_thread channels
     let (sender_sync_thread, recv_sync_thread) = mpsc::channel();
 
+    // Create ThreadPool
+    let nb_cpus = num_cpus::get();
+    let nb_workers = if nb_cpus < *NB_SYNC_JOBS {
+        nb_cpus
+    } else {
+        *NB_SYNC_JOBS
+    };
+    let pool = ThreadPool::new(nb_workers);
+
+    // Determine db_ts_copy_path
+    let mut db_ts_copy_path = duniter_conf::datas_path(&profile.clone(), currency);
+    db_ts_copy_path.push("tmp_db_ts_copy.db");
+
     // Lauch ts thread
-    thread::spawn(move || {
-        // open db_ts
-        let ts_db = sqlite::open(db_ts_path.as_path())
-            .expect("Fatal error : fail to open duniter-ts database !");
+    let sender_sync_thread_clone = sender_sync_thread.clone();
+    pool.execute(move || {
+        let ts_job_begin = SystemTime::now();
+        // copy db_ts
+        fs::copy(db_ts_path.as_path(), db_ts_copy_path.as_path())
+            .expect("Fatal error : fail to copy duniter-ts database !");
+        // open copy of db_ts
+        let ts_db = sqlite::open(db_ts_copy_path.as_path())
+            .expect("Fatal error : fail to open copy of duniter-ts database !");
         info!("sync_ts : Success to open duniter-ts database.");
 
         // Get ts current blockstamp
@@ -152,8 +180,8 @@ pub fn sync_ts(
         debug!("Success to ts-db current blockstamp.");
 
         // Send ts current blockstamp
-        sender_sync_thread
-            .send(ParserWorkMess::TargetBlockstamp(current_ts_blockstamp))
+        sender_sync_thread_clone
+            .send(MessForSyncThread::TargetBlockstamp(current_ts_blockstamp))
             .expect("Fatal error : sync_thread unrechable !");
 
         // Get genesis block
@@ -172,8 +200,8 @@ pub fn sync_ts(
                 .bind(&[sqlite::Value::Integer(0)])
                 .expect("Fail to get genesis block !");
             if let Some(row) = cursor.next().expect("cursor error") {
-                sender_sync_thread
-                    .send(ParserWorkMess::NetworkBlock(parse_ts_block(row)))
+                sender_sync_thread_clone
+                    .send(MessForSyncThread::NetworkBlock(parse_ts_block(row)))
                     .expect("Fatal error : sync_thread unrechable !");
             }
         }
@@ -202,27 +230,38 @@ pub fn sync_ts(
         while let Some(row) = cursor.next().expect("cursor error") {
             //let sender_sync_thread_clone = sender_sync_thread.clone();
             //pool.execute(move || {
-            sender_sync_thread
-                .send(ParserWorkMess::NetworkBlock(parse_ts_block(row)))
+            sender_sync_thread_clone
+                .send(MessForSyncThread::NetworkBlock(parse_ts_block(row)))
                 .expect("Fatal error : sync_thread unrechable !");
             //});
         }
-        sender_sync_thread
-            .send(ParserWorkMess::End())
+        fs::remove_file(db_ts_copy_path.as_path())
+            .expect("Fatal error : fail to remove db_ts_copy !");
+        sender_sync_thread_clone
+            .send(MessForSyncThread::DownloadFinish())
             .expect("Fatal error : sync_thread unrechable !");
+        let ts_job_duration = SystemTime::now()
+            .duration_since(ts_job_begin)
+            .expect("duration_since error");
+        info!(
+            "ts_job_duration={},{:03} seconds.",
+            ts_job_duration.as_secs(),
+            ts_job_duration.subsec_nanos() / 1_000_000
+        );
     });
 
     // Get target blockstamp
-    let target_blockstamp =
-        if let Ok(ParserWorkMess::TargetBlockstamp(target_blockstamp)) = recv_sync_thread.recv() {
-            target_blockstamp
-        } else {
-            panic!("Fatal error : no TargetBlockstamp !")
-        };
+    let target_blockstamp = if let Ok(MessForSyncThread::TargetBlockstamp(target_blockstamp)) =
+        recv_sync_thread.recv()
+    {
+        target_blockstamp
+    } else {
+        panic!("Fatal error : no TargetBlockstamp !")
+    };
 
     // Instanciate blockchain module
     let blockchain_module =
-        BlockchainModule::load_blockchain_conf(conf, RequiredKeysContent::None(), true);
+        BlockchainModule::load_blockchain_conf(conf, RequiredKeysContent::None());
 
     // Node is already synchronized ?
     if target_blockstamp.id.0 < current_blockstamp.id.0 {
@@ -232,86 +271,312 @@ pub fn sync_ts(
 
     // Get wotb index
     let mut wotb_index: HashMap<PubKey, NodeId> =
-        DALIdentity::get_wotb_index(&blockchain_module.db);
+        DALIdentity::get_wotb_index(&blockchain_module.wot_databases.identities_db)
+            .expect("Fatal eror : get_wotb_index : Fail to read blockchain databases");
 
     // Start sync
     let sync_start_time = SystemTime::now();
-    println!(
-        "Sync from #{} to #{} :",
-        current_blockstamp.id.0, target_blockstamp.id.0
-    );
     info!(
         "Sync from #{} to #{}...",
         current_blockstamp.id.0, target_blockstamp.id.0
     );
-    let mut pb = ProgressBar::new((target_blockstamp.id.0 + 1 - current_blockstamp.id.0).into());
+    println!(
+        "Sync from #{} to #{}...",
+        current_blockstamp.id.0, target_blockstamp.id.0
+    );
 
-    // Apply blocks
-    while let Ok(ParserWorkMess::NetworkBlock(network_block)) = recv_sync_thread.recv() {
-        // Complete block
-        let block_doc = complete_network_block(
-            &blockchain_module.currency.to_string(),
-            None,
-            &network_block,
-            SyncVerificationLevel::FastSync(),
-        ).expect("Receive wrong block, please reset data and resync !");
-        // Apply block
-        let (success, db_requests, new_wot_events) =
-            try_stack_up_completed_block::<RustyWebOfTrust>(&block_doc, &wotb_index, &wot);
+    // Createprogess bar
+    let count_blocks = target_blockstamp.id.0 + 1 - current_blockstamp.id.0;
+    let count_chunks = if count_blocks % 250 > 0 {
+        (count_blocks / 250) + 1
+    } else {
+        count_blocks / 250
+    };
+    let mut apply_pb = ProgressBar::new(count_chunks.into());
+    apply_pb.format("╢▌▌░╟");
+    // Create workers threads channels
+    let (sender_blocks_thread, recv_blocks_thread) = mpsc::channel();
+    let (sender_tx_thread, recv_tx_thread) = mpsc::channel();
+    let (sender_wot_thread, recv_wot_thread) = mpsc::channel();
 
-        blockchain_module.try_stack_up_block::<RustyWebOfTrust>(
-            &network_block,
-            &wotb_index,
-            &wot,
-            verif_level,
-        );
-        if success {
-            current_blockstamp = network_block.blockstamp();
-            debug!("Apply db requests...");
-            // Apply db requests
-            db_requests
-                .iter()
-                .map(|req| req.apply(&conf.currency().to_string(), &blockchain_module.db))
-                .collect::<()>();
-            debug!("Finish to apply db requests.");
-            // Apply WotEvents
-            if !new_wot_events.is_empty() {
-                for wot_event in new_wot_events {
-                    match wot_event {
-                        WotEvent::AddNode(pubkey, wotb_id) => {
-                            wot.add_node();
-                            wotb_index.insert(pubkey, wotb_id);
-                        }
-                        WotEvent::RemNode(pubkey) => {
-                            wot.rem_node();
-                            wotb_index.remove(&pubkey);
-                        }
-                        WotEvent::AddLink(source, target) => {
-                            wot.add_link(source, target);
-                        }
-                        WotEvent::RemLink(source, target) => {
-                            wot.rem_link(source, target);
-                        }
-                        WotEvent::EnableNode(wotb_id) => {
-                            wot.set_enabled(wotb_id, true);
-                        }
-                        WotEvent::DisableNode(wotb_id) => {
-                            wot.set_enabled(wotb_id, false);
-                        }
-                    }
-                }
-                if current_blockstamp.id.0 > target_blockstamp.id.0 - 100 {
-                    // Save wot file
-                    WOT_FILE_FORMATER
-                        .to_file(
-                            &wot,
-                            current_blockstamp.to_string().as_bytes(),
-                            wot_path.as_path().to_str().unwrap(),
-                        )
-                        .expect("Fatal Error: Fail to write wotb in file !");
+    // Launch blocks_worker thread
+    let profile_copy = conf.profile().clone();
+    let currency_copy = conf.currency().clone();
+    let sender_sync_thread_clone = sender_sync_thread.clone();
+    pool.execute(move || {
+        let blocks_job_begin = SystemTime::now();
+        // Open databases
+        let db_path = duniter_conf::get_blockchain_db_path(&profile_copy, &currency_copy);
+        let databases = BlocksV10DBs::open(&db_path, false);
+
+        // Listen db requets
+        let mut chunk_index = 0;
+        let mut blockchain_meta_datas = HashMap::new();
+        let mut all_wait_duration = Duration::from_millis(0);
+        let mut wait_begin = SystemTime::now();
+        while let Ok(SyncJobsMess::BlocksDBsWriteQuery(req)) = recv_blocks_thread.recv() {
+            all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
+            // Apply db request
+            req.apply(&databases, true)
+                .expect("Fatal error : Fail to apply DBWriteRequest !");
+            if let BlocksDBsWriteQuery::WriteBlock(
+                ref _dal_block,
+                ref _old_fork_id,
+                ref previous_blockstamp,
+                ref previous_hash,
+            ) = req
+            {
+                blockchain_meta_datas.insert(*previous_blockstamp, *previous_hash);
+                chunk_index += 1;
+                if chunk_index == 250 {
+                    chunk_index = 0;
+                    apply_pb.inc();
                 }
             }
-            pb.inc();
+            wait_begin = SystemTime::now();
+        }
+
+        // Indexing blockchain meta datas
+        info!("Indexing blockchain meta datas...");
+        /*let blockchain_meta_datas: HashMap<PreviousBlockstamp, BlockHash> = databases
+            .blockchain_db
+            .read(|db| {
+                let mut blockchain_meta_datas: HashMap<
+                    PreviousBlockstamp,
+                    BlockHash,
+                > = HashMap::new();
+                for dal_block in db.values() {
+                    let block_previous_hash = if dal_block.block.number.0 == 0 {
+                        PreviousBlockstamp::default()
+                    } else {
+                        PreviousBlockstamp {
+                            id: BlockId(dal_block.block.number.0 - 1),
+                            hash: BlockHash(dal_block.block.previous_hash),
+                        }
+                    };
+                    blockchain_meta_datas
+                        .insert(block_previous_hash, dal_block.block.expect("Try to get hash of an uncompleted or reduce block !"));
+                }
+                blockchain_meta_datas
+            })
+            .expect("Indexing blockchain meta datas : DALError");*/
+        databases
+            .forks_db
+            .write(|db| {
+                db.insert(ForkId(0), blockchain_meta_datas);
+            })
+            .expect("Indexing blockchain meta datas : DALError");
+
+        // Increment progress bar (last chunk)
+        apply_pb.inc();
+        // Save blockchain, and fork databases
+        info!("Save blockchain and forks databases in files...");
+        databases.save_dbs();
+
+        // Send finish signal
+        sender_sync_thread_clone
+            .send(MessForSyncThread::ApplyFinish())
+            .expect("Fatal error : sync_thread unrechable !");
+        let blocks_job_duration =
+            SystemTime::now().duration_since(blocks_job_begin).unwrap() - all_wait_duration;
+        info!(
+            "blocks_job_duration={},{:03} seconds.",
+            blocks_job_duration.as_secs(),
+            blocks_job_duration.subsec_nanos() / 1_000_000
+        );
+    });
+
+    // / Launch wot_worker thread
+    let profile_copy2 = profile.clone();
+    let currency_copy2 = currency.clone();
+    let sender_sync_thread_clone2 = sender_sync_thread.clone();
+
+    pool.execute(move || {
+        let wot_job_begin = SystemTime::now();
+        // Open databases
+        let db_path = duniter_conf::get_blockchain_db_path(&profile_copy2, &currency_copy2);
+        let databases = WotsV10DBs::open(&db_path, false);
+
+        // Listen db requets
+        let mut all_wait_duration = Duration::from_millis(0);
+        let mut wait_begin = SystemTime::now();
+        while let Ok(mess) = recv_wot_thread.recv() {
+            all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
+            match mess {
+                SyncJobsMess::WotsDBsWriteQuery(req, currency_params) => req
+                    .apply(&databases, &currency_params.deref())
+                    .expect("Fatal error : Fail to apply DBWriteRequest !"),
+                SyncJobsMess::End() => break,
+                _ => {}
+            }
+            wait_begin = SystemTime::now();
+        }
+        // Save wots databases
+        info!("Save wots databases in files...");
+        databases.save_dbs();
+
+        // Send finish signal
+        sender_sync_thread_clone2
+            .send(MessForSyncThread::ApplyFinish())
+            .expect("Fatal error : sync_thread unrechable !");
+        let wot_job_duration =
+            SystemTime::now().duration_since(wot_job_begin).unwrap() - all_wait_duration;
+        info!(
+            "wot_job_duration={},{:03} seconds.",
+            wot_job_duration.as_secs(),
+            wot_job_duration.subsec_nanos() / 1_000_000
+        );
+    });
+
+    // Launch tx_worker thread
+    let profile_copy = conf.profile().clone();
+    let currency_copy = conf.currency().clone();
+    let sender_sync_thread_clone = sender_sync_thread.clone();
+    pool.execute(move || {
+        let tx_job_begin = SystemTime::now();
+        // Open databases
+        let db_path = duniter_conf::get_blockchain_db_path(&profile_copy, &currency_copy);
+        let databases = CurrencyV10DBs::<FileBackend>::open(&db_path);
+
+        // Listen db requets
+        let mut all_wait_duration = Duration::from_millis(0);
+        let mut wait_begin = SystemTime::now();
+        while let Ok(SyncJobsMess::CurrencyDBsWriteQuery(req)) = recv_tx_thread.recv() {
+            all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
+            // Apply db request
+            req.apply(&databases)
+                .expect("Fatal error : Fail to apply DBWriteRequest !");
+            wait_begin = SystemTime::now();
+        }
+        // Save tx, utxo, du and balances databases
+        info!("Save tx and sources database in file...");
+        databases.save_dbs(true, true);
+
+        // Send finish signal
+        sender_sync_thread_clone
+            .send(MessForSyncThread::ApplyFinish())
+            .expect("Fatal error : sync_thread unrechable !");
+        let tx_job_duration =
+            SystemTime::now().duration_since(tx_job_begin).unwrap() - all_wait_duration;
+        info!(
+            "tx_job_duration={},{:03} seconds.",
+            tx_job_duration.as_secs(),
+            tx_job_duration.subsec_nanos() / 1_000_000
+        );
+    });
+    let main_job_begin = SystemTime::now();
+
+    // Apply blocks
+    let mut blocks_not_expiring = VecDeque::with_capacity(200_000);
+    let mut last_block_expiring: isize = -1;
+    let certs_db = MemoryDatabase::<CertsExpirV10Datas, Bincode>::memory(HashMap::new())
+        .expect("Fail to create memory certs_db");
+    let mut currency_params = CurrencyParameters::default();
+    let mut get_currency_params = false;
+    let mut certs_count = 0;
+
+    let mut all_wait_duration = Duration::from_millis(0);
+    let mut wait_begin = SystemTime::now();
+    let mut all_complete_block_duration = Duration::from_millis(0);
+    let mut all_apply_valid_block_duration = Duration::from_millis(0);
+    while let Ok(MessForSyncThread::NetworkBlock(network_block)) = recv_sync_thread.recv() {
+        all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
+        // Complete block
+        let complete_block_begin = SystemTime::now();
+        let block_doc = complete_network_block(&network_block)
+            .expect("Receive wrong block, please reset data and resync !");
+        all_complete_block_duration += SystemTime::now()
+            .duration_since(complete_block_begin)
+            .unwrap();
+        // Get currency params
+        if !get_currency_params {
+            if block_doc.number.0 == 0 {
+                if block_doc.parameters.is_some() {
+                    currency_params = CurrencyParameters::from((
+                        block_doc.currency.clone(),
+                        block_doc.parameters.unwrap(),
+                    ));
+                    wot.set_max_link(currency_params.sig_stock);
+                    get_currency_params = true;
+                } else {
+                    panic!("The genesis block are None parameters !");
+                }
+            } else {
+                panic!("The first block is not genesis !");
+            }
+        }
+        // Push block median_time in blocks_not_expiring
+        blocks_not_expiring.push_back(block_doc.median_time);
+        // Get blocks_expiring
+        let mut blocks_expiring = Vec::new();
+        while blocks_not_expiring.front().cloned()
+            < Some(block_doc.median_time - currency_params.sig_validity)
+        {
+            last_block_expiring += 1;
+            blocks_expiring.push(BlockId(last_block_expiring as u32));
+            blocks_not_expiring.pop_front();
+        }
+        // Find expire_certs
+        let expire_certs = duniter_dal::certs::find_expire_certs(&certs_db, blocks_expiring)
+            .expect("find_expire_certs() : DALError");
+        // Apply block
+        let apply_valid_block_begin = SystemTime::now();
+        if let Ok(ValidBlockApplyReqs(block_req, wot_db_reqs, currency_db_reqs)) =
+            apply_valid_block::<RustyWebOfTrust>(
+                &block_doc,
+                &mut wotb_index,
+                &mut wot,
+                &expire_certs,
+                None,
+            ) {
+            all_apply_valid_block_duration += SystemTime::now()
+                .duration_since(apply_valid_block_begin)
+                .unwrap();
+            current_blockstamp = network_block.blockstamp();
+            debug!("Apply db requests...");
+            // Send block request to blocks worker thread
+            sender_blocks_thread
+                .send(SyncJobsMess::BlocksDBsWriteQuery(block_req.clone()))
+                .expect(
+                    "Fail to communicate with blocks worker thread, please reset data & resync !",
+                );
+            // Send wot requests to wot worker thread
+            wot_db_reqs
+                .iter()
+                .map(|req| {
+                    if let WotsDBsWriteQuery::CreateCert(
+                        ref _source_pubkey,
+                        ref source,
+                        ref target,
+                        ref created_block_id,
+                        ref _median_time,
+                    ) = req
+                    {
+                        certs_count += 1;
+                        // Add cert in certs_db
+                        certs_db
+                            .write(|db| {
+                                let mut created_certs =
+                                    db.get(&created_block_id).cloned().unwrap_or_default();
+                                created_certs.insert((*source, *target));
+                                db.insert(*created_block_id, created_certs);
+                            })
+                            .expect("RustBreakError : please reset data and resync !");
+                    }
+                    sender_wot_thread
+                        .send(SyncJobsMess::WotsDBsWriteQuery(req.clone(), Box::new(currency_params)))
+                        .expect("Fail to communicate with tx worker thread, please reset data & resync !")
+                })
+                .collect::<()>();
+            // Send blocks and wot requests to wot worker thread
+            currency_db_reqs
+                .iter()
+                .map(|req| {
+                    sender_tx_thread
+                        .send(SyncJobsMess::CurrencyDBsWriteQuery(req.clone()))
+                        .expect("Fail to communicate with tx worker thread, please reset data & resync !")
+                })
+                .collect::<()>();
             debug!("Success to apply block #{}", current_blockstamp.id.0);
             if current_blockstamp.id.0 >= target_blockstamp.id.0 {
                 if current_blockstamp == target_blockstamp {
@@ -327,184 +592,73 @@ pub fn sync_ts(
                 current_blockstamp.id.0 + 1
             )
         }
+        wait_begin = SystemTime::now();
     }
+    // Send end signal to workers threads
+    sender_blocks_thread
+        .send(SyncJobsMess::End())
+        .expect("Sync : Fail to send End signal to blocks worker !");
+    info!("Sync : send End signal to blocks job.");
+    sender_wot_thread
+        .send(SyncJobsMess::End())
+        .expect("Sync : Fail to send End signal to wot worker !");
+    info!("Sync : send End signal to wot job.");
+    sender_tx_thread
+        .send(SyncJobsMess::End())
+        .expect("Sync : Fail to send End signal to writer worker !");
+    info!("Sync : send End signal to tx job.");
 
-    // Copy memory db to real db
-    info!("Save blockchain DB in profile folder...");
-    fs::copy(
-        format!("/dev/shm/{}_durs.db", profile),
-        duniter_conf::get_db_path(profile, currency, false).as_path(),
-    ).expect("Fatal error : fail to copy DB in profile folder !");
+    // Save wot file
+    WOT_FILE_FORMATER
+        .to_file(
+            &wot,
+            current_blockstamp.to_string().as_bytes(),
+            wot_path.as_path().to_str().unwrap(),
+        )
+        .expect("Fatal Error: Fail to write wotb in file !");
 
-    // Remove memory db
-    fs::remove_file(format!("/dev/shm/{}_durs.db", profile))
-        .expect("Fatal error : fail to remove memory DB !");
+    let main_job_duration =
+        SystemTime::now().duration_since(main_job_begin).unwrap() - all_wait_duration;
+    info!(
+        "main_job_duration={},{:03} seconds.",
+        main_job_duration.as_secs(),
+        main_job_duration.subsec_nanos() / 1_000_000
+    );
+    info!(
+        "all_complete_block_duration={},{:03} seconds.",
+        all_complete_block_duration.as_secs(),
+        all_complete_block_duration.subsec_nanos() / 1_000_000
+    );
+    info!(
+        "all_apply_valid_block_duration={},{:03} seconds.",
+        all_apply_valid_block_duration.as_secs(),
+        all_apply_valid_block_duration.subsec_nanos() / 1_000_000
+    );
 
-    // Print sync duration
+    // Wait recv two finish signals
+    let mut wait_jobs = *NB_SYNC_JOBS - 1;
+    while wait_jobs > 0 {
+        if let Ok(MessForSyncThread::ApplyFinish()) = recv_sync_thread.recv() {
+            wait_jobs -= 1;
+        } else {
+            thread::sleep(Duration::from_millis(50));
+        }
+    }
+    info!("All sync jobs finish.");
+
+    // Log sync duration
+    println!("certs_count={}", certs_count);
     let sync_duration = SystemTime::now().duration_since(sync_start_time).unwrap();
     println!(
-        "Sync {} blocks in {}m {}s.",
-        current_blockstamp.id.0,
-        sync_duration.as_secs() / 60,
-        sync_duration.as_secs() % 60,
+        "Sync {} blocks in {}.{:03} seconds.",
+        current_blockstamp.id.0 + 1,
+        sync_duration.as_secs(),
+        sync_duration.subsec_nanos() / 1_000_000,
     );
-}
-
-pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
-    // Parse block
-    let current_header = BlockHeader {
-        number: BlockId(row[16].as_integer().expect("Fail to parse block number") as u32),
-        hash: BlockHash(
-            Hash::from_hex(row[0].as_string().expect("Fail to parse block hash"))
-                .expect("Fail to parse block hash (2)"),
-        ),
-        issuer: PubKey::Ed25519(
-            ed25519::PublicKey::from_base58(
-                row[4].as_string().expect("Fail to parse block issuer"),
-            ).expect("Failt to parse block issuer (2)"),
-        ),
-    };
-    let previous_header = if current_header.number.0 > 0 {
-        Some(BlockHeader {
-            number: BlockId(current_header.number.0 - 1),
-            hash: BlockHash(
-                Hash::from_hex(
-                    row[6]
-                        .as_string()
-                        .expect("Fail to parse block previous hash"),
-                ).expect("Fail to parse block previous hash (2)"),
-            ),
-            issuer: PubKey::Ed25519(
-                ed25519::PublicKey::from_base58(
-                    row[7]
-                        .as_string()
-                        .expect("Fail to parse previous block issuer"),
-                ).expect("Fail to parse previous block issuer (2)"),
-            ),
-        })
-    } else {
-        None
-    };
-    let currency = row[3].as_string().expect("Fail to parse currency");
-    let dividend = match row[12].as_integer() {
-        Some(dividend) => Some(dividend as usize),
-        None => None,
-    };
-    let json_identities: serde_json::Value = serde_json::from_str(
-        row[20].as_string().expect("Fail to parse block identities"),
-    ).expect("Fail to parse block identities (2)");
-    let mut identities = Vec::new();
-    for raw_idty in json_identities
-        .as_array()
-        .expect("Fail to parse block identities (3)")
-    {
-        identities
-            .push(parse_compact_identity(&currency, &raw_idty).expect("Fail to parse block idty"));
-    }
-    let json_txs: serde_json::Value = serde_json::from_str(
-        row[18].as_string().expect("Fail to parse block txs"),
-    ).expect("Fail to parse block txs (2)");
-    let mut transactions = Vec::new();
-    for json_tx in json_txs.as_array().expect("Fail to parse block txs (3)") {
-        transactions.push(parse_transaction(currency, &json_tx).expect("Fail to parse block tx"));
-    }
-    let previous_hash = match previous_header.clone() {
-        Some(previous_header_) => previous_header_.hash.0,
-        None => Hash::default(),
-    };
-    let previous_issuer = match previous_header {
-        Some(previous_header_) => Some(previous_header_.issuer),
-        None => None,
-    };
-    let excluded: serde_json::Value = serde_json::from_str(
-        row[25].as_string().expect("Fail to parse excluded"),
-    ).expect("Fail to parse excluded (2)");
-    let uncompleted_block_doc = BlockDocument {
-        nonce: row[17].as_integer().expect("Fail to parse nonce") as u64,
-        number: current_header.number,
-        pow_min: row[15].as_integer().expect("Fail to parse pow_min") as usize,
-        time: row[14].as_integer().expect("Fail to parse time") as u64,
-        median_time: row[11].as_integer().expect("Fail to parse median_time") as u64,
-        members_count: row[9].as_integer().expect("Fail to parse members_count") as usize,
-        monetary_mass: row[10]
-            .as_string()
-            .expect("Fail to parse monetary_mass")
-            .parse()
-            .expect("Fail to parse monetary_mass (2)"),
-        unit_base: row[13].as_integer().expect("Fail to parse unit_base") as usize,
-        issuers_count: row[28].as_integer().expect("Fail to parse issuers_count") as usize,
-        issuers_frame: row[26].as_integer().expect("Fail to parse issuers_frame") as isize,
-        issuers_frame_var: row[27]
-            .as_integer()
-            .expect("Fail to parse issuers_frame_var") as isize,
-        currency: String::from(currency),
-        issuers: vec![PubKey::Ed25519(
-            ed25519::PublicKey::from_base58(row[4].as_string().expect("Fail to parse issuer"))
-                .expect("Fail to parse issuer '2)"),
-        )],
-        signatures: vec![Sig::Ed25519(
-            ed25519::Signature::from_base64(row[2].as_string().expect("Fail to parse signature"))
-                .expect("Fail to parse signature (2)"),
-        )],
-        hash: Some(current_header.hash),
-        parameters: None,
-        previous_hash,
-        previous_issuer,
-        inner_hash: Some(
-            Hash::from_hex(row[1].as_string().expect("Fail to parse block inner_hash"))
-                .expect("Fail to parse block inner_hash (2)"),
-        ),
-        dividend,
-        identities,
-        joiners: duniter_dal::parsers::memberships::parse_memberships(
-            currency,
-            MembershipType::In(),
-            row[21].as_string().expect("Fail to parse joiners"),
-        ).expect("Fail to parse joiners (2)"),
-        actives: duniter_dal::parsers::memberships::parse_memberships(
-            currency,
-            MembershipType::In(),
-            row[22].as_string().expect("Fail to parse actives"),
-        ).expect("Fail to parse actives (2)"),
-        leavers: duniter_dal::parsers::memberships::parse_memberships(
-            currency,
-            MembershipType::In(),
-            row[23].as_string().expect("Fail to parse leavers"),
-        ).expect("Fail to parse leavers (2)"),
-        revoked: Vec::new(),
-        excluded: excluded
-            .as_array()
-            .expect("Fail to parse excluded (3)")
-            .to_vec()
-            .into_iter()
-            .map(|e| {
-                PubKey::Ed25519(
-                    ed25519::PublicKey::from_base58(
-                        e.as_str().expect("Fail to parse excluded (4)"),
-                    ).expect("Fail to parse excluded (5)"),
-                )
-            })
-            .collect(),
-        certifications: Vec::new(),
-        transactions,
-        inner_hash_and_nonce_str: String::new(),
-    };
-    let revoked: serde_json::Value = serde_json::from_str(
-        row[24].as_string().expect("Fail to parse revoked"),
-    ).expect("Fail to parse revoked (2)");
-    let certifications: serde_json::Value = serde_json::from_str(
-        row[19].as_string().expect("Fail to parse certifications"),
-    ).expect("Fail to parse certifications (2)");
-    // return NetworkBlock
-    NetworkBlock::V10(Box::new(NetworkBlockV10 {
-        uncompleted_block_doc,
-        revoked: revoked
-            .as_array()
-            .expect("Fail to parse revoked (3)")
-            .to_vec(),
-        certifications: certifications
-            .as_array()
-            .expect("Fail to parse certifications (3)")
-            .to_vec(),
-    }))
+    info!(
+        "Sync {} blocks in {}.{:03} seconds.",
+        current_blockstamp.id.0 + 1,
+        sync_duration.as_secs(),
+        sync_duration.subsec_nanos() / 1_000_000,
+    );
 }

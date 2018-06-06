@@ -13,20 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Provide wrappers for cryptographic building blocks used by Duniter.
+use sources::*;
+use *;
 
-#![cfg_attr(feature = "strict", deny(warnings))]
-#![deny(
-    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
-    trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
-    unused_qualifications
-)]
-
-#[macro_use]
-extern crate serde_derive;
-
-extern crate base58;
-extern crate base64;
-extern crate crypto;
-
-pub mod keys;
+pub fn get_address_balance(
+    balances_db: &BinFileDB<BalancesV10Datas>,
+    address: &TransactionOutputConditionGroup,
+) -> Result<Option<SourceAmount>, DALError> {
+    Ok(balances_db.read(|db| {
+        if let Some(balance_and_utxos) = db.get(address) {
+            Some(balance_and_utxos.0)
+        } else {
+            None
+        }
+    })?)
+}

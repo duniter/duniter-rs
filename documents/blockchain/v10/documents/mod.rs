@@ -15,12 +15,9 @@
 
 //! Provide wrappers around Duniter blockchain documents for protocol version 10.
 
-extern crate crypto;
-
-use self::crypto::digest::Digest;
-
 use blockchain::v10::documents::identity::IdentityDocumentParser;
 use blockchain::{Document, DocumentBuilder, DocumentParser};
+use crypto::digest::Digest;
 use duniter_crypto::keys::*;
 use regex::Regex;
 
@@ -56,7 +53,7 @@ lazy_static! {
     static ref SIGNATURES_REGEX: Regex = Regex::new("[[:alnum:]+/=]+\n?").unwrap();
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 /// Contains a document in full or compact format
 pub enum TextDocumentFormat<D: TextDocument> {
     /// Complete format (Allows to check the validity of the signature)

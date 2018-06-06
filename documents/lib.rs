@@ -16,32 +16,34 @@
 //! Implements the Duniter Documents Protocol.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
+#![cfg_attr(feature = "cargo-clippy", allow(unused_collect))]
 #![deny(
     missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
     trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
     unused_qualifications
 )]
 
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate serde_derive;
+
 extern crate base58;
 extern crate base64;
 extern crate crypto;
 extern crate duniter_crypto;
-#[macro_use]
-extern crate lazy_static;
 extern crate linked_hash_map;
 extern crate regex;
 extern crate serde;
 
+use duniter_crypto::keys::BaseConvertionError;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Error, Formatter};
-
-use self::serde::ser::{Serialize, Serializer};
-use duniter_crypto::keys::BaseConvertionError;
 
 pub mod blockchain;
 
 /// A block Id.
-#[derive(Debug, Copy, Clone, Ord, PartialEq, PartialOrd, Eq, Hash)]
+#[derive(Debug, Deserialize, Copy, Clone, Ord, PartialEq, PartialOrd, Eq, Hash, Serialize)]
 pub struct BlockId(pub u32);
 
 impl Display for BlockId {
@@ -53,7 +55,7 @@ impl Display for BlockId {
 /// A hash wrapper.
 ///
 /// A hash is often provided as string composed of 64 hexadecimal character (0 to 9 then A to F).
-#[derive(Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Hash)]
+#[derive(Copy, Clone, Deserialize, Eq, Ord, PartialEq, PartialOrd, Hash, Serialize)]
 pub struct Hash(pub [u8; 32]);
 
 impl Display for Hash {
@@ -122,7 +124,7 @@ impl Hash {
 }
 
 /// Wrapper of a block hash.
-#[derive(Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Hash)]
+#[derive(Copy, Clone, Default, Deserialize, Eq, Ord, PartialEq, PartialOrd, Hash, Serialize)]
 pub struct BlockHash(pub Hash);
 
 impl Display for BlockHash {
@@ -160,13 +162,16 @@ pub enum BlockUIdParseError {
 ///
 /// [`BlockId`]: struct.BlockId.html
 /// [`BlockHash`]: struct.BlockHash.html
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Deserialize, PartialEq, Eq, Hash, Serialize)]
 pub struct Blockstamp {
     /// Block Id.
     pub id: BlockId,
     /// Block hash.
     pub hash: BlockHash,
 }
+
+/// Previous blockstamp (BlockId-1, previous_hash)
+pub type PreviousBlockstamp = Blockstamp;
 
 impl Display for Blockstamp {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
@@ -189,14 +194,81 @@ impl Default for Blockstamp {
     }
 }
 
-impl Serialize for Blockstamp {
+/*impl Serialize for Blockstamp {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         serializer.serialize_str(&format!("{}-{}", self.id, self.hash))
     }
-}
+}*/
+
+/*impl<'de> Deserialize<'de> for Blockstamp {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "lowercase")]
+        enum Field {
+            Id,
+            Hash,
+        }
+
+        struct BlockstampVisitor;
+
+        impl<'de> Visitor<'de> for BlockstampVisitor {
+            type Value = Blockstamp;
+
+            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+                formatter.write_str("struct Blockstamp")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<Blockstamp, V::Error>
+            where
+                V: SeqAccess<'de>,
+            {
+                let id = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let hash = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+                Ok(Blockstamp { id, hash })
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Blockstamp, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut id = None;
+                let mut hash = None;
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Id => {
+                            if id.is_some() {
+                                return Err(de::Error::duplicate_field("id"));
+                            }
+                            id = Some(map.next_value()?);
+                        }
+                        Field::Hash => {
+                            if hash.is_some() {
+                                return Err(de::Error::duplicate_field("hash"));
+                            }
+                            hash = Some(map.next_value()?);
+                        }
+                    }
+                }
+                let id = id.ok_or_else(|| de::Error::missing_field("id"))?;
+                let hash = hash.ok_or_else(|| de::Error::missing_field("hash"))?;
+                Ok(Blockstamp { id, hash })
+            }
+        }
+
+        const FIELDS: &'static [&'static str] = &["id", "hash"];
+        deserializer.deserialize_struct("Blockstamp", FIELDS, BlockstampVisitor)
+    }
+}*/
 
 impl PartialOrd for Blockstamp {
     fn partial_cmp(&self, other: &Blockstamp) -> Option<Ordering> {
@@ -232,7 +304,9 @@ impl Blockstamp {
             } else {
                 Ok(Blockstamp {
                     id: BlockId(id.unwrap()),
-                    hash: BlockHash(hash.unwrap()),
+                    hash: BlockHash(
+                        hash.expect("Try to get hash of an uncompleted or reduce block !"),
+                    ),
                 })
             }
         }

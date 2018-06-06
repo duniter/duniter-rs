@@ -1,54 +1,84 @@
+//  Copyright (C) 2018  The Duniter Project Developers.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 extern crate serde;
 extern crate serde_json;
-extern crate sqlite;
 
-use super::super::DuniterDB;
+use currency_params::CurrencyParameters;
 use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::certification::CompactCertificationDocument;
-use duniter_documents::Blockstamp;
+use duniter_documents::BlockId;
+use duniter_wotb::NodeId;
+use {BinFileDB, CertsExpirV10Datas, DALError, IdentitiesV10Datas};
 
 pub fn write_certification(
-    cert: &CompactCertificationDocument,
-    db: &DuniterDB,
-    written_blockstamp: Blockstamp,
+    currency_params: &CurrencyParameters,
+    identities_db: &BinFileDB<IdentitiesV10Datas>,
+    certs_db: &BinFileDB<CertsExpirV10Datas>,
+    source_pubkey: PubKey,
+    source: NodeId,
+    target: NodeId,
+    created_block_id: BlockId,
     written_timestamp: u64,
-) {
-    let mut cursor = db
-        .0
-        .prepare("SELECT median_time FROM blocks WHERE number=? AND fork=0 LIMIT 1;")
-        .expect("invalid write_certification sql request")
-        .cursor();
-
-    cursor
-        .bind(&[sqlite::Value::Integer(i64::from(cert.block_number.0))])
-        .expect("convert blockstamp to timestamp failure at step 1 !");
-
-    let mut created_timestamp: i64 = 0;
-    if let Some(row) = cursor
-        .next()
-        .expect("convert blockstamp to timestamp failure at step 2 !")
-    {
-        created_timestamp = row[0]
-            .as_integer()
-            .expect("Fail to write cert, impossible to get created_timestamp !");
-    }
-
-    db.0
-        .execute(
-            format!("INSERT INTO certifications (pubkey_from, pubkey_to, created_on, signature, written_on, expires_on, chainable_on) VALUES ('{}', '{}', '{}', '{}', '{}', {}, {});",
-                cert.issuer, cert.target, cert.block_number.0, cert.signature,
-                written_blockstamp.to_string(),
-                created_timestamp+super::super::constants::G1_PARAMS.sig_validity,
-                written_timestamp+super::super::constants::G1_PARAMS.sig_period
-            ))
-        .expect("Fail to execute INSERT certification !");
+) -> Result<(), DALError> {
+    // Get cert_chainable_on
+    let mut member_datas = identities_db.read(|db| {
+        db.get(&source_pubkey)
+            .expect("Database Corrupted, please reset data !")
+            .clone()
+    })?;
+    // Push new cert_chainable_on
+    member_datas
+        .cert_chainable_on
+        .push(written_timestamp + currency_params.sig_period);
+    // Write new identity datas
+    identities_db.write(|db| {
+        db.insert(source_pubkey, member_datas);
+    })?;
+    // Add cert in certs_db
+    certs_db.write(|db| {
+        let mut created_certs = db.get(&created_block_id).cloned().unwrap_or_default();
+        created_certs.insert((source, target));
+        db.insert(created_block_id, created_certs);
+    })?;
+    Ok(())
 }
 
-pub fn remove_certification(from: PubKey, to: PubKey, db: &DuniterDB) {
-    db.0
-        .execute(format!(
-            "DELETE FROM certifications WHERE pubkey_from={} AND pubkey_to={}",
-            from, to
-        ))
-        .expect("Fail to execute DELETE certification !");
+/// Revert writtent certification
+pub fn revert_write_cert(
+    identities_db: &BinFileDB<IdentitiesV10Datas>,
+    certs_db: &BinFileDB<CertsExpirV10Datas>,
+    compact_doc: CompactCertificationDocument,
+    source: NodeId,
+    target: NodeId,
+) -> Result<(), DALError> {
+    // Remove CertsExpirV10Datas entry
+    certs_db.write(|db| {
+        let mut certs = db
+            .get(&compact_doc.block_number)
+            .cloned()
+            .unwrap_or_default();
+        certs.remove(&(source, target));
+        db.insert(compact_doc.block_number, certs);
+    })?;
+    // Pop last cert_chainable_on
+    identities_db.write(|db| {
+        if let Some(mut member_datas) = db.get(&compact_doc.issuer).cloned() {
+            member_datas.cert_chainable_on.pop();
+            db.insert(compact_doc.issuer, member_datas);
+        }
+    })?;
+    Ok(())
 }

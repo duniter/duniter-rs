@@ -48,7 +48,6 @@
 
 extern crate serde;
 
-use self::serde::ser::{Serialize, Serializer};
 use base58::ToBase58;
 use std::fmt::Debug;
 use std::fmt::Display;
@@ -109,7 +108,7 @@ pub trait Signature: Clone + Display + Debug + PartialEq + Eq + Hash {
 }
 
 /// Store a cryptographic signature.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum Sig {
     /// Store a ed25519 Signature
     Ed25519(ed25519::Signature),
@@ -171,7 +170,7 @@ pub trait PublicKey: Clone + Display + Debug + PartialEq + Eq + Hash + ToBase58 
 }
 
 /// Store a cryptographic public key.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum PubKey {
     /// Store a ed25519 public key.
     Ed25519(ed25519::PublicKey),
@@ -200,15 +199,6 @@ impl ToBase58 for PubKey {
 impl Display for PubKey {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "{}", self.to_base58())
-    }
-}
-
-impl Serialize for PubKey {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&format!("{}", self))
     }
 }
 

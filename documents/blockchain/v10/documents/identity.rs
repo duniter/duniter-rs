@@ -15,14 +15,9 @@
 
 //! Wrappers around Identity documents.
 
-extern crate serde;
-
-use self::serde::ser::{Serialize, Serializer};
-use duniter_crypto::keys::*;
-use regex::Regex;
-
 use blockchain::v10::documents::*;
 use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
+use regex::Regex;
 use Blockstamp;
 
 lazy_static! {
@@ -34,13 +29,13 @@ lazy_static! {
 /// Wrap an Identity document.
 ///
 /// Must be created by parsing a text document or using a builder.
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub struct IdentityDocument {
     /// Document as text.
     ///
     /// Is used to check signatures, and other values
     /// must be extracted from it.
-    text: String,
+    text: Option<String>,
 
     /// Currency.
     currency: String,
@@ -58,6 +53,11 @@ impl IdentityDocument {
     /// Unique ID
     pub fn username(&self) -> &str {
         &self.username
+    }
+
+    /// Lightens the membership (for example to store it while minimizing the space required)
+    pub fn reduce(&mut self) {
+        self.text = None;
     }
 }
 
@@ -106,20 +106,15 @@ impl TextDocument for IdentityDocument {
     type CompactTextDocument_ = IdentityDocument;
 
     fn as_text(&self) -> &str {
-        &self.text
+        if let Some(ref text) = self.text {
+            text
+        } else {
+            panic!("Try to get text of reduce identity !")
+        }
     }
 
     fn to_compact_document(&self) -> Self::CompactTextDocument_ {
         self.clone()
-    }
-}
-
-impl Serialize for IdentityDocument {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.generate_compact_text())
     }
 }
 
@@ -145,7 +140,7 @@ pub struct IdentityDocumentBuilder<'a> {
 impl<'a> IdentityDocumentBuilder<'a> {
     fn build_with_text_and_sigs(self, text: String, signatures: Vec<Sig>) -> IdentityDocument {
         IdentityDocument {
-            text,
+            text: Some(text),
             currency: self.currency.to_string(),
             username: self.username.to_string(),
             blockstamp: *self.blockstamp,
@@ -209,7 +204,7 @@ impl StandardTextDocumentParser for IdentityDocumentParser {
             let blockstamp = Blockstamp::from_string(blockstamp).unwrap();
 
             Ok(V10Document::Identity(IdentityDocument {
-                text: doc.to_owned(),
+                text: Some(doc.to_owned()),
                 currency: currency.to_owned(),
                 username: uid.to_owned(),
                 blockstamp,

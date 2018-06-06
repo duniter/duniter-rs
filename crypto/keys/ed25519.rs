@@ -21,20 +21,17 @@
 
 extern crate serde;
 
-use std::collections::hash_map::DefaultHasher;
-use std::fmt::Debug;
-use std::fmt::Display;
-use std::fmt::Error;
-use std::fmt::Formatter;
-use std::hash::{Hash, Hasher};
-
-use self::serde::ser::{Serialize, Serializer};
+use self::serde::de::{Deserialize, Deserializer, SeqAccess, Visitor};
+use self::serde::ser::{Serialize, SerializeSeq, Serializer};
+use super::{BaseConvertionError, PrivateKey as PrivateKeyMethods, PublicKey as PublicKeyMethods};
 use base58::{FromBase58, FromBase58Error, ToBase58};
 use base64;
 use base64::DecodeError;
 use crypto;
-
-use super::{BaseConvertionError, PrivateKey as PrivateKeyMethods, PublicKey as PublicKeyMethods};
+use std::collections::hash_map::DefaultHasher;
+use std::fmt::{self, Debug, Display, Error, Formatter};
+use std::hash::{Hash, Hasher};
+use std::marker::PhantomData;
 
 /// Store a ed25519 signature.
 #[derive(Clone, Copy)]
@@ -44,6 +41,73 @@ impl Hash for Signature {
     fn hash<H: Hasher>(&self, _state: &mut H) {
         let mut hasher = DefaultHasher::new();
         Hash::hash_slice(&self.0, &mut hasher);
+    }
+}
+
+impl Serialize for Signature {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(64))?;
+        for e in self.0.iter() {
+            seq.serialize_element(e)?;
+        }
+        seq.end()
+    }
+}
+
+struct SignatureVisitor {
+    marker: PhantomData<fn() -> Signature>,
+}
+
+impl SignatureVisitor {
+    fn new() -> Self {
+        SignatureVisitor {
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<'de> Visitor<'de> for SignatureVisitor {
+    // The type that our Visitor is going to produce.
+    type Value = Signature;
+
+    // Format a message stating what data this Visitor expects to receive.
+    fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+        formatter.write_str("Signature datas")
+    }
+
+    // Deserialize Signature from an abstract "map" provided by the
+    // Deserializer. The MapAccess input is a callback provided by
+    // the Deserializer to let us see each entry in the map.
+    fn visit_seq<M>(self, mut access: M) -> Result<Self::Value, M::Error>
+    where
+        M: SeqAccess<'de>,
+    {
+        let mut map = Vec::with_capacity(access.size_hint().unwrap_or(0));
+
+        // While there are entries remaining in the input, add them
+        // into our map.
+        while let Some(value) = access.next_element()? {
+            map.push(value);
+        }
+
+        let mut sig_datas: [u8; 64] = [0; 64];
+        sig_datas.copy_from_slice(&map[0..64]);
+        Ok(Signature(sig_datas))
+    }
+}
+
+// This is the trait that informs Serde how to deserialize Signature.
+impl<'de> Deserialize<'de> for Signature {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // Instantiate our Visitor and ask the Deserializer to drive
+        // it over the input data, resulting in an instance of Signature.
+        deserializer.deserialize_seq(SignatureVisitor::new())
     }
 }
 
@@ -104,7 +168,7 @@ impl Eq for Signature {}
 /// Can be generated with [`KeyPairGenerator`].
 ///
 /// [`KeyPairGenerator`]: struct.KeyPairGenerator.html
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Deserialize, PartialEq, Eq, Hash, Serialize)]
 pub struct PublicKey(pub [u8; 32]);
 
 impl ToBase58 for PublicKey {
@@ -123,15 +187,6 @@ impl Debug for PublicKey {
     // PublicKey { DNann1L... }
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "PublicKey {{ {} }}", self)
-    }
-}
-
-impl Serialize for PublicKey {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&format!("{}", self))
     }
 }
 
