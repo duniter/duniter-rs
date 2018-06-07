@@ -16,7 +16,6 @@
 use duniter_crypto::keys::*;
 use duniter_dal::identity::DALIdentity;
 use duniter_documents::blockchain::v10::documents::transaction::*;
-use duniter_documents::Blockstamp;
 use duniter_module::DuniterConf;
 use duniter_wotb::data::rusty::RustyWebOfTrust;
 use std::time::*;
@@ -135,18 +134,17 @@ pub fn dbex_wot(conf: &DuniterConf, query: &DBExWotQuery) {
     let wot_reverse_index: HashMap<NodeId, &PubKey> =
         wot_index.iter().map(|(p, id)| (*id, p)).collect();
 
-    // Get wot path
-    let wot_path = duniter_conf::get_wot_path(conf.profile().clone().to_string(), &conf.currency());
-
-    // Open wot file
-    let (wot, wot_blockstamp): (RustyWebOfTrust, Blockstamp) =
-        open_wot_file(&WOT_FILE_FORMATER, &wot_path, *INFINITE_SIG_STOCK);
+    // Open wot db
+    let wot_db = open_wot_db::<RustyWebOfTrust>(&db_path).expect("Fail to open WotDB !");
 
     // Print wot blockstamp
-    println!("Wot : Current blockstamp = {}.", wot_blockstamp);
+    //println!("Wot : Current blockstamp = {}.", wot_blockstamp);
 
     // Print members count
-    let members_count = wot.get_enabled().len();
+    let members_count = wot_db
+        .read(|db| db.get_enabled())
+        .expect("Fail to read WotDB")
+        .len();
     println!(" Members count = {}.", members_count);
 
     match *query {
@@ -162,8 +160,9 @@ pub fn dbex_wot(conf: &DuniterConf, query: &DBExWotQuery) {
                     wot_id.0,
                     pubkey.to_string()
                 );
-                let sources = wot
-                    .get_links_source(wot_id)
+                let sources = wot_db
+                    .read(|db| db.get_links_source(wot_id))
+                    .expect("Fail to read WotDB")
                     .expect("Fail to get links source !");
                 println!("Certifiers : {}", sources.len());
                 for (i, source) in sources.iter().enumerate() {

@@ -22,7 +22,7 @@ use NodeId;
 use WebOfTrust;
 
 /// A node in the `WoT` graph.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct Node {
     /// Is this node enabled ?
     enabled: bool,
@@ -44,12 +44,21 @@ impl Node {
 }
 
 /// A more idiomatic implementation of a Web of Trust.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RustyWebOfTrust {
     /// List of nodes in the WoT.
     nodes: Vec<Node>,
     /// Maximum number of links a node can issue.
     max_links: usize,
+}
+
+impl Default for RustyWebOfTrust {
+    fn default() -> RustyWebOfTrust {
+        RustyWebOfTrust {
+            nodes: Vec::new(),
+            max_links: 4_000_000_000,
+        }
+    }
 }
 
 impl WebOfTrust for RustyWebOfTrust {

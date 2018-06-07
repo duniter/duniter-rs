@@ -47,6 +47,7 @@ mod ts_parsers;
 
 use std::collections::HashMap;
 use std::env;
+use std::fmt::Debug;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::str;
@@ -73,9 +74,8 @@ use duniter_network::{
     NetworkBlock, NetworkDocument, NetworkEvent, NetworkRequest, NetworkResponse, NodeFullId,
 };
 use duniter_wotb::data::rusty::RustyWebOfTrust;
-use duniter_wotb::operations::file::BinaryFileFormater;
 use duniter_wotb::{NodeId, WebOfTrust};
-use rustbreak::backend::FileBackend;
+use rustbreak::backend::{Backend, FileBackend};
 
 /// The blocks are requested by packet groups. This constant sets the block packet size.
 pub static CHUNK_SIZE: &'static u32 = &50;
@@ -83,8 +83,6 @@ pub static CHUNK_SIZE: &'static u32 = &50;
 pub static INFINITE_SIG_STOCK: &'static usize = &4_000_000_000;
 /// The blocks are requested by packet groups. This constant sets the number of packets per group.
 pub static MAX_BLOCKS_REQUEST: &'static u32 = &500;
-/// There can be several implementations of the wot file backup, this constant fixes the implementation used by the blockchain module.
-pub static WOT_FILE_FORMATER: BinaryFileFormater = BinaryFileFormater {};
 
 /// Blockchain Module
 #[derive(Debug)]
@@ -300,12 +298,12 @@ impl BlockchainModule {
             }
         }
     }
-    fn receive_network_documents<W: WebOfTrust + Sync>(
+    fn receive_network_documents<W: WebOfTrust, B: Backend + Debug>(
         &mut self,
         network_documents: &[NetworkDocument],
         current_blockstamp: &Blockstamp,
         wotb_index: &mut HashMap<PubKey, NodeId>,
-        wot: &mut W,
+        wot_db: &BinDB<W, B>,
     ) -> Blockstamp {
         let mut blockchain_documents = Vec::new();
         let mut current_blockstamp = *current_blockstamp;
@@ -321,7 +319,7 @@ impl BlockchainModule {
                         &Block::NetworkBlock(network_block),
                         &current_blockstamp,
                         wotb_index,
-                        wot,
+                        wot_db,
                         &self.forks_states,
                     ) {
                         Ok(ValidBlockApplyReqs(block_req, wot_dbs_reqs, currency_dbs_reqs)) => {
@@ -440,12 +438,12 @@ impl BlockchainModule {
             }
         }
     }
-    fn receive_blocks<W: WebOfTrust + Sync>(
+    fn receive_blocks<W: WebOfTrust, B: Backend + Debug>(
         &mut self,
         blocks_in_box: &[Box<NetworkBlock>],
         current_blockstamp: &Blockstamp,
         wotb_index: &mut HashMap<PubKey, NodeId>,
-        wot: &mut W,
+        wot: &BinDB<W, B>,
     ) -> Blockstamp {
         debug!("BlockchainModule : receive_blocks()");
         let blocks: Vec<&NetworkBlock> = blocks_in_box.into_iter().map(|b| b.deref()).collect();
@@ -455,7 +453,7 @@ impl BlockchainModule {
         let mut save_currency_dbs = false;
         for block in blocks {
             if let Ok(ValidBlockApplyReqs(bc_db_query, wot_dbs_queries, tx_dbs_queries)) =
-                check_and_apply_block::<W>(
+                check_and_apply_block::<W, B>(
                     &self.blocks_databases,
                     &self.wot_databases.certs_db,
                     &Block::NetworkBlock(block),
@@ -513,8 +511,9 @@ impl BlockchainModule {
     pub fn start_blockchain(&mut self, blockchain_receiver: &mpsc::Receiver<DuniterMessage>) -> () {
         info!("BlockchainModule::start_blockchain()");
 
-        // Get wot path
-        let wot_path = duniter_conf::get_wot_path(self.conf_profile.clone(), &self.currency);
+        // Get dbs path
+        let dbs_path =
+            duniter_conf::get_blockchain_db_path(self.conf_profile.as_str(), &self.currency);
 
         // Get wotb index
         let mut wotb_index: HashMap<PubKey, NodeId> =
@@ -522,11 +521,7 @@ impl BlockchainModule {
                 .expect("Fatal eror : get_wotb_index : Fail to read blockchain databases");
 
         // Open wot file
-        let (mut wot, mut _wot_blockstamp) = open_wot_file::<RustyWebOfTrust, BinaryFileFormater>(
-            &WOT_FILE_FORMATER,
-            &wot_path,
-            self.currency_params.sig_stock,
-        );
+        let wot_db = open_wot_db::<RustyWebOfTrust>(&dbs_path).expect("Fail to open WotDB !");
 
         // Get current block
         let mut current_blockstamp = duniter_dal::block::get_current_blockstamp(
@@ -640,7 +635,7 @@ impl BlockchainModule {
                                 network_docs,
                                 &current_blockstamp,
                                 &mut wotb_index,
-                                &mut wot,
+                                &wot_db,
                             );
                             current_blockstamp = new_current_blockstamp;
                         }
@@ -667,7 +662,7 @@ impl BlockchainModule {
                                                 blocks,
                                                 &current_blockstamp,
                                                 &mut wotb_index,
-                                                &mut wot,
+                                                &wot_db,
                                             );
                                             if current_blockstamp != new_current_blockstamp {
                                                 current_blockstamp = new_current_blockstamp;
@@ -728,7 +723,7 @@ impl BlockchainModule {
                                 &Block::LocalBlock(&stackable_block.block),
                                 &current_blockstamp,
                                 &mut wotb_index,
-                                &mut wot,
+                                &wot_db,
                                 &self.forks_states,
                             ) {
                                 // Apply db requests

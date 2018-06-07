@@ -17,8 +17,11 @@
 //! `LegacyWebOfTrust` is almost a translation of the legacy C++ coden while
 //! `RustyWebOfTrust` is a brand new implementation with a more "rusty" style.
 
-pub mod legacy;
 pub mod rusty;
+
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use std::fmt::Debug;
 
 /// Wrapper for a node id.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -70,7 +73,7 @@ pub enum HasLinkResult {
 /// Trait for a Web Of Trust.
 /// Allow to provide other implementations of the `WoT` logic instead of the legacy C++
 /// translated one.
-pub trait WebOfTrust: Clone + Sync {
+pub trait WebOfTrust: Clone + Debug + Default + DeserializeOwned + Send + Serialize + Sync {
     /// Create a new Web of Trust with the maximum of links a node can issue.
     fn new(max_links: usize) -> Self;
 

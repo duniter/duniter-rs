@@ -26,8 +26,7 @@ use duniter_dal::writers::requests::*;
 use duniter_dal::ForkId;
 use duniter_documents::{BlockHash, BlockId, Hash};
 use duniter_network::NetworkBlock;
-use duniter_wotb::operations::file::FileFormater;
-use duniter_wotb::{NodeId, WebOfTrust};
+use duniter_wotb::NodeId;
 use rustbreak::{deser::Bincode, MemoryDatabase};
 use std::collections::{HashMap, VecDeque};
 use std::fs;
@@ -80,34 +79,10 @@ pub fn sync_ts(
     let mut current_blockstamp = *current_blockstamp;
 
     // Get wot path
-    let wot_path = duniter_conf::get_wot_path(profile.clone().to_string(), currency);
+    let db_path = duniter_conf::get_blockchain_db_path(&profile, &currency);
 
-    // Open wot file
-    let (mut wot, mut _wot_blockstamp): (RustyWebOfTrust, Blockstamp) =
-        if wot_path.as_path().exists() {
-            match WOT_FILE_FORMATER.from_file(
-                wot_path
-                    .as_path()
-                    .to_str()
-                    .expect("Fail to convert path to str"),
-                *INFINITE_SIG_STOCK,
-            ) {
-                Ok((wot, binary_blockstamp)) => match str::from_utf8(&binary_blockstamp) {
-                    Ok(str_blockstamp) => (
-                        wot,
-                        Blockstamp::from_string(str_blockstamp)
-                            .expect("Fail to deserialize wot blockcstamp"),
-                    ),
-                    Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-                },
-                Err(e) => panic!("Fatal Error : fail te read wot file : {:?}", e),
-            }
-        } else {
-            (
-                RustyWebOfTrust::new(*INFINITE_SIG_STOCK),
-                Blockstamp::default(),
-            )
-        };
+    // Open wot db
+    let wot_db = open_wot_db::<RustyWebOfTrust>(&db_path).expect("Fail to open WotDB !");
 
     // Get verification level
     let _verif_level = if cautious {
@@ -496,7 +471,6 @@ pub fn sync_ts(
                         block_doc.currency.clone(),
                         block_doc.parameters.unwrap(),
                     ));
-                    wot.set_max_link(currency_params.sig_stock);
                     get_currency_params = true;
                 } else {
                     panic!("The genesis block are None parameters !");
@@ -522,10 +496,10 @@ pub fn sync_ts(
         // Apply block
         let apply_valid_block_begin = SystemTime::now();
         if let Ok(ValidBlockApplyReqs(block_req, wot_db_reqs, currency_db_reqs)) =
-            apply_valid_block::<RustyWebOfTrust>(
+            apply_valid_block::<RustyWebOfTrust, FileBackend>(
                 &block_doc,
                 &mut wotb_index,
-                &mut wot,
+                &wot_db,
                 &expire_certs,
                 None,
             ) {
@@ -609,13 +583,7 @@ pub fn sync_ts(
     info!("Sync : send End signal to tx job.");
 
     // Save wot file
-    WOT_FILE_FORMATER
-        .to_file(
-            &wot,
-            current_blockstamp.to_string().as_bytes(),
-            wot_path.as_path().to_str().unwrap(),
-        )
-        .expect("Fatal Error: Fail to write wotb in file !");
+    wot_db.save().expect("Fail to save wotb db");
 
     let main_job_duration =
         SystemTime::now().duration_since(main_job_begin).unwrap() - all_wait_duration;
