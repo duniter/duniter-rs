@@ -116,6 +116,14 @@ impl FileFormater for BinaryFileFormater {
         // Read up to nodes_states_size bytes (nodes_states)
         let file_pointing_to_links =
             file_pointing_to_nodes_states.split_off(nodes_states_size as usize);
+        let count_total_bytes_read = file_pointing_to_links.len()
+            + nodes_states_size as usize
+            + 4
+            + blockstamp_size as usize
+            + 4;
+        if count_total_bytes_read != file_size as usize {
+            panic!("not read all wot file !");
+        }
         // Apply nodes state
         let mut count_remaining_nodes = nodes_count;
         for byte in file_pointing_to_nodes_states {
@@ -159,6 +167,9 @@ impl FileFormater for BinaryFileFormater {
                 count_bytes += 1;
             }
         }
+        if count_bytes % 3 != 0 {
+            panic!("not read all wot file !");
+        }
         Ok((wot, file_pointing_to_blockstamp))
     }
 
@@ -182,7 +193,7 @@ impl FileFormater for BinaryFileFormater {
         let mut bytes: Vec<u8> = Vec::with_capacity(4);
         bytes.write_u32::<BigEndian>(nodes_count).unwrap();
         buffer.append(&mut bytes);
-        // Write enable state by groups of 8 (count links at the same time)
+        // Write enable state by groups of 8
         let mut enable_states: u8 = 0;
         let mut factor: u8 = 128;
         for n in 0..nodes_count {

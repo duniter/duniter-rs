@@ -22,6 +22,8 @@ use duniter_dal::*;
 use duniter_documents::blockchain::Document;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
 use duniter_network::NetworkBlock;
+use rustbreak::backend::Backend;
+use std::fmt::Debug;
 use *;
 
 #[derive(Debug, Copy, Clone)]
@@ -53,13 +55,13 @@ impl From<ApplyValidBlockError> for BlockError {
     }
 }
 
-pub fn check_and_apply_block<W: WebOfTrust + Sync>(
+pub fn check_and_apply_block<W: WebOfTrust, B: Backend + Debug>(
     blocks_databases: &BlocksV10DBs,
     certs_db: &BinFileDB<CertsExpirV10Datas>,
     block: &Block,
     current_blockstamp: &Blockstamp,
     wotb_index: &mut HashMap<PubKey, NodeId>,
-    wot: &mut W,
+    wot_db: &BinDB<W, B>,
     forks_states: &[ForkStatus],
 ) -> Result<ValidBlockApplyReqs, BlockError> {
     let (block_doc, already_have_block) = match *block {
@@ -102,7 +104,7 @@ pub fn check_and_apply_block<W: WebOfTrust + Sync>(
         return Ok(apply_valid_block(
             &block_doc,
             wotb_index,
-            wot,
+            wot_db,
             &expire_certs,
             old_fork_id,
         )?);

@@ -17,14 +17,16 @@ use duniter_crypto::keys::*;
 use duniter_dal::block::DALBlock;
 use duniter_dal::sources::SourceAmount;
 use duniter_dal::writers::requests::*;
-use duniter_dal::ForkId;
+use duniter_dal::{BinDB, ForkId};
 use duniter_documents::blockchain::v10::documents::transaction::{TxAmount, TxBase};
 use duniter_documents::blockchain::v10::documents::BlockDocument;
 use duniter_documents::blockchain::Document;
 use duniter_documents::BlockId;
 use duniter_wotb::data::NewLinkResult;
 use duniter_wotb::{NodeId, WebOfTrust};
+use rustbreak::backend::Backend;
 use std::collections::HashMap;
+use std::fmt::Debug;
 
 #[derive(Debug)]
 /// Stores all queries to apply in database to "apply" the block
@@ -41,10 +43,10 @@ pub enum ApplyValidBlockError {
     RevokeUnknowNodeId(),
 }
 
-pub fn apply_valid_block<W: WebOfTrust + Sync>(
+pub fn apply_valid_block<W: WebOfTrust, B: Backend + Debug>(
     block: &BlockDocument,
     wot_index: &mut HashMap<PubKey, NodeId>,
-    wot: &mut W,
+    wot_db: &BinDB<W, B>,
     expire_certs: &HashMap<(NodeId, NodeId), BlockId>,
     old_fork_id: Option<ForkId>,
 ) -> Result<ValidBlockApplyReqs, ApplyValidBlockError> {
@@ -63,8 +65,16 @@ pub fn apply_valid_block<W: WebOfTrust + Sync>(
         let pubkey = joiner.clone().issuers()[0];
         if let Some(idty_doc) = identities.get(&pubkey) {
             // Newcomer
-            let wotb_id = NodeId(wot.size());
-            wot.add_node();
+            let wotb_id = NodeId(
+                wot_db
+                    .read(|db| db.size())
+                    .expect("Fatal error : fail to read WotDB !"),
+            );
+            wot_db
+                .write(|db| {
+                    db.add_node();
+                })
+                .expect("Fail to write in WotDB");
             wot_index.insert(pubkey, wotb_id);
             wot_dbs_requests.push(WotsDBsWriteQuery::CreateIdentity(
                 wotb_id,
@@ -76,7 +86,11 @@ pub fn apply_valid_block<W: WebOfTrust + Sync>(
         } else {
             // Renewer
             let wotb_id = wot_index[&joiner.issuers()[0]];
-            wot.set_enabled(wotb_id, true);
+            wot_db
+                .write(|db| {
+                    db.set_enabled(wotb_id, true);
+                })
+                .expect("Fail to write in WotDB");
             wot_dbs_requests.push(WotsDBsWriteQuery::RenewalIdentity(
                 joiner.issuers()[0],
                 wotb_id,
@@ -89,7 +103,11 @@ pub fn apply_valid_block<W: WebOfTrust + Sync>(
         let pubkey = active.issuers()[0];
         if !identities.contains_key(&pubkey) {
             let wotb_id = wot_index[&pubkey];
-            wot.set_enabled(wotb_id, true);
+            wot_db
+                .write(|db| {
+                    db.set_enabled(wotb_id, true);
+                })
+                .expect("Fail to write in WotDB");
             wot_dbs_requests.push(WotsDBsWriteQuery::RenewalIdentity(
                 pubkey,
                 wotb_id,
@@ -104,7 +122,11 @@ pub fn apply_valid_block<W: WebOfTrust + Sync>(
         } else {
             return Err(ApplyValidBlockError::ExcludeUnknowNodeId());
         };
-        wot.set_enabled(*wot_id, false);
+        wot_db
+            .write(|db| {
+                db.set_enabled(*wot_id, false);
+            })
+            .expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::ExcludeIdentity(
             exclusion,
             block.blockstamp(),
@@ -117,7 +139,11 @@ pub fn apply_valid_block<W: WebOfTrust + Sync>(
         } else {
             return Err(ApplyValidBlockError::RevokeUnknowNodeId());
         };
-        wot.set_enabled(*wot_id, false);
+        wot_db
+            .write(|db| {
+                db.set_enabled(*wot_id, false);
+            })
+            .expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::RevokeIdentity(
             compact_revoc.issuer,
             block.blockstamp(),
@@ -128,14 +154,18 @@ pub fn apply_valid_block<W: WebOfTrust + Sync>(
         let compact_cert = certification.to_compact_document();
         let wotb_node_from = wot_index[&compact_cert.issuer];
         let wotb_node_to = wot_index[&compact_cert.target];
-        let result = wot.add_link(wotb_node_from, wotb_node_to);
-        match result {
-            NewLinkResult::Ok(_) => {}
-            _ => panic!(
-                "Fail to add_link {}->{} : {:?}",
-                wotb_node_from.0, wotb_node_to.0, result
-            ),
-        }
+        wot_db
+            .write(|db| {
+                let result = db.add_link(wotb_node_from, wotb_node_to);
+                match result {
+                    NewLinkResult::Ok(_) => {}
+                    _ => panic!(
+                        "Fail to add_link {}->{} : {:?}",
+                        wotb_node_from.0, wotb_node_to.0, result
+                    ),
+                }
+            })
+            .expect("Fail to read WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::CreateCert(
             compact_cert.issuer,
             wotb_node_from,
@@ -154,7 +184,9 @@ pub fn apply_valid_block<W: WebOfTrust + Sync>(
     }
     if let Some(du_amount) = block.dividend {
         if du_amount > 0 {
-            let members_wot_ids = wot.get_enabled();
+            let members_wot_ids = wot_db
+                .read(|db| db.get_enabled())
+                .expect("Fail to read WotDB");
             let mut members_pubkeys = Vec::new();
             for (pubkey, wotb_id) in wot_index {
                 if members_wot_ids.contains(wotb_id) {

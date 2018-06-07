@@ -52,7 +52,6 @@ pub mod writers;
 use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::transaction::*;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, Hash, PreviousBlockstamp};
-use duniter_wotb::operations::file::FileFormater;
 use duniter_wotb::{NodeId, WebOfTrust};
 use rustbreak::backend::{Backend, FileBackend, MemoryBackend};
 use rustbreak::error::{RustbreakError, RustbreakErrorKind};
@@ -326,12 +325,13 @@ pub fn open_db<D: Serialize + DeserializeOwned + Debug + Default + Clone + Send>
     }
 }
 
-/// Open wot file (cf. duniter-wot crate)
-pub fn open_wot_file<W: WebOfTrust, WF: FileFormater>(
-    file_formater: &WF,
-    wot_path: &PathBuf,
-    sig_stock: usize,
-) -> (W, Blockstamp) {
+/// Open wot db (cf. duniter-wot crate)
+pub fn open_wot_db<W: WebOfTrust>(dbs_folder_path: &PathBuf) -> Result<BinFileDB<W>, DALError> {
+    open_db::<W>(dbs_folder_path, "wot.db")
+}
+
+// Open wot file (cf. duniter-wot crate)
+/*pub fn open_wot_file<W: WebOfTrust>(wot_path: &PathBuf, sig_stock: usize) -> (W, Blockstamp) {
     if wot_path.as_path().exists() {
         match file_formater.from_file(
             wot_path
@@ -353,4 +353,4 @@ pub fn open_wot_file<W: WebOfTrust, WF: FileFormater>(
     } else {
         (W::new(sig_stock), Blockstamp::default())
     }
-}
+}*/

@@ -14,7 +14,7 @@ path = "lib.rs"
 [dependencies]
 serde = "1.0.57"
 serde_derive = "1.0.57"
-bincode = "0.9.2"
+bincode = "1.0.0"
 byteorder = "1.2.3"
 rayon = "1.0.1"
 
