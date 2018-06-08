@@ -50,6 +50,7 @@ pub mod tools;
 pub mod writers;
 
 use duniter_crypto::keys::*;
+use duniter_documents::blockchain::v10::documents::block::{BlockV10Parameters, CurrencyName};
 use duniter_documents::blockchain::v10::documents::transaction::*;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, Hash, PreviousBlockstamp};
 use duniter_wotb::{NodeId, WebOfTrust};
@@ -73,6 +74,7 @@ use writers::transaction::DALTxV10;
 /// Each fork has a unique identifier. The local blockchain (also called local branch) has ForkId equal to zero.
 pub struct ForkId(pub usize);
 
+pub type CurrencyParamsV10Datas = (CurrencyName, BlockV10Parameters);
 pub type LocalBlockchainV10Datas = HashMap<BlockId, DALBlock>;
 pub type ForksV10Datas = HashMap<ForkId, HashMap<PreviousBlockstamp, BlockHash>>;
 pub type ForksBlocksV10Datas = HashMap<Blockstamp, DALBlock>;

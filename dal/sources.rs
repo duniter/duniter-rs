@@ -19,14 +19,25 @@ extern crate duniter_documents;
 use duniter_crypto::keys::PubKey;
 use duniter_documents::blockchain::v10::documents::transaction::*;
 use duniter_documents::{BlockId, Hash};
+use std::cmp::Ordering;
 use std::ops::{Add, Sub};
 
-#[derive(Copy, Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, Eq, Hash, PartialEq, PartialOrd, Serialize)]
 pub struct SourceAmount(pub TxAmount, pub TxBase);
 
 impl Default for SourceAmount {
     fn default() -> SourceAmount {
         SourceAmount(TxAmount(0), TxBase(0))
+    }
+}
+
+impl Ord for SourceAmount {
+    fn cmp(&self, other: &SourceAmount) -> Ordering {
+        if self.1 == other.1 {
+            self.0.cmp(&other.0)
+        } else {
+            self.1.cmp(&other.1)
+        }
     }
 }
 

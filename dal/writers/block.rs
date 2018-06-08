@@ -1,6 +1,6 @@
 use block::DALBlock;
 use duniter_documents::blockchain::Document;
-use duniter_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
+use duniter_documents::{BlockHash, BlockId, PreviousBlockstamp};
 use std::collections::HashMap;
 use ForkId;
 use {BinFileDB, DALError, ForksBlocksV10Datas, ForksV10Datas, LocalBlockchainV10Datas};
@@ -11,39 +11,61 @@ pub fn write(
     forks_db: &BinFileDB<ForksV10Datas>,
     forks_blocks_db: &BinFileDB<ForksBlocksV10Datas>,
     dal_block: &DALBlock,
-    old_fork_id: Option<ForkId>,
+    from_to_fork_id: Option<ForkId>,
     sync: bool,
+    revert: bool,
 ) -> Result<(), DALError> {
     if dal_block.fork_id.0 == 0 {
         blockchain_db.write(|db| {
-            db.insert(dal_block.block.number, dal_block.clone());
+            if revert {
+                db.remove(&dal_block.block.number);
+            } else {
+                db.insert(dal_block.block.number, dal_block.clone());
+            }
         })?;
 
-        if old_fork_id.is_some() {
+        if from_to_fork_id.is_some() {
             forks_blocks_db.write(|db| {
                 db.remove(&dal_block.block.blockstamp());
             })?;
         }
     }
-    if let Some(old_fork_id) = old_fork_id {
+    // Move block in a fork
+    if revert {
+        if let Some(to_fork_id) = from_to_fork_id {
+            forks_db.write(|db| {
+                let previous_blockstamp = dal_block.block.previous_blockstamp();
+                let mut fork_meta_datas = db.get(&to_fork_id).unwrap().clone();
+                fork_meta_datas.insert(
+                    previous_blockstamp,
+                    dal_block
+                        .block
+                        .hash
+                        .expect("Try to get hash of a reduce block !"),
+                );
+                db.insert(to_fork_id, fork_meta_datas);
+            })?;
+        }
+    } else if let Some(from_fork_id) = from_to_fork_id {
+        // Remove block in fork origin
         forks_db.write(|db| {
             let mut fork_meta_datas = db
-                .get(&old_fork_id)
-                .expect("old_fork_id don(t exist !")
+                .get(&from_fork_id)
+                .expect("from_fork_id don(t exist !")
                 .clone();
-            let previous_blockstamp = Blockstamp {
-                id: BlockId(dal_block.block.blockstamp().id.0 - 1),
-                hash: dal_block
-                    .block
-                    .hash
-                    .expect("Try to get hash of an uncompleted or reduce block !"),
-            };
+            let previous_blockstamp = dal_block.block.previous_blockstamp();
             fork_meta_datas.remove(&previous_blockstamp);
-            db.insert(old_fork_id, fork_meta_datas);
+            db.insert(from_fork_id, fork_meta_datas);
             if dal_block.fork_id.0 > 0 {
                 let mut fork_meta_datas = db.get(&dal_block.fork_id).unwrap().clone();
-                fork_meta_datas.insert(previous_blockstamp, dal_block.block.hash.unwrap());
-                db.insert(old_fork_id, fork_meta_datas);
+                fork_meta_datas.insert(
+                    previous_blockstamp,
+                    dal_block
+                        .block
+                        .hash
+                        .expect("Try to get hash of a reduce block !"),
+                );
+                db.insert(from_fork_id, fork_meta_datas);
             }
         })?;
     }

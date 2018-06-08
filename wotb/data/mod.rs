@@ -19,13 +19,67 @@
 
 pub mod rusty;
 
-use serde::de::DeserializeOwned;
-use serde::Serialize;
-use std::fmt::Debug;
+use serde::de::{self, Deserialize, DeserializeOwned, Deserializer, Visitor};
+use serde::{Serialize, Serializer};
+use std::fmt::{self, Debug};
 
 /// Wrapper for a node id.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct NodeId(pub usize);
+
+impl Serialize for NodeId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_u32(self.0 as u32)
+    }
+}
+
+struct NodeIdVisitor;
+
+impl<'de> Visitor<'de> for NodeIdVisitor {
+    type Value = NodeId;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("an integer between -2^31 and 2^31")
+    }
+
+    fn visit_u8<E>(self, value: u8) -> Result<NodeId, E>
+    where
+        E: de::Error,
+    {
+        Ok(NodeId(value as usize))
+    }
+
+    fn visit_u32<E>(self, value: u32) -> Result<NodeId, E>
+    where
+        E: de::Error,
+    {
+        Ok(NodeId(value as usize))
+    }
+
+    fn visit_u64<E>(self, value: u64) -> Result<NodeId, E>
+    where
+        E: de::Error,
+    {
+        use std::usize;
+        if value >= usize::MIN as u64 && value <= usize::MAX as u64 {
+            Ok(NodeId(value as usize))
+        } else {
+            Err(E::custom(format!("u32 out of range: {}", value)))
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for NodeId {
+    fn deserialize<D>(deserializer: D) -> Result<NodeId, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_u32(NodeIdVisitor)
+    }
+}
 
 /// Results of a certification, with the current certification count
 /// of the destination as parameter.

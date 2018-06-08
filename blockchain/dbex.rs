@@ -18,12 +18,19 @@ use duniter_dal::identity::DALIdentity;
 use duniter_documents::blockchain::v10::documents::transaction::*;
 use duniter_module::DuniterConf;
 use duniter_wotb::data::rusty::RustyWebOfTrust;
+use duniter_wotb::operations::distance::{DistanceCalculator, WotDistance, WotDistanceParameters};
 use std::time::*;
 use *;
 
 #[derive(Debug, Clone)]
 /// Query for wot databases explorer
 pub enum DBExWotQuery {
+    /// Ask distance of all members
+    AllDistances(bool),
+    /// Show members expire date
+    ExpireMembers(bool, bool),
+    /// Show members list
+    ListMembers(bool),
     /// Ask member datas
     MemberDatas(String),
 }
@@ -69,7 +76,6 @@ pub fn dbex_tx(conf: &DuniterConf, query: &DBExTxQuery) {
         load_dbs_duration.subsec_nanos() / 1_000_000
     );
     let req_process_begin = SystemTime::now();
-
     match *query {
         DBExTxQuery::Balance(ref address_str) => {
             let pubkey = if let Ok(ed25519_pubkey) = ed25519::PublicKey::from_base58(address_str) {
@@ -115,7 +121,8 @@ pub fn dbex_wot(conf: &DuniterConf, query: &DBExWotQuery) {
 
     // Open databases
     let load_dbs_begin = SystemTime::now();
-    //let blocks_databases = BlocksV10DBs::open(&db_path, false);
+    let currency_params_db =
+        open_db::<CurrencyParamsV10Datas>(&db_path, "params.db").expect("Fail to open params db");
     let wot_databases = WotsV10DBs::open(&db_path, false);
     let load_dbs_duration = SystemTime::now()
         .duration_since(load_dbs_begin)
@@ -125,7 +132,11 @@ pub fn dbex_wot(conf: &DuniterConf, query: &DBExWotQuery) {
         load_dbs_duration.as_secs(),
         load_dbs_duration.subsec_nanos() / 1_000_000
     );
-    let req_process_begin = SystemTime::now();
+
+    // Get currency parameters
+    let currency_params = currency_params_db
+        .read(|db| CurrencyParameters::from(db.clone()))
+        .expect("Fail to parse currency params !");
 
     // get wot_index
     let wot_index = DALIdentity::get_wotb_index(&wot_databases.identities_db).expect("DALError");
@@ -134,21 +145,126 @@ pub fn dbex_wot(conf: &DuniterConf, query: &DBExWotQuery) {
     let wot_reverse_index: HashMap<NodeId, &PubKey> =
         wot_index.iter().map(|(p, id)| (*id, p)).collect();
 
+    // get wot uid index
+    let wot_uid_index: HashMap<NodeId, String> = wot_databases
+        .identities_db
+        .read(|db| {
+            db.iter()
+                .map(|(_, idty)| (idty.wot_id, String::from(idty.idty_doc.username())))
+                .collect()
+        })
+        .expect("Fail to read IdentitiesDB !");
+
     // Open wot db
     let wot_db = open_wot_db::<RustyWebOfTrust>(&db_path).expect("Fail to open WotDB !");
 
     // Print wot blockstamp
     //println!("Wot : Current blockstamp = {}.", wot_blockstamp);
 
-    // Print members count
+    // Get members count
     let members_count = wot_db
         .read(|db| db.get_enabled())
         .expect("Fail to read WotDB")
         .len();
-    println!(" Members count = {}.", members_count);
 
     match *query {
+        DBExWotQuery::AllDistances(ref reverse) => {
+            println!("compute distances...");
+            let compute_distances_begin = SystemTime::now();
+            let mut distances_datas: Vec<(NodeId, WotDistance)> = wot_db
+                .read(|db| {
+                    db.get_enabled()
+                        .iter()
+                        .map(|wot_id| {
+                            (
+                                *wot_id,
+                                DISTANCE_CALCULATOR
+                                    .compute_distance(
+                                        db,
+                                        WotDistanceParameters {
+                                            node: *wot_id,
+                                            sentry_requirement: 5,
+                                            step_max: currency_params.step_max as u32,
+                                            x_percent: currency_params.x_percent,
+                                        },
+                                    )
+                                    .expect("Fail to get distance !"),
+                            )
+                        })
+                        .collect()
+                })
+                .expect("Fail to read WotDB");
+            let compute_distances_duration = SystemTime::now()
+                .duration_since(compute_distances_begin)
+                .expect("duration_since error");
+            if *reverse {
+                distances_datas.sort_unstable_by(|(_, d1), (_, d2)| d1.success.cmp(&d2.success));
+            } else {
+                distances_datas.sort_unstable_by(|(_, d1), (_, d2)| d2.success.cmp(&d1.success));
+            }
+            for (wot_id, distance_datas) in distances_datas {
+                let distance_percent: f64 =
+                    f64::from(distance_datas.success) / f64::from(distance_datas.sentries) * 100.0;
+                println!(
+                    "{} -> distance: {:.2}% ({}/{})",
+                    wot_uid_index[&wot_id],
+                    distance_percent,
+                    distance_datas.success,
+                    distance_datas.sentries
+                );
+            }
+            println!(
+                "compute_distances_duration = {},{:03}.",
+                compute_distances_duration.as_secs(),
+                compute_distances_duration.subsec_nanos() / 1_000_000
+            );
+        }
+        DBExWotQuery::ExpireMembers(ref reverse, ref _csv) => {
+            // Open blockchain database
+            let blockchain_db = open_db::<LocalBlockchainV10Datas>(&db_path, "blockchain.db")
+                .expect("Fail to open blockchain db");
+            // Get blocks_times
+            let (current_bc_time, blocks_times): (u64, HashMap<BlockId, u64>) = blockchain_db
+                .read(|db| {
+                    (
+                        db[&BlockId(db.len() as u32 - 1)].block.median_time,
+                        db.iter()
+                            .map(|(block_id, dal_block)| (*block_id, dal_block.block.median_time))
+                            .collect(),
+                    )
+                })
+                .expect("Fail to read blockchain db");
+            // Get expire_dates
+            let min_created_ms_time = current_bc_time - currency_params.ms_validity;
+            let mut expire_dates: Vec<(NodeId, u64)> = wot_databases
+                .ms_db
+                .read(|db| {
+                    let mut expire_dates = Vec::new();
+                    for (block_id, nodes_ids) in db {
+                        let created_ms_time = blocks_times[&block_id];
+                        if created_ms_time > min_created_ms_time {
+                            for node_id in nodes_ids {
+                                expire_dates.push((
+                                    *node_id,
+                                    created_ms_time + currency_params.ms_validity,
+                                ));
+                            }
+                        }
+                    }
+                    expire_dates
+                })
+                .expect("Fail to read ms db");
+            if *reverse {
+                expire_dates.sort_unstable_by(|(_, d1), (_, d2)| d1.cmp(&d2));
+            } else {
+                expire_dates.sort_unstable_by(|(_, d1), (_, d2)| d2.cmp(&d1));
+            }
+            for (node_id, expire_date) in expire_dates {
+                println!("{}, {}", wot_uid_index[&node_id], expire_date);
+            }
+        }
         DBExWotQuery::MemberDatas(ref uid) => {
+            println!(" Members count = {}.", members_count);
             if let Some(pubkey) =
                 duniter_dal::identity::get_pubkey_from_uid(&wot_databases.identities_db, uid)
                     .expect("get_pubkey_from_uid() : DALError !")
@@ -159,6 +275,26 @@ pub fn dbex_wot(conf: &DuniterConf, query: &DBExWotQuery) {
                     uid,
                     wot_id.0,
                     pubkey.to_string()
+                );
+                let distance_datas = wot_db
+                    .read(|db| {
+                        DISTANCE_CALCULATOR.compute_distance(
+                            db,
+                            WotDistanceParameters {
+                                node: wot_id,
+                                sentry_requirement: 5,
+                                step_max: currency_params.step_max as u32,
+                                x_percent: currency_params.x_percent,
+                            },
+                        )
+                    })
+                    .expect("Fail to read WotDB")
+                    .expect("Fail to get distance !");
+                let distance_percent: f64 =
+                    f64::from(distance_datas.success) / f64::from(distance_datas.sentries) * 100.0;
+                println!(
+                    "Distance {:.2}% ({}/{})",
+                    distance_percent, distance_datas.success, distance_datas.sentries
                 );
                 let sources = wot_db
                     .read(|db| db.get_links_source(wot_id))
@@ -177,13 +313,6 @@ pub fn dbex_wot(conf: &DuniterConf, query: &DBExWotQuery) {
                 println!("Uid \"{}\" not found !", uid);
             }
         }
+        _ => {}
     }
-    let req_process_duration = SystemTime::now()
-        .duration_since(req_process_begin)
-        .expect("duration_since error");
-    println!(
-        "Request processed in  {}.{:06} seconds.",
-        req_process_duration.as_secs(),
-        req_process_duration.subsec_nanos() / 1_000
-    );
 }

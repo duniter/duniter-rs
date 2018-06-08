@@ -42,6 +42,7 @@ extern crate sqlite;
 mod apply_valid_block;
 mod check_and_apply_block;
 mod dbex;
+mod revert_block;
 mod sync;
 mod ts_parsers;
 
@@ -74,6 +75,7 @@ use duniter_network::{
     NetworkBlock, NetworkDocument, NetworkEvent, NetworkRequest, NetworkResponse, NodeFullId,
 };
 use duniter_wotb::data::rusty::RustyWebOfTrust;
+use duniter_wotb::operations::distance::RustyDistanceCalculator;
 use duniter_wotb::{NodeId, WebOfTrust};
 use rustbreak::backend::{Backend, FileBackend};
 
@@ -83,6 +85,8 @@ pub static CHUNK_SIZE: &'static u32 = &50;
 pub static INFINITE_SIG_STOCK: &'static usize = &4_000_000_000;
 /// The blocks are requested by packet groups. This constant sets the number of packets per group.
 pub static MAX_BLOCKS_REQUEST: &'static u32 = &500;
+/// The distance calculator
+pub static DISTANCE_CALCULATOR: &'static RustyDistanceCalculator = &RustyDistanceCalculator {};
 
 /// Blockchain Module
 #[derive(Debug)]
@@ -193,17 +197,6 @@ impl BlockchainModule {
     }
     /// Synchronize blockchain from a duniter-ts database
     pub fn sync_ts(conf: &DuniterConf, ts_profile: &str, cautious: bool) {
-        // get databases path
-        let db_path = duniter_conf::get_blockchain_db_path(&conf.profile(), &conf.currency());
-        // Open blocks dbs
-        let blocks_dbs = BlocksV10DBs::open(&db_path, false);
-        // Get local current blockstamp
-        debug!("Get local current blockstamp...");
-        let current_blockstamp: Blockstamp = duniter_dal::block::get_current_blockstamp(
-            &blocks_dbs,
-        ).expect("ForksV10DB : RustBreakError !")
-            .unwrap_or_default();
-        debug!("Success to get local current blockstamp.");
         // get db_ts_path
         let mut db_ts_path = match env::home_dir() {
             Some(path) => path,
@@ -215,7 +208,7 @@ impl BlockchainModule {
         if !db_ts_path.as_path().exists() {
             panic!("Fatal error : duniter-ts database don't exist !");
         }
-        sync::sync_ts(conf, &current_blockstamp, db_ts_path, cautious);
+        sync::sync_ts(conf, db_ts_path, cautious);
     }
     /// Request chunk from network (chunk = group of blocks)
     fn request_chunk(&self, req_id: &ModuleReqId, from: u32) -> (ModuleReqId, NetworkRequest) {
@@ -651,6 +644,26 @@ impl BlockchainModule {
                                         {
                                             if let Ok(blockstamp) = response {
                                                 consensus = blockstamp;
+                                                if current_blockstamp.id.0 > consensus.id.0 + 2 {
+                                                    // Find free fork id
+                                                    let free_fork_id = ForkId(49);
+                                                    // Get last dal_block
+                                                    let last_dal_block_id =
+                                                        BlockId(current_blockstamp.id.0 - 1);
+                                                    let last_dal_block = self
+                                                        .blocks_databases
+                                                        .blockchain_db
+                                                        .read(|db| db.get(&last_dal_block_id).cloned())
+                                                        .expect("Fail to read blockchain DB.")
+                                                        .expect("Fatal error : not foutn last dal block !");
+                                                    revert_block::revert_block(
+                                                        &last_dal_block,
+                                                        &mut wotb_index,
+                                                        &wot_db,
+                                                        Some(free_fork_id),
+                                                        &self.currency_databases.tx_db.read(|db| db.clone()).expect("Fail to read TxDB.")
+                                                    ).expect("Fail to revert block");
+                                                }
                                             }
                                         }
                                     }

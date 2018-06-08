@@ -28,12 +28,17 @@ pub fn create_du<B: Backend + Debug>(
     du_amount: &SourceAmount,
     du_block_id: &BlockId,
     members: &[PubKey],
+    revert: bool,
 ) -> Result<(), DALError> {
-    // Insert DU sources in DUsV10DB
+    // Insert/Remove DU sources in DUsV10DB
     du_db.write(|db| {
         for pubkey in members {
             let mut pubkey_dus = db.get(&pubkey).cloned().unwrap_or_default();
-            pubkey_dus.insert(*du_block_id);
+            if revert {
+                pubkey_dus.remove(du_block_id);
+            } else {
+                pubkey_dus.insert(*du_block_id);
+            }
             db.insert(*pubkey, pubkey_dus);
         }
     })?;
@@ -52,11 +57,15 @@ pub fn create_du<B: Backend + Debug>(
             }
             members_balances
         })?;
-    // Increment members balance
+    // Increase/Decrease members balance
     let members_balances: Vec<(PubKey, (SourceAmount, HashSet<UTXOIndexV10>))> = members_balances
         .iter()
         .map(|(pubkey, (balance, utxos_indexs))| {
-            let new_balance = *balance + *du_amount;
+            let new_balance = if revert {
+                *balance - *du_amount
+            } else {
+                *balance + *du_amount
+            };
             (*pubkey, (new_balance, utxos_indexs.clone()))
         })
         .collect();

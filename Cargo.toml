@@ -8,11 +8,14 @@ license = "AGPL-3.0"
 [dependencies]
 duniter-core = { path = "./core" }
 duniter-tui = { path = "./tui" }
-duniter-ws2p = { path = "./ws2p" }
+duniter-ws2p = { path = "./ws2p", optional = true }
 
 [features]
+default = ["ws2p"]
+ws2p = ["duniter-ws2p"]
 # Treat warnings as a build error.
 strict = []
+
 
 [workspace]
 members = [
@@ -27,5 +30,5 @@ members = [
     "network",
     "tui",
     "wotb",
-    "ws2p",
+    "ws2p"
 ]

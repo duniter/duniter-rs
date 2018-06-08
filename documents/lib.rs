@@ -43,7 +43,7 @@ use std::fmt::{Debug, Display, Error, Formatter};
 pub mod blockchain;
 
 /// A block Id.
-#[derive(Debug, Deserialize, Copy, Clone, Ord, PartialEq, PartialOrd, Eq, Hash, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, Ord, PartialEq, PartialOrd, Eq, Hash, Serialize)]
 pub struct BlockId(pub u32);
 
 impl Display for BlockId {

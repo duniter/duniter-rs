@@ -34,6 +34,12 @@ use {BlockHash, BlockId, Blockstamp, Hash};
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct CurrencyName(pub String);
 
+impl Default for CurrencyName {
+    fn default() -> CurrencyName {
+        CurrencyName(String::from("default_currency"))
+    }
+}
+
 impl Display for CurrencyName {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "{}", self.0)

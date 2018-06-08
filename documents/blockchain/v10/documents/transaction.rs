@@ -75,7 +75,7 @@ impl Sub for TxAmount {
 }
 
 /// Wrap a transaction amout base
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Hash, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Eq, Ord, Deserialize, Hash, Serialize)]
 pub struct TxBase(pub usize);
 
 /// Wrap a transaction index
