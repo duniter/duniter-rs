@@ -67,22 +67,26 @@ enum SyncJobsMess {
 }
 
 /// Sync from a duniter-ts database
-pub fn sync_ts(
-    conf: &DuniterConf,
-    current_blockstamp: &Blockstamp,
-    db_ts_path: PathBuf,
-    cautious: bool,
-) {
+pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool) {
     // get profile and currency and current_blockstamp
     let profile = &conf.profile();
     let currency = &conf.currency();
-    let mut current_blockstamp = *current_blockstamp;
 
-    // Get wot path
+    // Get databases path
     let db_path = duniter_conf::get_blockchain_db_path(&profile, &currency);
 
     // Open wot db
     let wot_db = open_wot_db::<RustyWebOfTrust>(&db_path).expect("Fail to open WotDB !");
+
+    // Open blocks databases
+    let databases = BlocksV10DBs::open(&db_path, false);
+
+    // Get local current blockstamp
+    debug!("Get local current blockstamp...");
+    let mut current_blockstamp: Blockstamp = duniter_dal::block::get_current_blockstamp(&databases)
+        .expect("ForksV10DB : RustBreakError !")
+        .unwrap_or_default();
+    debug!("Success to get local current blockstamp.");
 
     // Get verification level
     let _verif_level = if cautious {
@@ -275,14 +279,9 @@ pub fn sync_ts(
     let (sender_wot_thread, recv_wot_thread) = mpsc::channel();
 
     // Launch blocks_worker thread
-    let profile_copy = conf.profile().clone();
-    let currency_copy = conf.currency().clone();
     let sender_sync_thread_clone = sender_sync_thread.clone();
     pool.execute(move || {
         let blocks_job_begin = SystemTime::now();
-        // Open databases
-        let db_path = duniter_conf::get_blockchain_db_path(&profile_copy, &currency_copy);
-        let databases = BlocksV10DBs::open(&db_path, false);
 
         // Listen db requets
         let mut chunk_index = 0;
@@ -441,6 +440,11 @@ pub fn sync_ts(
     });
     let main_job_begin = SystemTime::now();
 
+    // Open currency_params_db
+    let dbs_path = duniter_conf::get_blockchain_db_path(&conf.profile(), &conf.currency());
+    let currency_params_db =
+        open_db::<CurrencyParamsV10Datas>(&dbs_path, "params.db").expect("Fail to open params db");
+
     // Apply blocks
     let mut blocks_not_expiring = VecDeque::with_capacity(200_000);
     let mut last_block_expiring: isize = -1;
@@ -464,19 +468,21 @@ pub fn sync_ts(
             .duration_since(complete_block_begin)
             .unwrap();
         // Get currency params
-        if !get_currency_params {
-            if block_doc.number.0 == 0 {
-                if block_doc.parameters.is_some() {
-                    currency_params = CurrencyParameters::from((
-                        block_doc.currency.clone(),
-                        block_doc.parameters.unwrap(),
-                    ));
-                    get_currency_params = true;
-                } else {
-                    panic!("The genesis block are None parameters !");
-                }
+        if !get_currency_params && block_doc.number.0 == 0 {
+            if block_doc.parameters.is_some() {
+                currency_params_db
+                    .write(|db| {
+                        db.0 = block_doc.currency.clone();
+                        db.1 = block_doc.parameters.unwrap();
+                    })
+                    .expect("fail to write in params DB");
+                currency_params = CurrencyParameters::from((
+                    block_doc.currency.clone(),
+                    block_doc.parameters.unwrap(),
+                ));
+                get_currency_params = true;
             } else {
-                panic!("The first block is not genesis !");
+                panic!("The genesis block are None parameters !");
             }
         }
         // Push block median_time in blocks_not_expiring
@@ -581,6 +587,9 @@ pub fn sync_ts(
         .send(SyncJobsMess::End())
         .expect("Sync : Fail to send End signal to writer worker !");
     info!("Sync : send End signal to tx job.");
+
+    // Save params db
+    currency_params_db.save().expect("Fail to save params db");
 
     // Save wot file
     wot_db.save().expect("Fail to save wotb db");

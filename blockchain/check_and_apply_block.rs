@@ -156,6 +156,7 @@ pub fn check_and_apply_block<W: WebOfTrust, B: Backend + Debug>(
                         &dal_block,
                         None,
                         false,
+                        false,
                     ).expect("duniter_dal::writers::block::write() : DALError")
                 }
                 Block::LocalBlock(block_doc) => {
@@ -172,6 +173,7 @@ pub fn check_and_apply_block<W: WebOfTrust, B: Backend + Debug>(
                         &blocks_databases.forks_blocks_db,
                         &dal_block,
                         old_fork_id,
+                        false,
                         false,
                     ).expect("duniter_dal::writers::block::write() : DALError")
                 }

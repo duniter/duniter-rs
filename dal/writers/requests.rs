@@ -4,6 +4,7 @@ extern crate serde_json;
 use block::DALBlock;
 use currency_params::CurrencyParameters;
 use duniter_crypto::keys::PubKey;
+use duniter_documents::blockchain::v10::documents::certification::CompactCertificationDocument;
 use duniter_documents::blockchain::v10::documents::identity::IdentityDocument;
 use duniter_documents::Blockstamp;
 use duniter_wotb::NodeId;
@@ -12,6 +13,7 @@ use rustbreak::backend::Backend;
 use sources::SourceAmount;
 use std::fmt::Debug;
 use std::ops::Deref;
+use writers::transaction::DALTxV10;
 use *;
 
 #[derive(Debug, Clone)]
@@ -31,29 +33,40 @@ pub enum BlocksDBsWriteQuery {
     /// Write block
     WriteBlock(Box<DALBlock>, Option<ForkId>, PreviousBlockstamp, BlockHash),
     /// Revert block
-    RevertBlock(Box<DALBlock>),
+    RevertBlock(Box<DALBlock>, Option<ForkId>),
 }
 
 impl BlocksDBsWriteQuery {
     pub fn apply(&self, databases: &BlocksV10DBs, sync: bool) -> Result<(), DALError> {
-        if let BlocksDBsWriteQuery::WriteBlock(
-            ref dal_block,
-            ref old_fork_id,
-            ref _previous_blockstamp,
-            ref _block_hash,
-        ) = *self
-        {
-            let dal_block = dal_block.deref();
-            trace!("BlocksDBsWriteQuery::WriteBlock...");
-            super::block::write(
-                &databases.blockchain_db,
-                &databases.forks_db,
-                &databases.forks_blocks_db,
-                &dal_block,
-                *old_fork_id,
-                sync,
-            )?;
-            trace!("BlocksDBsWriteQuery::WriteBlock...finish");
+        match *self {
+            BlocksDBsWriteQuery::WriteBlock(ref dal_block, ref old_fork_id, _, _) => {
+                let dal_block = dal_block.deref();
+                trace!("BlocksDBsWriteQuery::WriteBlock...");
+                super::block::write(
+                    &databases.blockchain_db,
+                    &databases.forks_db,
+                    &databases.forks_blocks_db,
+                    &dal_block,
+                    *old_fork_id,
+                    sync,
+                    false,
+                )?;
+                trace!("BlocksDBsWriteQuery::WriteBlock...finish");
+            }
+            BlocksDBsWriteQuery::RevertBlock(ref dal_block, ref to_fork_id) => {
+                let dal_block = dal_block.deref();
+                trace!("BlocksDBsWriteQuery::WriteBlock...");
+                super::block::write(
+                    &databases.blockchain_db,
+                    &databases.forks_db,
+                    &databases.forks_blocks_db,
+                    &dal_block,
+                    *to_fork_id,
+                    sync,
+                    true,
+                )?;
+                trace!("BlocksDBsWriteQuery::WriteBlock...finish");
+            }
         }
         Ok(())
     }
@@ -64,16 +77,28 @@ impl BlocksDBsWriteQuery {
 pub enum WotsDBsWriteQuery {
     /// Newcomer (wotb_id, blockstamp, current_bc_time, idty_doc, ms_created_block_id)
     CreateIdentity(NodeId, Blockstamp, u64, Box<IdentityDocument>, BlockId),
+    /// Revert newcomer event (wotb_id, blockstamp, current_bc_time, idty_doc, ms_created_block_id)
+    RevertCreateIdentity(PubKey),
     /// Active (pubKey, idty_wot_id, current_bc_time, ms_created_block_id)
     RenewalIdentity(PubKey, NodeId, u64, BlockId),
+    /// Revert active (pubKey, idty_wot_id, current_bc_time, ms_created_block_id)
+    RevertRenewalIdentity(PubKey, NodeId, u64, BlockId),
     /// Excluded
     ExcludeIdentity(PubKey, Blockstamp),
+    /// Revert exclusion
+    RevertExcludeIdentity(PubKey, Blockstamp),
     /// Revoked
-    RevokeIdentity(PubKey, Blockstamp),
+    RevokeIdentity(PubKey, Blockstamp, bool),
+    /// Revert revocation
+    RevertRevokeIdentity(PubKey, Blockstamp, bool),
     /// Certification (source_pubkey, source, target, created_block_id, median_time)
     CreateCert(PubKey, NodeId, NodeId, BlockId, u64),
+    /// Revert certification (source_pubkey, source, target, created_block_id, median_time)
+    RevertCert(CompactCertificationDocument, NodeId, NodeId),
     /// Certification expiry (source, target, created_block_id)
     ExpireCert(NodeId, NodeId, BlockId),
+    /// Revert certification expiry event (source, target, created_block_id)
+    RevertExpireCert(NodeId, NodeId, BlockId),
 }
 
 impl WotsDBsWriteQuery {
@@ -90,22 +115,23 @@ impl WotsDBsWriteQuery {
                 ref idty_doc,
                 ref ms_created_block_id,
             ) => {
-                trace!("WotsDBsWriteQuery::CreateIdentity...");
-                let idty = DALIdentity::create_identity(
+                writers::identity::create_identity(
                     currency_params,
+                    &databases.identities_db,
+                    &databases.ms_db,
                     idty_doc.deref(),
+                    *ms_created_block_id,
                     *wotb_id,
                     *blockstamp,
                     *current_bc_time,
-                );
-                super::identity::write(
-                    &idty,
-                    *wotb_id,
+                )?;
+            }
+            WotsDBsWriteQuery::RevertCreateIdentity(ref pubkey) => {
+                writers::identity::revert_create_identity(
                     &databases.identities_db,
                     &databases.ms_db,
-                    *ms_created_block_id,
+                    pubkey,
                 )?;
-                trace!("WotsDBsWriteQuery::CreateIdentity...finish.");
             }
             WotsDBsWriteQuery::RenewalIdentity(
                 ref pubkey,
@@ -128,16 +154,47 @@ impl WotsDBsWriteQuery {
                 )?;
                 trace!("DBWrWotsDBsWriteQueryiteRequest::RenewalIdentity...");
             }
+            WotsDBsWriteQuery::RevertRenewalIdentity(
+                ref pubkey,
+                ref idty_wot_id,
+                ref current_bc_time,
+                ms_created_block_id,
+            ) => {
+                let mut idty = DALIdentity::get_identity(&databases.identities_db, pubkey)?
+                    .expect("Fatal error : impossible to renewal an identidy that don't exist !");
+                idty.renewal_identity(
+                    currency_params,
+                    &databases.identities_db,
+                    &databases.ms_db,
+                    pubkey,
+                    *idty_wot_id,
+                    *current_bc_time,
+                    ms_created_block_id,
+                    true,
+                )?;
+            }
             WotsDBsWriteQuery::ExcludeIdentity(ref pubkey, ref blockstamp) => {
                 DALIdentity::exclude_identity(&databases.identities_db, pubkey, blockstamp, false)?;
             }
-            WotsDBsWriteQuery::RevokeIdentity(ref pubkey, ref blockstamp) => {
+            WotsDBsWriteQuery::RevertExcludeIdentity(ref pubkey, ref blockstamp) => {
+                DALIdentity::exclude_identity(&databases.identities_db, pubkey, blockstamp, true)?;
+            }
+            WotsDBsWriteQuery::RevokeIdentity(ref pubkey, ref blockstamp, ref explicit) => {
                 DALIdentity::revoke_identity(
                     &databases.identities_db,
                     pubkey,
                     blockstamp,
-                    true,
+                    *explicit,
                     false,
+                )?;
+            }
+            WotsDBsWriteQuery::RevertRevokeIdentity(ref pubkey, ref blockstamp, ref explicit) => {
+                DALIdentity::revoke_identity(
+                    &databases.identities_db,
+                    pubkey,
+                    blockstamp,
+                    *explicit,
+                    true,
                 )?;
             }
             WotsDBsWriteQuery::CreateCert(
@@ -148,7 +205,7 @@ impl WotsDBsWriteQuery {
                 ref median_time,
             ) => {
                 trace!("WotsDBsWriteQuery::CreateCert...");
-                super::certification::write_certification(
+                writers::certification::write_certification(
                     currency_params,
                     &databases.identities_db,
                     &databases.certs_db,
@@ -160,12 +217,37 @@ impl WotsDBsWriteQuery {
                 )?;
                 trace!("WotsDBsWriteQuery::CreateCert...finish");
             }
+            WotsDBsWriteQuery::RevertCert(ref compact_doc, ref source, ref target) => {
+                trace!("WotsDBsWriteQuery::CreateCert...");
+                writers::certification::revert_write_cert(
+                    &databases.identities_db,
+                    &databases.certs_db,
+                    *compact_doc,
+                    *source,
+                    *target,
+                )?;
+                trace!("WotsDBsWriteQuery::CreateCert...finish");
+            }
             WotsDBsWriteQuery::ExpireCert(ref _source, ref _target, ref _created_block_id) => {
                 /*super::certification::expire_cert(
                     &databases.certs_db,
                     *source,
                     *target,
                     *created_block_id,
+                    false,
+                )?;*/
+            }
+            WotsDBsWriteQuery::RevertExpireCert(
+                ref _source,
+                ref _target,
+                ref _created_block_id,
+            ) => {
+                /*super::certification::expire_cert(
+                    &databases.certs_db,
+                    *source,
+                    *target,
+                    *created_block_id,
+                    true,
                 )?;*/
             }
         }
@@ -178,21 +260,22 @@ impl WotsDBsWriteQuery {
 pub enum CurrencyDBsWriteQuery {
     /// Write transaction
     WriteTx(Box<TransactionDocument>),
+    /// Revert transaction
+    RevertTx(Box<DALTxV10>),
     /// Create dividend
     CreateDU(SourceAmount, BlockId, Vec<PubKey>),
+    /// Revert dividend
+    RevertDU(SourceAmount, BlockId, Vec<PubKey>),
 }
 
 impl CurrencyDBsWriteQuery {
     pub fn apply<B: Backend + Debug>(&self, databases: &CurrencyV10DBs<B>) -> Result<(), DALError> {
         match *self {
             CurrencyDBsWriteQuery::WriteTx(ref tx_doc) => {
-                super::transaction::apply_and_write_tx::<B>(
-                    &databases.tx_db,
-                    &databases.utxos_db,
-                    &databases.du_db,
-                    &databases.balances_db,
-                    tx_doc.deref(),
-                )?;
+                super::transaction::apply_and_write_tx::<B>(&databases, tx_doc.deref())?;
+            }
+            CurrencyDBsWriteQuery::RevertTx(ref dal_tx) => {
+                super::transaction::revert_tx::<B>(&databases, dal_tx.deref())?;
             }
             CurrencyDBsWriteQuery::CreateDU(ref du_amount, ref block_id, ref members) => {
                 super::dividend::create_du::<B>(
@@ -201,6 +284,17 @@ impl CurrencyDBsWriteQuery {
                     du_amount,
                     block_id,
                     members,
+                    false,
+                )?;
+            }
+            CurrencyDBsWriteQuery::RevertDU(ref du_amount, ref block_id, ref members) => {
+                super::dividend::create_du::<B>(
+                    &databases.du_db,
+                    &databases.balances_db,
+                    du_amount,
+                    block_id,
+                    members,
+                    true,
                 )?;
             }
         }

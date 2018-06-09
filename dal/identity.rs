@@ -25,7 +25,8 @@ pub struct DALIdentity {
     pub expired_on: Option<Blockstamp>,
     pub revoked_on: Option<Blockstamp>,
     pub idty_doc: IdentityDocument,
-    pub wotb_id: NodeId,
+    pub wot_id: NodeId,
+    pub ms_created_block_id: BlockId,
     pub ms_chainable_on: Vec<u64>,
     pub cert_chainable_on: Vec<u64>,
 }
@@ -100,33 +101,11 @@ impl DALIdentity {
         Ok(identities_db.read(|db| {
             let mut wotb_index: HashMap<PubKey, NodeId> = HashMap::new();
             for (pubkey, member_datas) in db {
-                let wotb_id = member_datas.wotb_id;
+                let wotb_id = member_datas.wot_id;
                 wotb_index.insert(*pubkey, wotb_id);
             }
             wotb_index
         })?)
-    }
-
-    pub fn create_identity(
-        currency_params: &CurrencyParameters,
-        idty_doc: &IdentityDocument,
-        wotb_id: NodeId,
-        current_blockstamp: Blockstamp,
-        current_bc_time: u64,
-    ) -> DALIdentity {
-        let mut idty_doc = idty_doc.clone();
-        idty_doc.reduce();
-        DALIdentity {
-            hash: "0".to_string(),
-            state: DALIdentityState::Member(vec![0]),
-            joined_on: current_blockstamp,
-            expired_on: None,
-            revoked_on: None,
-            idty_doc,
-            wotb_id,
-            ms_chainable_on: vec![current_bc_time + currency_params.ms_period],
-            cert_chainable_on: vec![],
-        }
     }
 
     pub fn revoke_identity<B: Backend + Debug>(

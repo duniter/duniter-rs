@@ -43,9 +43,23 @@ subcommands:
         about: durs databases explorer
         version: "0.1.0"
         author: Elois L. <elois@duniter.org>
+        args:
+            - csv:
+                short: c
+                long: csv
+                help: csv output
         subcommands:
+            - distances:
+                about: durs databases explorer (distances datas)
+                version: "0.1.0"
+                author: Elois L. <elois@duniter.org>
+                args:
+                    - reverse:
+                        short: r
+                        long: reverse
+                        help: reverse order
             - member:
-                about: durs databases explorer (wot members datas)
+                about: durs databases explorer (wot member datas)
                 version: "0.1.0"
                 author: Elois L. <elois@duniter.org>
                 args:
@@ -53,6 +67,19 @@ subcommands:
                         help : choose member uid
                         index: 1
                         required: true
+            - members:
+                about: durs databases explorer (wot members datas)
+                version: "0.1.0"
+                author: Elois L. <elois@duniter.org>
+                args:
+                    - expire:
+                        short: e
+                        long: expire
+                        help: show members expire date
+                    - reverse:
+                        short: r
+                        long: reverse
+                        help: reverse order
             - balance:
                 about: durs databases explorer (balances datas)
                 version: "0.1.0"

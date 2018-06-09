@@ -147,6 +147,7 @@ pub fn apply_valid_block<W: WebOfTrust, B: Backend + Debug>(
         wot_dbs_requests.push(WotsDBsWriteQuery::RevokeIdentity(
             compact_revoc.issuer,
             block.blockstamp(),
+            true,
         ));
     }
     for certification in block.certifications.clone() {

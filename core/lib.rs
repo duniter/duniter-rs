@@ -125,12 +125,37 @@ impl DuniterCore {
             sync_ts(&conf, ts_profile, matches.is_present("cautious"));
             None
         } else if let Some(matches) = cli_args.subcommand_matches("dbex") {
-            if let Some(member_matches) = matches.subcommand_matches("member") {
+            let csv = matches.is_present("csv");
+            if let Some(distances_matches) = matches.subcommand_matches("distances") {
+                dbex(
+                    &conf,
+                    &DBExQuery::WotQuery(DBExWotQuery::AllDistances(
+                        distances_matches.is_present("reverse"),
+                    )),
+                );
+            } else if let Some(member_matches) = matches.subcommand_matches("member") {
                 let uid = member_matches.value_of("UID").unwrap_or("");
                 dbex(
                     &conf,
                     &DBExQuery::WotQuery(DBExWotQuery::MemberDatas(String::from(uid))),
                 );
+            } else if let Some(members_matches) = matches.subcommand_matches("members") {
+                if members_matches.is_present("expire") {
+                    dbex(
+                        &conf,
+                        &DBExQuery::WotQuery(DBExWotQuery::ExpireMembers(
+                            members_matches.is_present("reverse"),
+                            csv,
+                        )),
+                    );
+                } else {
+                    dbex(
+                        &conf,
+                        &DBExQuery::WotQuery(DBExWotQuery::ListMembers(
+                            members_matches.is_present("reverse"),
+                        )),
+                    );
+                }
             } else if let Some(balance_matches) = matches.subcommand_matches("balance") {
                 let address = balance_matches.value_of("ADDRESS").unwrap_or("");
                 dbex(
