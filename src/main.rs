@@ -23,13 +23,13 @@
 )]
 
 extern crate duniter_core;
+#[cfg(feature = "tui")]
 extern crate duniter_tui;
-#[cfg(feature = "ws2p")]
 extern crate duniter_ws2p;
 
 pub use duniter_core::DuniterCore;
+#[cfg(feature = "tui")]
 pub use duniter_tui::TuiModule;
-#[cfg(feature = "ws2p")]
 pub use duniter_ws2p::WS2PModule;
 
 /// Main function
@@ -45,16 +45,16 @@ fn main() {
         //duniter_core.plug::<GvaModule>();
         //duniter_core.plug::<PoolModule>();
         //duniter_core.plug::<PowModule>();
-        duniter_core.plug::<TuiModule>();
-        plug_ws2p_module(&mut duniter_core);
+        plug_tui_module(&mut duniter_core);
+        duniter_core.plug::<WS2PModule>();
         duniter_core.start_blockchain();
     };
 }
 
-/// Plug WS2P Module
-#[cfg(feature = "ws2p")]
-fn plug_ws2p_module(duniter_core: &mut DuniterCore) {
-    duniter_core.plug::<WS2PModule>();
+/// Plug TUI Module
+#[cfg(feature = "tui")]
+fn plug_tui_module(duniter_core: &mut DuniterCore) {
+    duniter_core.plug::<TuiModule>();
 }
-#[cfg(not(feature = "ws2p"))]
-fn plug_ws2p_module(_duniter_core: &mut DuniterCore) {}
+#[cfg(not(feature = "tui"))]
+fn plug_tui_module(_duniter_core: &mut DuniterCore) {}

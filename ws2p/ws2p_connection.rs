@@ -1,15 +1,194 @@
-extern crate serde_json;
-extern crate websocket;
-
+use constants::*;
 use duniter_crypto::keys::*;
 use duniter_module::ModuleReqId;
 use duniter_network::network_endpoint::{NetworkEndpoint, NetworkEndpointApi};
 use duniter_network::{NetworkDocument, NodeUUID};
 use parsers::blocks::parse_json_block;
-use std::fmt::Debug;
-use std::net::TcpStream;
+use rand::Rng;
+use std::sync::mpsc;
+#[allow(deprecated)]
+use ws::util::{Timeout, Token};
+use ws::{connect, CloseCode, Frame, Handler, Handshake, Message, Sender};
+use *;
 
-use super::{NodeFullId, WS2PAckMessageV1, WS2PConnectMessageV1, WS2PMessage, WS2POkMessageV1};
+const CONNECT: Token = Token(1);
+const EXPIRE: Token = Token(2);
+
+/// Store a websocket sender
+pub struct WsSender(pub Sender);
+
+impl ::std::fmt::Debug for WsSender {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "WsSender {{ }}")
+    }
+}
+
+// Our Handler struct.
+// Here we explicity indicate that the Client needs a Sender,
+// whereas a closure captures the Sender for us automatically.
+#[allow(deprecated)]
+struct Client {
+    ws: Sender,
+    conductor_sender: mpsc::Sender<WS2PThreadSignal>,
+    currency: String,
+    key_pair: KeyPairEnum,
+    connect_message: Message,
+    conn_meta_datas: WS2PConnectionMetaDatas,
+    last_mess_time: SystemTime,
+    spam_interval: bool,
+    spam_counter: usize,
+    timeout: Option<Timeout>,
+}
+
+// We implement the Handler trait for Client so that we can get more
+// fine-grained control of the connection.
+impl Handler for Client {
+    // `on_open` will be called only after the WebSocket handshake is successful
+    // so at this point we know that the connection is ready to send/receive messages.
+    // We ignore the `Handshake` for now, but you could also use this method to setup
+    // Handler state or reject the connection based on the details of the Request
+    // or Response, such as by checking cookies or Auth headers.
+    fn on_open(&mut self, _: Handshake) -> ws::Result<()> {
+        // Define timeouts
+        self.ws.timeout(WS2P_NEGOTIATION_TIMEOUT * 1_000, CONNECT)?;
+        self.ws.timeout(WS2P_EXPIRE_TIMEOUT * 1_000, EXPIRE)?;
+        // Send ws::Sender to WS2PConductor
+        let result = self
+            .conductor_sender
+            .send(WS2PThreadSignal::WS2PConnectionMessage(
+                WS2PConnectionMessage(
+                    self.conn_meta_datas.node_full_id(),
+                    WS2PConnectionMessagePayload::WebsocketOk(WsSender(self.ws.clone())),
+                ),
+            ));
+        // If WS2PConductor is unrechable, close connection.
+        if result.is_err() {
+            debug!("Close ws2p connection because ws2p main thread is unrechable !");
+            self.ws.close(CloseCode::Normal)
+        } else {
+            // Send CONNECT Message
+            self.ws.send(self.connect_message.clone())
+        }
+    }
+
+    // `on_message` is roughly equivalent to the Handler closure. It takes a `Message`
+    // and returns a `Result<()>`.
+    fn on_message(&mut self, msg: Message) -> ws::Result<()> {
+        // Spam ?
+        if SystemTime::now()
+            .duration_since(self.last_mess_time)
+            .unwrap() > Duration::new(*WS2P_SPAM_INTERVAL_IN_MILLI_SECS, 0)
+        {
+            if self.spam_interval {
+                self.spam_counter += 1;
+            } else {
+                self.spam_interval = true;
+                self.spam_counter = 2;
+            }
+        } else {
+            self.spam_interval = false;
+            self.spam_counter = 0;
+        }
+        // Spam ?
+        if self.spam_counter >= *WS2P_SPAM_LIMIT {
+            thread::sleep(Duration::from_millis(*WS2P_SPAM_SLEEP_TIME_IN_SEC));
+            self.last_mess_time = SystemTime::now();
+            return Ok(());
+        }
+        self.last_mess_time = SystemTime::now();
+
+        // Parse and check incoming message
+        if msg.is_text() {
+            let s: String = msg
+                .into_text()
+                .expect("WS2P: Fail to convert message payload to String !");
+            trace!("WS2P: receive mess: {}", s);
+            let json_message: serde_json::Value = serde_json::from_str(&s)
+                .expect("WS2P: Fail to convert string message ton json value !");
+            let result = self
+                .conductor_sender
+                .send(WS2PThreadSignal::WS2PConnectionMessage(
+                    WS2PConnectionMessage(
+                        self.conn_meta_datas.node_full_id(),
+                        self.conn_meta_datas.parse_and_check_incoming_message(
+                            &self.currency,
+                            self.key_pair,
+                            &json_message,
+                        ),
+                    ),
+                ));
+            if result.is_err() {
+                info!("Close ws2p connection because ws2p main thread is unrechable !");
+                self.ws.close(CloseCode::Normal)?;
+            }
+        }
+        Ok(())
+    }
+    fn on_timeout(&mut self, event: Token) -> ws::Result<()> {
+        match event {
+            CONNECT => {
+                if self.conn_meta_datas.state != WS2PConnectionState::Established {
+                    let _result = self.conductor_sender.send(
+                        WS2PThreadSignal::WS2PConnectionMessage(WS2PConnectionMessage(
+                            self.conn_meta_datas.node_full_id(),
+                            WS2PConnectionMessagePayload::NegociationTimeout,
+                        )),
+                    );
+                    self.ws.close(CloseCode::Away)
+                } else {
+                    Ok(())
+                }
+            }
+            EXPIRE => {
+                let _result = self
+                    .conductor_sender
+                    .send(WS2PThreadSignal::WS2PConnectionMessage(
+                        WS2PConnectionMessage(
+                            self.conn_meta_datas.node_full_id(),
+                            WS2PConnectionMessagePayload::Timeout,
+                        ),
+                    ));
+                self.ws.close(CloseCode::Away)
+            }
+            _ => Ok(()),
+        }
+    }
+    #[allow(deprecated)]
+    fn on_new_timeout(&mut self, event: Token, timeout: Timeout) -> ws::Result<()> {
+        if event == EXPIRE {
+            if let Some(t) = self.timeout.take() {
+                self.ws.cancel(t)?;
+            }
+            self.timeout = Some(timeout)
+        }
+        Ok(())
+    }
+    fn on_frame(&mut self, frame: Frame) -> ws::Result<Option<Frame>> {
+        // some activity has occurred, let's reset the expiration timeout
+        self.ws.timeout(WS2P_EXPIRE_TIMEOUT * 1_000, EXPIRE)?;
+        Ok(Some(frame))
+    }
+    fn on_close(&mut self, code: CloseCode, reason: &str) {
+        // The WebSocket protocol allows for a utf8 reason for the closing state after the
+        // close code. WS-RS will attempt to interpret this data as a utf8 description of the
+        // reason for closing the connection. I many cases, `reason` will be an empty string.
+        // So, you may not normally want to display `reason` to the user,
+        // but let's assume that we know that `reason` is human-readable.
+        match code {
+            CloseCode::Normal => info!("The remote server close the connection."),
+            CloseCode::Away => info!("The remote server is leaving."),
+            _ => warn!("The remote server encountered an error: {}", reason),
+        }
+        let _result = self
+            .conductor_sender
+            .send(WS2PThreadSignal::WS2PConnectionMessage(
+                WS2PConnectionMessage(
+                    self.conn_meta_datas.node_full_id(),
+                    WS2PConnectionMessagePayload::Close,
+                ),
+            ));
+    }
+}
 
 #[derive(Debug, Copy, Clone)]
 pub enum WS2POrderForListeningThread {
@@ -74,14 +253,6 @@ impl WS2PConnectionState {
     }
 }
 
-pub struct WebsocketSender(pub websocket::sender::Writer<TcpStream>);
-
-impl Debug for WebsocketSender {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "WebsocketSender {{ }}")
-    }
-}
-
 #[derive(Debug)]
 pub enum WS2PConnectionMessagePayload {
     FailOpenWS,
@@ -89,7 +260,7 @@ pub enum WS2PConnectionMessagePayload {
     FailToSplitWS,
     TryToSendConnectMess,
     FailSendConnectMess,
-    WebsocketOk(WebsocketSender),
+    WebsocketOk(WsSender),
     NegociationTimeout,
     ValidConnectMessage(String, WS2PConnectionState),
     ValidAckMessage(String, WS2PConnectionState),
@@ -118,7 +289,7 @@ pub enum WS2PCloseConnectionReason {
 }
 
 #[derive(Debug, Clone)]
-pub struct WS2PConnectionMetaData {
+pub struct WS2PConnectionMetaDatas {
     pub state: WS2PConnectionState,
     pub remote_uuid: Option<NodeUUID>,
     pub remote_pubkey: Option<PubKey>,
@@ -129,14 +300,14 @@ pub struct WS2PConnectionMetaData {
 
 #[derive(Debug, Clone)]
 pub struct WS2PDatasForListeningThread {
-    pub conn_meta_datas: WS2PConnectionMetaData,
+    pub conn_meta_datas: WS2PConnectionMetaDatas,
     pub currency: String,
     pub key_pair: KeyPairEnum,
 }
 
-impl WS2PConnectionMetaData {
+impl WS2PConnectionMetaDatas {
     pub fn new(challenge: String) -> Self {
-        WS2PConnectionMetaData {
+        WS2PConnectionMetaDatas {
             state: WS2PConnectionState::WaitingConnectMess,
             remote_uuid: None,
             remote_pubkey: None,
@@ -170,7 +341,7 @@ impl WS2PConnectionMetaData {
                         if message.verify() && message.pubkey == self.remote_pubkey.unwrap() {
                             match self.state {
                                 WS2PConnectionState::WaitingConnectMess => {
-                                    trace!("CONNECT sig is valid.");
+                                    debug!("CONNECT sig is valid.");
                                     self.state = WS2PConnectionState::ConnectMessOk;
                                     self.remote_challenge = message.challenge.clone();
                                     let mut response = WS2PAckMessageV1 {
@@ -396,4 +567,84 @@ impl WS2PConnectionMetaData {
             None => WS2PConnectionMessagePayload::WrongFormatMessage,
         }
     }
+}
+
+pub fn get_random_connection<S: ::std::hash::BuildHasher>(
+    connections: &HashMap<NodeFullId, (NetworkEndpoint, WS2PConnectionState), S>,
+) -> NodeFullId {
+    let mut rng = rand::thread_rng();
+    let mut loop_count = 0;
+    loop {
+        for (ws2p_full_id, (_ep, state)) in &(*connections) {
+            if loop_count > 10 {
+                return *ws2p_full_id;
+            }
+            if let WS2PConnectionState::Established = state {
+                if rng.gen::<bool>() {
+                    return *ws2p_full_id;
+                }
+            }
+        }
+        loop_count += 1;
+    }
+}
+
+pub fn connect_to_ws2p_endpoint(
+    endpoint: &NetworkEndpoint,
+    conductor_sender: &mpsc::Sender<WS2PThreadSignal>,
+    currency: &str,
+    key_pair: KeyPairEnum,
+) -> ws::Result<()> {
+    // Get endpoint url
+    let ws_url = endpoint.get_url(true);
+
+    // Create WS2PConnectionMetaDatass
+    let mut conn_meta_datas = WS2PConnectionMetaDatas::new(
+        "b60a14fd-0826-4ae0-83eb-1a92cd59fd5308535fd3-78f2-4678-9315-cd6e3b7871b1".to_string(),
+    );
+    conn_meta_datas.remote_pubkey = Some(endpoint.pubkey());
+    conn_meta_datas.remote_uuid = Some(
+        endpoint
+            .node_uuid()
+            .expect("WS2P: Fail to get ep.node_uuid() !"),
+    );
+
+    // Generate connect message
+    let connect_message =
+        generate_connect_message(currency, key_pair, conn_meta_datas.challenge.clone());
+
+    // Log
+    info!("Try connection to {} ...", ws_url);
+
+    // Connect to websocket
+    connect(ws_url, |ws| Client {
+        ws,
+        conductor_sender: conductor_sender.clone(),
+        currency: String::from(currency),
+        key_pair,
+        connect_message: connect_message.clone(),
+        conn_meta_datas: conn_meta_datas.clone(),
+        last_mess_time: SystemTime::now(),
+        spam_interval: false,
+        spam_counter: 0,
+        timeout: None,
+    })
+}
+
+pub fn generate_connect_message(
+    currency: &str,
+    key_pair: KeyPairEnum,
+    challenge: String,
+) -> Message {
+    // Create CONNECT Message
+    let mut connect_message = WS2PConnectMessageV1 {
+        currency: String::from(currency),
+        pubkey: key_pair.public_key(),
+        challenge,
+        signature: None,
+    };
+    connect_message.signature = Some(connect_message.sign(key_pair));
+    Message::text(
+        serde_json::to_string(&connect_message).expect("Fail to serialize CONNECT message !"),
+    )
 }

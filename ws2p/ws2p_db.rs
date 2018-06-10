@@ -5,7 +5,6 @@ extern crate duniter_module;
 extern crate duniter_network;
 extern crate serde_json;
 extern crate sqlite;
-extern crate websocket;
 
 use duniter_crypto::keys::*;
 use duniter_network::network_endpoint::{NetworkEndpoint, NetworkEndpointApi};
