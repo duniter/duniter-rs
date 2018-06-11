@@ -312,6 +312,11 @@ impl UTXOConditions {
             self.origin_str = None;
         }
     }
+    /// Check validity of this UTXOConditions
+    pub fn check(&self) -> bool {
+        !(self.origin_str.is_some()
+            && self.origin_str.clone().expect("safe unwrap") != self.conditions.to_string())
+    }
 }
 
 impl ToString for UTXOConditions {
@@ -416,6 +421,10 @@ impl TransactionOutput {
     /// Lightens the TransactionOutput (for example to store it while minimizing the space required)
     fn reduce(&mut self) {
         self.conditions.reduce()
+    }
+    /// Check validity of this output
+    pub fn check(&self) -> bool {
+        self.conditions.check()
     }
 }
 

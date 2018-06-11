@@ -249,6 +249,9 @@ pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool, verif_in
     // Get databases path
     let db_path = duniter_conf::get_blockchain_db_path(&conf.profile(), &currency);
 
+    // Write nex conf
+    duniter_conf::write_conf_file(&conf).expect("Fail to write new conf !");
+
     // Open wot db
     let wot_db = open_wot_db::<RustyWebOfTrust>(&db_path).expect("Fail to open WotDB !");
 
