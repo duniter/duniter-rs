@@ -136,7 +136,7 @@ pub enum CompletedBlockError {
     /// Invalid block inner hash
     InvalidInnerHash(),
     /// Invalid block hash
-    InvalidHash(),
+    InvalidHash(BlockId, Option<BlockHash>, Option<BlockHash>),
     /// Invalid block version
     InvalidVersion(),
 }
@@ -196,7 +196,7 @@ impl BlockchainModule {
         dbex::dbex(conf, req);
     }
     /// Synchronize blockchain from a duniter-ts database
-    pub fn sync_ts(conf: &DuniterConf, ts_profile: &str, cautious: bool) {
+    pub fn sync_ts(conf: &DuniterConf, ts_profile: &str, cautious: bool, verif_inner_hash: bool) {
         // get db_ts_path
         let mut db_ts_path = match env::home_dir() {
             Some(path) => path,
@@ -208,7 +208,7 @@ impl BlockchainModule {
         if !db_ts_path.as_path().exists() {
             panic!("Fatal error : duniter-ts database don't exist !");
         }
-        sync::sync_ts(conf, db_ts_path, cautious);
+        sync::sync_ts(conf, db_ts_path, cautious, verif_inner_hash);
     }
     /// Request chunk from network (chunk = group of blocks)
     fn request_chunk(&self, req_id: &ModuleReqId, from: u32) -> (ModuleReqId, NetworkRequest) {
@@ -816,6 +816,7 @@ impl BlockchainModule {
 /// Complete Network Block
 pub fn complete_network_block(
     network_block: &NetworkBlock,
+    verif_inner_hash: bool,
 ) -> Result<BlockDocument, CompletedBlockError> {
     if let NetworkBlock::V10(ref network_block_v10) = *network_block {
         let mut block_doc = network_block_v10.uncompleted_block_doc.clone();
@@ -832,7 +833,7 @@ pub fn complete_network_block(
         let inner_hash = block_doc.inner_hash.expect(
             "BlockchainModule : complete_network_block() : fatal error : block.inner_hash = None",
         );
-        if block_doc.number.0 > 0 {
+        if verif_inner_hash && block_doc.number.0 > 0 {
             block_doc.compute_inner_hash();
         }
         let hash = block_doc.hash;
@@ -841,14 +842,17 @@ pub fn complete_network_block(
             "BlockchainModule : complete_network_block() : fatal error : block.inner_hash = None",
         ) == inner_hash
         {
-            let nonce = block_doc.nonce;
-            block_doc.change_nonce(nonce);
-            if block_doc.hash == hash {
+            block_doc.fill_inner_hash_and_nonce_str(None);
+            if !verif_inner_hash || block_doc.hash == hash {
                 trace!("Succes to complete_network_block #{}", block_doc.number.0);
                 Ok(block_doc)
             } else {
                 warn!("BlockchainModule : Refuse Bloc : invalid hash !");
-                Err(CompletedBlockError::InvalidHash())
+                Err(CompletedBlockError::InvalidHash(
+                    block_doc.number,
+                    block_doc.hash,
+                    hash,
+                ))
             }
         } else {
             warn!("BlockchainModule : Refuse Bloc : invalid inner hash !");

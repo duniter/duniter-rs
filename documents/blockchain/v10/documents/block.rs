@@ -286,9 +286,11 @@ impl BlockDocument {
         sha256.input_str(&inner_text);
         self.inner_hash = Some(Hash::from_hex(&sha256.result_str()).unwrap());
     }
-    /// Change nonce
-    pub fn change_nonce(&mut self, new_nonce: u64) {
-        self.nonce = new_nonce;
+    /// Fill inner_hash_and_nonce_str
+    pub fn fill_inner_hash_and_nonce_str(&mut self, new_nonce: Option<u64>) {
+        if let Some(new_nonce) = new_nonce {
+            self.nonce = new_nonce;
+        }
         self.inner_hash_and_nonce_str = format!(
             "InnerHash: {}\nNonce: {}\n",
             self.inner_hash
@@ -299,6 +301,7 @@ impl BlockDocument {
     }
     /// Sign block
     pub fn sign(&mut self, privkey: PrivKey) {
+        self.fill_inner_hash_and_nonce_str(None);
         self.signatures = vec![privkey.sign(self.inner_hash_and_nonce_str.as_bytes())];
     }
     /// Compute hash
@@ -511,24 +514,24 @@ mod tests {
     #[test]
     fn generate_and_verify_empty_block() {
         let mut block = BlockDocument {
-            nonce: 10_500_000_089_933,
-            number: BlockId(107_777),
-            pow_min: 89,
-            time: 1_522_624_657,
-            median_time: 1_522_616_790,
-            members_count: 894,
-            monetary_mass: 139_571_973,
+            nonce: 100_010_200_000_006_940,
+            number: BlockId(174_260),
+            pow_min: 68,
+            time: 1_525_296_873,
+            median_time: 1_525_292_577,
+            members_count: 33,
+            monetary_mass: 15_633_687,
             unit_base: 0,
-            issuers_count: 41,
-            issuers_frame: 201,
-            issuers_frame_var: 5,
-            currency: CurrencyName(String::from("g1")),
-            issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58("2sZF6j2PkxBDNAqUde7Dgo5x3crkerZpQ4rBqqJGn8QT").unwrap())],
-            signatures: vec![Sig::Ed25519(ed25519::Signature::from_base64("FsRxB+NOiL+8zTr2d3B2j2KBItDuCa0KjFMF6hXmdQzfqXAs9g3m7DlGgYLcqzqe6JXjx/Lyzqze1HBR4cS0Aw==").unwrap())],
+            issuers_count: 8,
+            issuers_frame: 41,
+            issuers_frame_var: 0,
+            currency: CurrencyName(String::from("g1-test")),
+            issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58("39Fnossy1GrndwCnAXGDw3K5UYXhNXAFQe7yhYZp8ELP").unwrap())],
+            signatures: vec![Sig::Ed25519(ed25519::Signature::from_base64("lqXrNOopjM39oM7hgB7Vq13uIohdCuLlhh/q8RVVEZ5UVASphow/GXikCdhbWID19Bn0XrXzTbt/R7akbE9xAg==").unwrap())],
             hash: None,
             parameters: None,
-            previous_hash: Hash::from_hex("0000001F8AACF6764135F3E5D0D4E8358A3CBE537A4BF71152A00CC442EFD136").expect("fail to parse previous_hash"),
-            previous_issuer: Some(PubKey::Ed25519(ed25519::PublicKey::from_base58("38MEAZN68Pz1DTvT3tqgxx4yQP6snJCQhPqEFxbDk4aE").unwrap())),
+            previous_hash: Hash::from_hex("0000A7D4361B9EBF4CE974A521149A73E8A5DE9B73907AB3BC918726AED7D40A").expect("fail to parse previous_hash"),
+            previous_issuer: Some(PubKey::Ed25519(ed25519::PublicKey::from_base58("EPKuZA1Ek5y8S1AjAmAPtGrVCMFqUGzUEAa7Ei62CY2L").unwrap())),
             inner_hash: None,
             dividend: None,
             identities: Vec::new(),
@@ -549,39 +552,10 @@ mod tests {
                 .inner_hash
                 .expect("Try to get inner_hash of an uncompleted or reduce block !")
                 .to_hex(),
-            "95948AC4D45E46DA07CE0713EDE1CE0295C227EE4CA5557F73F56B7DD46FE89C"
-        );
-        // test generate_compact_text()
-        assert_eq!(
-            block.generate_compact_text(),
-            "Version: 10
-Type: Block
-Currency: g1
-Number: 107777
-PoWMin: 89
-Time: 1522624657
-MedianTime: 1522616790
-UnitBase: 0
-Issuer: 2sZF6j2PkxBDNAqUde7Dgo5x3crkerZpQ4rBqqJGn8QT
-IssuersFrame: 201
-IssuersFrameVar: 5
-DifferentIssuersCount: 41
-PreviousHash: 0000001F8AACF6764135F3E5D0D4E8358A3CBE537A4BF71152A00CC442EFD136
-PreviousIssuer: 38MEAZN68Pz1DTvT3tqgxx4yQP6snJCQhPqEFxbDk4aE
-MembersCount: 894
-Identities:
-Joiners:
-Actives:
-Leavers:
-Revoked:
-Excluded:
-Certifications:
-Transactions:
-InnerHash: 95948AC4D45E46DA07CE0713EDE1CE0295C227EE4CA5557F73F56B7DD46FE89C
-Nonce: "
+            "58E4865A47A46E0DF1449AABC449B5406A12047C413D61B5E17F86BE6641E7B0"
         );
         // Test signature validity
-        block.change_nonce(10_500_000_089_933);
+        block.fill_inner_hash_and_nonce_str(Some(100_010_200_000_006_940));
         assert_eq!(block.verify_signatures(), VerificationResult::Valid());
         // Test hash computation
         block.compute_hash();
@@ -591,7 +565,7 @@ Nonce: "
                 .expect("Try to get hash of an uncompleted or reduce block !")
                 .0
                 .to_hex(),
-            "000002D3296A2D257D01F6FEE8AEC5C3E5779D04EA43F08901F41998FA97D9A1"
+            "00002EE584F36C15D3EB21AAC78E0896C75EF9070E73B4EC33BFA2C3D561EEB2"
         );
     }
 
@@ -740,7 +714,7 @@ InnerHash: C8AB69E33ECE2612EADC7AB30D069B1F1A3D8C95EBBFD50DE583AC8E3666CCA1
 Nonce: "
         );
         // Test signature validity
-        block.change_nonce(10_300_000_018_323);
+        block.fill_inner_hash_and_nonce_str(Some(10_300_000_018_323));
         assert_eq!(block.verify_signatures(), VerificationResult::Valid());
         // Test hash computation
         block.compute_hash();

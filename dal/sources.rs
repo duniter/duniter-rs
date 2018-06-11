@@ -72,8 +72,8 @@ pub type UTXOContentV10 = TransactionOutput;
 pub struct UTXOV10(pub UTXOIndexV10, pub UTXOContentV10);
 
 impl UTXOV10 {
-    pub fn get_conditions(&self) -> TransactionOutputConditionGroup {
-        self.1.conditions.clone()
+    pub fn get_conditions(&self) -> UTXOConditionsGroup {
+        self.1.conditions.conditions.clone()
     }
     pub fn get_amount(&self) -> SourceAmount {
         SourceAmount(self.1.amount, self.1.base)
@@ -87,7 +87,7 @@ pub enum UTXO {
 }
 
 impl UTXO {
-    pub fn get_conditions(&self) -> TransactionOutputConditionGroup {
+    pub fn get_conditions(&self) -> UTXOConditionsGroup {
         match *self {
             UTXO::V10(ref utxo_v10) => utxo_v10.get_conditions(),
             _ => panic!("UTXO version not supported !"),

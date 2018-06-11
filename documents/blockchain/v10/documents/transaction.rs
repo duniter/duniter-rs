@@ -15,16 +15,14 @@
 
 //! Wrappers around Transaction documents.
 
-use std::ops::{Add, Deref, Sub};
-
-use crypto::digest::Digest;
-use crypto::sha2::Sha256;
-use duniter_crypto::keys::*;
-use regex::Regex;
-use regex::RegexBuilder;
-
 use blockchain::v10::documents::*;
 use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
+use crypto::digest::Digest;
+use crypto::sha2::Sha256;
+use regex::Regex;
+use regex::RegexBuilder;
+use std::ops::{Add, Deref, Sub};
+use std::str::FromStr;
 use {BlockId, Blockstamp, Hash};
 
 lazy_static! {
@@ -44,10 +42,10 @@ lazy_static! {
     static ref UNLOCK_SIG_REGEX: Regex =
         Regex::new(r"^SIG\((?P<index>[0-9]+)\)$").unwrap();
     static ref UNLOCK_XHX_REGEX: Regex = Regex::new(r"^XHX\((?P<code>\w+)\)$").unwrap();
-    static ref OUTPUT_COND_SIG_REGEX: Regex = Regex::new(r"^SIG\((?P<pubkey>[1-9A-Za-z]{43,44})\)$").unwrap();
-    static ref OUTPUT_COND_XHX_REGEX: Regex = Regex::new(r"^XHX\((?P<hash>[0-9A-F]{64})\)$").unwrap();
-    static ref OUTPUT_COND_CLTV_REGEX: Regex = Regex::new(r"^CLTV\((?P<timestamp>[0-9]+)\)$").unwrap();
-    static ref OUTPUT_COND_CSV_REGEX: Regex = Regex::new(r"^CSV\((?P<timestamp>[0-9]+)\)$").unwrap();
+    static ref OUTPUT_COND_SIG_REGEX: Regex = Regex::new(r"^SIG\((?P<pubkey>[1-9A-Za-z]{43,44})\)*$").unwrap();
+    static ref OUTPUT_COND_XHX_REGEX: Regex = Regex::new(r"^XHX\((?P<hash>[0-9A-F]{64})\)*$").unwrap();
+    static ref OUTPUT_COND_CLTV_REGEX: Regex = Regex::new(r"^CLTV\((?P<timestamp>[0-9]+)\)*$").unwrap();
+    static ref OUTPUT_COND_CSV_REGEX: Regex = Regex::new(r"^CSV\((?P<duration>[0-9]+)\)*$").unwrap();
     static ref OUPUT_CONDS_BRAKETS: Regex = Regex::new(r"^\((?P<conditions>[0-9A-Za-z()&| ]+)\)$").unwrap();
     static ref OUPUT_CONDS_AND: Regex = Regex::new(r"^(?P<conditions_group_1>[0-9A-Za-z()&| ]+) && (?P<conditions_group_2>[0-9A-Za-z()&| ]+)$").unwrap();
     static ref OUPUT_CONDS_OR: Regex = Regex::new(r"^(?P<conditions_group_1>[0-9A-Za-z()&| ]+) \|\| (?P<conditions_group_2>[0-9A-Za-z()&| ]+)$").unwrap();
@@ -56,7 +54,7 @@ lazy_static! {
     ).unwrap();
 }
 
-/// Wrap a transaction amout
+/// Wrap a transaction amount
 #[derive(Debug, Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Deserialize, Hash, Serialize)]
 pub struct TxAmount(pub isize);
 
@@ -295,77 +293,102 @@ impl TransactionOutputCondition {
     }
 }
 
-/// Wrap a transaction ouput condition group
+/// Wrap an utxo conditions
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub enum TransactionOutputConditionGroup {
-    /// Single
-    Single(TransactionOutputCondition),
-    /// Brackets
-    Brackets(Box<TransactionOutputConditionGroup>),
-    /// And operator
-    And(
-        Box<TransactionOutputConditionGroup>,
-        Box<TransactionOutputConditionGroup>,
-    ),
-    /// Or operator
-    Or(
-        Box<TransactionOutputConditionGroup>,
-        Box<TransactionOutputConditionGroup>,
-    ),
+pub struct UTXOConditions {
+    /// We are obliged to allow the introduction of the original text (instead of the self-generated text),
+    /// because the original text may contain errors that are unfortunately allowed by duniter-ts.
+    pub origin_str: Option<String>,
+    /// Store script conditions
+    pub conditions: UTXOConditionsGroup,
 }
 
-impl ToString for TransactionOutputConditionGroup {
-    fn to_string(&self) -> String {
-        match *self {
-            TransactionOutputConditionGroup::Single(ref condition) => condition.to_string(),
-            TransactionOutputConditionGroup::Brackets(ref condition_group) => {
-                format!("({})", condition_group.deref().to_string())
-            }
-            TransactionOutputConditionGroup::And(ref condition_group_1, ref condition_group_2) => {
-                format!(
-                    "{} && {}",
-                    condition_group_1.deref().to_string(),
-                    condition_group_2.deref().to_string()
-                )
-            }
-            TransactionOutputConditionGroup::Or(ref condition_group_1, ref condition_group_2) => {
-                format!(
-                    "{} || {}",
-                    condition_group_1.deref().to_string(),
-                    condition_group_2.deref().to_string()
-                )
-            }
+impl UTXOConditions {
+    /// Lightens the UTXOConditions (for example to store it while minimizing the space required)
+    pub fn reduce(&mut self) {
+        if self.origin_str.is_some()
+            && self.origin_str.clone().expect("safe unwrap") == self.conditions.to_string()
+        {
+            self.origin_str = None;
         }
     }
 }
 
-impl TransactionOutputConditionGroup {
-    fn parse_from_str(
-        conditions: &str,
-    ) -> Result<TransactionOutputConditionGroup, V10DocumentParsingError> {
+impl ToString for UTXOConditions {
+    fn to_string(&self) -> String {
+        if let Some(ref origin_str) = self.origin_str {
+            origin_str.to_string()
+        } else {
+            self.conditions.to_string()
+        }
+    }
+}
+
+impl ::std::str::FromStr for UTXOConditions {
+    type Err = V10DocumentParsingError;
+
+    fn from_str(source: &str) -> Result<Self, Self::Err> {
+        Ok(UTXOConditions {
+            origin_str: Some(String::from(source)),
+            conditions: UTXOConditionsGroup::from_str(source)?,
+        })
+    }
+}
+
+/// Wrap a transaction ouput condition group
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub enum UTXOConditionsGroup {
+    /// Single
+    Single(TransactionOutputCondition),
+    /// Brackets
+    Brackets(Box<UTXOConditionsGroup>),
+    /// And operator
+    And(Box<UTXOConditionsGroup>, Box<UTXOConditionsGroup>),
+    /// Or operator
+    Or(Box<UTXOConditionsGroup>, Box<UTXOConditionsGroup>),
+}
+
+impl ToString for UTXOConditionsGroup {
+    fn to_string(&self) -> String {
+        match *self {
+            UTXOConditionsGroup::Single(ref condition) => condition.to_string(),
+            UTXOConditionsGroup::Brackets(ref condition_group) => {
+                format!("({})", condition_group.deref().to_string())
+            }
+            UTXOConditionsGroup::And(ref condition_group_1, ref condition_group_2) => format!(
+                "{} && {}",
+                condition_group_1.deref().to_string(),
+                condition_group_2.deref().to_string()
+            ),
+            UTXOConditionsGroup::Or(ref condition_group_1, ref condition_group_2) => format!(
+                "{} || {}",
+                condition_group_1.deref().to_string(),
+                condition_group_2.deref().to_string()
+            ),
+        }
+    }
+}
+
+impl ::std::str::FromStr for UTXOConditionsGroup {
+    type Err = V10DocumentParsingError;
+
+    fn from_str(conditions: &str) -> Result<Self, Self::Err> {
         if let Ok(single_condition) = TransactionOutputCondition::parse_from_str(conditions) {
-            Ok(TransactionOutputConditionGroup::Single(single_condition))
+            Ok(UTXOConditionsGroup::Single(single_condition))
         } else if let Some(caps) = OUPUT_CONDS_BRAKETS.captures(conditions) {
-            let inner_conditions =
-                TransactionOutputConditionGroup::parse_from_str(&caps["conditions"])?;
-            Ok(TransactionOutputConditionGroup::Brackets(Box::new(
-                inner_conditions,
-            )))
+            let inner_conditions = UTXOConditionsGroup::from_str(&caps["conditions"])?;
+            Ok(UTXOConditionsGroup::Brackets(Box::new(inner_conditions)))
         } else if let Some(caps) = OUPUT_CONDS_AND.captures(conditions) {
-            let conditions_group_1 =
-                TransactionOutputConditionGroup::parse_from_str(&caps["conditions_group_1"])?;
-            let conditions_group_2 =
-                TransactionOutputConditionGroup::parse_from_str(&caps["conditions_group_2"])?;
-            Ok(TransactionOutputConditionGroup::And(
+            let conditions_group_1 = UTXOConditionsGroup::from_str(&caps["conditions_group_1"])?;
+            let conditions_group_2 = UTXOConditionsGroup::from_str(&caps["conditions_group_2"])?;
+            Ok(UTXOConditionsGroup::And(
                 Box::new(conditions_group_1),
                 Box::new(conditions_group_2),
             ))
         } else if let Some(caps) = OUPUT_CONDS_OR.captures(conditions) {
-            let conditions_group_1 =
-                TransactionOutputConditionGroup::parse_from_str(&caps["conditions_group_1"])?;
-            let conditions_group_2 =
-                TransactionOutputConditionGroup::parse_from_str(&caps["conditions_group_2"])?;
-            Ok(TransactionOutputConditionGroup::Or(
+            let conditions_group_1 = UTXOConditionsGroup::from_str(&caps["conditions_group_1"])?;
+            let conditions_group_2 = UTXOConditionsGroup::from_str(&caps["conditions_group_2"])?;
+            Ok(UTXOConditionsGroup::Or(
                 Box::new(conditions_group_1),
                 Box::new(conditions_group_2),
             ))
@@ -386,7 +409,14 @@ pub struct TransactionOutput {
     /// Base
     pub base: TxBase,
     /// List of conditions for consum this output
-    pub conditions: TransactionOutputConditionGroup,
+    pub conditions: UTXOConditions,
+}
+
+impl TransactionOutput {
+    /// Lightens the TransactionOutput (for example to store it while minimizing the space required)
+    fn reduce(&mut self) {
+        self.conditions.reduce()
+    }
 }
 
 impl ToString for TransactionOutput {
@@ -406,7 +436,7 @@ impl TransactionOutput {
         if let Some(caps) = OUTPUT_REGEX.captures(source) {
             let amount = TxAmount(caps["amount"].parse().expect("fail to parse output amount"));
             let base = TxBase(caps["base"].parse().expect("fail to parse base amount"));
-            let conditions = TransactionOutputConditionGroup::parse_from_str(&caps["conditions"])?;
+            let conditions = UTXOConditions::from_str(&caps["conditions"])?;
             Ok(TransactionOutput {
                 conditions,
                 amount,
@@ -489,6 +519,7 @@ impl TransactionDocument {
     pub fn reduce(&mut self) {
         self.text = None;
         self.hash = None;
+        self.outputs.iter_mut().map(|o| o.reduce()).collect::<()>();
     }
 }
 
@@ -615,6 +646,8 @@ pub struct TransactionDocumentBuilder<'a> {
     pub outputs: &'a Vec<TransactionOutput>,
     /// Transaction comment
     pub comment: &'a str,
+    /// Transaction hash
+    pub hash: Option<Hash>,
 }
 
 impl<'a> TransactionDocumentBuilder<'a> {
@@ -630,7 +663,7 @@ impl<'a> TransactionDocumentBuilder<'a> {
             outputs: self.outputs.clone(),
             comment: String::from(self.comment),
             signatures,
-            hash: None,
+            hash: self.hash,
         }
     }
 }
@@ -812,6 +845,7 @@ mod tests {
                 ).expect("fail to parse output !"),
             ],
             comment: "test",
+            hash: None,
         };
         println!(
             "Signature = {:?}",
@@ -865,8 +899,10 @@ mod tests {
                 ).expect("fail to parse output !"),
             ],
             comment: "Pour cesium merci",
+            hash: None,
         };
         let mut tx_doc = builder.build_with_signature(vec![sig]);
+        tx_doc.hash = None;
         assert_eq!(tx_doc.verify_signatures(), VerificationResult::Valid());
         assert_eq!(
             tx_doc.get_hash(),

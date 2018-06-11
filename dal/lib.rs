@@ -84,8 +84,7 @@ pub type CertsExpirV10Datas = HashMap<BlockId, HashSet<(NodeId, NodeId)>>;
 pub type TxV10Datas = HashMap<Hash, DALTxV10>;
 pub type UTXOsV10Datas = HashMap<UTXOIndexV10, UTXOContentV10>;
 pub type DUsV10Datas = HashMap<PubKey, HashSet<BlockId>>;
-pub type BalancesV10Datas =
-    HashMap<TransactionOutputConditionGroup, (SourceAmount, HashSet<UTXOIndexV10>)>;
+pub type BalancesV10Datas = HashMap<UTXOConditionsGroup, (SourceAmount, HashSet<UTXOIndexV10>)>;
 
 pub type BinDB<D, B> = Database<D, B, Bincode>;
 pub type BinFileDB<D> = FileDatabase<D, Bincode>;

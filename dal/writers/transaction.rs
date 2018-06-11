@@ -55,7 +55,7 @@ pub fn revert_tx<B: Backend + Debug>(
     // Recalculate balance of consumed adress
     let new_balances_consumed_adress = dbs.balances_db.read(|db| {
         let mut new_balances_consumed_adress: HashMap<
-            TransactionOutputConditionGroup,
+            UTXOConditionsGroup,
             (SourceAmount, HashSet<UTXOIndexV10>),
         > = HashMap::new();
         for source in &consumed_utxos {
@@ -96,36 +96,36 @@ pub fn revert_tx<B: Backend + Debug>(
         }
     })?;
     // Complete sources_destroyed
-    let sources_destroyed: HashMap<
-        TransactionOutputConditionGroup,
-        Vec<(UTXOIndexV10, SourceAmount)>,
-    > = if !sources_destroyed.is_empty() {
-        dbs.tx_db.read(|db| {
-            let mut sources_destroyed_completed = HashMap::new();
-            for s_index in sources_destroyed {
-                let tx_output = db
-                    .get(&s_index.0)
-                    .expect("Not find tx")
-                    .tx_doc
-                    .get_outputs()[(s_index.1).0]
-                    .clone();
-                let mut sources_destroyed_for_same_address: Vec<(
-                    UTXOIndexV10,
-                    SourceAmount,
-                )> = sources_destroyed_completed
-                    .get(&tx_output.conditions)
-                    .cloned()
-                    .unwrap_or_default();
-                sources_destroyed_for_same_address
-                    .push((*s_index, SourceAmount(tx_output.amount, tx_output.base)));
+    let sources_destroyed: HashMap<UTXOConditionsGroup, Vec<(UTXOIndexV10, SourceAmount)>> =
+        if !sources_destroyed.is_empty() {
+            dbs.tx_db.read(|db| {
+                let mut sources_destroyed_completed = HashMap::new();
+                for s_index in sources_destroyed {
+                    let tx_output = db
+                        .get(&s_index.0)
+                        .expect("Not find tx")
+                        .tx_doc
+                        .get_outputs()[(s_index.1).0]
+                        .clone();
+                    let mut sources_destroyed_for_same_address: Vec<(
+                        UTXOIndexV10,
+                        SourceAmount,
+                    )> = sources_destroyed_completed
+                        .get(&tx_output.conditions.conditions)
+                        .cloned()
+                        .unwrap_or_default();
+                    sources_destroyed_for_same_address
+                        .push((*s_index, SourceAmount(tx_output.amount, tx_output.base)));
+                    sources_destroyed_completed.insert(
+                        tx_output.conditions.conditions,
+                        sources_destroyed_for_same_address,
+                    );
+                }
                 sources_destroyed_completed
-                    .insert(tx_output.conditions, sources_destroyed_for_same_address);
-            }
-            sources_destroyed_completed
-        })?
-    } else {
-        HashMap::with_capacity(0)
-    };
+            })?
+        } else {
+            HashMap::with_capacity(0)
+        };
     // Index recreated sources
     let recreated_sources: HashMap<SourceIndexV10, SourceAmount> = tx_doc
         .get_inputs()
@@ -142,43 +142,40 @@ pub fn revert_tx<B: Backend + Debug>(
         })
         .collect();
     // Find adress of recreated sources
-    let recreated_adress: HashMap<
-        TransactionOutputConditionGroup,
-        (SourceAmount, HashSet<UTXOIndexV10>),
-    > = dbs.utxos_db.read(|db| {
-        let mut recreated_adress: HashMap<
-            TransactionOutputConditionGroup,
-            (SourceAmount, HashSet<UTXOIndexV10>),
-        > = HashMap::new();
-        for (source_index, source_amount) in &recreated_sources {
-            if let SourceIndexV10::UTXO(utxo_index) = source_index {
-                // Get utxo
-                let utxo = db
-                    .get(&utxo_index)
-                    .expect("ApplyBLockError : unknow UTXO in inputs !");
-                // Get utxo conditions(=address)
-                let conditions = &utxo.conditions;
-                // Calculate new balances datas for "conditions" address
-                let (mut balance, mut utxos_index) = recreated_adress
-                    .get(conditions)
-                    .cloned()
-                    .unwrap_or_default();
-                balance = balance + *source_amount;
-                utxos_index.insert(*utxo_index);
-                // Write new balances datas for "conditions" address
-                recreated_adress.insert(conditions.clone(), (balance, utxos_index));
-            } else if let SourceIndexV10::DU(pubkey, _block_id) = source_index {
-                let address = TransactionOutputConditionGroup::Single(
-                    TransactionOutputCondition::Sig(*pubkey),
-                );
-                let (mut balance, utxos_index) =
-                    recreated_adress.get(&address).cloned().unwrap_or_default();
-                balance = balance + *source_amount;
-                recreated_adress.insert(address, (balance, utxos_index));
+    let recreated_adress: HashMap<UTXOConditionsGroup, (SourceAmount, HashSet<UTXOIndexV10>)> =
+        dbs.utxos_db.read(|db| {
+            let mut recreated_adress: HashMap<
+                UTXOConditionsGroup,
+                (SourceAmount, HashSet<UTXOIndexV10>),
+            > = HashMap::new();
+            for (source_index, source_amount) in &recreated_sources {
+                if let SourceIndexV10::UTXO(utxo_index) = source_index {
+                    // Get utxo
+                    let utxo = db
+                        .get(&utxo_index)
+                        .expect("ApplyBLockError : unknow UTXO in inputs !");
+                    // Get utxo conditions(=address)
+                    let conditions = &utxo.conditions.conditions;
+                    // Calculate new balances datas for "conditions" address
+                    let (mut balance, mut utxos_index) = recreated_adress
+                        .get(conditions)
+                        .cloned()
+                        .unwrap_or_default();
+                    balance = balance + *source_amount;
+                    utxos_index.insert(*utxo_index);
+                    // Write new balances datas for "conditions" address
+                    recreated_adress.insert(conditions.clone(), (balance, utxos_index));
+                } else if let SourceIndexV10::DU(pubkey, _block_id) = source_index {
+                    let address =
+                        UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(*pubkey));
+                    let (mut balance, utxos_index) =
+                        recreated_adress.get(&address).cloned().unwrap_or_default();
+                    balance = balance + *source_amount;
+                    recreated_adress.insert(address, (balance, utxos_index));
+                }
             }
-        }
-        recreated_adress
-    })?;
+            recreated_adress
+        })?;
     // Recalculate balance of recreated adress
     let new_balances_recreated_adress = dbs.balances_db.read(|db| {
         let mut new_balances_recreated_adress = Vec::new();
@@ -260,41 +257,39 @@ pub fn apply_and_write_tx<B: Backend + Debug>(
         })
         .collect();
     // Find adress of consumed sources
-    let consumed_adress: HashMap<
-        TransactionOutputConditionGroup,
-        (SourceAmount, HashSet<UTXOIndexV10>),
-    > = dbs.utxos_db.read(|db| {
-        let mut consumed_adress: HashMap<
-            TransactionOutputConditionGroup,
-            (SourceAmount, HashSet<UTXOIndexV10>),
-        > = HashMap::new();
-        for (source_index, source_amount) in &consumed_sources {
-            if let SourceIndexV10::UTXO(utxo_index) = source_index {
-                // Get utxo
-                let utxo = db
-                    .get(&utxo_index)
-                    .expect("ApplyBLockError : unknow UTXO in inputs !");
-                // Get utxo conditions(=address)
-                let conditions = &utxo.conditions;
-                // Calculate new balances datas for "conditions" address
-                let (mut balance, mut utxos_index) =
-                    consumed_adress.get(conditions).cloned().unwrap_or_default();
-                balance = balance + *source_amount;
-                utxos_index.insert(*utxo_index);
-                // Write new balances datas for "conditions" address
-                consumed_adress.insert(conditions.clone(), (balance, utxos_index));
-            } else if let SourceIndexV10::DU(pubkey, _block_id) = source_index {
-                let address = TransactionOutputConditionGroup::Single(
-                    TransactionOutputCondition::Sig(*pubkey),
-                );
-                let (mut balance, utxos_index) =
-                    consumed_adress.get(&address).cloned().unwrap_or_default();
-                balance = balance + *source_amount;
-                consumed_adress.insert(address, (balance, utxos_index));
+    let consumed_adress: HashMap<UTXOConditionsGroup, (SourceAmount, HashSet<UTXOIndexV10>)> =
+        dbs.utxos_db.read(|db| {
+            let mut consumed_adress: HashMap<
+                UTXOConditionsGroup,
+                (SourceAmount, HashSet<UTXOIndexV10>),
+            > = HashMap::new();
+            for (source_index, source_amount) in &consumed_sources {
+                if let SourceIndexV10::UTXO(utxo_index) = source_index {
+                    // Get utxo
+                    let utxo = db.get(&utxo_index).expect(&format!(
+                        "ApplyBLockError : unknow UTXO in inputs : {:?} !",
+                        utxo_index
+                    ));
+                    // Get utxo conditions(=address)
+                    let conditions = &utxo.conditions.conditions;
+                    // Calculate new balances datas for "conditions" address
+                    let (mut balance, mut utxos_index) =
+                        consumed_adress.get(conditions).cloned().unwrap_or_default();
+                    balance = balance + *source_amount;
+                    utxos_index.insert(*utxo_index);
+                    // Write new balances datas for "conditions" address
+                    consumed_adress.insert(conditions.clone(), (balance, utxos_index));
+                } else if let SourceIndexV10::DU(pubkey, _block_id) = source_index {
+                    let address =
+                        UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(*pubkey));
+                    let (mut balance, utxos_index) =
+                        consumed_adress.get(&address).cloned().unwrap_or_default();
+                    balance = balance + *source_amount;
+                    consumed_adress.insert(address, (balance, utxos_index));
+                }
             }
-        }
-        consumed_adress
-    })?;
+            consumed_adress
+        })?;
     // Recalculate balance of consumed adress
     let new_balances_consumed_adress = dbs.balances_db.read(|db| {
         let mut new_balances_consumed_adress = Vec::new();
@@ -358,7 +353,7 @@ pub fn apply_and_write_tx<B: Backend + Debug>(
     // Recalculate balance of supplied adress
     let new_balances_supplied_adress = dbs.balances_db.read(|db| {
         let mut new_balances_supplied_adress: HashMap<
-            TransactionOutputConditionGroup,
+            UTXOConditionsGroup,
             (SourceAmount, HashSet<UTXOIndexV10>),
         > = HashMap::new();
         for source in &created_utxos {
@@ -449,6 +444,7 @@ mod tests {
                 ).expect("fail to parse output !"),
             ],
             comment: "TEST",
+            hash: None,
         };
         builder.build_with_signature(vec![sig])
     }
@@ -478,7 +474,7 @@ mod tests {
         let cgeek_new_balance = currency_dbs
             .balances_db
             .read(|db| {
-                db.get(&TransactionOutputConditionGroup::Single(
+                db.get(&UTXOConditionsGroup::Single(
                     TransactionOutputCondition::Sig(tx_doc.issuers()[0]),
                 )).cloned()
             })
@@ -488,7 +484,7 @@ mod tests {
         let tortue_new_balance = currency_dbs
             .balances_db
             .read(|db| {
-                db.get(&TransactionOutputConditionGroup::Single(
+                db.get(&UTXOConditionsGroup::Single(
                     TransactionOutputCondition::Sig(tortue_pubkey),
                 )).cloned()
             })
@@ -504,7 +500,7 @@ mod tests {
         let cgeek_new_balance = currency_dbs
             .balances_db
             .read(|db| {
-                db.get(&TransactionOutputConditionGroup::Single(
+                db.get(&UTXOConditionsGroup::Single(
                     TransactionOutputCondition::Sig(tx_doc.issuers()[0]),
                 )).cloned()
             })
@@ -516,7 +512,7 @@ mod tests {
         let receiver_new_balance = currency_dbs
             .balances_db
             .read(|db| {
-                db.get(&TransactionOutputConditionGroup::Single(
+                db.get(&UTXOConditionsGroup::Single(
                     TransactionOutputCondition::Sig(tortue_pubkey),
                 )).cloned()
             })
@@ -540,7 +536,7 @@ mod tests {
         let cgeek_new_balance = currency_dbs
             .balances_db
             .read(|db| {
-                db.get(&TransactionOutputConditionGroup::Single(
+                db.get(&UTXOConditionsGroup::Single(
                     TransactionOutputCondition::Sig(tx_doc.issuers()[0]),
                 )).cloned()
             })
@@ -552,7 +548,7 @@ mod tests {
         let receiver_new_balance = currency_dbs
             .balances_db
             .read(|db| {
-                db.get(&TransactionOutputConditionGroup::Single(
+                db.get(&UTXOConditionsGroup::Single(
                     TransactionOutputCondition::Sig(tortue_pubkey),
                 )).cloned()
             })
