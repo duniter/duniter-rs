@@ -7,107 +7,7 @@ use duniter_documents::blockchain::v10::documents::transaction::{
     TransactionOutput,
 };
 use duniter_documents::blockchain::DocumentBuilder;
-use duniter_documents::Blockstamp;
-
-pub fn parse_compact_transactions(
-    currency: &str,
-    json_datas: &str,
-) -> Option<Vec<TransactionDocument>> {
-    let raw_transactions: serde_json::Value =
-        serde_json::from_str(json_datas).expect("Fatal error : fail to jsonifie tx from DB !");
-
-    if raw_transactions.is_array() {
-        let mut transactions = Vec::new();
-        for transaction in raw_transactions.as_array().unwrap() {
-            let transaction_lines: Vec<&str> = transaction
-                .as_str()
-                .expect("Fail to parse tx from DB !")
-                .split('$')
-                .collect();
-            let tx_headers: Vec<&str> = transaction_lines[0].split(':').collect();
-            let issuers_count = tx_headers[2]
-                .parse()
-                .expect("Fail to parse tx header NB_ISSUERS !");
-            let inputs_count = tx_headers[3]
-                .parse()
-                .expect("Fail to parse tx header NB_INPUTS !");
-            let unlocks_count = tx_headers[4]
-                .parse()
-                .expect("Fail to parse tx header NB_UNLOCKS !");
-            let outputs_count = tx_headers[5]
-                .parse()
-                .expect("Fail to parse tx header NB_OUTPUTS !");
-            let has_comment: usize = tx_headers[6]
-                .parse()
-                .expect("Fail to parse tx header HAS_COMMENT !");
-            let locktime = tx_headers[7]
-                .parse()
-                .expect("Fail to parse tx header LOCKTIME !");
-            let blockstamp = Blockstamp::from_string(transaction_lines[1])
-                .expect("Fail to parse tx BLOCKSTAMP !");
-            let mut line = 2;
-            let mut issuers = Vec::new();
-            for _ in 0..issuers_count {
-                issuers.push(PubKey::Ed25519(
-                    ed25519::PublicKey::from_base58(transaction_lines[line])
-                        .expect("Fail to parse tx issuer !"),
-                ));
-                line += 1;
-            }
-            let mut inputs = Vec::new();
-            for _ in 0..inputs_count {
-                inputs.push(
-                    TransactionInput::parse_from_str(transaction_lines[line])
-                        .expect("Fail to parse tx issuer !"),
-                );
-                line += 1;
-            }
-            let mut unlocks = Vec::new();
-            for _ in 0..unlocks_count {
-                unlocks.push(
-                    TransactionInputUnlocks::parse_from_str(transaction_lines[line])
-                        .expect("Fail to parse tx issuer !"),
-                );
-                line += 1;
-            }
-            let mut outputs = Vec::new();
-            for _ in 0..outputs_count {
-                outputs.push(
-                    TransactionOutput::parse_from_str(transaction_lines[line])
-                        .expect("Fail to parse tx issuer !"),
-                );
-                line += 1;
-            }
-            let mut comment = "";
-            if has_comment == 1 {
-                comment = transaction_lines[line];
-                line += 1;
-            }
-            let mut signatures = Vec::new();
-            for _ in 0..issuers_count {
-                signatures.push(Sig::Ed25519(
-                    ed25519::Signature::from_base64(transaction_lines[line])
-                        .expect("Fail to parse tx signature !"),
-                ));
-                line += 1;
-            }
-            let tx_doc_builder = TransactionDocumentBuilder {
-                currency,
-                blockstamp: &blockstamp,
-                locktime: &locktime,
-                issuers: &issuers,
-                inputs: &inputs,
-                unlocks: &unlocks,
-                outputs: &outputs,
-                comment,
-            };
-            transactions.push(tx_doc_builder.build_with_signature(signatures));
-        }
-        Some(transactions)
-    } else {
-        None
-    }
-}
+use duniter_documents::{Blockstamp, Hash};
 
 pub fn parse_transaction(
     currency: &str,
@@ -173,6 +73,12 @@ pub fn parse_transaction(
         }
     }
     let comment = source.get("comment")?.as_str()?;
+    let hash = match Hash::from_hex(source.get("hash")?.as_str()?) {
+        Ok(hash) => hash,
+        Err(_) => {
+            return None;
+        }
+    };
 
     let tx_doc_builder = TransactionDocumentBuilder {
         currency,
@@ -183,6 +89,7 @@ pub fn parse_transaction(
         unlocks: &unlocks,
         outputs: &outputs,
         comment,
+        hash: Some(hash),
     };
     Some(tx_doc_builder.build_with_signature(signatures))
 }
@@ -193,7 +100,7 @@ mod tests {
 
     #[test]
     fn parse_compact_tx() {
-        let compact_txs = "[\"TX:10:1:1:1:1:1:0$\
+        let _compact_txs = "[\"TX:10:1:1:1:1:1:0$\
 112533-000002150F2E805E604D9B31212D079570AAD8D3A4D8BB75F2C15A94A345B6B1$\
 51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2$\
 1000:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:46496$\
@@ -202,7 +109,7 @@ mod tests {
 Merci pour la calligraphie ;) de Liam$\
 5olrjFylTCsVq8I5Yr7FpXeviynICyvIwe1yG5N0RJF+VZb+bCFBnLAMpmMCU2qzUvK7z41UXOrMRybXiLa2Dw==\"]";
 
-        let tx_builder = TransactionDocumentBuilder {
+        let _tx_builder = TransactionDocumentBuilder {
             currency: "g1",
             blockstamp: &Blockstamp::from_string(
                 "112533-000002150F2E805E604D9B31212D079570AAD8D3A4D8BB75F2C15A94A345B6B1",
@@ -224,11 +131,7 @@ Merci pour la calligraphie ;) de Liam$\
             ],
             unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)").unwrap()],
             comment: "Merci pour la calligraphie ;) de Liam",
+            hash: None,
         };
-
-        assert_eq!(
-            parse_compact_transactions("g1", compact_txs).expect("Fail to parse compact transactions !"),
-            vec![tx_builder.build_with_signature(vec![Sig::Ed25519(ed25519::Signature::from_base64("5olrjFylTCsVq8I5Yr7FpXeviynICyvIwe1yG5N0RJF+VZb+bCFBnLAMpmMCU2qzUvK7z41UXOrMRybXiLa2Dw==").unwrap())])]
-        );
     }
 }

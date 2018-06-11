@@ -49,7 +49,7 @@ pub fn create_du<B: Backend + Debug>(
             for pubkey in members {
                 members_balances.insert(
                     *pubkey,
-                    db.get(&TransactionOutputConditionGroup::Single(
+                    db.get(&UTXOConditionsGroup::Single(
                         TransactionOutputCondition::Sig(*pubkey),
                     )).cloned()
                         .unwrap_or_default(),
@@ -73,7 +73,7 @@ pub fn create_du<B: Backend + Debug>(
     balances_db.write(|db| {
         for (pubkey, (balance, utxos_indexs)) in members_balances {
             db.insert(
-                TransactionOutputConditionGroup::Single(TransactionOutputCondition::Sig(pubkey)),
+                UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(pubkey)),
                 (balance, utxos_indexs),
             );
         }

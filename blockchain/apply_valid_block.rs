@@ -22,10 +22,10 @@ use duniter_documents::blockchain::v10::documents::transaction::{TxAmount, TxBas
 use duniter_documents::blockchain::v10::documents::BlockDocument;
 use duniter_documents::blockchain::Document;
 use duniter_documents::BlockId;
-use duniter_wotb::data::NewLinkResult;
+use duniter_wotb::data::{NewLinkResult, RemLinkResult};
 use duniter_wotb::{NodeId, WebOfTrust};
 use rustbreak::backend::Backend;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 
 #[derive(Debug)]
@@ -166,7 +166,7 @@ pub fn apply_valid_block<W: WebOfTrust, B: Backend + Debug>(
                     ),
                 }
             })
-            .expect("Fail to read WotDB");
+            .expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::CreateCert(
             compact_cert.issuer,
             wotb_node_from,
@@ -176,12 +176,23 @@ pub fn apply_valid_block<W: WebOfTrust, B: Backend + Debug>(
         ));
         trace!("stack_up_valid_block: apply cert...success.");
     }
-    for ((source, target), created_block_id) in expire_certs {
-        wot_dbs_requests.push(WotsDBsWriteQuery::ExpireCert(
-            *source,
-            *target,
-            *created_block_id,
-        ));
+    if !expire_certs.is_empty() {
+        let mut blocks_already_expire = HashSet::new();
+        for ((source, target), created_block_id) in expire_certs {
+            if !blocks_already_expire.contains(created_block_id) {
+                wot_dbs_requests.push(WotsDBsWriteQuery::ExpireCerts(*created_block_id));
+                blocks_already_expire.insert(*created_block_id);
+            }
+            wot_db
+                .write(|db| {
+                    let result = db.rem_link(*source, *target);
+                    match result {
+                        RemLinkResult::Removed(_) => {}
+                        _ => panic!("Fail to rem_link {}->{} : {:?}", source.0, target.0, result),
+                    }
+                })
+                .expect("Fail to write in WotDB");
+        }
     }
     if let Some(du_amount) = block.dividend {
         if du_amount > 0 {

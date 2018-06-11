@@ -137,21 +137,18 @@ pub fn get_user_datas_folder() -> &'static str {
     USER_DATAS_FOLDER
 }
 
-/// Returns the path to the folder containing the user data of the running profile
+/// Returns the path to the folder containing the currency datas of the running profile
 pub fn datas_path(profile: &str, currency: &Currency) -> PathBuf {
-    let mut datas_path = match env::home_dir() {
-        Some(path) => path,
-        None => panic!("Impossible to get your home dir!"),
-    };
-    datas_path.push(".config/");
-    datas_path.push(USER_DATAS_FOLDER);
-    datas_path.push(profile);
+    let mut datas_path = get_profile_path(profile);
     datas_path.push(currency.to_string());
+    if !datas_path.as_path().exists() {
+        fs::create_dir(datas_path.as_path()).expect("Impossible to create currency dir !");
+    }
     datas_path
 }
 
-/// Load configuration.
-pub fn load_conf(profile: &str) -> (DuniterConf, DuniterKeyPairs) {
+/// Returns the path to the folder containing the user data of the running profile
+pub fn get_profile_path(profile: &str) -> PathBuf {
     // Define and create datas directory if not exist
     let mut profile_path = match env::home_dir() {
         Some(path) => path,
@@ -172,6 +169,12 @@ pub fn load_conf(profile: &str) -> (DuniterConf, DuniterKeyPairs) {
     if !profile_path.as_path().exists() {
         fs::create_dir(profile_path.as_path()).expect("Impossible to create your profile dir !");
     }
+    profile_path
+}
+
+/// Load configuration.
+pub fn load_conf(profile: &str) -> (DuniterConf, DuniterKeyPairs) {
+    let mut profile_path = get_profile_path(profile);
 
     // Load conf
     let (conf, keypairs) = load_conf_at_path(profile, &profile_path);
@@ -280,7 +283,7 @@ pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuniterConf,
         }
     } else {
         // Create conf file with default conf
-        write_conf_file(&conf_path, &DuniterConf::V1(conf.clone()))
+        write_conf_file(&DuniterConf::V1(conf.clone()))
             .expect("Fatal error : fail to write default conf file !");
     }
 
@@ -306,10 +309,12 @@ pub fn write_keypairs_file(
 }
 
 /// Save configuration in profile folder
-pub fn write_conf_file(file_path: &PathBuf, conf: &DuniterConf) -> Result<(), std::io::Error> {
+pub fn write_conf_file(conf: &DuniterConf) -> Result<(), std::io::Error> {
+    let mut conf_path = get_profile_path(&conf.profile());
+    conf_path.push("conf.json");
     match *conf {
         DuniterConf::V1(ref conf_v1) => {
-            let mut f = try!(File::create(file_path.as_path()));
+            let mut f = try!(File::create(conf_path.as_path()));
             try!(
                 f.write_all(
                     serde_json::to_string_pretty(conf_v1)

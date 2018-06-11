@@ -82,3 +82,29 @@ pub fn revert_write_cert(
     })?;
     Ok(())
 }
+
+pub fn revert_expire_cert(
+    certs_db: &BinFileDB<CertsExpirV10Datas>,
+    source: NodeId,
+    target: NodeId,
+    created_block_id: BlockId,
+) -> Result<(), DALError> {
+    // Reinsert CertsExpirV10Datas entry
+    certs_db.write(|db| {
+        let mut certs = db.get(&created_block_id).cloned().unwrap_or_default();
+        certs.insert((source, target));
+        db.insert(created_block_id, certs);
+    })?;
+    Ok(())
+}
+
+pub fn expire_certs(
+    certs_db: &BinFileDB<CertsExpirV10Datas>,
+    created_block_id: BlockId,
+) -> Result<(), DALError> {
+    // Remove CertsExpirV10Datas entries
+    certs_db.write(|db| {
+        db.remove(&created_block_id);
+    })?;
+    Ok(())
+}

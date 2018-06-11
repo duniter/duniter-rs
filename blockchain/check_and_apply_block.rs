@@ -92,7 +92,7 @@ pub fn check_and_apply_block<W: WebOfTrust, B: Backend + Debug>(
         // Try stack up block
         let mut old_fork_id = None;
         let block_doc = match *block {
-            Block::NetworkBlock(network_block) => complete_network_block(network_block)?,
+            Block::NetworkBlock(network_block) => complete_network_block(network_block, true)?,
             Block::LocalBlock(block_doc) => {
                 old_fork_id = duniter_dal::block::get_fork_id_of_blockstamp(
                     &blocks_databases.forks_blocks_db,
@@ -142,7 +142,7 @@ pub fn check_and_apply_block<W: WebOfTrust, B: Backend + Debug>(
             match *block {
                 Block::NetworkBlock(network_block) => {
                     // Completed network block
-                    let block_doc = complete_network_block(network_block)?;
+                    let block_doc = complete_network_block(network_block, true)?;
                     let dal_block = DALBlock {
                         fork_id,
                         isolate,

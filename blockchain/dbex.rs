@@ -90,8 +90,7 @@ pub fn dbex_tx(conf: &DuniterConf, query: &DBExTxQuery) {
                 println!("This address doesn't exist !");
                 return;
             };
-            let address =
-                TransactionOutputConditionGroup::Single(TransactionOutputCondition::Sig(pubkey));
+            let address = UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(pubkey));
             let address_balance = duniter_dal::balance::get_address_balance(
                 &currency_databases.balances_db,
                 &address,

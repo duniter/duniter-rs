@@ -122,7 +122,12 @@ impl DuniterCore {
             ))
         } else if let Some(matches) = cli_args.subcommand_matches("sync_ts") {
             let ts_profile = matches.value_of("TS_PROFILE").unwrap_or("duniter_default");
-            sync_ts(&conf, ts_profile, matches.is_present("cautious"));
+            sync_ts(
+                &conf,
+                ts_profile,
+                matches.is_present("cautious"),
+                !matches.is_present("unsafe"),
+            );
             None
         } else if let Some(matches) = cli_args.subcommand_matches("dbex") {
             let csv = matches.is_present("csv");
@@ -403,9 +408,9 @@ pub fn start(
 }
 
 /// Launch synchronisation from a duniter-ts database
-pub fn sync_ts(conf: &DuniterConf, ts_profile: &str, cautious: bool) {
+pub fn sync_ts(conf: &DuniterConf, ts_profile: &str, cautious: bool, verif_inner_hash: bool) {
     // Launch sync-ts
-    BlockchainModule::sync_ts(conf, ts_profile, cautious);
+    BlockchainModule::sync_ts(conf, ts_profile, cautious, verif_inner_hash);
 }
 
 /// Launch databases explorer

@@ -341,12 +341,13 @@ pub fn parse_transaction(
     let outputs_array = source.get("outputs")?.as_array()?;
     let mut outputs = Vec::with_capacity(outputs_array.len());
     for output in outputs_array {
-        match TransactionOutput::parse_from_str(output.as_str()?) {
-            Ok(output) => outputs.push(output),
-            Err(_) => {
-                return None;
-            }
-        }
+        outputs.push(
+            TransactionOutput::parse_from_str(
+                output
+                    .as_str()
+                    .expect(&format!("Fail to parse output : {:?}", output)),
+            ).expect(&format!("Fail to parse output : {:?}", output)),
+        );
     }
     let signatures_array = source.get("signatures")?.as_array()?;
     let mut signatures = Vec::with_capacity(signatures_array.len());
@@ -369,6 +370,7 @@ pub fn parse_transaction(
         unlocks: &unlocks,
         outputs: &outputs,
         comment,
+        hash: Some(Hash::from_hex(source.get("hash")?.as_str()?).expect("Fail to parse tx hash")),
     };
     Some(tx_doc_builder.build_with_signature(signatures))
 }

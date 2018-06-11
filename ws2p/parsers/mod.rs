@@ -76,11 +76,13 @@ mod tests {
             ],
             unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)").unwrap()],
             comment: "Merci pour la calligraphie ;) de Liam",
+            hash: None,
         };
-
+        let mut tx_doc = tx_builder.build_with_signature(vec![Sig::Ed25519(ed25519::Signature::from_base64("5olrjFylTCsVq8I5Yr7FpXeviynICyvIwe1yG5N0RJF+VZb+bCFBnLAMpmMCU2qzUvK7z41UXOrMRybXiLa2Dw==").unwrap())]);
+        tx_doc.compute_hash();
         assert_eq!(
             parse_transaction("g1", &tx_json).expect("Fail to parse transaction !"),
-            tx_builder.build_with_signature(vec![Sig::Ed25519(ed25519::Signature::from_base64("5olrjFylTCsVq8I5Yr7FpXeviynICyvIwe1yG5N0RJF+VZb+bCFBnLAMpmMCU2qzUvK7z41UXOrMRybXiLa2Dw==").unwrap())])
+            tx_doc
         );
     }
 
@@ -137,11 +139,13 @@ mod tests {
             ],
             unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)").unwrap()],
             comment: "Un petit cafe ;-)",
+            hash: None,
         };
-
+        let mut tx_doc = tx_builder.build_with_signature(vec![Sig::Ed25519(ed25519::Signature::from_base64("VWbvsiybM4L2X5+o+6lIiuKNw5KrD1yGZqmV+lHtA28XoRUFzochSIgfoUqBsTAaYEHY45vSX917LDXudTEzBg==").unwrap())]);
+        tx_doc.compute_hash();
         assert_eq!(
             parse_transaction("g1", &tx_json).expect("Fail to parse transaction !"),
-            tx_builder.build_with_signature(vec![Sig::Ed25519(ed25519::Signature::from_base64("VWbvsiybM4L2X5+o+6lIiuKNw5KrD1yGZqmV+lHtA28XoRUFzochSIgfoUqBsTAaYEHY45vSX917LDXudTEzBg==").unwrap())])
+            tx_doc,
         );
     }
 }

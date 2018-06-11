@@ -18,7 +18,7 @@ use *;
 
 pub fn get_address_balance(
     balances_db: &BinFileDB<BalancesV10Datas>,
-    address: &TransactionOutputConditionGroup,
+    address: &UTXOConditionsGroup,
 ) -> Result<Option<SourceAmount>, DALError> {
     Ok(balances_db.read(|db| {
         if let Some(balance_and_utxos) = db.get(address) {
