@@ -96,7 +96,7 @@ pub enum WotsDBsWriteQuery {
     /// Revert certification (source_pubkey, source, target, created_block_id, median_time)
     RevertCert(CompactCertificationDocument, NodeId, NodeId),
     /// Certification expiry (source, target, created_block_id)
-    ExpireCert(NodeId, NodeId, BlockId),
+    ExpireCerts(BlockId),
     /// Revert certification expiry event (source, target, created_block_id)
     RevertExpireCert(NodeId, NodeId, BlockId),
 }
@@ -228,27 +228,16 @@ impl WotsDBsWriteQuery {
                 )?;
                 trace!("WotsDBsWriteQuery::CreateCert...finish");
             }
-            WotsDBsWriteQuery::ExpireCert(ref _source, ref _target, ref _created_block_id) => {
-                /*super::certification::expire_cert(
-                    &databases.certs_db,
-                    *source,
-                    *target,
-                    *created_block_id,
-                    false,
-                )?;*/
+            WotsDBsWriteQuery::ExpireCerts(ref created_block_id) => {
+                super::certification::expire_certs(&databases.certs_db, *created_block_id)?;
             }
-            WotsDBsWriteQuery::RevertExpireCert(
-                ref _source,
-                ref _target,
-                ref _created_block_id,
-            ) => {
-                /*super::certification::expire_cert(
+            WotsDBsWriteQuery::RevertExpireCert(ref source, ref target, ref created_block_id) => {
+                super::certification::revert_expire_cert(
                     &databases.certs_db,
                     *source,
                     *target,
                     *created_block_id,
-                    true,
-                )?;*/
+                )?;
             }
         }
         Ok(())

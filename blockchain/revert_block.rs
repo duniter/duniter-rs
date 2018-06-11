@@ -22,7 +22,7 @@ use duniter_dal::{BinDB, ForkId, TxV10Datas};
 use duniter_documents::blockchain::v10::documents::block::TxDocOrTxHash;
 use duniter_documents::blockchain::v10::documents::transaction::{TxAmount, TxBase};
 use duniter_documents::blockchain::Document;
-use duniter_wotb::data::NewLinkResult;
+use duniter_wotb::data::{NewLinkResult, RemLinkResult};
 use duniter_wotb::{NodeId, WebOfTrust};
 use rustbreak::backend::Backend;
 use std::collections::HashMap;
@@ -102,12 +102,23 @@ pub fn revert_block<W: WebOfTrust, B: Backend + Debug>(
     // REVERT WOT EVENTS
     let mut wot_dbs_requests = Vec::new();
     // Revert expire_certs
-    for ((source, target), created_block_id) in expire_certs {
-        wot_dbs_requests.push(WotsDBsWriteQuery::RevertExpireCert(
-            source,
-            target,
-            created_block_id,
-        ));
+    if !expire_certs.is_empty() {
+        for ((source, target), created_block_id) in expire_certs {
+            wot_db
+                .write(|db| {
+                    let result = db.add_link(source, target);
+                    match result {
+                        NewLinkResult::Ok(_) => {}
+                        _ => panic!("Fail to add_link {}->{} : {:?}", source.0, target.0, result),
+                    }
+                })
+                .expect("Fail to write in WotDB");
+            wot_dbs_requests.push(WotsDBsWriteQuery::RevertExpireCert(
+                source,
+                target,
+                created_block_id,
+            ));
+        }
     }
     // Revert certifications
     for certification in block.certifications.clone() {
@@ -117,16 +128,16 @@ pub fn revert_block<W: WebOfTrust, B: Backend + Debug>(
         let wotb_node_to = wot_index[&compact_cert.target];
         wot_db
             .write(|db| {
-                let result = db.add_link(wotb_node_from, wotb_node_to);
+                let result = db.rem_link(wotb_node_from, wotb_node_to);
                 match result {
-                    NewLinkResult::Ok(_) => {}
+                    RemLinkResult::Removed(_) => {}
                     _ => panic!(
-                        "Fail to add_link {}->{} : {:?}",
+                        "Fail to rem_link {}->{} : {:?}",
                         wotb_node_from.0, wotb_node_to.0, result
                     ),
                 }
             })
-            .expect("Fail to read WotDB");
+            .expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::RevertCert(
             compact_cert,
             wotb_node_from,
