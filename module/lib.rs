@@ -172,6 +172,13 @@ impl DuniterConf {
             _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
+    /// Set currency
+    pub fn set_currency(&mut self, new_currency: Currency) {
+        match *self {
+            DuniterConf::V1(ref mut conf_v1) => conf_v1.currency = new_currency,
+            _ => panic!("Fail to load duniter conf : conf version not supported !"),
+        }
+    }
     /// Get node id
     pub fn my_node_id(&self) -> u32 {
         match *self {

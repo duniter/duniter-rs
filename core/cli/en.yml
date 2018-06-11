@@ -39,6 +39,10 @@ subcommands:
                 short: c
                 long: cautious
                 help: cautious mode (check all protocol rules, very slow)
+            - unsafe:
+                short: u
+                long: unsafe
+                help: unsafe mode (not check blocks inner hashs, very dangerous)
     - dbex:
         about: durs databases explorer
         version: "0.1.0"

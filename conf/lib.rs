@@ -147,6 +147,9 @@ pub fn datas_path(profile: &str, currency: &Currency) -> PathBuf {
     datas_path.push(USER_DATAS_FOLDER);
     datas_path.push(profile);
     datas_path.push(currency.to_string());
+    if !datas_path.as_path().exists() {
+        fs::create_dir(datas_path.as_path()).expect("Impossible to create currency dir !");
+    }
     datas_path
 }
 

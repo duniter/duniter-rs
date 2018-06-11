@@ -51,7 +51,7 @@ pub struct BlockHeader {
 #[derive(Debug)]
 /// Message for main sync thread
 enum MessForSyncThread {
-    TargetBlockstamp(Blockstamp),
+    Target(Currency, Blockstamp),
     NetworkBlock(NetworkBlock),
     DownloadFinish(),
     ApplyFinish(),
@@ -67,27 +67,7 @@ enum SyncJobsMess {
 }
 
 /// Sync from a duniter-ts database
-pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool) {
-    // get profile and currency and current_blockstamp
-    let profile = &conf.profile();
-    let currency = &conf.currency();
-
-    // Get databases path
-    let db_path = duniter_conf::get_blockchain_db_path(&profile, &currency);
-
-    // Open wot db
-    let wot_db = open_wot_db::<RustyWebOfTrust>(&db_path).expect("Fail to open WotDB !");
-
-    // Open blocks databases
-    let databases = BlocksV10DBs::open(&db_path, false);
-
-    // Get local current blockstamp
-    debug!("Get local current blockstamp...");
-    let mut current_blockstamp: Blockstamp = duniter_dal::block::get_current_blockstamp(&databases)
-        .expect("ForksV10DB : RustBreakError !")
-        .unwrap_or_default();
-    debug!("Success to get local current blockstamp.");
-
+pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool, verif_inner_hash: bool) {
     // Get verification level
     let _verif_level = if cautious {
         println!("Start cautious sync...");
@@ -112,10 +92,12 @@ pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool) {
     let pool = ThreadPool::new(nb_workers);
 
     // Determine db_ts_copy_path
-    let mut db_ts_copy_path = duniter_conf::datas_path(&profile.clone(), currency);
+    let mut db_ts_copy_path =
+        duniter_conf::datas_path(&conf.profile().clone(), &conf.currency().clone());
     db_ts_copy_path.push("tmp_db_ts_copy.db");
 
     // Lauch ts thread
+    let profile_copy = conf.profile().clone();
     let sender_sync_thread_clone = sender_sync_thread.clone();
     pool.execute(move || {
         let ts_job_begin = SystemTime::now();
@@ -130,37 +112,59 @@ pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool) {
         // Get ts current blockstamp
         debug!("Get ts-db current blockstamp...");
         let mut cursor: sqlite::Cursor = ts_db
-            .prepare("SELECT hash, number FROM block WHERE fork=? ORDER BY number DESC LIMIT 1;")
+            .prepare("SELECT hash, number, currency FROM block WHERE fork=? ORDER BY number DESC LIMIT 1;")
             .expect("Request SQL get_ts_current_block is wrong !")
             .cursor();
         cursor
             .bind(&[sqlite::Value::Integer(0)])
             .expect("Fail to get ts current block !");
-        let current_ts_blockstamp = if let Some(row) = cursor.next().expect("cursor error") {
-            let block_id = BlockId(
-                row[1]
-                    .as_integer()
-                    .expect("Fail to parse current ts blockstamp !") as u32,
-            );
-            let block_hash = BlockHash(
-                Hash::from_hex(
-                    row[0]
-                        .as_string()
-                        .expect("Fail to parse current ts blockstamp !"),
-                ).expect("Fail to parse current ts blockstamp !"),
-            );
-            Blockstamp {
-                id: block_id,
-                hash: block_hash,
-            }
-        } else {
-            panic!("Fail to get current ts blockstamp !");
-        };
+        let (currency, current_ts_blockstamp) =
+            if let Some(row) = cursor.next().expect("cursor error") {
+                let block_id = BlockId(
+                    row[1]
+                        .as_integer()
+                        .expect("Fail to parse current ts blockstamp !") as u32,
+                );
+                let block_hash = BlockHash(
+                    Hash::from_hex(
+                        row[0]
+                            .as_string()
+                            .expect("Fail to parse current ts blockstamp !"),
+                    ).expect("Fail to parse current ts blockstamp !"),
+                );
+                (
+                    Currency::Str(String::from(
+                        row[2]
+                            .as_string()
+                            .expect("Fatal error :Fail to get currency !"),
+                    )),
+                    Blockstamp {
+                        id: block_id,
+                        hash: block_hash,
+                    },
+                )
+            } else {
+                panic!("Fail to get current ts blockstamp !");
+            };
+
         debug!("Success to ts-db current blockstamp.");
+
+        // Get current local blockstamp
+        debug!("Get local current blockstamp...");
+        let db_path = duniter_conf::get_blockchain_db_path(&profile_copy, &currency);
+        let blocks_databases = BlocksV10DBs::open(&db_path, false);
+        let current_blockstamp: Blockstamp = duniter_dal::block::get_current_blockstamp(
+            &blocks_databases,
+        ).expect("ForksV10DB : RustBreakError !")
+            .unwrap_or_default();
+        debug!("Success to get local current blockstamp.");
 
         // Send ts current blockstamp
         sender_sync_thread_clone
-            .send(MessForSyncThread::TargetBlockstamp(current_ts_blockstamp))
+            .send(MessForSyncThread::Target(
+                currency.clone(),
+                current_ts_blockstamp,
+            ))
             .expect("Fatal error : sync_thread unrechable !");
 
         // Get genesis block
@@ -229,18 +233,38 @@ pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool) {
         );
     });
 
-    // Get target blockstamp
-    let target_blockstamp = if let Ok(MessForSyncThread::TargetBlockstamp(target_blockstamp)) =
-        recv_sync_thread.recv()
-    {
-        target_blockstamp
-    } else {
-        panic!("Fatal error : no TargetBlockstamp !")
-    };
+    // Get currency and target blockstamp
+    let (currency, target_blockstamp) =
+        if let Ok(MessForSyncThread::Target(currency, target_blockstamp)) = recv_sync_thread.recv()
+        {
+            (currency, target_blockstamp)
+        } else {
+            panic!("Fatal error : no TargetBlockstamp !")
+        };
+
+    // Update DuniterConf
+    let mut conf = conf.clone();
+    conf.set_currency(currency.clone());
+
+    // Get databases path
+    let db_path = duniter_conf::get_blockchain_db_path(&conf.profile(), &currency);
+
+    // Open wot db
+    let wot_db = open_wot_db::<RustyWebOfTrust>(&db_path).expect("Fail to open WotDB !");
+
+    // Open blocks databases
+    let databases = BlocksV10DBs::open(&db_path, false);
+
+    // Get local current blockstamp
+    debug!("Get local current blockstamp...");
+    let mut current_blockstamp: Blockstamp = duniter_dal::block::get_current_blockstamp(&databases)
+        .expect("ForksV10DB : RustBreakError !")
+        .unwrap_or_default();
+    debug!("Success to get local current blockstamp.");
 
     // Instanciate blockchain module
     let blockchain_module =
-        BlockchainModule::load_blockchain_conf(conf, RequiredKeysContent::None());
+        BlockchainModule::load_blockchain_conf(&conf, RequiredKeysContent::None());
 
     // Node is already synchronized ?
     if target_blockstamp.id.0 < current_blockstamp.id.0 {
@@ -361,7 +385,7 @@ pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool) {
     });
 
     // / Launch wot_worker thread
-    let profile_copy2 = profile.clone();
+    let profile_copy2 = conf.profile().clone();
     let currency_copy2 = currency.clone();
     let sender_sync_thread_clone2 = sender_sync_thread.clone();
 
@@ -462,7 +486,7 @@ pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool) {
         all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
         // Complete block
         let complete_block_begin = SystemTime::now();
-        let block_doc = complete_network_block(&network_block)
+        let block_doc = complete_network_block(&network_block, verif_inner_hash)
             .expect("Receive wrong block, please reset data and resync !");
         all_complete_block_duration += SystemTime::now()
             .duration_since(complete_block_begin)
