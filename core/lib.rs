@@ -33,14 +33,13 @@ extern crate duniter_conf;
 extern crate duniter_crypto;
 extern crate duniter_message;
 extern crate duniter_module;
-extern crate serde_json;
 extern crate simplelog;
 extern crate sqlite;
 extern crate threadpool;
 
 use clap::{App, ArgMatches};
 use duniter_blockchain::{BlockchainModule, DBExQuery, DBExTxQuery, DBExWotQuery};
-use duniter_conf::DuniterKeyPairs;
+use duniter_conf::{DuRsConf, DuniterKeyPairs};
 use duniter_message::DuniterMessage;
 use duniter_module::*;
 use log::Level;
@@ -55,17 +54,19 @@ use threadpool::ThreadPool;
 
 #[derive(Debug)]
 /// Duniter Core Datas
-pub struct DuniterCore {
+pub struct DuniterCore<DC: DuniterConf> {
     /// Does the entered command require to launch server ?
     pub start: bool,
     /// Software name
     pub soft_name: &'static str,
     /// Soft version
     pub soft_version: &'static str,
+    /// User profile
+    pub profile: String,
     /// Keypairs
     pub keypairs: DuniterKeyPairs,
     /// Duniter configuration
-    pub conf: DuniterConf,
+    pub conf: DC,
     /// Run duration. Zero = infinite duration.
     pub run_duration_in_secs: u64,
     /// Sender channel of rooter thread
@@ -76,9 +77,12 @@ pub struct DuniterCore {
     pub thread_pool: ThreadPool,
 }
 
-impl DuniterCore {
+impl DuniterCore<DuRsConf> {
     /// Instantiate Duniter classic node
-    pub fn new(soft_name: &'static str, soft_version: &'static str) -> Option<DuniterCore> {
+    pub fn new(
+        soft_name: &'static str,
+        soft_version: &'static str,
+    ) -> Option<DuniterCore<DuRsConf>> {
         DuniterCore::new_specialized_node(soft_name, soft_version, 0, vec![], vec![], None)
     }
     /// Instantiate Duniter specialize node
@@ -89,7 +93,7 @@ impl DuniterCore {
         external_followers: Vec<mpsc::Sender<DuniterMessage>>,
         sup_apps: Vec<App<'a, 'b>>,
         sup_apps_fn: Option<&Fn(&str, &ArgMatches) -> ()>,
-    ) -> Option<DuniterCore> {
+    ) -> Option<DuniterCore<DuRsConf>> {
         // Get cli conf
         let yaml = load_yaml!("./cli/en.yml");
         let cli_conf = App::from_yaml(yaml);
@@ -115,6 +119,7 @@ impl DuniterCore {
             Some(start(
                 soft_name,
                 soft_version,
+                &profile,
                 keypairs,
                 conf,
                 run_duration_in_secs,
@@ -123,6 +128,7 @@ impl DuniterCore {
         } else if let Some(matches) = cli_args.subcommand_matches("sync_ts") {
             let ts_profile = matches.value_of("TS_PROFILE").unwrap_or("duniter_default");
             sync_ts(
+                profile.as_str(),
                 &conf,
                 ts_profile,
                 matches.is_present("cautious"),
@@ -133,6 +139,7 @@ impl DuniterCore {
             let csv = matches.is_present("csv");
             if let Some(distances_matches) = matches.subcommand_matches("distances") {
                 dbex(
+                    profile.as_str(),
                     &conf,
                     &DBExQuery::WotQuery(DBExWotQuery::AllDistances(
                         distances_matches.is_present("reverse"),
@@ -141,12 +148,14 @@ impl DuniterCore {
             } else if let Some(member_matches) = matches.subcommand_matches("member") {
                 let uid = member_matches.value_of("UID").unwrap_or("");
                 dbex(
+                    profile.as_str(),
                     &conf,
                     &DBExQuery::WotQuery(DBExWotQuery::MemberDatas(String::from(uid))),
                 );
             } else if let Some(members_matches) = matches.subcommand_matches("members") {
                 if members_matches.is_present("expire") {
                     dbex(
+                        profile.as_str(),
                         &conf,
                         &DBExQuery::WotQuery(DBExWotQuery::ExpireMembers(
                             members_matches.is_present("reverse"),
@@ -155,6 +164,7 @@ impl DuniterCore {
                     );
                 } else {
                     dbex(
+                        profile.as_str(),
                         &conf,
                         &DBExQuery::WotQuery(DBExWotQuery::ListMembers(
                             members_matches.is_present("reverse"),
@@ -164,6 +174,7 @@ impl DuniterCore {
             } else if let Some(balance_matches) = matches.subcommand_matches("balance") {
                 let address = balance_matches.value_of("ADDRESS").unwrap_or("");
                 dbex(
+                    &profile,
                     &conf,
                     &DBExQuery::TxQuery(DBExTxQuery::Balance(String::from(address))),
                 );
@@ -235,6 +246,7 @@ impl DuniterCore {
 
             // Instantiate blockchain module and load is conf
             let mut blockchain_module = BlockchainModule::load_blockchain_conf(
+                &self.profile,
                 &self.conf,
                 RequiredKeysContent::MemberKeyPair(None),
             );
@@ -245,7 +257,7 @@ impl DuniterCore {
         }
     }
     /// Plug a module
-    pub fn plug<M: DuniterModule<DuniterMessage>>(&mut self) {
+    pub fn plug<M: DuniterModule<DuRsConf, DuniterMessage>>(&mut self) {
         if self.start {
             // Start module in a new thread
             let soft_name_clone = &(*self.soft_name);
@@ -264,10 +276,12 @@ impl DuniterCore {
             };
             let rooter_sender_clone = self.rooter_sender.clone();
             let conf_clone = self.conf.clone();
+            let profile_copy = self.profile.clone();
             self.thread_pool.execute(move || {
                 M::start(
                     soft_name_clone,
                     soft_version_clone,
+                    &profile_copy,
                     required_keys,
                     &conf_clone,
                     &module_conf,
@@ -290,14 +304,15 @@ pub fn match_profile(cli_args: &ArgMatches) -> String {
 }
 
 /// Launch duniter server
-pub fn start(
+pub fn start<DC: DuniterConf>(
     soft_name: &'static str,
     soft_version: &'static str,
+    profile: &str,
     keypairs: DuniterKeyPairs,
-    conf: DuniterConf,
+    conf: DC,
     run_duration_in_secs: u64,
     external_followers: Vec<mpsc::Sender<DuniterMessage>>,
-) -> DuniterCore {
+) -> DuniterCore<DC> {
     info!("Starting Duniter-rs...");
 
     // Create senders channel
@@ -398,6 +413,7 @@ pub fn start(
         start: true,
         soft_name,
         soft_version,
+        profile: profile.to_string(),
         keypairs,
         conf,
         run_duration_in_secs,
@@ -408,15 +424,21 @@ pub fn start(
 }
 
 /// Launch synchronisation from a duniter-ts database
-pub fn sync_ts(conf: &DuniterConf, ts_profile: &str, cautious: bool, verif_inner_hash: bool) {
+pub fn sync_ts<DC: DuniterConf>(
+    profile: &str,
+    conf: &DC,
+    ts_profile: &str,
+    cautious: bool,
+    verif_inner_hash: bool,
+) {
     // Launch sync-ts
-    BlockchainModule::sync_ts(conf, ts_profile, cautious, verif_inner_hash);
+    BlockchainModule::sync_ts(profile, conf, ts_profile, cautious, verif_inner_hash);
 }
 
 /// Launch databases explorer
-pub fn dbex(conf: &DuniterConf, query: &DBExQuery) {
+pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, query: &DBExQuery) {
     // Launch databases explorer
-    BlockchainModule::dbex(conf, query);
+    BlockchainModule::dbex(profile, conf, query);
 }
 
 /// Initialize logger

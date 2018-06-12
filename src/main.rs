@@ -21,12 +21,13 @@
     trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
     unused_qualifications
 )]
-
+extern crate duniter_conf;
 extern crate duniter_core;
 #[cfg(feature = "tui")]
 extern crate duniter_tui;
 extern crate duniter_ws2p;
 
+pub use duniter_conf::DuRsConf;
 pub use duniter_core::DuniterCore;
 #[cfg(feature = "tui")]
 pub use duniter_tui::TuiModule;
@@ -39,7 +40,7 @@ fn main() {
     let soft_version = env!("CARGO_PKG_VERSION");
 
     // Run duniter core
-    if let Some(mut duniter_core) = DuniterCore::new(soft_name, soft_version) {
+    if let Some(mut duniter_core) = DuniterCore::<DuRsConf>::new(soft_name, soft_version) {
         //duniter_core.plug::<DasaModule>();
         //duniter_core.plug::<GuiModule>();
         //duniter_core.plug::<GvaModule>();
@@ -53,8 +54,8 @@ fn main() {
 
 /// Plug TUI Module
 #[cfg(feature = "tui")]
-fn plug_tui_module(duniter_core: &mut DuniterCore) {
+fn plug_tui_module(duniter_core: &mut DuniterCore<DuRsConf>) {
     duniter_core.plug::<TuiModule>();
 }
 #[cfg(not(feature = "tui"))]
-fn plug_tui_module(_duniter_core: &mut DuniterCore) {}
+fn plug_tui_module(_duniter_core: &mut DuniterCore<DuRsConf>) {}

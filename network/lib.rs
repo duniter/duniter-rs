@@ -195,7 +195,7 @@ pub enum NetworkConsensusError {
     Fork(),
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 /// Type containing a request addressed to the network module
 pub enum NetworkRequest {
     /// Get a current block of a specific node
@@ -222,7 +222,7 @@ impl NetworkRequest {
             | NetworkRequest::GetRequirementsPending(ref req_id, _, _)
             | NetworkRequest::GetConsensus(ref req_id)
             | NetworkRequest::GetHeadsCache(ref req_id)
-            | NetworkRequest::GetEndpoints(ref req_id) => *req_id,
+            | NetworkRequest::GetEndpoints(ref req_id) => req_id.clone(),
         }
     }
     /// Get request identitifier
@@ -270,7 +270,7 @@ impl NetworkResponse {
             | NetworkResponse::Chunk(ref req_id, _, _)
             | NetworkResponse::PendingDocuments(ref req_id, _)
             | NetworkResponse::Consensus(ref req_id, _)
-            | NetworkResponse::HeadsCache(ref req_id, _) => *req_id,
+            | NetworkResponse::HeadsCache(ref req_id, _) => req_id.clone(),
         }
     }
     /// Get request identifier

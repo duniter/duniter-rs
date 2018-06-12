@@ -24,6 +24,8 @@
 )]
 
 #[macro_use]
+extern crate serde_derive;
+#[macro_use]
 extern crate serde_json;
 
 extern crate duniter_crypto;
@@ -31,7 +33,7 @@ extern crate duniter_module;
 extern crate rand;
 extern crate serde;
 use duniter_crypto::keys::*;
-use duniter_module::{Currency, DuniterConf, DuniterConfV1, RequiredKeys, RequiredKeysContent};
+use duniter_module::{Currency, DuniterConf, ModuleId, RequiredKeys, RequiredKeysContent};
 use rand::Rng;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use std::env;
@@ -44,6 +46,93 @@ static USER_DATAS_FOLDER: &'static str = "durs-dev";
 
 /// If no currency is specified by the user, is the currency will be chosen by default
 pub static DEFAULT_CURRRENCY: &'static str = "g1";
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
+/// Duniter configuration v1
+pub struct DuRsConfV1 {
+    /// Currency
+    pub currency: Currency,
+    /// Duniter node unique identifier
+    pub my_node_id: u32,
+    /// Configuration of modules in json format (obtained from the conf.json file)
+    pub modules: serde_json::Value,
+    /// Disabled modules
+    pub disabled: Vec<ModuleId>,
+    /// Enabled modules
+    pub enabled: Vec<ModuleId>,
+}
+
+impl Default for DuRsConfV1 {
+    fn default() -> Self {
+        DuRsConfV1 {
+            currency: Currency::Str(String::from("g1")),
+            my_node_id: generate_random_node_id(),
+            modules: serde_json::Value::Null,
+            disabled: Vec::with_capacity(0),
+            enabled: Vec::with_capacity(0),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+/// Duniter node configuration
+pub enum DuRsConf {
+    /// Duniter node configuration v1
+    V1(DuRsConfV1),
+    /// Duniter node configuration v2
+    V2(),
+}
+
+impl Default for DuRsConf {
+    fn default() -> Self {
+        DuRsConf::V1(DuRsConfV1::default())
+    }
+}
+
+impl DuniterConf for DuRsConf {
+    fn version(&self) -> usize {
+        match *self {
+            DuRsConf::V1(ref _conf_v1) => 1,
+            _ => panic!("Fail to load duniter conf : conf version not supported !"),
+        }
+    }
+    fn currency(&self) -> Currency {
+        match *self {
+            DuRsConf::V1(ref conf_v1) => conf_v1.currency.clone(),
+            _ => panic!("Fail to load duniter conf : conf version not supported !"),
+        }
+    }
+    fn set_currency(&mut self, new_currency: Currency) {
+        match *self {
+            DuRsConf::V1(ref mut conf_v1) => conf_v1.currency = new_currency,
+            _ => panic!("Fail to load duniter conf : conf version not supported !"),
+        }
+    }
+    fn my_node_id(&self) -> u32 {
+        match *self {
+            DuRsConf::V1(ref conf_v1) => conf_v1.my_node_id,
+            _ => panic!("Fail to load duniter conf : conf version not supported !"),
+        }
+    }
+    fn disabled_modules(&self) -> Vec<ModuleId> {
+        match *self {
+            DuRsConf::V1(ref conf_v1) => conf_v1.disabled.clone(),
+            _ => panic!("Fail to load duniter conf : conf version not supported !"),
+        }
+    }
+    fn enabled_modules(&self) -> Vec<ModuleId> {
+        match *self {
+            DuRsConf::V1(ref conf_v1) => conf_v1.enabled.clone(),
+            _ => panic!("Fail to load duniter conf : conf version not supported !"),
+        }
+    }
+    fn modules(&self) -> serde_json::Value {
+        match *self {
+            DuRsConf::V1(ref conf_v1) => conf_v1.modules.clone(),
+            _ => panic!("Fail to load duniter conf : conf version not supported !"),
+        }
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// Keypairs filled in by the user (via a file or by direct entry in the terminal).
@@ -173,7 +262,7 @@ pub fn get_profile_path(profile: &str) -> PathBuf {
 }
 
 /// Load configuration.
-pub fn load_conf(profile: &str) -> (DuniterConf, DuniterKeyPairs) {
+pub fn load_conf(profile: &str) -> (DuRsConf, DuniterKeyPairs) {
     let mut profile_path = get_profile_path(profile);
 
     // Load conf
@@ -190,15 +279,7 @@ pub fn load_conf(profile: &str) -> (DuniterConf, DuniterKeyPairs) {
 }
 
 /// Load configuration. at specified path
-pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuniterConf, DuniterKeyPairs) {
-    // Default conf
-    let mut conf = DuniterConfV1 {
-        profile: String::from(profile),
-        currency: Currency::Str(DEFAULT_CURRRENCY.to_string()),
-        my_node_id: generate_random_node_id(),
-        modules: serde_json::Value::Null,
-    };
-
+pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuRsConf, DuniterKeyPairs) {
     // Get KeyPairs
     let mut keypairs_path = profile_path.clone();
     keypairs_path.push("keypairs.json");
@@ -249,13 +330,15 @@ pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuniterConf,
     };
 
     // Open conf file
+    let mut conf = DuRsConf::default();
     let mut conf_path = profile_path.clone();
     conf_path.push("conf.json");
     if conf_path.as_path().exists() {
         if let Ok(mut f) = File::open(conf_path.as_path()) {
             let mut contents = String::new();
             if f.read_to_string(&mut contents).is_ok() {
-                let json_conf: serde_json::Value =
+                conf = serde_json::from_str(&contents).expect("Conf: Fail to parse conf file !");
+                /*let json_conf: serde_json::Value =
                     serde_json::from_str(&contents).expect("Conf: Fail to parse conf file !");
                 if let Some(currency) = json_conf.get("currency") {
                     conf.currency = Currency::Str(
@@ -276,19 +359,18 @@ pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuniterConf,
                 };
                 if let Some(modules_conf) = json_conf.get("modules") {
                     conf.modules = modules_conf.clone();
-                };
+                };*/
             }
         } else {
             panic!("Fail to open conf file !");
         }
     } else {
         // Create conf file with default conf
-        write_conf_file(&DuniterConf::V1(conf.clone()))
-            .expect("Fatal error : fail to write default conf file !");
+        write_conf_file(profile, &conf).expect("Fatal error : fail to write default conf file !");
     }
 
     // Return conf and keypairs
-    (DuniterConf::V1(conf), keypairs)
+    (conf, keypairs)
 }
 
 /// Save keypairs in profile folder
@@ -309,11 +391,18 @@ pub fn write_keypairs_file(
 }
 
 /// Save configuration in profile folder
-pub fn write_conf_file(conf: &DuniterConf) -> Result<(), std::io::Error> {
-    let mut conf_path = get_profile_path(&conf.profile());
+pub fn write_conf_file<DC: DuniterConf>(profile: &str, conf: &DC) -> Result<(), std::io::Error> {
+    let mut conf_path = get_profile_path(profile);
     conf_path.push("conf.json");
-    match *conf {
-        DuniterConf::V1(ref conf_v1) => {
+    let mut f = try!(File::create(conf_path.as_path()));
+    f.write_all(
+        serde_json::to_string_pretty(conf)
+            .expect("Fatal error : fail to write default conf file !")
+            .as_bytes(),
+    )?;
+    f.sync_all()?;
+    /*match *conf {
+        DuRsConf::V1(ref conf_v1) => {
             let mut f = try!(File::create(conf_path.as_path()));
             try!(
                 f.write_all(
@@ -327,7 +416,7 @@ pub fn write_conf_file(conf: &DuniterConf) -> Result<(), std::io::Error> {
         _ => {
             panic!("Fatal error : Conf version is not supported !");
         }
-    }
+    }*/
     Ok(())
 }
 

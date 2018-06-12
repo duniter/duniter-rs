@@ -51,16 +51,16 @@ pub enum DBExQuery {
     TxQuery(DBExTxQuery),
 }
 
-pub fn dbex(conf: &DuniterConf, query: &DBExQuery) {
+pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, query: &DBExQuery) {
     match *query {
-        DBExQuery::WotQuery(ref wot_query) => dbex_wot(conf, wot_query),
-        DBExQuery::TxQuery(ref tx_query) => dbex_tx(conf, tx_query),
+        DBExQuery::WotQuery(ref wot_query) => dbex_wot(profile, conf, wot_query),
+        DBExQuery::TxQuery(ref tx_query) => dbex_tx(profile, conf, tx_query),
     }
 }
 
-pub fn dbex_tx(conf: &DuniterConf, query: &DBExTxQuery) {
+pub fn dbex_tx<DC: DuniterConf>(profile: &str, conf: &DC, query: &DBExTxQuery) {
     // Get db path
-    let db_path = duniter_conf::get_blockchain_db_path(conf.profile().as_str(), &conf.currency());
+    let db_path = duniter_conf::get_blockchain_db_path(profile, &conf.currency());
 
     // Open databases
     let load_dbs_begin = SystemTime::now();
@@ -114,9 +114,9 @@ pub fn dbex_tx(conf: &DuniterConf, query: &DBExTxQuery) {
     );
 }
 
-pub fn dbex_wot(conf: &DuniterConf, query: &DBExWotQuery) {
+pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, query: &DBExWotQuery) {
     // Get db path
-    let db_path = duniter_conf::get_blockchain_db_path(conf.profile().as_str(), &conf.currency());
+    let db_path = duniter_conf::get_blockchain_db_path(profile, &conf.currency());
 
     // Open databases
     let load_dbs_begin = SystemTime::now();

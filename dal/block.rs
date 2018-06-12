@@ -1,6 +1,5 @@
 extern crate rustbreak;
 extern crate serde;
-extern crate serde_json;
 
 use super::constants::MAX_FORKS;
 use duniter_crypto::keys::*;

@@ -59,6 +59,7 @@ use ack_message::WS2PAckMessageV1;
 use connect_message::WS2PConnectMessageV1;
 use constants::*;
 use datas::*;
+use duniter_conf::DuRsConf;
 use duniter_crypto::keys::*;
 use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALReqBlockchain, DALRequest, DALResBlockchain, DALResponse};
@@ -146,9 +147,9 @@ impl Default for WS2PModule {
     }
 }
 
-impl DuniterModule<DuniterMessage> for WS2PModule {
+impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
     fn id() -> ModuleId {
-        ModuleId::Str("ws2p")
+        ModuleId(String::from("ws2p"))
     }
     fn priority() -> ModulePriority {
         ModulePriority::Essential()
@@ -170,8 +171,9 @@ impl DuniterModule<DuniterMessage> for WS2PModule {
     fn start(
         soft_name: &str,
         soft_version: &str,
+        profile: &str,
         keys: RequiredKeysContent,
-        duniter_conf: &DuniterConf,
+        duniter_conf: &DuRsConf,
         module_conf: &serde_json::Value,
         rooter_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
         load_conf_only: bool,
@@ -246,8 +248,7 @@ impl DuniterModule<DuniterMessage> for WS2PModule {
         });
 
         // open ws2p bdd
-        let mut db_path =
-            duniter_conf::datas_path(duniter_conf.profile().as_str(), &duniter_conf.currency());
+        let mut db_path = duniter_conf::datas_path(profile, &duniter_conf.currency());
         db_path.push("ws2p.db");
         let db = WS2PModuleDatas::open_db(&db_path).expect("Fatal error : fail to open WS2P DB !");
 
@@ -367,7 +368,10 @@ impl DuniterModule<DuniterMessage> for WS2PModule {
                                                 .send_request_to_specific_node(
                                                     &real_receiver,
                                                     &NetworkRequest::GetBlocks(
-                                                        *req_id, *receiver, *count, *from,
+                                                        req_id.clone(),
+                                                        *receiver,
+                                                        *count,
+                                                        *from,
                                                     ),
                                                 );
                                         }
@@ -376,7 +380,10 @@ impl DuniterModule<DuniterMessage> for WS2PModule {
                                             .send_request_to_specific_node(
                                                 &receiver,
                                                 &NetworkRequest::GetBlocks(
-                                                    *req_id, *receiver, *count, *from,
+                                                    req_id.clone(),
+                                                    *receiver,
+                                                    *count,
+                                                    *from,
                                                 ),
                                             );
                                     }

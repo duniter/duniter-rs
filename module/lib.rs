@@ -23,16 +23,20 @@
     unused_qualifications
 )]
 
+#[macro_use]
+extern crate serde_derive;
+
 extern crate duniter_crypto;
 extern crate serde;
 extern crate serde_json;
 
 use duniter_crypto::keys::{KeyPair, KeyPairEnum};
-use serde::ser::{Serialize, SerializeStruct, Serializer};
+use serde::de::DeserializeOwned;
+use serde::ser::{Serialize, Serializer};
 use std::fmt::Debug;
 use std::sync::mpsc;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq, Hash, Serialize)]
 /// Store Currency
 pub enum Currency {
     /// Currency in string format
@@ -50,25 +54,17 @@ impl ToString for Currency {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Deserialize, Debug, PartialEq, Eq, Hash, Serialize)]
 /// Store module identifier
-pub enum ModuleId {
-    /// Module in static str format because module name must be know at compile time
-    Str(&'static str),
-    /// Module in binary format
-    Bin([u8; 2]),
-}
+pub struct ModuleId(pub String);
 
 impl ToString for ModuleId {
     fn to_string(&self) -> String {
-        match *self {
-            ModuleId::Str(module_id_str) => String::from(module_id_str),
-            ModuleId::Bin(_) => panic!("ModuleId binary format is not implemented !"),
-        }
+        self.0.clone()
     }
 }
 
-impl Serialize for ModuleId {
+/*impl Serialize for ModuleId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -79,7 +75,7 @@ impl Serialize for ModuleId {
         };
         serializer.serialize_str(module_id_string.as_str())
     }
-}
+}*/
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// Identifier of an inter-module request
@@ -94,7 +90,7 @@ impl Serialize for ModuleReqId {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// Several modules can simultaneously send requests with the same identifier.
 /// To identify each request in a unique way, we must therefore also take into account the identifier of the module performing the request.
 pub struct ModuleReqFullId(pub ModuleId, pub ModuleReqId);
@@ -114,90 +110,27 @@ impl ToString for ModuleReqFullId {
     }
 }*/
 
-#[derive(Debug, Clone, PartialEq)]
-/// Duniter configuration v1
-pub struct DuniterConfV1 {
-    /// Name of datas folder in ~/.config/durs/
-    pub profile: String,
-    /// Currency
-    pub currency: Currency,
-    /// Duniter node unique identifier
-    pub my_node_id: u32,
-    /// Configuration of modules in json format (obtained from the conf.json file)
-    pub modules: serde_json::Value,
-}
-
-impl Serialize for DuniterConfV1 {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("DuniterConfV1", 3)?;
-
-        // Currency
-        state.serialize_field("currency", self.currency.to_string().as_str())?;
-
-        // Node id
-        state.serialize_field("node_id", &format!("{:x}", self.my_node_id))?;
-
-        // Modules
-        state.serialize_field("modules", &self.modules)?;
-
-        // End
-        state.end()
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-/// Duniter node configuration
-pub enum DuniterConf {
-    /// Duniter node configuration v1
-    V1(DuniterConfV1),
-    /// Duniter node configuration v2
-    V2(),
-}
-
-impl DuniterConf {
-    /// Get profile
-    pub fn profile(&self) -> String {
-        match *self {
-            DuniterConf::V1(ref conf_v1) => conf_v1.profile.clone(),
-            _ => panic!("Fail to load duniter conf : conf version not supported !"),
-        }
-    }
+/// Duniter configuration
+pub trait DuniterConf: Clone + Debug + Default + PartialEq + Serialize + DeserializeOwned {
+    /// Get conf version profile
+    fn version(&self) -> usize;
     /// Get currency
-    pub fn currency(&self) -> Currency {
-        match *self {
-            DuniterConf::V1(ref conf_v1) => conf_v1.currency.clone(),
-            _ => panic!("Fail to load duniter conf : conf version not supported !"),
-        }
-    }
+    fn currency(&self) -> Currency;
     /// Set currency
-    pub fn set_currency(&mut self, new_currency: Currency) {
-        match *self {
-            DuniterConf::V1(ref mut conf_v1) => conf_v1.currency = new_currency,
-            _ => panic!("Fail to load duniter conf : conf version not supported !"),
-        }
-    }
+    fn set_currency(&mut self, new_currency: Currency);
     /// Get node id
-    pub fn my_node_id(&self) -> u32 {
-        match *self {
-            DuniterConf::V1(ref conf_v1) => conf_v1.my_node_id,
-            _ => panic!("Fail to load duniter conf : conf version not supported !"),
-        }
-    }
+    fn my_node_id(&self) -> u32;
+    /// Get disabled modules
+    fn disabled_modules(&self) -> Vec<ModuleId>;
+    /// Get enabled modules
+    fn enabled_modules(&self) -> Vec<ModuleId>;
     /// Get modules conf
-    pub fn modules(&self) -> serde_json::Value {
-        match *self {
-            DuniterConf::V1(ref conf_v1) => conf_v1.modules.clone(),
-            _ => panic!("Fail to load duniter conf : conf version not supported !"),
-        }
-    }
+    fn modules(&self) -> serde_json::Value;
 }
 
 /// The different modules of Duniter-rs can exchange messages with the type of their choice,
 /// provided that this type implements the ModuleMessage trait.
-pub trait ModuleMessage: Debug + Clone {}
+pub trait ModuleMessage: Clone + Debug {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// Type returned by module initialization function
@@ -259,7 +192,7 @@ pub enum ModulePriority {
 }
 
 /// All Duniter-rs modules must implement this trait.
-pub trait DuniterModule<M: ModuleMessage> {
+pub trait DuniterModule<DC: DuniterConf, M: ModuleMessage> {
     /// Returns the module identifier
     fn id() -> ModuleId;
     /// Returns the module priority
@@ -272,8 +205,9 @@ pub trait DuniterModule<M: ModuleMessage> {
     fn start(
         soft_name: &str,
         soft_version: &str,
+        profile: &str,
         keys: RequiredKeysContent,
-        conf: &DuniterConf,
+        conf: &DC,
         module_conf: &serde_json::Value,
         main_sender: mpsc::Sender<RooterThreadMessage<M>>,
         load_conf_only: bool,

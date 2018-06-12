@@ -193,7 +193,8 @@ impl CurrencyV10DBs<FileBackend> {
     pub fn open(db_path: &PathBuf) -> CurrencyV10DBs<FileBackend> {
         CurrencyV10DBs {
             du_db: open_db::<DUsV10Datas>(&db_path, "du.db").expect("Fail to open DUsV10DB"),
-            tx_db: open_db::<TxV10Datas>(&db_path, "tx.db").expect("Fail to open TxV10DB"),
+            tx_db: open_db::<TxV10Datas>(&db_path, "tx.db")
+                .expect(&format!("Fail to open TxV10DB : {:?} ", db_path.as_path())),
             utxos_db: open_db::<UTXOsV10Datas>(&db_path, "sources.db")
                 .expect("Fail to open UTXOsV10DB"),
             balances_db: open_db::<BalancesV10Datas>(&db_path, "balances.db")

@@ -29,7 +29,6 @@ extern crate duniter_documents;
 extern crate duniter_module;
 extern crate duniter_network;
 extern crate serde;
-extern crate serde_json;
 
 use std::sync::mpsc;
 
@@ -46,8 +45,6 @@ use duniter_network::{NetworkEvent, NetworkRequest};
 pub enum DuniterMessage {
     /// Brut text message
     Text(String),
-    /// Brut json message
-    Json(serde_json::Value),
     /// Brut binary message
     Binary(Vec<u8>),
     /// Subscriptions to the module feed

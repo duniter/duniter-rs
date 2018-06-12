@@ -16,7 +16,6 @@ duniter-module = { path = "../module" }
 duniter-network = { path = "../network" }
 serde = "1.0.57"
 serde_derive = "1.0.57"
-serde_json = "1.0.17"
 
 [features]
 # Treat warnings as a build error.

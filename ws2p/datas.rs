@@ -57,7 +57,7 @@ impl WS2PModuleDatas {
         Ok(conn)
     }
     pub fn parse_ws2p_conf(
-        duniter_conf: &DuniterConf,
+        duniter_conf: &DuRsConf,
         ws2p_json_conf: &serde_json::Value,
     ) -> WS2PConf {
         let mut sync_endpoints = Vec::new();
@@ -396,7 +396,7 @@ impl WS2PModuleDatas {
                     {
                         return WS2PSignal::ReqResponse(
                             req_id,
-                            *ws2p_request,
+                            ws2p_request.clone(),
                             *recipient_fulld_id,
                             response,
                         );
@@ -549,7 +549,11 @@ impl WS2PModuleDatas {
             ))?;
         self.requests_awaiting_response.insert(
             ws2p_request.get_req_id(),
-            (*ws2p_request, *receiver_ws2p_full_id, SystemTime::now()),
+            (
+                ws2p_request.clone(),
+                *receiver_ws2p_full_id,
+                SystemTime::now(),
+            ),
         );
         debug!(
             "send request {} to {}",

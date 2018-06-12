@@ -20,7 +20,6 @@ extern crate duniter_crypto;
 extern crate duniter_documents;
 extern crate duniter_module;
 extern crate serde;
-extern crate serde_json;
 
 use super::network_endpoint::NetworkEndpoint;
 use duniter_crypto::keys::*;

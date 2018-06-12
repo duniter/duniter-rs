@@ -22,7 +22,7 @@ rust-crypto = "0.2.36"
 regex = "1.0.0"
 serde = "1.0.57"
 serde_derive = "1.0.57"
-serde_json = "1.0.17"
+serde_json = "1.0.20"
 
 [features]
 exp = []

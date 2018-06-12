@@ -21,7 +21,6 @@ extern crate duniter_documents;
 extern crate duniter_module;
 extern crate regex;
 extern crate serde;
-extern crate serde_json;
 
 use self::regex::Regex;
 use super::{NodeFullId, NodeUUID};

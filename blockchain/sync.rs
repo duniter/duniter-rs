@@ -67,7 +67,13 @@ enum SyncJobsMess {
 }
 
 /// Sync from a duniter-ts database
-pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool, verif_inner_hash: bool) {
+pub fn sync_ts<DC: DuniterConf>(
+    profile: &str,
+    conf: &DC,
+    db_ts_path: PathBuf,
+    cautious: bool,
+    verif_inner_hash: bool,
+) {
     // Get verification level
     let _verif_level = if cautious {
         println!("Start cautious sync...");
@@ -92,12 +98,11 @@ pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool, verif_in
     let pool = ThreadPool::new(nb_workers);
 
     // Determine db_ts_copy_path
-    let mut db_ts_copy_path =
-        duniter_conf::datas_path(&conf.profile().clone(), &conf.currency().clone());
+    let mut db_ts_copy_path = duniter_conf::datas_path(profile, &conf.currency().clone());
     db_ts_copy_path.push("tmp_db_ts_copy.db");
 
     // Lauch ts thread
-    let profile_copy = conf.profile().clone();
+    let profile_copy = String::from(profile);
     let sender_sync_thread_clone = sender_sync_thread.clone();
     pool.execute(move || {
         let ts_job_begin = SystemTime::now();
@@ -247,10 +252,10 @@ pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool, verif_in
     conf.set_currency(currency.clone());
 
     // Get databases path
-    let db_path = duniter_conf::get_blockchain_db_path(&conf.profile(), &currency);
+    let db_path = duniter_conf::get_blockchain_db_path(profile, &currency);
 
     // Write nex conf
-    duniter_conf::write_conf_file(&conf).expect("Fail to write new conf !");
+    duniter_conf::write_conf_file(profile, &conf).expect("Fail to write new conf !");
 
     // Open wot db
     let wot_db = open_wot_db::<RustyWebOfTrust>(&db_path).expect("Fail to open WotDB !");
@@ -267,7 +272,7 @@ pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool, verif_in
 
     // Instanciate blockchain module
     let blockchain_module =
-        BlockchainModule::load_blockchain_conf(&conf, RequiredKeysContent::None());
+        BlockchainModule::load_blockchain_conf(profile, &conf, RequiredKeysContent::None());
 
     // Node is already synchronized ?
     if target_blockstamp.id.0 < current_blockstamp.id.0 {
@@ -388,7 +393,7 @@ pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool, verif_in
     });
 
     // / Launch wot_worker thread
-    let profile_copy2 = conf.profile().clone();
+    let profile_copy2 = String::from(profile);
     let currency_copy2 = currency.clone();
     let sender_sync_thread_clone2 = sender_sync_thread.clone();
 
@@ -430,7 +435,7 @@ pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool, verif_in
     });
 
     // Launch tx_worker thread
-    let profile_copy = conf.profile().clone();
+    let profile_copy = String::from(profile);
     let currency_copy = conf.currency().clone();
     let sender_sync_thread_clone = sender_sync_thread.clone();
     pool.execute(move || {
@@ -468,7 +473,7 @@ pub fn sync_ts(conf: &DuniterConf, db_ts_path: PathBuf, cautious: bool, verif_in
     let main_job_begin = SystemTime::now();
 
     // Open currency_params_db
-    let dbs_path = duniter_conf::get_blockchain_db_path(&conf.profile(), &conf.currency());
+    let dbs_path = duniter_conf::get_blockchain_db_path(profile, &conf.currency());
     let currency_params_db =
         open_db::<CurrencyParamsV10Datas>(&dbs_path, "params.db").expect("Fail to open params db");
 

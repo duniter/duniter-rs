@@ -36,6 +36,7 @@ extern crate duniter_network;
 extern crate serde_json;
 extern crate termion;
 
+use duniter_conf::DuRsConf;
 use duniter_dal::dal_event::DALEvent;
 use duniter_message::DuniterMessage;
 use duniter_module::*;
@@ -347,9 +348,9 @@ impl Default for TuiModule {
     }
 }
 
-impl DuniterModule<DuniterMessage> for TuiModule {
+impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
     fn id() -> ModuleId {
-        ModuleId::Str("tui")
+        ModuleId(String::from("tui"))
     }
     fn priority() -> ModulePriority {
         ModulePriority::Recommended()
@@ -363,8 +364,9 @@ impl DuniterModule<DuniterMessage> for TuiModule {
     fn start(
         _soft_name: &str,
         _soft_version: &str,
+        _profile: &str,
         _keys: RequiredKeysContent,
-        _conf: &DuniterConf,
+        _conf: &DuRsConf,
         module_conf: &serde_json::Value,
         main_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
         load_conf_only: bool,

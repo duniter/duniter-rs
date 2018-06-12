@@ -9,7 +9,7 @@ use duniter_documents::blockchain::v10::documents::{
 use duniter_documents::{Blockstamp, Hash};
 use std::collections::HashMap;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum DALReqPendings {
     AllPendingIdentyties(ModuleReqFullId, usize),
     AllPendingIdentytiesWithoutCerts(ModuleReqFullId, usize),

@@ -94,7 +94,7 @@ pub struct BlockchainModule {
     /// Subscribers
     pub followers: Vec<mpsc::Sender<DuniterMessage>>,
     /// Name of the user datas profile
-    pub conf_profile: String,
+    pub profile: String,
     /// Currency
     pub currency: Currency,
     // Currency parameters
@@ -144,16 +144,16 @@ pub enum CompletedBlockError {
 impl BlockchainModule {
     /// Return module identifier
     pub fn id() -> ModuleId {
-        ModuleId::Str("blockchain")
+        ModuleId(String::from("blockchain"))
     }
     /// Loading blockchain configuration
-    pub fn load_blockchain_conf(
-        conf: &DuniterConf,
+    pub fn load_blockchain_conf<DC: DuniterConf>(
+        profile: &str,
+        conf: &DC,
         _keys: RequiredKeysContent,
     ) -> BlockchainModule {
         // Get db path
-        let db_path =
-            duniter_conf::get_blockchain_db_path(conf.profile().as_str(), &conf.currency());
+        let db_path = duniter_conf::get_blockchain_db_path(profile, &conf.currency());
 
         // Open databases
         let blocks_databases = BlocksV10DBs::open(&db_path, false);
@@ -181,7 +181,7 @@ impl BlockchainModule {
         // Instanciate BlockchainModule
         BlockchainModule {
             followers: Vec::new(),
-            conf_profile: conf.profile(),
+            profile: profile.to_string(),
             currency: conf.currency(),
             currency_params,
             blocks_databases,
@@ -192,11 +192,17 @@ impl BlockchainModule {
         }
     }
     /// Databases explorer
-    pub fn dbex(conf: &DuniterConf, req: &DBExQuery) {
-        dbex::dbex(conf, req);
+    pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, req: &DBExQuery) {
+        dbex::dbex(profile, conf, req);
     }
     /// Synchronize blockchain from a duniter-ts database
-    pub fn sync_ts(conf: &DuniterConf, ts_profile: &str, cautious: bool, verif_inner_hash: bool) {
+    pub fn sync_ts<DC: DuniterConf>(
+        profile: &str,
+        conf: &DC,
+        ts_profile: &str,
+        cautious: bool,
+        verif_inner_hash: bool,
+    ) {
         // get db_ts_path
         let mut db_ts_path = match env::home_dir() {
             Some(path) => path,
@@ -208,7 +214,7 @@ impl BlockchainModule {
         if !db_ts_path.as_path().exists() {
             panic!("Fatal error : duniter-ts database don't exist !");
         }
-        sync::sync_ts(conf, db_ts_path, cautious, verif_inner_hash);
+        sync::sync_ts(profile, conf, db_ts_path, cautious, verif_inner_hash);
     }
     /// Request chunk from network (chunk = group of blocks)
     fn request_chunk(&self, req_id: &ModuleReqId, from: u32) -> (ModuleReqId, NetworkRequest) {
@@ -218,7 +224,7 @@ impl BlockchainModule {
             *CHUNK_SIZE,
             from,
         );
-        (self.request_network(req), req)
+        (self.request_network(&req), req)
     }
     /// Requests blocks from current to `to`
     fn request_blocks_to(
@@ -259,10 +265,10 @@ impl BlockchainModule {
         requests_ids
     }
     /// Send network request
-    fn request_network(&self, request: NetworkRequest) -> ModuleReqId {
+    fn request_network(&self, request: &NetworkRequest) -> ModuleReqId {
         for follower in &self.followers {
             if follower
-                .send(DuniterMessage::NetworkRequest(request))
+                .send(DuniterMessage::NetworkRequest(request.clone()))
                 .is_err()
             {
                 debug!("BlockchainModule : one follower is unreachable !");
@@ -505,8 +511,7 @@ impl BlockchainModule {
         info!("BlockchainModule::start_blockchain()");
 
         // Get dbs path
-        let dbs_path =
-            duniter_conf::get_blockchain_db_path(self.conf_profile.as_str(), &self.currency);
+        let dbs_path = duniter_conf::get_blockchain_db_path(self.profile.as_str(), &self.currency);
 
         // Get wotb index
         let mut wotb_index: HashMap<PubKey, NodeId> =
@@ -534,7 +539,7 @@ impl BlockchainModule {
                 BlockchainModule::id(),
                 ModuleReqId(pending_network_requests.len() as u32),
             ));
-            let req_id = self.request_network(req);
+            let req_id = self.request_network(&req);
             pending_network_requests.insert(req_id, req);
             // Request Blocks
             let now = SystemTime::now();
@@ -592,7 +597,7 @@ impl BlockchainModule {
                                         debug!("BlockchainModule : send_req_response(CurrentBlock({}))", current_blockstamp);
                                         self.send_req_response(&DALResponse::Blockchain(Box::new(
                                             DALResBlockchain::CurrentBlock(
-                                                *requester_full_id,
+                                                requester_full_id.clone(),
                                                 Box::new(current_block.block),
                                                 current_blockstamp,
                                             ),
