@@ -6,8 +6,29 @@ stages:
     
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
+
+.rust_stable_env: &rust_stable_env
+  tags:
+    - redshift-rs-stable
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+
+.rust_beta_env: &rust_beta_env
+  tags:
+    - redshift-rs-beta
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustup update
+
+.rust_nightly_env: &rust_nightly_env
+  image: rustlang/rust:nightly
+  tags:
+    - redshift-rs-nightly
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
     
 build_and_tests:stable:
+  <<: *rust_stable_env
   stage: build_and_tests
   tags:
     - redshift-rs-stable
@@ -16,21 +37,17 @@ build_and_tests:stable:
     - cargo test --all
     
 build_and_tests:beta:
+  <<: *rust_beta_env
   stage: build_and_tests
-  tags:
-    - redshift-rs-beta
   script:
-    - rustup update
     - cargo build --features strict
     - cargo test --all
   when: manual
   allow_failure: true
     
 build_and_tests:nightly:
+  <<: *rust_nightly_env
   stage: build_and_tests
-  image: rustlang/rust:nightly
-  tags:
-    - redshift-rs-nightly
   script:
     - cargo build --features strict
     - cargo test --all
@@ -38,33 +55,26 @@ build_and_tests:nightly:
   allow_failure: true
   
 fmt:
+  <<: *rust_nightly_env
   stage: fmt
-  image: rustlang/rust:nightly
-  tags:
-    - redshift-rs-nightly
   before_script:
-    - export PATH="$HOME/.cargo/bin:$PATH"
     - cargo install --force rustfmt-nightly
   script:
     - cargo fmt -- --check
   allow_failure: true
 
 clippy:
+  <<: *rust_nightly_env
   stage: clippy
-  image: rustlang/rust:nightly
-  tags:
-    - redshift-rs-nightly
   before_script:
-    - export PATH="$HOME/.cargo/bin:$PATH"
     - cargo install --force clippy --verbose
   script:
     - cargo clippy --all -- -D warnings --verbose
   allow_failure: true  
 
 publish:crate:
+  <<: *rust_stable_env
   stage: publish
-  tags:
-    - redshift-rs-stable
   script:
     - IFS='/' read -r first a <<< "$CI_COMMIT_TAG"
     - cd $first
@@ -76,11 +86,8 @@ publish:crate:
   when: manual
 
 release:
+  <<: *rust_stable_env
   stage: publish
-  tags:
-    - redshift-rs-stable
-  before_script:
-    - export PATH="$HOME/.cargo/bin:$PATH"
   script:
     - cargo build --release
   cache:
@@ -92,11 +99,8 @@ release:
   when: manual
 
 pages:
+  <<: *rust_stable_env
   stage: publish
-  tags:
-    - redshift-rs-stable
-  before_script:
-    - export PATH="$HOME/.cargo/bin:$PATH"
   script:
     - cargo doc
     - mv target/doc public
