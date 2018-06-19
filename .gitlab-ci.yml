@@ -1,8 +1,8 @@
 stages:
     - build_and_tests
+    - publish
     - fmt
     - clippy
-    - publish
     
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
