@@ -75,6 +75,22 @@ publish:crate:
   allow_failure: false
   when: manual
 
+release:
+  stage: publish
+  tags:
+    - redshift-rs-stable
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+  script:
+    - cargo build --release
+  cache:
+    paths:
+      - target/
+  artifacts:
+    paths:
+      - target/release/durs
+  when: manual
+
 pages:
   stage: publish
   tags:
