@@ -7,11 +7,16 @@ stages:
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
 
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/cargo
+
+
 .rust_stable_env: &rust_stable_env
   tags:
     - redshift-rs-stable
   before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustc --version && cargo --version
 
 .rust_beta_env: &rust_beta_env
   tags:
@@ -19,6 +24,7 @@ before_script:
   before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
     - rustup update
+    - rustc --version && cargo --version
 
 .rust_nightly_env: &rust_nightly_env
   image: rustlang/rust:nightly
@@ -26,6 +32,7 @@ before_script:
     - redshift-rs-nightly
   before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustc --version && cargo --version
     
 build_and_tests:stable:
   <<: *rust_stable_env
@@ -35,6 +42,10 @@ build_and_tests:stable:
   script: 
     - cargo build --features strict
     - cargo test --all
+  cache:
+    paths:
+      - target/
+      - cargo/
     
 build_and_tests:beta:
   <<: *rust_beta_env
@@ -61,6 +72,9 @@ fmt:
     - cargo install --force rustfmt-nightly
   script:
     - cargo fmt -- --check
+  cache:
+    paths:
+      - cargo/
   allow_failure: true
 
 clippy:
@@ -70,6 +84,9 @@ clippy:
     - cargo install --force clippy --verbose
   script:
     - cargo clippy --all -- -D warnings --verbose
+  cache:
+    paths:
+      - cargo/
   allow_failure: true  
 
 publish:crate:
@@ -85,7 +102,7 @@ publish:crate:
   allow_failure: false
   when: manual
 
-release:
+releases:test:
   <<: *rust_stable_env
   stage: publish
   script:
@@ -96,7 +113,26 @@ release:
   artifacts:
     paths:
       - target/release/durs
+    expire_in: 1 weeks
+  except:
+      - tags
   when: manual
+
+releases:prod:
+  <<: *rust_stable_env
+  stage: publish
+  script:
+    - cargo build --release
+  cache:
+    paths:
+      - target/
+  artifacts:
+    paths:
+      - target/release/durs
+    expire_in: 2 weeks
+  only:
+      - tags
+      - master
 
 pages:
   <<: *rust_stable_env
