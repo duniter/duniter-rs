@@ -147,6 +147,20 @@ impl Default for WS2PModule {
     }
 }
 
+impl NetworkModule<DuRsConf, DuniterMessage> for WS2PModule {
+    fn sync(
+        _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
+        _keys: RequiredKeysContent,
+        _module_conf: &serde_json::Value,
+        _main_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
+        _sync_endpoint: SyncEndpoint,
+    ) -> Result<(), ModuleInitError> {
+        println!("Downlaod blockchain from network...");
+        println!("Error : not yet implemented !");
+        Ok(())
+    }
+}
+
 impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
     fn id() -> ModuleId {
         ModuleId(String::from("ws2p"))
@@ -169,11 +183,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
         })
     }
     fn start(
-        soft_name: &str,
-        soft_version: &str,
-        profile: &str,
+        soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         keys: RequiredKeysContent,
-        duniter_conf: &DuRsConf,
         module_conf: &serde_json::Value,
         rooter_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
         load_conf_only: bool,
@@ -198,7 +209,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
             RequiredKeysContent::NetworkKeyPair(key_pair) => key_pair,
             _ => panic!("WS2PModule fatal error at load_conf() : keys != NetworkKeyPair"),
         };
-        let conf = WS2PModuleDatas::parse_ws2p_conf(duniter_conf, module_conf);
+        let conf = WS2PModuleDatas::parse_ws2p_conf(&soft_meta_datas.conf, module_conf);
         let mut ws2p_endpoints = HashMap::new();
         for ep in conf.sync_endpoints.clone() {
             ws2p_endpoints.insert(
@@ -209,7 +220,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
             info!("Load sync endpoint {}", ep.raw());
         }
         ws2p_module.key_pair = Some(key_pair);
-        ws2p_module.currency = Some(duniter_conf.currency().to_string());
+        ws2p_module.currency = Some(soft_meta_datas.conf.currency().to_string());
         ws2p_module.conf = Some(conf.clone());
         ws2p_module.ws2p_endpoints = ws2p_endpoints;
 
@@ -248,7 +259,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
         });
 
         // open ws2p bdd
-        let mut db_path = duniter_conf::datas_path(profile, &duniter_conf.currency());
+        let mut db_path =
+            duniter_conf::datas_path(&soft_meta_datas.profile, &soft_meta_datas.conf.currency());
         db_path.push("ws2p.db");
         let db = WS2PModuleDatas::open_db(&db_path).expect("Fatal error : fail to open WS2P DB !");
 
@@ -315,8 +327,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                             ws2p_module.my_head = Some(heads::generate_my_head(
                                                 &key_pair,
                                                 &conf.clone(),
-                                                soft_name,
-                                                soft_version,
+                                                soft_meta_datas.soft_name,
+                                                soft_meta_datas.soft_version,
                                                 &current_blockstamp,
                                                 None,
                                             ));
@@ -401,8 +413,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                     ws2p_module.my_head = Some(heads::generate_my_head(
                                         &key_pair,
                                         &conf.clone(),
-                                        soft_name,
-                                        soft_version,
+                                        soft_meta_datas.soft_name,
+                                        soft_meta_datas.soft_version,
                                         &current_blockstamp,
                                         None,
                                     ));
@@ -454,8 +466,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                                     Some(heads::generate_my_head(
                                                         &key_pair,
                                                         &conf.clone(),
-                                                        soft_name,
-                                                        soft_version,
+                                                        soft_meta_datas.soft_name,
+                                                        soft_meta_datas.soft_version,
                                                         &current_blockstamp,
                                                         None,
                                                     ));
@@ -630,7 +642,10 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                         WS2PSignal::ReqResponse(req_id, req, recipient_full_id, response) => {
                             match req {
                                 NetworkRequest::GetCurrent(ref _req_id, _receiver) => {
-                                    info!("WS2PSignal::ReceiveCurrent({}, {:?})", req_id.0, req);
+                                    info!(
+                                        "WS2PSignal::ReceiveCurrent({}, {:?}, {:#?})",
+                                        req_id.0, req, response
+                                    );
                                     if let Some(block) = parse_json_block(&response) {
                                         ws2p_module.send_network_event(&NetworkEvent::ReqResponse(
                                             Box::new(NetworkResponse::CurrentBlock(

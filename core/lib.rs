@@ -33,15 +33,18 @@ extern crate duniter_conf;
 extern crate duniter_crypto;
 extern crate duniter_message;
 extern crate duniter_module;
+extern crate duniter_network;
+extern crate serde_json;
 extern crate simplelog;
 extern crate sqlite;
 extern crate threadpool;
 
 use clap::{App, ArgMatches};
 use duniter_blockchain::{BlockchainModule, DBExQuery, DBExTxQuery, DBExWotQuery};
-use duniter_conf::{DuRsConf, DuniterKeyPairs};
+pub use duniter_conf::{DuRsConf, DuniterKeyPairs};
 use duniter_message::DuniterMessage;
 use duniter_module::*;
+use duniter_network::{NetworkModule, SyncEndpoint};
 use log::Level;
 use simplelog::*;
 use std::env;
@@ -52,27 +55,34 @@ use std::thread;
 use std::time::Duration;
 use threadpool::ThreadPool;
 
+#[derive(Debug, Clone)]
+/// User command
+pub enum UserCommand {
+    /// Start
+    Start(),
+    /// Sync (SyncEndpoint)
+    Sync(SyncEndpoint),
+    /// Other command
+    Other(),
+}
+
 #[derive(Debug)]
 /// Duniter Core Datas
 pub struct DuniterCore<DC: DuniterConf> {
     /// Does the entered command require to launch server ?
-    pub start: bool,
-    /// Software name
-    pub soft_name: &'static str,
-    /// Soft version
-    pub soft_version: &'static str,
-    /// User profile
-    pub profile: String,
+    pub user_command: UserCommand,
+    /// Software meta datas
+    pub soft_meta_datas: SoftwareMetaDatas<DC>,
     /// Keypairs
     pub keypairs: DuniterKeyPairs,
-    /// Duniter configuration
-    pub conf: DC,
     /// Run duration. Zero = infinite duration.
     pub run_duration_in_secs: u64,
     /// Sender channel of rooter thread
     pub rooter_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
     ///  Count the number of plugged modules
     pub modules_count: usize,
+    ///  Count the number of plugged network modules
+    pub network_modules_count: usize,
     /// ThreadPool that execute plugged modules
     pub thread_pool: ThreadPool,
 }
@@ -115,15 +125,48 @@ impl DuniterCore<DuRsConf> {
         let (conf, keypairs) = duniter_conf::load_conf(profile.as_str());
         info!("Success to load global conf.");
 
+        // Define SoftwareMetaDatas
+        let soft_meta_datas = SoftwareMetaDatas {
+            soft_name,
+            soft_version,
+            profile: profile.clone(),
+            conf: conf.clone(),
+        };
+
         if let Some(_matches) = cli_args.subcommand_matches("start") {
             Some(start(
-                soft_name,
-                soft_version,
-                &profile,
+                soft_meta_datas,
                 keypairs,
-                conf,
                 run_duration_in_secs,
                 external_followers,
+            ))
+        } else if let Some(matches) = cli_args.subcommand_matches("sync") {
+            let domain_or_ip = matches
+                .value_of("DOMAIN_OR_IP")
+                .expect("sync: you must enter a domain name or ip address !")
+                .to_string();
+            let port: u16 = matches
+                .value_of("PORT")
+                .expect("sync: you must enter a port number !")
+                .parse()
+                .expect("sync: port : you must enter an integer value !");
+            let path = if let Some(path) = matches.value_of("PATH") {
+                Some(path.to_string())
+            } else {
+                None
+            };
+            let sync_endpoint = SyncEndpoint {
+                domain_or_ip,
+                port,
+                path,
+                tls: false,
+            };
+            Some(sync(
+                soft_meta_datas,
+                keypairs,
+                sync_endpoint,
+                matches.is_present("cautious"),
+                !matches.is_present("unsafe"),
             ))
         } else if let Some(matches) = cli_args.subcommand_matches("sync_ts") {
             let ts_profile = matches.value_of("TS_PROFILE").unwrap_or("duniter_default");
@@ -141,6 +184,7 @@ impl DuniterCore<DuRsConf> {
                 dbex(
                     profile.as_str(),
                     &conf,
+                    csv,
                     &DBExQuery::WotQuery(DBExWotQuery::AllDistances(
                         distances_matches.is_present("reverse"),
                     )),
@@ -150,6 +194,7 @@ impl DuniterCore<DuRsConf> {
                 dbex(
                     profile.as_str(),
                     &conf,
+                    csv,
                     &DBExQuery::WotQuery(DBExWotQuery::MemberDatas(String::from(uid))),
                 );
             } else if let Some(members_matches) = matches.subcommand_matches("members") {
@@ -157,15 +202,16 @@ impl DuniterCore<DuRsConf> {
                     dbex(
                         profile.as_str(),
                         &conf,
+                        csv,
                         &DBExQuery::WotQuery(DBExWotQuery::ExpireMembers(
                             members_matches.is_present("reverse"),
-                            csv,
                         )),
                     );
                 } else {
                     dbex(
                         profile.as_str(),
                         &conf,
+                        csv,
                         &DBExQuery::WotQuery(DBExWotQuery::ListMembers(
                             members_matches.is_present("reverse"),
                         )),
@@ -176,6 +222,7 @@ impl DuniterCore<DuRsConf> {
                 dbex(
                     &profile,
                     &conf,
+                    csv,
                     &DBExQuery::TxQuery(DBExTxQuery::Balance(String::from(address))),
                 );
             }
@@ -226,7 +273,10 @@ impl DuniterCore<DuRsConf> {
     }
     /// Start blockchain module
     pub fn start_blockchain(&self) {
-        if self.start {
+        if self.network_modules_count == 0 {
+            panic!("You must plug at least one network layer !");
+        }
+        if let UserCommand::Start() = self.user_command {
             thread::sleep(Duration::from_secs(2));
             // Create blockchain module channel
             let (blockchain_sender, blockchain_receiver): (
@@ -246,8 +296,8 @@ impl DuniterCore<DuRsConf> {
 
             // Instantiate blockchain module and load is conf
             let mut blockchain_module = BlockchainModule::load_blockchain_conf(
-                &self.profile,
-                &self.conf,
+                &self.soft_meta_datas.profile,
+                &self.soft_meta_datas.conf,
                 RequiredKeysContent::MemberKeyPair(None),
             );
             info!("Success to load Blockchain module.");
@@ -256,34 +306,67 @@ impl DuniterCore<DuRsConf> {
             blockchain_module.start_blockchain(&blockchain_receiver);
         }
     }
+    /// Plug a network module
+    pub fn plug_network<NM: NetworkModule<DuRsConf, DuniterMessage>>(&mut self) {
+        if let UserCommand::Start() = self.user_command {
+            self.network_modules_count += 1;
+            self.plug::<NM>();
+        } else if let UserCommand::Sync(ref sync_endpoint) = self.user_command {
+            self.network_modules_count += 1;
+            // Load module conf and keys
+            let (module_conf, required_keys) = self.load_module_conf_and_keys::<NM>();
+            // Start module in a new thread
+            let rooter_sender = self.rooter_sender.clone();
+            let soft_meta_datas = self.soft_meta_datas.clone();
+            let sync_endpoint = sync_endpoint.clone();
+            self.thread_pool.execute(move || {
+                NM::sync(
+                    &soft_meta_datas,
+                    required_keys,
+                    &module_conf,
+                    rooter_sender,
+                    sync_endpoint,
+                ).expect(&format!(
+                    "Fatal error : fail to load {} Module !",
+                    NM::id().to_string()
+                ));
+            });
+            self.modules_count += 1;
+            info!("Success to load {} module.", NM::id().to_string());
+        }
+    }
+    /// Load module conf and keys
+    pub fn load_module_conf_and_keys<M: DuniterModule<DuRsConf, DuniterMessage>>(
+        &self,
+    ) -> (serde_json::value::Value, RequiredKeysContent) {
+        let module_conf = if let Some(module_conf_) = self
+            .soft_meta_datas
+            .conf
+            .clone()
+            .modules()
+            .get(&M::id().to_string().as_str())
+        {
+            module_conf_.clone()
+        } else {
+            M::default_conf()
+        };
+        let required_keys =
+            DuniterKeyPairs::get_required_keys_content(M::ask_required_keys(), self.keypairs);
+
+        (module_conf, required_keys)
+    }
     /// Plug a module
     pub fn plug<M: DuniterModule<DuRsConf, DuniterMessage>>(&mut self) {
-        if self.start {
+        if let UserCommand::Start() = self.user_command {
+            // Load module conf and keys
+            let (module_conf, required_keys) = self.load_module_conf_and_keys::<M>();
             // Start module in a new thread
-            let soft_name_clone = &(*self.soft_name);
-            let soft_version_clone = &(*self.soft_version);
-            let required_keys =
-                DuniterKeyPairs::get_required_keys_content(M::ask_required_keys(), self.keypairs);
-            let module_conf = if let Some(module_conf_) = self
-                .conf
-                .clone()
-                .modules()
-                .get(&M::id().to_string().as_str())
-            {
-                module_conf_.clone()
-            } else {
-                M::default_conf()
-            };
             let rooter_sender_clone = self.rooter_sender.clone();
-            let conf_clone = self.conf.clone();
-            let profile_copy = self.profile.clone();
+            let soft_meta_datas = self.soft_meta_datas.clone();
             self.thread_pool.execute(move || {
                 M::start(
-                    soft_name_clone,
-                    soft_version_clone,
-                    &profile_copy,
+                    &soft_meta_datas,
                     required_keys,
-                    &conf_clone,
                     &module_conf,
                     rooter_sender_clone,
                     false,
@@ -303,18 +386,11 @@ pub fn match_profile(cli_args: &ArgMatches) -> String {
     String::from(cli_args.value_of("profile").unwrap_or("default"))
 }
 
-/// Launch duniter server
-pub fn start<DC: DuniterConf>(
-    soft_name: &'static str,
-    soft_version: &'static str,
-    profile: &str,
-    keypairs: DuniterKeyPairs,
-    conf: DC,
+/// Start rooter thread
+pub fn start_rooter<DC: DuniterConf>(
     run_duration_in_secs: u64,
     external_followers: Vec<mpsc::Sender<DuniterMessage>>,
-) -> DuniterCore<DC> {
-    info!("Starting Duniter-rs...");
-
+) -> mpsc::Sender<RooterThreadMessage<DuniterMessage>> {
     // Create senders channel
     let (rooter_sender, main_receiver): (
         mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
@@ -408,17 +484,54 @@ pub fn start<DC: DuniterConf>(
         }
     });
 
+    rooter_sender
+}
+
+/// Launch duniter server
+pub fn start<DC: DuniterConf>(
+    soft_meta_datas: SoftwareMetaDatas<DC>,
+    keypairs: DuniterKeyPairs,
+    run_duration_in_secs: u64,
+    external_followers: Vec<mpsc::Sender<DuniterMessage>>,
+) -> DuniterCore<DC> {
+    info!("Starting Duniter-rs...");
+
+    // Start rooter thread
+    let rooter_sender = start_rooter::<DC>(run_duration_in_secs, external_followers);
+
     // Instanciate DuniterCore
     DuniterCore {
-        start: true,
-        soft_name,
-        soft_version,
-        profile: profile.to_string(),
+        user_command: UserCommand::Start(),
+        soft_meta_datas,
         keypairs,
-        conf,
         run_duration_in_secs,
         rooter_sender,
         modules_count: 0,
+        network_modules_count: 0,
+        thread_pool: ThreadPool::new(2),
+    }
+}
+
+/// Launch synchronisation from network
+pub fn sync<DC: DuniterConf>(
+    soft_meta_datas: SoftwareMetaDatas<DC>,
+    keypairs: DuniterKeyPairs,
+    sync_endpoint: SyncEndpoint,
+    _cautious: bool,
+    _verif_hashs: bool,
+) -> DuniterCore<DC> {
+    // Start rooter thread
+    let rooter_sender = start_rooter::<DC>(0, vec![]);
+
+    // Instanciate DuniterCore
+    DuniterCore {
+        user_command: UserCommand::Sync(sync_endpoint),
+        soft_meta_datas,
+        keypairs,
+        run_duration_in_secs: 0,
+        rooter_sender,
+        modules_count: 0,
+        network_modules_count: 0,
         thread_pool: ThreadPool::new(2),
     }
 }
@@ -436,9 +549,9 @@ pub fn sync_ts<DC: DuniterConf>(
 }
 
 /// Launch databases explorer
-pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, query: &DBExQuery) {
+pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DBExQuery) {
     // Launch databases explorer
-    BlockchainModule::dbex(profile, conf, query);
+    BlockchainModule::dbex(profile, conf, csv, query);
 }
 
 /// Initialize logger

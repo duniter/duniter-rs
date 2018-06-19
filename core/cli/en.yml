@@ -27,6 +27,30 @@ subcommands:
         about: start duniter server
         version: "0.1.0"
         author: Elois L. <elois@duniter.org>
+    - sync:
+        about: synchronization from network
+        version: "0.1.0"
+        author: Elois L. <elois@duniter.org>
+        args:
+            - DOMAIN_OR_IP:
+                help: The domain name or ip address of the node from which to synchronize.
+                index: 1
+                required: true
+            - PORT:
+                help: The port number of the node from which to synchronize.
+                index: 2
+                required: true
+            - PATH:
+                help: The endpoint path of the node from which to synchronize.
+                index: 3
+            - cautious:
+                short: c
+                long: cautious
+                help: cautious mode (check all protocol rules, very slow)
+            - unsafe:
+                short: u
+                long: unsafe
+                help: unsafe mode (not check blocks inner hashs, very dangerous)
     - sync_ts:
         about: synchronization via a duniter-ts database
         version: "0.1.0"

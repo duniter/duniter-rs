@@ -45,11 +45,37 @@ use duniter_documents::blockchain::v10::documents::{
 };
 use duniter_documents::blockchain::Document;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, Hash};
-use duniter_module::{ModuleReqFullId, ModuleReqId};
+use duniter_module::*;
 use network_head::NetworkHead;
 use network_peer::NetworkPeer;
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::ops::Deref;
+use std::sync::mpsc;
+
+/// NetworkModule
+pub trait NetworkModule<DC: DuniterConf, M: ModuleMessage>: DuniterModule<DC, M> {
+    /// Launch synchronisation
+    fn sync(
+        soft_meta_datas: &SoftwareMetaDatas<DC>,
+        keys: RequiredKeysContent,
+        module_conf: &serde_json::Value,
+        main_sender: mpsc::Sender<RooterThreadMessage<M>>,
+        sync_endpoint: SyncEndpoint,
+    ) -> Result<(), ModuleInitError>;
+}
+
+#[derive(Debug, Clone)]
+/// Synchronisation endpoint
+pub struct SyncEndpoint {
+    /// Domaine name or IP
+    pub domain_or_ip: String,
+    /// Port number
+    pub port: u16,
+    /// Optionnal path
+    pub path: Option<String>,
+    /// Use TLS
+    pub tls: bool,
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// Random identifier with which several Duniter nodes with the same network keypair can be differentiated

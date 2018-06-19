@@ -128,6 +128,19 @@ pub trait DuniterConf: Clone + Debug + Default + PartialEq + Serialize + Deseria
     fn modules(&self) -> serde_json::Value;
 }
 
+/// Sofware meta datas
+#[derive(Debug, Clone)]
+pub struct SoftwareMetaDatas<DC: DuniterConf> {
+    /// Software name
+    pub soft_name: &'static str,
+    /// Software version
+    pub soft_version: &'static str,
+    /// User profile
+    pub profile: String,
+    /// User configuration
+    pub conf: DC,
+}
+
 /// The different modules of Duniter-rs can exchange messages with the type of their choice,
 /// provided that this type implements the ModuleMessage trait.
 pub trait ModuleMessage: Clone + Debug {}
@@ -203,11 +216,8 @@ pub trait DuniterModule<DC: DuniterConf, M: ModuleMessage> {
     fn default_conf() -> serde_json::Value;
     /// Launch the module
     fn start(
-        soft_name: &str,
-        soft_version: &str,
-        profile: &str,
+        soft_meta_datas: &SoftwareMetaDatas<DC>,
         keys: RequiredKeysContent,
-        conf: &DC,
         module_conf: &serde_json::Value,
         main_sender: mpsc::Sender<RooterThreadMessage<M>>,
         load_conf_only: bool,

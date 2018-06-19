@@ -192,8 +192,8 @@ impl BlockchainModule {
         }
     }
     /// Databases explorer
-    pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, req: &DBExQuery) {
-        dbex::dbex(profile, conf, req);
+    pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, req: &DBExQuery) {
+        dbex::dbex(profile, conf, csv, req);
     }
     /// Synchronize blockchain from a duniter-ts database
     pub fn sync_ts<DC: DuniterConf>(

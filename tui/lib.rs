@@ -362,11 +362,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
         serde_json::Value::default()
     }
     fn start(
-        _soft_name: &str,
-        _soft_version: &str,
-        _profile: &str,
+        _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
-        _conf: &DuRsConf,
         module_conf: &serde_json::Value,
         main_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
         load_conf_only: bool,

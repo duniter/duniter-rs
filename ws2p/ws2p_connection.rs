@@ -6,6 +6,7 @@ use duniter_network::{NetworkDocument, NodeUUID};
 use parsers::blocks::parse_json_block;
 use rand::Rng;
 use std::sync::mpsc;
+use ws::deflate::DeflateBuilder;
 #[allow(deprecated)]
 use ws::util::{Timeout, Token};
 use ws::{connect, CloseCode, Frame, Handler, Handshake, Message, Sender};
@@ -617,17 +618,19 @@ pub fn connect_to_ws2p_endpoint(
     info!("Try connection to {} ...", ws_url);
 
     // Connect to websocket
-    connect(ws_url, |ws| Client {
-        ws,
-        conductor_sender: conductor_sender.clone(),
-        currency: String::from(currency),
-        key_pair,
-        connect_message: connect_message.clone(),
-        conn_meta_datas: conn_meta_datas.clone(),
-        last_mess_time: SystemTime::now(),
-        spam_interval: false,
-        spam_counter: 0,
-        timeout: None,
+    connect(ws_url, |ws| {
+        DeflateBuilder::new().build(Client {
+            ws,
+            conductor_sender: conductor_sender.clone(),
+            currency: String::from(currency),
+            key_pair,
+            connect_message: connect_message.clone(),
+            conn_meta_datas: conn_meta_datas.clone(),
+            last_mess_time: SystemTime::now(),
+            spam_interval: false,
+            spam_counter: 0,
+            timeout: None,
+        })
     })
 }
 

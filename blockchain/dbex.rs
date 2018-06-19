@@ -28,7 +28,7 @@ pub enum DBExWotQuery {
     /// Ask distance of all members
     AllDistances(bool),
     /// Show members expire date
-    ExpireMembers(bool, bool),
+    ExpireMembers(bool),
     /// Show members list
     ListMembers(bool),
     /// Ask member datas
@@ -51,14 +51,14 @@ pub enum DBExQuery {
     TxQuery(DBExTxQuery),
 }
 
-pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, query: &DBExQuery) {
+pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DBExQuery) {
     match *query {
-        DBExQuery::WotQuery(ref wot_query) => dbex_wot(profile, conf, wot_query),
-        DBExQuery::TxQuery(ref tx_query) => dbex_tx(profile, conf, tx_query),
+        DBExQuery::WotQuery(ref wot_query) => dbex_wot(profile, conf, csv, wot_query),
+        DBExQuery::TxQuery(ref tx_query) => dbex_tx(profile, conf, csv, tx_query),
     }
 }
 
-pub fn dbex_tx<DC: DuniterConf>(profile: &str, conf: &DC, query: &DBExTxQuery) {
+pub fn dbex_tx<DC: DuniterConf>(profile: &str, conf: &DC, _csv: bool, query: &DBExTxQuery) {
     // Get db path
     let db_path = duniter_conf::get_blockchain_db_path(profile, &conf.currency());
 
@@ -114,7 +114,7 @@ pub fn dbex_tx<DC: DuniterConf>(profile: &str, conf: &DC, query: &DBExTxQuery) {
     );
 }
 
-pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, query: &DBExWotQuery) {
+pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DBExWotQuery) {
     // Get db path
     let db_path = duniter_conf::get_blockchain_db_path(profile, &conf.currency());
 
@@ -204,13 +204,17 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, query: &DBExWotQuery)
             for (wot_id, distance_datas) in distances_datas {
                 let distance_percent: f64 =
                     f64::from(distance_datas.success) / f64::from(distance_datas.sentries) * 100.0;
-                println!(
-                    "{} -> distance: {:.2}% ({}/{})",
-                    wot_uid_index[&wot_id],
-                    distance_percent,
-                    distance_datas.success,
-                    distance_datas.sentries
-                );
+                if csv {
+                    println!("{}, {}", wot_uid_index[&wot_id], distance_percent,);
+                } else {
+                    println!(
+                        "{} -> distance: {:.2}% ({}/{})",
+                        wot_uid_index[&wot_id],
+                        distance_percent,
+                        distance_datas.success,
+                        distance_datas.sentries
+                    );
+                }
             }
             println!(
                 "compute_distances_duration = {},{:03}.",
@@ -218,7 +222,7 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, query: &DBExWotQuery)
                 compute_distances_duration.subsec_nanos() / 1_000_000
             );
         }
-        DBExWotQuery::ExpireMembers(ref reverse, ref _csv) => {
+        DBExWotQuery::ExpireMembers(ref reverse) => {
             // Open blockchain database
             let blockchain_db = open_db::<LocalBlockchainV10Datas>(&db_path, "blockchain.db")
                 .expect("Fail to open blockchain db");

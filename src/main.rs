@@ -21,13 +21,13 @@
     trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
     unused_qualifications
 )]
-extern crate duniter_conf;
+
 extern crate duniter_core;
 #[cfg(feature = "tui")]
 extern crate duniter_tui;
 extern crate duniter_ws2p;
 
-pub use duniter_conf::DuRsConf;
+pub use duniter_core::DuRsConf;
 pub use duniter_core::DuniterCore;
 #[cfg(feature = "tui")]
 pub use duniter_tui::TuiModule;
@@ -47,7 +47,7 @@ fn main() {
         //duniter_core.plug::<PoolModule>();
         //duniter_core.plug::<PowModule>();
         plug_tui_module(&mut duniter_core);
-        duniter_core.plug::<WS2PModule>();
+        duniter_core.plug_network::<WS2PModule>();
         duniter_core.start_blockchain();
     };
 }
