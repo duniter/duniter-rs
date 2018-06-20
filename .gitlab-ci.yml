@@ -2,35 +2,65 @@ stages:
     - build_and_tests
     - fmt
     - clippy
+    - package
+    - prerelease
     - publish
     
 before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
+
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/cargo
+
+
+.rust_stable_env: &rust_stable_env
+  tags:
+    - redshift-rs-stable
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustc --version && cargo --version
+
+.rust_beta_env: &rust_beta_env
+  tags:
+    - redshift-rs-beta
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustup update
+    - rustc --version && cargo --version
+
+.rust_nightly_env: &rust_nightly_env
+  image: rustlang/rust:nightly
+  tags:
+    - redshift-rs-nightly
+  before_script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustc --version && cargo --version
     
 build_and_tests:stable:
+  <<: *rust_stable_env
   stage: build_and_tests
   tags:
     - redshift-rs-stable
   script: 
     - cargo build --features strict
     - cargo test --all
+  cache:
+    paths:
+      - cargo/
+      - target/
     
 build_and_tests:beta:
+  <<: *rust_beta_env
   stage: build_and_tests
-  tags:
-    - redshift-rs-beta
   script:
-    - rustup update
     - cargo build --features strict
     - cargo test --all
   when: manual
   allow_failure: true
     
 build_and_tests:nightly:
+  <<: *rust_nightly_env
   stage: build_and_tests
-  image: rustlang/rust:nightly
-  tags:
-    - redshift-rs-nightly
   script:
     - cargo build --features strict
     - cargo test --all
@@ -38,49 +68,100 @@ build_and_tests:nightly:
   allow_failure: true
   
 fmt:
+  <<: *rust_nightly_env
   stage: fmt
-  image: rustlang/rust:nightly
-  tags:
-    - redshift-rs-nightly
   before_script:
-    - export PATH="$HOME/.cargo/bin:$PATH"
     - cargo install --force rustfmt-nightly
   script:
     - cargo fmt -- --check
   allow_failure: true
 
 clippy:
+  <<: *rust_nightly_env
   stage: clippy
-  image: rustlang/rust:nightly
-  tags:
-    - redshift-rs-nightly
   before_script:
-    - export PATH="$HOME/.cargo/bin:$PATH"
     - cargo install --force clippy --verbose
   script:
     - cargo clippy --all -- -D warnings --verbose
   allow_failure: true  
 
-publish:crate:
-  stage: publish
+package:test:linux-x64:
+  <<: *rust_stable_env
+  stage: package
+  script:
+    - bash "release/arch/linux-x64/build-lin-x64.sh" "$(date +%Y%m%d).$(date +%H%M).$(date +%S)"
+  cache:
+    paths:
+      - cargo/
+      - target/
+  artifacts:
+    paths:
+      - work/bin/
+    expire_in: 1 weeks
+  except:
+      - tags
+  when: manual
+
+package:prod:linux-x64:
+  <<: *rust_stable_env
+  stage: package
+  script:
+    - bash "release/arch/linux-x64/build-lin-x64.sh" "${CI_COMMIT_TAG#v}"
+  cache:
+    paths:
+      - cargo/
+      - target/
+  artifacts:
+    paths:
+      - work/bin/
+    expire_in: 2 weeks
+  only:
+      - dev
+      - tags
+
+.release_jobs: &release_jobs
+  image: tensorflow/tensorflow:latest-py3
   tags:
-    - redshift-rs-stable
+    - redshift-rs
+  script:
+    - python3 .gitlab/releaser
+  only:
+    - dev
+    - tags
+
+prerelease:
+  <<: *release_jobs
+  stage: prerelease
+  variables:
+    RELEASE_BIN_DIR: work/bin/
+    SOURCE_EXT: '["tar.gz", "zip"]'
+
+publish:release:
+  <<: *release_jobs
+  stage: publish
+  variables:
+    RELEASE_BIN_DIR: work/bin/
+    WIKI_RELEASE: Releases
+  allow_failure: false
+  when: manual
+
+publish:crate:
+  <<: *rust_stable_env
+  stage: publish
   script:
     - IFS='/' read -r first a <<< "$CI_COMMIT_TAG"
     - cd $first
     - cargo login $DUNITER_CRATES_TOKEN
     - cargo publish
   only:
+    - publish-crate
     - tags
   allow_failure: false
   when: manual
 
 pages:
+  <<: *rust_stable_env
   stage: publish
-  tags:
-    - redshift-rs-stable
-  before_script:
-    - export PATH="$HOME/.cargo/bin:$PATH"
   script:
     - cargo doc
     - mv target/doc public
@@ -91,3 +172,5 @@ pages:
       - public
   allow_failure: true
   when: manual
+  only:
+    - dev
