@@ -1,17 +1,15 @@
 stages:
+    - publish_crate
     - build_and_tests
     - fmt
     - clippy
     - package
     - prerelease
-    - publish
-    
-before_script:
-    - export PATH="$HOME/.cargo/bin:$PATH"
+    - release
+    - publish_doc
 
 variables:
   CARGO_HOME: $CI_PROJECT_DIR/cargo
-
 
 .rust_stable_env: &rust_stable_env
   tags:
@@ -35,6 +33,19 @@ variables:
   before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
     - rustc --version && cargo --version
+
+publish:crate:
+  <<: *rust_stable_env
+  stage: publish_crate
+  script:
+    - IFS='/' read -r first a <<< "$CI_COMMIT_TAG"
+    - cd $first
+    - cargo login $DUNITER_CRATES_TOKEN
+    - cargo publish
+  only:
+    - tags
+  allow_failure: false
+  when: manual
     
 build_and_tests:stable:
   <<: *rust_stable_env
@@ -116,8 +127,9 @@ package:prod:linux-x64:
       - work/bin/
     expire_in: 2 weeks
   only:
-      - dev
-      - tags
+    - tags
+  except:
+    - ci
 
 .release_jobs: &release_jobs
   image: tensorflow/tensorflow:latest-py3
@@ -126,8 +138,9 @@ package:prod:linux-x64:
   script:
     - python3 .gitlab/releaser
   only:
-    - dev
     - tags
+  except:
+    - ci
 
 prerelease:
   <<: *release_jobs
@@ -136,32 +149,18 @@ prerelease:
     RELEASE_BIN_DIR: work/bin/
     SOURCE_EXT: '["tar.gz", "zip"]'
 
-publish:release:
+release:
   <<: *release_jobs
-  stage: publish
+  stage: release
   variables:
     RELEASE_BIN_DIR: work/bin/
     WIKI_RELEASE: Releases
   allow_failure: false
   when: manual
 
-publish:crate:
-  <<: *rust_stable_env
-  stage: publish
-  script:
-    - IFS='/' read -r first a <<< "$CI_COMMIT_TAG"
-    - cd $first
-    - cargo login $DUNITER_CRATES_TOKEN
-    - cargo publish
-  only:
-    - publish-crate
-    - tags
-  allow_failure: false
-  when: manual
-
 pages:
   <<: *rust_stable_env
-  stage: publish
+  stage: publish_doc
   script:
     - cargo doc
     - mv target/doc public
