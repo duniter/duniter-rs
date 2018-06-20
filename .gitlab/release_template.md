@@ -1,7 +1,7 @@
 {% block prerelease %}
 # :gift: Pre-release
 
-[Go to Pipeline page :arrow_forward:](https://git.duniter.org/nodes/typescript/duniter/pipelines/{{pipeline}})
+[Go to Pipeline page :arrow_forward:](https://git.duniter.org/nodes/rust/duniter-rs/pipelines/{{pipeline}})
 
 {% endblock %}
 
