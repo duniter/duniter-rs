@@ -45,7 +45,6 @@ build_and_tests:stable:
   cache:
     paths:
       - target/
-      - cargo/
     
 build_and_tests:beta:
   <<: *rust_beta_env
@@ -72,9 +71,6 @@ fmt:
     - cargo install --force rustfmt-nightly
   script:
     - cargo fmt -- --check
-  cache:
-    paths:
-      - cargo/
   allow_failure: true
 
 clippy:
@@ -84,9 +80,6 @@ clippy:
     - cargo install --force clippy --verbose
   script:
     - cargo clippy --all -- -D warnings --verbose
-  cache:
-    paths:
-      - cargo/
   allow_failure: true  
 
 publish:crate:
