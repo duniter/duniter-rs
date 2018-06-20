@@ -121,7 +121,7 @@ package:prod:linux-x64:
 .release_jobs: &release_jobs
   image: tensorflow/tensorflow:latest-py3
   tags:
-    - redshift-duniter-builder
+    - redshift-rs
   script:
     - python3 .gitlab/releaser
   only:
