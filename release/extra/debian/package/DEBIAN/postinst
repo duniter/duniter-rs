@@ -12,7 +12,7 @@ fi
 
 # Create binary symbolic link
 chmod 755 $DUN_SOURCES/bin/durs
-ln -s $DUN_SOURCES/bin/durs /usr/bin/durs
+ln -s $DUN_SOURCES/durs /usr/bin/durs
 
 # Add durs user for service
 mkdir -p /var/lib/durs
