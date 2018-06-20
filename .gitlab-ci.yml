@@ -116,7 +116,8 @@ package:prod:linux-x64:
       - work/bin/
     expire_in: 2 weeks
   only:
-      - dev
+      - ci
+  only:
       - tags
 
 .release_jobs: &release_jobs
@@ -126,7 +127,8 @@ package:prod:linux-x64:
   script:
     - python3 .gitlab/releaser
   only:
-    - dev
+      - ci
+  only:
     - tags
 
 prerelease:
@@ -155,6 +157,7 @@ publish:crate:
     - cargo publish
   only:
     - publish-crate
+  only:
     - tags
   allow_failure: false
   when: manual
@@ -173,4 +176,4 @@ pages:
   allow_failure: true
   when: manual
   only:
-    - dev
+    - ci
