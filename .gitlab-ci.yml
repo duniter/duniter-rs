@@ -1,6 +1,8 @@
 stages:
-    - build_and_tests
+    - package
+    - prerelease
     - publish
+    - build_and_tests
     - fmt
     - clippy
     
@@ -44,6 +46,7 @@ build_and_tests:stable:
     - cargo test --all
   cache:
     paths:
+      - cargo/
       - target/
     
 build_and_tests:beta:
@@ -82,6 +85,64 @@ clippy:
     - cargo clippy --all -- -D warnings --verbose
   allow_failure: true  
 
+package:test:linux-x64:
+  <<: *rust_stable_env
+  stage: package
+  script:
+    - bash "release/arch/linux-x64/build-lin-x64.sh" "$(date +%Y%m%d).$(date +%H%M).$(date +%S)"
+  cache:
+    paths:
+      - cargo/
+      - target/
+  artifacts:
+    paths:
+      - work/bin/
+    expire_in: 1 weeks
+  except:
+      - tags
+  when: manual
+
+package:prod:linux-x64:
+  <<: *rust_stable_env
+  stage: package
+  script:
+    - bash "release/arch/linux-x64/build-lin-x64.sh" "${CI_COMMIT_TAG#v}"
+  cache:
+    paths:
+      - cargo/
+      - target/
+  artifacts:
+    paths:
+      - work/bin/
+    expire_in: 2 weeks
+  only:
+      - tags
+
+.release_jobs: &release_jobs
+  image: tensorflow/tensorflow:latest-py3
+  tags:
+    - redshift-rs
+  script:
+    - python3 .gitlab/releaser
+  only:
+    - tags
+
+prerelease:
+  <<: *release_jobs
+  stage: prerelease
+  variables:
+    RELEASE_BIN_DIR: work/bin/
+    SOURCE_EXT: '["tar.gz", "zip"]'
+
+publish:release:
+  <<: *release_jobs
+  stage: publish
+  variables:
+    RELEASE_BIN_DIR: work/bin/
+    WIKI_RELEASE: Releases
+  allow_failure: false
+  when: manual
+
 publish:crate:
   <<: *rust_stable_env
   stage: publish
@@ -94,38 +155,6 @@ publish:crate:
     - tags
   allow_failure: false
   when: manual
-
-releases:test:
-  <<: *rust_stable_env
-  stage: publish
-  script:
-    - cargo build --release
-  cache:
-    paths:
-      - target/
-  artifacts:
-    paths:
-      - target/release/durs
-    expire_in: 1 weeks
-  except:
-      - tags
-  when: manual
-
-releases:prod:
-  <<: *rust_stable_env
-  stage: publish
-  script:
-    - cargo build --release
-  cache:
-    paths:
-      - target/
-  artifacts:
-    paths:
-      - target/release/durs
-    expire_in: 2 weeks
-  only:
-      - tags
-      - master
 
 pages:
   <<: *rust_stable_env
@@ -140,3 +169,5 @@ pages:
       - public
   allow_failure: true
   when: manual
+  only:
+    - master
