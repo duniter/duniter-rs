@@ -96,7 +96,7 @@ package:test:linux-x64:
       - target/
   artifacts:
     paths:
-      - target/release/durs
+      - work/bin/
     expire_in: 1 weeks
   except:
       - tags
@@ -113,7 +113,7 @@ package:prod:linux-x64:
       - target/
   artifacts:
     paths:
-      - target/release/durs
+      - work/bin/
     expire_in: 2 weeks
   only:
       - tags
