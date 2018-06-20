@@ -1,0 +1,23 @@
+#!/bin/bash
+
+DURS_ROOT=/opt/durs
+DUN_SOURCES=$DURS_ROOT/
+mkdir -p $DUN_SOURCES
+
+# Duniter-Rust binary extraction
+if [[ -f $DURS_ROOT/durs.zip ]]; then
+  unzip -q -d $DUN_SOURCES/ $DURS_ROOT/durs.zip
+  rm -rf $DURS_ROOT/durs.zip
+fi
+
+# Create binary symbolic link
+chmod 755 $DUN_SOURCES/bin/durs
+ln -s $DUN_SOURCES/bin/durs /usr/bin/durs
+
+# Add durs user for service
+mkdir -p /var/lib/durs
+adduser --system --quiet --home /var/lib/durs --no-create-home --disabled-password --group durs
+chown durs:durs /var/lib/durs
+
+# Add reading rights
+chmod +r -R $DURS_ROOT

@@ -1,0 +1,20 @@
+[Unit]
+Description=Duniter-Rust node
+After=network.target
+
+[Service]
+Environment="DURS_HOME=/var/lib/durs/.config/durs-dev"
+Environment="PROFILE=default"
+# If using a key file, DURS_OPTS can be defined like so:
+#Environment="DURS_OPTS=--keyfile /etc/durs/keys.yml"
+Environment="DURS_OPTS="
+Group=durs
+User=durs
+Type=forking
+ExecStart=/usr/bin/duniter start --home ${DURS_HOME} -p ${PROFILE} $DURS_OPTS
+ExecReload=/usr/bin/duniter restart --home ${DURS_HOME} -p ${PROFILE} $DURS_OPTS
+ExecStop=/usr/bin/duniter stop --home ${DURS_HOME} -p ${PROFILE}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

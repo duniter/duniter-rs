@@ -1,0 +1,5 @@
+#!/bin/bash
+
+[[ -f /usr/bin/durs ]] && rm /usr/bin/durs
+[[ -f /usr/bin/durs-desktop ]] && rm -f /usr/bin/durs-desktop
+[[ -d /opt/durs ]] && rm -Rf /opt/durs
