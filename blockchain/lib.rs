@@ -16,7 +16,7 @@
 //! Module managing the Duniter blockchain.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(unused_collect))]
+#![cfg_attr(feature = "cargo-clippy", allow(unused_collect, duration_subsec))]
 #![deny(
     missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
     trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
@@ -217,9 +217,9 @@ impl BlockchainModule {
         sync::sync_ts(profile, conf, db_ts_path, cautious, verif_inner_hash);
     }
     /// Request chunk from network (chunk = group of blocks)
-    fn request_chunk(&self, req_id: &ModuleReqId, from: u32) -> (ModuleReqId, NetworkRequest) {
+    fn request_chunk(&self, req_id: ModuleReqId, from: u32) -> (ModuleReqId, NetworkRequest) {
         let req = NetworkRequest::GetBlocks(
-            ModuleReqFullId(BlockchainModule::id(), *req_id),
+            ModuleReqFullId(BlockchainModule::id(), req_id),
             NodeFullId::default(),
             *CHUNK_SIZE,
             from,
@@ -257,7 +257,7 @@ impl BlockchainModule {
                 {
                     req_id = ModuleReqId(req_id.0 + 1);
                 }
-                let (req_id, req) = self.request_chunk(&req_id, from);
+                let (req_id, req) = self.request_chunk(req_id, from);
                 requests_ids.insert(req_id, req);
                 from += *CHUNK_SIZE;
             }
@@ -568,7 +568,7 @@ impl BlockchainModule {
                         req_id = ModuleReqId(req_id.0 + 1);
                     }
                     let from = consensus.id.0 - *CHUNK_SIZE - 1;
-                    let (new_req_id, new_req) = self.request_chunk(&req_id, from);
+                    let (new_req_id, new_req) = self.request_chunk(req_id, from);
                     pending_network_requests.insert(new_req_id, new_req);
                 }
             }

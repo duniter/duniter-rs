@@ -271,7 +271,7 @@ impl CurrencyDBsWriteQuery {
                     &databases.du_db,
                     &databases.balances_db,
                     du_amount,
-                    block_id,
+                    *block_id,
                     members,
                     false,
                 )?;
@@ -281,7 +281,7 @@ impl CurrencyDBsWriteQuery {
                     &databases.du_db,
                     &databases.balances_db,
                     du_amount,
-                    block_id,
+                    *block_id,
                     members,
                     true,
                 )?;

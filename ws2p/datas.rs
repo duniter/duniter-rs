@@ -90,10 +90,14 @@ impl WS2PModuleDatas {
                                         pubkey,
                                         0,
                                         0,
-                                    ).expect(&format!(
-                                        "WS2PConf Error : fail to parse sync Endpoint = {:?}",
-                                        endpoint.as_str().expect("WS2P: Fail to get ep.as_str() !")
-                                    )),
+                                    ).unwrap_or_else(|| {
+                                        panic!(
+                                            "WS2PConf Error : fail to parse sync Endpoint = {:?}",
+                                            endpoint
+                                                .as_str()
+                                                .expect("WS2P: Fail to get ep.as_str() !")
+                                        )
+                                    }),
                                 );
                             }
                         }
@@ -274,10 +278,9 @@ impl WS2PModuleDatas {
             .expect("Try to close an unexistant websocket !")
             .0
             .close(ws::CloseCode::Normal);
-        self.websockets.remove(ws2p_full_id).expect(&format!(
-            "Fatal error : no websocket for {} !",
-            ws2p_full_id
-        ));;
+        self.websockets
+            .remove(ws2p_full_id)
+            .unwrap_or_else(|| panic!("Fatal error : no websocket for {} !", ws2p_full_id));
     }
     pub fn ws2p_conn_message_pretreatment(&mut self, message: WS2PConnectionMessage) -> WS2PSignal {
         let ws2p_full_id = message.0;
@@ -318,10 +321,7 @@ impl WS2PModuleDatas {
                 debug!("Send: {:#?}", response);
                 self.websockets
                     .get_mut(&ws2p_full_id)
-                    .expect(&format!(
-                        "Fatal error : no websocket for {} !",
-                        ws2p_full_id
-                    ))
+                    .unwrap_or_else(|| panic!("Fatal error : no websocket for {} !", ws2p_full_id))
                     .0
                     .send(Message::text(response))
                     .expect("WS2P: Fail to send OK Message !");
@@ -335,10 +335,9 @@ impl WS2PModuleDatas {
                     trace!("DEBUG : Send: {:#?}", r);
                     self.websockets
                         .get_mut(&ws2p_full_id)
-                        .expect(&format!(
-                            "Fatal error : no websocket for {} !",
-                            ws2p_full_id
-                        ))
+                        .unwrap_or_else(|| {
+                            panic!("Fatal error : no websocket for {} !", ws2p_full_id)
+                        })
                         .0
                         .send(Message::text(r))
                         .expect("WS2P: Fail to send Message in websocket !");

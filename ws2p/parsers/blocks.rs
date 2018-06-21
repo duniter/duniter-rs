@@ -13,7 +13,7 @@ use duniter_documents::{BlockHash, BlockId, Hash};
 use duniter_network::{NetworkBlock, NetworkBlockV10};
 use std::str::FromStr;
 
-fn parse_previous_hash(block_number: &BlockId, source: &serde_json::Value) -> Option<Hash> {
+fn parse_previous_hash(block_number: BlockId, source: &serde_json::Value) -> Option<Hash> {
     match source.get("previousHash")?.as_str() {
         Some(hash_str) => match Hash::from_hex(hash_str) {
             Ok(hash) => Some(hash),
@@ -81,7 +81,7 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
     } else {
         None
     };
-    let previous_hash = parse_previous_hash(&number, source)?;
+    let previous_hash = parse_previous_hash(number, source)?;
     let previous_issuer = parse_previous_issuer(source);
     let inner_hash = match Hash::from_hex(source.get("inner_hash")?.as_str()?) {
         Ok(hash) => Some(hash),
