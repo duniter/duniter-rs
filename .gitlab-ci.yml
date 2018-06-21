@@ -116,9 +116,9 @@ package:prod:linux-x64:
       - work/bin/
     expire_in: 2 weeks
   only:
-      - ci
-  only:
-      - tags
+    - tags
+  except:
+    - ci
 
 .release_jobs: &release_jobs
   image: tensorflow/tensorflow:latest-py3
@@ -127,9 +127,9 @@ package:prod:linux-x64:
   script:
     - python3 .gitlab/releaser
   only:
-      - ci
-  only:
     - tags
+  except:
+    - ci
 
 prerelease:
   <<: *release_jobs
@@ -156,8 +156,6 @@ publish:crate:
     - cargo login $DUNITER_CRATES_TOKEN
     - cargo publish
   only:
-    - publish-crate
-  only:
     - tags
   allow_failure: false
   when: manual
@@ -176,4 +174,4 @@ pages:
   allow_failure: true
   when: manual
   only:
-    - ci
+    - dev
