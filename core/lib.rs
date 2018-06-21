@@ -326,10 +326,12 @@ impl DuniterCore<DuRsConf> {
                     &module_conf,
                     rooter_sender,
                     sync_endpoint,
-                ).expect(&format!(
-                    "Fatal error : fail to load {} Module !",
-                    NM::id().to_string()
-                ));
+                ).unwrap_or_else(|_| {
+                    panic!(
+                        "Fatal error : fail to load {} Module !",
+                        NM::id().to_string()
+                    )
+                });
             });
             self.modules_count += 1;
             info!("Success to load {} module.", NM::id().to_string());
@@ -370,10 +372,12 @@ impl DuniterCore<DuRsConf> {
                     &module_conf,
                     rooter_sender_clone,
                     false,
-                ).expect(&format!(
-                    "Fatal error : fail to load {} Module !",
-                    M::id().to_string()
-                ));
+                ).unwrap_or_else(|_| {
+                    panic!(
+                        "Fatal error : fail to load {} Module !",
+                        M::id().to_string()
+                    )
+                });
             });
             self.modules_count += 1;
             info!("Success to load {} module.", M::id().to_string());

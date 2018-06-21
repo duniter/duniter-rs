@@ -345,8 +345,8 @@ pub fn parse_transaction(
             TransactionOutput::parse_from_str(
                 output
                     .as_str()
-                    .expect(&format!("Fail to parse output : {:?}", output)),
-            ).expect(&format!("Fail to parse output : {:?}", output)),
+                    .unwrap_or_else(|| panic!("Fail to parse output : {:?}", output)),
+            ).unwrap_or_else(|_| panic!("Fail to parse output : {:?}", output)),
         );
     }
     let signatures_array = source.get("signatures")?.as_array()?;

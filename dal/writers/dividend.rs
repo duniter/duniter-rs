@@ -26,7 +26,7 @@ pub fn create_du<B: Backend + Debug>(
     du_db: &BinDB<DUsV10Datas, B>,
     balances_db: &BinDB<BalancesV10Datas, B>,
     du_amount: &SourceAmount,
-    du_block_id: &BlockId,
+    du_block_id: BlockId,
     members: &[PubKey],
     revert: bool,
 ) -> Result<(), DALError> {
@@ -35,9 +35,9 @@ pub fn create_du<B: Backend + Debug>(
         for pubkey in members {
             let mut pubkey_dus = db.get(&pubkey).cloned().unwrap_or_default();
             if revert {
-                pubkey_dus.remove(du_block_id);
+                pubkey_dus.remove(&du_block_id);
             } else {
-                pubkey_dus.insert(*du_block_id);
+                pubkey_dus.insert(du_block_id);
             }
             db.insert(*pubkey, pubkey_dus);
         }

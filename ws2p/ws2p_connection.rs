@@ -246,8 +246,8 @@ impl WS2PConnectionState {
             }
         }
     }
-    pub fn to_u32(&self) -> u32 {
-        match *self {
+    pub fn to_u32(self) -> u32 {
+        match self {
             WS2PConnectionState::NeverTry => 0,
             _ => 1,
         }

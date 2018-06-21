@@ -266,10 +266,12 @@ pub fn apply_and_write_tx<B: Backend + Debug>(
             for (source_index, source_amount) in &consumed_sources {
                 if let SourceIndexV10::UTXO(utxo_index) = source_index {
                     // Get utxo
-                    let utxo = db.get(&utxo_index).expect(&format!(
-                        "ApplyBLockError : unknow UTXO in inputs : {:?} !",
-                        utxo_index
-                    ));
+                    let utxo = db.get(&utxo_index).unwrap_or_else(|| {
+                        panic!(
+                            "ApplyBLockError : unknow UTXO in inputs : {:?} !",
+                            utxo_index
+                        )
+                    });
                     // Get utxo conditions(=address)
                     let conditions = &utxo.conditions.conditions;
                     // Calculate new balances datas for "conditions" address
@@ -466,7 +468,7 @@ mod tests {
             &currency_dbs.du_db,
             &currency_dbs.balances_db,
             &SourceAmount(TxAmount(1000), TxBase(0)),
-            &BlockId(1),
+            BlockId(1),
             &vec![tx_doc.issuers()[0], tortue_pubkey],
             false,
         ).expect("Fail to create first g1 DU !");

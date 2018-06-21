@@ -249,10 +249,9 @@ pub fn get_profile_path(profile: &str) -> PathBuf {
     }
     profile_path.push(USER_DATAS_FOLDER);
     if !profile_path.as_path().exists() {
-        fs::create_dir(profile_path.as_path()).expect(&format!(
-            "Impossible to create ~/.config/{} dir !",
-            USER_DATAS_FOLDER
-        ));
+        fs::create_dir(profile_path.as_path()).unwrap_or_else(|_| {
+            panic!("Impossible to create ~/.config/{} dir !", USER_DATAS_FOLDER)
+        });
     }
     profile_path.push(profile);
     if !profile_path.as_path().exists() {

@@ -222,10 +222,10 @@ impl DALBlock {
     }
     pub fn get_block_hash(
         db: &BinFileDB<LocalBlockchainV10Datas>,
-        block_number: &BlockId,
+        block_number: BlockId,
     ) -> Result<Option<BlockHash>, DALError> {
         Ok(db.read(|db| {
-            if let Some(dal_block) = db.get(block_number) {
+            if let Some(dal_block) = db.get(&block_number) {
                 dal_block.block.hash
             } else {
                 None
@@ -336,7 +336,7 @@ impl DALBlock {
             for block_number in frame_begin..self.block.number.0 {
                 let issuer = db
                     .get(&BlockId(block_number))
-                    .expect(&format!("Fail to get block #{} !", block_number))
+                    .unwrap_or_else(|| panic!("Fail to get block #{} !", block_number))
                     .block
                     .issuers()[0];
                 let issuer_count_blocks =
