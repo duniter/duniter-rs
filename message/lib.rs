@@ -29,6 +29,7 @@ extern crate duniter_documents;
 extern crate duniter_module;
 extern crate duniter_network;
 extern crate serde;
+extern crate serde_json;
 
 use std::sync::mpsc;
 
@@ -37,7 +38,7 @@ use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALRequest, DALResponse};
 use duniter_documents::blockchain::BlockchainProtocol;
 use duniter_documents::{BlockId, Hash};
-use duniter_module::ModuleMessage;
+use duniter_module::{ModuleId, ModuleMessage};
 use duniter_network::{NetworkEvent, NetworkRequest};
 
 #[derive(Debug, Clone)]
@@ -47,6 +48,8 @@ pub enum DuniterMessage {
     Text(String),
     /// Brut binary message
     Binary(Vec<u8>),
+    /// New configuration of a module to save
+    SaveNewModuleConf(ModuleId, serde_json::Value),
     /// Subscriptions to the module feed
     Followers(Vec<mpsc::Sender<DuniterMessage>>),
     /// Blockchain datas request

@@ -35,11 +35,11 @@ lazy_static! {
     ).unwrap();
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Identifies the API of an endpoint
 pub struct NetworkEndpointApi(pub String);
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Endpoint v1
 pub struct NetworkEndpointV1 {
     /// API version
@@ -66,7 +66,7 @@ pub struct NetworkEndpointV1 {
     pub last_check: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Endpoint
 pub enum NetworkEndpoint {
     /// Endpoint v1
@@ -173,7 +173,7 @@ impl NetworkEndpoint {
             _ => panic!("Endpoint version is not supported !"),
         }
     }
-    /// Parse Endpoint from rax format
+    /// Parse Endpoint from raw format
     pub fn parse_from_raw(
         raw_endpoint: &str,
         issuer: PubKey,

@@ -206,19 +206,20 @@ pub enum ModulePriority {
 
 /// All Duniter-rs modules must implement this trait.
 pub trait DuniterModule<DC: DuniterConf, M: ModuleMessage> {
+    /// Module configuration
+    type ModuleConf: Clone + Debug + Default + DeserializeOwned + Send + Serialize + Sync;
+
     /// Returns the module identifier
     fn id() -> ModuleId;
     /// Returns the module priority
     fn priority() -> ModulePriority;
     /// Indicates which keys the module needs
     fn ask_required_keys() -> RequiredKeys;
-    /// Provides the default module configuration
-    fn default_conf() -> serde_json::Value;
     /// Launch the module
     fn start(
         soft_meta_datas: &SoftwareMetaDatas<DC>,
         keys: RequiredKeysContent,
-        module_conf: &serde_json::Value,
+        module_conf: Self::ModuleConf,
         main_sender: mpsc::Sender<RooterThreadMessage<M>>,
         load_conf_only: bool,
     ) -> Result<(), ModuleInitError>;

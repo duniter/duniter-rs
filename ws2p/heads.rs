@@ -19,7 +19,7 @@ use *;
 
 pub fn generate_my_head(
     network_keypair: &KeyPairEnum,
-    conf: &WS2PConf,
+    node_id: NodeUUID,
     soft_name: &str,
     soft_version: &str,
     my_current_blockstamp: &Blockstamp,
@@ -30,7 +30,7 @@ pub fn generate_my_head(
         version: 1,
         pubkey: network_keypair.public_key(),
         blockstamp: *my_current_blockstamp,
-        node_uuid: conf.node_id,
+        node_uuid: node_id,
         software: String::from(soft_name),
         soft_version: String::from(soft_version),
         prefix: 1,
@@ -42,7 +42,7 @@ pub fn generate_my_head(
         version: 2,
         pubkey: network_keypair.public_key(),
         blockstamp: *my_current_blockstamp,
-        node_uuid: conf.node_id,
+        node_uuid: node_id,
         software: String::from(soft_name),
         soft_version: String::from(soft_version),
         prefix: 1,

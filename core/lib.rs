@@ -313,17 +313,26 @@ impl DuniterCore<DuRsConf> {
             self.plug::<NM>();
         } else if let UserCommand::Sync(ref sync_endpoint) = self.user_command {
             self.network_modules_count += 1;
-            // Load module conf and keys
-            let (module_conf, required_keys) = self.load_module_conf_and_keys::<NM>();
             // Start module in a new thread
             let rooter_sender = self.rooter_sender.clone();
             let soft_meta_datas = self.soft_meta_datas.clone();
+            let module_conf_json = self
+                .soft_meta_datas
+                .conf
+                .clone()
+                .modules()
+                .get(&NM::id().to_string().as_str())
+                .cloned();
+            let keypairs = self.keypairs;
             let sync_endpoint = sync_endpoint.clone();
             self.thread_pool.execute(move || {
+                // Load module conf and keys
+                let (module_conf, required_keys) =
+                    load_module_conf_and_keys::<NM>(module_conf_json, keypairs);
                 NM::sync(
                     &soft_meta_datas,
                     required_keys,
-                    &module_conf,
+                    module_conf,
                     rooter_sender,
                     sync_endpoint,
                 ).unwrap_or_else(|_| {
@@ -337,39 +346,28 @@ impl DuniterCore<DuRsConf> {
             info!("Success to load {} module.", NM::id().to_string());
         }
     }
-    /// Load module conf and keys
-    pub fn load_module_conf_and_keys<M: DuniterModule<DuRsConf, DuniterMessage>>(
-        &self,
-    ) -> (serde_json::value::Value, RequiredKeysContent) {
-        let module_conf = if let Some(module_conf_) = self
-            .soft_meta_datas
-            .conf
-            .clone()
-            .modules()
-            .get(&M::id().to_string().as_str())
-        {
-            module_conf_.clone()
-        } else {
-            M::default_conf()
-        };
-        let required_keys =
-            DuniterKeyPairs::get_required_keys_content(M::ask_required_keys(), self.keypairs);
-
-        (module_conf, required_keys)
-    }
     /// Plug a module
     pub fn plug<M: DuniterModule<DuRsConf, DuniterMessage>>(&mut self) {
         if let UserCommand::Start() = self.user_command {
-            // Load module conf and keys
-            let (module_conf, required_keys) = self.load_module_conf_and_keys::<M>();
             // Start module in a new thread
             let rooter_sender_clone = self.rooter_sender.clone();
             let soft_meta_datas = self.soft_meta_datas.clone();
+            let module_conf_json = self
+                .soft_meta_datas
+                .conf
+                .clone()
+                .modules()
+                .get(&M::id().to_string().as_str())
+                .cloned();
+            let keypairs = self.keypairs;
             self.thread_pool.execute(move || {
+                // Load module conf and keys
+                let (module_conf, required_keys) =
+                    load_module_conf_and_keys::<M>(module_conf_json, keypairs);
                 M::start(
                     &soft_meta_datas,
                     required_keys,
-                    &module_conf,
+                    module_conf,
                     rooter_sender_clone,
                     false,
                 ).unwrap_or_else(|_| {
@@ -383,6 +381,23 @@ impl DuniterCore<DuRsConf> {
             info!("Success to load {} module.", M::id().to_string());
         }
     }
+}
+
+/// Load module conf and keys
+pub fn load_module_conf_and_keys<M: DuniterModule<DuRsConf, DuniterMessage>>(
+    module_conf_json: Option<serde_json::Value>,
+    keypairs: DuniterKeyPairs,
+) -> (M::ModuleConf, RequiredKeysContent) {
+    let module_conf = if let Some(module_conf_json) = module_conf_json {
+        serde_json::from_str(module_conf_json.to_string().as_str())
+            .unwrap_or_else(|_| panic!("Fail to parse conf of module {}", M::id().to_string()))
+    } else {
+        M::ModuleConf::default()
+    };
+    let required_keys =
+        DuniterKeyPairs::get_required_keys_content(M::ask_required_keys(), keypairs);
+
+    (module_conf, required_keys)
 }
 
 /// Match cli option --profile
