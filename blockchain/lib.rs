@@ -807,14 +807,7 @@ impl BlockchainModule {
                     current_blockstamp
                 );
             }
-            // Apply wot events
-            /*BlockchainModule::apply_wot_events(
-                &wot_events,
-                &wot_path,
-                &current_blockstamp,
-                &mut wot,
-                &mut wotb_index,
-            );*/        }
+        }
     }
 }
 

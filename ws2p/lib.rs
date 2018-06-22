@@ -201,17 +201,6 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
     fn ask_required_keys() -> RequiredKeys {
         RequiredKeys::NetworkKeyPair()
     }
-    /*fn default_conf() -> serde_json::Value {
-        json!({
-            "sync_peers": [{
-                "pubkey": "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx",
-                "ws2p_endpoints": ["WS2P c1c39a0a i3.ifee.fr 80 /ws2p"]
-            },{
-                "pubkey": "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef",
-                "ws2p_endpoints": ["WS2P b48824f0 g1.monnaielibreoccitanie.org 80 /ws2p"]
-            }]
-        })
-    }*/
     fn start(
         soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         keys: RequiredKeysContent,
@@ -742,64 +731,10 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
             {
                 last_ws2p_connections_print = SystemTime::now();
                 let mut connected_nodes = Vec::new();
-                let mut denial_nodes = Vec::new();
-                let mut disconnected_nodes = Vec::new();
-                let mut unreachable_nodes = Vec::new();
-                let mut ws_error_nodes = Vec::new();
                 for (k, (_ep, state)) in ws2p_module.ws2p_endpoints.clone() {
-                    match state {
-                        WS2PConnectionState::NeverTry => {
-                            //writeln!("Never try : {}", k);
-                        }
-                        WS2PConnectionState::TryToOpenWS => {}//writeln!("TryToOpenWS : {}", k),
-                        WS2PConnectionState::WSError => {
-                            ws_error_nodes.push(k);
-                        }
-                        WS2PConnectionState::TryToSendConnectMess => {
-                            //writeln!("TryToSendConnectMess : {}", k)
-                        }
-                        WS2PConnectionState::Unreachable => {
-                            unreachable_nodes.push(k);
-                        }
-                        WS2PConnectionState::WaitingConnectMess => {
-                            //writeln!("WaitingConnectMess : {}", k)
-                        }
-                        WS2PConnectionState::NoResponse => {}//writeln!("NoResponse : {}", k),
-                        WS2PConnectionState::AckMessOk
-                        | WS2PConnectionState::ConnectMessOk
-                        | WS2PConnectionState::OkMessOkWaitingAckMess => {
-                            //writeln!("Ongoing negotiations : {}", k)
-                        }
-                        WS2PConnectionState::Denial => {
-                            denial_nodes.push(k);
-                        }
-                        WS2PConnectionState::Established => {
-                            connected_nodes.push(k);
-                        }
-                        WS2PConnectionState::Close => {
-                            disconnected_nodes.push(k);
-                        }
+                    if let WS2PConnectionState::Established = state {
+                        connected_nodes.push(k);
                     }
-                }
-                /*writeln!(
-                                    "Connected with {} nodes. (Denial : {}, Disconnected : {}, Unreachable: {}, WSError : {})",
-                                    connected_nodes.len(),
-                                    denial_nodes.len(),
-                                    disconnected_nodes.len(),
-                                    unreachable_nodes.len(),
-                                    ws_error_nodes.len()
-                                );*/
-                for _node in connected_nodes.clone() {
-                    //writeln!("Connection established : {}", node);
-                }
-                for _node in denial_nodes {
-                    //writeln!("Denial : {}", node);
-                }
-                for _node in disconnected_nodes {
-                    //writeln!("Disconnected : {}", node);
-                }
-                for _node in unreachable_nodes {
-                    //writeln!("Unreachable : {}", node);
                 }
                 // Print network consensus
                 match ws2p_module.get_network_consensus() {
