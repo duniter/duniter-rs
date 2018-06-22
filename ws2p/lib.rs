@@ -219,7 +219,10 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
         rooter_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
         load_conf_only: bool,
     ) -> Result<(), ModuleInitError> {
+        // Get start time
         let start_time = SystemTime::now();
+
+        // Define WS2PModuleDatas
         let mut ws2p_module = WS2PModuleDatas {
             followers: Vec::new(),
             key_pair: None,

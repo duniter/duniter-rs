@@ -275,15 +275,10 @@ impl WS2PModuleDatas {
                     .1 = WS2PConnectionState::Close
             }
         }
-        let _result = self
-            .websockets
-            .get(&ws2p_full_id)
-            .expect("Try to close an unexistant websocket !")
-            .0
-            .close(ws::CloseCode::Normal);
-        self.websockets
-            .remove(ws2p_full_id)
-            .unwrap_or_else(|| panic!("Fatal error : no websocket for {} !", ws2p_full_id));
+        if let Some(websocket) = self.websockets.get(&ws2p_full_id) {
+            let _result = websocket.0.close(ws::CloseCode::Normal);
+        }
+        let _result = self.websockets.remove(ws2p_full_id);
     }
     pub fn ws2p_conn_message_pretreatment(&mut self, message: WS2PConnectionMessage) -> WS2PSignal {
         let ws2p_full_id = message.0;
