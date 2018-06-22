@@ -21,6 +21,7 @@ use duniter_message::DuniterMessage;
 use duniter_network::network_endpoint::*;
 use duniter_network::network_head::*;
 use duniter_network::*;
+use std::collections::HashSet;
 use std::sync::mpsc;
 use *;
 
@@ -29,7 +30,8 @@ pub struct WS2PModuleDatas {
     pub followers: Vec<mpsc::Sender<DuniterMessage>>,
     pub currency: Option<String>,
     pub key_pair: Option<KeyPairEnum>,
-    pub conf: Option<WS2PConf>,
+    pub conf: WS2PConf,
+    pub node_id: NodeUUID,
     pub main_thread_channel: (
         mpsc::Sender<WS2PThreadSignal>,
         mpsc::Receiver<WS2PThreadSignal>,
@@ -56,7 +58,7 @@ impl WS2PModuleDatas {
         }
         Ok(conn)
     }
-    pub fn parse_ws2p_conf(
+    /*pub fn parse_ws2p_conf(
         duniter_conf: &DuRsConf,
         ws2p_json_conf: &serde_json::Value,
     ) -> WS2PConf {
@@ -115,10 +117,9 @@ impl WS2PModuleDatas {
         };
         WS2PConf {
             outcoming_quota: *WS2P_DEFAULT_OUTCOMING_QUOTA,
-            node_id: NodeUUID(duniter_conf.my_node_id()),
             sync_endpoints,
         }
-    }
+    }*/
     pub fn send_dal_request(&self, req: &DALRequest) {
         for follower in &self.followers {
             if follower
@@ -191,22 +192,29 @@ impl WS2PModuleDatas {
     pub fn connect_to_know_endpoints(&mut self) -> () {
         info!("WS2P: connect to know endpoints...");
         let mut count_established_connections = 0;
+        let mut pubkeys = HashSet::new();
         let mut reachable_endpoints = Vec::new();
         let mut unreachable_endpoints = Vec::new();
         for (_ws2p_full_id, (ep, state)) in self.ws2p_endpoints.clone() {
-            match state {
-                WS2PConnectionState::Established => count_established_connections += 1,
-                WS2PConnectionState::NeverTry
-                | WS2PConnectionState::Close
-                | WS2PConnectionState::Denial => reachable_endpoints.push(ep),
-                _ => unreachable_endpoints.push(ep),
+            if ep.pubkey() == self.key_pair.unwrap().public_key() || !pubkeys.contains(&ep.pubkey())
+            {
+                match state {
+                    WS2PConnectionState::Established => count_established_connections += 1,
+                    WS2PConnectionState::NeverTry
+                    | WS2PConnectionState::Close
+                    | WS2PConnectionState::Denial => {
+                        pubkeys.insert(ep.pubkey());
+                        reachable_endpoints.push(ep);
+                    }
+                    _ => {
+                        pubkeys.insert(ep.pubkey());
+                        unreachable_endpoints.push(ep);
+                    }
+                }
             }
         }
-        let mut free_outcoming_rooms = self
-            .conf
-            .clone()
-            .expect("WS2P: Fail to get conf !")
-            .outcoming_quota - count_established_connections;
+        let mut free_outcoming_rooms =
+            self.conf.clone().outcoming_quota - count_established_connections;
         while free_outcoming_rooms > 0 {
             let ep = if !reachable_endpoints.is_empty() {
                 reachable_endpoints
@@ -251,12 +259,7 @@ impl WS2PModuleDatas {
                 );
             }
         };
-        if self
-            .conf
-            .clone()
-            .expect("WS2P: Fail to get conf !")
-            .outcoming_quota > self.count_established_connections()
-        {
+        if self.conf.clone().outcoming_quota > self.count_established_connections() {
             self.connect_to_without_checking_quotas(&endpoint);
         }
     }

@@ -24,6 +24,8 @@
 
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate serde_derive;
 
 extern crate crypto;
 extern crate duniter_crypto;
@@ -58,7 +60,7 @@ pub trait NetworkModule<DC: DuniterConf, M: ModuleMessage>: DuniterModule<DC, M>
     fn sync(
         soft_meta_datas: &SoftwareMetaDatas<DC>,
         keys: RequiredKeysContent,
-        module_conf: &serde_json::Value,
+        module_conf: <Self as DuniterModule<DC, M>>::ModuleConf,
         main_sender: mpsc::Sender<RooterThreadMessage<M>>,
         sync_endpoint: SyncEndpoint,
     ) -> Result<(), ModuleInitError>;
@@ -77,7 +79,7 @@ pub struct SyncEndpoint {
     pub tls: bool,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Random identifier with which several Duniter nodes with the same network keypair can be differentiated
 pub struct NodeUUID(pub u32);
 

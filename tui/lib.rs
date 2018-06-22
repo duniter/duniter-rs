@@ -25,6 +25,8 @@
 
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate serde_derive;
 
 extern crate duniter_conf;
 extern crate duniter_crypto;
@@ -33,7 +35,7 @@ extern crate duniter_documents;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
-extern crate serde_json;
+extern crate serde;
 extern crate termion;
 
 use duniter_conf::DuRsConf;
@@ -53,9 +55,15 @@ use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
 use termion::{clear, color, cursor, style};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Tui Module Configuration (For future use)
 pub struct TuiConf {}
+
+impl Default for TuiConf {
+    fn default() -> Self {
+        TuiConf {}
+    }
+}
 
 #[derive(Debug, Clone)]
 /// Format of messages received by the tui module
@@ -97,10 +105,6 @@ pub struct TuiModuleDatas {
 }
 
 impl TuiModuleDatas {
-    /// Parse tui configuration
-    fn parse_tui_conf(_json_conf: &serde_json::Value) -> TuiConf {
-        TuiConf {}
-    }
     /// Draw terminal
     fn draw_term<W: Write>(
         &self,
@@ -140,8 +144,9 @@ impl TuiModuleDatas {
         // Prepare HEADs screen
         let mut heads = heads_cache.values().collect::<Vec<&NetworkHead>>();
         heads.sort_unstable_by(|a, b| b.cmp(a));
-        let heads_index_max = if heads.len() > (h - 14) as usize {
-            heads.len() - (h - 14) as usize
+        let heads_window_size = h as isize - 8 - out_established_conns.len() as isize;
+        let heads_index_max = if heads_window_size > 0 && heads.len() > heads_window_size as usize {
+            heads.len() - heads_window_size as usize
         } else {
             0
         };
@@ -349,6 +354,8 @@ impl Default for TuiModule {
 }
 
 impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
+    type ModuleConf = TuiConf;
+
     fn id() -> ModuleId {
         ModuleId(String::from("tui"))
     }
@@ -358,20 +365,16 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
     fn ask_required_keys() -> RequiredKeys {
         RequiredKeys::None()
     }
-    fn default_conf() -> serde_json::Value {
-        serde_json::Value::default()
-    }
     fn start(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
-        module_conf: &serde_json::Value,
+        _conf: Self::ModuleConf,
         main_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
         load_conf_only: bool,
     ) -> Result<(), ModuleInitError> {
         let start_time = SystemTime::now(); //: DateTime<Utc> = Utc::now();
 
         // load conf
-        let _conf = TuiModuleDatas::parse_tui_conf(module_conf);
         if load_conf_only {
             return Ok(());
         }

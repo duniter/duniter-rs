@@ -25,10 +25,10 @@
 
 #[macro_use]
 extern crate lazy_static;
-
 #[macro_use]
 extern crate log;
-
+#[macro_use]
+extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
@@ -81,15 +81,43 @@ use ws::Message;
 use ws2p_connection::*;
 use ws2p_requests::network_request_to_json;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// WS2P Configuration
 pub struct WS2PConf {
-    /// Node unique identifier
-    pub node_id: NodeUUID,
     /// Limit of outcoming connections
     pub outcoming_quota: usize,
     /// Default WS2P endpoints provides by configuration file
     pub sync_endpoints: Vec<NetworkEndpoint>,
+}
+
+impl Default for WS2PConf {
+    fn default() -> Self {
+        WS2PConf {
+            outcoming_quota: *WS2P_DEFAULT_OUTCOMING_QUOTA,
+            sync_endpoints: vec![
+                NetworkEndpoint::parse_from_raw(
+                    "WS2P c1c39a0a g1-monit.librelois.fr 443 /ws2p",
+                    PubKey::Ed25519(
+                        ed25519::PublicKey::from_base58(
+                            "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx",
+                        ).unwrap(),
+                    ),
+                    0,
+                    0,
+                ).unwrap(),
+                NetworkEndpoint::parse_from_raw(
+                    "WS2P b48824f0 g1.monnaielibreoccitanie.org 443 /ws2p",
+                    PubKey::Ed25519(
+                        ed25519::PublicKey::from_base58(
+                            "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef",
+                        ).unwrap(),
+                    ),
+                    0,
+                    0,
+                ).unwrap(),
+            ],
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -151,7 +179,7 @@ impl NetworkModule<DuRsConf, DuniterMessage> for WS2PModule {
     fn sync(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
-        _module_conf: &serde_json::Value,
+        _conf: WS2PConf,
         _main_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
         _sync_endpoint: SyncEndpoint,
     ) -> Result<(), ModuleInitError> {
@@ -162,6 +190,8 @@ impl NetworkModule<DuRsConf, DuniterMessage> for WS2PModule {
 }
 
 impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
+    type ModuleConf = WS2PConf;
+
     fn id() -> ModuleId {
         ModuleId(String::from("ws2p"))
     }
@@ -171,7 +201,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
     fn ask_required_keys() -> RequiredKeys {
         RequiredKeys::NetworkKeyPair()
     }
-    fn default_conf() -> serde_json::Value {
+    /*fn default_conf() -> serde_json::Value {
         json!({
             "sync_peers": [{
                 "pubkey": "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx",
@@ -181,11 +211,11 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                 "ws2p_endpoints": ["WS2P b48824f0 g1.monnaielibreoccitanie.org 80 /ws2p"]
             }]
         })
-    }
+    }*/
     fn start(
         soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         keys: RequiredKeysContent,
-        module_conf: &serde_json::Value,
+        conf: WS2PConf,
         rooter_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
         load_conf_only: bool,
     ) -> Result<(), ModuleInitError> {
@@ -194,7 +224,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
             followers: Vec::new(),
             key_pair: None,
             currency: None,
-            conf: None,
+            conf,
+            node_id: NodeUUID(soft_meta_datas.conf.my_node_id()),
             main_thread_channel: mpsc::channel(),
             ws2p_endpoints: HashMap::new(),
             websockets: HashMap::new(),
@@ -209,9 +240,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
             RequiredKeysContent::NetworkKeyPair(key_pair) => key_pair,
             _ => panic!("WS2PModule fatal error at load_conf() : keys != NetworkKeyPair"),
         };
-        let conf = WS2PModuleDatas::parse_ws2p_conf(&soft_meta_datas.conf, module_conf);
         let mut ws2p_endpoints = HashMap::new();
-        for ep in conf.sync_endpoints.clone() {
+        for ep in ws2p_module.conf.sync_endpoints.clone() {
             ws2p_endpoints.insert(
                 ep.node_full_id()
                     .expect("Fail to get endpoint node_full_id"),
@@ -221,7 +251,6 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
         }
         ws2p_module.key_pair = Some(key_pair);
         ws2p_module.currency = Some(soft_meta_datas.conf.currency().to_string());
-        ws2p_module.conf = Some(conf.clone());
         ws2p_module.ws2p_endpoints = ws2p_endpoints;
 
         // Create ws2p main thread channel
@@ -326,7 +355,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                         if ws2p_module.my_head.is_none() {
                                             ws2p_module.my_head = Some(heads::generate_my_head(
                                                 &key_pair,
-                                                &conf.clone(),
+                                                NodeUUID(soft_meta_datas.conf.my_node_id()),
                                                 soft_meta_datas.soft_name,
                                                 soft_meta_datas.soft_version,
                                                 &current_blockstamp,
@@ -412,7 +441,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                     );
                                     ws2p_module.my_head = Some(heads::generate_my_head(
                                         &key_pair,
-                                        &conf.clone(),
+                                        NodeUUID(soft_meta_datas.conf.my_node_id()),
                                         soft_meta_datas.soft_name,
                                         soft_meta_datas.soft_version,
                                         &current_blockstamp,
@@ -465,7 +494,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                                 ws2p_module.my_head =
                                                     Some(heads::generate_my_head(
                                                         &key_pair,
-                                                        &conf.clone(),
+                                                        NodeUUID(soft_meta_datas.conf.my_node_id()),
                                                         soft_meta_datas.soft_name,
                                                         soft_meta_datas.soft_version,
                                                         &current_blockstamp,
@@ -788,7 +817,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                     current_blockstamp
                 );
                 // New WS2P connection wave
-                if connected_nodes.len() < ws2p_module.conf.clone().unwrap().outcoming_quota
+                if connected_nodes.len() < ws2p_module.conf.clone().outcoming_quota
                     && (SystemTime::now()
                         .duration_since(last_ws2p_connecting_wave)
                         .unwrap()
