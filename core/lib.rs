@@ -34,6 +34,7 @@ extern crate duniter_crypto;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
+extern crate log_panics;
 extern crate serde_json;
 extern crate simplelog;
 extern crate sqlite;
@@ -120,6 +121,9 @@ impl DuniterCore<DuRsConf> {
 
         // Init logger
         init_logger(profile.as_str(), soft_name, &cli_args);
+
+        // Print panic! in logs
+        log_panics::init();
 
         // Load global conf
         let (conf, keypairs) = duniter_conf::load_conf(profile.as_str());

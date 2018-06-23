@@ -58,68 +58,6 @@ impl WS2PModuleDatas {
         }
         Ok(conn)
     }
-    /*pub fn parse_ws2p_conf(
-        duniter_conf: &DuRsConf,
-        ws2p_json_conf: &serde_json::Value,
-    ) -> WS2PConf {
-        let mut sync_endpoints = Vec::new();
-        match ws2p_json_conf.get("sync_peers") {
-            Some(peers) => {
-                let array_peers = peers.as_array().expect("Conf: Fail to parse conf file !");
-                for peer in array_peers {
-                    let pubkey = match peer.get("pubkey") {
-                        Some(pubkey) => PubKey::Ed25519(
-                            ed25519::PublicKey::from_base58(
-                                pubkey
-                                    .as_str()
-                                    .expect("WS2PConf Error : fail to parse sync endpoint pubkey"),
-                            ).expect("WS2PConf Error : fail to parse sync endpoint pubkey"),
-                        ),
-                        None => panic!(
-                            "Fail to load ws2p conf : \
-                             WrongFormat : not found pubkey field !"
-                        ),
-                    };
-                    match peer.get("ws2p_endpoints") {
-                        Some(endpoints) => {
-                            let array_endpoints = endpoints
-                                .as_array()
-                                .expect("Conf: Fail to parse conf file !");
-                            for endpoint in array_endpoints {
-                                sync_endpoints.push(
-                                    NetworkEndpoint::parse_from_raw(
-                                        endpoint.as_str().expect("WS2P: Fail to get ep.as_str() !"),
-                                        pubkey,
-                                        0,
-                                        0,
-                                    ).unwrap_or_else(|| {
-                                        panic!(
-                                            "WS2PConf Error : fail to parse sync Endpoint = {:?}",
-                                            endpoint
-                                                .as_str()
-                                                .expect("WS2P: Fail to get ep.as_str() !")
-                                        )
-                                    }),
-                                );
-                            }
-                        }
-                        None => panic!(
-                            "Fail to load conf : \
-                             WrongFormat : not found ws2p_endpoints field !"
-                        ),
-                    };
-                }
-            }
-            None => panic!(
-                "Configuration Error : \
-                 You must declare at least one node on which to synchronize !"
-            ),
-        };
-        WS2PConf {
-            outcoming_quota: *WS2P_DEFAULT_OUTCOMING_QUOTA,
-            sync_endpoints,
-        }
-    }*/
     pub fn send_dal_request(&self, req: &DALRequest) {
         for follower in &self.followers {
             if follower
@@ -275,15 +213,10 @@ impl WS2PModuleDatas {
                     .1 = WS2PConnectionState::Close
             }
         }
-        let _result = self
-            .websockets
-            .get(&ws2p_full_id)
-            .expect("Try to close an unexistant websocket !")
-            .0
-            .close(ws::CloseCode::Normal);
-        self.websockets
-            .remove(ws2p_full_id)
-            .unwrap_or_else(|| panic!("Fatal error : no websocket for {} !", ws2p_full_id));
+        if let Some(websocket) = self.websockets.get(&ws2p_full_id) {
+            let _result = websocket.0.close(ws::CloseCode::Normal);
+        }
+        let _result = self.websockets.remove(ws2p_full_id);
     }
     pub fn ws2p_conn_message_pretreatment(&mut self, message: WS2PConnectionMessage) -> WS2PSignal {
         let ws2p_full_id = message.0;

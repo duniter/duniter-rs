@@ -337,28 +337,6 @@ pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuRsConf, Du
             let mut contents = String::new();
             if f.read_to_string(&mut contents).is_ok() {
                 conf = serde_json::from_str(&contents).expect("Conf: Fail to parse conf file !");
-                /*let json_conf: serde_json::Value =
-                    serde_json::from_str(&contents).expect("Conf: Fail to parse conf file !");
-                if let Some(currency) = json_conf.get("currency") {
-                    conf.currency = Currency::Str(
-                        currency
-                            .as_str()
-                            .expect("Conf: fail to parse currency field !")
-                            .to_string(),
-                    );
-                };
-                if let Some(node_id) = json_conf.get("node_id") {
-                    conf.my_node_id =
-                        u32::from_str_radix(
-                            node_id
-                                .as_str()
-                                .expect("Conf : fail to parse node_id field !"),
-                            16,
-                        ).expect("Fail to load conf: node_id must be an hexadecimal number !");
-                };
-                if let Some(modules_conf) = json_conf.get("modules") {
-                    conf.modules = modules_conf.clone();
-                };*/
             }
         } else {
             panic!("Fail to open conf file !");
@@ -400,22 +378,6 @@ pub fn write_conf_file<DC: DuniterConf>(profile: &str, conf: &DC) -> Result<(), 
             .as_bytes(),
     )?;
     f.sync_all()?;
-    /*match *conf {
-        DuRsConf::V1(ref conf_v1) => {
-            let mut f = try!(File::create(conf_path.as_path()));
-            try!(
-                f.write_all(
-                    serde_json::to_string_pretty(conf_v1)
-                        .expect("Fatal error : fail to write default conf file !")
-                        .as_bytes()
-                )
-            );
-            try!(f.sync_all());
-        }
-        _ => {
-            panic!("Fatal error : Conf version is not supported !");
-        }
-    }*/
     Ok(())
 }
 

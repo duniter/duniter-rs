@@ -322,9 +322,6 @@ impl TuiModuleDatas {
             "{:02}:{:02}:{:02}",
             runtime_hours, runtime_mins, runtime_secs
         );
-        /*DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(runtime_in_secs, 0), Utc)
-                .format("%H:%M:%S")
-                .to_string();*/
         write!(
             stdout,
             "{}{}{}runtime : {}",

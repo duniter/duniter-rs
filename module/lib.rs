@@ -64,19 +64,6 @@ impl ToString for ModuleId {
     }
 }
 
-/*impl Serialize for ModuleId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let module_id_string = match *self {
-            ModuleId::Str(module_id_str) => String::from(module_id_str),
-            ModuleId::Bin(_) => panic!("ModuleId binary format is not implemented !"),
-        };
-        serializer.serialize_str(module_id_string.as_str())
-    }
-}*/
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// Identifier of an inter-module request
 pub struct ModuleReqId(pub u32);
@@ -100,15 +87,6 @@ impl ToString for ModuleReqFullId {
         format!("{}-{}", self.0.to_string(), (self.1).0)
     }
 }
-
-/*impl Serialize for ModuleReqFullId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&format!("{}-{}",  self.0.to_string(), (self.1).0))
-    }
-}*/
 
 /// Duniter configuration
 pub trait DuniterConf: Clone + Debug + Default + PartialEq + Serialize + DeserializeOwned {
