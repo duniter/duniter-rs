@@ -128,6 +128,7 @@ package:test:linux-x64:
   except:
       - tags
   when: manual
+  allow_failure: false
 
 package:prod:linux-x64:
   <<: *rust_stable_env
