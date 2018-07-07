@@ -16,6 +16,7 @@
 //! Crate containing Duniter-rust core.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
+#![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
 #![deny(
     missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
     trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
@@ -40,14 +41,17 @@ extern crate simplelog;
 extern crate sqlite;
 extern crate threadpool;
 
+pub mod change_conf;
+
 use clap::{App, ArgMatches};
 use duniter_blockchain::{BlockchainModule, DBExQuery, DBExTxQuery, DBExWotQuery};
-pub use duniter_conf::{DuRsConf, DuniterKeyPairs};
+pub use duniter_conf::{ChangeGlobalConf, DuRsConf, DuniterKeyPairs};
 use duniter_message::DuniterMessage;
 use duniter_module::*;
 use duniter_network::{NetworkModule, SyncEndpoint};
 use log::Level;
 use simplelog::*;
+use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::fs::{File, OpenOptions};
@@ -63,6 +67,8 @@ pub enum UserCommand {
     Start(),
     /// Sync (SyncEndpoint)
     Sync(SyncEndpoint),
+    /// List modules
+    ListModules(HashSet<ModulesFilter>),
     /// Other command
     Other(),
 }
@@ -137,7 +143,46 @@ impl DuniterCore<DuRsConf> {
             conf: conf.clone(),
         };
 
-        if let Some(_matches) = cli_args.subcommand_matches("start") {
+        /*
+         * COMMAND LINE PROCESSING
+         */
+        if let Some(matches) = cli_args.subcommand_matches("disable") {
+            let module_name = matches
+                .value_of("MODULE_NAME")
+                .expect("disable: you must enter a module name !")
+                .to_string();
+            change_conf::change_global_conf(
+                &profile,
+                conf,
+                ChangeGlobalConf::DisableModule(ModuleId(module_name)),
+            );
+            None
+        } else if let Some(matches) = cli_args.subcommand_matches("enable") {
+            let module_name = matches
+                .value_of("MODULE_NAME")
+                .expect("enable: you must enter a module name !")
+                .to_string();
+            change_conf::change_global_conf(
+                &profile,
+                conf,
+                ChangeGlobalConf::EnableModule(ModuleId(module_name)),
+            );
+            None
+        } else if let Some(matches) = cli_args.subcommand_matches("modules") {
+            let mut filters = HashSet::new();
+            if matches.is_present("disabled") {
+                filters.insert(ModulesFilter::Enabled(false));
+            } else if matches.is_present("enabled") {
+                filters.insert(ModulesFilter::Enabled(true));
+            }
+            if matches.is_present("network") {
+                filters.insert(ModulesFilter::Network());
+            }
+            if matches.is_present("secret") {
+                filters.insert(ModulesFilter::RequireMemberPrivKey());
+            }
+            Some(list_modules(soft_meta_datas, keypairs, filters))
+        } else if let Some(_matches) = cli_args.subcommand_matches("start") {
             Some(start(
                 soft_meta_datas,
                 keypairs,
@@ -312,77 +357,109 @@ impl DuniterCore<DuRsConf> {
     }
     /// Plug a network module
     pub fn plug_network<NM: NetworkModule<DuRsConf, DuniterMessage>>(&mut self) {
-        if let UserCommand::Start() = self.user_command {
-            self.network_modules_count += 1;
-            self.plug::<NM>();
-        } else if let UserCommand::Sync(ref sync_endpoint) = self.user_command {
-            self.network_modules_count += 1;
-            // Start module in a new thread
-            let rooter_sender = self.rooter_sender.clone();
-            let soft_meta_datas = self.soft_meta_datas.clone();
-            let module_conf_json = self
-                .soft_meta_datas
-                .conf
-                .clone()
-                .modules()
-                .get(&NM::id().to_string().as_str())
-                .cloned();
-            let keypairs = self.keypairs;
-            let sync_endpoint = sync_endpoint.clone();
-            self.thread_pool.execute(move || {
-                // Load module conf and keys
-                let (module_conf, required_keys) =
-                    load_module_conf_and_keys::<NM>(module_conf_json, keypairs);
-                NM::sync(
-                    &soft_meta_datas,
-                    required_keys,
-                    module_conf,
-                    rooter_sender,
-                    sync_endpoint,
-                ).unwrap_or_else(|_| {
-                    panic!(
-                        "Fatal error : fail to load {} Module !",
-                        NM::id().to_string()
-                    )
+        let enabled = enabled::<DuRsConf, DuniterMessage, NM>(&self.soft_meta_datas.conf);
+        if enabled {
+            if let UserCommand::Start() = self.user_command {
+                self.network_modules_count += 1;
+                self.plug::<NM>();
+            } else if let UserCommand::Sync(ref sync_endpoint) = self.user_command {
+                self.network_modules_count += 1;
+                // Start module in a new thread
+                let rooter_sender = self.rooter_sender.clone();
+                let soft_meta_datas = self.soft_meta_datas.clone();
+                let module_conf_json = self
+                    .soft_meta_datas
+                    .conf
+                    .clone()
+                    .modules()
+                    .get(&NM::id().to_string().as_str())
+                    .cloned();
+                let keypairs = self.keypairs;
+                let sync_endpoint = sync_endpoint.clone();
+                self.thread_pool.execute(move || {
+                    // Load module conf and keys
+                    let (module_conf, required_keys) =
+                        load_module_conf_and_keys::<NM>(module_conf_json, keypairs);
+                    NM::sync(
+                        &soft_meta_datas,
+                        required_keys,
+                        module_conf,
+                        rooter_sender,
+                        sync_endpoint,
+                    ).unwrap_or_else(|_| {
+                        panic!(
+                            "Fatal error : fail to load {} Module !",
+                            NM::id().to_string()
+                        )
+                    });
                 });
-            });
-            self.modules_count += 1;
-            info!("Success to load {} module.", NM::id().to_string());
+                self.modules_count += 1;
+                info!("Success to load {} module.", NM::id().to_string());
+            }
+        }
+        if let UserCommand::ListModules(ref filters) = self.user_command {
+            if module_valid_filters::<DuRsConf, DuniterMessage, NM>(
+                &self.soft_meta_datas.conf,
+                filters,
+                true,
+            ) {
+                if enabled {
+                    println!("{}", NM::id().to_string());
+                } else {
+                    println!("{} (disabled)", NM::id().to_string());
+                }
+            }
         }
     }
     /// Plug a module
     pub fn plug<M: DuniterModule<DuRsConf, DuniterMessage>>(&mut self) {
-        if let UserCommand::Start() = self.user_command {
-            // Start module in a new thread
-            let rooter_sender_clone = self.rooter_sender.clone();
-            let soft_meta_datas = self.soft_meta_datas.clone();
-            let module_conf_json = self
-                .soft_meta_datas
-                .conf
-                .clone()
-                .modules()
-                .get(&M::id().to_string().as_str())
-                .cloned();
-            let keypairs = self.keypairs;
-            self.thread_pool.execute(move || {
-                // Load module conf and keys
-                let (module_conf, required_keys) =
-                    load_module_conf_and_keys::<M>(module_conf_json, keypairs);
-                M::start(
-                    &soft_meta_datas,
-                    required_keys,
-                    module_conf,
-                    rooter_sender_clone,
-                    false,
-                ).unwrap_or_else(|_| {
-                    panic!(
-                        "Fatal error : fail to load {} Module !",
-                        M::id().to_string()
-                    )
+        let enabled = enabled::<DuRsConf, DuniterMessage, M>(&self.soft_meta_datas.conf);
+        if enabled {
+            if let UserCommand::Start() = self.user_command {
+                // Start module in a new thread
+                let rooter_sender_clone = self.rooter_sender.clone();
+                let soft_meta_datas = self.soft_meta_datas.clone();
+                let module_conf_json = self
+                    .soft_meta_datas
+                    .conf
+                    .clone()
+                    .modules()
+                    .get(&M::id().to_string().as_str())
+                    .cloned();
+                let keypairs = self.keypairs;
+                self.thread_pool.execute(move || {
+                    // Load module conf and keys
+                    let (module_conf, required_keys) =
+                        load_module_conf_and_keys::<M>(module_conf_json, keypairs);
+                    M::start(
+                        &soft_meta_datas,
+                        required_keys,
+                        module_conf,
+                        rooter_sender_clone,
+                        false,
+                    ).unwrap_or_else(|_| {
+                        panic!(
+                            "Fatal error : fail to load {} Module !",
+                            M::id().to_string()
+                        )
+                    });
                 });
-            });
-            self.modules_count += 1;
-            info!("Success to load {} module.", M::id().to_string());
+                self.modules_count += 1;
+                info!("Success to load {} module.", M::id().to_string());
+            }
+        }
+        if let UserCommand::ListModules(ref filters) = self.user_command {
+            if module_valid_filters::<DuRsConf, DuniterMessage, M>(
+                &self.soft_meta_datas.conf,
+                filters,
+                false,
+            ) {
+                if enabled {
+                    println!("{}", M::id().to_string());
+                } else {
+                    println!("{} (disabled)", M::id().to_string());
+                }
+            }
         }
     }
 }
@@ -407,6 +484,28 @@ pub fn load_module_conf_and_keys<M: DuniterModule<DuRsConf, DuniterMessage>>(
 /// Match cli option --profile
 pub fn match_profile(cli_args: &ArgMatches) -> String {
     String::from(cli_args.value_of("profile").unwrap_or("default"))
+}
+
+/// List modules
+pub fn list_modules<DC: DuniterConf>(
+    soft_meta_datas: SoftwareMetaDatas<DC>,
+    keypairs: DuniterKeyPairs,
+    modules_filter: HashSet<ModulesFilter>,
+) -> DuniterCore<DC> {
+    // Start rooter thread
+    let rooter_sender = start_rooter::<DC>(0, vec![]);
+
+    // Instanciate DuniterCore
+    DuniterCore {
+        user_command: UserCommand::ListModules(modules_filter),
+        soft_meta_datas,
+        keypairs,
+        run_duration_in_secs: 0,
+        rooter_sender,
+        modules_count: 0,
+        network_modules_count: 0,
+        thread_pool: ThreadPool::new(2),
+    }
 }
 
 /// Start rooter thread

@@ -33,6 +33,7 @@ extern crate serde_json;
 use duniter_crypto::keys::{KeyPair, KeyPairEnum};
 use serde::de::DeserializeOwned;
 use serde::ser::{Serialize, Serializer};
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::sync::mpsc;
 
@@ -98,10 +99,14 @@ pub trait DuniterConf: Clone + Debug + Default + PartialEq + Serialize + Deseria
     fn set_currency(&mut self, new_currency: Currency);
     /// Get node id
     fn my_node_id(&self) -> u32;
+    /// Disable a module
+    fn disable(&mut self, module: ModuleId);
+    /// Enable a module
+    fn enable(&mut self, module: ModuleId);
     /// Get disabled modules
-    fn disabled_modules(&self) -> Vec<ModuleId>;
+    fn disabled_modules(&self) -> HashSet<ModuleId>;
     /// Get enabled modules
-    fn enabled_modules(&self) -> Vec<ModuleId>;
+    fn enabled_modules(&self) -> HashSet<ModuleId>;
     /// Get modules conf
     fn modules(&self) -> serde_json::Value;
 }
@@ -180,6 +185,54 @@ pub enum ModulePriority {
     Recommended(),
     /// This module is disabled by default, it must be explicitly enabled by the user.
     Optional(),
+}
+
+/// Determines if a module is activated or not
+pub fn enabled<DC: DuniterConf, Mess: ModuleMessage, M: DuniterModule<DC, Mess>>(
+    conf: &DC,
+) -> bool {
+    let disabled_modules = conf.disabled_modules();
+    let enabled_modules = conf.enabled_modules();
+    match M::priority() {
+        ModulePriority::Essential() => true,
+        ModulePriority::Recommended() => !disabled_modules.contains(&M::id()),
+        ModulePriority::Optional() => enabled_modules.contains(&M::id()),
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+/// Modules filter
+/// If bool = false, the meaning of the filter is reversed.
+pub enum ModulesFilter {
+    /// Enabled modules
+    Enabled(bool),
+    /// Network modules
+    Network(),
+    /// Modules that require member private key
+    RequireMemberPrivKey(),
+}
+
+/// Returns true only if the module checks all filters
+pub fn module_valid_filters<DC: DuniterConf, Mess: ModuleMessage, M: DuniterModule<DC, Mess>>(
+    conf: &DC,
+    filters: &HashSet<ModulesFilter>,
+    network_module: bool,
+) -> bool {
+    if filters.contains(&ModulesFilter::Network()) && !network_module {
+        return false;
+    }
+    if filters.contains(&ModulesFilter::RequireMemberPrivKey())
+        && M::ask_required_keys() != RequiredKeys::MemberKeyPair()
+    {
+        return false;
+    }
+    if filters.contains(&ModulesFilter::Enabled(true)) && !enabled::<DC, Mess, M>(conf) {
+        return false;
+    }
+    if filters.contains(&ModulesFilter::Enabled(false)) && enabled::<DC, Mess, M>(conf) {
+        return false;
+    }
+    true
 }
 
 /// All Duniter-rs modules must implement this trait.

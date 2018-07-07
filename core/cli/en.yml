@@ -23,6 +23,45 @@ args:
           debug : print a lot of debug informations\n
           trace : print all traces (highly verbose)"
 subcommands:
+    - enable:
+        about: Enable some module
+        version: "0.1.0"
+        author: Elois L. <elois@duniter.org>
+        args:
+            - MODULE_NAME:
+                help: The module name to enable
+                index: 1
+                required: true
+    - disable:
+        about: Disable some module
+        version: "0.1.0"
+        author: Elois L. <elois@duniter.org>
+        args:
+            - MODULE_NAME:
+                help: The module name to disable
+                index: 1
+                required: true
+    - modules:
+        about: list module
+        version: "0.1.0"
+        author: Elois L. <elois@duniter.org>
+        args:
+            - disabled:
+                short: d
+                long: disabled
+                help: list only disabled modules
+            - enabled:
+                short: e
+                long: enabled
+                help: list only enabled modules
+            - network:
+                short: n
+                long: network
+                help: list only network modules
+            - secret:
+                short: s
+                long: secret
+                help: list only modules having access to the secret member key
     - start:
         about: start duniter server
         version: "0.1.0"
