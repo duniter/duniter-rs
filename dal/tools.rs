@@ -1,3 +1,18 @@
+//  Copyright (C) 2018  The Duniter Project Developers.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 extern crate duniter_wotb;
 
 use duniter_wotb::operations::centrality::{
@@ -6,14 +21,16 @@ use duniter_wotb::operations::centrality::{
 use duniter_wotb::operations::distance::{
     DistanceCalculator, RustyDistanceCalculator, WotDistance, WotDistanceParameters,
 };
-use duniter_wotb::operations::path::{PathFinder, RustyPathFinder};
 use duniter_wotb::{NodeId, WebOfTrust};
 
+/// CENTRALITY_CALCULATOR
 pub static CENTRALITY_CALCULATOR: UlrikBrandesCentralityCalculator =
     UlrikBrandesCentralityCalculator {};
-pub static DISTANCE_CALCULATOR: RustyDistanceCalculator = RustyDistanceCalculator {};
-pub static PATH_FINDER: RustyPathFinder = RustyPathFinder {};
 
+/// DISTANCE_CALCULATOR
+pub static DISTANCE_CALCULATOR: RustyDistanceCalculator = RustyDistanceCalculator {};
+
+/// Get sentry requirement
 pub fn get_sentry_requirement(members_count: usize, step_max: u32) -> u32 {
     match step_max {
         5 => {
@@ -21,20 +38,49 @@ pub fn get_sentry_requirement(members_count: usize, step_max: u32) -> u32 {
                 2
             } else if members_count < 244 {
                 3
-            } else if members_count < 1025 {
+            } else if members_count < 1_025 {
                 4
-            } else if members_count < 3126 {
+            } else if members_count < 3_126 {
                 5
-            } else if members_count < 7777 {
+            } else if members_count < 7_777 {
                 6
+            } else if members_count < 16_808 {
+                7
+            } else if members_count < 32_769 {
+                8
+            } else if members_count < 59_050 {
+                9
+            } else if members_count < 100_001 {
+                10
+            } else if members_count < 100_001 {
+                11
+            } else if members_count < 161_052 {
+                12
+            } else if members_count < 248_833 {
+                13
+            } else if members_count < 371_294 {
+                14
+            } else if members_count < 537_825 {
+                15
+            } else if members_count < 759_376 {
+                16
+            } else if members_count < 1_048_577 {
+                17
+            } else if members_count < 1_419_858 {
+                18
+            } else if members_count < 1_889_569 {
+                19
             } else {
-                panic!("get_sentry_requirement not define for members_count greater than 7777 !");
+                panic!(
+                    "get_sentry_requirement not define for members_count greater than 1_889_569 !"
+                );
             }
         }
         _ => panic!("get_sentry_requirement not define for step_max != 5 !"),
     }
 }
 
+/// Compute average density
 pub fn calculate_average_density<T: WebOfTrust>(wot: &T) -> usize {
     let enabled_members = wot.get_enabled();
     let enabled_members_count = enabled_members.len();
@@ -47,6 +93,7 @@ pub fn calculate_average_density<T: WebOfTrust>(wot: &T) -> usize {
     ((count_actives_links as f32 / enabled_members_count as f32) * 1_000.0) as usize
 }
 
+/// Compute distances
 pub fn compute_distances<T: WebOfTrust + Sync>(
     wot: &T,
     sentry_requirement: u32,
@@ -91,49 +138,7 @@ pub fn compute_distances<T: WebOfTrust + Sync>(
     )
 }
 
+/// Compute distance stress centralities
 pub fn calculate_distance_stress_centralities<T: WebOfTrust>(wot: &T, step_max: u32) -> Vec<u64> {
     CENTRALITY_CALCULATOR.distance_stress_centralities(wot, step_max as usize)
-}
-
-pub fn calculate_centralities_degree<T: WebOfTrust>(wot: &T, step_max: u32) -> Vec<usize> {
-    let wot_size = wot.size();
-    let members_count = wot.get_enabled().len() as u64;
-    let oriented_couples_count: u64 = members_count * (members_count - 1);
-    let mut centralities: Vec<u64> = vec![0; wot_size];
-    for i in 0..wot_size {
-        for j in 0..wot_size {
-            let mut paths = PATH_FINDER.find_paths(wot, NodeId(i), NodeId(j), step_max);
-            if paths.is_empty() {
-                break;
-            }
-            //paths.sort_unstable_by(|a, b| a.len().cmp(&b.len()));
-            let shortest_path_len = paths[0].len();
-            let mut intermediate_members: Vec<NodeId> = Vec::new();
-            if shortest_path_len > 2 {
-                for path in paths {
-                    //if path.len() == shortest_path_len {
-                    for node_id in &path {
-                        if !intermediate_members.contains(node_id) {
-                            intermediate_members.push(*node_id);
-                        }
-                    }
-                    /*} else {
-                        break;
-                    }*/
-                }
-            }
-            let centralities_copy = centralities.clone();
-            for node_id in intermediate_members {
-                let centrality = &centralities_copy[node_id.0];
-                if let Some(tmp) = centralities.get_mut(node_id.0) {
-                    *tmp = *centrality + 1;
-                }
-            }
-        }
-    }
-    let mut relative_centralities = Vec::with_capacity(wot_size);
-    for centrality in centralities {
-        relative_centralities.push((centrality * 100_000 / oriented_couples_count) as usize);
-    }
-    relative_centralities
 }

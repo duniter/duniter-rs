@@ -1,3 +1,18 @@
+//  Copyright (C) 2018  The Duniter Project Developers.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 extern crate rustbreak;
 extern crate serde;
 
@@ -11,9 +26,13 @@ use std::collections::HashMap;
 use *;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+/// A block as it is saved in a database
 pub struct DALBlock {
+    /// Fork id
     pub fork_id: ForkId,
+    /// True only if the block is on an isolated fork
     pub isolate: bool,
+    /// Block document
     pub block: BlockDocument,
     /// List of certifications that expire in this block.
     /// Warning : BlockId contain the emission block, not the written block !
@@ -22,11 +41,13 @@ pub struct DALBlock {
 }
 
 impl DALBlock {
+    /// Get blockstamp
     pub fn blockstamp(&self) -> Blockstamp {
         self.block.blockstamp()
     }
 }
 
+///Get forks status
 pub fn get_forks(
     forks_db: &BinFileDB<ForksV10Datas>,
     current_blockstamp: Blockstamp,
@@ -82,7 +103,7 @@ pub fn get_forks(
         forks
     })?)
 }
-
+/// get current blockstamp
 pub fn get_current_blockstamp(blocks_db: &BlocksV10DBs) -> Result<Option<Blockstamp>, DALError> {
     let current_previous_blockstamp = blocks_db.blockchain_db.read(|db| {
         let blockchain_len = db.len() as u32;
@@ -137,6 +158,7 @@ pub fn get_fork_id_of_blockstamp(
 }
 
 impl DALBlock {
+    /// Delete fork
     pub fn delete_fork(
         forks_db: &BinFileDB<ForksV10Datas>,
         forks_blocks_db: &BinFileDB<ForksBlocksV10Datas>,
@@ -161,6 +183,7 @@ impl DALBlock {
         })?;
         Ok(())
     }
+    /// Assign fork id to new block
     pub fn assign_fork_to_new_block(
         forks_db: &BinFileDB<ForksV10Datas>,
         new_block_previous_blockstamp: &PreviousBlockstamp,
@@ -207,6 +230,7 @@ impl DALBlock {
         })?;
         Ok((Some(new_fork_id), true))
     }
+    /// Get fork block
     pub fn get_block_fork(
         forks_db: &BinFileDB<ForksV10Datas>,
         previous_blockstamp: &PreviousBlockstamp,
@@ -220,6 +244,7 @@ impl DALBlock {
             None
         })?)
     }
+    /// Get block hash
     pub fn get_block_hash(
         db: &BinFileDB<LocalBlockchainV10Datas>,
         block_number: BlockId,
@@ -232,7 +257,7 @@ impl DALBlock {
             }
         })?)
     }
-
+    /// Return true if the node already knows this block
     pub fn already_have_block(
         blockchain_db: &BinFileDB<LocalBlockchainV10Datas>,
         forks_blocks_db: &BinFileDB<ForksBlocksV10Datas>,
@@ -252,7 +277,7 @@ impl DALBlock {
             Ok(true)
         }
     }
-
+    /// Get stackables blocks
     pub fn get_stackables_blocks(
         forks_db: &BinFileDB<ForksV10Datas>,
         forks_blocks_db: &BinFileDB<ForksBlocksV10Datas>,
@@ -282,6 +307,7 @@ impl DALBlock {
         })?;
         Ok(stackables_blocks)
     }
+    /// Get stackables forks
     pub fn get_stackables_forks(
         db: &BinFileDB<ForksV10Datas>,
         current_blockstamp: &Blockstamp,
@@ -298,6 +324,7 @@ impl DALBlock {
             stackables_forks
         })?)
     }
+    /// Get block
     pub fn get_block(
         blockchain_db: &BinFileDB<LocalBlockchainV10Datas>,
         forks_blocks_db: Option<&BinFileDB<ForksBlocksV10Datas>>,
@@ -312,7 +339,7 @@ impl DALBlock {
             Ok(dal_block)
         }
     }
-
+    /// Get block in local blockchain
     pub fn get_block_in_local_blockchain(
         db: &BinFileDB<LocalBlockchainV10Datas>,
         block_id: BlockId,
@@ -325,7 +352,7 @@ impl DALBlock {
             }
         })?)
     }
-
+    /// Get current frame of calculating members
     pub fn get_current_frame(
         &self,
         db: &BinFileDB<LocalBlockchainV10Datas>,
@@ -350,7 +377,7 @@ impl DALBlock {
             current_frame
         })?)
     }
-
+    /// Compute median issuers frame
     pub fn compute_median_issuers_frame(&mut self, db: &BinFileDB<LocalBlockchainV10Datas>) -> () {
         let current_frame = self
             .get_current_frame(db)

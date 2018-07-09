@@ -23,6 +23,7 @@ use std::cmp::Ordering;
 use std::ops::{Add, Sub};
 
 #[derive(Copy, Clone, Debug, Deserialize, Eq, Hash, PartialEq, PartialOrd, Serialize)]
+/// Source amount
 pub struct SourceAmount(pub TxAmount, pub TxBase);
 
 impl Default for SourceAmount {
@@ -64,35 +65,45 @@ impl Sub for SourceAmount {
 }
 
 #[derive(Copy, Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+/// UTXOIndexV10
 pub struct UTXOIndexV10(pub Hash, pub TxIndex);
 
+/// UTXO content V10
 pub type UTXOContentV10 = TransactionOutput;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+/// V10 Unused Transaction Output
 pub struct UTXOV10(pub UTXOIndexV10, pub UTXOContentV10);
 
 impl UTXOV10 {
+    /// UTXO conditions
     pub fn get_conditions(&self) -> UTXOConditionsGroup {
         self.1.conditions.conditions.clone()
     }
+    /// UTXO amount
     pub fn get_amount(&self) -> SourceAmount {
         SourceAmount(self.1.amount, self.1.base)
     }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+/// Unused Transaction Output
 pub enum UTXO {
+    /// V10
     V10(UTXOV10),
+    /// V11
     V11(),
 }
 
 impl UTXO {
+    /// UTXO conditions
     pub fn get_conditions(&self) -> UTXOConditionsGroup {
         match *self {
             UTXO::V10(ref utxo_v10) => utxo_v10.get_conditions(),
             _ => panic!("UTXO version not supported !"),
         }
     }
+    /// UTXO amount
     pub fn get_amount(&self) -> SourceAmount {
         match *self {
             UTXO::V10(ref utxo_v10) => utxo_v10.get_amount(),
@@ -102,7 +113,10 @@ impl UTXO {
 }
 
 #[derive(Copy, Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+/// Index of a V10 source
 pub enum SourceIndexV10 {
+    /// unused Transaction Output
     UTXO(UTXOIndexV10),
-    DU(PubKey, BlockId),
+    /// universal Dividend
+    UD(PubKey, BlockId),
 }

@@ -20,8 +20,11 @@ use std::fmt::Debug;
 use *;
 
 #[derive(Debug, Copy, Clone)]
+/// Transaction error
 pub enum TxError {
+    /// UnkonwError
     UnkonwError(),
+    /// DALError
     DALError(DALError),
 }
 
@@ -32,11 +35,15 @@ impl From<DALError> for TxError {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+/// DAL Transaction V10
 pub struct DALTxV10 {
+    /// Transaction document
     pub tx_doc: TransactionDocument,
+    /// Index of sources destroyed by this transaction
     pub sources_destroyed: HashSet<UTXOIndexV10>,
 }
 
+/// Apply transaction backwards
 pub fn revert_tx<B: Backend + Debug>(
     dbs: &CurrencyV10DBs<B>,
     dal_tx: &DALTxV10,
@@ -132,7 +139,7 @@ pub fn revert_tx<B: Backend + Debug>(
         .iter()
         .map(|input| match *input {
             TransactionInput::D(tx_amout, tx_amout_base, pubkey, block_id) => (
-                SourceIndexV10::DU(pubkey, block_id),
+                SourceIndexV10::UD(pubkey, block_id),
                 SourceAmount(tx_amout, tx_amout_base),
             ),
             TransactionInput::T(tx_amout, tx_amout_base, hash, tx_index) => (
@@ -165,7 +172,7 @@ pub fn revert_tx<B: Backend + Debug>(
                     utxos_index.insert(*utxo_index);
                     // Write new balances datas for "conditions" address
                     recreated_adress.insert(conditions.clone(), (balance, utxos_index));
-                } else if let SourceIndexV10::DU(pubkey, _block_id) = source_index {
+                } else if let SourceIndexV10::UD(pubkey, _block_id) = source_index {
                     let address =
                         UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(*pubkey));
                     let (mut balance, utxos_index) =
@@ -221,7 +228,7 @@ pub fn revert_tx<B: Backend + Debug>(
             dbs.utxos_db.write(|db| {
                 db.insert(*utxo_index, utxo_content);
             })?;
-        } else if let SourceIndexV10::DU(pubkey, block_id) = s_index {
+        } else if let SourceIndexV10::UD(pubkey, block_id) = s_index {
             let mut pubkey_dus: HashSet<BlockId> = dbs
                 .du_db
                 .read(|db| db.get(&pubkey).cloned().unwrap_or_default())?;
@@ -234,6 +241,7 @@ pub fn revert_tx<B: Backend + Debug>(
     Ok(())
 }
 
+/// Apply and write transaction in databases
 pub fn apply_and_write_tx<B: Backend + Debug>(
     dbs: &CurrencyV10DBs<B>,
     tx_doc: &TransactionDocument,
@@ -247,7 +255,7 @@ pub fn apply_and_write_tx<B: Backend + Debug>(
         .iter()
         .map(|input| match *input {
             TransactionInput::D(tx_amout, tx_amout_base, pubkey, block_id) => (
-                SourceIndexV10::DU(pubkey, block_id),
+                SourceIndexV10::UD(pubkey, block_id),
                 SourceAmount(tx_amout, tx_amout_base),
             ),
             TransactionInput::T(tx_amout, tx_amout_base, hash, tx_index) => (
@@ -281,7 +289,7 @@ pub fn apply_and_write_tx<B: Backend + Debug>(
                     utxos_index.insert(*utxo_index);
                     // Write new balances datas for "conditions" address
                     consumed_adress.insert(conditions.clone(), (balance, utxos_index));
-                } else if let SourceIndexV10::DU(pubkey, _block_id) = source_index {
+                } else if let SourceIndexV10::UD(pubkey, _block_id) = source_index {
                     let address =
                         UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(*pubkey));
                     let (mut balance, utxos_index) =
@@ -326,7 +334,7 @@ pub fn apply_and_write_tx<B: Backend + Debug>(
             dbs.utxos_db.write(|db| {
                 db.remove(utxo_index);
             })?;
-        } else if let SourceIndexV10::DU(pubkey, block_id) = source_index {
+        } else if let SourceIndexV10::UD(pubkey, block_id) = source_index {
             let mut pubkey_dus: HashSet<BlockId> = dbs
                 .du_db
                 .read(|db| db.get(&pubkey).cloned().unwrap_or_default())?;
@@ -463,7 +471,7 @@ mod tests {
         );
         // Open currencys_db in memory mode
         let currency_dbs = CurrencyV10DBs::open_memory_mode();
-        // Create first g1 DU for cgeek and tortue
+        // Create first g1 UD for cgeek and tortue
         writers::dividend::create_du(
             &currency_dbs.du_db,
             &currency_dbs.balances_db,
@@ -471,7 +479,7 @@ mod tests {
             BlockId(1),
             &vec![tx_doc.issuers()[0], tortue_pubkey],
             false,
-        ).expect("Fail to create first g1 DU !");
+        ).expect("Fail to create first g1 UD !");
         // Check members balance
         let cgeek_new_balance = currency_dbs
             .balances_db

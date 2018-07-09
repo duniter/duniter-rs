@@ -23,6 +23,7 @@ use duniter_documents::BlockId;
 use duniter_wotb::NodeId;
 use {BinFileDB, CertsExpirV10Datas, DALError, IdentitiesV10Datas};
 
+/// Apply "certification" event in databases
 pub fn write_certification(
     currency_params: &CurrencyParameters,
     identities_db: &BinFileDB<IdentitiesV10Datas>,
@@ -83,6 +84,7 @@ pub fn revert_write_cert(
     Ok(())
 }
 
+/// Revert "certification expiry" event in databases
 pub fn revert_expire_cert(
     certs_db: &BinFileDB<CertsExpirV10Datas>,
     source: NodeId,
@@ -98,6 +100,7 @@ pub fn revert_expire_cert(
     Ok(())
 }
 
+/// Apply "certification expiry" event in databases
 pub fn expire_certs(
     certs_db: &BinFileDB<CertsExpirV10Datas>,
     created_block_id: BlockId,

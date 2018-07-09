@@ -1,3 +1,18 @@
+//  Copyright (C) 2018  The Duniter Project Developers.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 extern crate serde;
 extern crate serde_json;
 
@@ -37,6 +52,7 @@ pub enum BlocksDBsWriteQuery {
 }
 
 impl BlocksDBsWriteQuery {
+    /// BlocksDBsWriteQuery
     pub fn apply(&self, databases: &BlocksV10DBs, sync: bool) -> Result<(), DALError> {
         match *self {
             BlocksDBsWriteQuery::WriteBlock(ref dal_block, ref old_fork_id, _, _) => {
@@ -102,6 +118,7 @@ pub enum WotsDBsWriteQuery {
 }
 
 impl WotsDBsWriteQuery {
+    /// Apply WotsDBsWriteQuery
     pub fn apply(
         &self,
         databases: &WotsV10DBs,
@@ -252,12 +269,13 @@ pub enum CurrencyDBsWriteQuery {
     /// Revert transaction
     RevertTx(Box<DALTxV10>),
     /// Create dividend
-    CreateDU(SourceAmount, BlockId, Vec<PubKey>),
+    CreateUD(SourceAmount, BlockId, Vec<PubKey>),
     /// Revert dividend
-    RevertDU(SourceAmount, BlockId, Vec<PubKey>),
+    RevertUD(SourceAmount, BlockId, Vec<PubKey>),
 }
 
 impl CurrencyDBsWriteQuery {
+    /// Apply CurrencyDBsWriteQuery
     pub fn apply<B: Backend + Debug>(&self, databases: &CurrencyV10DBs<B>) -> Result<(), DALError> {
         match *self {
             CurrencyDBsWriteQuery::WriteTx(ref tx_doc) => {
@@ -266,7 +284,7 @@ impl CurrencyDBsWriteQuery {
             CurrencyDBsWriteQuery::RevertTx(ref dal_tx) => {
                 super::transaction::revert_tx::<B>(&databases, dal_tx.deref())?;
             }
-            CurrencyDBsWriteQuery::CreateDU(ref du_amount, ref block_id, ref members) => {
+            CurrencyDBsWriteQuery::CreateUD(ref du_amount, ref block_id, ref members) => {
                 super::dividend::create_du::<B>(
                     &databases.du_db,
                     &databases.balances_db,
@@ -276,7 +294,7 @@ impl CurrencyDBsWriteQuery {
                     false,
                 )?;
             }
-            CurrencyDBsWriteQuery::RevertDU(ref du_amount, ref block_id, ref members) => {
+            CurrencyDBsWriteQuery::RevertUD(ref du_amount, ref block_id, ref members) => {
                 super::dividend::create_du::<B>(
                     &databases.du_db,
                     &databases.balances_db,
