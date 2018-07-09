@@ -19,7 +19,7 @@
 #![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
 #![cfg_attr(feature = "exp", allow(warnings))]
 #![deny(
-    missing_debug_implementations, missing_copy_implementations, trivial_casts,
+    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
     trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces
 )]
 
@@ -36,17 +36,40 @@ extern crate duniter_wotb;
 extern crate rustbreak;
 extern crate serde;
 
+/// Define balance operations
 pub mod balance;
+
+/// Blocks operations
 pub mod block;
+
+/// Certifications operations
 pub mod certs;
+
+/// Define crate constants
 pub mod constants;
+
+/// Currency parameters operations
 pub mod currency_params;
+
+/// Define DAL events to be transmitted to other modules
 pub mod dal_event;
+
+/// Defined module requests for DAL
 pub mod dal_requests;
+
+/// Identity operations
 pub mod identity;
+
+/// Parsers
 pub mod parsers;
+
+/// Define currency sources types
 pub mod sources;
+
+/// Tools
 pub mod tools;
+
+/// Contains all write databases functions
 pub mod writers;
 
 use duniter_crypto::keys::*;
@@ -74,20 +97,34 @@ use writers::transaction::DALTxV10;
 /// Each fork has a unique identifier. The local blockchain (also called local branch) has ForkId equal to zero.
 pub struct ForkId(pub usize);
 
+/// Currency parameters (Protocol V10)
 pub type CurrencyParamsV10Datas = (CurrencyName, BlockV10Parameters);
+/// All blocks of local blockchain indexed by block number
 pub type LocalBlockchainV10Datas = HashMap<BlockId, DALBlock>;
+/// Forks meta datas (block hash and previous hash only)
 pub type ForksV10Datas = HashMap<ForkId, HashMap<PreviousBlockstamp, BlockHash>>;
+/// Forks blocks indexed by their blockstamp
 pub type ForksBlocksV10Datas = HashMap<Blockstamp, DALBlock>;
+/// V10 Identities indexed by public key
 pub type IdentitiesV10Datas = HashMap<PubKey, DALIdentity>;
+/// Memberships sorted by created block
 pub type MsExpirV10Datas = HashMap<BlockId, HashSet<NodeId>>;
+/// Certifications sorted by created block
 pub type CertsExpirV10Datas = HashMap<BlockId, HashSet<(NodeId, NodeId)>>;
+/// V10 Transactions indexed by their hashs
 pub type TxV10Datas = HashMap<Hash, DALTxV10>;
+/// V10 Unused Transaction Output (=sources)
 pub type UTXOsV10Datas = HashMap<UTXOIndexV10, UTXOContentV10>;
-pub type DUsV10Datas = HashMap<PubKey, HashSet<BlockId>>;
+/// V10 UDs sources
+pub type UDsV10Datas = HashMap<PubKey, HashSet<BlockId>>;
+/// V10 Balances accounts
 pub type BalancesV10Datas = HashMap<UTXOConditionsGroup, (SourceAmount, HashSet<UTXOIndexV10>)>;
 
+/// Binary Database
 pub type BinDB<D, B> = Database<D, B, Bincode>;
+/// Binary File Database
 pub type BinFileDB<D> = FileDatabase<D, Bincode>;
+/// Binary Memory Database
 pub type BinMemDB<D> = MemoryDatabase<D, Bincode>;
 
 #[derive(Debug)]
@@ -167,8 +204,8 @@ impl WotsV10DBs {
 #[derive(Debug)]
 /// Set of databases storing currency information
 pub struct CurrencyV10DBs<B: Backend + Debug> {
-    /// Store all DU sources
-    pub du_db: BinDB<DUsV10Datas, B>,
+    /// Store all UD sources
+    pub du_db: BinDB<UDsV10Datas, B>,
     /// Store all Transactions
     pub tx_db: BinDB<TxV10Datas, B>,
     /// Store all UTXOs
@@ -178,9 +215,10 @@ pub struct CurrencyV10DBs<B: Backend + Debug> {
 }
 
 impl CurrencyV10DBs<MemoryBackend> {
+    /// Open currency databases in memory mode
     pub fn open_memory_mode() -> CurrencyV10DBs<MemoryBackend> {
         CurrencyV10DBs {
-            du_db: open_memory_db::<DUsV10Datas>().expect("Fail to open DUsV10DB"),
+            du_db: open_memory_db::<UDsV10Datas>().expect("Fail to open UDsV10DB"),
             tx_db: open_memory_db::<TxV10Datas>().expect("Fail to open TxV10DB"),
             utxos_db: open_memory_db::<UTXOsV10Datas>().expect("Fail to open UTXOsV10DB"),
             balances_db: open_memory_db::<BalancesV10Datas>().expect("Fail to open BalancesV10DB"),
@@ -192,7 +230,7 @@ impl CurrencyV10DBs<FileBackend> {
     /// Open currency databases from their respective files
     pub fn open(db_path: &PathBuf) -> CurrencyV10DBs<FileBackend> {
         CurrencyV10DBs {
-            du_db: open_db::<DUsV10Datas>(&db_path, "du.db").expect("Fail to open DUsV10DB"),
+            du_db: open_db::<UDsV10Datas>(&db_path, "du.db").expect("Fail to open UDsV10DB"),
             tx_db: open_db::<TxV10Datas>(&db_path, "tx.db")
                 .unwrap_or_else(|_| panic!("Fail to open TxV10DB : {:?} ", db_path.as_path())),
             utxos_db: open_db::<UTXOsV10Datas>(&db_path, "sources.db")
@@ -217,7 +255,7 @@ impl CurrencyV10DBs<FileBackend> {
         if du {
             self.du_db
                 .save()
-                .expect("Fatal error : fail to save DUsV10DB !");
+                .expect("Fatal error : fail to save UDsV10DB !");
         }
     }
 }

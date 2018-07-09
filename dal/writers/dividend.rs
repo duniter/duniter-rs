@@ -22,15 +22,16 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use *;
 
+/// Apply UD creation in databases
 pub fn create_du<B: Backend + Debug>(
-    du_db: &BinDB<DUsV10Datas, B>,
+    du_db: &BinDB<UDsV10Datas, B>,
     balances_db: &BinDB<BalancesV10Datas, B>,
     du_amount: &SourceAmount,
     du_block_id: BlockId,
     members: &[PubKey],
     revert: bool,
 ) -> Result<(), DALError> {
-    // Insert/Remove DU sources in DUsV10DB
+    // Insert/Remove UD sources in UDsV10DB
     du_db.write(|db| {
         for pubkey in members {
             let mut pubkey_dus = db.get(&pubkey).cloned().unwrap_or_default();

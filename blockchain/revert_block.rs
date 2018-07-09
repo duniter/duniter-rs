@@ -80,7 +80,7 @@ pub fn revert_block<W: WebOfTrust, B: Backend + Debug>(
     for dal_tx in dal_txs.iter().rev() {
         currency_dbs_requests.push(CurrencyDBsWriteQuery::RevertTx(Box::new(dal_tx.clone())));
     }
-    // Revert DU
+    // Revert UD
     if let Some(du_amount) = block.dividend {
         if du_amount > 0 {
             let members_wot_ids = wot_db
@@ -92,7 +92,7 @@ pub fn revert_block<W: WebOfTrust, B: Backend + Debug>(
                     members_pubkeys.push(*pubkey);
                 }
             }
-            currency_dbs_requests.push(CurrencyDBsWriteQuery::RevertDU(
+            currency_dbs_requests.push(CurrencyDBsWriteQuery::RevertUD(
                 SourceAmount(TxAmount(du_amount as isize), TxBase(block.unit_base)),
                 block.number,
                 members_pubkeys,

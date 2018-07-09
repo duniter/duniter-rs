@@ -1,3 +1,18 @@
+//  Copyright (C) 2018  The Duniter Project Developers.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 use currency_params::CurrencyParameters;
 use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::IdentityDocument;
@@ -9,28 +24,46 @@ use std::fmt::Debug;
 use {BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+/// Identity state
 pub enum DALIdentityState {
+    /// Member
     Member(Vec<usize>),
+    /// Expire Member
     ExpireMember(Vec<usize>),
+    /// Explicit Revoked
     ExplicitRevoked(Vec<usize>),
+    /// Explicit Revoked after expire
     ExplicitExpireRevoked(Vec<usize>),
+    /// Implicit revoked
     ImplicitRevoked(Vec<usize>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+/// Identity in database
 pub struct DALIdentity {
+    /// Identity hash
     pub hash: String,
+    /// Identity state
     pub state: DALIdentityState,
+    /// Blockstamp the identity was written
     pub joined_on: Blockstamp,
+    /// Blockstamp the identity was expired
     pub expired_on: Option<Blockstamp>,
+    /// Blockstamp the identity was revoked
     pub revoked_on: Option<Blockstamp>,
+    /// Identity document
     pub idty_doc: IdentityDocument,
+    /// Identity wot id
     pub wot_id: NodeId,
+    /// Membership created block number
     pub ms_created_block_id: BlockId,
+    /// Timestamp from which membership can be renewed
     pub ms_chainable_on: Vec<u64>,
+    /// Timestamp from which the identity can write a new certification
     pub cert_chainable_on: Vec<u64>,
 }
 
+/// Get uid from pubkey
 pub fn get_uid<B: Backend + Debug>(
     identities_db: &BinDB<IdentitiesV10Datas, B>,
     pubkey: PubKey,
@@ -44,6 +77,7 @@ pub fn get_uid<B: Backend + Debug>(
     })?)
 }
 
+/// Get pubkey from uid
 pub fn get_pubkey_from_uid<B: Backend + Debug>(
     identities_db: &BinDB<IdentitiesV10Datas, B>,
     uid: &str,
@@ -59,6 +93,7 @@ pub fn get_pubkey_from_uid<B: Backend + Debug>(
 }
 
 impl DALIdentity {
+    /// Apply "exclude identity" event
     pub fn exclude_identity<B: Backend + Debug>(
         identities_db: &BinDB<IdentitiesV10Datas, B>,
         pubkey: &PubKey,
@@ -95,6 +130,7 @@ impl DALIdentity {
         Ok(())
     }
 
+    /// Get wot_id index
     pub fn get_wotb_index<B: Backend + Debug>(
         identities_db: &BinDB<IdentitiesV10Datas, B>,
     ) -> Result<HashMap<PubKey, NodeId>, DALError> {
@@ -108,6 +144,7 @@ impl DALIdentity {
         })?)
     }
 
+    /// Apply "revoke identity" event
     pub fn revoke_identity<B: Backend + Debug>(
         identities_db: &BinDB<IdentitiesV10Datas, B>,
         pubkey: &PubKey,
@@ -155,6 +192,7 @@ impl DALIdentity {
         Ok(())
     }
 
+    /// Apply "renewal identity" event in databases
     pub fn renewal_identity<B: Backend + Debug>(
         &mut self,
         currency_params: &CurrencyParameters,
@@ -220,6 +258,7 @@ impl DALIdentity {
         Ok(())
     }
 
+    /// Remove identity from databases
     pub fn remove_identity<B: Backend + Debug>(
         db: &BinDB<IdentitiesV10Datas, B>,
         pubkey: PubKey,
@@ -230,6 +269,7 @@ impl DALIdentity {
         Ok(())
     }
 
+    /// Get identity in databases
     pub fn get_identity<B: Backend + Debug>(
         db: &BinDB<IdentitiesV10Datas, B>,
         pubkey: &PubKey,

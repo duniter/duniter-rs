@@ -205,7 +205,7 @@ pub fn apply_valid_block<W: WebOfTrust, B: Backend + Debug>(
                     members_pubkeys.push(*pubkey);
                 }
             }
-            currency_dbs_requests.push(CurrencyDBsWriteQuery::CreateDU(
+            currency_dbs_requests.push(CurrencyDBsWriteQuery::CreateUD(
                 SourceAmount(TxAmount(du_amount as isize), TxBase(block.unit_base)),
                 block.number,
                 members_pubkeys,

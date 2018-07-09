@@ -72,7 +72,7 @@ impl From<::std::num::ParseFloatError> for ParseParamsError {
 pub struct BlockV10Parameters {
     /// UD target growth rate (see Relative Theorie of Money)
     pub c: f64,
-    /// Duration between the creation of two DU (in seconds)
+    /// Duration between the creation of two UD (in seconds)
     pub dt: u64,
     /// Amount of the initial UD
     pub ud0: usize,

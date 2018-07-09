@@ -13,5 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+/// Parsers for certifications event
 pub mod certifications;
+
+/// Parsers for revoked event
 pub mod revoked;
