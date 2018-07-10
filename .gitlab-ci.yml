@@ -69,7 +69,7 @@ fmt:
   <<: *rust_nightly_env
   stage: fmt
   before_script:
-    - cargo install --force rustfmt-nightly
+    - rustup component add rustfmt-preview --toolchain nightly
   script:
     - cargo fmt -- --check
   allow_failure: true
