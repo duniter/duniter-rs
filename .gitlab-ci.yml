@@ -75,10 +75,13 @@ fmt:
   allow_failure: true
 
 clippy:
-  <<: *rust_nightly_env
-  stage: clippy
+  image: guangie88/rustfmt-clippy:nightly
+  tags:
+    - redshift-rs-nightly
   before_script:
-    - cargo install --force clippy --verbose
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustc --version && cargo --version
+  stage: clippy
   script:
     - cargo clippy --all -- -D warnings --verbose
   allow_failure: true
