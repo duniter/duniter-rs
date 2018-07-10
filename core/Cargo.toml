@@ -10,6 +10,7 @@ path = "lib.rs"
 
 [dependencies]
 clap = {version = "2.31.2", features = ["yaml"]}
+dirs = "1.0.2"
 duniter-blockchain = { path = "../blockchain" }
 duniter-conf = { path = "../conf" }
 duniter-crypto = { path = "../crypto" }

@@ -17,6 +17,7 @@
 //! as well as the DuniterModule trait that all modules must implement.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
+#![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
 #![deny(
     missing_docs,
     missing_debug_implementations,

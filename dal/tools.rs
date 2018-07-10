@@ -52,24 +52,22 @@ pub fn get_sentry_requirement(members_count: usize, step_max: u32) -> u32 {
                 9
             } else if members_count < 100_001 {
                 10
-            } else if members_count < 100_001 {
-                11
             } else if members_count < 161_052 {
-                12
+                11
             } else if members_count < 248_833 {
-                13
+                12
             } else if members_count < 371_294 {
-                14
+                13
             } else if members_count < 537_825 {
-                15
+                14
             } else if members_count < 759_376 {
-                16
+                15
             } else if members_count < 1_048_577 {
-                17
+                16
             } else if members_count < 1_419_858 {
-                18
+                17
             } else if members_count < 1_889_569 {
-                19
+                18
             } else {
                 panic!(
                     "get_sentry_requirement not define for members_count greater than 1_889_569 !"

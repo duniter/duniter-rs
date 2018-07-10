@@ -34,6 +34,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
+extern crate dirs;
 extern crate duniter_crypto;
 extern crate duniter_module;
 extern crate rand;
@@ -43,7 +44,6 @@ use duniter_module::{Currency, DuniterConf, ModuleId, RequiredKeys, RequiredKeys
 use rand::Rng;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use std::collections::HashSet;
-use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
@@ -277,14 +277,10 @@ pub fn datas_path(profile: &str, currency: &Currency) -> PathBuf {
 /// Returns the path to the folder containing the user data of the running profile
 pub fn get_profile_path(profile: &str) -> PathBuf {
     // Define and create datas directory if not exist
-    let mut profile_path = match env::home_dir() {
+    let mut profile_path = match dirs::config_dir() {
         Some(path) => path,
-        None => panic!("Impossible to get your home dir !"),
+        None => panic!("Impossible to get user config directory !"),
     };
-    profile_path.push(".config/");
-    if !profile_path.as_path().exists() {
-        fs::create_dir(profile_path.as_path()).expect("Impossible to create ~/.config dir !");
-    }
     profile_path.push(USER_DATAS_FOLDER);
     if !profile_path.as_path().exists() {
         fs::create_dir(profile_path.as_path()).unwrap_or_else(|_| {
@@ -431,11 +427,10 @@ pub fn get_blockchain_db_path(profile: &str, currency: &Currency) -> PathBuf {
 
 /// Returns the path to the binary file containing the state of the web of trust
 pub fn get_wot_path(profile: String, currency: &Currency) -> PathBuf {
-    let mut wot_path = match env::home_dir() {
+    let mut wot_path = match dirs::config_dir() {
         Some(path) => path,
         None => panic!("Impossible to get your home dir!"),
     };
-    wot_path.push(".config/");
     wot_path.push(USER_DATAS_FOLDER);
     wot_path.push(profile);
     wot_path.push(currency.to_string());
