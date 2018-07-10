@@ -16,16 +16,26 @@
 //! Module managing the Duniter blockchain.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(unused_collect, duration_subsec))]
+#![cfg_attr(
+    feature = "cargo-clippy",
+    allow(unused_collect, duration_subsec)
+)]
 #![deny(
-    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
-    trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    trivial_casts,
+    trivial_numeric_casts,
+    unsafe_code,
+    unstable_features,
+    unused_import_braces,
     unused_qualifications
 )]
 
 #[macro_use]
 extern crate log;
 
+extern crate dirs;
 extern crate duniter_conf;
 extern crate duniter_crypto;
 extern crate duniter_dal;
@@ -47,7 +57,6 @@ mod sync;
 mod ts_parsers;
 
 use std::collections::HashMap;
-use std::env;
 use std::fmt::Debug;
 use std::ops::Deref;
 use std::path::PathBuf;
@@ -204,11 +213,11 @@ impl BlockchainModule {
         verif_inner_hash: bool,
     ) {
         // get db_ts_path
-        let mut db_ts_path = match env::home_dir() {
+        let mut db_ts_path = match dirs::config_dir() {
             Some(path) => path,
-            None => panic!("Impossible to get your home dir!"),
+            None => panic!("Impossible to get user config directory !"),
         };
-        db_ts_path.push(".config/duniter/");
+        db_ts_path.push("duniter/");
         db_ts_path.push(ts_profile);
         db_ts_path.push("duniter.db");
         if !db_ts_path.as_path().exists() {

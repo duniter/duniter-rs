@@ -80,7 +80,7 @@ pub enum DALResPendings {
     /// All pending identities without their pending certifications
     AllPendingIdentitiesWithoutCerts(HashMap<Hash, PendingIdtyDatas>),
     /// All pending datas for given pubkey
-    PendingWotDatasForPubkey(PendingIdtyDatas),
+    PendingWotDatasForPubkey(Box<PendingIdtyDatas>),
 }
 
 #[derive(Debug, Clone)]
@@ -102,5 +102,5 @@ pub enum DALResponse {
     /// Response to a DALReqBlockchain request
     Blockchain(Box<DALResBlockchain>),
     /// Response to a DALReqPendings request
-    Pendings(ModuleReqFullId, DALResPendings),
+    Pendings(ModuleReqFullId, Box<DALResPendings>),
 }

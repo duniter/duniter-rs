@@ -18,8 +18,14 @@
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
 #![deny(
-    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
-    trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    trivial_casts,
+    trivial_numeric_casts,
+    unsafe_code,
+    unstable_features,
+    unused_import_braces,
     unused_qualifications
 )]
 
@@ -29,6 +35,7 @@ extern crate clap;
 #[macro_use]
 extern crate log;
 
+extern crate dirs;
 extern crate duniter_blockchain;
 extern crate duniter_conf;
 extern crate duniter_crypto;
@@ -52,7 +59,6 @@ use duniter_network::{NetworkModule, SyncEndpoint};
 use log::Level;
 use simplelog::*;
 use std::collections::HashSet;
-use std::env;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::sync::mpsc;
@@ -277,9 +283,9 @@ impl DuniterCore<DuRsConf> {
             }
             None
         } else if let Some(matches) = cli_args.subcommand_matches("reset") {
-            let mut profile_path = match env::home_dir() {
+            let mut profile_path = match dirs::config_dir() {
                 Some(path) => path,
-                None => panic!("Impossible to get your home dir !"),
+                None => panic!("Impossible to get user config directory !"),
             };
             profile_path.push(".config");
             profile_path.push(duniter_conf::get_user_datas_folder());
@@ -679,9 +685,9 @@ pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DBExQu
 /// Initialize logger
 pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches) {
     // Get datas folder path
-    let mut log_file_path = match env::home_dir() {
+    let mut log_file_path = match dirs::config_dir() {
         Some(path) => path,
-        None => panic!("Fatal error : Impossible to get your home dir!"),
+        None => panic!("Fatal error : Impossible to get user config directory"),
     };
     log_file_path.push(".config");
     if !log_file_path.as_path().exists() {
