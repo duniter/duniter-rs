@@ -1,5 +1,7 @@
 # duniter-rs
 
+[![build status](https://git.duniter.org/nodes/rust/duniter-rs/badges/dev/build.svg)](https://git.duniter.org/nodes/rust/duniter-rs/commits/dev)
+
 ## What is Duniter
 
 Duniter is a libre software allowing to create a new kind of P2P crypto-currencies based on individuals and a Universal Dividend.
