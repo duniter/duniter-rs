@@ -18,13 +18,8 @@
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![cfg_attr(feature = "cargo-clippy", allow(cyclomatic_complexity))]
 #![deny(
-    missing_debug_implementations,
-    missing_copy_implementations,
-    trivial_casts,
-    unsafe_code,
-    unstable_features,
-    unused_import_braces,
-    unused_qualifications
+    missing_debug_implementations, missing_copy_implementations, trivial_casts, unsafe_code,
+    unstable_features, unused_import_braces, unused_qualifications
 )]
 #![recursion_limit = "256"]
 

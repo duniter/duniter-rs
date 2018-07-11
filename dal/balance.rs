@@ -18,7 +18,7 @@ use *;
 
 /// Get address balance
 pub fn get_address_balance(
-    balances_db: &BinFileDB<BalancesV10Datas>,
+    balances_db: &BinDB<BalancesV10Datas>,
     address: &UTXOConditionsGroup,
 ) -> Result<Option<SourceAmount>, DALError> {
     Ok(balances_db.read(|db| {

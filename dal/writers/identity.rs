@@ -20,12 +20,12 @@ use duniter_documents::blockchain::Document;
 use duniter_documents::{BlockId, Blockstamp};
 use duniter_wotb::NodeId;
 use identity::{DALIdentity, DALIdentityState};
-use {BinFileDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
+use {BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
 
 /// Remove identity from databases
 pub fn revert_create_identity(
-    identities_db: &BinFileDB<IdentitiesV10Datas>,
-    ms_db: &BinFileDB<MsExpirV10Datas>,
+    identities_db: &BinDB<IdentitiesV10Datas>,
+    ms_db: &BinDB<MsExpirV10Datas>,
     pubkey: &PubKey,
 ) -> Result<(), DALError> {
     let dal_idty = identities_db.read(|db| {
@@ -52,8 +52,8 @@ pub fn revert_create_identity(
 /// Write identity in databases
 pub fn create_identity(
     currency_params: &CurrencyParameters,
-    identities_db: &BinFileDB<IdentitiesV10Datas>,
-    ms_db: &BinFileDB<MsExpirV10Datas>,
+    identities_db: &BinDB<IdentitiesV10Datas>,
+    ms_db: &BinDB<MsExpirV10Datas>,
     idty_doc: &IdentityDocument,
     ms_created_block_id: BlockId,
     wot_id: NodeId,

@@ -14,9 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use duniter_documents::blockchain::v10::documents::transaction::*;
-use rustbreak::backend::Backend;
 use sources::{SourceAmount, SourceIndexV10, UTXOIndexV10, UTXOV10};
-use std::fmt::Debug;
 use *;
 
 #[derive(Debug, Copy, Clone)]
@@ -44,10 +42,7 @@ pub struct DALTxV10 {
 }
 
 /// Apply transaction backwards
-pub fn revert_tx<B: Backend + Debug>(
-    dbs: &CurrencyV10DBs<B>,
-    dal_tx: &DALTxV10,
-) -> Result<(), DALError> {
+pub fn revert_tx(dbs: &CurrencyV10DBs, dal_tx: &DALTxV10) -> Result<(), DALError> {
     let mut tx_doc = dal_tx.tx_doc.clone();
     let tx_hash = tx_doc.get_hash();
     let sources_destroyed = &dal_tx.sources_destroyed;
@@ -242,8 +237,8 @@ pub fn revert_tx<B: Backend + Debug>(
 }
 
 /// Apply and write transaction in databases
-pub fn apply_and_write_tx<B: Backend + Debug>(
-    dbs: &CurrencyV10DBs<B>,
+pub fn apply_and_write_tx(
+    dbs: &CurrencyV10DBs,
     tx_doc: &TransactionDocument,
 ) -> Result<(), DALError> {
     let mut tx_doc = tx_doc.clone();
@@ -470,7 +465,7 @@ mod tests {
                 .unwrap(),
         );
         // Open currencys_db in memory mode
-        let currency_dbs = CurrencyV10DBs::open_memory_mode();
+        let currency_dbs = CurrencyV10DBs::open(None);
         // Create first g1 UD for cgeek and tortue
         writers::dividend::create_du(
             &currency_dbs.du_db,

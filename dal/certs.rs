@@ -18,14 +18,12 @@ extern crate duniter_wotb;
 
 use duniter_documents::BlockId;
 use duniter_wotb::NodeId;
-use rustbreak::backend::Backend;
 use std::collections::HashMap;
-use std::fmt::Debug;
 use {BinDB, CertsExpirV10Datas, DALError};
 
 /// Find certifications that emitted in indicated blocks expiring
-pub fn find_expire_certs<B: Backend + Debug>(
-    certs_db: &BinDB<CertsExpirV10Datas, B>,
+pub fn find_expire_certs(
+    certs_db: &BinDB<CertsExpirV10Datas>,
     blocks_expiring: Vec<BlockId>,
 ) -> Result<HashMap<(NodeId, NodeId), BlockId>, DALError> {
     Ok(certs_db.read(|db| {

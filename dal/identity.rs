@@ -18,9 +18,7 @@ use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::IdentityDocument;
 use duniter_documents::{BlockId, Blockstamp};
 use duniter_wotb::NodeId;
-use rustbreak::backend::Backend;
 use std::collections::HashMap;
-use std::fmt::Debug;
 use {BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -64,8 +62,8 @@ pub struct DALIdentity {
 }
 
 /// Get uid from pubkey
-pub fn get_uid<B: Backend + Debug>(
-    identities_db: &BinDB<IdentitiesV10Datas, B>,
+pub fn get_uid(
+    identities_db: &BinDB<IdentitiesV10Datas>,
     pubkey: PubKey,
 ) -> Result<Option<String>, DALError> {
     Ok(identities_db.read(|db| {
@@ -78,8 +76,8 @@ pub fn get_uid<B: Backend + Debug>(
 }
 
 /// Get pubkey from uid
-pub fn get_pubkey_from_uid<B: Backend + Debug>(
-    identities_db: &BinDB<IdentitiesV10Datas, B>,
+pub fn get_pubkey_from_uid(
+    identities_db: &BinDB<IdentitiesV10Datas>,
     uid: &str,
 ) -> Result<Option<PubKey>, DALError> {
     Ok(identities_db.read(|db| {
@@ -94,8 +92,8 @@ pub fn get_pubkey_from_uid<B: Backend + Debug>(
 
 impl DALIdentity {
     /// Apply "exclude identity" event
-    pub fn exclude_identity<B: Backend + Debug>(
-        identities_db: &BinDB<IdentitiesV10Datas, B>,
+    pub fn exclude_identity(
+        identities_db: &BinDB<IdentitiesV10Datas>,
         pubkey: &PubKey,
         exclusion_blockstamp: &Blockstamp,
         revert: bool,
@@ -131,8 +129,8 @@ impl DALIdentity {
     }
 
     /// Get wot_id index
-    pub fn get_wotb_index<B: Backend + Debug>(
-        identities_db: &BinDB<IdentitiesV10Datas, B>,
+    pub fn get_wotb_index(
+        identities_db: &BinDB<IdentitiesV10Datas>,
     ) -> Result<HashMap<PubKey, NodeId>, DALError> {
         Ok(identities_db.read(|db| {
             let mut wotb_index: HashMap<PubKey, NodeId> = HashMap::new();
@@ -145,8 +143,8 @@ impl DALIdentity {
     }
 
     /// Apply "revoke identity" event
-    pub fn revoke_identity<B: Backend + Debug>(
-        identities_db: &BinDB<IdentitiesV10Datas, B>,
+    pub fn revoke_identity(
+        identities_db: &BinDB<IdentitiesV10Datas>,
         pubkey: &PubKey,
         renewal_blockstamp: &Blockstamp,
         explicit: bool,
@@ -193,11 +191,11 @@ impl DALIdentity {
     }
 
     /// Apply "renewal identity" event in databases
-    pub fn renewal_identity<B: Backend + Debug>(
+    pub fn renewal_identity(
         &mut self,
         currency_params: &CurrencyParameters,
-        identities_db: &BinDB<IdentitiesV10Datas, B>,
-        ms_db: &BinDB<MsExpirV10Datas, B>,
+        identities_db: &BinDB<IdentitiesV10Datas>,
+        ms_db: &BinDB<MsExpirV10Datas>,
         pubkey: &PubKey,
         idty_wot_id: NodeId,
         renewal_timestamp: u64,
@@ -259,10 +257,7 @@ impl DALIdentity {
     }
 
     /// Remove identity from databases
-    pub fn remove_identity<B: Backend + Debug>(
-        db: &BinDB<IdentitiesV10Datas, B>,
-        pubkey: PubKey,
-    ) -> Result<(), DALError> {
+    pub fn remove_identity(db: &BinDB<IdentitiesV10Datas>, pubkey: PubKey) -> Result<(), DALError> {
         db.write(|db| {
             db.remove(&pubkey);
         })?;
@@ -270,8 +265,8 @@ impl DALIdentity {
     }
 
     /// Get identity in databases
-    pub fn get_identity<B: Backend + Debug>(
-        db: &BinDB<IdentitiesV10Datas, B>,
+    pub fn get_identity(
+        db: &BinDB<IdentitiesV10Datas>,
         pubkey: &PubKey,
     ) -> Result<Option<DALIdentity>, DALError> {
         Ok(db.read(|db| {

@@ -24,9 +24,7 @@ use duniter_documents::blockchain::v10::documents::identity::IdentityDocument;
 use duniter_documents::Blockstamp;
 use duniter_wotb::NodeId;
 use identity::DALIdentity;
-use rustbreak::backend::Backend;
 use sources::SourceAmount;
-use std::fmt::Debug;
 use std::ops::Deref;
 use writers::transaction::DALTxV10;
 use *;
@@ -276,16 +274,16 @@ pub enum CurrencyDBsWriteQuery {
 
 impl CurrencyDBsWriteQuery {
     /// Apply CurrencyDBsWriteQuery
-    pub fn apply<B: Backend + Debug>(&self, databases: &CurrencyV10DBs<B>) -> Result<(), DALError> {
+    pub fn apply(&self, databases: &CurrencyV10DBs) -> Result<(), DALError> {
         match *self {
             CurrencyDBsWriteQuery::WriteTx(ref tx_doc) => {
-                super::transaction::apply_and_write_tx::<B>(&databases, tx_doc.deref())?;
+                super::transaction::apply_and_write_tx(&databases, tx_doc.deref())?;
             }
             CurrencyDBsWriteQuery::RevertTx(ref dal_tx) => {
-                super::transaction::revert_tx::<B>(&databases, dal_tx.deref())?;
+                super::transaction::revert_tx(&databases, dal_tx.deref())?;
             }
             CurrencyDBsWriteQuery::CreateUD(ref du_amount, ref block_id, ref members) => {
-                super::dividend::create_du::<B>(
+                super::dividend::create_du(
                     &databases.du_db,
                     &databases.balances_db,
                     du_amount,
@@ -295,7 +293,7 @@ impl CurrencyDBsWriteQuery {
                 )?;
             }
             CurrencyDBsWriteQuery::RevertUD(ref du_amount, ref block_id, ref members) => {
-                super::dividend::create_du::<B>(
+                super::dividend::create_du(
                     &databases.du_db,
                     &databases.balances_db,
                     du_amount,

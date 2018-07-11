@@ -24,9 +24,7 @@ use duniter_documents::blockchain::Document;
 use duniter_documents::BlockId;
 use duniter_wotb::data::{NewLinkResult, RemLinkResult};
 use duniter_wotb::{NodeId, WebOfTrust};
-use rustbreak::backend::Backend;
 use std::collections::{HashMap, HashSet};
-use std::fmt::Debug;
 
 #[derive(Debug)]
 /// Stores all queries to apply in database to "apply" the block
@@ -43,10 +41,10 @@ pub enum ApplyValidBlockError {
     RevokeUnknowNodeId(),
 }
 
-pub fn apply_valid_block<W: WebOfTrust, B: Backend + Debug>(
+pub fn apply_valid_block<W: WebOfTrust>(
     block: &BlockDocument,
     wot_index: &mut HashMap<PubKey, NodeId>,
-    wot_db: &BinDB<W, B>,
+    wot_db: &BinDB<W>,
     expire_certs: &HashMap<(NodeId, NodeId), BlockId>,
     old_fork_id: Option<ForkId>,
 ) -> Result<ValidBlockApplyReqs, ApplyValidBlockError> {
