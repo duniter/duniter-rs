@@ -18,13 +18,13 @@ use duniter_documents::blockchain::Document;
 use duniter_documents::{BlockHash, BlockId, PreviousBlockstamp};
 use std::collections::HashMap;
 use ForkId;
-use {BinFileDB, DALError, ForksBlocksV10Datas, ForksV10Datas, LocalBlockchainV10Datas};
+use {BinDB, DALError, ForksBlocksV10Datas, ForksV10Datas, LocalBlockchainV10Datas};
 
 /// Write DALBlock in databases
 pub fn write(
-    blockchain_db: &BinFileDB<LocalBlockchainV10Datas>,
-    forks_db: &BinFileDB<ForksV10Datas>,
-    forks_blocks_db: &BinFileDB<ForksBlocksV10Datas>,
+    blockchain_db: &BinDB<LocalBlockchainV10Datas>,
+    forks_db: &BinDB<ForksV10Datas>,
+    forks_blocks_db: &BinDB<ForksBlocksV10Datas>,
     dal_block: &DALBlock,
     from_to_fork_id: Option<ForkId>,
     sync: bool,

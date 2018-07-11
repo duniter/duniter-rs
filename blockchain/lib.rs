@@ -16,19 +16,10 @@
 //! Module managing the Duniter blockchain.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(
-    feature = "cargo-clippy",
-    allow(unused_collect, duration_subsec)
-)]
+#![cfg_attr(feature = "cargo-clippy", allow(unused_collect, duration_subsec))]
 #![deny(
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_import_braces,
+    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
+    trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
     unused_qualifications
 )]
 
@@ -44,7 +35,6 @@ extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
 extern crate duniter_wotb;
-extern crate rustbreak;
 extern crate serde;
 extern crate serde_json;
 extern crate sqlite;
@@ -57,7 +47,6 @@ mod sync;
 mod ts_parsers;
 
 use std::collections::HashMap;
-use std::fmt::Debug;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::str;
@@ -86,7 +75,6 @@ use duniter_network::{
 use duniter_wotb::data::rusty::RustyWebOfTrust;
 use duniter_wotb::operations::distance::RustyDistanceCalculator;
 use duniter_wotb::{NodeId, WebOfTrust};
-use rustbreak::backend::{Backend, FileBackend};
 
 /// The blocks are requested by packet groups. This constant sets the block packet size.
 pub static CHUNK_SIZE: &'static u32 = &50;
@@ -113,7 +101,7 @@ pub struct BlockchainModule {
     /// Blocks Databases
     pub blocks_databases: BlocksV10DBs,
     /// Currency databases
-    currency_databases: CurrencyV10DBs<FileBackend>,
+    currency_databases: CurrencyV10DBs,
     /// The block under construction
     pub pending_block: Option<Box<BlockDocument>>,
     /// Current state of all forks
@@ -165,9 +153,9 @@ impl BlockchainModule {
         let db_path = duniter_conf::get_blockchain_db_path(profile, &conf.currency());
 
         // Open databases
-        let blocks_databases = BlocksV10DBs::open(&db_path, false);
-        let wot_databases = WotsV10DBs::open(&db_path, false);
-        let currency_databases = CurrencyV10DBs::<FileBackend>::open(&db_path);
+        let blocks_databases = BlocksV10DBs::open(Some(&db_path));
+        let wot_databases = WotsV10DBs::open(Some(&db_path));
+        let currency_databases = CurrencyV10DBs::open(Some(&db_path));
 
         // Get current blockstamp
         let current_blockstamp = duniter_dal::block::get_current_blockstamp(&blocks_databases)
@@ -306,12 +294,12 @@ impl BlockchainModule {
             }
         }
     }
-    fn receive_network_documents<W: WebOfTrust, B: Backend + Debug>(
+    fn receive_network_documents<W: WebOfTrust>(
         &mut self,
         network_documents: &[NetworkDocument],
         current_blockstamp: &Blockstamp,
         wotb_index: &mut HashMap<PubKey, NodeId>,
-        wot_db: &BinDB<W, B>,
+        wot_db: &BinDB<W>,
     ) -> Blockstamp {
         let mut blockchain_documents = Vec::new();
         let mut current_blockstamp = *current_blockstamp;
@@ -321,7 +309,7 @@ impl BlockchainModule {
         for network_document in network_documents {
             match *network_document {
                 NetworkDocument::Block(ref network_block) => {
-                    match check_and_apply_block(
+                    match check_and_apply_block::<W>(
                         &self.blocks_databases,
                         &self.wot_databases.certs_db,
                         &Block::NetworkBlock(network_block),
@@ -446,12 +434,12 @@ impl BlockchainModule {
             }
         }
     }
-    fn receive_blocks<W: WebOfTrust, B: Backend + Debug>(
+    fn receive_blocks<W: WebOfTrust>(
         &mut self,
         blocks_in_box: &[Box<NetworkBlock>],
         current_blockstamp: &Blockstamp,
         wotb_index: &mut HashMap<PubKey, NodeId>,
-        wot: &BinDB<W, B>,
+        wot: &BinDB<W>,
     ) -> Blockstamp {
         debug!("BlockchainModule : receive_blocks()");
         let blocks: Vec<&NetworkBlock> = blocks_in_box.into_iter().map(|b| b.deref()).collect();
@@ -461,7 +449,7 @@ impl BlockchainModule {
         let mut save_currency_dbs = false;
         for block in blocks {
             if let Ok(ValidBlockApplyReqs(bc_db_query, wot_dbs_queries, tx_dbs_queries)) =
-                check_and_apply_block::<W, B>(
+                check_and_apply_block::<W>(
                     &self.blocks_databases,
                     &self.wot_databases.certs_db,
                     &Block::NetworkBlock(block),
@@ -528,7 +516,7 @@ impl BlockchainModule {
                 .expect("Fatal eror : get_wotb_index : Fail to read blockchain databases");
 
         // Open wot file
-        let wot_db = open_wot_db::<RustyWebOfTrust>(&dbs_path).expect("Fail to open WotDB !");
+        let wot_db = open_wot_db::<RustyWebOfTrust>(Some(&dbs_path)).expect("Fail to open WotDB !");
 
         // Get current block
         let mut current_blockstamp = duniter_dal::block::get_current_blockstamp(

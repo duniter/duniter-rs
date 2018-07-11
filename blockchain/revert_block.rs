@@ -24,9 +24,7 @@ use duniter_documents::blockchain::v10::documents::transaction::{TxAmount, TxBas
 use duniter_documents::blockchain::Document;
 use duniter_wotb::data::{NewLinkResult, RemLinkResult};
 use duniter_wotb::{NodeId, WebOfTrust};
-use rustbreak::backend::Backend;
 use std::collections::HashMap;
-use std::fmt::Debug;
 
 #[derive(Debug)]
 /// Stores all queries to apply in database to "apply" the block
@@ -43,10 +41,10 @@ pub enum RevertValidBlockError {
     RevokeUnknowNodeId(),
 }
 
-pub fn revert_block<W: WebOfTrust, B: Backend + Debug>(
+pub fn revert_block<W: WebOfTrust>(
     dal_block: &DALBlock,
     wot_index: &mut HashMap<PubKey, NodeId>,
-    wot_db: &BinDB<W, B>,
+    wot_db: &BinDB<W>,
     to_fork_id: Option<ForkId>,
     txs: &TxV10Datas,
 ) -> Result<ValidBlockRevertReqs, RevertValidBlockError> {

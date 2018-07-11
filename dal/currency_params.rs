@@ -140,7 +140,7 @@ impl CurrencyParameters {
 
 /// Get currency parameters
 pub fn get_currency_params(
-    blockchain_db: &BinFileDB<LocalBlockchainV10Datas>,
+    blockchain_db: &BinDB<LocalBlockchainV10Datas>,
 ) -> Result<Option<CurrencyParameters>, DALError> {
     Ok(blockchain_db.read(|db| {
         if let Some(genesis_block) = db.get(&BlockId(0)) {

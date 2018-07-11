@@ -21,13 +21,13 @@ use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::certification::CompactCertificationDocument;
 use duniter_documents::BlockId;
 use duniter_wotb::NodeId;
-use {BinFileDB, CertsExpirV10Datas, DALError, IdentitiesV10Datas};
+use {BinDB, CertsExpirV10Datas, DALError, IdentitiesV10Datas};
 
 /// Apply "certification" event in databases
 pub fn write_certification(
     currency_params: &CurrencyParameters,
-    identities_db: &BinFileDB<IdentitiesV10Datas>,
-    certs_db: &BinFileDB<CertsExpirV10Datas>,
+    identities_db: &BinDB<IdentitiesV10Datas>,
+    certs_db: &BinDB<CertsExpirV10Datas>,
     source_pubkey: PubKey,
     source: NodeId,
     target: NodeId,
@@ -59,8 +59,8 @@ pub fn write_certification(
 
 /// Revert writtent certification
 pub fn revert_write_cert(
-    identities_db: &BinFileDB<IdentitiesV10Datas>,
-    certs_db: &BinFileDB<CertsExpirV10Datas>,
+    identities_db: &BinDB<IdentitiesV10Datas>,
+    certs_db: &BinDB<CertsExpirV10Datas>,
     compact_doc: CompactCertificationDocument,
     source: NodeId,
     target: NodeId,
@@ -86,7 +86,7 @@ pub fn revert_write_cert(
 
 /// Revert "certification expiry" event in databases
 pub fn revert_expire_cert(
-    certs_db: &BinFileDB<CertsExpirV10Datas>,
+    certs_db: &BinDB<CertsExpirV10Datas>,
     source: NodeId,
     target: NodeId,
     created_block_id: BlockId,
@@ -102,7 +102,7 @@ pub fn revert_expire_cert(
 
 /// Apply "certification expiry" event in databases
 pub fn expire_certs(
-    certs_db: &BinFileDB<CertsExpirV10Datas>,
+    certs_db: &BinDB<CertsExpirV10Datas>,
     created_block_id: BlockId,
 ) -> Result<(), DALError> {
     // Remove CertsExpirV10Datas entries

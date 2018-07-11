@@ -19,14 +19,8 @@
 #![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
 #![cfg_attr(feature = "exp", allow(warnings))]
 #![deny(
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_import_braces,
+    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
+    trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
     unused_qualifications
 )]
 
@@ -84,7 +78,7 @@ use duniter_documents::blockchain::v10::documents::block::{BlockV10Parameters, C
 use duniter_documents::blockchain::v10::documents::transaction::*;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, Hash, PreviousBlockstamp};
 use duniter_wotb::{NodeId, WebOfTrust};
-use rustbreak::backend::{Backend, FileBackend, MemoryBackend};
+use rustbreak::backend::{FileBackend, MemoryBackend};
 use rustbreak::error::{RustbreakError, RustbreakErrorKind};
 use rustbreak::{deser::Bincode, Database, FileDatabase, MemoryDatabase};
 use serde::de::DeserializeOwned;
@@ -93,6 +87,7 @@ use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::fmt::Debug;
 use std::fs;
+use std::panic::UnwindSafe;
 use std::path::PathBuf;
 
 use block::DALBlock;
@@ -127,37 +122,109 @@ pub type UDsV10Datas = HashMap<PubKey, HashSet<BlockId>>;
 /// V10 Balances accounts
 pub type BalancesV10Datas = HashMap<UTXOConditionsGroup, (SourceAmount, HashSet<UTXOIndexV10>)>;
 
-/// Binary Database
-pub type BinDB<D, B> = Database<D, B, Bincode>;
-/// Binary File Database
-pub type BinFileDB<D> = FileDatabase<D, Bincode>;
-/// Binary Memory Database
-pub type BinMemDB<D> = MemoryDatabase<D, Bincode>;
+#[derive(Debug)]
+/// Database
+pub enum BinDB<D: Serialize + DeserializeOwned + Debug + Default + Clone + Send> {
+    /// File database
+    File(Database<D, FileBackend, Bincode>),
+    /// Memory database
+    Mem(Database<D, MemoryBackend, Bincode>),
+}
+
+impl<D: Serialize + DeserializeOwned + Debug + Default + Clone + Send> BinDB<D> {
+    /// Flush the data structure to the backend
+    pub fn save(&self) -> Result<(), RustbreakError> {
+        match *self {
+            BinDB::File(ref file_db) => file_db.save(),
+            BinDB::Mem(ref mem_db) => mem_db.save(),
+        }
+    }
+    /// Read lock the database and get write access to the Data container
+    /// This gives you a read-only lock on the database. You can have as many readers in parallel as you wish.
+    pub fn read<T, R>(&self, task: T) -> Result<R, RustbreakError>
+    where
+        T: FnOnce(&D) -> R,
+    {
+        match *self {
+            BinDB::File(ref file_db) => file_db.read(task),
+            BinDB::Mem(ref mem_db) => mem_db.read(task),
+        }
+    }
+    /// Write lock the database and get write access to the Data container
+    /// This gives you an exclusive lock on the memory object. Trying to open the database in writing will block if it is currently being written to.
+    pub fn write<T>(&self, task: T) -> Result<(), RustbreakError>
+    where
+        T: FnOnce(&mut D) -> (),
+    {
+        match *self {
+            BinDB::File(ref file_db) => file_db.write(task),
+            BinDB::Mem(ref mem_db) => mem_db.write(task),
+        }
+    }
+    /// Write lock the database and get write access to the Data container in a safe way (clone of the internal data is made).
+    pub fn write_safe<T>(&self, task: T) -> Result<(), RustbreakError>
+    where
+        T: FnOnce(&mut D) -> () + UnwindSafe,
+    {
+        match *self {
+            BinDB::File(ref file_db) => file_db.write_safe(task),
+            BinDB::Mem(ref mem_db) => mem_db.write_safe(task),
+        }
+    }
+    /// Load the Data from the backend
+    pub fn load(&self) -> Result<(), RustbreakError> {
+        match *self {
+            BinDB::File(ref file_db) => file_db.load(),
+            BinDB::Mem(ref mem_db) => mem_db.load(),
+        }
+    }
+}
 
 #[derive(Debug)]
 /// Set of databases storing block information
 pub struct BlocksV10DBs {
     /// Local blockchain database
-    pub blockchain_db: BinFileDB<LocalBlockchainV10Datas>,
+    pub blockchain_db: BinDB<LocalBlockchainV10Datas>,
     /// Forks meta datas
-    pub forks_db: BinFileDB<ForksV10Datas>,
+    pub forks_db: BinDB<ForksV10Datas>,
     /// Forks blocks
-    pub forks_blocks_db: BinFileDB<ForksBlocksV10Datas>,
+    pub forks_blocks_db: BinDB<ForksBlocksV10Datas>,
 }
 
 impl BlocksV10DBs {
     /// Open blocks databases from their respective files
-    pub fn open(db_path: &PathBuf, _memory_mode: bool) -> BlocksV10DBs {
-        BlocksV10DBs {
-            blockchain_db: open_db::<LocalBlockchainV10Datas>(&db_path, "blockchain.db")
-                .expect("Fail to open LocalBlockchainV10DB"),
-            forks_db: open_db::<ForksV10Datas>(&db_path, "forks.db")
-                .expect("Fail to open ForksV10DB"),
-            forks_blocks_db: open_db::<ForksBlocksV10Datas>(&db_path, "forks_blocks.db")
-                .expect("Fail to open ForksBlocksV10DB"),
+    pub fn open(db_path: Option<&PathBuf>) -> BlocksV10DBs {
+        if let Some(db_path) = db_path {
+            BlocksV10DBs {
+                blockchain_db: BinDB::File(
+                    open_db::<LocalBlockchainV10Datas>(&db_path, "blockchain.db")
+                        .expect("Fail to open LocalBlockchainV10DB"),
+                ),
+                forks_db: BinDB::File(
+                    open_db::<ForksV10Datas>(&db_path, "forks.db")
+                        .expect("Fail to open ForksV10DB"),
+                ),
+                forks_blocks_db: BinDB::File(
+                    open_db::<ForksBlocksV10Datas>(&db_path, "forks_blocks.db")
+                        .expect("Fail to open ForksBlocksV10DB"),
+                ),
+            }
+        } else {
+            BlocksV10DBs {
+                blockchain_db: BinDB::Mem(
+                    open_memory_db::<LocalBlockchainV10Datas>()
+                        .expect("Fail to open LocalBlockchainV10DB"),
+                ),
+                forks_db: BinDB::Mem(
+                    open_memory_db::<ForksV10Datas>().expect("Fail to open ForksV10DB"),
+                ),
+                forks_blocks_db: BinDB::Mem(
+                    open_memory_db::<ForksBlocksV10Datas>().expect("Fail to open ForksBlocksV10DB"),
+                ),
+            }
         }
     }
-    /// Open blocks databases from their respective files
+    /// Save blocks databases in their respective files
     pub fn save_dbs(&self) {
         self.blockchain_db
             .save()
@@ -175,23 +242,43 @@ impl BlocksV10DBs {
 /// Set of databases storing web of trust information
 pub struct WotsV10DBs {
     /// Store iedntities
-    pub identities_db: BinFileDB<IdentitiesV10Datas>,
+    pub identities_db: BinDB<IdentitiesV10Datas>,
     /// Store memberships created_block_id (Use only to detect expirations)
-    pub ms_db: BinFileDB<MsExpirV10Datas>,
+    pub ms_db: BinDB<MsExpirV10Datas>,
     /// Store certifications created_block_id (Use only to detect expirations)
-    pub certs_db: BinFileDB<CertsExpirV10Datas>,
+    pub certs_db: BinDB<CertsExpirV10Datas>,
 }
 
 impl WotsV10DBs {
     /// Open wot databases from their respective files
-    pub fn open(db_path: &PathBuf, _memory_mode: bool) -> WotsV10DBs {
-        WotsV10DBs {
-            identities_db: open_db::<IdentitiesV10Datas>(&db_path, "identities.db")
-                .expect("Fail to open IdentitiesV10DB"),
-            ms_db: open_db::<MsExpirV10Datas>(&db_path, "ms.db")
-                .expect("Fail to open MsExpirV10DB"),
-            certs_db: open_db::<CertsExpirV10Datas>(&db_path, "certs.db")
-                .expect("Fail to open CertsExpirV10DB"),
+    pub fn open(db_path: Option<&PathBuf>) -> WotsV10DBs {
+        if let Some(db_path) = db_path {
+            WotsV10DBs {
+                identities_db: BinDB::File(
+                    open_db::<IdentitiesV10Datas>(&db_path, "identities.db")
+                        .expect("Fail to open IdentitiesV10DB"),
+                ),
+                ms_db: BinDB::File(
+                    open_db::<MsExpirV10Datas>(&db_path, "ms.db")
+                        .expect("Fail to open MsExpirV10DB"),
+                ),
+                certs_db: BinDB::File(
+                    open_db::<CertsExpirV10Datas>(&db_path, "certs.db")
+                        .expect("Fail to open CertsExpirV10DB"),
+                ),
+            }
+        } else {
+            WotsV10DBs {
+                identities_db: BinDB::Mem(
+                    open_memory_db::<IdentitiesV10Datas>().expect("Fail to open IdentitiesV10DB"),
+                ),
+                ms_db: BinDB::Mem(
+                    open_memory_db::<MsExpirV10Datas>().expect("Fail to open MsExpirV10DB"),
+                ),
+                certs_db: BinDB::Mem(
+                    open_memory_db::<CertsExpirV10Datas>().expect("Fail to open CertsExpirV10DB"),
+                ),
+            }
         }
     }
     /// Save wot databases from their respective files
@@ -210,40 +297,50 @@ impl WotsV10DBs {
 
 #[derive(Debug)]
 /// Set of databases storing currency information
-pub struct CurrencyV10DBs<B: Backend + Debug> {
+pub struct CurrencyV10DBs {
     /// Store all UD sources
-    pub du_db: BinDB<UDsV10Datas, B>,
+    pub du_db: BinDB<UDsV10Datas>,
     /// Store all Transactions
-    pub tx_db: BinDB<TxV10Datas, B>,
+    pub tx_db: BinDB<TxV10Datas>,
     /// Store all UTXOs
-    pub utxos_db: BinDB<UTXOsV10Datas, B>,
+    pub utxos_db: BinDB<UTXOsV10Datas>,
     /// Store balances of all address (and theirs UTXOs indexs)
-    pub balances_db: BinDB<BalancesV10Datas, B>,
+    pub balances_db: BinDB<BalancesV10Datas>,
 }
 
-impl CurrencyV10DBs<MemoryBackend> {
-    /// Open currency databases in memory mode
-    pub fn open_memory_mode() -> CurrencyV10DBs<MemoryBackend> {
-        CurrencyV10DBs {
-            du_db: open_memory_db::<UDsV10Datas>().expect("Fail to open UDsV10DB"),
-            tx_db: open_memory_db::<TxV10Datas>().expect("Fail to open TxV10DB"),
-            utxos_db: open_memory_db::<UTXOsV10Datas>().expect("Fail to open UTXOsV10DB"),
-            balances_db: open_memory_db::<BalancesV10Datas>().expect("Fail to open BalancesV10DB"),
-        }
-    }
-}
-
-impl CurrencyV10DBs<FileBackend> {
+impl CurrencyV10DBs {
     /// Open currency databases from their respective files
-    pub fn open(db_path: &PathBuf) -> CurrencyV10DBs<FileBackend> {
-        CurrencyV10DBs {
-            du_db: open_db::<UDsV10Datas>(&db_path, "du.db").expect("Fail to open UDsV10DB"),
-            tx_db: open_db::<TxV10Datas>(&db_path, "tx.db")
-                .unwrap_or_else(|_| panic!("Fail to open TxV10DB : {:?} ", db_path.as_path())),
-            utxos_db: open_db::<UTXOsV10Datas>(&db_path, "sources.db")
-                .expect("Fail to open UTXOsV10DB"),
-            balances_db: open_db::<BalancesV10Datas>(&db_path, "balances.db")
-                .expect("Fail to open BalancesV10DB"),
+    pub fn open(db_path: Option<&PathBuf>) -> CurrencyV10DBs {
+        if let Some(db_path) = db_path {
+            CurrencyV10DBs {
+                du_db: BinDB::File(
+                    open_db::<UDsV10Datas>(&db_path, "du.db").expect("Fail to open UDsV10DB"),
+                ),
+                tx_db: BinDB::File(
+                    open_db::<TxV10Datas>(&db_path, "tx.db").unwrap_or_else(|_| {
+                        panic!("Fail to open TxV10DB : {:?} ", db_path.as_path())
+                    }),
+                ),
+                utxos_db: BinDB::File(
+                    open_db::<UTXOsV10Datas>(&db_path, "sources.db")
+                        .expect("Fail to open UTXOsV10DB"),
+                ),
+                balances_db: BinDB::File(
+                    open_db::<BalancesV10Datas>(&db_path, "balances.db")
+                        .expect("Fail to open BalancesV10DB"),
+                ),
+            }
+        } else {
+            CurrencyV10DBs {
+                du_db: BinDB::Mem(open_memory_db::<UDsV10Datas>().expect("Fail to open UDsV10DB")),
+                tx_db: BinDB::Mem(open_memory_db::<TxV10Datas>().expect("Fail to open TxV10DB")),
+                utxos_db: BinDB::Mem(
+                    open_memory_db::<UTXOsV10Datas>().expect("Fail to open UTXOsV10DB"),
+                ),
+                balances_db: BinDB::Mem(
+                    open_memory_db::<BalancesV10Datas>().expect("Fail to open BalancesV10DB"),
+                ),
+            }
         }
     }
     /// Save currency databases in their respective files
@@ -341,7 +438,7 @@ fn _use_json_macro() -> serde_json::Value {
 
 /// Open Rustbreak memory database
 pub fn open_memory_db<D: Serialize + DeserializeOwned + Debug + Default + Clone + Send>(
-) -> Result<BinMemDB<D>, DALError> {
+) -> Result<MemoryDatabase<D, Bincode>, DALError> {
     let backend = MemoryBackend::new();
     let db = MemoryDatabase::<D, Bincode>::from_parts(D::default(), backend, Bincode);
     Ok(db)
@@ -351,7 +448,7 @@ pub fn open_memory_db<D: Serialize + DeserializeOwned + Debug + Default + Clone 
 pub fn open_db<D: Serialize + DeserializeOwned + Debug + Default + Clone + Send>(
     dbs_folder_path: &PathBuf,
     db_file_name: &str,
-) -> Result<BinFileDB<D>, DALError> {
+) -> Result<FileDatabase<D, Bincode>, DALError> {
     let mut db_path = dbs_folder_path.clone();
     db_path.push(db_file_name);
     let file_path = db_path.as_path();
@@ -373,8 +470,12 @@ pub fn open_db<D: Serialize + DeserializeOwned + Debug + Default + Clone + Send>
 }
 
 /// Open wot db (cf. duniter-wot crate)
-pub fn open_wot_db<W: WebOfTrust>(dbs_folder_path: &PathBuf) -> Result<BinFileDB<W>, DALError> {
-    open_db::<W>(dbs_folder_path, "wot.db")
+pub fn open_wot_db<W: WebOfTrust>(dbs_folder_path: Option<&PathBuf>) -> Result<BinDB<W>, DALError> {
+    if let Some(dbs_folder_path) = dbs_folder_path {
+        Ok(BinDB::File(open_db::<W>(dbs_folder_path, "wot.db")?))
+    } else {
+        Ok(BinDB::Mem(open_memory_db::<W>()?))
+    }
 }
 
 // Open wot file (cf. duniter-wot crate)

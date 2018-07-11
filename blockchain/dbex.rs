@@ -64,9 +64,9 @@ pub fn dbex_tx<DC: DuniterConf>(profile: &str, conf: &DC, _csv: bool, query: &DB
 
     // Open databases
     let load_dbs_begin = SystemTime::now();
-    //let blocks_databases = BlocksV10DBs::open(&db_path, false);
-    let currency_databases = CurrencyV10DBs::<FileBackend>::open(&db_path);
-    let wot_databases = WotsV10DBs::open(&db_path, false);
+    //let blocks_databases = BlocksV10DBs::open(Some(&db_path));
+    let currency_databases = CurrencyV10DBs::open(Some(&db_path));
+    let wot_databases = WotsV10DBs::open(Some(&db_path));
     let load_dbs_duration = SystemTime::now()
         .duration_since(load_dbs_begin)
         .expect("duration_since error !");
@@ -122,7 +122,7 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
     let load_dbs_begin = SystemTime::now();
     let currency_params_db =
         open_db::<CurrencyParamsV10Datas>(&db_path, "params.db").expect("Fail to open params db");
-    let wot_databases = WotsV10DBs::open(&db_path, false);
+    let wot_databases = WotsV10DBs::open(Some(&db_path));
     let load_dbs_duration = SystemTime::now()
         .duration_since(load_dbs_begin)
         .expect("duration_since error");
@@ -155,7 +155,7 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
         .expect("Fail to read IdentitiesDB !");
 
     // Open wot db
-    let wot_db = open_wot_db::<RustyWebOfTrust>(&db_path).expect("Fail to open WotDB !");
+    let wot_db = open_wot_db::<RustyWebOfTrust>(Some(&db_path)).expect("Fail to open WotDB !");
 
     // Print wot blockstamp
     //println!("Wot : Current blockstamp = {}.", wot_blockstamp);

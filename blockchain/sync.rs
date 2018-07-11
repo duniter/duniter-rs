@@ -27,7 +27,6 @@ use duniter_dal::ForkId;
 use duniter_documents::{BlockHash, BlockId, Hash};
 use duniter_network::NetworkBlock;
 use duniter_wotb::NodeId;
-use rustbreak::{deser::Bincode, MemoryDatabase};
 use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::ops::Deref;
@@ -157,7 +156,7 @@ pub fn sync_ts<DC: DuniterConf>(
         // Get current local blockstamp
         debug!("Get local current blockstamp...");
         let db_path = duniter_conf::get_blockchain_db_path(&profile_copy, &currency);
-        let blocks_databases = BlocksV10DBs::open(&db_path, false);
+        let blocks_databases = BlocksV10DBs::open(Some(&db_path));
         let current_blockstamp: Blockstamp = duniter_dal::block::get_current_blockstamp(
             &blocks_databases,
         ).expect("ForksV10DB : RustBreakError !")
@@ -258,10 +257,10 @@ pub fn sync_ts<DC: DuniterConf>(
     duniter_conf::write_conf_file(profile, &conf).expect("Fail to write new conf !");
 
     // Open wot db
-    let wot_db = open_wot_db::<RustyWebOfTrust>(&db_path).expect("Fail to open WotDB !");
+    let wot_db = open_wot_db::<RustyWebOfTrust>(Some(&db_path)).expect("Fail to open WotDB !");
 
     // Open blocks databases
-    let databases = BlocksV10DBs::open(&db_path, false);
+    let databases = BlocksV10DBs::open(Some(&db_path));
 
     // Get local current blockstamp
     debug!("Get local current blockstamp...");
@@ -401,7 +400,7 @@ pub fn sync_ts<DC: DuniterConf>(
         let wot_job_begin = SystemTime::now();
         // Open databases
         let db_path = duniter_conf::get_blockchain_db_path(&profile_copy2, &currency_copy2);
-        let databases = WotsV10DBs::open(&db_path, false);
+        let databases = WotsV10DBs::open(Some(&db_path));
 
         // Listen db requets
         let mut all_wait_duration = Duration::from_millis(0);
@@ -442,7 +441,7 @@ pub fn sync_ts<DC: DuniterConf>(
         let tx_job_begin = SystemTime::now();
         // Open databases
         let db_path = duniter_conf::get_blockchain_db_path(&profile_copy, &currency_copy);
-        let databases = CurrencyV10DBs::<FileBackend>::open(&db_path);
+        let databases = CurrencyV10DBs::open(Some(&db_path));
 
         // Listen db requets
         let mut all_wait_duration = Duration::from_millis(0);
@@ -480,8 +479,8 @@ pub fn sync_ts<DC: DuniterConf>(
     // Apply blocks
     let mut blocks_not_expiring = VecDeque::with_capacity(200_000);
     let mut last_block_expiring: isize = -1;
-    let certs_db = MemoryDatabase::<CertsExpirV10Datas, Bincode>::memory(HashMap::new())
-        .expect("Fail to create memory certs_db");
+    let certs_db =
+        BinDB::Mem(open_memory_db::<CertsExpirV10Datas>().expect("Fail to create memory certs_db"));
     let mut currency_params = CurrencyParameters::default();
     let mut get_currency_params = false;
     let mut certs_count = 0;
@@ -534,7 +533,7 @@ pub fn sync_ts<DC: DuniterConf>(
         // Apply block
         let apply_valid_block_begin = SystemTime::now();
         if let Ok(ValidBlockApplyReqs(block_req, wot_db_reqs, currency_db_reqs)) =
-            apply_valid_block::<RustyWebOfTrust, FileBackend>(
+            apply_valid_block::<RustyWebOfTrust>(
                 &block_doc,
                 &mut wotb_index,
                 &wot_db,

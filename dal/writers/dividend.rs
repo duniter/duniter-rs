@@ -16,16 +16,14 @@
 use duniter_crypto::keys::PubKey;
 use duniter_documents::blockchain::v10::documents::transaction::*;
 use duniter_documents::BlockId;
-use rustbreak::backend::Backend;
 use sources::SourceAmount;
 use std::collections::{HashMap, HashSet};
-use std::fmt::Debug;
 use *;
 
 /// Apply UD creation in databases
-pub fn create_du<B: Backend + Debug>(
-    du_db: &BinDB<UDsV10Datas, B>,
-    balances_db: &BinDB<BalancesV10Datas, B>,
+pub fn create_du(
+    du_db: &BinDB<UDsV10Datas>,
+    balances_db: &BinDB<BalancesV10Datas>,
     du_amount: &SourceAmount,
     du_block_id: BlockId,
     members: &[PubKey],

@@ -13,9 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-extern crate rustbreak;
-extern crate serde;
-
 use super::constants::MAX_FORKS;
 use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::BlockDocument;
@@ -49,7 +46,7 @@ impl DALBlock {
 
 ///Get forks status
 pub fn get_forks(
-    forks_db: &BinFileDB<ForksV10Datas>,
+    forks_db: &BinDB<ForksV10Datas>,
     current_blockstamp: Blockstamp,
 ) -> Result<Vec<ForkStatus>, DALError> {
     Ok(forks_db.read(|forks_db| {
@@ -145,7 +142,7 @@ pub fn get_current_blockstamp(blocks_db: &BlocksV10DBs) -> Result<Option<Blockst
 
 /// Get block fork id
 pub fn get_fork_id_of_blockstamp(
-    forks_blocks_db: &BinFileDB<ForksBlocksV10Datas>,
+    forks_blocks_db: &BinDB<ForksBlocksV10Datas>,
     blockstamp: &Blockstamp,
 ) -> Result<Option<ForkId>, DALError> {
     Ok(forks_blocks_db.read(|db| {
@@ -160,8 +157,8 @@ pub fn get_fork_id_of_blockstamp(
 impl DALBlock {
     /// Delete fork
     pub fn delete_fork(
-        forks_db: &BinFileDB<ForksV10Datas>,
-        forks_blocks_db: &BinFileDB<ForksBlocksV10Datas>,
+        forks_db: &BinDB<ForksV10Datas>,
+        forks_blocks_db: &BinDB<ForksBlocksV10Datas>,
         fork_id: ForkId,
     ) -> Result<(), DALError> {
         let fork_meta_datas = forks_db
@@ -185,7 +182,7 @@ impl DALBlock {
     }
     /// Assign fork id to new block
     pub fn assign_fork_to_new_block(
-        forks_db: &BinFileDB<ForksV10Datas>,
+        forks_db: &BinDB<ForksV10Datas>,
         new_block_previous_blockstamp: &PreviousBlockstamp,
         new_block_hash: &BlockHash,
     ) -> Result<(Option<ForkId>, bool), DALError> {
@@ -232,7 +229,7 @@ impl DALBlock {
     }
     /// Get fork block
     pub fn get_block_fork(
-        forks_db: &BinFileDB<ForksV10Datas>,
+        forks_db: &BinDB<ForksV10Datas>,
         previous_blockstamp: &PreviousBlockstamp,
     ) -> Result<Option<ForkId>, DALError> {
         Ok(forks_db.read(|forks_db| {
@@ -246,7 +243,7 @@ impl DALBlock {
     }
     /// Get block hash
     pub fn get_block_hash(
-        db: &BinFileDB<LocalBlockchainV10Datas>,
+        db: &BinDB<LocalBlockchainV10Datas>,
         block_number: BlockId,
     ) -> Result<Option<BlockHash>, DALError> {
         Ok(db.read(|db| {
@@ -259,8 +256,8 @@ impl DALBlock {
     }
     /// Return true if the node already knows this block
     pub fn already_have_block(
-        blockchain_db: &BinFileDB<LocalBlockchainV10Datas>,
-        forks_blocks_db: &BinFileDB<ForksBlocksV10Datas>,
+        blockchain_db: &BinDB<LocalBlockchainV10Datas>,
+        forks_blocks_db: &BinDB<ForksBlocksV10Datas>,
         blockstamp: Blockstamp,
     ) -> Result<bool, DALError> {
         let already_have_block = forks_blocks_db.read(|db| db.contains_key(&blockstamp))?;
@@ -279,8 +276,8 @@ impl DALBlock {
     }
     /// Get stackables blocks
     pub fn get_stackables_blocks(
-        forks_db: &BinFileDB<ForksV10Datas>,
-        forks_blocks_db: &BinFileDB<ForksBlocksV10Datas>,
+        forks_db: &BinDB<ForksV10Datas>,
+        forks_blocks_db: &BinDB<ForksBlocksV10Datas>,
         current_blockstamp: &Blockstamp,
     ) -> Result<Vec<DALBlock>, DALError> {
         debug!("get_stackables_blocks() after {}", current_blockstamp);
@@ -309,7 +306,7 @@ impl DALBlock {
     }
     /// Get stackables forks
     pub fn get_stackables_forks(
-        db: &BinFileDB<ForksV10Datas>,
+        db: &BinDB<ForksV10Datas>,
         current_blockstamp: &Blockstamp,
     ) -> Result<Vec<usize>, DALError> {
         Ok(db.read(|db| {
@@ -326,8 +323,8 @@ impl DALBlock {
     }
     /// Get block
     pub fn get_block(
-        blockchain_db: &BinFileDB<LocalBlockchainV10Datas>,
-        forks_blocks_db: Option<&BinFileDB<ForksBlocksV10Datas>>,
+        blockchain_db: &BinDB<LocalBlockchainV10Datas>,
+        forks_blocks_db: Option<&BinDB<ForksBlocksV10Datas>>,
         blockstamp: &Blockstamp,
     ) -> Result<Option<DALBlock>, DALError> {
         let dal_block = blockchain_db.read(|db| db.get(&blockstamp.id).cloned())?;
@@ -341,7 +338,7 @@ impl DALBlock {
     }
     /// Get block in local blockchain
     pub fn get_block_in_local_blockchain(
-        db: &BinFileDB<LocalBlockchainV10Datas>,
+        db: &BinDB<LocalBlockchainV10Datas>,
         block_id: BlockId,
     ) -> Result<Option<BlockDocument>, DALError> {
         Ok(db.read(|db| {
@@ -355,7 +352,7 @@ impl DALBlock {
     /// Get current frame of calculating members
     pub fn get_current_frame(
         &self,
-        db: &BinFileDB<LocalBlockchainV10Datas>,
+        db: &BinDB<LocalBlockchainV10Datas>,
     ) -> Result<HashMap<PubKey, usize>, DALError> {
         let frame_begin = self.block.number.0 - self.block.issuers_frame as u32;
         Ok(db.read(|db| {
@@ -378,7 +375,7 @@ impl DALBlock {
         })?)
     }
     /// Compute median issuers frame
-    pub fn compute_median_issuers_frame(&mut self, db: &BinFileDB<LocalBlockchainV10Datas>) -> () {
+    pub fn compute_median_issuers_frame(&mut self, db: &BinDB<LocalBlockchainV10Datas>) -> () {
         let current_frame = self
             .get_current_frame(db)
             .expect("Fatal error : fail to read LocalBlockchainV10DB !");
