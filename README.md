@@ -1,5 +1,6 @@
-# duniter-rs
+# Duniter Rust (durs)
 
+[![docs](https://librelois.fr/img/docs-read%20now-green.svg)](https://nodes.duniter.io/rust/duniter-rs/durs/)
 [![build status](https://git.duniter.org/nodes/rust/duniter-rs/badges/dev/build.svg)](https://git.duniter.org/nodes/rust/duniter-rs/commits/dev)
 
 ## What is Duniter
