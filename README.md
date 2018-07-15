@@ -1,3 +1,5 @@
+![Duniter-Rust logo](https://git.duniter.org/nodes/rust/duniter-rs/raw/dev/images/duniter-rs.png)
+
 # Duniter Rust (durs)
 
 [![docs](https://librelois.fr/img/docs-read%20now-green.svg)](https://nodes.duniter.io/rust/duniter-rs/durs/)
