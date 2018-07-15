@@ -1,10 +1,10 @@
 stages:
+    - package
     - build_and_tests
     - fmt
     - clippy
     - publish_crate
     - publish_doc
-    - package
     - prerelease
     - release
 
