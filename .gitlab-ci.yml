@@ -117,7 +117,23 @@ pages:
   only:
     - dev
 
-package:test:linux-x64:
+package:test:win64:
+  tags:
+    - redshift-rust-win64
+  before_script:
+    - rustc --version && cargo --version
+  stage: package
+  script:
+    - bash "release/arch/win64/build-win64.sh" "$(date +%Y%m%d).$(date +%H%M).$(date +%S)"
+  artifacts:
+    paths:
+      - work/bin/
+    expire_in: 1 weeks
+  except:
+      - tags
+  when: manual
+
+package:test:linux64:
   <<: *rust_stable_env
   stage: package
   script:
@@ -134,7 +150,7 @@ package:test:linux-x64:
       - tags
   when: manual
 
-package:prod:linux-x64:
+package:prod:linux64:
   <<: *rust_stable_env
   stage: package
   script:
