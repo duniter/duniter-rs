@@ -1,10 +1,10 @@
 stages:
-    - package
     - tests
     - fmt
     - clippy
     - publish_crate
     - publish_doc
+    - package
     - prerelease
     - release
 
@@ -169,6 +169,20 @@ package:prod:linux64:
     paths:
       - cargo/
       - target/
+  artifacts:
+    paths:
+      - work/bin/
+    expire_in: 2 weeks
+  only:
+    - tags
+  when: manual
+  allow_failure: false
+
+package:prod:win64:
+  <<: *rust_win64_env
+  stage: package
+  script:
+    - bash "release/arch/win64/build-win64.sh" "${CI_COMMIT_TAG#v}"
   artifacts:
     paths:
       - work/bin/
