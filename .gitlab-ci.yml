@@ -1,6 +1,6 @@
 stages:
     - package
-    - build_and_tests
+    - tests
     - fmt
     - clippy
     - publish_crate
@@ -42,9 +42,9 @@ variables:
   before_script:
     - rustc --version && cargo --version
     
-build_and_tests:stable:
+tests:linux64:stable:
   <<: *rust_stable_env
-  stage: build_and_tests
+  stage: tests
   tags:
     - redshift-rs-stable
   script: 
@@ -55,24 +55,24 @@ build_and_tests:stable:
       - cargo/
       - target/
 
-build_and_tests:stable_win64:
+tests:win64:stable:
   <<: *rust_win64_env
-  stage: build_and_tests
+  stage: tests
   script: 
     - cargo test --all --exclude duniter-tui --no-default-features --target=x86_64-pc-windows-gnu
     
-build_and_tests:beta:
+tests:linux64:beta:
   <<: *rust_beta_env
-  stage: build_and_tests
+  stage: tests
   script:
     - cargo build --features strict
     - cargo test --all
   when: manual
   allow_failure: true
     
-build_and_tests:nightly:
+tests:linux64:nightly:
   <<: *rust_nightly_env
-  stage: build_and_tests
+  stage: tests
   script:
     - cargo build --features strict
     - cargo test --all
