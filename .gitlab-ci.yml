@@ -19,12 +19,13 @@ variables:
     - rustc --version && cargo --version
 
 .rust_beta_env: &rust_beta_env
+  image: parity/rust:gitlab-ci
   tags:
-    - redshift-rs-beta
+    - redshift-rs-stable
   before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
-    - rustup update
-    - rustc --version && cargo --version
+    - rustup default beta
+    - rustup show && rustc --version && cargo --version
 
 .rust_nightly_env: &rust_nightly_env
   image: rustlang/rust:nightly
@@ -69,6 +70,7 @@ fmt:
   <<: *rust_nightly_env
   stage: fmt
   before_script:
+    - rustup show
     - rustup component add rustfmt-preview --toolchain nightly
   script:
     - cargo fmt -- --check
