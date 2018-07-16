@@ -1,6 +1,6 @@
 stages:
-    - tests
     - fmt
+    - tests
     - clippy
     - publish_crate
     - publish_doc
@@ -11,14 +11,14 @@ stages:
 variables:
   CARGO_HOME: $CI_PROJECT_DIR/cargo
 
-.rust_stable_env: &rust_stable_env
+.rust_stable_lin64: &rust_stable_lin64
   tags:
     - redshift-rs-stable
   before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
     - rustc --version && cargo --version
 
-.rust_beta_env: &rust_beta_env
+.rust_beta_lin64: &rust_beta_lin64
   image: parity/rust:gitlab-ci
   tags:
     - redshift-rs-stable
@@ -27,7 +27,7 @@ variables:
     - rustup default beta
     - rustup show && rustc --version && cargo --version
 
-.rust_nightly_env: &rust_nightly_env
+.rust_nightly_lin64: &rust_nightly_lin64
   image: rustlang/rust:nightly
   tags:
     - redshift-rs-nightly
@@ -48,9 +48,19 @@ variables:
     - redshift-rs-stable
   before_script:
     - rustc --version && cargo --version
+
+fmt:
+  <<: *rust_nightly_lin64
+  stage: fmt
+  before_script:
+    - rustup show
+    - rustup component add rustfmt-preview --toolchain nightly
+  script:
+    - cargo fmt -- --check
+  allow_failure: true
     
 tests:linux64:stable:
-  <<: *rust_stable_env
+  <<: *rust_stable_lin64
   stage: tests
   tags:
     - redshift-rs-stable
@@ -75,7 +85,7 @@ tests:win64:stable:
     - cargo test --all --exclude duniter-tui --no-default-features --target=x86_64-pc-windows-gnu
     
 tests:linux64:beta:
-  <<: *rust_beta_env
+  <<: *rust_beta_lin64
   stage: tests
   script:
     - cargo build --features strict
@@ -84,22 +94,12 @@ tests:linux64:beta:
   allow_failure: true
     
 tests:linux64:nightly:
-  <<: *rust_nightly_env
+  <<: *rust_nightly_lin64
   stage: tests
   script:
     - cargo build --features strict
     - cargo test --all
   when: manual
-  allow_failure: true
-  
-fmt:
-  <<: *rust_nightly_env
-  stage: fmt
-  before_script:
-    - rustup show
-    - rustup component add rustfmt-preview --toolchain nightly
-  script:
-    - cargo fmt -- --check
   allow_failure: true
 
 clippy:
@@ -115,7 +115,7 @@ clippy:
   allow_failure: true
 
 publish:crate:
-  <<: *rust_stable_env
+  <<: *rust_stable_lin64
   stage: publish_crate
   script:
     - IFS='/' read -r first a <<< "$CI_COMMIT_TAG"
@@ -128,7 +128,7 @@ publish:crate:
   when: manual
 
 pages:
-  <<: *rust_stable_env
+  <<: *rust_stable_lin64
   stage: publish_doc
   script:
     - cargo doc
@@ -157,7 +157,7 @@ package:test:win64:
   when: manual
 
 package:test:linux64:
-  <<: *rust_stable_env
+  <<: *rust_stable_lin64
   stage: package
   script:
     - bash "release/arch/linux-x64/build-lin-x64.sh" "$(date +%Y%m%d).$(date +%H%M).$(date +%S)"
@@ -174,7 +174,7 @@ package:test:linux64:
   when: manual
 
 package:prod:linux64:
-  <<: *rust_stable_env
+  <<: *rust_stable_lin64
   stage: package
   script:
     - bash "release/arch/linux-x64/build-lin-x64.sh" "${CI_COMMIT_TAG#v}"
