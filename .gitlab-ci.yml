@@ -173,6 +173,23 @@ package:test:linux64:
       - tags
   when: manual
 
+package:test:armv7:
+  <<: *rust_stable_armv7
+  stage: package
+  script:
+    - bash "release/arch/armv7/build-armv7.sh" "$(date +%Y%m%d).$(date +%H%M).$(date +%S)"
+  cache:
+    paths:
+      - cargo/
+      - target/
+  artifacts:
+    paths:
+      - work/bin/
+    expire_in: 1 weeks
+  except:
+      - tags
+  when: manual
+
 package:prod:linux64:
   <<: *rust_stable_lin64
   stage: package
