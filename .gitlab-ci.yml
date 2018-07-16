@@ -36,7 +36,7 @@ variables:
     - rustc --version && cargo --version
 
 .rust_stable_armv7: &rust_stable_armv7
-  image: registry.duniter.org/docker/rust/armv7-builder:v0.0.1
+  image: registry.duniter.org/docker/rust/armv7-builder:v0.0.3
   tags:
     - redshift-rs-stable
   before_script:
@@ -161,6 +161,23 @@ package:test:linux64:
   stage: package
   script:
     - bash "release/arch/linux-x64/build-lin-x64.sh" "$(date +%Y%m%d).$(date +%H%M).$(date +%S)"
+  cache:
+    paths:
+      - cargo/
+      - target/
+  artifacts:
+    paths:
+      - work/bin/
+    expire_in: 1 weeks
+  except:
+      - tags
+  when: manual
+
+package:test:armv7:
+  <<: *rust_stable_armv7
+  stage: package
+  script:
+    - bash "release/arch/armv7/build-armv7.sh" "$(date +%Y%m%d).$(date +%H%M).$(date +%S)"
   cache:
     paths:
       - cargo/
