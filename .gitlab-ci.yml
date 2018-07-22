@@ -55,6 +55,7 @@ fmt:
   before_script:
     - rustup show
     - rustup component add rustfmt-preview --toolchain nightly
+    - cargo fmt -- --version
   script:
     - cargo fmt -- --check
   allow_failure: true
