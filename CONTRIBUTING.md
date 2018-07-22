@@ -19,28 +19,12 @@ Please note we have a specific workflow, please follow it in all your interactio
 
     `rustfmt` is a tool applying Rust idiomatic code style to your files automatically.
 
-    If you're using rust 1.24 or greater :
-
     ```bash
     # Install rustfmt through rustup
-    rustup component add rustfmt
+    rustup component add rustfmt-preview --toolchain nightly
     # Run rustfmt
     cargo fmt
     ```
-
-    If you're using rust 1.23 or lower :
-
-    ```bash
-    # Install nightly toolchain
-    rustup install nightly
-    # Install rustfmt through cargo
-    cargo +nightly install rustfmt
-    # Run rustfmt
-    cargo +nightly fmt
-    ```
-
-    > If you switch from 1.23 to 1.24, uninstall `rustfmt` from cargo and install it back with
-    > `rustup`
 
 - Use `clippy`.
 
