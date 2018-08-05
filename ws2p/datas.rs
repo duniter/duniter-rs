@@ -31,7 +31,7 @@ pub struct WS2PModuleDatas {
     pub currency: Option<String>,
     pub key_pair: Option<KeyPairEnum>,
     pub conf: WS2PConf,
-    pub node_id: NodeUUID,
+    pub node_id: NodeId,
     pub main_thread_channel: (
         mpsc::Sender<WS2PThreadSignal>,
         mpsc::Receiver<WS2PThreadSignal>,

@@ -30,6 +30,9 @@
 
 #[macro_use]
 extern crate lazy_static;
+//#[cfg(test)]
+//#[macro_use]
+//extern crate pretty_assertions;
 #[macro_use]
 extern crate serde_derive;
 
@@ -38,6 +41,7 @@ extern crate crypto;
 extern crate duniter_crypto;
 extern crate duniter_documents;
 extern crate duniter_module;
+extern crate dup_binarizer;
 extern crate serde;
 extern crate serde_json;
 
@@ -47,16 +51,17 @@ pub mod network_peer;
 
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
+use duniter_crypto::hashs::*;
 use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::{
     BlockDocument, CertificationDocument, IdentityDocument, MembershipDocument, RevocationDocument,
     TransactionDocument,
 };
 use duniter_documents::blockchain::Document;
-use duniter_documents::{BlockHash, BlockId, Blockstamp, Hash};
+use duniter_documents::{BlockHash, BlockId, Blockstamp};
 use duniter_module::*;
 use network_head::NetworkHead;
-use network_peer::NetworkPeer;
+use network_peer::PeerCard;
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::ops::Deref;
 use std::sync::mpsc;
@@ -88,34 +93,34 @@ pub struct SyncEndpoint {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Random identifier with which several Duniter nodes with the same network keypair can be differentiated
-pub struct NodeUUID(pub u32);
+pub struct NodeId(pub u32);
 
-impl Default for NodeUUID {
-    fn default() -> NodeUUID {
-        NodeUUID(0)
+impl Default for NodeId {
+    fn default() -> NodeId {
+        NodeId(0)
     }
 }
 
-impl Display for NodeUUID {
+impl Display for NodeId {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "{:x}", self.0)
     }
 }
 
-impl<'a> From<&'a str> for NodeUUID {
-    fn from(source: &'a str) -> NodeUUID {
-        NodeUUID(u32::from_str_radix(source, 16).expect("Fail to parse NodeUUID"))
+impl<'a> From<&'a str> for NodeId {
+    fn from(source: &'a str) -> NodeId {
+        NodeId(u32::from_str_radix(source, 16).expect("Fail to parse NodeId"))
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// Complete identifier of a duniter node.
-pub struct NodeFullId(pub NodeUUID, pub PubKey);
+pub struct NodeFullId(pub NodeId, pub PubKey);
 
 impl Default for NodeFullId {
     fn default() -> NodeFullId {
         NodeFullId(
-            NodeUUID::default(),
+            NodeId::default(),
             PubKey::Ed25519(
                 ed25519::PublicKey::from_base58("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
                     .unwrap(),
@@ -324,7 +329,7 @@ pub enum NetworkEvent {
     /// Receiving Pending Documents
     ReceiveDocuments(Vec<NetworkDocument>),
     /// Receipt of peer cards
-    ReceivePeers(Vec<NetworkPeer>),
+    ReceivePeers(Vec<PeerCard>),
     /// Receiving heads
     ReceiveHeads(Vec<NetworkHead>),
 }
@@ -341,7 +346,7 @@ mod tests {
             ed25519::PublicKey::from_base58("D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx")
                 .unwrap(),
         );
-        let node_id = NodeUUID(u32::from_str_radix("c1c39a0a", 16).unwrap());
+        let node_id = NodeId(u32::from_str_radix("c1c39a0a", 16).unwrap());
         let full_id = NodeFullId(node_id, issuer);
         assert_eq!(
             NetworkEndpoint::parse_from_raw("WS2P c1c39a0a i3.ifee.fr 80 /ws2p", issuer, 0, 0, 1),
@@ -367,7 +372,7 @@ mod tests {
             ed25519::PublicKey::from_base58("5gJYnQp8v7bWwk7EWRoL8vCLof1r3y9c6VDdnGSM1GLv")
                 .unwrap(),
         );
-        let node_id = NodeUUID(u32::from_str_radix("cb06a19b", 16).unwrap());
+        let node_id = NodeId(u32::from_str_radix("cb06a19b", 16).unwrap());
         let full_id = NodeFullId(node_id, issuer);
         assert_eq!(
             NetworkEndpoint::parse_from_raw("WS2P cb06a19b g1.imirhil.fr 53012 /", issuer, 0, 0, 1),

@@ -17,11 +17,12 @@ extern crate duniter_module;
 extern crate serde;
 
 use self::duniter_module::ModuleReqFullId;
+use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::{
     BlockDocument, CertificationDocument, IdentityDocument, MembershipDocument, RevocationDocument,
 };
-use duniter_documents::{Blockstamp, Hash};
+use duniter_documents::Blockstamp;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]

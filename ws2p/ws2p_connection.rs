@@ -2,7 +2,7 @@ use constants::*;
 use duniter_crypto::keys::*;
 use duniter_module::ModuleReqId;
 use duniter_network::network_endpoint::{NetworkEndpoint, NetworkEndpointApi};
-use duniter_network::{NetworkDocument, NodeUUID};
+use duniter_network::{NetworkDocument, NodeId};
 use parsers::blocks::parse_json_block;
 use rand::Rng;
 use std::sync::mpsc;
@@ -295,7 +295,7 @@ pub enum WS2PCloseConnectionReason {
 #[derive(Debug, Clone)]
 pub struct WS2PConnectionMetaDatas {
     pub state: WS2PConnectionState,
-    pub remote_uuid: Option<NodeUUID>,
+    pub remote_uuid: Option<NodeId>,
     pub remote_pubkey: Option<PubKey>,
     pub challenge: String,
     pub remote_challenge: String,
@@ -533,25 +533,28 @@ impl WS2PConnectionMetaDatas {
     ) -> WS2PConnectionMessagePayload {
         match body.get("peer") {
             Some(peer) => match peer.get("pubkey") {
-                Some(raw_pubkey) => match ed25519::PublicKey::from_base58(
-                    raw_pubkey.as_str().unwrap_or(""),
-                ) {
-                    Ok(pubkey) => {
-                        let mut ws2p_endpoints: Vec<NetworkEndpoint> = Vec::new();
-                        match peer.get("endpoints") {
-                            Some(endpoints) => match endpoints.as_array() {
-                                Some(array_endpoints) => {
-                                    for endpoint in array_endpoints {
-                                        if let Ok(ep) = NetworkEndpoint::parse_from_raw(
-                                            endpoint.as_str().unwrap_or(""),
-                                            PubKey::Ed25519(pubkey),
-                                            0,
-                                            0,
-                                            1u16,
-                                        ) {
-                                            if ep.api() == NetworkEndpointApi(String::from("WS2P"))
-                                            {
-                                                ws2p_endpoints.push(ep);
+                Some(raw_pubkey) => {
+                    match ed25519::PublicKey::from_base58(raw_pubkey.as_str().unwrap_or("")) {
+                        Ok(pubkey) => {
+                            let mut ws2p_endpoints: Vec<
+                                NetworkEndpoint,
+                            > = Vec::new();
+                            match peer.get("endpoints") {
+                                Some(endpoints) => match endpoints.as_array() {
+                                    Some(array_endpoints) => {
+                                        for endpoint in array_endpoints {
+                                            if let Ok(ep) = NetworkEndpoint::parse_from_raw(
+                                                endpoint.as_str().unwrap_or(""),
+                                                PubKey::Ed25519(pubkey),
+                                                0,
+                                                0,
+                                                1u16,
+                                            ) {
+                                                if ep.api()
+                                                    == NetworkEndpointApi(String::from("WS2P"))
+                                                {
+                                                    ws2p_endpoints.push(ep);
+                                                }
                                             }
                                         }
                                         WS2PConnectionMessagePayload::PeerCard(

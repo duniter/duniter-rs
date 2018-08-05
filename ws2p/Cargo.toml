@@ -9,6 +9,7 @@ license = "AGPL-3.0"
 path = "lib.rs"
 
 [dependencies]
+byteorder = "1.2.3"
 duniter-conf = { path = "../conf" }
 duniter-crypto = { path = "../crypto" }
 duniter-dal = { path = "../dal" }
@@ -17,6 +18,7 @@ duniter-message =  { path = "../message" }
 duniter-module = { path = "../module" }
 duniter-network = { path = "../network" }
 duniter-wotb = { path = "../wotb" }
+dup-binarizer = { path = "../binarizer" }
 lazy_static = "1.0.*"
 log = "0.4.*"
 rand = "0.4.*"

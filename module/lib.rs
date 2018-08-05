@@ -34,33 +34,17 @@
 extern crate serde_derive;
 
 extern crate duniter_crypto;
+extern crate duniter_documents;
 extern crate serde;
 extern crate serde_json;
 
 use duniter_crypto::keys::{KeyPair, KeyPairEnum};
+use duniter_documents::CurrencyName;
 use serde::de::DeserializeOwned;
 use serde::ser::{Serialize, Serializer};
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::sync::mpsc;
-
-#[derive(Debug, Deserialize, Clone, PartialEq, Eq, Hash, Serialize)]
-/// Store Currency
-pub enum Currency {
-    /// Currency in string format
-    Str(String),
-    /// Currency in binary format
-    Bin([u8; 2]),
-}
-
-impl ToString for Currency {
-    fn to_string(&self) -> String {
-        match *self {
-            Currency::Str(ref currency_str) => currency_str.clone(),
-            Currency::Bin(_) => panic!("Currency binary format is not implemented !"),
-        }
-    }
-}
 
 #[derive(Clone, Deserialize, Debug, PartialEq, Eq, Hash, Serialize)]
 /// Store module identifier
@@ -101,9 +85,9 @@ pub trait DuniterConf: Clone + Debug + Default + PartialEq + Serialize + Deseria
     /// Get conf version profile
     fn version(&self) -> usize;
     /// Get currency
-    fn currency(&self) -> Currency;
+    fn currency(&self) -> CurrencyName;
     /// Set currency
-    fn set_currency(&mut self, new_currency: Currency);
+    fn set_currency(&mut self, new_currency: CurrencyName);
     /// Get node id
     fn my_node_id(&self) -> u32;
     /// Disable a module

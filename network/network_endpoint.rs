@@ -23,15 +23,16 @@ extern crate regex;
 extern crate serde;
 
 use self::regex::Regex;
-use super::{NodeFullId, NodeUUID};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::PubKey;
-use duniter_documents::Hash;
+use dup_binarizer::BinMessage;
 use std::io::Cursor;
 use std::mem;
 use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr};
 use std::num::ParseIntError;
 use std::str::FromStr;
+use {NodeFullId, NodeId};
 
 /// Total size of all fixed size fields of an EndpointV11
 pub static ENDPOINTV11_FIXED_SIZE: &'static usize = &9;
@@ -128,7 +129,7 @@ pub struct NetworkEndpointV10 {
     /// API Name
     pub api: NetworkEndpointApi,
     /// Node unique identifier
-    pub node_id: Option<NodeUUID>,
+    pub node_id: Option<NodeId>,
     /// Public key of the node declaring this endpoint
     pub issuer: PubKey,
     /// NodeFullID hash
@@ -230,7 +231,7 @@ impl EndpointV11Api {
         }
     }
     /// Convert api name into bytes vector
-    pub fn into_bytes(&self) -> Vec<u8> {
+    pub fn to_bytes_vector(&self) -> Vec<u8> {
         match *self {
             EndpointV11Api::Bin(api_bin_name) => vec![api_bin_name.into_u8()],
             EndpointV11Api::Str(ref api_name) => api_name.as_bytes().to_vec(),
@@ -291,7 +292,7 @@ impl EndpointV11NetworkFeatures {
         self.0.len() as u8
     }
     /// Convert Self into bytes
-    pub fn into_bytes(&self) -> &[u8] {
+    pub fn to_bytes_slice(&self) -> &[u8] {
         &self.0
     }
     /// network feature ip_v4 is enable ?
@@ -380,67 +381,16 @@ impl EndpointV11Size {
     }
 }
 
-impl EndpointV11 {
-    /// Generate endpoint url
-    pub fn get_url(&self, get_protocol: bool, supported_ip_v6: bool) -> Option<String> {
-        let protocol = self.api.to_string();
-        let tls = match self.port {
-            443 => "s",
-            _ => "",
-        };
-        let host = if let Some(ref host) = self.host {
-            host.clone()
-        } else if supported_ip_v6 && self.ip_v6.is_some() {
-            let ip_v6 = self.ip_v6.unwrap();
-            format!("{}", ip_v6)
-        } else if self.ip_v4.is_some() {
-            let ip_v4 = self.ip_v4.unwrap();
-            format!("{}", ip_v4)
-        } else {
-            // Unreacheable endpoint
-            return None;
-        };
-        let path = match self.path {
-            Some(ref path_string) => path_string.clone(),
-            None => String::new(),
-        };
-        if get_protocol {
-            Some(format!(
-                "{}{}://{}:{}/{}",
-                protocol, tls, host, self.port, path
-            ))
-        } else {
-            Some(format!("{}:{}/{}", host, self.port, path))
-        }
-    }
-    /// get size of endpoint for binary format
-    pub fn compute_endpoint_size(&self) -> EndpointV11Size {
-        EndpointV11Size {
-            api_size: self.api.size(),
-            host_size: if let Some(ref host) = self.host {
-                host.len() as u8
-            } else {
-                0u8
-            },
-            path_size: if let Some(ref path) = self.path {
-                path.len() as u8
-            } else {
-                0u8
-            },
-            nf_size: self.network_features.size(),
-            ip_v4: self.network_features.ip_v4(),
-            ip_v6: self.network_features.ip_v6(),
-            af_size: self.api_features.len() as u8,
-        }
-    }
-    /// Convert endpoint into bytes vector
-    pub fn into_bytes(self) -> Vec<u8> {
+impl BinMessage for EndpointV11 {
+    type ReadBytesError = EndpointReadBytesError;
+
+    fn to_bytes_vector(&self) -> Vec<u8> {
         let endpoint_size = self.compute_endpoint_size();
         let mut binary_endpoint = Vec::with_capacity(endpoint_size.total_size());
         binary_endpoint.push(endpoint_size.api_size);
         binary_endpoint.push(endpoint_size.host_size);
         binary_endpoint.push(endpoint_size.path_size);
-        binary_endpoint.append(&mut self.api.into_bytes());
+        binary_endpoint.append(&mut self.api.to_bytes_vector());
         // api_version
         let mut buffer = [0u8; mem::size_of::<u16>()];
         buffer
@@ -451,7 +401,7 @@ impl EndpointV11 {
         // nf_size
         binary_endpoint.push(endpoint_size.nf_size);
         // network_features
-        binary_endpoint.extend_from_slice(&self.network_features.into_bytes());
+        binary_endpoint.extend_from_slice(&self.network_features.to_bytes_slice());
         binary_endpoint.push(endpoint_size.af_size);
         binary_endpoint.append(&mut self.api_features.clone());
         if let Some(ip_v4) = self.ip_v4 {
@@ -460,7 +410,7 @@ impl EndpointV11 {
         if let Some(ip_v6) = self.ip_v6 {
             binary_endpoint.extend_from_slice(&ip_v6.octets());
         }
-        if let Some(host) = self.host {
+        if let Some(ref host) = self.host {
             binary_endpoint.extend_from_slice(host.as_bytes());
         }
         // port
@@ -471,13 +421,13 @@ impl EndpointV11 {
             .expect("Unable to write");
         binary_endpoint.extend_from_slice(&buffer);
         // path
-        if let Some(path) = self.path {
+        if let Some(ref path) = self.path {
             binary_endpoint.extend_from_slice(path.as_bytes());
         }
         binary_endpoint
     }
     /// Create endpoint from bytes vector
-    pub fn from_bytes(binary_ep: &[u8]) -> Result<EndpointV11, EndpointReadBytesError> {
+    fn from_bytes(binary_ep: &[u8]) -> Result<EndpointV11, EndpointReadBytesError> {
         if binary_ep.len() < *ENDPOINTV11_FIXED_SIZE {
             return Err(EndpointReadBytesError::TooShort());
         }
@@ -592,6 +542,61 @@ impl EndpointV11 {
             last_check: 0,
         })
     }
+}
+
+impl EndpointV11 {
+    /// Generate endpoint url
+    pub fn get_url(&self, get_protocol: bool, supported_ip_v6: bool) -> Option<String> {
+        let protocol = self.api.to_string();
+        let tls = match self.port {
+            443 => "s",
+            _ => "",
+        };
+        let host = if let Some(ref host) = self.host {
+            host.clone()
+        } else if supported_ip_v6 && self.ip_v6.is_some() {
+            let ip_v6 = self.ip_v6.unwrap();
+            format!("{}", ip_v6)
+        } else if self.ip_v4.is_some() {
+            let ip_v4 = self.ip_v4.unwrap();
+            format!("{}", ip_v4)
+        } else {
+            // Unreacheable endpoint
+            return None;
+        };
+        let path = match self.path {
+            Some(ref path_string) => path_string.clone(),
+            None => String::new(),
+        };
+        if get_protocol {
+            Some(format!(
+                "{}{}://{}:{}/{}",
+                protocol, tls, host, self.port, path
+            ))
+        } else {
+            Some(format!("{}:{}/{}", host, self.port, path))
+        }
+    }
+    /// get size of endpoint for binary format
+    pub fn compute_endpoint_size(&self) -> EndpointV11Size {
+        EndpointV11Size {
+            api_size: self.api.size(),
+            host_size: if let Some(ref host) = self.host {
+                host.len() as u8
+            } else {
+                0u8
+            },
+            path_size: if let Some(ref path) = self.path {
+                path.len() as u8
+            } else {
+                0u8
+            },
+            nf_size: self.network_features.size(),
+            ip_v4: self.network_features.ip_v4(),
+            ip_v6: self.network_features.ip_v6(),
+            af_size: self.api_features.len() as u8,
+        }
+    }
     /// parse from ut8 format
     pub fn parse_from_raw(
         raw_endpoint: &str,
@@ -624,10 +629,14 @@ impl EndpointV11 {
                             "All api features must be declared !",
                         )));
                     }
-                    for i in (4 + network_features_count)
-                        ..(4 + network_features_count + api_features_count)
+                    /*for i in (4 + network_features_count)
+                        ..(4 + network_features_count + api_features_count)*/
+                    for str_feature in raw_ep_elements
+                        .iter()
+                        .take(4 + network_features_count + api_features_count)
+                        .skip(4 + network_features_count)
                     {
-                        if let Ok(feature) = raw_ep_elements[i].parse::<usize>() {
+                        if let Ok(feature) = str_feature.parse::<usize>() {
                             if feature > *MAX_API_FEATURES_COUNT {
                                 return Err(ParseEndpointError::TooHighApiFeature());
                             }
@@ -636,24 +645,24 @@ impl EndpointV11 {
                             api_features[byte_index] += feature.pow(2);
                         } else if let EndpointV11Api::Bin(know_api) = api {
                             if let ApiKnownByDuniter::WS2P() = know_api {
-                                match raw_ep_elements[i] {
+                                match *str_feature {
                                     "DEF" => api_features[0] += 1u8,
                                     "LOW" => api_features[0] += 2u8,
                                     "ABF" => api_features[0] += 4u8,
                                     _ => {
                                         return Err(ParseEndpointError::UnknowApiFeature(
-                                            String::from(raw_ep_elements[i]),
+                                            String::from(*str_feature),
                                         ))
                                     }
                                 }
                             } else {
                                 return Err(ParseEndpointError::UnknowApiFeature(String::from(
-                                    raw_ep_elements[i],
+                                    *str_feature,
                                 )));
                             }
                         } else {
                             return Err(ParseEndpointError::UnknowApiFeature(String::from(
-                                raw_ep_elements[i],
+                                *str_feature,
                             )));
                         }
                     }
@@ -758,7 +767,7 @@ impl NetworkEndpoint {
         }
     }
     /// Accessors providing node unique identifier
-    pub fn node_uuid(&self) -> Option<NodeUUID> {
+    pub fn node_uuid(&self) -> Option<NodeId> {
         match *self {
             NetworkEndpoint::V10(ref ep) => ep.node_id,
             _ => panic!("Endpoint version is not supported !"),
@@ -855,7 +864,7 @@ impl NetworkEndpoint {
                     let node_id = match caps.name("uuid") {
                         Some(caps_node_id) => {
                             match u32::from_str_radix(caps_node_id.as_str(), 16) {
-                                Ok(node_id) => Some(NodeUUID(node_id)),
+                                Ok(node_id) => Some(NodeId(node_id)),
                                 Err(_) => None,
                             }
                         }
@@ -914,7 +923,7 @@ mod tests {
             EndpointV11::parse_from_raw(str_endpoint, 0, 0),
             Ok(NetworkEndpoint::V11(endpoint.clone())),
         );
-        let binary_endpoint = endpoint.clone().into_bytes();
+        let binary_endpoint = endpoint.clone().to_bytes_vector();
         assert_eq!(
             EndpointV11::from_bytes(&binary_endpoint)
                 .expect("Fail to convert byte vector into endpoint !"),
@@ -938,7 +947,7 @@ mod tests {
             last_check: 0,
         };
         assert_eq!(
-            endpoint_v11.into_bytes(),
+            endpoint_v11.to_bytes_vector(),
             vec![
                 0, 15, 4, 1, 0, 2, 1, 4, 1, 7, 103, 49, 46, 100, 117, 114, 115, 46, 105, 102, 101,
                 101, 46, 102, 114, 1, 187, 119, 115, 50, 112,
@@ -966,7 +975,7 @@ mod tests {
             EndpointV11::parse_from_raw(str_endpoint, 0, 0),
             Ok(NetworkEndpoint::V11(endpoint.clone())),
         );
-        let binary_endpoint = endpoint.clone().into_bytes();
+        let binary_endpoint = endpoint.clone().to_bytes_vector();
         assert_eq!(
             EndpointV11::from_bytes(&binary_endpoint)
                 .expect("Fail to convert byte vector into endpoint !"),
@@ -994,7 +1003,7 @@ mod tests {
             EndpointV11::parse_from_raw(str_endpoint, 0, 0),
             Ok(NetworkEndpoint::V11(endpoint.clone())),
         );
-        let binary_endpoint = endpoint.clone().into_bytes();
+        let binary_endpoint = endpoint.clone().to_bytes_vector();
         assert_eq!(
             EndpointV11::from_bytes(&binary_endpoint)
                 .expect("Fail to convert byte vector into endpoint !"),
@@ -1023,7 +1032,7 @@ mod tests {
             EndpointV11::parse_from_raw(str_endpoint, 0, 0),
             Ok(NetworkEndpoint::V11(endpoint.clone())),
         );
-        let binary_endpoint = endpoint.clone().into_bytes();
+        let binary_endpoint = endpoint.clone().to_bytes_vector();
         assert_eq!(
             EndpointV11::from_bytes(&binary_endpoint)
                 .expect("Fail to convert byte vector into endpoint !"),

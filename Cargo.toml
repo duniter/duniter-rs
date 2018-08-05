@@ -25,6 +25,7 @@ members = [
     "crypto",
     "dal",
     "documents",
+    "binarizer",
     "message",
     "module",
     "network",

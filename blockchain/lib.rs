@@ -102,7 +102,7 @@ pub struct BlockchainModule {
     /// Name of the user datas profile
     pub profile: String,
     /// Currency
-    pub currency: Currency,
+    pub currency: CurrencyName,
     // Currency parameters
     currency_params: CurrencyParameters,
     /// Wots Databases

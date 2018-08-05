@@ -20,11 +20,12 @@ extern crate threadpool;
 
 use self::pbr::ProgressBar;
 use self::threadpool::ThreadPool;
+use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::*;
 use duniter_dal::currency_params::CurrencyParameters;
 use duniter_dal::writers::requests::*;
 use duniter_dal::ForkId;
-use duniter_documents::{BlockHash, BlockId, Hash};
+use duniter_documents::{BlockHash, BlockId};
 use duniter_network::NetworkBlock;
 use duniter_wotb::NodeId;
 use std::collections::{HashMap, VecDeque};
@@ -50,7 +51,7 @@ pub struct BlockHeader {
 #[derive(Debug)]
 /// Message for main sync thread
 enum MessForSyncThread {
-    Target(Currency, Blockstamp),
+    Target(CurrencyName, Blockstamp),
     NetworkBlock(NetworkBlock),
     DownloadFinish(),
     ApplyFinish(),
@@ -137,7 +138,7 @@ pub fn sync_ts<DC: DuniterConf>(
                     ).expect("Fail to parse current ts blockstamp !"),
                 );
                 (
-                    Currency::Str(String::from(
+                    CurrencyName(String::from(
                         row[2]
                             .as_string()
                             .expect("Fatal error :Fail to get currency !"),

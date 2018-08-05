@@ -37,6 +37,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
+extern crate byteorder;
 extern crate duniter_conf;
 extern crate duniter_crypto;
 extern crate duniter_dal;
@@ -44,6 +45,7 @@ extern crate duniter_documents;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
+extern crate dup_binarizer;
 extern crate rand;
 extern crate sqlite;
 extern crate ws;
@@ -53,6 +55,7 @@ mod connect_message;
 pub mod constants;
 mod datas;
 mod heads;
+mod messages;
 mod ok_message;
 pub mod parsers;
 pub mod serializer;
@@ -224,7 +227,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
             key_pair: None,
             currency: None,
             conf,
-            node_id: NodeUUID(soft_meta_datas.conf.my_node_id()),
+            node_id: NodeId(soft_meta_datas.conf.my_node_id()),
             main_thread_channel: mpsc::channel(),
             ws2p_endpoints: HashMap::new(),
             websockets: HashMap::new(),
@@ -354,7 +357,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                         if ws2p_module.my_head.is_none() {
                                             ws2p_module.my_head = Some(heads::generate_my_head(
                                                 &key_pair,
-                                                NodeUUID(soft_meta_datas.conf.my_node_id()),
+                                                NodeId(soft_meta_datas.conf.my_node_id()),
                                                 soft_meta_datas.soft_name,
                                                 soft_meta_datas.soft_version,
                                                 &current_blockstamp,
@@ -440,7 +443,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                     );
                                     ws2p_module.my_head = Some(heads::generate_my_head(
                                         &key_pair,
-                                        NodeUUID(soft_meta_datas.conf.my_node_id()),
+                                        NodeId(soft_meta_datas.conf.my_node_id()),
                                         soft_meta_datas.soft_name,
                                         soft_meta_datas.soft_version,
                                         &current_blockstamp,
@@ -492,7 +495,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                                 ws2p_module.my_head =
                                                     Some(heads::generate_my_head(
                                                         &key_pair,
-                                                        NodeUUID(soft_meta_datas.conf.my_node_id()),
+                                                        NodeId(soft_meta_datas.conf.my_node_id()),
                                                         soft_meta_datas.soft_name,
                                                         soft_meta_datas.soft_version,
                                                         &current_blockstamp,

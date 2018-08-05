@@ -19,7 +19,7 @@ use *;
 
 pub fn generate_my_head(
     network_keypair: &KeyPairEnum,
-    node_id: NodeUUID,
+    node_id: NodeId,
     soft_name: &str,
     soft_version: &str,
     my_current_blockstamp: &Blockstamp,

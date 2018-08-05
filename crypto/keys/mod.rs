@@ -83,6 +83,28 @@ pub enum BaseConvertionError {
     InvalidBaseConverterLength(),
 }
 
+/// Errors enumeration for signature verification.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SigError {
+    /// Signature and pubkey are not the same algo
+    NotSameAlgo(),
+    /// Invalid signature
+    InvalidSig(),
+    /// Absence of signature
+    NotSig(),
+}
+
+/// SignError
+#[derive(Debug, Copy, Clone)]
+pub enum SignError {
+    /// WrongAlgo
+    WrongAlgo(),
+    /// WrongPrivkey
+    WrongPrivkey(),
+    /// AlreadySign
+    AlreadySign(),
+}
+
 /// Define the operations that can be performed on a cryptographic signature.
 ///
 /// A signature can be converted from/to Base64 format.
@@ -102,6 +124,9 @@ pub trait Signature: Clone + Display + Debug + PartialEq + Eq + Hash {
     ///
     /// [`BaseConvertionError`]: enum.BaseConvertionError.html
     fn from_base64(base64_string: &str) -> Result<Self, BaseConvertionError>;
+
+    /// Convert Signature into butes vector
+    fn to_bytes_vector(&self) -> Vec<u8>;
 
     /// Encode the signature into Base64 string format.
     fn to_base64(&self) -> String;
@@ -135,6 +160,12 @@ impl Signature for Sig {
     fn from_base64(_base64_string: &str) -> Result<Self, BaseConvertionError> {
         unimplemented!()
     }
+    fn to_bytes_vector(&self) -> Vec<u8> {
+        match *self {
+            Sig::Ed25519(ed25519_sig) => ed25519_sig.to_bytes_vector(),
+            Sig::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
+    }
     fn to_base64(&self) -> String {
         match *self {
             Sig::Ed25519(ed25519_sig) => ed25519_sig.to_base64(),
@@ -165,6 +196,9 @@ pub trait PublicKey: Clone + Display + Debug + PartialEq + Eq + Hash + ToBase58 
     /// [`BaseConvertionError`]: enum.BaseConvertionError.html
     fn from_base58(base58_string: &str) -> Result<Self, BaseConvertionError>;
 
+    /// Convert into bytes vector
+    fn to_bytes_vector(&self) -> Vec<u8>;
+
     /// Verify a signature with this public key.
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool;
 }
@@ -176,6 +210,12 @@ pub enum PubKey {
     Ed25519(ed25519::PublicKey),
     /// Store a Schnorr public key.
     Schnorr(),
+}
+
+impl Default for PubKey {
+    fn default() -> Self {
+        PubKey::Schnorr()
+    }
 }
 
 impl GetKeysAlgo for PubKey {
@@ -207,6 +247,12 @@ impl PublicKey for PubKey {
 
     fn from_base58(_base58_string: &str) -> Result<Self, BaseConvertionError> {
         unimplemented!()
+    }
+    fn to_bytes_vector(&self) -> Vec<u8> {
+        match *self {
+            PubKey::Ed25519(ed25519_pubkey) => ed25519_pubkey.to_bytes_vector(),
+            PubKey::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
     }
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool {
         match *self {

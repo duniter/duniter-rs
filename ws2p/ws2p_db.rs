@@ -79,7 +79,10 @@ pub fn get_endpoints_for_api(
             1u16,
         ) {
             Ok(ep) => ep,
-            Err(_) => panic!(format!("Fail to parse endpoint : {}", raw_ep)),
+            Err(e) => panic!(format!(
+                "Fail to parse endpoint : {} (Error: {:?})",
+                raw_ep, e
+            )),
         };
         ep.set_status(row[1].as_integer().unwrap() as u32);
         ep.set_last_check(row[7].as_integer().unwrap() as u64);

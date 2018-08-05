@@ -36,11 +36,13 @@ extern crate serde_json;
 
 extern crate dirs;
 extern crate duniter_crypto;
+extern crate duniter_documents;
 extern crate duniter_module;
 extern crate rand;
 extern crate serde;
 use duniter_crypto::keys::*;
-use duniter_module::{Currency, DuniterConf, ModuleId, RequiredKeys, RequiredKeysContent};
+use duniter_documents::CurrencyName;
+use duniter_module::{DuniterConf, ModuleId, RequiredKeys, RequiredKeysContent};
 use rand::Rng;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use std::collections::HashSet;
@@ -58,7 +60,7 @@ pub static DEFAULT_CURRRENCY: &'static str = "g1";
 /// User request on global conf
 pub enum ChangeGlobalConf {
     /// Change currency
-    ChangeCurrency(Currency),
+    ChangeCurrency(CurrencyName),
     /// Disable module
     DisableModule(ModuleId),
     /// Enable module
@@ -70,8 +72,8 @@ pub enum ChangeGlobalConf {
 #[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
 /// Duniter configuration v1
 pub struct DuRsConfV1 {
-    /// Currency
-    pub currency: Currency,
+    /// Currency name
+    pub currency: CurrencyName,
     /// Duniter node unique identifier
     pub my_node_id: u32,
     /// Configuration of modules in json format (obtained from the conf.json file)
@@ -85,7 +87,7 @@ pub struct DuRsConfV1 {
 impl Default for DuRsConfV1 {
     fn default() -> Self {
         DuRsConfV1 {
-            currency: Currency::Str(String::from("g1")),
+            currency: CurrencyName(String::from("g1")),
             my_node_id: generate_random_node_id(),
             modules: serde_json::Value::Null,
             disabled: HashSet::with_capacity(0),
@@ -116,13 +118,13 @@ impl DuniterConf for DuRsConf {
             _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
-    fn currency(&self) -> Currency {
+    fn currency(&self) -> CurrencyName {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.currency.clone(),
             _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
-    fn set_currency(&mut self, new_currency: Currency) {
+    fn set_currency(&mut self, new_currency: CurrencyName) {
         match *self {
             DuRsConf::V1(ref mut conf_v1) => conf_v1.currency = new_currency,
             _ => panic!("Fail to load duniter conf : conf version not supported !"),
@@ -265,7 +267,7 @@ pub fn get_user_datas_folder() -> &'static str {
 }
 
 /// Returns the path to the folder containing the currency datas of the running profile
-pub fn datas_path(profile: &str, currency: &Currency) -> PathBuf {
+pub fn datas_path(profile: &str, currency: &CurrencyName) -> PathBuf {
     let mut datas_path = get_profile_path(profile);
     datas_path.push(currency.to_string());
     if !datas_path.as_path().exists() {
@@ -416,7 +418,7 @@ pub fn write_conf_file<DC: DuniterConf>(profile: &str, conf: &DC) -> Result<(), 
 }
 
 /// Returns the path to the database containing the blockchain
-pub fn get_blockchain_db_path(profile: &str, currency: &Currency) -> PathBuf {
+pub fn get_blockchain_db_path(profile: &str, currency: &CurrencyName) -> PathBuf {
     let mut db_path = datas_path(profile, &currency);
     db_path.push("blockchain/");
     if !db_path.as_path().exists() {
@@ -426,7 +428,7 @@ pub fn get_blockchain_db_path(profile: &str, currency: &Currency) -> PathBuf {
 }
 
 /// Returns the path to the binary file containing the state of the web of trust
-pub fn get_wot_path(profile: String, currency: &Currency) -> PathBuf {
+pub fn get_wot_path(profile: String, currency: &CurrencyName) -> PathBuf {
     let mut wot_path = match dirs::config_dir() {
         Some(path) => path,
         None => panic!("Impossible to get your home dir!"),

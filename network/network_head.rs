@@ -19,7 +19,7 @@ extern crate duniter_crypto;
 extern crate duniter_documents;
 extern crate serde_json;
 
-use super::{NodeFullId, NodeUUID};
+use super::{NodeFullId, NodeId};
 use duniter_crypto::keys::*;
 use duniter_documents::Blockstamp;
 use std::cmp::Ordering;
@@ -38,7 +38,7 @@ pub struct NetworkHeadMessageV2 {
     /// Head blockstamp
     pub blockstamp: Blockstamp,
     /// Head node id
-    pub node_uuid: NodeUUID,
+    pub node_uuid: NodeId,
     /// Issuer node software
     pub software: String,
     /// Issuer node soft version
@@ -157,7 +157,7 @@ impl NetworkHeadMessage {
                 version: source_array[2].parse().unwrap(),
                 pubkey: PubKey::Ed25519(pubkey),
                 blockstamp: Blockstamp::from_string(source_array[4]).unwrap(),
-                node_uuid: NodeUUID(u32::from_str_radix(source_array[5], 16).unwrap()),
+                node_uuid: NodeId(u32::from_str_radix(source_array[5], 16).unwrap()),
                 software: source_array[6].to_string(),
                 soft_version: source_array[7].to_string(),
                 prefix: source_array[8].parse().unwrap(),
@@ -184,7 +184,7 @@ impl NetworkHeadMessage {
         }
     }
     /// Get head node id
-    fn node_uuid(&self) -> NodeUUID {
+    fn node_uuid(&self) -> NodeId {
         match *self {
             NetworkHeadMessage::V2(ref head_message_v2) => head_message_v2.node_uuid,
             _ => panic!("This HEAD version is not supported !"),
@@ -371,7 +371,7 @@ impl NetworkHead {
         }
     }
     /// Returns issuer node id
-    pub fn node_uuid(&self) -> NodeUUID {
+    pub fn node_uuid(&self) -> NodeId {
         match *self {
             NetworkHead::V2(ref head_v2) => head_v2.message_v2.node_uuid(),
             _ => panic!("This HEAD version is not supported !"),

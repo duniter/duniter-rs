@@ -39,11 +39,12 @@ extern crate serde_json;
 
 use std::sync::mpsc;
 
+use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::Sig;
 use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALRequest, DALResponse};
 use duniter_documents::blockchain::BlockchainProtocol;
-use duniter_documents::{BlockId, Hash};
+use duniter_documents::BlockId;
 use duniter_module::{ModuleId, ModuleMessage};
 use duniter_network::{NetworkEvent, NetworkRequest};
 

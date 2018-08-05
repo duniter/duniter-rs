@@ -17,6 +17,7 @@
 
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
+use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::*;
 
 use blockchain::v10::documents::certification::CertificationDocument;
@@ -26,25 +27,9 @@ use blockchain::v10::documents::revocation::RevocationDocument;
 use blockchain::v10::documents::transaction::TransactionDocument;
 use blockchain::v10::documents::*;
 use blockchain::{BlockchainProtocol, Document, IntoSpecializedDocument};
-use std::fmt::{Display, Error, Formatter};
 use std::ops::Deref;
-use {BlockHash, BlockId, Blockstamp, Hash};
-
-/// Currency name
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
-pub struct CurrencyName(pub String);
-
-impl Default for CurrencyName {
-    fn default() -> CurrencyName {
-        CurrencyName(String::from("default_currency"))
-    }
-}
-
-impl Display for CurrencyName {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "{}", self.0)
-    }
-}
+use CurrencyName;
+use {BlockHash, BlockId, Blockstamp};
 
 #[derive(Debug, Clone)]
 /// Store error in block parameters parsing

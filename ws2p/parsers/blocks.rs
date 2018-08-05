@@ -3,13 +3,13 @@ extern crate serde_json;
 use super::excluded::parse_exclusions_from_json_value;
 use super::identities::parse_compact_identity;
 use super::transactions::parse_transaction;
+use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::*;
-use duniter_documents::blockchain::v10::documents::block::{
-    BlockV10Parameters, CurrencyName, TxDocOrTxHash,
-};
+use duniter_documents::blockchain::v10::documents::block::{BlockV10Parameters, TxDocOrTxHash};
 use duniter_documents::blockchain::v10::documents::membership::*;
 use duniter_documents::blockchain::v10::documents::BlockDocument;
-use duniter_documents::{BlockHash, BlockId, Hash};
+use duniter_documents::CurrencyName;
+use duniter_documents::{BlockHash, BlockId};
 use duniter_network::{NetworkBlock, NetworkBlockV10};
 use std::str::FromStr;
 

@@ -134,6 +134,10 @@ impl super::Signature for Signature {
         }
     }
 
+    fn to_bytes_vector(&self) -> Vec<u8> {
+        self.0.to_vec()
+    }
+
     fn to_base64(&self) -> String {
         base64::encode(&self.0[..]) // need to take a slice for required trait `AsRef<[u8]>`
     }
@@ -213,6 +217,10 @@ impl super::PublicKey for PublicKey {
                 Err(BaseConvertionError::InvalidBaseConverterLength())
             }
         }
+    }
+
+    fn to_bytes_vector(&self) -> Vec<u8> {
+        self.0.to_vec()
     }
 
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool {
