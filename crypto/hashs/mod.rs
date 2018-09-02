@@ -40,12 +40,14 @@ impl Debug for Hash {
 
 impl Default for Hash {
     fn default() -> Hash {
-        let default: [u8; 32] = [0; 32];
-        Hash(default)
+        Hash([0; 32])
     }
 }
 
 impl Hash {
+    /// Hash size (in bytes).
+    pub const SIZE_IN_BYTES: usize = 32;
+
     /// Compute hash of any binary datas
     pub fn compute(datas: &[u8]) -> Hash {
         let mut sha = Sha256::new();

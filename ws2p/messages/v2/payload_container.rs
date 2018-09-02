@@ -13,11 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Crate containing Duniter-rust core.
-
-// WS2P v2 Connect Messages
-//pub mod connect;
-
+use super::ok::*;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use duniter_network::network_peer::{PeerCardReadBytesError, PeerCardV11};
 use dup_binarizer::BinMessage;
@@ -33,7 +29,7 @@ pub enum WS2Pv2MessagePayload {
     //Connect,
     //Ack,
     //Flags,
-    Ok,
+    Ok(WS2Pv2OkMsg),
     //Ko,
     //Request
     Peers(Vec<PeerCardV11>),
@@ -68,15 +64,23 @@ pub enum WS2Pv2MessagePayloadReadBytesError {
     UnknowMsgType(),
     /// WrongElementsCount
     WrongElementsCount(),
-    /// WrongPayloadSize
-    WrongPayloadSize(),
-    // PeerCardReadBytesError
+    // WrongPayloadSize
+    //WrongPayloadSize(),
+    /// PeerCardReadBytesError
     PeerCardReadBytesError(PeerCardReadBytesError),
+    /// ReadWS2Pv2OkMsgError
+    ReadWS2Pv2OkMsgError(ReadWS2Pv2OkMsgError),
 }
 
 impl From<::std::io::Error> for WS2Pv2MessagePayloadReadBytesError {
     fn from(e: ::std::io::Error) -> Self {
         WS2Pv2MessagePayloadReadBytesError::IoError(e)
+    }
+}
+
+impl From<ReadWS2Pv2OkMsgError> for WS2Pv2MessagePayloadReadBytesError {
+    fn from(e: ReadWS2Pv2OkMsgError) -> Self {
+        WS2Pv2MessagePayloadReadBytesError::ReadWS2Pv2OkMsgError(e)
     }
 }
 
@@ -119,11 +123,9 @@ impl BinMessage for WS2Pv2MessagePayload {
         match message_type {
             0x0003 => {
                 if elements_count == 0 {
-                    if payload_size == 0 {
-                        Ok(WS2Pv2MessagePayload::Ok)
-                    } else {
-                        Err(WS2Pv2MessagePayloadReadBytesError::WrongPayloadSize())
-                    }
+                    Ok(WS2Pv2MessagePayload::Ok(WS2Pv2OkMsg::from_bytes(
+                        &payload[8..],
+                    )?))
                 } else {
                     Err(WS2Pv2MessagePayloadReadBytesError::WrongElementsCount())
                 }
@@ -145,10 +147,6 @@ impl BinMessage for WS2Pv2MessagePayload {
                     // Read
                     index += peer_size;
                     if peers_bytes.len() < index {
-                        println!("DEBUG: peers_bytes.len()={}", peers_bytes.len());
-                        println!("DEBUG: peer_size={}", peer_size);
-                        println!("DEBUG: index={}", index);
-                        println!("DEBUG: elements_count={}", elements_count);
                         return Err(WS2Pv2MessagePayloadReadBytesError::TooShort(String::from(
                             "peer_content",
                         )));
@@ -168,11 +166,11 @@ impl BinMessage for WS2Pv2MessagePayload {
     }
     fn to_bytes_vector(&self) -> Vec<u8> {
         let bin_payload_container = match *self {
-            WS2Pv2MessagePayload::Ok => {
+            WS2Pv2MessagePayload::Ok(ref ok_msg) => {
                 WS2Pv2MessageBinPayload {
                     message_type: 0x0003,
                     elements_count: 0,
-                    payload_content: vec![],
+                    payload_content: ok_msg.to_bytes_vector(),
                 }
             }
             WS2Pv2MessagePayload::Peers(ref peers) => {

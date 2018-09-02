@@ -13,10 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Crate containing Duniter-rust core.
-
-// WS2P v2 Connect Messages
-//pub mod connect;
+// WS2P v2 Ok Messages
+pub mod ok;
 /// Message Payload container
 mod payload_container;
 
@@ -268,7 +266,6 @@ impl BinMessage for WS2Pv2Message {
 #[cfg(test)]
 mod tests {
     use super::*;
-    //use duniter_crypto::keys::*;
     use duniter_documents::Blockstamp;
     use duniter_network::network_endpoint::*;
     use duniter_network::network_peer::*;
@@ -323,43 +320,6 @@ mod tests {
             ).unwrap(),
             endpoints: vec![create_endpoint_v11(), create_second_endpoint_v11()],
             sig: None,
-        }
-    }
-
-    #[test]
-    fn test_ws2p_message_ok() {
-        let keypair1 = keypair1();
-        let mut ws2p_message = WS2Pv2Message {
-            currency_code: CurrencyName(String::from("g1")),
-            ws2p_version: 2u16,
-            issuer_node_id: NodeId(0),
-            issuer_pubkey: PubKey::Ed25519(keypair1.public_key()),
-            payload: WS2Pv2MessagePayload::Ok,
-            message_hash: None,
-            signature: None,
-        };
-
-        let sign_result = ws2p_message.sign(PrivKey::Ed25519(keypair1.private_key()));
-        if let Ok(bin_msg) = sign_result {
-            // Test binarization
-            assert_eq!(ws2p_message.to_bytes_vector(), bin_msg);
-            // Test sign
-            assert_eq!(ws2p_message.verify(), Ok(()));
-            // Test debinarization
-            let debinarization_result = WS2Pv2Message::from_bytes(&bin_msg);
-            if let Ok(ws2p_message2) = debinarization_result {
-                assert_eq!(ws2p_message, ws2p_message2);
-            } else {
-                panic!(
-                    "Fail to debinarize ws2p_message : {:?}",
-                    debinarization_result.err().unwrap()
-                );
-            }
-        } else {
-            panic!(
-                "Fail to sign ws2p_message : {:?}",
-                sign_result.err().unwrap()
-            );
         }
     }
 

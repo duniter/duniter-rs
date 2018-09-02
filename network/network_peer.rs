@@ -230,7 +230,7 @@ impl BinMessage for PeerCardV11 {
         // read blockstamp
         let blockstamp = if binary_peer_card.len() > index + 36 {
             index += 36;
-            Blockstamp::from_bytes_slice(&binary_peer_card[index - 36..index])?
+            Blockstamp::from_bytes(&binary_peer_card[index - 36..index])?
         } else {
             return Err(PeerCardReadBytesError::TooShort(String::from("blockstamp")));
         };

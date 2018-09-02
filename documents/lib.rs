@@ -39,6 +39,7 @@ extern crate base64;
 extern crate byteorder;
 extern crate crypto;
 extern crate duniter_crypto;
+extern crate dup_binarizer;
 extern crate linked_hash_map;
 extern crate regex;
 extern crate serde;
@@ -46,6 +47,7 @@ extern crate serde;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use currencies_codes::*;
 use duniter_crypto::hashs::Hash;
+use dup_binarizer::BinMessage;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::io::Cursor;
@@ -168,6 +170,7 @@ pub enum BlockUIdParseError {
 ///
 /// [`BlockId`]: struct.BlockId.html
 /// [`BlockHash`]: struct.BlockHash.html
+
 #[derive(Copy, Clone, Deserialize, PartialEq, Eq, Hash, Serialize)]
 pub struct Blockstamp {
     /// Block Id.
@@ -178,6 +181,11 @@ pub struct Blockstamp {
 
 /// Previous blockstamp (BlockId-1, previous_hash)
 pub type PreviousBlockstamp = Blockstamp;
+
+impl Blockstamp {
+    /// Blockstamp size (in bytes).
+    pub const SIZE_IN_BYTES: usize = 36;
+}
 
 impl Display for Blockstamp {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
@@ -233,23 +241,9 @@ impl From<::std::io::Error> for ReadBytesBlockstampError {
     }
 }
 
-impl Blockstamp {
-    /// Convert Blockstamp into bytes vector
-    pub fn to_bytes_vector(&self) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(36);
-        // BlockId
-        let mut buffer = [0u8; mem::size_of::<u32>()];
-        buffer
-            .as_mut()
-            .write_u32::<BigEndian>(self.id.0)
-            .expect("Unable to write");
-        bytes.extend_from_slice(&buffer);
-        // BlockHash
-        bytes.extend(self.hash.0.to_bytes_vector());
-        bytes
-    }
-    /// Create Blockstamp from bytes slice
-    pub fn from_bytes_slice(bytes: &[u8]) -> Result<Blockstamp, ReadBytesBlockstampError> {
+impl BinMessage for Blockstamp {
+    type ReadBytesError = ReadBytesBlockstampError;
+    fn from_bytes(bytes: &[u8]) -> Result<Self, Self::ReadBytesError> {
         if bytes.len() > 36 {
             Err(ReadBytesBlockstampError::TooLong())
         } else if bytes.len() < 36 {
@@ -266,7 +260,22 @@ impl Blockstamp {
             Ok(Blockstamp { id, hash })
         }
     }
+    fn to_bytes_vector(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(36);
+        // BlockId
+        let mut buffer = [0u8; mem::size_of::<u32>()];
+        buffer
+            .as_mut()
+            .write_u32::<BigEndian>(self.id.0)
+            .expect("Unable to write");
+        bytes.extend_from_slice(&buffer);
+        // BlockHash
+        bytes.extend(self.hash.0.to_bytes_vector());
+        bytes
+    }
+}
 
+impl Blockstamp {
     /// Create a `BlockUId` from a text.
     pub fn from_string(src: &str) -> Result<Blockstamp, BlockUIdParseError> {
         let mut split = src.split('-');
