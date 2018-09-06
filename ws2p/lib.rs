@@ -185,6 +185,35 @@ impl Default for WS2PModule {
     }
 }
 
+#[derive(Debug)]
+/// WS2PFeaturesParseError
+pub enum WS2PFeaturesParseError {
+    /// UnknowApiFeature
+    UnknowApiFeature(String),
+}
+
+impl ApiModule<DuRsConf, DuniterMessage> for WS2PModule {
+    type ParseErr = WS2PFeaturesParseError;
+    /// Parse raw api features
+    fn parse_raw_api_features(str_features: &str) -> Result<ApiFeatures, Self::ParseErr> {
+        let str_features: Vec<&str> = str_features.split(' ').collect();
+        let mut api_features = Vec::with_capacity(0);
+        for str_feature in str_features {
+            match str_feature {
+                "DEF" => api_features[0] += 1u8,
+                "LOW" => api_features[0] += 2u8,
+                "ABF" => api_features[0] += 4u8,
+                _ => {
+                    return Err(WS2PFeaturesParseError::UnknowApiFeature(String::from(
+                        str_feature,
+                    )))
+                }
+            }
+        }
+        Ok(ApiFeatures(api_features))
+    }
+}
+
 impl NetworkModule<DuRsConf, DuniterMessage> for WS2PModule {
     fn sync(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,

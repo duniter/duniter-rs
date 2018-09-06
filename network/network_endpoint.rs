@@ -32,7 +32,7 @@ use std::mem;
 use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr};
 use std::num::ParseIntError;
 use std::str::FromStr;
-use {NodeFullId, NodeId};
+use {ApiFeatures, NodeFullId, NodeId};
 
 /// Total size of all fixed size fields of an EndpointV11
 pub static ENDPOINTV11_FIXED_SIZE: &'static usize = &9;
@@ -323,7 +323,7 @@ pub struct EndpointV11 {
     /// Network features
     pub network_features: EndpointV11NetworkFeatures,
     /// API features
-    pub api_features: Vec<u8>,
+    pub api_features: ApiFeatures,
     /// IPv4
     pub ip_v4: Option<Ipv4Addr>,
     /// IPv6
@@ -403,7 +403,7 @@ impl BinMessage for EndpointV11 {
         // network_features
         binary_endpoint.extend_from_slice(&self.network_features.to_bytes_slice());
         binary_endpoint.push(endpoint_size.af_size);
-        binary_endpoint.append(&mut self.api_features.clone());
+        binary_endpoint.append(&mut self.api_features.0.clone());
         if let Some(ip_v4) = self.ip_v4 {
             binary_endpoint.extend_from_slice(&ip_v4.octets());
         }
@@ -468,7 +468,7 @@ impl BinMessage for EndpointV11 {
             return Err(EndpointReadBytesError::TooShort());
         }
         // read api_features
-        let api_features = binary_ep[index..index + nf_size].to_vec();
+        let api_features = ApiFeatures(binary_ep[index..index + nf_size].to_vec());
         index += af_size;
         // read ip_v4
         let ip_v4 = network_features.ip_v4();
@@ -594,7 +594,7 @@ impl EndpointV11 {
             nf_size: self.network_features.size(),
             ip_v4: self.network_features.ip_v4(),
             ip_v6: self.network_features.ip_v6(),
-            af_size: self.api_features.len() as u8,
+            af_size: self.api_features.0.len() as u8,
         }
     }
     /// parse from ut8 format
@@ -715,7 +715,7 @@ impl EndpointV11 {
                                 api,
                                 api_version,
                                 network_features,
-                                api_features: api_features.to_vec(),
+                                api_features: ApiFeatures(api_features.to_vec()),
                                 ip_v4,
                                 ip_v6,
                                 host,
@@ -910,7 +910,7 @@ mod tests {
             api: EndpointV11Api::Bin(ApiKnownByDuniter::WS2P()),
             api_version: 2,
             network_features: EndpointV11NetworkFeatures(vec![4u8]),
-            api_features: vec![7u8],
+            api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: None,
             host: Some(String::from("g1.durs.ifee.fr")),
@@ -937,7 +937,7 @@ mod tests {
             api: EndpointV11Api::Bin(ApiKnownByDuniter::WS2P()),
             api_version: 2,
             network_features: EndpointV11NetworkFeatures(vec![4u8]),
-            api_features: vec![7u8],
+            api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: None,
             host: Some(String::from("g1.durs.ifee.fr")),
@@ -962,7 +962,7 @@ mod tests {
             api: EndpointV11Api::Bin(ApiKnownByDuniter::WS2P()),
             api_version: 2,
             network_features: EndpointV11NetworkFeatures(vec![5u8]),
-            api_features: vec![7u8],
+            api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("84.16.72.210").unwrap()),
             ip_v6: None,
             host: None,
@@ -990,7 +990,7 @@ mod tests {
             api: EndpointV11Api::Bin(ApiKnownByDuniter::WS2P()),
             api_version: 2,
             network_features: EndpointV11NetworkFeatures(vec![6u8]),
-            api_features: vec![7u8],
+            api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
             host: None,
@@ -1019,7 +1019,7 @@ mod tests {
             api: EndpointV11Api::Bin(ApiKnownByDuniter::WS2P()),
             api_version: 2,
             network_features: EndpointV11NetworkFeatures(vec![7u8]),
-            api_features: vec![7u8],
+            api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("5.135.188.170").unwrap()),
             ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
             host: None,

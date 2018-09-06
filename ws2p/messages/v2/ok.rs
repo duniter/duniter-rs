@@ -89,19 +89,17 @@ impl BinMessage for WS2Pv2OkMsg {
                     .expect("Fail to write prefix in WS2Pv2OkMsg !");
             } else {
                 u16::write_u16_be(&mut ok_msg_bytes, 0)
-                    .expect("Fail to write prefix in WS2Pv2OkMsg !");;
+                    .expect("Fail to write prefix in WS2Pv2OkMsg !");
             }
             ok_msg_bytes.extend(sync_target_bytes);
             ok_msg_bytes
+        } else if let Some(prefix) = self.prefix {
+            let mut ok_msg_bytes = Vec::with_capacity(2);
+            u16::write_u16_be(&mut ok_msg_bytes, prefix.get())
+                .expect("Fail to write prefix in WS2Pv2OkMsg !");
+            ok_msg_bytes
         } else {
-            if let Some(prefix) = self.prefix {
-                let mut ok_msg_bytes = Vec::with_capacity(2);
-                u16::write_u16_be(&mut ok_msg_bytes, prefix.get())
-                    .expect("Fail to write prefix in WS2Pv2OkMsg !");;
-                ok_msg_bytes
-            } else {
-                vec![]
-            }
+            vec![]
         }
     }
 }

@@ -13,8 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+/// WS2P Features
+pub mod api_features;
 // WS2P v2 Ok Messages
 pub mod ok;
+// WS2P v2 CONNECT Messages
+pub mod connect;
 /// Message Payload container
 mod payload_container;
 
@@ -269,6 +273,7 @@ mod tests {
     use duniter_documents::Blockstamp;
     use duniter_network::network_endpoint::*;
     use duniter_network::network_peer::*;
+    use duniter_network::ApiFeatures;
     use std::net::Ipv4Addr;
     use std::str::FromStr;
 
@@ -284,7 +289,7 @@ mod tests {
             api: EndpointV11Api::Bin(ApiKnownByDuniter::WS2P()),
             api_version: 2,
             network_features: EndpointV11NetworkFeatures(vec![4u8]),
-            api_features: vec![7u8],
+            api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: None,
             host: Some(String::from("g1.durs.ifee.fr")),
@@ -299,7 +304,7 @@ mod tests {
             api: EndpointV11Api::Bin(ApiKnownByDuniter::WS2P()),
             api_version: 2,
             network_features: EndpointV11NetworkFeatures(vec![5u8]),
-            api_features: vec![7u8],
+            api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("84.16.72.210").unwrap()),
             ip_v6: None,
             host: None,

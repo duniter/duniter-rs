@@ -18,6 +18,7 @@
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
 use keys::BaseConvertionError;
+use rand::{thread_rng, Rng};
 use std::fmt::{Debug, Display, Error, Formatter};
 
 /// A hash wrapper.
@@ -47,6 +48,18 @@ impl Default for Hash {
 impl Hash {
     /// Hash size (in bytes).
     pub const SIZE_IN_BYTES: usize = 32;
+
+    /// Generate a random Hash
+    pub fn random() -> Self {
+        let mut rng = thread_rng();
+        let mut hash_bytes = Vec::with_capacity(32);
+        for _ in 0..32 {
+            hash_bytes.push(rng.gen::<u8>());
+        }
+        let mut hash_bytes_arr = [0; 32];
+        hash_bytes_arr.copy_from_slice(&hash_bytes);
+        Hash(hash_bytes_arr)
+    }
 
     /// Compute hash of any binary datas
     pub fn compute(datas: &[u8]) -> Hash {

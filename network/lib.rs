@@ -66,8 +66,20 @@ use std::fmt::{Debug, Display, Error, Formatter};
 use std::ops::Deref;
 use std::sync::mpsc;
 
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+/// ApiFeatures
+pub struct ApiFeatures(pub Vec<u8>);
+
+/// ApiModule
+pub trait ApiModule<DC: DuniterConf, M: ModuleMessage>: DuniterModule<DC, M> {
+    /// Parsing error
+    type ParseErr;
+    /// Parse raw api features
+    fn parse_raw_api_features(str_features: &str) -> Result<ApiFeatures, Self::ParseErr>;
+}
+
 /// NetworkModule
-pub trait NetworkModule<DC: DuniterConf, M: ModuleMessage>: DuniterModule<DC, M> {
+pub trait NetworkModule<DC: DuniterConf, M: ModuleMessage>: ApiModule<DC, M> {
     /// Launch synchronisation
     fn sync(
         soft_meta_datas: &SoftwareMetaDatas<DC>,
