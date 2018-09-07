@@ -15,10 +15,11 @@
 
 //use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use duniter_crypto::hashs::Hash;
-use duniter_documents::{Blockstamp, ReadBytesBlockstampError};
+use duniter_documents::Blockstamp;
 use dup_binarizer::*;
 //use std::io::Cursor;
 //use std::mem;
+use super::WS2Pv2MsgPayloadContentParseError;
 use std::num::NonZeroU16;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -39,35 +40,12 @@ impl Default for WS2Pv2OkMsg {
     }
 }
 
-/// ReadWS2Pv2OkMsgError
-#[derive(Debug)]
-pub enum ReadWS2Pv2OkMsgError {
-    /// TooShort
-    TooShort(&'static str),
-    /// IoError
-    IoError(::std::io::Error),
-    /// ReadWS2Pv2SyncTargetError
-    ReadWS2Pv2SyncTargetError(ReadWS2Pv2SyncTargetError),
-}
-
-impl From<ReadWS2Pv2SyncTargetError> for ReadWS2Pv2OkMsgError {
-    fn from(e: ReadWS2Pv2SyncTargetError) -> Self {
-        ReadWS2Pv2OkMsgError::ReadWS2Pv2SyncTargetError(e)
-    }
-}
-
-impl From<::std::io::Error> for ReadWS2Pv2OkMsgError {
-    fn from(e: ::std::io::Error) -> Self {
-        ReadWS2Pv2OkMsgError::IoError(e)
-    }
-}
-
 impl BinMessage for WS2Pv2OkMsg {
-    type ReadBytesError = ReadWS2Pv2OkMsgError;
+    type ReadBytesError = WS2Pv2MsgPayloadContentParseError;
     fn from_bytes(datas: &[u8]) -> Result<Self, Self::ReadBytesError> {
         match datas.len() {
             0 => Ok(WS2Pv2OkMsg::default()),
-            1 => Err(ReadWS2Pv2OkMsgError::TooShort(
+            1 => Err(WS2Pv2MsgPayloadContentParseError::TooShort(
                 "Size of WS2Pv2OkMsg cannot be 1",
             )),
             2 => Ok(WS2Pv2OkMsg {
@@ -113,37 +91,12 @@ pub struct WS2Pv2SyncTarget {
     pub chunks_hash: Vec<Hash>,
 }
 
-/// ReadWS2Pv2SyncTargetError
-#[derive(Debug)]
-pub enum ReadWS2Pv2SyncTargetError {
-    /// TooShort
-    TooShort(String),
-    /// ReadBytesBlockstampError
-    ReadBytesBlockstampError(ReadBytesBlockstampError),
-    /// IoError
-    IoError(::std::io::Error),
-}
-
-impl From<ReadBytesBlockstampError> for ReadWS2Pv2SyncTargetError {
-    fn from(e: ReadBytesBlockstampError) -> Self {
-        ReadWS2Pv2SyncTargetError::ReadBytesBlockstampError(e)
-    }
-}
-
-impl From<::std::io::Error> for ReadWS2Pv2SyncTargetError {
-    fn from(e: ::std::io::Error) -> Self {
-        ReadWS2Pv2SyncTargetError::IoError(e)
-    }
-}
-
 impl BinMessage for WS2Pv2SyncTarget {
-    type ReadBytesError = ReadWS2Pv2SyncTargetError;
+    type ReadBytesError = WS2Pv2MsgPayloadContentParseError;
     fn from_bytes(datas: &[u8]) -> Result<Self, Self::ReadBytesError> {
         // target_blockstamp
         let target_blockstamp = if datas.len() < (Blockstamp::SIZE_IN_BYTES + 2) {
-            return Err(ReadWS2Pv2SyncTargetError::TooShort(String::from(
-                "blockstamp",
-            )));
+            return Err(WS2Pv2MsgPayloadContentParseError::TooShort("blockstamp"));
         } else {
             Blockstamp::from_bytes(&datas[0..Blockstamp::SIZE_IN_BYTES])?
         };
@@ -151,9 +104,7 @@ impl BinMessage for WS2Pv2SyncTarget {
         let mut index = Blockstamp::SIZE_IN_BYTES + 2;
         let chunks_hash_count = u16::read_u16_be(&datas[index - 2..index])? as usize;
         let chunks_hash = if datas.len() < (index + (chunks_hash_count * Hash::SIZE_IN_BYTES)) {
-            return Err(ReadWS2Pv2SyncTargetError::TooShort(String::from(
-                "chunks_hash",
-            )));
+            return Err(WS2Pv2MsgPayloadContentParseError::TooShort("chunks_hash"));
         } else {
             let mut chunks_hash = Vec::with_capacity(chunks_hash_count);
             for _ in 0..chunks_hash_count {

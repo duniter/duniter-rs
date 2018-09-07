@@ -15,9 +15,10 @@
 
 //use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use super::api_features::WS2PFeatures;
+use super::WS2Pv2MsgPayloadContentParseError;
 use duniter_crypto::hashs::Hash;
-use duniter_documents::{Blockstamp, ReadBytesBlockstampError};
-use duniter_network::network_peer::{PeerCardReadBytesError, PeerCardV11};
+use duniter_documents::Blockstamp;
+use duniter_network::network_peer::PeerCardV11;
 use dup_binarizer::u16;
 use dup_binarizer::*;
 //use std::io::Cursor;
@@ -82,44 +83,11 @@ impl Default for WS2Pv2ConnectMsg {
     }
 }
 
-/// ReadWS2Pv2ConnectMsgError
-#[derive(Debug)]
-pub enum ReadWS2Pv2ConnectMsgError {
-    /// TooShort
-    TooShort(&'static str),
-    /// WrongSize
-    WrongSize(&'static str),
-    /// IoError
-    IoError(::std::io::Error),
-    /// PeerCardReadBytesError
-    PeerCardReadBytesError(PeerCardReadBytesError),
-    /// ReadBytesBlockstampError
-    ReadBytesBlockstampError(ReadBytesBlockstampError),
-}
-
-impl From<::std::io::Error> for ReadWS2Pv2ConnectMsgError {
-    fn from(e: ::std::io::Error) -> Self {
-        ReadWS2Pv2ConnectMsgError::IoError(e)
-    }
-}
-
-impl From<ReadBytesBlockstampError> for ReadWS2Pv2ConnectMsgError {
-    fn from(e: ReadBytesBlockstampError) -> Self {
-        ReadWS2Pv2ConnectMsgError::ReadBytesBlockstampError(e)
-    }
-}
-
-impl From<PeerCardReadBytesError> for ReadWS2Pv2ConnectMsgError {
-    fn from(e: PeerCardReadBytesError) -> Self {
-        ReadWS2Pv2ConnectMsgError::PeerCardReadBytesError(e)
-    }
-}
-
 impl BinMessage for WS2Pv2ConnectMsg {
-    type ReadBytesError = ReadWS2Pv2ConnectMsgError;
+    type ReadBytesError = WS2Pv2MsgPayloadContentParseError;
     fn from_bytes(datas: &[u8]) -> Result<Self, Self::ReadBytesError> {
         if datas.len() < *CONNECT_MSG_MIN_SIZE {
-            return Err(ReadWS2Pv2ConnectMsgError::TooShort(
+            return Err(WS2Pv2MsgPayloadContentParseError::TooShort(
                 "Insufficient size (<CONNECT_MSG_MIN_SIZE).",
             ));
         }
@@ -147,7 +115,7 @@ impl BinMessage for WS2Pv2ConnectMsg {
             index += 2 + peer_card_size;
             if peer_card_size > 0 {
                 if datas.len() < index {
-                    return Err(ReadWS2Pv2ConnectMsgError::TooShort("peer_card"));
+                    return Err(WS2Pv2MsgPayloadContentParseError::TooShort("peer_card"));
                 }
                 Some(PeerCardV11::from_bytes(
                     &datas[index - peer_card_size..index],
@@ -158,7 +126,9 @@ impl BinMessage for WS2Pv2ConnectMsg {
         } else if datas.len() == index {
             None
         } else {
-            return Err(ReadWS2Pv2ConnectMsgError::TooShort("peer_card_size"));
+            return Err(WS2Pv2MsgPayloadContentParseError::TooShort(
+                "peer_card_size",
+            ));
         };
         // read chunkstamp
         let chunkstamp = if datas.len() == index + Blockstamp::SIZE_IN_BYTES {
@@ -166,7 +136,7 @@ impl BinMessage for WS2Pv2ConnectMsg {
         } else if datas.len() == index {
             None
         } else {
-            return Err(ReadWS2Pv2ConnectMsgError::WrongSize("chunkstamp"));
+            return Err(WS2Pv2MsgPayloadContentParseError::WrongSize("chunkstamp"));
         };
         Ok(WS2Pv2ConnectMsg {
             challenge,

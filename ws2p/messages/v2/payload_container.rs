@@ -13,9 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::connect::{ReadWS2Pv2ConnectMsgError, WS2Pv2ConnectMsg};
-use super::ok::{ReadWS2Pv2OkMsgError, WS2Pv2OkMsg};
+use super::connect::WS2Pv2ConnectMsg;
+use super::ok::WS2Pv2OkMsg;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+use duniter_documents::ReadBytesBlockstampError;
 use duniter_network::network_peer::{PeerCardReadBytesError, PeerCardV11};
 use dup_binarizer::BinMessage;
 use std::io::Cursor;
@@ -52,6 +53,39 @@ pub struct WS2Pv2MessageBinPayload {
     pub payload_content: Vec<u8>,
 }
 
+/// WS2Pv2MsgPayloadContentParseError
+#[derive(Debug)]
+pub enum WS2Pv2MsgPayloadContentParseError {
+    /// IoError
+    IoError(::std::io::Error),
+    /// TooShort
+    TooShort(&'static str),
+    /// WrongSize
+    WrongSize(&'static str),
+    /// PeerCardReadBytesError
+    PeerCardReadBytesError(PeerCardReadBytesError),
+    /// ReadBytesBlockstampError
+    ReadBytesBlockstampError(ReadBytesBlockstampError),
+}
+
+impl From<::std::io::Error> for WS2Pv2MsgPayloadContentParseError {
+    fn from(e: ::std::io::Error) -> Self {
+        WS2Pv2MsgPayloadContentParseError::IoError(e)
+    }
+}
+
+impl From<ReadBytesBlockstampError> for WS2Pv2MsgPayloadContentParseError {
+    fn from(e: ReadBytesBlockstampError) -> Self {
+        WS2Pv2MsgPayloadContentParseError::ReadBytesBlockstampError(e)
+    }
+}
+
+impl From<PeerCardReadBytesError> for WS2Pv2MsgPayloadContentParseError {
+    fn from(e: PeerCardReadBytesError) -> Self {
+        WS2Pv2MsgPayloadContentParseError::PeerCardReadBytesError(e)
+    }
+}
+
 /// WS2Pv2MessagePayloadReadBytesError
 #[derive(Debug)]
 pub enum WS2Pv2MessagePayloadReadBytesError {
@@ -69,10 +103,8 @@ pub enum WS2Pv2MessagePayloadReadBytesError {
     //WrongPayloadSize(),
     /// PeerCardReadBytesError
     PeerCardReadBytesError(PeerCardReadBytesError),
-    /// ReadWS2Pv2ConnectMsgError
-    ReadWS2Pv2ConnectMsgError(ReadWS2Pv2ConnectMsgError),
-    /// ReadWS2Pv2OkMsgError
-    ReadWS2Pv2OkMsgError(ReadWS2Pv2OkMsgError),
+    /// WS2Pv2MsgPayloadContentParseError
+    WS2Pv2MsgPayloadContentParseError(WS2Pv2MsgPayloadContentParseError),
 }
 
 impl From<::std::io::Error> for WS2Pv2MessagePayloadReadBytesError {
@@ -81,15 +113,9 @@ impl From<::std::io::Error> for WS2Pv2MessagePayloadReadBytesError {
     }
 }
 
-impl From<ReadWS2Pv2ConnectMsgError> for WS2Pv2MessagePayloadReadBytesError {
-    fn from(e: ReadWS2Pv2ConnectMsgError) -> Self {
-        WS2Pv2MessagePayloadReadBytesError::ReadWS2Pv2ConnectMsgError(e)
-    }
-}
-
-impl From<ReadWS2Pv2OkMsgError> for WS2Pv2MessagePayloadReadBytesError {
-    fn from(e: ReadWS2Pv2OkMsgError) -> Self {
-        WS2Pv2MessagePayloadReadBytesError::ReadWS2Pv2OkMsgError(e)
+impl From<WS2Pv2MsgPayloadContentParseError> for WS2Pv2MessagePayloadReadBytesError {
+    fn from(e: WS2Pv2MsgPayloadContentParseError) -> Self {
+        WS2Pv2MessagePayloadReadBytesError::WS2Pv2MsgPayloadContentParseError(e)
     }
 }
 
