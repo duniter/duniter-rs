@@ -235,7 +235,6 @@ impl BinMessage for PeerCardV11 {
             return Err(PeerCardReadBytesError::TooShort(String::from("blockstamp")));
         };
         // read endpoints_datas
-        println!("DEBUG: index={}", index);
         let mut endpoints = Vec::with_capacity(endpoints_count as usize);
         for _ in 0..endpoints_count {
             // read endpoint_size
@@ -261,7 +260,6 @@ impl BinMessage for PeerCardV11 {
             )?);
             index += endpoint_size as usize;
         }
-        println!("DEBUG: index={}", index);
         // read signature_size
         let signature_size = if binary_peer_card.len() > index + 2 {
             index += 2;
@@ -271,8 +269,6 @@ impl BinMessage for PeerCardV11 {
                 "signature_size",
             )));
         };
-        println!("DEBUG: index={}", index);
-        println!("DEBUG: signature_size={}", signature_size);
         // read signature
         let sig = if binary_peer_card.len() > index + signature_size {
             return Err(PeerCardReadBytesError::TooLong());

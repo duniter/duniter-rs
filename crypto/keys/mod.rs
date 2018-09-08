@@ -222,6 +222,16 @@ pub enum PubKey {
     Schnorr(),
 }
 
+impl PubKey {
+    /// Compute PubKey size in bytes
+    pub fn size_in_bytes(&self) -> usize {
+        match *self {
+            PubKey::Ed25519(_) => ed25519::PUBKEY_SIZE_IN_BYTES + 3,
+            PubKey::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
+    }
+}
+
 impl Default for PubKey {
     fn default() -> Self {
         PubKey::Schnorr()

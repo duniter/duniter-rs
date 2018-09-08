@@ -789,10 +789,7 @@ impl BlockchainModule {
                                 find_valid_block = true;
                                 break;
                             } else {
-                                warn!(
-                                    "DEBUG: fail to stackable_block({})",
-                                    stackable_block.block.number
-                                );
+                                warn!("fail to stackable_block({})", stackable_block.block.number);
                                 // Delete this fork
                                 DALBlock::delete_fork(
                                     &self.blocks_databases.forks_db,

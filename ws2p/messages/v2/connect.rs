@@ -151,7 +151,7 @@ impl BinMessage for WS2Pv2ConnectMsg {
         let bin_peer_card = if let Some(ref peer_card) = self.peer_card {
             peer_card.to_bytes_vector()
         } else {
-            vec![0u8, 0u8] // peer_card_size
+            vec![0u8, 0u8] // peer_card_size = 0
         };
         // Binarize bin_chunkstamp
         let bin_chunkstamp = if let Some(ref chunkstamp) = self.chunkstamp {
@@ -211,13 +211,17 @@ mod tests {
 
     #[test]
     fn test_ws2p_message_connect() {
+        let keypair1 = keypair1();
+        let mut peer = create_peer_card_v11();
+        peer.sign(PrivKey::Ed25519(keypair1.private_key()))
+            .expect("Fail to sign peer card !");
         let connect_msg = WS2Pv2ConnectMsg {
             challenge: Hash::from_hex(
                 "000007722B243094269E548F600BD34D73449F7578C05BD370A6D301D20B5F10",
             ).unwrap(),
-            api_features: WS2PFeatures(vec![]),
+            api_features: WS2PFeatures(vec![7u8]),
             flags_queries: WS2PConnectFlags(vec![]),
-            peer_card: None,
+            peer_card: Some(peer),
             chunkstamp: Some(
                 Blockstamp::from_string(
                     "499-000011BABEEE1020B1F6B2627E2BC1C35BCD24375E114349634404D2C266D84F",

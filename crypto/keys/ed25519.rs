@@ -33,6 +33,8 @@ use std::fmt::{self, Debug, Display, Error, Formatter};
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 
+/// Size of a public key in bytes
+pub static PUBKEY_SIZE_IN_BYTES: &'static usize = &32;
 /// Size of a signature in bytes
 pub static SIG_SIZE_IN_BYTES: &'static usize = &64;
 

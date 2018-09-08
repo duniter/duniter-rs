@@ -82,9 +82,6 @@ mod tests {
 
     pub fn test_ws2p_message(payload: WS2Pv2MessagePayload) {
         let keypair1 = keypair1();
-        let mut peer = create_peer_card_v11();
-        peer.sign(PrivKey::Ed25519(keypair1.private_key()))
-            .expect("Fail to sign peer card !");
         let mut ws2p_message = WS2Pv2Message {
             currency_code: CurrencyName(String::from("g1")),
             ws2p_version: 2u16,

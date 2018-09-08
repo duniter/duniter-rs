@@ -15,10 +15,12 @@
 
 /// WS2P Features
 pub mod api_features;
-// WS2P v2 Ok Messages
-pub mod ok;
-// WS2P v2 CONNECT Messages
+// WS2P v2 CONNECT Message
 pub mod connect;
+// WS2P v2 SECRET_FLAGS Message
+pub mod secret_flags;
+// WS2P v2 OK Message
+pub mod ok;
 /// Message Payload container
 pub mod payload_container;
 
