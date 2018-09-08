@@ -20,7 +20,7 @@ pub mod ok;
 // WS2P v2 CONNECT Messages
 pub mod connect;
 /// Message Payload container
-mod payload_container;
+pub mod payload_container;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use duniter_crypto::hashs::Hash;
@@ -270,62 +270,11 @@ impl BinMessage for WS2Pv2Message {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use duniter_documents::Blockstamp;
-    use duniter_network::network_endpoint::*;
-    use duniter_network::network_peer::*;
-    use duniter_network::ApiFeatures;
-    use std::net::Ipv4Addr;
-    use std::str::FromStr;
+    use messages::tests::*;
 
-    fn keypair1() -> ed25519::KeyPair {
-        ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(
-            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV".as_bytes(),
-            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV_".as_bytes(),
-        )
-    }
-
-    fn create_endpoint_v11() -> EndpointV11 {
-        EndpointV11 {
-            api: EndpointV11Api::Bin(ApiKnownByDuniter::WS2P()),
-            api_version: 2,
-            network_features: EndpointV11NetworkFeatures(vec![4u8]),
-            api_features: ApiFeatures(vec![7u8]),
-            ip_v4: None,
-            ip_v6: None,
-            host: Some(String::from("g1.durs.ifee.fr")),
-            port: 443u16,
-            path: Some(String::from("ws2p")),
-            status: 0,
-            last_check: 0,
-        }
-    }
-    fn create_second_endpoint_v11() -> EndpointV11 {
-        EndpointV11 {
-            api: EndpointV11Api::Bin(ApiKnownByDuniter::WS2P()),
-            api_version: 2,
-            network_features: EndpointV11NetworkFeatures(vec![5u8]),
-            api_features: ApiFeatures(vec![7u8]),
-            ip_v4: Some(Ipv4Addr::from_str("84.16.72.210").unwrap()),
-            ip_v6: None,
-            host: None,
-            port: 443u16,
-            path: Some(String::from("ws2p")),
-            status: 0,
-            last_check: 0,
-        }
-    }
-
-    fn create_peer_card_v11() -> PeerCardV11 {
-        PeerCardV11 {
-            currency_code: 1u16,
-            issuer: PubKey::Ed25519(keypair1().pubkey),
-            node_id: NodeId(0),
-            blockstamp: Blockstamp::from_string(
-                "50-000005B1CEB4EC5245EF7E33101A330A1C9A358EC45A25FC13F78BB58C9E7370",
-            ).unwrap(),
-            endpoints: vec![create_endpoint_v11(), create_second_endpoint_v11()],
-            sig: None,
-        }
+    #[test]
+    fn test_ws2p_message_ack() {
+        test_ws2p_message(WS2Pv2MessagePayload::Ack(Hash::random()));
     }
 
     #[test]
@@ -334,37 +283,6 @@ mod tests {
         let mut peer = create_peer_card_v11();
         peer.sign(PrivKey::Ed25519(keypair1.private_key()))
             .expect("Fail to sign peer card !");
-        let mut ws2p_message = WS2Pv2Message {
-            currency_code: CurrencyName(String::from("g1")),
-            ws2p_version: 2u16,
-            issuer_node_id: NodeId(0),
-            issuer_pubkey: PubKey::Ed25519(keypair1.public_key()),
-            payload: WS2Pv2MessagePayload::Peers(vec![peer]),
-            message_hash: None,
-            signature: None,
-        };
-
-        let sign_result = ws2p_message.sign(PrivKey::Ed25519(keypair1.private_key()));
-        if let Ok(bin_msg) = sign_result {
-            // Test binarization
-            assert_eq!(ws2p_message.to_bytes_vector(), bin_msg);
-            // Test sign
-            assert_eq!(ws2p_message.verify(), Ok(()));
-            // Test debinarization
-            let debinarization_result = WS2Pv2Message::from_bytes(&bin_msg);
-            if let Ok(ws2p_message2) = debinarization_result {
-                assert_eq!(ws2p_message, ws2p_message2);
-            } else {
-                panic!(
-                    "Fail to debinarize ws2p_message : {:?}",
-                    debinarization_result.err().unwrap()
-                );
-            }
-        } else {
-            panic!(
-                "Fail to sign ws2p_message : {:?}",
-                sign_result.err().unwrap()
-            );
-        }
+        test_ws2p_message(WS2Pv2MessagePayload::Peers(vec![peer]));
     }
 }

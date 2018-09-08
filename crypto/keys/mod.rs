@@ -141,6 +141,16 @@ pub enum Sig {
     Schnorr(),
 }
 
+impl Sig {
+    /// Get Sig size in bytes
+    pub fn size_in_bytes(&self) -> usize {
+        match *self {
+            Sig::Ed25519(_) => *ed25519::SIG_SIZE_IN_BYTES + 2,
+            Sig::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
+    }
+}
+
 impl Display for Sig {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "{}", self.to_base64())

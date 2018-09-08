@@ -16,8 +16,10 @@
 use super::connect::WS2Pv2ConnectMsg;
 use super::ok::WS2Pv2OkMsg;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+use duniter_crypto::hashs::Hash;
 use duniter_documents::ReadBytesBlockstampError;
 use duniter_network::network_peer::{PeerCardReadBytesError, PeerCardV11};
+use dup_binarizer::sig_box::*;
 use dup_binarizer::BinMessage;
 use std::io::Cursor;
 use std::mem;
@@ -29,7 +31,7 @@ pub static WS2P_V2_MESSAGE_PAYLOAD_METADATA_SIZE: &'static usize = &8;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WS2Pv2MessagePayload {
     Connect(Box<WS2Pv2ConnectMsg>),
-    //Ack,
+    Ack(Hash),
     //Flags,
     Ok(WS2Pv2OkMsg),
     //Ko,
@@ -105,6 +107,8 @@ pub enum WS2Pv2MessagePayloadReadBytesError {
     PeerCardReadBytesError(PeerCardReadBytesError),
     /// WS2Pv2MsgPayloadContentParseError
     WS2Pv2MsgPayloadContentParseError(WS2Pv2MsgPayloadContentParseError),
+    /// ReadSigBoxError
+    ReadSigBoxError(ReadSigBoxError),
 }
 
 impl From<::std::io::Error> for WS2Pv2MessagePayloadReadBytesError {
@@ -122,6 +126,12 @@ impl From<WS2Pv2MsgPayloadContentParseError> for WS2Pv2MessagePayloadReadBytesEr
 impl From<PeerCardReadBytesError> for WS2Pv2MessagePayloadReadBytesError {
     fn from(e: PeerCardReadBytesError) -> Self {
         WS2Pv2MessagePayloadReadBytesError::PeerCardReadBytesError(e)
+    }
+}
+
+impl From<ReadSigBoxError> for WS2Pv2MessagePayloadReadBytesError {
+    fn from(e: ReadSigBoxError) -> Self {
+        WS2Pv2MessagePayloadReadBytesError::ReadSigBoxError(e)
     }
 }
 
@@ -161,6 +171,15 @@ impl BinMessage for WS2Pv2MessagePayload {
                     Ok(WS2Pv2MessagePayload::Connect(Box::new(
                         WS2Pv2ConnectMsg::from_bytes(&payload[8..])?,
                     )))
+                } else {
+                    Err(WS2Pv2MessagePayloadReadBytesError::WrongElementsCount())
+                }
+            }
+            0x0001 => {
+                if elements_count == 0 {
+                    let mut hash_bytes = [0u8; 32];
+                    hash_bytes.copy_from_slice(&payload[8..40]);
+                    Ok(WS2Pv2MessagePayload::Ack(Hash(hash_bytes)))
                 } else {
                     Err(WS2Pv2MessagePayloadReadBytesError::WrongElementsCount())
                 }
@@ -215,6 +234,13 @@ impl BinMessage for WS2Pv2MessagePayload {
                     message_type: 0x0000,
                     elements_count: 0,
                     payload_content: connect_msg.to_bytes_vector(),
+                }
+            }
+            WS2Pv2MessagePayload::Ack(ref hash) => {
+                WS2Pv2MessageBinPayload {
+                    message_type: 0x0001,
+                    elements_count: 0,
+                    payload_content: hash.0.to_vec(),
                 }
             }
             WS2Pv2MessagePayload::Ok(ref ok_msg) => {

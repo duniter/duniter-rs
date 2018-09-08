@@ -33,6 +33,9 @@ use std::fmt::{self, Debug, Display, Error, Formatter};
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 
+/// Size of a signature in bytes
+pub static SIG_SIZE_IN_BYTES: &'static usize = &64;
+
 /// Store a ed25519 signature.
 #[derive(Clone, Copy)]
 pub struct Signature(pub [u8; 64]);
