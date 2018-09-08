@@ -17,14 +17,13 @@ use super::WS2Pv2MsgPayloadContentParseError;
 use duniter_crypto::keys::*;
 use dup_binarizer::u16;
 use dup_binarizer::*;
-//use std::io::Cursor;
-//use std::mem;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 /// WS2Pv2SecretFlags
 pub struct WS2Pv2SecretFlags(Vec<u8>);
 
 impl WS2Pv2SecretFlags {
+    /// Return true if all flags are disabled (or if it's really empty).
     pub fn is_empty(&self) -> bool {
         for byte in &self.0 {
             if *byte > 0u8 {
@@ -33,12 +32,15 @@ impl WS2Pv2SecretFlags {
         }
         true
     }
+    /// Check flag LOW_FLOW_DEMAND
     pub fn _low_flow_demand(&self) -> bool {
         self.0[0] | 0b1111_1110 == 255u8
     }
+    /// Check flag MEMBER_PUBKEY
     pub fn member_pubkey(&self) -> bool {
         self.0[0] | 0b1111_1101 == 255u8
     }
+    /// Check flag MEMBER_PROOF
     pub fn member_proof(&self) -> bool {
         self.0[0] | 0b1111_1011 == 255u8
     }
@@ -178,7 +180,7 @@ impl BinMessage for WS2Pv2SecretFlagsMsg {
 mod tests {
     use super::super::*;
     use super::*;
-    use messages::tests::*;
+    use tests::*;
 
     #[test]
     fn test_ws2p_message_secret_flags() {

@@ -32,12 +32,17 @@ pub static WS2P_V2_MESSAGE_PAYLOAD_METADATA_SIZE: &'static usize = &8;
 /// WS2Pv2MessagePayload
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WS2Pv2MessagePayload {
+    /// CONNECT message
     Connect(Box<WS2Pv2ConnectMsg>),
+    /// ACK message
     Ack(Hash),
+    /// SECRET_FLAGS Message
     SecretFlags(WS2Pv2SecretFlagsMsg),
+    /// OK Message
     Ok(WS2Pv2OkMsg),
     //Ko,
     //Request
+    /// PEERS Message
     Peers(Vec<PeerCardV11>),
     /*Headsv2(u16),
     Heads3(u16),
@@ -52,8 +57,11 @@ pub enum WS2Pv2MessagePayload {
 /// WS2Pv2MessagePayload
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WS2Pv2MessageBinPayload {
+    /// Message type
     pub message_type: u16,
+    /// Elements count
     pub elements_count: u16,
+    /// Payload content
     pub payload_content: Vec<u8>,
 }
 

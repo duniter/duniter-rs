@@ -13,8 +13,37 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/// WS2P v2 Messages
+//! Handles WebSocketToPeer API Messages.
+
+#![cfg_attr(feature = "strict", deny(warnings))]
+#![deny(
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    trivial_casts,
+    unsafe_code,
+    unstable_features,
+    unused_import_braces,
+    unused_qualifications
+)]
+
+extern crate byteorder;
+extern crate duniter_crypto;
+extern crate duniter_documents;
+extern crate duniter_network;
+extern crate dup_binarizer;
+
+/// WS2Pv2 Messages
 pub mod v2;
+
+use v2::WS2Pv2Message;
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+/// WS2Pv2Message
+pub enum WS2PMessage {
+    /// Version 2
+    V2(WS2Pv2Message),
+}
 
 #[cfg(test)]
 mod tests {
@@ -24,10 +53,10 @@ mod tests {
     use duniter_network::network_peer::*;
     use duniter_network::*;
     use dup_binarizer::{BinMessage, BinMessageSignable};
-    use messages::v2::payload_container::WS2Pv2MessagePayload;
-    use messages::v2::WS2Pv2Message;
     use std::net::Ipv4Addr;
     use std::str::FromStr;
+    use v2::payload_container::WS2Pv2MessagePayload;
+    use v2::WS2Pv2Message;
 
     pub fn keypair1() -> ed25519::KeyPair {
         ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(
@@ -84,7 +113,6 @@ mod tests {
         let keypair1 = keypair1();
         let mut ws2p_message = WS2Pv2Message {
             currency_code: CurrencyName(String::from("g1")),
-            ws2p_version: 2u16,
             issuer_node_id: NodeId(0),
             issuer_pubkey: PubKey::Ed25519(keypair1.public_key()),
             payload,

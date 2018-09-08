@@ -18,6 +18,7 @@
 pub struct WS2PFeatures(pub Vec<u8>);
 
 impl WS2PFeatures {
+    /// Return true if all flags are disabled (or if it's really empty).
     pub fn is_empty(&self) -> bool {
         for byte in &self.0 {
             if *byte > 0u8 {
@@ -26,12 +27,15 @@ impl WS2PFeatures {
         }
         true
     }
+    /// Check flag DEF
     pub fn _def(&self) -> bool {
         self.0[0] | 0b1111_1110 == 255u8
     }
+    /// Check flag LOW
     pub fn _low(&self) -> bool {
         self.0[0] | 0b1111_1101 == 255u8
     }
+    /// Check flag ABF
     pub fn _abf(&self) -> bool {
         self.0[0] | 0b1111_1011 == 255u8
     }

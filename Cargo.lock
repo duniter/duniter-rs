@@ -372,7 +372,59 @@ dependencies = [
 ]
 
 [[package]]
-name = "duniter-ws2p"
+name = "dup-binarizer"
+version = "0.1.0-a0.1"
+dependencies = [
+ "byteorder 1.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "duniter-crypto 0.2.0-a0.1",
+ "pretty_assertions 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-crypto 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "durs"
+version = "0.1.0-a0.1"
+dependencies = [
+ "duniter-core 0.1.0-a0.1",
+ "duniter-tui 0.1.0-a0.1",
+ "durs-ws2p 0.1.0-a0.1",
+ "durs-ws2p-v1-legacy 0.1.0-a0.1",
+]
+
+[[package]]
+name = "durs-ws2p"
+version = "0.1.0-a0.1"
+dependencies = [
+ "duniter-conf 0.1.0-a0.1",
+ "duniter-crypto 0.2.0-a0.1",
+ "duniter-message 0.1.0-a0.1",
+ "duniter-module 0.1.0-a0.1",
+ "duniter-network 0.1.0-a0.1",
+ "durs-ws2p-messages 0.1.0-a0.1",
+ "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "durs-ws2p-messages"
+version = "0.1.0-a0.1"
+dependencies = [
+ "byteorder 1.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "duniter-crypto 0.2.0-a0.1",
+ "duniter-documents 0.8.0-a0.1",
+ "duniter-network 0.1.0-a0.1",
+ "dup-binarizer 0.1.0-a0.1",
+ "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-crypto 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.21 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "durs-ws2p-v1-legacy"
 version = "0.1.0-a0.1"
 dependencies = [
  "byteorder 1.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -395,25 +447,6 @@ dependencies = [
  "serde_json 1.0.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "sqlite 0.23.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "ws 0.7.6 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "dup-binarizer"
-version = "0.1.0-a0.1"
-dependencies = [
- "byteorder 1.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "duniter-crypto 0.2.0-a0.1",
- "pretty_assertions 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "rust-crypto 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "durs"
-version = "0.1.0-a0.1"
-dependencies = [
- "duniter-core 0.1.0-a0.1",
- "duniter-tui 0.1.0-a0.1",
- "duniter-ws2p 0.1.0-a0.1",
 ]
 
 [[package]]

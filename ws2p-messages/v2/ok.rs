@@ -138,8 +138,8 @@ mod tests {
     use super::super::*;
     use super::*;
     use duniter_documents::Blockstamp;
-    use messages::tests::*;
     use std::num::NonZeroU16;
+    use tests::*;
 
     #[test]
     fn test_ws2p_message_ok() {

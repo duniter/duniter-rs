@@ -8,11 +8,12 @@ license = "AGPL-3.0"
 [dependencies]
 duniter-core = { path = "./core" }
 duniter-tui = { path = "./tui", optional = true }
-duniter-ws2p = { path = "./ws2p" }
+durs-ws2p = { path = "./ws2p" }
+durs-ws2p-v1-legacy = { path = "./ws2p-v1-legacy" }
 
 [features]
 default = ["tui","ssl"]
-ssl = ["duniter-ws2p/ssl"]
+ssl = ["durs-ws2p-v1-legacy/ssl"]
 tui = ["duniter-tui"]
 # Treat warnings as a build error.
 strict = []
@@ -31,5 +32,7 @@ members = [
     "network",
     "tui",
     "wotb",
-    "ws2p"
+    "ws2p",
+    "ws2p-messages",
+    "ws2p-v1-legacy"
 ]

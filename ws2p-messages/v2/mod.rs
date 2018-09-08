@@ -15,14 +15,14 @@
 
 /// WS2P Features
 pub mod api_features;
-// WS2P v2 CONNECT Message
+/// WS2P v2 CONNECT Message
 pub mod connect;
-// WS2P v2 SECRET_FLAGS Message
-pub mod secret_flags;
-// WS2P v2 OK Message
+/// WS2P v2 OK Message
 pub mod ok;
 /// Message Payload container
 pub mod payload_container;
+/// WS2P v2 SECRET_FLAGS Message
+pub mod secret_flags;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use duniter_crypto::hashs::Hash;
@@ -30,9 +30,9 @@ use duniter_crypto::keys::*;
 use duniter_documents::{CurrencyCodeError, CurrencyName};
 use duniter_network::NodeId;
 use dup_binarizer::*;
-use messages::v2::payload_container::*;
 use std::io::Cursor;
 use std::mem;
+use v2::payload_container::*;
 
 /// WS2P v2 message metadata size
 pub static WS2P_V2_MESSAGE_METADATA_SIZE: &'static usize = &144;
@@ -40,13 +40,23 @@ pub static WS2P_V2_MESSAGE_METADATA_SIZE: &'static usize = &144;
 /// WS2Pv2Message
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct WS2Pv2Message {
+    /// Currency name
     pub currency_code: CurrencyName,
-    pub ws2p_version: u16,
+    /// Issuer NodeId
     pub issuer_node_id: NodeId,
+    /// Issuer plublic key
     pub issuer_pubkey: PubKey,
+    /// Message payload
     pub payload: WS2Pv2MessagePayload,
+    /// Message hash
     pub message_hash: Option<Hash>,
+    /// Signature
     pub signature: Option<Sig>,
+}
+
+impl WS2Pv2Message {
+    /// WS2P Version number
+    pub const WS2P_VERSION: u16 = 2;
 }
 
 /// WS2Pv2MessageReadBytesError
@@ -211,7 +221,6 @@ impl BinMessage for WS2Pv2Message {
                 };
                 Ok(WS2Pv2Message {
                     currency_code,
-                    ws2p_version,
                     issuer_node_id,
                     issuer_pubkey,
                     payload,
@@ -240,7 +249,7 @@ impl BinMessage for WS2Pv2Message {
         let mut buffer = [0u8; mem::size_of::<u16>()];
         buffer
             .as_mut()
-            .write_u16::<BigEndian>(self.ws2p_version)
+            .write_u16::<BigEndian>(WS2Pv2Message::WS2P_VERSION)
             .expect("Unable to write");
         bytes_vector.extend_from_slice(&buffer);
         // Write issuer_node_id
@@ -272,7 +281,7 @@ impl BinMessage for WS2Pv2Message {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use messages::tests::*;
+    use tests::*;
 
     #[test]
     fn test_ws2p_message_ack() {

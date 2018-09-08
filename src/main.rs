@@ -31,13 +31,15 @@
 extern crate duniter_core;
 #[cfg(feature = "tui")]
 extern crate duniter_tui;
-extern crate duniter_ws2p;
+extern crate durs_ws2p_v1_legacy;
+//extern crate durs_ws2p;
 
 pub use duniter_core::DuRsConf;
 pub use duniter_core::DuniterCore;
 #[cfg(feature = "tui")]
 pub use duniter_tui::TuiModule;
-pub use duniter_ws2p::WS2PModule;
+pub use durs_ws2p_v1_legacy::WS2PModule;
+//pub use durs_ws2p::WS2Pv2Module;
 
 /// Main function
 fn main() {
@@ -54,6 +56,7 @@ fn main() {
         //duniter_core.plug::<PowModule>();
         plug_tui_module(&mut duniter_core);
         duniter_core.plug_network::<WS2PModule>();
+        //duniter_core.plug_network::<WS2Pv2Module>();
         duniter_core.start_blockchain();
     };
 }

@@ -15,12 +15,12 @@
 
 //use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use super::api_features::WS2PFeatures;
-use super::WS2Pv2MsgPayloadContentParseError;
 use duniter_crypto::hashs::Hash;
 use duniter_documents::Blockstamp;
 use duniter_network::network_peer::PeerCardV11;
 use dup_binarizer::u16;
 use dup_binarizer::*;
+use v2::WS2Pv2MsgPayloadContentParseError;
 //use std::io::Cursor;
 //use std::mem;
 
@@ -32,6 +32,7 @@ pub static CONNECT_MSG_MIN_SIZE: &'static usize = &36;
 pub struct WS2PConnectFlags(Vec<u8>);
 
 impl WS2PConnectFlags {
+    /// Return true if all flags are disabled (or if it's really empty).
     pub fn is_empty(&self) -> bool {
         for byte in &self.0 {
             if *byte > 0u8 {
@@ -40,12 +41,15 @@ impl WS2PConnectFlags {
         }
         true
     }
+    /// Check flag SYNC
     pub fn _sync(&self) -> bool {
         self.0[0] & 0b0000_0001 == 1u8
     }
+    /// Check flag ASK_SYNC_CHUNK
     pub fn _ask_sync_chunk(&self) -> bool {
         self.0[0] & 0b0000_0010 == 2u8
     }
+    /// Check flag RES_SYNC_CHUNK
     pub fn _res_sync_chunk(&self) -> bool {
         self.0[0] & 0b0000_0100 == 4u8
     }
@@ -207,7 +211,7 @@ mod tests {
     use super::super::*;
     use super::*;
     use duniter_documents::Blockstamp;
-    use messages::tests::*;
+    use tests::*;
 
     #[test]
     fn test_ws2p_message_connect() {
