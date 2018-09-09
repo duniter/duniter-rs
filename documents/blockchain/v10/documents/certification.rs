@@ -29,7 +29,7 @@ lazy_static! {
     ).unwrap();
 }
 
-#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 /// Wrap an Compact Revocation document (in block content)
 pub struct CompactCertificationDocument {
     /// Issuer
@@ -57,7 +57,7 @@ impl CompactTextDocument for CompactCertificationDocument {
 /// Wrap an Certification document.
 ///
 /// Must be created by parsing a text document or using a builder.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct CertificationDocument {
     /// Document as text.
     ///

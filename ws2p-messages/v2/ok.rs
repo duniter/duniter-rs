@@ -13,16 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use duniter_crypto::hashs::Hash;
 use duniter_documents::Blockstamp;
-use dup_binarizer::*;
-//use std::io::Cursor;
-//use std::mem;
-use super::WS2Pv2MsgPayloadContentParseError;
 use std::num::NonZeroU16;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 /// WS2Pv2OkMsg
 pub struct WS2Pv2OkMsg {
     /// If this field is zero, it means that the remote node does not want to reveal its prefix (the prefix being necessarily greater than or equal to 1).
@@ -40,12 +35,13 @@ impl Default for WS2Pv2OkMsg {
     }
 }
 
+/*
 impl BinMessage for WS2Pv2OkMsg {
-    type ReadBytesError = WS2Pv2MsgPayloadContentParseError;
+    type ReadBytesError = WS2Pv0MsgPayloadContentParseError;
     fn from_bytes(datas: &[u8]) -> Result<Self, Self::ReadBytesError> {
         match datas.len() {
             0 => Ok(WS2Pv2OkMsg::default()),
-            1 => Err(WS2Pv2MsgPayloadContentParseError::TooShort(
+            1 => Err(WS2Pv0MsgPayloadContentParseError::TooShort(
                 "Size of WS2Pv2OkMsg cannot be 1",
             )),
             2 => Ok(WS2Pv2OkMsg {
@@ -80,9 +76,9 @@ impl BinMessage for WS2Pv2OkMsg {
             vec![]
         }
     }
-}
+}*/
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 /// WS2Pv2SyncTarget
 pub struct WS2Pv2SyncTarget {
     /// Indicates the current blockstamp of the message sender node. This blockstamp will be the target to reach for the node being synchronized.
@@ -91,12 +87,13 @@ pub struct WS2Pv2SyncTarget {
     pub chunks_hash: Vec<Hash>,
 }
 
+/*
 impl BinMessage for WS2Pv2SyncTarget {
-    type ReadBytesError = WS2Pv2MsgPayloadContentParseError;
+    type ReadBytesError = WS2Pv0MsgPayloadContentParseError;
     fn from_bytes(datas: &[u8]) -> Result<Self, Self::ReadBytesError> {
         // target_blockstamp
         let target_blockstamp = if datas.len() < (Blockstamp::SIZE_IN_BYTES + 2) {
-            return Err(WS2Pv2MsgPayloadContentParseError::TooShort("blockstamp"));
+            return Err(WS2Pv0MsgPayloadContentParseError::TooShort("blockstamp"));
         } else {
             Blockstamp::from_bytes(&datas[0..Blockstamp::SIZE_IN_BYTES])?
         };
@@ -104,7 +101,7 @@ impl BinMessage for WS2Pv2SyncTarget {
         let mut index = Blockstamp::SIZE_IN_BYTES + 2;
         let chunks_hash_count = u16::read_u16_be(&datas[index - 2..index])? as usize;
         let chunks_hash = if datas.len() < (index + (chunks_hash_count * Hash::SIZE_IN_BYTES)) {
-            return Err(WS2Pv2MsgPayloadContentParseError::TooShort("chunks_hash"));
+            return Err(WS2Pv0MsgPayloadContentParseError::TooShort("chunks_hash"));
         } else {
             let mut chunks_hash = Vec::with_capacity(chunks_hash_count);
             for _ in 0..chunks_hash_count {
@@ -131,7 +128,7 @@ impl BinMessage for WS2Pv2SyncTarget {
         }
         bytes
     }
-}
+}*/
 
 #[cfg(test)]
 mod tests {
@@ -159,6 +156,6 @@ mod tests {
                 ],
             }),
         };
-        test_ws2p_message(WS2Pv2MessagePayload::Ok(ok_msg));
+        test_ws2p_message(WS2Pv0MessagePayload::Ok(ok_msg));
     }
 }

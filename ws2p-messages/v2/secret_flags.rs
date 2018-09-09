@@ -13,12 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::WS2Pv2MsgPayloadContentParseError;
 use duniter_crypto::keys::*;
-use dup_binarizer::u16;
-use dup_binarizer::*;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 /// WS2Pv2SecretFlags
 pub struct WS2Pv2SecretFlags(Vec<u8>);
 
@@ -46,7 +43,7 @@ impl WS2Pv2SecretFlags {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 /// WS2Pv2SecretFlagsMsg
 pub struct WS2Pv2SecretFlagsMsg {
     /// Secret flags
@@ -67,26 +64,27 @@ impl Default for WS2Pv2SecretFlagsMsg {
     }
 }
 
+/*
 impl BinMessage for WS2Pv2SecretFlagsMsg {
-    type ReadBytesError = WS2Pv2MsgPayloadContentParseError;
+    type ReadBytesError = WS2Pv0MsgPayloadContentParseError;
     fn from_bytes(datas: &[u8]) -> Result<Self, Self::ReadBytesError> {
         // Read flags_size
         if datas.is_empty() {
-            return Err(WS2Pv2MsgPayloadContentParseError::TooShort("Empty datas !"));
+            return Err(WS2Pv0MsgPayloadContentParseError::TooShort("Empty datas !"));
         }
         let mut index = 0;
         let flags_size = datas[0] as usize;
         index += 1;
         // Read secret_flags
         if datas.len() < flags_size + index {
-            return Err(WS2Pv2MsgPayloadContentParseError::TooShort("secret_flags"));
+            return Err(WS2Pv0MsgPayloadContentParseError::TooShort("secret_flags"));
         }
         let secret_flags = WS2Pv2SecretFlags(datas[index..index + flags_size].to_vec());
         index += flags_size;
         // Read member_pubkey
         let (member_pubkey, key_algo) = if secret_flags.member_pubkey() {
             if datas.len() < index + 2 {
-                return Err(WS2Pv2MsgPayloadContentParseError::TooShort(
+                return Err(WS2Pv0MsgPayloadContentParseError::TooShort(
                     "member_pubkey: pubkey_box size",
                 ));
             }
@@ -94,7 +92,7 @@ impl BinMessage for WS2Pv2SecretFlagsMsg {
             let pubkey_box_size = u16::read_u16_be(&datas[index..index + 2])? as usize;
             index += 2;
             if datas.len() < index + pubkey_box_size {
-                return Err(WS2Pv2MsgPayloadContentParseError::TooShort(
+                return Err(WS2Pv0MsgPayloadContentParseError::TooShort(
                     "member_pubkey: pubkey_box",
                 ));
             }
@@ -109,7 +107,7 @@ impl BinMessage for WS2Pv2SecretFlagsMsg {
         // Read member_proof
         let member_proof = if member_pubkey.is_some() && secret_flags.member_proof() {
             if datas.len() < index + 2 {
-                return Err(WS2Pv2MsgPayloadContentParseError::TooShort(
+                return Err(WS2Pv0MsgPayloadContentParseError::TooShort(
                     "member_proof: sig_box size",
                 ));
             }
@@ -117,7 +115,7 @@ impl BinMessage for WS2Pv2SecretFlagsMsg {
             let sig_box_size = u16::read_u16_be(&datas[index..index + 2])? as usize;
             index += 2;
             if datas.len() < index + sig_box_size {
-                return Err(WS2Pv2MsgPayloadContentParseError::TooShort(
+                return Err(WS2Pv0MsgPayloadContentParseError::TooShort(
                     "member_proof: sig_box",
                 ));
             }
@@ -174,7 +172,7 @@ impl BinMessage for WS2Pv2SecretFlagsMsg {
         };
         buffer
     }
-}
+}*/
 
 #[cfg(test)]
 mod tests {
@@ -191,6 +189,6 @@ mod tests {
             member_pubkey: Some(PubKey::Ed25519(keypair1.public_key())),
             member_proof: Some(Sig::Ed25519(keypair1.private_key().sign(&challenge.0))),
         };
-        test_ws2p_message(WS2Pv2MessagePayload::SecretFlags(msg));
+        test_ws2p_message(WS2Pv0MessagePayload::SecretFlags(msg));
     }
 }

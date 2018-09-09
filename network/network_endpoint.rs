@@ -23,19 +23,15 @@ extern crate regex;
 extern crate serde;
 
 use self::regex::Regex;
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::PubKey;
-use dup_binarizer::BinMessage;
-use std::io::Cursor;
-use std::mem;
 use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr};
 use std::num::ParseIntError;
 use std::str::FromStr;
 use {ApiFeatures, NodeFullId, NodeId};
 
-/// Total size of all fixed size fields of an EndpointV11
-pub static ENDPOINTV11_FIXED_SIZE: &'static usize = &9;
+/// Total size of all fixed size fields of an EndpointV2
+pub static ENDPOINTV2_FIXED_SIZE: &'static usize = &9;
 /// Maximum number of network features
 pub static MAX_NETWORK_FEATURES_COUNT: &'static usize = &2040;
 /// Maximum number of api features
@@ -54,10 +50,10 @@ lazy_static! {
 pub enum ParseEndpointError {
     /// VersionNotSupported
     VersionNotSupported(),
-    /// WrongV10Format
-    WrongV10Format(),
-    /// WrongV11Format (human-readable explanation)
-    WrongV11Format(String),
+    /// WrongV1Format
+    WrongV1Format(),
+    /// WrongV2Format (human-readable explanation)
+    WrongV2Format(&'static str),
     /// ApiNameTooLong
     ApiNameTooLong(),
     /// ParseIntError
@@ -123,7 +119,7 @@ pub struct NetworkEndpointApi(pub String);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Endpoint v1
-pub struct NetworkEndpointV10 {
+pub struct EndpointEnumV1 {
     /// API version
     pub version: usize,
     /// API Name
@@ -148,129 +144,15 @@ pub struct NetworkEndpointV10 {
     pub last_check: u64,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-/// Api know by Duniter
-pub enum ApiKnownByDuniter {
-    /// BASIC_MERKLED_API
-    BMA(),
-    /// WebSocket To Peer
-    WS2P(),
-    /// GraphQL Verification Api
-    GVA(),
-    /// Duniter Advanced Statistic Api
-    DASA(),
-}
-
-impl ApiKnownByDuniter {
-    /// Convert ApiKnownByDuniter is their 8-bit binary value
-    pub fn into_u8(self) -> u8 {
-        match self {
-            ApiKnownByDuniter::BMA() => 0u8,
-            ApiKnownByDuniter::WS2P() => 1u8,
-            ApiKnownByDuniter::GVA() => 2u8,
-            ApiKnownByDuniter::DASA() => 3u8,
-        }
-    }
-}
-
-impl ToString for ApiKnownByDuniter {
-    fn to_string(&self) -> String {
-        match *self {
-            ApiKnownByDuniter::BMA() => String::from("BMA"),
-            ApiKnownByDuniter::WS2P() => String::from("WS2P"),
-            ApiKnownByDuniter::GVA() => String::from("GVA"),
-            ApiKnownByDuniter::DASA() => String::from("DASA"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-/// Identifies the API of an endpointV2
-pub enum EndpointV11Api {
-    /// Api name is an 8-bit binary value
-    Bin(ApiKnownByDuniter),
-    /// Api name is a string utf8
-    Str(String),
-}
-
-impl FromStr for EndpointV11Api {
-    type Err = ParseEndpointError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "BMA" => Ok(EndpointV11Api::Bin(ApiKnownByDuniter::BMA())),
-            "WS2P" => Ok(EndpointV11Api::Bin(ApiKnownByDuniter::WS2P())),
-            "GVA" => Ok(EndpointV11Api::Bin(ApiKnownByDuniter::GVA())),
-            "DASA" => Ok(EndpointV11Api::Bin(ApiKnownByDuniter::DASA())),
-            _ => {
-                if s.len() <= ::std::u8::MAX as usize {
-                    Ok(EndpointV11Api::Str(String::from(s)))
-                } else {
-                    Err(ParseEndpointError::ApiNameTooLong())
-                }
-            }
-        }
-    }
-}
-
-impl ToString for EndpointV11Api {
-    fn to_string(&self) -> String {
-        match *self {
-            EndpointV11Api::Bin(ref api_bin_name) => api_bin_name.to_string(),
-            EndpointV11Api::Str(ref api_name) => api_name.clone(),
-        }
-    }
-}
-
-impl EndpointV11Api {
-    /// Get size of api name field
-    pub fn size(&self) -> u8 {
-        match *self {
-            EndpointV11Api::Bin(_) => 0u8,
-            EndpointV11Api::Str(ref api_name) => api_name.len() as u8,
-        }
-    }
-    /// Convert api name into bytes vector
-    pub fn to_bytes_vector(&self) -> Vec<u8> {
-        match *self {
-            EndpointV11Api::Bin(api_bin_name) => vec![api_bin_name.into_u8()],
-            EndpointV11Api::Str(ref api_name) => api_name.as_bytes().to_vec(),
-        }
-    }
-    /// Get api from bytes
-    pub fn api_from_bytes(
-        api_size: usize,
-        api_datas: &[u8],
-    ) -> Result<EndpointV11Api, EndpointReadBytesError> {
-        if api_size > 0 {
-            if api_datas.len() == api_size {
-                Ok(EndpointV11Api::Str(String::from_utf8(api_datas.to_vec())?))
-            } else {
-                Err(EndpointReadBytesError::WrongApiDatasLen())
-            }
-        } else if api_datas.len() == 1 {
-            match api_datas[0] {
-                0u8 => Ok(EndpointV11Api::Bin(ApiKnownByDuniter::BMA())),
-                1u8 => Ok(EndpointV11Api::Bin(ApiKnownByDuniter::WS2P())),
-                2u8 => Ok(EndpointV11Api::Bin(ApiKnownByDuniter::GVA())),
-                3u8 => Ok(EndpointV11Api::Bin(ApiKnownByDuniter::DASA())),
-                _ => Err(EndpointReadBytesError::UnknowApiName()),
-            }
-        } else {
-            Err(EndpointReadBytesError::WrongApiDatasLen())
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Network features
-pub struct EndpointV11NetworkFeatures(pub Vec<u8>);
+pub struct EndpointV2NetworkFeatures(pub Vec<u8>);
 
-impl EndpointV11NetworkFeatures {
+impl EndpointV2NetworkFeatures {
     /// Parse network features from utf8 string's array
     pub fn from_str_array(
         str_array: &[&str],
-    ) -> Result<EndpointV11NetworkFeatures, ParseEndpointError> {
+    ) -> Result<EndpointV2NetworkFeatures, ParseEndpointError> {
         let mut network_features = 0u8;
         for nf_str in str_array {
             match *nf_str {
@@ -285,7 +167,7 @@ impl EndpointV11NetworkFeatures {
                 }
             }
         }
-        Ok(EndpointV11NetworkFeatures(vec![network_features]))
+        Ok(EndpointV2NetworkFeatures(vec![network_features]))
     }
     /// Network features size
     pub fn size(&self) -> u8 {
@@ -315,13 +197,24 @@ impl EndpointV11NetworkFeatures {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Endpoint v2
-pub struct EndpointV11 {
+pub struct Endpoint {
+    /// Endpoint content
+    pub content: EndpointEnum,
+    /// Accessibility status of this endpoint  (updated regularly)
+    pub status: u32,
+    /// Timestamp of the last connection attempt to this endpoint
+    pub last_check: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+/// Endpoint v2
+pub struct EndpointV2 {
     /// API Name
-    pub api: EndpointV11Api,
+    pub api: NetworkEndpointApi,
     /// API version
     pub api_version: u16,
     /// Network features
-    pub network_features: EndpointV11NetworkFeatures,
+    pub network_features: EndpointV2NetworkFeatures,
     /// API features
     pub api_features: ApiFeatures,
     /// IPv4
@@ -334,15 +227,11 @@ pub struct EndpointV11 {
     pub port: u16,
     /// Optional path
     pub path: Option<String>,
-    /// Accessibility status of this endpoint  (updated regularly)
-    pub status: u32,
-    /// Timestamp of the last connection attempt to this endpoint
-    pub last_check: u64,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Size informations of Endpoint v2
-pub struct EndpointV11Size {
+pub struct EndpointV2Size {
     /// Api nalme size
     pub api_size: u8,
     /// Hostname size
@@ -359,7 +248,7 @@ pub struct EndpointV11Size {
     pub af_size: u8,
 }
 
-impl EndpointV11Size {
+impl EndpointV2Size {
     /// Compute total size of endpoint in binary format
     pub fn total_size(self) -> usize {
         let mut total_size = self.api_size as usize
@@ -367,7 +256,7 @@ impl EndpointV11Size {
             + self.path_size as usize
             + self.nf_size as usize
             + self.af_size as usize
-            + ENDPOINTV11_FIXED_SIZE;
+            + ENDPOINTV2_FIXED_SIZE;
         if self.api_size == 0u8 {
             total_size += 1;
         }
@@ -381,7 +270,8 @@ impl EndpointV11Size {
     }
 }
 
-impl BinMessage for EndpointV11 {
+/*
+impl BinMessage for EndpointV2 {
     type ReadBytesError = EndpointReadBytesError;
 
     fn to_bytes_vector(&self) -> Vec<u8> {
@@ -427,14 +317,14 @@ impl BinMessage for EndpointV11 {
         binary_endpoint
     }
     /// Create endpoint from bytes vector
-    fn from_bytes(binary_ep: &[u8]) -> Result<EndpointV11, EndpointReadBytesError> {
-        if binary_ep.len() < *ENDPOINTV11_FIXED_SIZE {
+    fn from_bytes(binary_ep: &[u8]) -> Result<EndpointV2, EndpointReadBytesError> {
+        if binary_ep.len() < *ENDPOINTV2_FIXED_SIZE {
             return Err(EndpointReadBytesError::TooShort());
         }
         let api_size = binary_ep[0] as usize;
         let host_size = binary_ep[1] as usize;
         let path_size = binary_ep[2] as usize;
-        if binary_ep.len() < (*ENDPOINTV11_FIXED_SIZE + api_size + host_size + path_size) {
+        if binary_ep.len() < (*ENDPOINTV2_FIXED_SIZE + api_size + host_size + path_size) {
             return Err(EndpointReadBytesError::TooShort());
         }
         let mut index: usize = 3;
@@ -446,7 +336,7 @@ impl BinMessage for EndpointV11 {
             index += api_size;
             &binary_ep[index - api_size..index]
         };
-        let api = EndpointV11Api::api_from_bytes(api_size, api_datas)?;
+        let api = NetworkEndpointApi::api_from_bytes(api_size, api_datas)?;
         // read api_version
         let mut api_version_bytes = Cursor::new(binary_ep[index..index + 2].to_vec());
         index += 2;
@@ -459,7 +349,7 @@ impl BinMessage for EndpointV11 {
         }
         // read network_features
         let network_features =
-            EndpointV11NetworkFeatures(binary_ep[index..index + nf_size].to_vec());
+            EndpointV2NetworkFeatures(binary_ep[index..index + nf_size].to_vec());
         index += nf_size;
         // read af_size
         let af_size = binary_ep[index] as usize;
@@ -528,7 +418,7 @@ impl BinMessage for EndpointV11 {
         } else {
             None
         };
-        Ok(EndpointV11 {
+        Ok(EndpointV2 {
             api,
             api_version,
             network_features,
@@ -542,12 +432,12 @@ impl BinMessage for EndpointV11 {
             last_check: 0,
         })
     }
-}
+}*/
 
-impl EndpointV11 {
+impl EndpointV2 {
     /// Generate endpoint url
     pub fn get_url(&self, get_protocol: bool, supported_ip_v6: bool) -> Option<String> {
-        let protocol = self.api.to_string();
+        let protocol = self.api.0.clone();
         let tls = match self.port {
             443 => "s",
             _ => "",
@@ -577,41 +467,21 @@ impl EndpointV11 {
             Some(format!("{}:{}/{}", host, self.port, path))
         }
     }
-    /// get size of endpoint for binary format
-    pub fn compute_endpoint_size(&self) -> EndpointV11Size {
-        EndpointV11Size {
-            api_size: self.api.size(),
-            host_size: if let Some(ref host) = self.host {
-                host.len() as u8
-            } else {
-                0u8
-            },
-            path_size: if let Some(ref path) = self.path {
-                path.len() as u8
-            } else {
-                0u8
-            },
-            nf_size: self.network_features.size(),
-            ip_v4: self.network_features.ip_v4(),
-            ip_v6: self.network_features.ip_v6(),
-            af_size: self.api_features.0.len() as u8,
-        }
-    }
     /// parse from ut8 format
     pub fn parse_from_raw(
         raw_endpoint: &str,
-        status: u32,
-        last_check: u64,
-    ) -> Result<NetworkEndpoint, ParseEndpointError> {
+        _status: u32,
+        _last_check: u64,
+    ) -> Result<EndpointEnum, ParseEndpointError> {
         let raw_ep_elements: Vec<&str> = raw_endpoint.split(' ').collect();
         if raw_ep_elements.len() >= 6 {
-            let api = EndpointV11Api::from_str(raw_ep_elements[0])?;
+            let api = NetworkEndpointApi(String::from(raw_ep_elements[0]));
             let api_version: u16 = raw_ep_elements[1].parse()?;
             let network_features_count: usize = raw_ep_elements[2].parse()?;
             if network_features_count > *MAX_NETWORK_FEATURES_COUNT {
                 Err(ParseEndpointError::MaxNetworkFeatures())
             } else if raw_ep_elements.len() >= 6 + network_features_count {
-                let network_features = EndpointV11NetworkFeatures::from_str_array(
+                let network_features = EndpointV2NetworkFeatures::from_str_array(
                     &raw_ep_elements[3..(3 + network_features_count)],
                 )?;
                 let api_features_count: usize =
@@ -625,12 +495,10 @@ impl EndpointV11 {
                     }
                     let mut api_features = vec![0u8; af_bytes_count];
                     if raw_ep_elements.len() < 4 + network_features_count + api_features_count {
-                        return Err(ParseEndpointError::WrongV11Format(String::from(
+                        return Err(ParseEndpointError::WrongV2Format(
                             "All api features must be declared !",
-                        )));
+                        ));
                     }
-                    /*for i in (4 + network_features_count)
-                        ..(4 + network_features_count + api_features_count)*/
                     for str_feature in raw_ep_elements
                         .iter()
                         .take(4 + network_features_count + api_features_count)
@@ -643,22 +511,16 @@ impl EndpointV11 {
                             let byte_index = feature / 8;
                             let feature = (feature % 8) as u8;
                             api_features[byte_index] += feature.pow(2);
-                        } else if let EndpointV11Api::Bin(know_api) = api {
-                            if let ApiKnownByDuniter::WS2P() = know_api {
-                                match *str_feature {
-                                    "DEF" => api_features[0] += 1u8,
-                                    "LOW" => api_features[0] += 2u8,
-                                    "ABF" => api_features[0] += 4u8,
-                                    _ => {
-                                        return Err(ParseEndpointError::UnknowApiFeature(
-                                            String::from(*str_feature),
-                                        ))
-                                    }
+                        } else if &api.0 == "WS2P" {
+                            match *str_feature {
+                                "DEF" => api_features[0] += 1u8,
+                                "LOW" => api_features[0] += 2u8,
+                                "ABF" => api_features[0] += 4u8,
+                                _ => {
+                                    return Err(ParseEndpointError::UnknowApiFeature(String::from(
+                                        *str_feature,
+                                    )))
                                 }
-                            } else {
-                                return Err(ParseEndpointError::UnknowApiFeature(String::from(
-                                    *str_feature,
-                                )));
                             }
                         } else {
                             return Err(ParseEndpointError::UnknowApiFeature(String::from(
@@ -667,117 +529,214 @@ impl EndpointV11 {
                         }
                     }
                     let mut index = 4 + network_features_count + api_features_count;
-                    let ip_v4 = if network_features.ip_v4() {
-                        let ip = Ipv4Addr::from_str(raw_ep_elements[index])?;
+                    let port = if let Ok(port) = raw_ep_elements[index].parse::<u16>() {
                         index += 1;
-                        Some(ip)
+                        port
                     } else {
-                        None
-                    };
-                    let ip_v6 = if network_features.ip_v6() {
-                        let ip = Ipv6Addr::from_str(raw_ep_elements[index])?;
-                        index += 1;
-                        Some(ip)
-                    } else {
-                        None
-                    };
-                    let (host, port) = if let Ok(port) = raw_ep_elements[index].parse::<u16>() {
-                        index += 1;
-                        (None, Some(port))
-                    } else if raw_ep_elements.len() > index {
-                        index += 2;
-                        if let Ok(port) = raw_ep_elements[index - 1].parse::<u16>() {
-                            (Some(String::from(raw_ep_elements[index - 2])), Some(port))
-                        } else {
-                            (None, None)
-                        }
-                    } else {
-                        (None, None)
-                    };
-                    if port.is_none() {
-                        Err(ParseEndpointError::WrongV11Format(String::from(
+                        return Err(ParseEndpointError::WrongV2Format(
                             "Missing port or is not integer !",
-                        )))
-                    } else {
-                        let port = port.unwrap();
-                        let path = if raw_ep_elements.len() > index {
-                            index += 1;
-                            Some(String::from(raw_ep_elements[index - 1]))
+                        ));
+                    };
+                    // HOST IP4 [IP6] PATH
+                    let (host, ip_v4, ip_v6, path) = if raw_ep_elements.len() == index + 4 {
+                        // HOST IP4 [IP6] PATH
+                        let len2 = raw_ep_elements[index + 2].len();
+                        (
+                            Some(String::from(raw_ep_elements[index])),
+                            Some(Ipv4Addr::from_str(raw_ep_elements[index + 1])?),
+                            Some(Ipv6Addr::from_str(
+                                &raw_ep_elements[index + 2][1..len2 - 1],
+                            )?),
+                            Some(String::from(raw_ep_elements[index + 3])),
+                        )
+                    } else if raw_ep_elements.len() == index + 3 {
+                        // IP4 [IP6] PATH
+                        if let Ok(ip_v4) = Ipv4Addr::from_str(raw_ep_elements[index]) {
+                            let len1 = raw_ep_elements[index + 1].len();
+                            (
+                                None,
+                                Some(ip_v4),
+                                Some(Ipv6Addr::from_str(
+                                    &raw_ep_elements[index + 1][1..len1 - 1],
+                                )?),
+                                Some(String::from(raw_ep_elements[index + 2])),
+                            )
                         } else {
-                            None
-                        };
-                        if raw_ep_elements.len() > index {
-                            Err(ParseEndpointError::WrongV11Format(String::from(
-                                "Too many fields !",
-                            )))
-                        } else {
-                            Ok(NetworkEndpoint::V11(EndpointV11 {
-                                api,
-                                api_version,
-                                network_features,
-                                api_features: ApiFeatures(api_features.to_vec()),
-                                ip_v4,
-                                ip_v6,
-                                host,
-                                port,
-                                path,
-                                status,
-                                last_check,
-                            }))
+                            let len1 = raw_ep_elements[index + 1].len();
+                            let len2 = raw_ep_elements[index + 2].len();
+                            if let Some('[') = raw_ep_elements[index + 1].chars().next() {
+                                // HOST [IP6] PATH
+                                (
+                                    Some(String::from(raw_ep_elements[index])),
+                                    None,
+                                    Some(Ipv6Addr::from_str(
+                                        &raw_ep_elements[index + 1][1..len1 - 1],
+                                    )?),
+                                    Some(String::from(raw_ep_elements[index + 2])),
+                                )
+                            } else if let Some('[') = raw_ep_elements[index + 2].chars().next() {
+                                // HOST IP4 [IP6]
+                                (
+                                    Some(String::from(raw_ep_elements[index])),
+                                    Some(Ipv4Addr::from_str(raw_ep_elements[index + 1])?),
+                                    Some(Ipv6Addr::from_str(
+                                        &raw_ep_elements[index + 2][1..len2 - 1],
+                                    )?),
+                                    None,
+                                )
+                            } else {
+                                // HOST IP4 PATH
+                                (
+                                    Some(String::from(raw_ep_elements[index])),
+                                    Some(Ipv4Addr::from_str(raw_ep_elements[index + 1])?),
+                                    None,
+                                    Some(String::from(raw_ep_elements[index + 2])),
+                                )
+                            }
                         }
-                    }
+                    } else if raw_ep_elements.len() == index + 2 {
+                        let len0 = raw_ep_elements[index].len();
+                        let len1 = raw_ep_elements[index + 1].len();
+                        if let Ok(ip_v4) = Ipv4Addr::from_str(raw_ep_elements[index]) {
+                            if let Some('[') = raw_ep_elements[index + 1].chars().next() {
+                                // IP4 [IP6]
+                                (
+                                    None,
+                                    Some(ip_v4),
+                                    Some(Ipv6Addr::from_str(
+                                        &raw_ep_elements[index + 1][1..len1 - 1],
+                                    )?),
+                                    None,
+                                )
+                            } else {
+                                // IP4 PATH
+                                (
+                                    None,
+                                    Some(ip_v4),
+                                    None,
+                                    Some(String::from(raw_ep_elements[index + 1])),
+                                )
+                            }
+                        } else if let Some('[') = raw_ep_elements[index].chars().next() {
+                            // [IP6] PATH
+                            (
+                                None,
+                                None,
+                                Some(Ipv6Addr::from_str(&raw_ep_elements[index][1..len0 - 1])?),
+                                Some(String::from(raw_ep_elements[index + 1])),
+                            )
+                        } else {
+                            if let Ok(ip_v4) = Ipv4Addr::from_str(raw_ep_elements[index + 1]) {
+                                // HOST IP4
+                                (
+                                    Some(String::from(raw_ep_elements[index])),
+                                    Some(ip_v4),
+                                    None,
+                                    None,
+                                )
+                            } else if let Some('[') = raw_ep_elements[index + 1].chars().next() {
+                                // HOST [IP6]
+                                (
+                                    Some(String::from(raw_ep_elements[index])),
+                                    None,
+                                    Some(Ipv6Addr::from_str(
+                                        &raw_ep_elements[index + 1][1..len1 - 1],
+                                    )?),
+                                    None,
+                                )
+                            } else {
+                                // HOST PATH
+                                (
+                                    Some(String::from(raw_ep_elements[index])),
+                                    None,
+                                    None,
+                                    Some(String::from(raw_ep_elements[index + 1])),
+                                )
+                            }
+                        }
+                    } else if raw_ep_elements.len() == index + 1 {
+                        let len0 = raw_ep_elements[index].len();
+                        if let Some('[') = raw_ep_elements[index].chars().next() {
+                            // IP6
+                            (
+                                None,
+                                None,
+                                Some(Ipv6Addr::from_str(&raw_ep_elements[index][1..len0])?),
+                                None,
+                            )
+                        } else if let Ok(ip_v4) = Ipv4Addr::from_str(raw_ep_elements[index]) {
+                            // IP4
+                            (None, Some(ip_v4), None, None)
+                        } else {
+                            // HOST
+                            (Some(String::from(raw_ep_elements[index])), None, None, None)
+                        }
+                    } else {
+                        return Err(ParseEndpointError::WrongV2Format("Invalid fields count !"));
+                    };
+                    Ok(EndpointEnum::V2(EndpointV2 {
+                        api,
+                        api_version,
+                        network_features,
+                        api_features: ApiFeatures(api_features.to_vec()),
+                        ip_v4,
+                        ip_v6,
+                        host,
+                        port,
+                        path,
+                    }))
                 }
             } else {
-                Err(ParseEndpointError::WrongV11Format(String::from(
+                Err(ParseEndpointError::WrongV2Format(
                     "All network features must be declared !",
-                )))
+                ))
             }
         } else {
-            Err(ParseEndpointError::WrongV11Format(String::from(
+            Err(ParseEndpointError::WrongV2Format(
                 "An endpoint must contain at least 6 elements",
-            )))
+            ))
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Endpoint
-pub enum NetworkEndpoint {
+pub enum EndpointEnum {
     /// Endpoint v1
-    V10(NetworkEndpointV10),
+    V1(EndpointEnumV1),
     /// Endpoint v2
-    V11(EndpointV11),
+    V2(EndpointV2),
 }
 
-impl ToString for NetworkEndpoint {
+impl ToString for EndpointEnum {
     fn to_string(&self) -> String {
         match *self {
-            NetworkEndpoint::V10(ref ep) => ep.raw_endpoint.clone(),
-            NetworkEndpoint::V11(ref _ep_v11) => panic!("Endpoint version is not supported !"),
+            EndpointEnum::V1(ref ep) => ep.raw_endpoint.clone(),
+            EndpointEnum::V2(ref _ep) => panic!("Endpoint version is not supported !"),
         }
     }
 }
 
-impl NetworkEndpoint {
+impl EndpointEnum {
     /// Accessors providing API name
     pub fn api(&self) -> NetworkEndpointApi {
         match *self {
-            NetworkEndpoint::V10(ref ep) => ep.api.clone(),
-            _ => panic!("Endpoint version is not supported !"),
+            EndpointEnum::V1(ref ep) => ep.api.clone(),
+            EndpointEnum::V2(ref ep) => ep.api.clone(),
         }
     }
     /// Accessors providing node unique identifier
     pub fn node_uuid(&self) -> Option<NodeId> {
         match *self {
-            NetworkEndpoint::V10(ref ep) => ep.node_id,
-            _ => panic!("Endpoint version is not supported !"),
+            EndpointEnum::V1(ref ep) => ep.node_id,
+            EndpointEnum::V2(ref _ep) => unreachable!(),
         }
     }
     /// Accessors providing node public key
     pub fn pubkey(&self) -> PubKey {
         match *self {
-            NetworkEndpoint::V10(ref ep) => ep.issuer,
-            _ => panic!("Endpoint version is not supported !"),
+            EndpointEnum::V1(ref ep) => ep.issuer,
+            EndpointEnum::V2(ref _ep) => unreachable!(),
         }
     }
     /// Accessors providing node full identifier
@@ -790,42 +749,42 @@ impl NetworkEndpoint {
     /// Accessors providing port number
     pub fn port(&self) -> usize {
         match *self {
-            NetworkEndpoint::V10(ref ep) => ep.port,
-            _ => panic!("Endpoint version is not supported !"),
+            EndpointEnum::V1(ref ep) => ep.port,
+            EndpointEnum::V2(ref ep) => ep.port as usize,
         }
     }
     /// Accessors providing raw format
     pub fn raw(&self) -> String {
         match *self {
-            NetworkEndpoint::V10(ref ep) => ep.raw_endpoint.clone(),
+            EndpointEnum::V1(ref ep) => ep.raw_endpoint.clone(),
             _ => panic!("Endpoint version is not supported !"),
         }
     }
     /// Accessors providing endpoint accessibility status
     pub fn status(&self) -> u32 {
         match *self {
-            NetworkEndpoint::V10(ref ep) => ep.status,
-            _ => panic!("Endpoint version is not supported !"),
+            EndpointEnum::V1(ref ep) => ep.status,
+            EndpointEnum::V2(ref _ep) => unreachable!(),
         }
     }
     /// Set status
     pub fn set_status(&mut self, new_status: u32) {
         match *self {
-            NetworkEndpoint::V10(ref mut ep) => ep.status = new_status,
-            _ => panic!("Endpoint version is not supported !"),
+            EndpointEnum::V1(ref mut ep) => ep.status = new_status,
+            EndpointEnum::V2(ref _ep) => unreachable!(),
         }
     }
     /// Set last_check
     pub fn set_last_check(&mut self, new_last_check: u64) {
         match *self {
-            NetworkEndpoint::V10(ref mut ep) => ep.last_check = new_last_check,
-            _ => panic!("Endpoint version is not supported !"),
+            EndpointEnum::V1(ref mut ep) => ep.last_check = new_last_check,
+            EndpointEnum::V2(ref _ep) => unreachable!(),
         }
     }
     /// Generate endpoint url
     pub fn get_url(&self, get_protocol: bool, supported_ip_v6: bool) -> Option<String> {
         match *self {
-            NetworkEndpoint::V10(ref ep) => {
+            EndpointEnum::V1(ref ep) => {
                 let protocol = match &ep.api.0[..] {
                     "WS2P" | "WS2PTOR" => "ws",
                     _ => "http",
@@ -847,7 +806,7 @@ impl NetworkEndpoint {
                     Some(format!("{}:{}/{}", ep.host, ep.port, path))
                 }
             }
-            NetworkEndpoint::V11(ref ep_v11) => ep_v11.get_url(get_protocol, supported_ip_v6),
+            EndpointEnum::V2(ref ep_v2) => ep_v2.get_url(get_protocol, supported_ip_v6),
         }
     }
     /// Parse Endpoint from raw format
@@ -857,7 +816,7 @@ impl NetworkEndpoint {
         status: u32,
         last_check: u64,
         endpoint_version: u16,
-    ) -> Result<NetworkEndpoint, ParseEndpointError> {
+    ) -> Result<EndpointEnum, ParseEndpointError> {
         match endpoint_version {
             1 => match ENDPOINT_V1_REGEX.captures(raw_endpoint) {
                 Some(caps) => {
@@ -874,7 +833,7 @@ impl NetworkEndpoint {
                         Some(node_id_) => Some(NodeFullId(node_id_, issuer).sha256()),
                         None => None,
                     };
-                    Ok(NetworkEndpoint::V10(NetworkEndpointV10 {
+                    Ok(EndpointEnum::V1(EndpointEnumV1 {
                         version: 1,
                         issuer,
                         api: NetworkEndpointApi(String::from(&caps["api"])),
@@ -891,9 +850,9 @@ impl NetworkEndpoint {
                         last_check,
                     }))
                 }
-                None => Err(ParseEndpointError::WrongV10Format()),
+                None => Err(ParseEndpointError::WrongV1Format()),
             },
-            2 => EndpointV11::parse_from_raw(raw_endpoint, status, last_check),
+            2 => EndpointV2::parse_from_raw(raw_endpoint, status, last_check),
             _ => Err(ParseEndpointError::VersionNotSupported()),
         }
     }
@@ -902,141 +861,85 @@ impl NetworkEndpoint {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tests::bincode::{deserialize, serialize};
 
-    #[test]
-    fn test_parse_and_read_endpoint() {
-        let str_endpoint = "WS2P 2 1 TLS 3 DEF LOW ABF g1.durs.ifee.fr 443 ws2p";
-        let endpoint = EndpointV11 {
-            api: EndpointV11Api::Bin(ApiKnownByDuniter::WS2P()),
-            api_version: 2,
-            network_features: EndpointV11NetworkFeatures(vec![4u8]),
-            api_features: ApiFeatures(vec![7u8]),
-            ip_v4: None,
-            ip_v6: None,
-            host: Some(String::from("g1.durs.ifee.fr")),
-            port: 443u16,
-            path: Some(String::from("ws2p")),
-            status: 0,
-            last_check: 0,
-        };
+    fn test_parse_and_read_endpoint(str_endpoint: &str, endpoint: EndpointV2) {
         assert_eq!(
-            EndpointV11::parse_from_raw(str_endpoint, 0, 0),
-            Ok(NetworkEndpoint::V11(endpoint.clone())),
+            EndpointV2::parse_from_raw(str_endpoint, 0, 0),
+            Ok(EndpointEnum::V2(endpoint.clone())),
         );
-        let binary_endpoint = endpoint.clone().to_bytes_vector();
-        assert_eq!(
-            EndpointV11::from_bytes(&binary_endpoint)
-                .expect("Fail to convert byte vector into endpoint !"),
-            endpoint,
-        )
+        let binary_endpoint = serialize(&endpoint).expect("Fail to serialize endpoint !");
+        let endpoint2: EndpointV2 =
+            deserialize(&binary_endpoint).expect("Fail to deserialize endpoint !");
+        assert_eq!(endpoint, endpoint2,)
     }
 
     #[test]
-    fn test_endpoint_to_bytes() {
-        let endpoint_v11 = EndpointV11 {
-            api: EndpointV11Api::Bin(ApiKnownByDuniter::WS2P()),
+    fn test_parse_and_read_endpoint_with_host() {
+        let str_endpoint = "WS2P 2 1 TLS 3 DEF LOW ABF 443 g1.durs.ifee.fr ws2p";
+        let endpoint = EndpointV2 {
+            api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV11NetworkFeatures(vec![4u8]),
+            network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: None,
             host: Some(String::from("g1.durs.ifee.fr")),
             port: 443u16,
             path: Some(String::from("ws2p")),
-            status: 0,
-            last_check: 0,
         };
-        assert_eq!(
-            endpoint_v11.to_bytes_vector(),
-            vec![
-                0, 15, 4, 1, 0, 2, 1, 4, 1, 7, 103, 49, 46, 100, 117, 114, 115, 46, 105, 102, 101,
-                101, 46, 102, 114, 1, 187, 119, 115, 50, 112,
-            ],
-        )
+        test_parse_and_read_endpoint(str_endpoint, endpoint);
     }
 
     #[test]
     fn test_parse_and_read_endpoint_with_ipv4() {
-        let str_endpoint = "WS2P 2 2 IP4 TLS 3 DEF LOW ABF 84.16.72.210 443 ws2p";
-        let endpoint = EndpointV11 {
-            api: EndpointV11Api::Bin(ApiKnownByDuniter::WS2P()),
+        let str_endpoint = "WS2P 2 1 TLS 3 DEF LOW ABF 443 84.16.72.210 ws2p";
+        let endpoint = EndpointV2 {
+            api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV11NetworkFeatures(vec![5u8]),
+            network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("84.16.72.210").unwrap()),
             ip_v6: None,
             host: None,
             port: 443u16,
             path: Some(String::from("ws2p")),
-            status: 0,
-            last_check: 0,
         };
-        assert_eq!(
-            EndpointV11::parse_from_raw(str_endpoint, 0, 0),
-            Ok(NetworkEndpoint::V11(endpoint.clone())),
-        );
-        let binary_endpoint = endpoint.clone().to_bytes_vector();
-        assert_eq!(
-            EndpointV11::from_bytes(&binary_endpoint)
-                .expect("Fail to convert byte vector into endpoint !"),
-            endpoint
-        )
+        test_parse_and_read_endpoint(str_endpoint, endpoint);
     }
 
     #[test]
     fn test_parse_and_read_endpoint_with_ipv6() {
-        let str_endpoint = "WS2P 2 2 IP6 TLS 3 DEF LOW ABF 2001:41d0:8:c5aa::1 443 ws2p";
-        let endpoint = EndpointV11 {
-            api: EndpointV11Api::Bin(ApiKnownByDuniter::WS2P()),
+        let str_endpoint = "WS2P 2 1 TLS 3 DEF LOW ABF 443 [2001:41d0:8:c5aa::1] ws2p";
+        let endpoint = EndpointV2 {
+            api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV11NetworkFeatures(vec![6u8]),
+            network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
             host: None,
             port: 443u16,
             path: Some(String::from("ws2p")),
-            status: 0,
-            last_check: 0,
         };
-        assert_eq!(
-            EndpointV11::parse_from_raw(str_endpoint, 0, 0),
-            Ok(NetworkEndpoint::V11(endpoint.clone())),
-        );
-        let binary_endpoint = endpoint.clone().to_bytes_vector();
-        assert_eq!(
-            EndpointV11::from_bytes(&binary_endpoint)
-                .expect("Fail to convert byte vector into endpoint !"),
-            endpoint
-        )
+        test_parse_and_read_endpoint(str_endpoint, endpoint);
     }
 
     #[test]
     fn test_parse_and_read_endpoint_with_ipv4_and_ip_v6() {
         let str_endpoint =
-            "WS2P 2 3 IP4 IP6 TLS 3 DEF LOW ABF 5.135.188.170 2001:41d0:8:c5aa::1 443 ws2p";
-        let endpoint = EndpointV11 {
-            api: EndpointV11Api::Bin(ApiKnownByDuniter::WS2P()),
+            "WS2P 2 1 TLS 3 DEF LOW ABF 443 5.135.188.170 [2001:41d0:8:c5aa::1] ws2p";
+        let endpoint = EndpointV2 {
+            api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV11NetworkFeatures(vec![7u8]),
+            network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("5.135.188.170").unwrap()),
             ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
             host: None,
             port: 443u16,
             path: Some(String::from("ws2p")),
-            status: 0,
-            last_check: 0,
         };
-        assert_eq!(
-            EndpointV11::parse_from_raw(str_endpoint, 0, 0),
-            Ok(NetworkEndpoint::V11(endpoint.clone())),
-        );
-        let binary_endpoint = endpoint.clone().to_bytes_vector();
-        assert_eq!(
-            EndpointV11::from_bytes(&binary_endpoint)
-                .expect("Fail to convert byte vector into endpoint !"),
-            endpoint
-        )
+        test_parse_and_read_endpoint(str_endpoint, endpoint);
     }
 }

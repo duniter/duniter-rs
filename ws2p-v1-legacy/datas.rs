@@ -36,7 +36,7 @@ pub struct WS2PModuleDatas {
         mpsc::Sender<WS2PThreadSignal>,
         mpsc::Receiver<WS2PThreadSignal>,
     ),
-    pub ws2p_endpoints: HashMap<NodeFullId, (NetworkEndpoint, WS2PConnectionState)>,
+    pub ws2p_endpoints: HashMap<NodeFullId, (EndpointEnum, WS2PConnectionState)>,
     pub websockets: HashMap<NodeFullId, WsSender>,
     pub requests_awaiting_response: HashMap<ModuleReqId, (NetworkRequest, NodeFullId, SystemTime)>,
     pub heads_cache: HashMap<NodeFullId, NetworkHead>,
@@ -171,7 +171,7 @@ impl WS2PModuleDatas {
             }
         }
     }
-    pub fn connect_to(&mut self, endpoint: &NetworkEndpoint) -> () {
+    pub fn connect_to(&mut self, endpoint: &EndpointEnum) -> () {
         // Add endpoint to endpoints list (if there isn't already)
         match self.ws2p_endpoints.get(
             &endpoint
@@ -494,7 +494,7 @@ impl WS2PModuleDatas {
         Ok(())
     }
 
-    fn connect_to_without_checking_quotas(&mut self, endpoint: &NetworkEndpoint) {
+    fn connect_to_without_checking_quotas(&mut self, endpoint: &EndpointEnum) {
         let endpoint_copy = endpoint.clone();
         let conductor_sender_copy = self.main_thread_channel.0.clone();
         let currency_copy = self.currency.clone();

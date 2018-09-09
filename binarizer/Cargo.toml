@@ -9,9 +9,11 @@ license = "AGPL-3.0"
 path = "lib.rs"
 
 [dependencies]
+bincode = "1.0.1"
 byteorder = "1.2.3"
 duniter-crypto = { path = "../crypto" }
 rust-crypto = "0.2.*"
+serde = "1.0.78"
 
 [dev-dependencies]
 pretty_assertions = "0.5.1"

@@ -15,23 +15,24 @@
 
 use super::connect::WS2Pv2ConnectMsg;
 use super::ok::WS2Pv2OkMsg;
+use super::req_responses::WS2Pv2ReqRes;
+use super::requests::WS2Pv2Request;
 use super::secret_flags::WS2Pv2SecretFlagsMsg;
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use duniter_crypto::hashs::Hash;
-use duniter_documents::ReadBytesBlockstampError;
-use duniter_network::network_peer::{PeerCardReadBytesError, PeerCardV11};
-use dup_binarizer::pubkey_box::*;
-use dup_binarizer::sig_box::*;
-use dup_binarizer::BinMessage;
-use std::io::Cursor;
-use std::mem;
+use duniter_documents::blockchain::v10::documents::{
+    BlockDocument, CertificationDocument, IdentityDocument, MembershipDocument, RevocationDocument,
+    TransactionDocument,
+};
+use duniter_network::network_head_v2::NetworkHeadV2;
+use duniter_network::network_head_v3::NetworkHeadV3Container;
+use duniter_network::network_peer::PeerCardV11;
 
 /// WS2P v2 message payload metadata size
 pub static WS2P_V2_MESSAGE_PAYLOAD_METADATA_SIZE: &'static usize = &8;
 
-/// WS2Pv2MessagePayload
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WS2Pv2MessagePayload {
+/// WS2Pv0MessagePayload
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WS2Pv0MessagePayload {
     /// CONNECT message
     Connect(Box<WS2Pv2ConnectMsg>),
     /// ACK message
@@ -40,148 +41,53 @@ pub enum WS2Pv2MessagePayload {
     SecretFlags(WS2Pv2SecretFlagsMsg),
     /// OK Message
     Ok(WS2Pv2OkMsg),
-    //Ko,
-    //Request
+    /// KO Message
+    Ko(u16),
+    /// REQUEST Message
+    Request(WS2Pv2Request),
+    /// REQUEST_RESPONSE Message
+    ReqRes(WS2Pv2ReqRes),
     /// PEERS Message
     Peers(Vec<PeerCardV11>),
-    /*Headsv2(u16),
-    Heads3(u16),
-    Blocks(u16),
-    PendingIdentities(u16),
-    PendingMemberships(u16),
-    PendingCerts(u16),
-    PendingRevocations(u16),
-    PendingTxs(u16),*/
+    /// HEADS_V2 Message
+    Headsv2(Vec<NetworkHeadV2>),
+    /// HEADS_V3 Message
+    Heads3(Vec<NetworkHeadV3Container>),
+    /// BLOCKS Message
+    Blocks(Vec<BlockDocument>),
+    /// PENDING_IDENTITIES Message
+    PendingIdentities(Vec<IdentityDocument>),
+    /// PENDING_MEMBERSHIPS Message
+    PendingMemberships(Vec<MembershipDocument>),
+    /// PENDING_CERTS Message
+    PendingCerts(Vec<CertificationDocument>),
+    /// PENDING_REVOCATIONS Message
+    PendingRevocations(Vec<RevocationDocument>),
+    /// PENDING_TXS Message
+    PendingTxs(Vec<TransactionDocument>),
 }
 
-/// WS2Pv2MessagePayload
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WS2Pv2MessageBinPayload {
-    /// Message type
-    pub message_type: u16,
-    /// Elements count
-    pub elements_count: u16,
-    /// Payload content
-    pub payload_content: Vec<u8>,
-}
-
-/// WS2Pv2MsgPayloadContentParseError
-#[derive(Debug)]
-pub enum WS2Pv2MsgPayloadContentParseError {
-    /// IoError
-    IoError(::std::io::Error),
-    /// TooShort
-    TooShort(&'static str),
-    /// WrongSize
-    WrongSize(&'static str),
-    /// PeerCardReadBytesError
-    PeerCardReadBytesError(PeerCardReadBytesError),
-    /// ReadBytesBlockstampError
-    ReadBytesBlockstampError(ReadBytesBlockstampError),
-    /// ReadPubkeyBoxError
-    ReadPubkeyBoxError(ReadPubkeyBoxError),
-    /// ReadSigBoxError
-    ReadSigBoxError(ReadSigBoxError),
-}
-
-impl From<::std::io::Error> for WS2Pv2MsgPayloadContentParseError {
-    fn from(e: ::std::io::Error) -> Self {
-        WS2Pv2MsgPayloadContentParseError::IoError(e)
-    }
-}
-
-impl From<ReadBytesBlockstampError> for WS2Pv2MsgPayloadContentParseError {
-    fn from(e: ReadBytesBlockstampError) -> Self {
-        WS2Pv2MsgPayloadContentParseError::ReadBytesBlockstampError(e)
-    }
-}
-
-impl From<PeerCardReadBytesError> for WS2Pv2MsgPayloadContentParseError {
-    fn from(e: PeerCardReadBytesError) -> Self {
-        WS2Pv2MsgPayloadContentParseError::PeerCardReadBytesError(e)
-    }
-}
-
-impl From<ReadPubkeyBoxError> for WS2Pv2MsgPayloadContentParseError {
-    fn from(e: ReadPubkeyBoxError) -> Self {
-        WS2Pv2MsgPayloadContentParseError::ReadPubkeyBoxError(e)
-    }
-}
-
-impl From<ReadSigBoxError> for WS2Pv2MsgPayloadContentParseError {
-    fn from(e: ReadSigBoxError) -> Self {
-        WS2Pv2MsgPayloadContentParseError::ReadSigBoxError(e)
-    }
-}
-
-/// WS2Pv2MessagePayloadReadBytesError
-#[derive(Debug)]
-pub enum WS2Pv2MessagePayloadReadBytesError {
-    /// IoError
-    IoError(::std::io::Error),
-    /// TooShort
-    TooShort(String),
-    /// TooLong
-    TooLong(),
-    /// UnknowMsgType
-    UnknowMsgType(),
-    /// WrongElementsCount
-    WrongElementsCount(),
-    // WrongPayloadSize
-    //WrongPayloadSize(),
-    /// PeerCardReadBytesError
-    PeerCardReadBytesError(PeerCardReadBytesError),
-    /// WS2Pv2MsgPayloadContentParseError
-    WS2Pv2MsgPayloadContentParseError(WS2Pv2MsgPayloadContentParseError),
-    /// ReadSigBoxError
-    ReadSigBoxError(ReadSigBoxError),
-}
-
-impl From<::std::io::Error> for WS2Pv2MessagePayloadReadBytesError {
-    fn from(e: ::std::io::Error) -> Self {
-        WS2Pv2MessagePayloadReadBytesError::IoError(e)
-    }
-}
-
-impl From<WS2Pv2MsgPayloadContentParseError> for WS2Pv2MessagePayloadReadBytesError {
-    fn from(e: WS2Pv2MsgPayloadContentParseError) -> Self {
-        WS2Pv2MessagePayloadReadBytesError::WS2Pv2MsgPayloadContentParseError(e)
-    }
-}
-
-impl From<PeerCardReadBytesError> for WS2Pv2MessagePayloadReadBytesError {
-    fn from(e: PeerCardReadBytesError) -> Self {
-        WS2Pv2MessagePayloadReadBytesError::PeerCardReadBytesError(e)
-    }
-}
-
-impl From<ReadSigBoxError> for WS2Pv2MessagePayloadReadBytesError {
-    fn from(e: ReadSigBoxError) -> Self {
-        WS2Pv2MessagePayloadReadBytesError::ReadSigBoxError(e)
-    }
-}
-
-impl BinMessage for WS2Pv2MessagePayload {
-    type ReadBytesError = WS2Pv2MessagePayloadReadBytesError;
+/*
+impl BinMessage for WS2Pv0MessagePayload {
+    type ReadBytesError = WS2Pv0MessagePayloadReadBytesError;
 
     fn from_bytes(
         payload: &[u8],
-    ) -> Result<WS2Pv2MessagePayload, WS2Pv2MessagePayloadReadBytesError> {
+    ) -> Result<WS2Pv0MessagePayload, WS2Pv0MessagePayloadReadBytesError> {
         // read payload_size
         let payload_size = if payload.len() >= 8 {
             let mut payload_size_bytes = Cursor::new(payload[4..8].to_vec());
             payload_size_bytes.read_u32::<BigEndian>()? as usize
         } else {
-            return Err(WS2Pv2MessagePayloadReadBytesError::TooShort(String::from(
+            return Err(WS2Pv0MessagePayloadReadBytesError::TooShort(String::from(
                 "payload_size",
             )));
         };
-        println!("container:153:payload_size={}", payload_size);
         // Check size of bytes vector
         if payload.len() > 8 + payload_size {
-            return Err(WS2Pv2MessagePayloadReadBytesError::TooLong());
+            return Err(WS2Pv0MessagePayloadReadBytesError::TooLong());
         } else if payload.len() < 8 + payload_size {
-            return Err(WS2Pv2MessagePayloadReadBytesError::TooShort(String::from(
+            return Err(WS2Pv0MessagePayloadReadBytesError::TooShort(String::from(
                 "payload_content",
             )));
         }
@@ -195,38 +101,56 @@ impl BinMessage for WS2Pv2MessagePayload {
         match message_type {
             0x0000 => {
                 if elements_count == 0 {
-                    Ok(WS2Pv2MessagePayload::Connect(Box::new(
+                    Ok(WS2Pv0MessagePayload::Connect(Box::new(
                         WS2Pv2ConnectMsg::from_bytes(&payload[8..])?,
                     )))
                 } else {
-                    Err(WS2Pv2MessagePayloadReadBytesError::WrongElementsCount())
+                    Err(WS2Pv0MessagePayloadReadBytesError::WrongElementsCount())
                 }
             }
             0x0001 => {
                 if elements_count == 0 {
                     let mut hash_bytes = [0u8; 32];
                     hash_bytes.copy_from_slice(&payload[8..40]);
-                    Ok(WS2Pv2MessagePayload::Ack(Hash(hash_bytes)))
+                    Ok(WS2Pv0MessagePayload::Ack(Hash(hash_bytes)))
                 } else {
-                    Err(WS2Pv2MessagePayloadReadBytesError::WrongElementsCount())
+                    Err(WS2Pv0MessagePayloadReadBytesError::WrongElementsCount())
                 }
             }
             0x0002 => {
                 if elements_count == 0 {
-                    Ok(WS2Pv2MessagePayload::SecretFlags(
+                    Ok(WS2Pv0MessagePayload::SecretFlags(
                         WS2Pv2SecretFlagsMsg::from_bytes(&payload[8..])?,
                     ))
                 } else {
-                    Err(WS2Pv2MessagePayloadReadBytesError::WrongElementsCount())
+                    Err(WS2Pv0MessagePayloadReadBytesError::WrongElementsCount())
                 }
             }
             0x0003 => {
                 if elements_count == 0 {
-                    Ok(WS2Pv2MessagePayload::Ok(WS2Pv2OkMsg::from_bytes(
+                    Ok(WS2Pv0MessagePayload::Ok(WS2Pv2OkMsg::from_bytes(
                         &payload[8..],
                     )?))
                 } else {
-                    Err(WS2Pv2MessagePayloadReadBytesError::WrongElementsCount())
+                    Err(WS2Pv0MessagePayloadReadBytesError::WrongElementsCount())
+                }
+            }
+            0x0010 => {
+                if elements_count == 0 {
+                    Ok(WS2Pv0MessagePayload::Request(WS2Pv2Request::from_bytes(
+                        &payload[8..],
+                    )?))
+                } else {
+                    Err(WS2Pv0MessagePayloadReadBytesError::WrongElementsCount())
+                }
+            }
+            0x0011 => {
+                if elements_count == 0 {
+                    Ok(WS2Pv0MessagePayload::ReqRes(WS2Pv2ReqRes::from_bytes(
+                        &payload[8..],
+                    )?))
+                } else {
+                    Err(WS2Pv0MessagePayloadReadBytesError::WrongElementsCount())
                 }
             }
             0x0100 => {
@@ -237,7 +161,7 @@ impl BinMessage for WS2Pv2MessagePayload {
                     // Read peer_size
                     index += 2;
                     if peers_bytes.len() < index {
-                        return Err(WS2Pv2MessagePayloadReadBytesError::TooShort(String::from(
+                        return Err(WS2Pv0MessagePayloadReadBytesError::TooShort(String::from(
                             "peer_size",
                         )));
                     }
@@ -246,7 +170,7 @@ impl BinMessage for WS2Pv2MessagePayload {
                     // Read
                     index += peer_size;
                     if peers_bytes.len() < index {
-                        return Err(WS2Pv2MessagePayloadReadBytesError::TooShort(String::from(
+                        return Err(WS2Pv0MessagePayloadReadBytesError::TooShort(String::from(
                             "peer_content",
                         )));
                     }
@@ -255,45 +179,59 @@ impl BinMessage for WS2Pv2MessagePayload {
                     peers.push(peer);
                 }
                 if peers_bytes.len() > index {
-                    Err(WS2Pv2MessagePayloadReadBytesError::TooLong())
+                    Err(WS2Pv0MessagePayloadReadBytesError::TooLong())
                 } else {
-                    Ok(WS2Pv2MessagePayload::Peers(peers))
+                    Ok(WS2Pv0MessagePayload::Peers(peers))
                 }
             }
-            _ => Err(WS2Pv2MessagePayloadReadBytesError::UnknowMsgType()),
+            _ => Err(WS2Pv0MessagePayloadReadBytesError::UnknowMsgType()),
         }
     }
     fn to_bytes_vector(&self) -> Vec<u8> {
         let bin_payload_container = match *self {
-            WS2Pv2MessagePayload::Connect(ref connect_msg) => {
-                WS2Pv2MessageBinPayload {
+            WS2Pv0MessagePayload::Connect(ref connect_msg) => {
+                WS2Pv0MessageBinPayload {
                     message_type: 0x0000,
                     elements_count: 0,
                     payload_content: connect_msg.to_bytes_vector(),
                 }
             }
-            WS2Pv2MessagePayload::Ack(ref hash) => {
-                WS2Pv2MessageBinPayload {
+            WS2Pv0MessagePayload::Ack(ref hash) => {
+                WS2Pv0MessageBinPayload {
                     message_type: 0x0001,
                     elements_count: 0,
                     payload_content: hash.0.to_vec(),
                 }
             }
-            WS2Pv2MessagePayload::SecretFlags(ref secret_flags_msg) => {
-                WS2Pv2MessageBinPayload {
+            WS2Pv0MessagePayload::SecretFlags(ref secret_flags_msg) => {
+                WS2Pv0MessageBinPayload {
                     message_type: 0x0002,
                     elements_count: 0,
                     payload_content: secret_flags_msg.to_bytes_vector(),
                 }
             }
-            WS2Pv2MessagePayload::Ok(ref ok_msg) => {
-                WS2Pv2MessageBinPayload {
+            WS2Pv0MessagePayload::Ok(ref ok_msg) => {
+                WS2Pv0MessageBinPayload {
                     message_type: 0x0003,
                     elements_count: 0,
                     payload_content: ok_msg.to_bytes_vector(),
                 }
             }
-            WS2Pv2MessagePayload::Peers(ref peers) => {
+            WS2Pv0MessagePayload::Request(ref request_msg) => {
+                WS2Pv0MessageBinPayload {
+                    message_type: 0x0010,
+                    elements_count: 0,
+                    payload_content: request_msg.to_bytes_vector(),
+                }
+            }
+            WS2Pv0MessagePayload::ReqRes(ref req_res_msg) => {
+                WS2Pv0MessageBinPayload {
+                    message_type: 0x0011,
+                    elements_count: 0,
+                    payload_content: req_res_msg.to_bytes_vector(),
+                }
+            }
+            WS2Pv0MessagePayload::Peers(ref peers) => {
                 // Get elements_count
                 let elements_count = peers.len() as u16;
                 // Binarize peers
@@ -308,7 +246,7 @@ impl BinMessage for WS2Pv2MessagePayload {
                 for bin_peer in bin_peers {
                     payload_content.extend(bin_peer);
                 }
-                WS2Pv2MessageBinPayload {
+                WS2Pv0MessageBinPayload {
                     message_type: 0x0100,
                     elements_count,
                     payload_content,
@@ -316,10 +254,6 @@ impl BinMessage for WS2Pv2MessagePayload {
             }
             //_ => vec![],
         };
-        println!(
-            "container:277:write payload size={}",
-            bin_payload_container.payload_content.len()
-        );
         // Create bin_payload buffer
         let mut bin_payload = Vec::with_capacity(
             bin_payload_container.payload_content.len() + *WS2P_V2_MESSAGE_PAYLOAD_METADATA_SIZE,
@@ -350,4 +284,4 @@ impl BinMessage for WS2Pv2MessagePayload {
         // Return bin_payload
         bin_payload
     }
-}
+}*/

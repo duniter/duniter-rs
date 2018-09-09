@@ -49,6 +49,7 @@
 extern crate serde;
 
 use base58::ToBase58;
+use bincode;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Error;
@@ -84,7 +85,7 @@ pub enum BaseConvertionError {
 }
 
 /// Errors enumeration for signature verification.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum SigError {
     /// Signature and pubkey are not the same algo
     NotSameAlgo(),
@@ -92,6 +93,14 @@ pub enum SigError {
     InvalidSig(),
     /// Absence of signature
     NotSig(),
+    /// Deserialization error
+    DeserError(bincode::Error),
+}
+
+impl From<bincode::Error> for SigError {
+    fn from(e: bincode::Error) -> Self {
+        SigError::DeserError(e)
+    }
 }
 
 /// SignError

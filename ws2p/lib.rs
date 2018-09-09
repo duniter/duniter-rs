@@ -46,7 +46,7 @@ use duniter_conf::DuRsConf;
 use duniter_crypto::keys::*;
 use duniter_message::DuniterMessage;
 use duniter_module::*;
-use duniter_network::network_endpoint::NetworkEndpoint;
+use duniter_network::network_endpoint::EndpointEnum;
 use duniter_network::*;
 use std::sync::mpsc;
 
@@ -56,7 +56,7 @@ pub struct WS2PConf {
     /// Limit of outcoming connections
     pub outcoming_quota: usize,
     /// Default WS2P endpoints provides by configuration file
-    pub sync_endpoints: Vec<NetworkEndpoint>,
+    pub sync_endpoints: Vec<EndpointEnum>,
 }
 
 impl Default for WS2PConf {
@@ -64,7 +64,7 @@ impl Default for WS2PConf {
         WS2PConf {
             outcoming_quota: *WS2P_DEFAULT_OUTCOMING_QUOTA,
             sync_endpoints: vec![
-                NetworkEndpoint::parse_from_raw(
+                EndpointEnum::parse_from_raw(
                     "WS2P c1c39a0a g1-monit.librelois.fr 443 /ws2p",
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(
@@ -75,7 +75,7 @@ impl Default for WS2PConf {
                     0,
                     1u16,
                 ).unwrap(),
-                NetworkEndpoint::parse_from_raw(
+                EndpointEnum::parse_from_raw(
                     "WS2P b48824f0 g1.monnaielibreoccitanie.org 443 /ws2p",
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(

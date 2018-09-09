@@ -9,6 +9,7 @@ license = "AGPL-3.0"
 path = "lib.rs"
 
 [dependencies]
+bincode = "1.0.*"
 byteorder = "1.2.3"
 duniter-crypto = { path = "../crypto" }
 duniter-documents = { path = "../documents" }
@@ -20,6 +21,9 @@ rust-crypto = "0.2.*"
 serde = "1.0.*"
 serde_derive = "1.0.*"
 serde_json = "1.0.*"
+
+[dev-dependencies]
+pretty_assertions = "0.5.1"
 
 [features]
 # Treat warnings as a build error.

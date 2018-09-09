@@ -23,6 +23,7 @@ serde_json = "1.0.*"
 
 [dev-dependencies]
 pretty_assertions = "0.5.1"
+bincode = "1.0.1"
 
 [features]
 # Treat warnings as a build error.

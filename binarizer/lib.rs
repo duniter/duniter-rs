@@ -31,17 +31,21 @@
 //#[macro_use]
 //extern crate pretty_assertions;
 
+extern crate bincode;
 extern crate byteorder;
 extern crate crypto;
 extern crate duniter_crypto;
+extern crate serde;
 
 pub mod pubkey_box;
 pub mod sig_box;
 pub mod u16;
 pub mod u32;
 
+use bincode::serialize;
 use duniter_crypto::hashs::*;
 use duniter_crypto::keys::*;
+use serde::{Deserialize, Serialize};
 
 /// BinMessage := Message in binary format.
 pub trait BinMessage: Sized {
@@ -54,10 +58,14 @@ pub trait BinMessage: Sized {
 }
 
 /// Signatureable bin message
-pub trait BinMessageSignable: BinMessage {
+pub trait BinMessageSignable<'de>: Serialize + Deserialize<'de> {
     /// Return message issuer pubkey
     fn issuer_pubkey(&self) -> PubKey {
         PubKey::default()
+    }
+    /// Return true if message store is hash
+    fn store_hash(&self) -> bool {
+        false
     }
     /// Return message hash
     fn hash(&self) -> Option<Hash> {
@@ -72,11 +80,15 @@ pub trait BinMessageSignable: BinMessage {
     /// Store signature
     fn set_signature(&mut self, _signature: Sig);
     /// Compute hash
-    fn compute_hash(&self) -> (Vec<u8>, Hash) {
-        let bin_msg = self.to_bytes_vector();
+    fn compute_hash(&self) -> Result<(Hash, Vec<u8>), bincode::Error> {
+        let mut bin_msg = serialize(&self)?;
+        bin_msg.pop(); // Delete sig: None
+        if self.store_hash() {
+            bin_msg.pop(); // Delete hash: None
+        }
         // Compute hash
         let hash = Hash::compute(&bin_msg);
-        (bin_msg, hash)
+        Ok((hash, bin_msg))
     }
     /// Sign bin message
     fn sign(&mut self, priv_key: PrivKey) -> Result<Vec<u8>, SignError> {
@@ -86,15 +98,18 @@ pub trait BinMessageSignable: BinMessage {
         match self.issuer_pubkey() {
             PubKey::Ed25519(_) => match priv_key {
                 PrivKey::Ed25519(priv_key) => {
-                    let (mut bin_msg, hash) = self.compute_hash();
+                    let (hash, mut bin_msg) = self.compute_hash().expect("Fail to compute hash !");
                     self.set_hash(hash);
                     let bin_sig = priv_key.sign(&hash.0);
                     let sig = Sig::Ed25519(bin_sig);
                     self.set_signature(sig);
                     if self.hash().is_some() {
-                        bin_msg.extend_from_slice(&hash.0);
+                        bin_msg.extend_from_slice(
+                            &serialize(&Some(hash)).expect("Fail to binarize hash !"),
+                        );
                     }
-                    sig_box::write_sig_box(&mut bin_msg, sig).expect("Fail to binarize sig !");
+                    bin_msg
+                        .extend_from_slice(&serialize(&Some(sig)).expect("Fail to binarize sig !"));
                     Ok(bin_msg)
                 }
                 _ => Err(SignError::WrongAlgo()),
@@ -108,10 +123,10 @@ pub trait BinMessageSignable: BinMessage {
             match self.issuer_pubkey() {
                 PubKey::Ed25519(pubkey) => match signature {
                     Sig::Ed25519(sig) => {
-                        let (_, hash) = if let Some(hash) = self.hash() {
-                            (vec![], hash)
+                        let (hash, _) = if let Some(hash) = self.hash() {
+                            (hash, vec![])
                         } else {
-                            self.compute_hash()
+                            self.compute_hash()?
                         };
                         if pubkey.verify(&hash.0, &sig) {
                             Ok(())

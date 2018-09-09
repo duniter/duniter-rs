@@ -7,7 +7,7 @@ extern crate serde_json;
 extern crate sqlite;
 
 use duniter_crypto::keys::*;
-use duniter_network::network_endpoint::{NetworkEndpoint, NetworkEndpointApi};
+use duniter_network::network_endpoint::{EndpointEnum, NetworkEndpointApi};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum EndpointApi {
@@ -54,7 +54,7 @@ pub fn api_to_integer(api: &NetworkEndpointApi) -> i64 {
 pub fn get_endpoints_for_api(
     db: &sqlite::Connection,
     api: &NetworkEndpointApi,
-) -> Vec<NetworkEndpoint> {
+) -> Vec<EndpointEnum> {
     let mut cursor:sqlite::Cursor = db
         .prepare("SELECT hash_full_id, status, node_id, pubkey, api, version, endpoint, last_check FROM endpoints WHERE api=? ORDER BY status DESC;")
         .expect("get_endpoints_for_api() : Error in SQL request !")
@@ -71,7 +71,7 @@ pub fn get_endpoints_for_api(
         let raw_ep = row[6].as_string().unwrap().to_string();
         let ep_issuer =
             PubKey::Ed25519(ed25519::PublicKey::from_base58(row[3].as_string().unwrap()).unwrap());
-        let mut ep = match NetworkEndpoint::parse_from_raw(
+        let mut ep = match EndpointEnum::parse_from_raw(
             &raw_ep,
             ep_issuer,
             row[1].as_integer().unwrap() as u32,
@@ -94,7 +94,7 @@ pub fn get_endpoints_for_api(
 
 pub fn write_endpoint(
     db: &sqlite::Connection,
-    endpoint: &NetworkEndpoint,
+    endpoint: &EndpointEnum,
     new_status: u32,
     new_last_check: u64,
 ) {
@@ -123,7 +123,7 @@ pub fn write_endpoint(
                 hash_full_id
             )).expect("Fail to parse SQL request update endpoint  status !");
         }
-    } else if let NetworkEndpoint::V10(ref ep_v10) = *endpoint {
+    } else if let EndpointEnum::V1(ref ep_v10) = *endpoint {
         db
                     .execute(
                         format!(

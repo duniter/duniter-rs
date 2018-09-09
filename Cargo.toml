@@ -20,13 +20,13 @@ strict = []
 
 [workspace]
 members = [
+    "binarizer",
     "blockchain",
     "conf",
     "core",
     "crypto",
     "dal",
     "documents",
-    "binarizer",
     "message",
     "module",
     "network",

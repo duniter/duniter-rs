@@ -94,7 +94,7 @@ pub struct WS2PConf {
     /// Limit of outcoming connections
     pub outcoming_quota: usize,
     /// Default WS2P endpoints provides by configuration file
-    pub sync_endpoints: Vec<NetworkEndpoint>,
+    pub sync_endpoints: Vec<EndpointEnum>,
 }
 
 impl Default for WS2PConf {
@@ -102,7 +102,7 @@ impl Default for WS2PConf {
         WS2PConf {
             outcoming_quota: *WS2P_DEFAULT_OUTCOMING_QUOTA,
             sync_endpoints: vec![
-                NetworkEndpoint::parse_from_raw(
+                EndpointEnum::parse_from_raw(
                     "WS2P c1c39a0a g1-monit.librelois.fr 443 /ws2p",
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(
@@ -113,7 +113,7 @@ impl Default for WS2PConf {
                     0,
                     1u16,
                 ).unwrap(),
-                NetworkEndpoint::parse_from_raw(
+                EndpointEnum::parse_from_raw(
                     "WS2P b48824f0 g1.monnaielibreoccitanie.org 443 /ws2p",
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(
@@ -139,7 +139,7 @@ pub enum WS2PSignal {
     NegociationTimeout(NodeFullId),
     Timeout(NodeFullId),
     DalRequest(NodeFullId, ModuleReqId, serde_json::Value),
-    PeerCard(NodeFullId, serde_json::Value, Vec<NetworkEndpoint>),
+    PeerCard(NodeFullId, serde_json::Value, Vec<EndpointEnum>),
     Heads(NodeFullId, Vec<NetworkHead>),
     Document(NodeFullId, NetworkDocument),
     ReqResponse(ModuleReqId, NetworkRequest, NodeFullId, serde_json::Value),
@@ -916,7 +916,7 @@ mod tests {
     use duniter_crypto::keys::PublicKey;
     use duniter_documents::blockchain::v10::documents::BlockDocument;
     use duniter_module::DuniterModule;
-    use duniter_network::network_endpoint::{NetworkEndpoint, NetworkEndpointApi};
+    use duniter_network::network_endpoint::{EndpointEnum, NetworkEndpointApi};
     use duniter_network::NetworkBlock;
     use std::fs;
     use std::path::PathBuf;
@@ -1103,7 +1103,7 @@ mod tests {
 
         let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-        let mut endpoint = NetworkEndpoint::parse_from_raw(
+        let mut endpoint = EndpointEnum::parse_from_raw(
             "WS2P cb06a19b g1.imirhil.fr 53012 /",
             PubKey::Ed25519(
                 ed25519::PublicKey::from_base58("5gJYnQp8v7bWwk7EWRoL8vCLof1r3y9c6VDdnGSM1GLv")

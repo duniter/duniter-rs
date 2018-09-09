@@ -31,7 +31,7 @@ lazy_static! {
     ).unwrap();
 }
 
-#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq)]
 /// Wrap an Compact Revocation document (in block content)
 pub struct CompactRevocationDocument {
     /// Issuer
@@ -53,7 +53,7 @@ impl CompactTextDocument for CompactRevocationDocument {
 /// Wrap an Revocation document.
 ///
 /// Must be created by parsing a text document or using a builder.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct RevocationDocument {
     /// Document as text.
     ///

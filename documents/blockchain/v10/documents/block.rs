@@ -157,7 +157,7 @@ impl ::std::str::FromStr for BlockV10Parameters {
 }
 
 /// Store a transaction document or just its hash.
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum TxDocOrTxHash {
     /// Transaction document
     TxDoc(Box<TransactionDocument>),
@@ -251,6 +251,14 @@ pub struct BlockDocument {
     /// Part to sign
     pub inner_hash_and_nonce_str: String,
 }
+
+impl PartialEq for BlockDocument {
+    fn eq(&self, other: &BlockDocument) -> bool {
+        self.hash == other.hash
+    }
+}
+
+impl Eq for BlockDocument {}
 
 impl BlockDocument {
     /// Return previous blockstamp

@@ -29,7 +29,7 @@ lazy_static! {
 /// Wrap an Identity document.
 ///
 /// Must be created by parsing a text document or using a builder.
-#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
 pub struct IdentityDocument {
     /// Document as text.
     ///
@@ -90,12 +90,25 @@ impl Document for IdentityDocument {
     }
 }
 
-impl CompactTextDocument for IdentityDocument {
+/// CompactIdentityDocument
+#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
+pub struct CompactIdentityDocument {
+    /// Unique ID
+    username: String,
+    /// Blockstamp
+    blockstamp: Blockstamp,
+    /// Document issuer
+    pubkey: PubKey,
+    /// Document signature
+    signature: Sig,
+}
+
+impl CompactTextDocument for CompactIdentityDocument {
     fn as_compact_text(&self) -> String {
         format!(
             "{issuer}:{signature}:{blockstamp}:{username}",
-            issuer = self.issuers[0],
-            signature = self.signatures[0],
+            issuer = self.pubkey,
+            signature = self.signature,
             blockstamp = self.blockstamp,
             username = self.username,
         )
@@ -103,7 +116,7 @@ impl CompactTextDocument for IdentityDocument {
 }
 
 impl TextDocument for IdentityDocument {
-    type CompactTextDocument_ = IdentityDocument;
+    type CompactTextDocument_ = CompactIdentityDocument;
 
     fn as_text(&self) -> &str {
         if let Some(ref text) = self.text {
@@ -114,7 +127,12 @@ impl TextDocument for IdentityDocument {
     }
 
     fn to_compact_document(&self) -> Self::CompactTextDocument_ {
-        self.clone()
+        CompactIdentityDocument {
+            username: self.username.clone(),
+            blockstamp: self.blockstamp,
+            pubkey: self.issuers[0],
+            signature: self.signatures[0],
+        }
     }
 }
 

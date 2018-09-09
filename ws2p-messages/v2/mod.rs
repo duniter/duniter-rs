@@ -21,25 +21,26 @@ pub mod connect;
 pub mod ok;
 /// Message Payload container
 pub mod payload_container;
+/// WS2Pv2 requests responses messages
+pub mod req_responses;
+/// WS2Pv2 requests messages
+pub mod requests;
 /// WS2P v2 SECRET_FLAGS Message
 pub mod secret_flags;
 
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::*;
-use duniter_documents::{CurrencyCodeError, CurrencyName};
+use duniter_documents::CurrencyName;
 use duniter_network::NodeId;
 use dup_binarizer::*;
-use std::io::Cursor;
-use std::mem;
 use v2::payload_container::*;
 
 /// WS2P v2 message metadata size
 pub static WS2P_V2_MESSAGE_METADATA_SIZE: &'static usize = &144;
 
-/// WS2Pv2Message
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct WS2Pv2Message {
+/// WS2Pv0Message
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct WS2Pv0Message {
     /// Currency name
     pub currency_code: CurrencyName,
     /// Issuer NodeId
@@ -47,74 +48,24 @@ pub struct WS2Pv2Message {
     /// Issuer plublic key
     pub issuer_pubkey: PubKey,
     /// Message payload
-    pub payload: WS2Pv2MessagePayload,
+    pub payload: WS2Pv0MessagePayload,
     /// Message hash
     pub message_hash: Option<Hash>,
     /// Signature
     pub signature: Option<Sig>,
 }
 
-impl WS2Pv2Message {
+impl WS2Pv0Message {
     /// WS2P Version number
-    pub const WS2P_VERSION: u16 = 2;
+    pub const WS2P_VERSION: u16 = 0;
 }
 
-/// WS2Pv2MessageReadBytesError
-#[derive(Debug)]
-pub enum WS2Pv2MessageReadBytesError {
-    /// IoError
-    IoError(::std::io::Error),
-    /// CurrencyCodeError
-    CurrencyCodeError(CurrencyCodeError),
-    /// ReadPubkeyBoxError
-    ReadPubkeyBoxError(pubkey_box::ReadPubkeyBoxError),
-    /// ReadSigBoxError
-    ReadSigBoxError(sig_box::ReadSigBoxError),
-    /// TooShort
-    TooShort(String),
-    /// TooLong
-    TooLong(),
-    /// too early version (don't support binary format)
-    TooEarlyVersion(),
-    /// Version not yet supported
-    VersionNotYetSupported(),
-    /// WS2Pv2MessagePayloadReadBytesError
-    WS2Pv2MessagePayloadReadBytesError(WS2Pv2MessagePayloadReadBytesError),
-}
-
-impl From<::std::io::Error> for WS2Pv2MessageReadBytesError {
-    fn from(e: ::std::io::Error) -> Self {
-        WS2Pv2MessageReadBytesError::IoError(e)
-    }
-}
-
-impl From<CurrencyCodeError> for WS2Pv2MessageReadBytesError {
-    fn from(e: CurrencyCodeError) -> Self {
-        WS2Pv2MessageReadBytesError::CurrencyCodeError(e)
-    }
-}
-
-impl From<pubkey_box::ReadPubkeyBoxError> for WS2Pv2MessageReadBytesError {
-    fn from(e: pubkey_box::ReadPubkeyBoxError) -> Self {
-        WS2Pv2MessageReadBytesError::ReadPubkeyBoxError(e)
-    }
-}
-
-impl From<sig_box::ReadSigBoxError> for WS2Pv2MessageReadBytesError {
-    fn from(e: sig_box::ReadSigBoxError) -> Self {
-        WS2Pv2MessageReadBytesError::ReadSigBoxError(e)
-    }
-}
-
-impl From<WS2Pv2MessagePayloadReadBytesError> for WS2Pv2MessageReadBytesError {
-    fn from(error: WS2Pv2MessagePayloadReadBytesError) -> Self {
-        WS2Pv2MessageReadBytesError::WS2Pv2MessagePayloadReadBytesError(error)
-    }
-}
-
-impl BinMessageSignable for WS2Pv2Message {
+impl<'de> BinMessageSignable<'de> for WS2Pv0Message {
     fn issuer_pubkey(&self) -> PubKey {
         self.issuer_pubkey
+    }
+    fn store_hash(&self) -> bool {
+        true
     }
     fn hash(&self) -> Option<Hash> {
         self.message_hash
@@ -130,9 +81,9 @@ impl BinMessageSignable for WS2Pv2Message {
     }
 }
 
-impl BinMessage for WS2Pv2Message {
-    type ReadBytesError = WS2Pv2MessageReadBytesError;
-    fn from_bytes(binary_msg: &[u8]) -> Result<WS2Pv2Message, WS2Pv2MessageReadBytesError> {
+/*impl BinMessage for WS2Pv0Message {
+    type ReadBytesError = WS2Pv0MessageReadBytesError;
+    fn from_bytes(binary_msg: &[u8]) -> Result<WS2Pv0Message, WS2Pv0MessageReadBytesError> {
         let mut index = 0;
         // read currency_code
         let mut currency_code_bytes = Cursor::new(binary_msg[index..index + 2].to_vec());
@@ -156,7 +107,7 @@ impl BinMessage for WS2Pv2Message {
                     index += issuer_size;
                     pubkey_box::read_pubkey_box(&binary_msg[index - issuer_size..index])?
                 } else {
-                    return Err(WS2Pv2MessageReadBytesError::TooShort(String::from(
+                    return Err(WS2Pv0MessageReadBytesError::TooShort(String::from(
                         "issuer",
                     )));
                 };
@@ -166,18 +117,18 @@ impl BinMessage for WS2Pv2Message {
                         Cursor::new(binary_msg[index + 4..index + 8].to_vec());
                     payload_size_bytes.read_u32::<BigEndian>()? as usize
                 } else {
-                    return Err(WS2Pv2MessageReadBytesError::TooShort(String::from(
+                    return Err(WS2Pv0MessageReadBytesError::TooShort(String::from(
                         "payload_size",
                     )));
                 };
                 // read payload
                 let payload = if binary_msg.len() > index + payload_size + 8 {
                     index += payload_size + 8;
-                    WS2Pv2MessagePayload::from_bytes(
+                    WS2Pv0MessagePayload::from_bytes(
                         &binary_msg[index - (payload_size + 8)..index],
                     )?
                 } else {
-                    return Err(WS2Pv2MessageReadBytesError::TooShort(String::from(
+                    return Err(WS2Pv0MessageReadBytesError::TooShort(String::from(
                         "payload",
                     )));
                 };
@@ -190,7 +141,7 @@ impl BinMessage for WS2Pv2Message {
                 } else if binary_msg.len() == index {
                     None
                 } else {
-                    return Err(WS2Pv2MessageReadBytesError::TooShort(String::from(
+                    return Err(WS2Pv0MessageReadBytesError::TooShort(String::from(
                         "message_hash",
                     )));
                 };
@@ -199,13 +150,13 @@ impl BinMessage for WS2Pv2Message {
                     index += 2;
                     u16::read_u16_be(&binary_msg[index - 2..index])? as usize
                 } else {
-                    return Err(WS2Pv2MessageReadBytesError::TooShort(String::from(
+                    return Err(WS2Pv0MessageReadBytesError::TooShort(String::from(
                         "signature_size",
                     )));
                 };
                 // read signature
                 let signature = if binary_msg.len() > index + signature_size {
-                    return Err(WS2Pv2MessageReadBytesError::TooLong());
+                    return Err(WS2Pv0MessageReadBytesError::TooLong());
                 } else if binary_msg.len() == index + signature_size {
                     index += signature_size;
                     Some(sig_box::read_sig_box(
@@ -213,13 +164,13 @@ impl BinMessage for WS2Pv2Message {
                         key_algo,
                     )?)
                 } else if binary_msg.len() > index {
-                    return Err(WS2Pv2MessageReadBytesError::TooLong());
+                    return Err(WS2Pv0MessageReadBytesError::TooLong());
                 } else if binary_msg.len() == index {
                     None
                 } else {
-                    return Err(WS2Pv2MessageReadBytesError::TooShort(String::from("end")));
+                    return Err(WS2Pv0MessageReadBytesError::TooShort(String::from("end")));
                 };
-                Ok(WS2Pv2Message {
+                Ok(WS2Pv0Message {
                     currency_code,
                     issuer_node_id,
                     issuer_pubkey,
@@ -228,8 +179,8 @@ impl BinMessage for WS2Pv2Message {
                     signature,
                 })
             }
-            0u16 | 1u16 => Err(WS2Pv2MessageReadBytesError::TooEarlyVersion()),
-            _ => Err(WS2Pv2MessageReadBytesError::VersionNotYetSupported()),
+            0u16 | 1u16 => Err(WS2Pv0MessageReadBytesError::TooEarlyVersion()),
+            _ => Err(WS2Pv0MessageReadBytesError::VersionNotYetSupported()),
         }
     }
     fn to_bytes_vector(&self) -> Vec<u8> {
@@ -249,7 +200,7 @@ impl BinMessage for WS2Pv2Message {
         let mut buffer = [0u8; mem::size_of::<u16>()];
         buffer
             .as_mut()
-            .write_u16::<BigEndian>(WS2Pv2Message::WS2P_VERSION)
+            .write_u16::<BigEndian>(WS2Pv0Message::WS2P_VERSION)
             .expect("Unable to write");
         bytes_vector.extend_from_slice(&buffer);
         // Write issuer_node_id
@@ -276,7 +227,7 @@ impl BinMessage for WS2Pv2Message {
 
         bytes_vector
     }
-}
+}*/
 
 #[cfg(test)]
 mod tests {
@@ -285,7 +236,7 @@ mod tests {
 
     #[test]
     fn test_ws2p_message_ack() {
-        test_ws2p_message(WS2Pv2MessagePayload::Ack(Hash::random()));
+        test_ws2p_message(WS2Pv0MessagePayload::Ack(Hash::random()));
     }
 
     #[test]
@@ -294,6 +245,6 @@ mod tests {
         let mut peer = create_peer_card_v11();
         peer.sign(PrivKey::Ed25519(keypair1.private_key()))
             .expect("Fail to sign peer card !");
-        test_ws2p_message(WS2Pv2MessagePayload::Peers(vec![peer]));
+        test_ws2p_message(WS2Pv0MessagePayload::Peers(vec![peer]));
     }
 }

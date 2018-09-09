@@ -57,7 +57,7 @@ pub mod blockchain;
 mod currencies_codes;
 
 /// Currency name
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize, Hash)]
 pub struct CurrencyName(pub String);
 
 impl Default for CurrencyName {

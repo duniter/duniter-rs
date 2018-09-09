@@ -47,6 +47,8 @@ extern crate serde_json;
 
 pub mod network_endpoint;
 pub mod network_head;
+pub mod network_head_v2;
+pub mod network_head_v3;
 pub mod network_peer;
 
 use crypto::digest::Digest;
@@ -179,7 +181,7 @@ pub struct NetworkBlockV10 {
 #[derive(Debug, Clone)]
 /// Block in network format (Some events require a blockchain access to reconstitute the corresponding document)
 pub enum NetworkBlock {
-    /// Block V10
+    /// Block V1
     V10(Box<NetworkBlockV10>),
     /// Block V11
     V11(),
@@ -348,7 +350,7 @@ pub enum NetworkEvent {
 
 #[cfg(test)]
 mod tests {
-
+    pub extern crate bincode;
     use super::network_endpoint::*;
     use super::*;
 
@@ -361,8 +363,8 @@ mod tests {
         let node_id = NodeId(u32::from_str_radix("c1c39a0a", 16).unwrap());
         let full_id = NodeFullId(node_id, issuer);
         assert_eq!(
-            NetworkEndpoint::parse_from_raw("WS2P c1c39a0a i3.ifee.fr 80 /ws2p", issuer, 0, 0, 1),
-            Ok(NetworkEndpoint::V10(NetworkEndpointV10 {
+            EndpointEnum::parse_from_raw("WS2P c1c39a0a i3.ifee.fr 80 /ws2p", issuer, 0, 0, 1),
+            Ok(EndpointEnum::V1(EndpointEnumV1 {
                 version: 1,
                 issuer,
                 api: NetworkEndpointApi(String::from("WS2P")),
@@ -387,8 +389,8 @@ mod tests {
         let node_id = NodeId(u32::from_str_radix("cb06a19b", 16).unwrap());
         let full_id = NodeFullId(node_id, issuer);
         assert_eq!(
-            NetworkEndpoint::parse_from_raw("WS2P cb06a19b g1.imirhil.fr 53012 /", issuer, 0, 0, 1),
-            Ok(NetworkEndpoint::V10(NetworkEndpointV10 {
+            EndpointEnum::parse_from_raw("WS2P cb06a19b g1.imirhil.fr 53012 /", issuer, 0, 0, 1),
+            Ok(EndpointEnum::V1(EndpointEnumV1 {
                 version: 1,
                 issuer,
                 api: NetworkEndpointApi(String::from("WS2P")),
