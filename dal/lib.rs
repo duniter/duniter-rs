@@ -19,8 +19,14 @@
 #![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
 #![cfg_attr(feature = "exp", allow(warnings))]
 #![deny(
-    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
-    trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    trivial_casts,
+    trivial_numeric_casts,
+    unsafe_code,
+    unstable_features,
+    unused_import_braces,
     unused_qualifications
 )]
 
@@ -455,7 +461,8 @@ pub fn open_db<D: Serialize + DeserializeOwned + Debug + Default + Clone + Send>
     if file_path.exists()
         && fs::metadata(file_path)
             .expect("fail to get file size")
-            .len() > 0
+            .len()
+            > 0
     {
         let backend = FileBackend::open(db_path.as_path())?;
         let db = FileDatabase::<D, Bincode>::from_parts(D::default(), backend, Bincode);

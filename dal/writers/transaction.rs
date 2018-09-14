@@ -141,8 +141,7 @@ pub fn revert_tx(dbs: &CurrencyV10DBs, dal_tx: &DALTxV10) -> Result<(), DALError
                 SourceIndexV10::UTXO(UTXOIndexV10(hash, tx_index)),
                 SourceAmount(tx_amout, tx_amout_base),
             ),
-        })
-        .collect();
+        }).collect();
     // Find adress of recreated sources
     let recreated_adress: HashMap<UTXOConditionsGroup, (SourceAmount, HashSet<UTXOIndexV10>)> =
         dbs.utxos_db.read(|db| {
@@ -257,8 +256,7 @@ pub fn apply_and_write_tx(
                 SourceIndexV10::UTXO(UTXOIndexV10(hash, tx_index)),
                 SourceAmount(tx_amout, tx_amout_base),
             ),
-        })
-        .collect();
+        }).collect();
     // Find adress of consumed sources
     let consumed_adress: HashMap<UTXOConditionsGroup, (SourceAmount, HashSet<UTXOIndexV10>)> =
         dbs.utxos_db.read(|db| {
@@ -482,8 +480,7 @@ mod tests {
                 db.get(&UTXOConditionsGroup::Single(
                     TransactionOutputCondition::Sig(tx_doc.issuers()[0]),
                 )).cloned()
-            })
-            .expect("Fail to read cgeek new balance")
+            }).expect("Fail to read cgeek new balance")
             .expect("Error : cgeek is not referenced in balances_db !");
         assert_eq!(cgeek_new_balance.0, SourceAmount(TxAmount(1000), TxBase(0)));
         let tortue_new_balance = currency_dbs
@@ -492,8 +489,7 @@ mod tests {
                 db.get(&UTXOConditionsGroup::Single(
                     TransactionOutputCondition::Sig(tortue_pubkey),
                 )).cloned()
-            })
-            .expect("Fail to read receiver new balance")
+            }).expect("Fail to read receiver new balance")
             .expect("Error : receiver is not referenced in balances_db !");
         assert_eq!(
             tortue_new_balance.0,
@@ -508,8 +504,7 @@ mod tests {
                 db.get(&UTXOConditionsGroup::Single(
                     TransactionOutputCondition::Sig(tx_doc.issuers()[0]),
                 )).cloned()
-            })
-            .expect("Fail to read cgeek new balance")
+            }).expect("Fail to read cgeek new balance")
             .expect("Error : cgeek is not referenced in balances_db !");
         assert_eq!(cgeek_new_balance.0, SourceAmount(TxAmount(999), TxBase(0)));
 
@@ -520,8 +515,7 @@ mod tests {
                 db.get(&UTXOConditionsGroup::Single(
                     TransactionOutputCondition::Sig(tortue_pubkey),
                 )).cloned()
-            })
-            .expect("Fail to read receiver new balance")
+            }).expect("Fail to read receiver new balance")
             .expect("Error : receiver is not referenced in balances_db !");
         assert_eq!(
             receiver_new_balance.0,
@@ -544,8 +538,7 @@ mod tests {
                 db.get(&UTXOConditionsGroup::Single(
                     TransactionOutputCondition::Sig(tx_doc.issuers()[0]),
                 )).cloned()
-            })
-            .expect("Fail to read cgeek new balance")
+            }).expect("Fail to read cgeek new balance")
             .expect("Error : cgeek is not referenced in balances_db !");
         assert_eq!(cgeek_new_balance.0, SourceAmount(TxAmount(1000), TxBase(0)));
 
@@ -556,8 +549,7 @@ mod tests {
                 db.get(&UTXOConditionsGroup::Single(
                     TransactionOutputCondition::Sig(tortue_pubkey),
                 )).cloned()
-            })
-            .expect("Fail to read receiver new balance")
+            }).expect("Fail to read receiver new balance")
             .expect("Error : receiver is not referenced in balances_db !");
         assert_eq!(
             receiver_new_balance.0,

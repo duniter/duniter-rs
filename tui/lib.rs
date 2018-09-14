@@ -18,8 +18,14 @@
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
-    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
-    trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    trivial_casts,
+    trivial_numeric_casts,
+    unsafe_code,
+    unstable_features,
+    unused_import_braces,
     unused_qualifications
 )]
 
@@ -449,8 +455,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
                 tui_sender
                     .send(TuiMess::TermionEvent(
                         c.expect("error to read stdin event !"),
-                    ))
-                    .expect("Fatal error : tui stdin thread module fail to send message !");
+                    )).expect("Fatal error : tui stdin thread module fail to send message !");
                 trace!("Send stdin event to tui main thread.");
             }
         });
@@ -527,8 +532,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
                                         .iter()
                                         .map(|h| {
                                             tui.heads_cache.insert(h.node_full_id(), h.clone())
-                                        })
-                                        .for_each(drop);
+                                        }).for_each(drop);
                                 }
                                 _ => {}
                             },
@@ -606,7 +610,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
                 || now
                     .duration_since(last_draw)
                     .expect("Tui : Fatal error : fail to get duration since last draw !")
-                    .subsec_nanos() > 250_000_000
+                    .subsec_nanos()
+                    > 250_000_000
             {
                 last_draw = now;
                 tui.draw_term(

@@ -101,8 +101,7 @@ pub fn write(
         forks_db
             .write(|db| {
                 db.insert(ForkId(0), blockchain_meta_datas);
-            })
-            .expect("Write blockchain meta datas : DALError");
+            }).expect("Write blockchain meta datas : DALError");
     }
     Ok(())
 }

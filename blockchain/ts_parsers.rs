@@ -85,9 +85,9 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
         Some(dividend) => Some(dividend as usize),
         None => None,
     };
-    let json_identities: serde_json::Value = serde_json::from_str(
-        row[20].as_string().expect("Fail to parse block identities"),
-    ).expect("Fail to parse block identities (2)");
+    let json_identities: serde_json::Value =
+        serde_json::from_str(row[20].as_string().expect("Fail to parse block identities"))
+            .expect("Fail to parse block identities (2)");
     let mut identities = Vec::new();
     for raw_idty in json_identities
         .as_array()
@@ -96,9 +96,9 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
         identities
             .push(parse_compact_identity(&currency, &raw_idty).expect("Fail to parse block idty"));
     }
-    let json_txs: serde_json::Value = serde_json::from_str(
-        row[18].as_string().expect("Fail to parse block txs"),
-    ).expect("Fail to parse block txs (2)");
+    let json_txs: serde_json::Value =
+        serde_json::from_str(row[18].as_string().expect("Fail to parse block txs"))
+            .expect("Fail to parse block txs (2)");
     let mut transactions = Vec::new();
     for json_tx in json_txs.as_array().expect("Fail to parse block txs (3)") {
         transactions.push(TxDocOrTxHash::TxDoc(Box::new(
@@ -113,9 +113,9 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
         Some(previous_header_) => Some(previous_header_.issuer),
         None => None,
     };
-    let excluded: serde_json::Value = serde_json::from_str(
-        row[25].as_string().expect("Fail to parse excluded"),
-    ).expect("Fail to parse excluded (2)");
+    let excluded: serde_json::Value =
+        serde_json::from_str(row[25].as_string().expect("Fail to parse excluded"))
+            .expect("Fail to parse excluded (2)");
     let uncompleted_block_doc = BlockDocument {
         nonce: row[17].as_integer().expect("Fail to parse nonce") as u64,
         number: current_header.number,
@@ -180,18 +180,17 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
                         e.as_str().expect("Fail to parse excluded (4)"),
                     ).expect("Fail to parse excluded (5)"),
                 )
-            })
-            .collect(),
+            }).collect(),
         certifications: Vec::new(),
         transactions,
         inner_hash_and_nonce_str: String::new(),
     };
-    let revoked: serde_json::Value = serde_json::from_str(
-        row[24].as_string().expect("Fail to parse revoked"),
-    ).expect("Fail to parse revoked (2)");
-    let certifications: serde_json::Value = serde_json::from_str(
-        row[19].as_string().expect("Fail to parse certifications"),
-    ).expect("Fail to parse certifications (2)");
+    let revoked: serde_json::Value =
+        serde_json::from_str(row[24].as_string().expect("Fail to parse revoked"))
+            .expect("Fail to parse revoked (2)");
+    let certifications: serde_json::Value =
+        serde_json::from_str(row[19].as_string().expect("Fail to parse certifications"))
+            .expect("Fail to parse certifications (2)");
     // return NetworkBlock
     NetworkBlock::V10(Box::new(NetworkBlockV10 {
         uncompleted_block_doc,
@@ -252,11 +251,10 @@ pub fn parse_memberships(
                 membership_type,
                 raw_memberships.as_array().unwrap(),
             ).iter()
-                .map(|m| {
-                    m.clone()
-                        .expect("Fatal error : Fail to parse membership from local DB !")
-                })
-                .collect(),
+            .map(|m| {
+                m.clone()
+                    .expect("Fatal error : Fail to parse membership from local DB !")
+            }).collect(),
         );
     }
     None
@@ -290,8 +288,7 @@ pub fn parse_memberships_from_json_value(
             } else {
                 Err(MembershipParseError::WrongFormat())
             }
-        })
-        .collect()
+        }).collect()
 }
 
 /// Parse transaction from json value

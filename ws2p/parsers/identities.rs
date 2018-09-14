@@ -20,8 +20,7 @@ pub fn parse_identities(currency: &str, json_datas: &str) -> Option<Vec<Identity
                 .map(|i| {
                     i.clone()
                         .expect("Fatal error : Fail to parse identity from local DB !")
-                })
-                .collect(),
+                }).collect(),
         );
     }
     None
@@ -51,8 +50,7 @@ pub fn parse_identities_from_json_value(
             } else {
                 Err(IdentityParseError::WrongFormat())
             }
-        })
-        .collect()
+        }).collect()
 }
 
 pub fn parse_compact_identity(

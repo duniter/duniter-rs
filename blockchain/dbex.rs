@@ -95,7 +95,7 @@ pub fn dbex_tx<DC: DuniterConf>(profile: &str, conf: &DC, _csv: bool, query: &DB
                 &currency_databases.balances_db,
                 &address,
             ).expect("get_address_balance : DALError")
-                .expect("Address not found in balances DB.");
+            .expect("Address not found in balances DB.");
             println!(
                 "Balance={},{} Ğ1",
                 (address_balance.0).0 / 100,
@@ -151,8 +151,7 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
             db.iter()
                 .map(|(_, idty)| (idty.wot_id, String::from(idty.idty_doc.username())))
                 .collect()
-        })
-        .expect("Fail to read IdentitiesDB !");
+        }).expect("Fail to read IdentitiesDB !");
 
     // Open wot db
     let wot_db = open_wot_db::<RustyWebOfTrust>(Some(&db_path)).expect("Fail to open WotDB !");
@@ -186,13 +185,10 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
                                             step_max: currency_params.step_max as u32,
                                             x_percent: currency_params.x_percent,
                                         },
-                                    )
-                                    .expect("Fail to get distance !"),
+                                    ).expect("Fail to get distance !"),
                             )
-                        })
-                        .collect()
-                })
-                .expect("Fail to read WotDB");
+                        }).collect()
+                }).expect("Fail to read WotDB");
             let compute_distances_duration = SystemTime::now()
                 .duration_since(compute_distances_begin)
                 .expect("duration_since error");
@@ -235,8 +231,7 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
                             .map(|(block_id, dal_block)| (*block_id, dal_block.block.median_time))
                             .collect(),
                     )
-                })
-                .expect("Fail to read blockchain db");
+                }).expect("Fail to read blockchain db");
             // Get expire_dates
             let min_created_ms_time = current_bc_time - currency_params.ms_validity;
             let mut expire_dates: Vec<(NodeId, u64)> = wot_databases
@@ -255,8 +250,7 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
                         }
                     }
                     expire_dates
-                })
-                .expect("Fail to read ms db");
+                }).expect("Fail to read ms db");
             if *reverse {
                 expire_dates.sort_unstable_by(|(_, d1), (_, d2)| d1.cmp(&d2));
             } else {
@@ -290,8 +284,7 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
                                 x_percent: currency_params.x_percent,
                             },
                         )
-                    })
-                    .expect("Fail to read WotDB")
+                    }).expect("Fail to read WotDB")
                     .expect("Fail to get distance !");
                 let distance_percent: f64 =
                     f64::from(distance_datas.success) / f64::from(distance_datas.sentries) * 100.0;
@@ -309,7 +302,7 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
                         &wot_databases.identities_db,
                         *(wot_reverse_index[&source]),
                     ).expect("get_uid() : DALError")
-                        .expect("Not found source_uid !");
+                    .expect("Not found source_uid !");
                     println!("{}: {}", i + 1, source_uid);
                 }
             } else {

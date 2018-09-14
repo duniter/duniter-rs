@@ -369,8 +369,7 @@ pub fn sync_ts<DC: DuniterConf>(
             .forks_db
             .write(|db| {
                 db.insert(ForkId(0), blockchain_meta_datas);
-            })
-            .expect("Indexing blockchain meta datas : DALError");
+            }).expect("Indexing blockchain meta datas : DALError");
 
         // Increment progress bar (last chunk)
         apply_pb.inc();
@@ -505,8 +504,7 @@ pub fn sync_ts<DC: DuniterConf>(
                     .write(|db| {
                         db.0 = block_doc.currency.clone();
                         db.1 = block_doc.parameters.unwrap();
-                    })
-                    .expect("fail to write in params DB");
+                    }).expect("fail to write in params DB");
                 currency_params = CurrencyParameters::from((
                     block_doc.currency.clone(),
                     block_doc.parameters.unwrap(),

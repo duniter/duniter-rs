@@ -18,8 +18,13 @@
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![cfg_attr(feature = "cargo-clippy", allow(cyclomatic_complexity))]
 #![deny(
-    missing_debug_implementations, missing_copy_implementations, trivial_casts, unsafe_code,
-    unstable_features, unused_import_braces, unused_qualifications
+    missing_debug_implementations,
+    missing_copy_implementations,
+    trivial_casts,
+    unsafe_code,
+    unstable_features,
+    unused_import_braces,
+    unused_qualifications
 )]
 #![recursion_limit = "256"]
 
@@ -462,8 +467,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                                 }
                                             }).to_string(),
                                             ))
-                                        })
-                                        .collect();
+                                        }).collect();
                                 }
                                 DALEvent::RevertBlocks(ref _blocks) => {}
                                 _ => {}
@@ -650,8 +654,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                             new_head.set_uid(uid);
                                         }
                                         new_head
-                                    })
-                                    .collect(),
+                                    }).collect(),
                             ));
                         }
                         WS2PSignal::Document(ws2p_full_id, network_doc) => {
@@ -727,7 +730,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
             }
             if SystemTime::now()
                 .duration_since(last_ws2p_connections_print)
-                .unwrap() > Duration::new(5, 0)
+                .unwrap()
+                > Duration::new(5, 0)
             {
                 last_ws2p_connections_print = SystemTime::now();
                 let mut connected_nodes = Vec::new();
@@ -837,11 +841,10 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                         info!(
                             "Write {} endpoint in {} secs.",
                             ep_full_id,
-                            *DURATION_BEFORE_RECORDING_ENDPOINT
-                                - SystemTime::now()
-                                    .duration_since(received_time)
-                                    .unwrap()
-                                    .as_secs()
+                            *DURATION_BEFORE_RECORDING_ENDPOINT - SystemTime::now()
+                                .duration_since(received_time)
+                                .unwrap()
+                                .as_secs()
                         );
                     }
                 }

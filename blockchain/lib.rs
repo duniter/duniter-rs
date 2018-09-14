@@ -16,10 +16,19 @@
 //! Module managing the Duniter blockchain.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(unused_collect, duration_subsec))]
+#![cfg_attr(
+    feature = "cargo-clippy",
+    allow(unused_collect, duration_subsec)
+)]
 #![deny(
-    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
-    trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    trivial_casts,
+    trivial_numeric_casts,
+    unsafe_code,
+    unstable_features,
+    unused_import_braces,
     unused_qualifications
 )]
 
@@ -162,10 +171,10 @@ impl BlockchainModule {
             .expect("Fatal error : fail to read Blockchain DB !");
 
         // Get currency parameters
-        let currency_params = duniter_dal::currency_params::get_currency_params(
-            &blocks_databases.blockchain_db,
-        ).expect("Fatal error : fail to read Blockchain DB !")
-            .unwrap_or_default();
+        let currency_params =
+            duniter_dal::currency_params::get_currency_params(&blocks_databases.blockchain_db)
+                .expect("Fatal error : fail to read Blockchain DB !")
+                .unwrap_or_default();
 
         // Get forks states
         let forks_states = if let Some(current_blockstamp) = current_blockstamp {
@@ -473,15 +482,13 @@ impl BlockchainModule {
                     .map(|req| {
                         req.apply(&self.wot_databases, &self.currency_params)
                             .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
-                    })
-                    .collect::<()>();
+                    }).collect::<()>();
                 tx_dbs_queries
                     .iter()
                     .map(|req| {
                         req.apply(&self.currency_databases)
                             .expect("Fatal error : Fail to apply CurrencyDBsWriteRequest !");
-                    })
-                    .collect::<()>();
+                    }).collect::<()>();
                 save_blocks_dbs = true;
                 if !wot_dbs_queries.is_empty() {
                     save_wots_dbs = true;
@@ -519,10 +526,10 @@ impl BlockchainModule {
         let wot_db = open_wot_db::<RustyWebOfTrust>(Some(&dbs_path)).expect("Fail to open WotDB !");
 
         // Get current block
-        let mut current_blockstamp = duniter_dal::block::get_current_blockstamp(
-            &self.blocks_databases,
-        ).expect("Fatal error : fail to read ForksV10DB !")
-            .unwrap_or_default();
+        let mut current_blockstamp =
+            duniter_dal::block::get_current_blockstamp(&self.blocks_databases)
+                .expect("Fatal error : fail to read ForksV10DB !")
+                .unwrap_or_default();
 
         // Init datas
         let mut last_get_stackables_blocks = UNIX_EPOCH;
@@ -542,7 +549,8 @@ impl BlockchainModule {
             let now = SystemTime::now();
             if now
                 .duration_since(last_request_blocks)
-                .expect("duration_since error") > Duration::new(20, 0)
+                .expect("duration_since error")
+                > Duration::new(20, 0)
             {
                 last_request_blocks = now;
                 // Request begin blocks
@@ -663,7 +671,11 @@ impl BlockchainModule {
                                                         &mut wotb_index,
                                                         &wot_db,
                                                         Some(free_fork_id),
-                                                        &self.currency_databases.tx_db.read(|db| db.clone()).expect("Fail to read TxDB.")
+                                                        &self
+                                                            .currency_databases
+                                                            .tx_db
+                                                            .read(|db| db.clone())
+                                                            .expect("Fail to read TxDB."),
                                                     ).expect("Fail to revert block");
                                                 }
                                             }
@@ -682,11 +694,10 @@ impl BlockchainModule {
                                             if current_blockstamp != new_current_blockstamp {
                                                 current_blockstamp = new_current_blockstamp;
                                                 // Update forks states
-                                                self.forks_states =
-                                                    duniter_dal::block::get_forks(
-                                                        &self.blocks_databases.forks_db,
-                                                        current_blockstamp,
-                                                    ).expect("get_forks() : DALError");
+                                                self.forks_states = duniter_dal::block::get_forks(
+                                                    &self.blocks_databases.forks_db,
+                                                    current_blockstamp,
+                                                ).expect("get_forks() : DALError");
                                             }
                                         }
                                     }
@@ -713,7 +724,8 @@ impl BlockchainModule {
             let now = SystemTime::now();
             if now
                 .duration_since(last_get_stackables_blocks)
-                .expect("duration_since error") > Duration::new(20, 0)
+                .expect("duration_since error")
+                > Duration::new(20, 0)
             {
                 last_get_stackables_blocks = now;
                 loop {
@@ -752,16 +764,14 @@ impl BlockchainModule {
                                             .expect(
                                                 "Fatal error : Fail to apply WotsDBsWriteRequest !",
                                             );
-                                    })
-                                    .collect::<()>();
+                                    }).collect::<()>();
                                 tx_dbs_queries
                                     .iter()
                                     .map(|req| {
                                         req.apply(&self.currency_databases).expect(
                                             "Fatal error : Fail to apply CurrencyDBsWriteRequest !",
                                         );
-                                    })
-                                    .collect::<()>();
+                                    }).collect::<()>();
                                 // Save databases
                                 self.blocks_databases.save_dbs();
                                 if !wot_dbs_queries.is_empty() {

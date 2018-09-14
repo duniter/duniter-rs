@@ -71,8 +71,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
             wot_db
                 .write(|db| {
                     db.add_node();
-                })
-                .expect("Fail to write in WotDB");
+                }).expect("Fail to write in WotDB");
             wot_index.insert(pubkey, wotb_id);
             wot_dbs_requests.push(WotsDBsWriteQuery::CreateIdentity(
                 wotb_id,
@@ -87,8 +86,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
             wot_db
                 .write(|db| {
                     db.set_enabled(wotb_id, true);
-                })
-                .expect("Fail to write in WotDB");
+                }).expect("Fail to write in WotDB");
             wot_dbs_requests.push(WotsDBsWriteQuery::RenewalIdentity(
                 joiner.issuers()[0],
                 wotb_id,
@@ -104,8 +102,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
             wot_db
                 .write(|db| {
                     db.set_enabled(wotb_id, true);
-                })
-                .expect("Fail to write in WotDB");
+                }).expect("Fail to write in WotDB");
             wot_dbs_requests.push(WotsDBsWriteQuery::RenewalIdentity(
                 pubkey,
                 wotb_id,
@@ -123,8 +120,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
         wot_db
             .write(|db| {
                 db.set_enabled(*wot_id, false);
-            })
-            .expect("Fail to write in WotDB");
+            }).expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::ExcludeIdentity(
             exclusion,
             block.blockstamp(),
@@ -140,8 +136,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
         wot_db
             .write(|db| {
                 db.set_enabled(*wot_id, false);
-            })
-            .expect("Fail to write in WotDB");
+            }).expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::RevokeIdentity(
             compact_revoc.issuer,
             block.blockstamp(),
@@ -163,8 +158,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
                         wotb_node_from.0, wotb_node_to.0, result
                     ),
                 }
-            })
-            .expect("Fail to write in WotDB");
+            }).expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::CreateCert(
             compact_cert.issuer,
             wotb_node_from,
@@ -188,8 +182,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
                         RemLinkResult::Removed(_) => {}
                         _ => panic!("Fail to rem_link {}->{} : {:?}", source.0, target.0, result),
                     }
-                })
-                .expect("Fail to write in WotDB");
+                }).expect("Fail to write in WotDB");
         }
     }
     if let Some(du_amount) = block.dividend {

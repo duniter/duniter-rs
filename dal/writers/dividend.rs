@@ -51,7 +51,7 @@ pub fn create_du(
                     db.get(&UTXOConditionsGroup::Single(
                         TransactionOutputCondition::Sig(*pubkey),
                     )).cloned()
-                        .unwrap_or_default(),
+                    .unwrap_or_default(),
                 );
             }
             members_balances
@@ -66,8 +66,7 @@ pub fn create_du(
                 *balance + *du_amount
             };
             (*pubkey, (new_balance, utxos_indexs.clone()))
-        })
-        .collect();
+        }).collect();
     // Write new members balance
     balances_db.write(|db| {
         for (pubkey, (balance, utxos_indexs)) in members_balances {

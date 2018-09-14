@@ -78,7 +78,8 @@ impl Handler for Client {
         // Spam ?
         if SystemTime::now()
             .duration_since(self.last_mess_time)
-            .unwrap() > Duration::new(*WS2P_SPAM_INTERVAL_IN_MILLI_SECS, 0)
+            .unwrap()
+            > Duration::new(*WS2P_SPAM_INTERVAL_IN_MILLI_SECS, 0)
         {
             if self.spam_interval {
                 self.spam_counter += 1;
@@ -129,12 +130,14 @@ impl Handler for Client {
         match event {
             CONNECT => {
                 if self.conn_meta_datas.state != WS2PConnectionState::Established {
-                    let _result = self.conductor_sender.send(
-                        WS2PThreadSignal::WS2PConnectionMessage(WS2PConnectionMessage(
-                            self.conn_meta_datas.node_full_id(),
-                            WS2PConnectionMessagePayload::NegociationTimeout,
-                        )),
-                    );
+                    let _result =
+                        self.conductor_sender
+                            .send(WS2PThreadSignal::WS2PConnectionMessage(
+                                WS2PConnectionMessage(
+                                    self.conn_meta_datas.node_full_id(),
+                                    WS2PConnectionMessagePayload::NegociationTimeout,
+                                ),
+                            ));
                     self.ws.close(CloseCode::Away)
                 } else {
                     Ok(())
@@ -530,39 +533,42 @@ impl WS2PConnectionMetaDatas {
     ) -> WS2PConnectionMessagePayload {
         match body.get("peer") {
             Some(peer) => match peer.get("pubkey") {
-                Some(raw_pubkey) => match ed25519::PublicKey::from_base58(
-                    raw_pubkey.as_str().unwrap_or(""),
-                ) {
-                    Ok(pubkey) => {
-                        let mut ws2p_endpoints: Vec<NetworkEndpoint> = Vec::new();
-                        match peer.get("endpoints") {
-                            Some(endpoints) => match endpoints.as_array() {
-                                Some(array_endpoints) => {
-                                    for endpoint in array_endpoints {
-                                        if let Some(ep) = NetworkEndpoint::parse_from_raw(
-                                            endpoint.as_str().unwrap_or(""),
-                                            PubKey::Ed25519(pubkey),
-                                            0,
-                                            0,
-                                        ) {
-                                            if ep.api() == NetworkEndpointApi(String::from("WS2P"))
-                                            {
-                                                ws2p_endpoints.push(ep);
+                Some(raw_pubkey) => {
+                    match ed25519::PublicKey::from_base58(raw_pubkey.as_str().unwrap_or("")) {
+                        Ok(pubkey) => {
+                            let mut ws2p_endpoints: Vec<
+                                NetworkEndpoint,
+                            > = Vec::new();
+                            match peer.get("endpoints") {
+                                Some(endpoints) => match endpoints.as_array() {
+                                    Some(array_endpoints) => {
+                                        for endpoint in array_endpoints {
+                                            if let Some(ep) = NetworkEndpoint::parse_from_raw(
+                                                endpoint.as_str().unwrap_or(""),
+                                                PubKey::Ed25519(pubkey),
+                                                0,
+                                                0,
+                                            ) {
+                                                if ep.api()
+                                                    == NetworkEndpointApi(String::from("WS2P"))
+                                                {
+                                                    ws2p_endpoints.push(ep);
+                                                }
                                             }
                                         }
+                                        WS2PConnectionMessagePayload::PeerCard(
+                                            body.clone(),
+                                            ws2p_endpoints,
+                                        )
                                     }
-                                    WS2PConnectionMessagePayload::PeerCard(
-                                        body.clone(),
-                                        ws2p_endpoints,
-                                    )
-                                }
+                                    None => WS2PConnectionMessagePayload::WrongFormatMessage,
+                                },
                                 None => WS2PConnectionMessagePayload::WrongFormatMessage,
-                            },
-                            None => WS2PConnectionMessagePayload::WrongFormatMessage,
+                            }
                         }
+                        Err(_) => WS2PConnectionMessagePayload::WrongFormatMessage,
                     }
-                    Err(_) => WS2PConnectionMessagePayload::WrongFormatMessage,
-                },
+                }
                 None => WS2PConnectionMessagePayload::WrongFormatMessage,
             },
             None => WS2PConnectionMessagePayload::WrongFormatMessage,

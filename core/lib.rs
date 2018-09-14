@@ -18,8 +18,14 @@
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
 #![deny(
-    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
-    trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    trivial_casts,
+    trivial_numeric_casts,
+    unsafe_code,
+    unstable_features,
+    unused_import_braces,
     unused_qualifications
 )]
 
@@ -738,7 +744,6 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
                 log_file_path
                     .to_str()
                     .expect("Fatal error : fail to get log file path !"),
-            )
-            .expect("Fatal error : fail to open log file !"),
+            ).expect("Fatal error : fail to open log file !"),
     )]).expect("Fatal error : fail to init logger !");
 }

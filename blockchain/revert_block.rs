@@ -62,8 +62,7 @@ pub fn revert_block<W: WebOfTrust>(
         .map(|tx_enum| match *tx_enum {
             TxDocOrTxHash::TxHash(ref tx_hash) => txs[tx_hash].clone(),
             TxDocOrTxHash::TxDoc(ref _dal_tx) => panic!("Try to revert not reduce block !"),
-        })
-        .collect();
+        }).collect();
 
     // Revert reduce block
     block.compute_inner_hash();
@@ -109,8 +108,7 @@ pub fn revert_block<W: WebOfTrust>(
                         NewLinkResult::Ok(_) => {}
                         _ => panic!("Fail to add_link {}->{} : {:?}", source.0, target.0, result),
                     }
-                })
-                .expect("Fail to write in WotDB");
+                }).expect("Fail to write in WotDB");
             wot_dbs_requests.push(WotsDBsWriteQuery::RevertExpireCert(
                 source,
                 target,
@@ -134,8 +132,7 @@ pub fn revert_block<W: WebOfTrust>(
                         wotb_node_from.0, wotb_node_to.0, result
                     ),
                 }
-            })
-            .expect("Fail to write in WotDB");
+            }).expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::RevertCert(
             compact_cert,
             wotb_node_from,
@@ -154,8 +151,7 @@ pub fn revert_block<W: WebOfTrust>(
         wot_db
             .write(|db| {
                 db.set_enabled(*wot_id, false);
-            })
-            .expect("Fail to write in WotDB");
+            }).expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::RevertRevokeIdentity(
             compact_revoc.issuer,
             block.blockstamp(),
@@ -172,8 +168,7 @@ pub fn revert_block<W: WebOfTrust>(
         wot_db
             .write(|db| {
                 db.set_enabled(*wot_id, false);
-            })
-            .expect("Fail to write in WotDB");
+            }).expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::RevertExcludeIdentity(
             exclusion,
             block.blockstamp(),
@@ -192,8 +187,7 @@ pub fn revert_block<W: WebOfTrust>(
             wot_db
                 .write(|db| {
                     db.set_enabled(wotb_id, true);
-                })
-                .expect("Fail to write in WotDB");
+                }).expect("Fail to write in WotDB");
             wot_dbs_requests.push(WotsDBsWriteQuery::RevertRenewalIdentity(
                 pubkey,
                 wotb_id,
@@ -210,8 +204,7 @@ pub fn revert_block<W: WebOfTrust>(
             wot_db
                 .write(|db| {
                     db.rem_node();
-                })
-                .expect("Fail to write in WotDB");
+                }).expect("Fail to write in WotDB");
             wot_index.remove(&pubkey);
             wot_dbs_requests.push(WotsDBsWriteQuery::RevertCreateIdentity(pubkey));
         } else {
@@ -220,8 +213,7 @@ pub fn revert_block<W: WebOfTrust>(
             wot_db
                 .write(|db| {
                     db.set_enabled(wotb_id, true);
-                })
-                .expect("Fail to write in WotDB");
+                }).expect("Fail to write in WotDB");
             wot_dbs_requests.push(WotsDBsWriteQuery::RevertRenewalIdentity(
                 joiner.issuers()[0],
                 wotb_id,

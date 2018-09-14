@@ -184,8 +184,7 @@ impl WS2PModuleDatas {
                         &endpoint
                             .node_full_id()
                             .expect("WS2P: Fail to get ep.node_full_id() !"),
-                    )
-                    .expect("WS2P: Fail to get_mut() a ws2p_endpoint !")
+                    ).expect("WS2P: Fail to get_mut() a ws2p_endpoint !")
                     .1 = WS2PConnectionState::NeverTry;
             }
             None => {
@@ -273,8 +272,7 @@ impl WS2PModuleDatas {
                         .get_mut(&ws2p_full_id)
                         .unwrap_or_else(|| {
                             panic!("Fatal error : no websocket for {} !", ws2p_full_id)
-                        })
-                        .0
+                        }).0
                         .send(Message::text(r))
                         .expect("WS2P: Fail to send Message in websocket !");
                 }
@@ -306,13 +304,11 @@ impl WS2PModuleDatas {
                 for head in heads {
                     if let Some(head) = NetworkHead::from_json_value(&head) {
                         if head.verify()
-                            && (self.my_head.is_none()
-                                || head.node_full_id()
-                                    != self
-                                        .my_head
-                                        .clone()
-                                        .expect("WS2P: Fail to clone my_head")
-                                        .node_full_id())
+                            && (self.my_head.is_none() || head.node_full_id() != self
+                                .my_head
+                                .clone()
+                                .expect("WS2P: Fail to clone my_head")
+                                .node_full_id())
                             && head.apply(&mut self.heads_cache)
                         {
                             applied_heads.push(head);
