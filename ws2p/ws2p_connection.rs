@@ -533,27 +533,25 @@ impl WS2PConnectionMetaDatas {
     ) -> WS2PConnectionMessagePayload {
         match body.get("peer") {
             Some(peer) => match peer.get("pubkey") {
-                Some(raw_pubkey) => {
-                    match ed25519::PublicKey::from_base58(raw_pubkey.as_str().unwrap_or("")) {
-                        Ok(pubkey) => {
-                            let mut ws2p_endpoints: Vec<
-                                NetworkEndpoint,
-                            > = Vec::new();
-                            match peer.get("endpoints") {
-                                Some(endpoints) => match endpoints.as_array() {
-                                    Some(array_endpoints) => {
-                                        for endpoint in array_endpoints {
-                                            if let Some(ep) = NetworkEndpoint::parse_from_raw(
-                                                endpoint.as_str().unwrap_or(""),
-                                                PubKey::Ed25519(pubkey),
-                                                0,
-                                                0,
-                                            ) {
-                                                if ep.api()
-                                                    == NetworkEndpointApi(String::from("WS2P"))
-                                                {
-                                                    ws2p_endpoints.push(ep);
-                                                }
+                Some(raw_pubkey) => match ed25519::PublicKey::from_base58(
+                    raw_pubkey.as_str().unwrap_or(""),
+                ) {
+                    Ok(pubkey) => {
+                        let mut ws2p_endpoints: Vec<NetworkEndpoint> = Vec::new();
+                        match peer.get("endpoints") {
+                            Some(endpoints) => match endpoints.as_array() {
+                                Some(array_endpoints) => {
+                                    for endpoint in array_endpoints {
+                                        if let Ok(ep) = NetworkEndpoint::parse_from_raw(
+                                            endpoint.as_str().unwrap_or(""),
+                                            PubKey::Ed25519(pubkey),
+                                            0,
+                                            0,
+                                            1u16,
+                                        ) {
+                                            if ep.api() == NetworkEndpointApi(String::from("WS2P"))
+                                            {
+                                                ws2p_endpoints.push(ep);
                                             }
                                         }
                                         WS2PConnectionMessagePayload::PeerCard(
@@ -603,7 +601,7 @@ pub fn connect_to_ws2p_endpoint(
     key_pair: KeyPairEnum,
 ) -> ws::Result<()> {
     // Get endpoint url
-    let ws_url = endpoint.get_url(true);
+    let ws_url = endpoint.get_url(true, false).expect("Endpoint unreachable");
 
     // Create WS2PConnectionMetaDatass
     let mut conn_meta_datas = WS2PConnectionMetaDatas::new(

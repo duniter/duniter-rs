@@ -76,9 +76,10 @@ pub fn get_endpoints_for_api(
             ep_issuer,
             row[1].as_integer().unwrap() as u32,
             row[7].as_integer().unwrap() as u64,
+            1u16,
         ) {
-            Some(ep) => ep,
-            None => panic!(format!("Fail to parse endpoint : {}", raw_ep)),
+            Ok(ep) => ep,
+            Err(_) => panic!(format!("Fail to parse endpoint : {}", raw_ep)),
         };
         ep.set_status(row[1].as_integer().unwrap() as u32);
         ep.set_last_check(row[7].as_integer().unwrap() as u64);
@@ -119,14 +120,14 @@ pub fn write_endpoint(
                 hash_full_id
             )).expect("Fail to parse SQL request update endpoint  status !");
         }
-    } else if let NetworkEndpoint::V1(ref ep_v1) = *endpoint {
+    } else if let NetworkEndpoint::V10(ref ep_v10) = *endpoint {
         db
                     .execute(
                         format!(
                             "INSERT INTO endpoints (hash_full_id, status, node_id, pubkey, api, version, endpoint, last_check) VALUES ('{}', {}, {}, '{}', {}, {}, '{}', {});",
-                            ep_v1.hash_full_id.expect("ep_v1.hash_full_id = None"), new_status, ep_v1.node_id.expect("ep_v1.node_id = None").0,
-                            ep_v1.issuer.to_string(), api_to_integer(&ep_v1.api),
-                            ep_v1.version, ep_v1.raw_endpoint, new_last_check
+                            ep_v10.hash_full_id.expect("ep_v10.hash_full_id = None"), new_status, ep_v10.node_id.expect("ep_v10.node_id = None").0,
+                            ep_v10.issuer.to_string(), api_to_integer(&ep_v10.api),
+                            ep_v10.version, ep_v10.raw_endpoint, new_last_check
                         )
                     )
                     .expect("Fail to parse SQL request INSERT endpoint !");

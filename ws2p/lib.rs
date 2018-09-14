@@ -109,6 +109,7 @@ impl Default for WS2PConf {
                     ),
                     0,
                     0,
+                    1u16,
                 ).unwrap(),
                 NetworkEndpoint::parse_from_raw(
                     "WS2P b48824f0 g1.monnaielibreoccitanie.org 443 /ws2p",
@@ -119,6 +120,7 @@ impl Default for WS2PConf {
                     ),
                     0,
                     0,
+                    1u16,
                 ).unwrap(),
             ],
         }
@@ -540,7 +542,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                                             *node_full_id,
                                                             *conn_state as u32,
                                                             uid_option.clone(),
-                                                            ep.get_url(false),
+                                                            ep.get_url(false, false)
+                                                                .expect("Endpoint unreachable !"),
                                                         ),
                                                     );
                                                 }
@@ -581,7 +584,10 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                 ws2p_full_id,
                                 WS2PConnectionState::Established as u32,
                                 ws2p_module.uids_cache.get(&ws2p_full_id.1).cloned(),
-                                ws2p_module.ws2p_endpoints[&ws2p_full_id].0.get_url(false),
+                                ws2p_module.ws2p_endpoints[&ws2p_full_id]
+                                    .0
+                                    .get_url(false, false)
+                                    .expect("Endpoint unreachable !"),
                             ));
                         }
                         WS2PSignal::WSError(ws2p_full_id) => {
@@ -590,7 +596,10 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                 ws2p_full_id,
                                 WS2PConnectionState::WSError as u32,
                                 ws2p_module.uids_cache.get(&ws2p_full_id.1).cloned(),
-                                ws2p_module.ws2p_endpoints[&ws2p_full_id].0.get_url(false),
+                                ws2p_module.ws2p_endpoints[&ws2p_full_id]
+                                    .0
+                                    .get_url(false, false)
+                                    .expect("Endpoint unreachable !"),
                             ));
                         }
                         WS2PSignal::NegociationTimeout(ws2p_full_id) => {
@@ -599,7 +608,10 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                 ws2p_full_id,
                                 WS2PConnectionState::Denial as u32,
                                 ws2p_module.uids_cache.get(&ws2p_full_id.1).cloned(),
-                                ws2p_module.ws2p_endpoints[&ws2p_full_id].0.get_url(false),
+                                ws2p_module.ws2p_endpoints[&ws2p_full_id]
+                                    .0
+                                    .get_url(false, false)
+                                    .expect("Endpoint unreachable !"),
                             ));
                         }
                         WS2PSignal::Timeout(ws2p_full_id) => {
@@ -608,7 +620,10 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                 ws2p_full_id,
                                 WS2PConnectionState::Close as u32,
                                 ws2p_module.uids_cache.get(&ws2p_full_id.1).cloned(),
-                                ws2p_module.ws2p_endpoints[&ws2p_full_id].0.get_url(false),
+                                ws2p_module.ws2p_endpoints[&ws2p_full_id]
+                                    .0
+                                    .get_url(false, false)
+                                    .expect("Endpoint unreachable !"),
                             ));
                         }
                         WS2PSignal::PeerCard(_ws2p_full_id, _peer_card, ws2p_endpoints) => {
@@ -1065,6 +1080,7 @@ mod tests {
             ),
             1,
             current_time.as_secs(),
+            1,
         ).expect("Failt to parse test endpoint !");
 
         ws2p_db::write_endpoint(&db, &endpoint, 1, current_time.as_secs());

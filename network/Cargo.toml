@@ -9,6 +9,7 @@ license = "AGPL-3.0"
 path = "lib.rs"
 
 [dependencies]
+byteorder = "1.2.3"
 duniter-crypto = { path = "../crypto" }
 duniter-documents = { path = "../documents" }
 duniter-module = { path = "../module" }

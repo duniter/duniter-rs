@@ -319,6 +319,7 @@ dependencies = [
 name = "duniter-network"
 version = "0.1.0-a0.1"
 dependencies = [
+ "byteorder 1.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "duniter-crypto 0.2.0-a0.1",
  "duniter-documents 0.8.0-a0.1",
  "duniter-module 0.1.0-a0.1",

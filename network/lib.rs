@@ -33,6 +33,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate serde_derive;
 
+extern crate byteorder;
 extern crate crypto;
 extern crate duniter_crypto;
 extern crate duniter_documents;
@@ -343,8 +344,8 @@ mod tests {
         let node_id = NodeUUID(u32::from_str_radix("c1c39a0a", 16).unwrap());
         let full_id = NodeFullId(node_id, issuer);
         assert_eq!(
-            NetworkEndpoint::parse_from_raw("WS2P c1c39a0a i3.ifee.fr 80 /ws2p", issuer, 0, 0),
-            Some(NetworkEndpoint::V1(NetworkEndpointV1 {
+            NetworkEndpoint::parse_from_raw("WS2P c1c39a0a i3.ifee.fr 80 /ws2p", issuer, 0, 0, 1),
+            Ok(NetworkEndpoint::V10(NetworkEndpointV10 {
                 version: 1,
                 issuer,
                 api: NetworkEndpointApi(String::from("WS2P")),
@@ -369,8 +370,8 @@ mod tests {
         let node_id = NodeUUID(u32::from_str_radix("cb06a19b", 16).unwrap());
         let full_id = NodeFullId(node_id, issuer);
         assert_eq!(
-            NetworkEndpoint::parse_from_raw("WS2P cb06a19b g1.imirhil.fr 53012 /", issuer, 0, 0),
-            Some(NetworkEndpoint::V1(NetworkEndpointV1 {
+            NetworkEndpoint::parse_from_raw("WS2P cb06a19b g1.imirhil.fr 53012 /", issuer, 0, 0, 1),
+            Ok(NetworkEndpoint::V10(NetworkEndpointV10 {
                 version: 1,
                 issuer,
                 api: NetworkEndpointApi(String::from("WS2P")),
