@@ -16,9 +16,12 @@
 //! Module defining the format of network heads v2 and how to handle them.
 
 use duniter_crypto::keys::*;
+use duniter_documents::BlockUIdParseError;
 use duniter_documents::Blockstamp;
 use std::cmp::Ordering;
+use std::num::ParseIntError;
 use std::ops::Deref;
+use std::str::FromStr;
 use NodeId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -135,40 +138,70 @@ pub enum NetworkHeadMessage {
     Other(),
 }
 
+/// NetworkHeadMessage parse error
+#[derive(Debug)]
+pub enum NetworkHeadMessageParseErr {
+    /// BaseConvertionError
+    BaseConvertionError(BaseConvertionError),
+    /// ParseIntError
+    ParseIntError(ParseIntError),
+    /// BlockUIdParseError
+    BlockUIdParseError(BlockUIdParseError),
+}
+
+impl From<BaseConvertionError> for NetworkHeadMessageParseErr {
+    fn from(e: BaseConvertionError) -> Self {
+        NetworkHeadMessageParseErr::BaseConvertionError(e)
+    }
+}
+
+impl From<BlockUIdParseError> for NetworkHeadMessageParseErr {
+    fn from(e: BlockUIdParseError) -> Self {
+        NetworkHeadMessageParseErr::BlockUIdParseError(e)
+    }
+}
+
+impl From<ParseIntError> for NetworkHeadMessageParseErr {
+    fn from(e: ParseIntError) -> Self {
+        NetworkHeadMessageParseErr::ParseIntError(e)
+    }
+}
+
+impl FromStr for NetworkHeadMessage {
+    type Err = NetworkHeadMessageParseErr;
+    fn from_str(source: &str) -> Result<Self, Self::Err> {
+        let source_array: Vec<&str> = source.split(':').collect();
+        Ok(NetworkHeadMessage::V2(NetworkHeadMessageV2 {
+            api: source_array[0].to_string(),
+            version: source_array[2].parse()?,
+            pubkey: PubKey::Ed25519(ed25519::PublicKey::from_base58(
+                &source_array[3].to_string(),
+            )?),
+            blockstamp: Blockstamp::from_string(source_array[4])?,
+            node_uuid: NodeId(u32::from_str_radix(source_array[5], 16)?),
+            software: source_array[6].to_string(),
+            soft_version: source_array[7].to_string(),
+            prefix: source_array[8].parse()?,
+            free_member_room: if let Some(field) = source_array.get(9) {
+                Some(field.parse()?)
+            } else {
+                None
+            },
+            free_mirror_room: if let Some(field) = source_array.get(10) {
+                Some(field.parse()?)
+            } else {
+                None
+            },
+        }))
+    }
+}
+
 impl NetworkHeadMessage {
     /// To human readable string
     pub fn to_human_string(&self, max_len: usize, uid: Option<String>) -> String {
         match *self {
             NetworkHeadMessage::V2(ref mess_v2) => mess_v2.deref().to_human_string(max_len, uid),
             _ => panic!("NetworkHead version not supported !"),
-        }
-    }
-    /// Parse head from string
-    pub fn from_str(source: &str) -> Option<NetworkHeadMessage> {
-        let source_array: Vec<&str> = source.split(':').collect();
-        if let Ok(pubkey) = ed25519::PublicKey::from_base58(&source_array[3].to_string()) {
-            Some(NetworkHeadMessage::V2(NetworkHeadMessageV2 {
-                api: source_array[0].to_string(),
-                version: source_array[2].parse().unwrap(),
-                pubkey: PubKey::Ed25519(pubkey),
-                blockstamp: Blockstamp::from_string(source_array[4]).unwrap(),
-                node_uuid: NodeId(u32::from_str_radix(source_array[5], 16).unwrap()),
-                software: source_array[6].to_string(),
-                soft_version: source_array[7].to_string(),
-                prefix: source_array[8].parse().unwrap(),
-                free_member_room: if let Some(field) = source_array.get(9) {
-                    Some(field.parse().unwrap())
-                } else {
-                    None
-                },
-                free_mirror_room: if let Some(field) = source_array.get(10) {
-                    Some(field.parse().unwrap())
-                } else {
-                    None
-                },
-            }))
-        } else {
-            None
         }
     }
     /// Get head blockcstamp

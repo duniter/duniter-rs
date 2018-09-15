@@ -16,12 +16,15 @@
 //! Module defining the format of network heads and how to handle them.
 
 use duniter_crypto::keys::*;
+use duniter_documents::BlockUIdParseError;
 use duniter_documents::Blockstamp;
 use network_head_v2::*;
 use network_head_v3::*;
 use serde_json;
 use std::collections::HashMap;
+use std::num::ParseIntError;
 use std::ops::Deref;
+use std::str::FromStr;
 use {NodeFullId, NodeId};
 
 #[derive(Debug, Clone, Eq, Ord, PartialOrd, PartialEq, Serialize, Deserialize)]
@@ -39,6 +42,51 @@ impl ToString for NetworkHead {
             NetworkHead::V2(ref head_v2) => head_v2.deref().to_string(),
             _ => panic!("NetworkHead version not supported !"),
         }
+    }
+}
+
+/// NetworkHeadParseErr parse error
+#[derive(Debug)]
+pub enum NetworkHeadParseErr {
+    /// BaseConvertionError
+    BaseConvertionError(BaseConvertionError),
+    /// ParseIntError
+    ParseIntError(ParseIntError),
+    /// BlockUIdParseError
+    BlockUIdParseError(BlockUIdParseError),
+    /// NetworkHeadMessageParseErr
+    NetworkHeadMessageParseErr(NetworkHeadMessageParseErr),
+    /// InvalidMessageVersion
+    InvalidMessageVersion(),
+    /// InvalidStep
+    InvalidStep(),
+    /// InvalidStr
+    InvalidStr(&'static str),
+    /// MissingField
+    MissingField(&'static str),
+}
+
+impl From<NetworkHeadMessageParseErr> for NetworkHeadParseErr {
+    fn from(e: NetworkHeadMessageParseErr) -> Self {
+        NetworkHeadParseErr::NetworkHeadMessageParseErr(e)
+    }
+}
+
+impl From<BaseConvertionError> for NetworkHeadParseErr {
+    fn from(e: BaseConvertionError) -> Self {
+        NetworkHeadParseErr::BaseConvertionError(e)
+    }
+}
+
+impl From<BlockUIdParseError> for NetworkHeadParseErr {
+    fn from(e: BlockUIdParseError) -> Self {
+        NetworkHeadParseErr::BlockUIdParseError(e)
+    }
+}
+
+impl From<ParseIntError> for NetworkHeadParseErr {
+    fn from(e: ParseIntError) -> Self {
+        NetworkHeadParseErr::ParseIntError(e)
     }
 }
 
@@ -136,25 +184,64 @@ impl NetworkHead {
         }
     }
     /// Parse Json Head
-    pub fn from_json_value(source: &serde_json::Value) -> Option<NetworkHead> {
-        let message = NetworkHeadMessage::from_str(source.get("message")?.as_str().unwrap())?;
+    pub fn from_json_value(source: &serde_json::Value) -> Result<NetworkHead, NetworkHeadParseErr> {
+        let message = NetworkHeadMessage::from_str(if let Some(str_msg) = source.get("message") {
+            if let Some(str_msg) = str_msg.as_str() {
+                str_msg
+            } else {
+                return Err(NetworkHeadParseErr::InvalidStr("message"));
+            }
+        } else {
+            return Err(NetworkHeadParseErr::MissingField("message"));
+        })?;
         match message {
-            NetworkHeadMessage::V2(_) => Some(NetworkHead::V2(Box::new(NetworkHeadV2 {
+            NetworkHeadMessage::V2(_) => Ok(NetworkHead::V2(Box::new(NetworkHeadV2 {
                 message,
-                sig: Sig::Ed25519(
-                    ed25519::Signature::from_base64(source.get("sig")?.as_str().unwrap()).unwrap(),
-                ),
-                message_v2: NetworkHeadMessage::from_str(
-                    source.get("messageV2")?.as_str().unwrap(),
-                )?,
-                sig_v2: Sig::Ed25519(
-                    ed25519::Signature::from_base64(source.get("sigV2")?.as_str().unwrap())
-                        .unwrap(),
-                ),
-                step: source.get("step")?.as_u64().unwrap() as u32,
+                sig: Sig::Ed25519(ed25519::Signature::from_base64(if let Some(str_sig) =
+                    source.get("sig")
+                {
+                    if let Some(str_sig) = str_sig.as_str() {
+                        str_sig
+                    } else {
+                        return Err(NetworkHeadParseErr::InvalidStr("sig"));
+                    }
+                } else {
+                    return Err(NetworkHeadParseErr::MissingField("sigV2"));
+                })?),
+                message_v2: NetworkHeadMessage::from_str(if let Some(str_msg) =
+                    source.get("messageV2")
+                {
+                    if let Some(str_msg) = str_msg.as_str() {
+                        str_msg
+                    } else {
+                        return Err(NetworkHeadParseErr::InvalidStr("messageV2"));
+                    }
+                } else {
+                    return Err(NetworkHeadParseErr::MissingField("messageV2"));
+                })?,
+                sig_v2: Sig::Ed25519(ed25519::Signature::from_base64(if let Some(str_sig) =
+                    source.get("sigV2")
+                {
+                    if let Some(str_sig) = str_sig.as_str() {
+                        str_sig
+                    } else {
+                        return Err(NetworkHeadParseErr::InvalidStr("sigV2"));
+                    }
+                } else {
+                    return Err(NetworkHeadParseErr::MissingField("sigV2"));
+                })?),
+                step: if let Some(step) = source.get("step") {
+                    if let Some(step) = step.as_u64() {
+                        step as u32
+                    } else {
+                        return Err(NetworkHeadParseErr::InvalidStep());
+                    }
+                } else {
+                    return Err(NetworkHeadParseErr::MissingField("step"));
+                },
                 uid: None,
             }))),
-            _ => None,
+            _ => Err(NetworkHeadParseErr::InvalidMessageVersion()),
         }
     }
     /// To human readable string

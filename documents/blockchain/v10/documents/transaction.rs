@@ -528,7 +528,9 @@ impl TransactionDocument {
     pub fn reduce(&mut self) {
         self.text = None;
         self.hash = None;
-        self.outputs.iter_mut().map(|o| o.reduce()).collect::<()>();
+        for output in &mut self.outputs {
+            output.reduce()
+        }
     }
 }
 

@@ -82,8 +82,8 @@ impl<'de> Deserialize<'de> for Signature {
                 A: SeqAccess<'de>,
             {
                 let mut arr = [0u8; 64];
-                for i in 0..64 {
-                    arr[i] = seq
+                for (i, byte) in arr.iter_mut().take(64).enumerate() {
+                    *byte = seq
                         .next_element()?
                         .ok_or_else(|| Error::invalid_length(i, &self))?;
                 }

@@ -302,7 +302,7 @@ impl WS2PModuleDatas {
             WS2PConnectionMessagePayload::Heads(heads) => {
                 let mut applied_heads = Vec::with_capacity(heads.len());
                 for head in heads {
-                    if let Some(head) = NetworkHead::from_json_value(&head) {
+                    if let Ok(head) = NetworkHead::from_json_value(&head) {
                         if head.verify()
                             && (self.my_head.is_none() || head.node_full_id() != self
                                 .my_head

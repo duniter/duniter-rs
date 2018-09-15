@@ -551,42 +551,41 @@ pub fn sync_ts<DC: DuniterConf>(
                     "Fail to communicate with blocks worker thread, please reset data & resync !",
                 );
             // Send wot requests to wot worker thread
-            wot_db_reqs
-                .iter()
-                .map(|req| {
-                    if let WotsDBsWriteQuery::CreateCert(
-                        ref _source_pubkey,
-                        ref source,
-                        ref target,
-                        ref created_block_id,
-                        ref _median_time,
-                    ) = req
-                    {
-                        certs_count += 1;
-                        // Add cert in certs_db
-                        certs_db
-                            .write(|db| {
-                                let mut created_certs =
-                                    db.get(&created_block_id).cloned().unwrap_or_default();
-                                created_certs.insert((*source, *target));
-                                db.insert(*created_block_id, created_certs);
-                            })
-                            .expect("RustBreakError : please reset data and resync !");
-                    }
-                    sender_wot_thread
-                        .send(SyncJobsMess::WotsDBsWriteQuery(req.clone(), Box::new(currency_params)))
-                        .expect("Fail to communicate with tx worker thread, please reset data & resync !")
-                })
-                .collect::<()>();
+            for req in wot_db_reqs {
+                if let WotsDBsWriteQuery::CreateCert(
+                    ref _source_pubkey,
+                    ref source,
+                    ref target,
+                    ref created_block_id,
+                    ref _median_time,
+                ) = req
+                {
+                    certs_count += 1;
+                    // Add cert in certs_db
+                    certs_db
+                        .write(|db| {
+                            let mut created_certs =
+                                db.get(&created_block_id).cloned().unwrap_or_default();
+                            created_certs.insert((*source, *target));
+                            db.insert(*created_block_id, created_certs);
+                        }).expect("RustBreakError : please reset data and resync !");
+                }
+                sender_wot_thread
+                    .send(SyncJobsMess::WotsDBsWriteQuery(
+                        req.clone(),
+                        Box::new(currency_params),
+                    )).expect(
+                        "Fail to communicate with tx worker thread, please reset data & resync !",
+                    )
+            }
             // Send blocks and wot requests to wot worker thread
-            currency_db_reqs
-                .iter()
-                .map(|req| {
-                    sender_tx_thread
-                        .send(SyncJobsMess::CurrencyDBsWriteQuery(req.clone()))
-                        .expect("Fail to communicate with tx worker thread, please reset data & resync !")
-                })
-                .collect::<()>();
+            for req in currency_db_reqs {
+                sender_tx_thread
+                    .send(SyncJobsMess::CurrencyDBsWriteQuery(req.clone()))
+                    .expect(
+                        "Fail to communicate with tx worker thread, please reset data & resync !",
+                    );
+            }
             debug!("Success to apply block #{}", current_blockstamp.id.0);
             if current_blockstamp.id.0 >= target_blockstamp.id.0 {
                 if current_blockstamp == target_blockstamp {

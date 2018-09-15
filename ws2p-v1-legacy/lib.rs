@@ -1165,7 +1165,7 @@ mod tests {
             "step": 0
         });
         let mut heads_count = 0;
-        if let Some(head) = NetworkHead::from_json_value(&head) {
+        if let Ok(head) = NetworkHead::from_json_value(&head) {
             if let NetworkHead::V2(ref head_v2) = head {
                 heads_count += 1;
                 assert_eq!(
@@ -1174,6 +1174,8 @@ mod tests {
                 );
             }
             assert_eq!(head.verify(), true);
+        } else {
+            panic!("Fail to parse head !")
         }
         assert_eq!(heads_count, 1);
     }

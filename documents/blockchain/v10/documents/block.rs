@@ -315,14 +315,21 @@ impl BlockDocument {
         //self.hash = None;
         self.inner_hash = None;
         self.inner_hash_and_nonce_str = String::with_capacity(0);
-        self.identities
-            .iter_mut()
-            .map(|i| i.reduce())
-            .collect::<()>();
-        self.joiners.iter_mut().map(|i| i.reduce()).collect::<()>();
-        self.actives.iter_mut().map(|i| i.reduce()).collect::<()>();
-        self.leavers.iter_mut().map(|i| i.reduce()).collect::<()>();
-        self.transactions = self.transactions.iter_mut().map(|t| t.reduce()).collect();
+        for i in &mut self.identities {
+            i.reduce();
+        }
+        for i in &mut self.joiners {
+            i.reduce();
+        }
+        for i in &mut self.actives {
+            i.reduce();
+        }
+        for i in &mut self.leavers {
+            i.reduce();
+        }
+        for i in &mut self.transactions {
+            i.reduce();
+        }
     }
     /// Generate compact inner text (for compute inner_hash)
     pub fn generate_compact_inner_text(&self) -> String {

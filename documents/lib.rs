@@ -16,7 +16,6 @@
 //! Implements the Duniter Documents Protocol.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(unused_collect))]
 #![deny(
     missing_docs,
     missing_debug_implementations,

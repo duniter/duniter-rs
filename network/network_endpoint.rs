@@ -625,34 +625,32 @@ impl EndpointV2 {
                                 Some(Ipv6Addr::from_str(&raw_ep_elements[index][1..len0 - 1])?),
                                 Some(String::from(raw_ep_elements[index + 1])),
                             )
+                        } else if let Ok(ip_v4) = Ipv4Addr::from_str(raw_ep_elements[index + 1]) {
+                            // HOST IP4
+                            (
+                                Some(String::from(raw_ep_elements[index])),
+                                Some(ip_v4),
+                                None,
+                                None,
+                            )
+                        } else if let Some('[') = raw_ep_elements[index + 1].chars().next() {
+                            // HOST [IP6]
+                            (
+                                Some(String::from(raw_ep_elements[index])),
+                                None,
+                                Some(Ipv6Addr::from_str(
+                                    &raw_ep_elements[index + 1][1..len1 - 1],
+                                )?),
+                                None,
+                            )
                         } else {
-                            if let Ok(ip_v4) = Ipv4Addr::from_str(raw_ep_elements[index + 1]) {
-                                // HOST IP4
-                                (
-                                    Some(String::from(raw_ep_elements[index])),
-                                    Some(ip_v4),
-                                    None,
-                                    None,
-                                )
-                            } else if let Some('[') = raw_ep_elements[index + 1].chars().next() {
-                                // HOST [IP6]
-                                (
-                                    Some(String::from(raw_ep_elements[index])),
-                                    None,
-                                    Some(Ipv6Addr::from_str(
-                                        &raw_ep_elements[index + 1][1..len1 - 1],
-                                    )?),
-                                    None,
-                                )
-                            } else {
-                                // HOST PATH
-                                (
-                                    Some(String::from(raw_ep_elements[index])),
-                                    None,
-                                    None,
-                                    Some(String::from(raw_ep_elements[index + 1])),
-                                )
-                            }
+                            // HOST PATH
+                            (
+                                Some(String::from(raw_ep_elements[index])),
+                                None,
+                                None,
+                                Some(String::from(raw_ep_elements[index + 1])),
+                            )
                         }
                     } else if raw_ep_elements.len() == index + 1 {
                         let len0 = raw_ep_elements[index].len();
