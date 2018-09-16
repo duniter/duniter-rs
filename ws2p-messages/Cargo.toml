@@ -14,7 +14,6 @@ byteorder = "1.2.3"
 duniter-crypto = { path = "../crypto" }
 duniter-documents = { path = "../documents" }
 duniter-network = { path = "../network" }
-dup-binarizer = { path = "../binarizer" }
 log = "0.4.*"
 regex = "0.2.*"
 rust-crypto = "0.2.*"

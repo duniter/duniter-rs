@@ -45,7 +45,6 @@ extern crate duniter_documents;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
-extern crate dup_binarizer;
 extern crate rand;
 extern crate sqlite;
 extern crate ws;

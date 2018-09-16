@@ -28,7 +28,7 @@ use duniter_crypto::keys::PubKey;
 use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr};
 use std::num::ParseIntError;
 use std::str::FromStr;
-use {ApiFeatures, NodeFullId, NodeId};
+use {NodeFullId, NodeId};
 
 /// Total size of all fixed size fields of an EndpointV2
 pub static ENDPOINTV2_FIXED_SIZE: &'static usize = &9;
@@ -36,6 +36,40 @@ pub static ENDPOINTV2_FIXED_SIZE: &'static usize = &9;
 pub static MAX_NETWORK_FEATURES_COUNT: &'static usize = &2040;
 /// Maximum number of api features
 pub static MAX_API_FEATURES_COUNT: &'static usize = &2040;
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+/// ApiFeatures
+pub struct ApiFeatures(pub Vec<u8>);
+
+impl ApiFeatures {
+    fn to_string_for_api(&self, api: &NetworkEndpointApi) -> String {
+        match api.0.as_str() {
+            "WS2P" => {
+                let mut af_count = 0;
+                let def = if self.0[0] | 0b_1111_1110 == 255u8 {
+                    af_count += 1;
+                    " DEF"
+                } else {
+                    ""
+                };
+                let low = if self.0[0] | 0b_1111_1101 == 255u8 {
+                    af_count += 1;
+                    " LOW"
+                } else {
+                    ""
+                };
+                let abf = if self.0[0] | 0b_1111_1011 == 255u8 {
+                    af_count += 1;
+                    " ABF"
+                } else {
+                    ""
+                };
+                format!("{}{}{}{}", af_count, def, low, abf)
+            }
+            _ => String::from(""),
+        }
+    }
+}
 
 lazy_static! {
     #[derive(Debug)]
@@ -148,6 +182,18 @@ pub struct EndpointEnumV1 {
 /// Network features
 pub struct EndpointV2NetworkFeatures(pub Vec<u8>);
 
+impl ToString for EndpointV2NetworkFeatures {
+    fn to_string(&self) -> String {
+        if self.tls() {
+            String::from("1 TLS")
+        } else if self.tor() {
+            String::from("1 TOR")
+        } else {
+            String::from("")
+        }
+    }
+}
+
 impl EndpointV2NetworkFeatures {
     /// Parse network features from utf8 string's array
     pub fn from_str_array(
@@ -229,6 +275,43 @@ pub struct EndpointV2 {
     pub path: Option<String>,
 }
 
+impl ToString for EndpointV2 {
+    fn to_string(&self) -> String {
+        let host: String = if let Some(ref host) = self.host {
+            format!("{} ", host)
+        } else {
+            String::from("")
+        };
+        let ip4: String = if let Some(ip4) = self.ip_v4 {
+            format!("{} ", ip4.to_string())
+        } else {
+            String::from("")
+        };
+        let ip6: String = if let Some(ip6) = self.ip_v6 {
+            format!("[{}] ", ip6.to_string())
+        } else {
+            String::from("")
+        };
+        let path: &str = if let Some(ref path) = self.path {
+            path
+        } else {
+            ""
+        };
+        format!(
+            "{api} {version} {nf} {af} {port} {host}{ip4}{ip6}{path}",
+            api = self.api.0,
+            version = self.api_version,
+            nf = self.network_features.to_string(),
+            af = self.api_features.to_string_for_api(&self.api),
+            port = self.port,
+            host = host,
+            ip4 = ip4,
+            ip6 = ip6,
+            path = path,
+        )
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Size informations of Endpoint v2
 pub struct EndpointV2Size {
@@ -269,170 +352,6 @@ impl EndpointV2Size {
         total_size
     }
 }
-
-/*
-impl BinMessage for EndpointV2 {
-    type ReadBytesError = EndpointReadBytesError;
-
-    fn to_bytes_vector(&self) -> Vec<u8> {
-        let endpoint_size = self.compute_endpoint_size();
-        let mut binary_endpoint = Vec::with_capacity(endpoint_size.total_size());
-        binary_endpoint.push(endpoint_size.api_size);
-        binary_endpoint.push(endpoint_size.host_size);
-        binary_endpoint.push(endpoint_size.path_size);
-        binary_endpoint.append(&mut self.api.to_bytes_vector());
-        // api_version
-        let mut buffer = [0u8; mem::size_of::<u16>()];
-        buffer
-            .as_mut()
-            .write_u16::<BigEndian>(self.api_version)
-            .expect("Unable to write");
-        binary_endpoint.extend_from_slice(&buffer);
-        // nf_size
-        binary_endpoint.push(endpoint_size.nf_size);
-        // network_features
-        binary_endpoint.extend_from_slice(&self.network_features.to_bytes_slice());
-        binary_endpoint.push(endpoint_size.af_size);
-        binary_endpoint.append(&mut self.api_features.0.clone());
-        if let Some(ip_v4) = self.ip_v4 {
-            binary_endpoint.extend_from_slice(&ip_v4.octets());
-        }
-        if let Some(ip_v6) = self.ip_v6 {
-            binary_endpoint.extend_from_slice(&ip_v6.octets());
-        }
-        if let Some(ref host) = self.host {
-            binary_endpoint.extend_from_slice(host.as_bytes());
-        }
-        // port
-        let mut buffer = [0u8; mem::size_of::<u16>()];
-        buffer
-            .as_mut()
-            .write_u16::<BigEndian>(self.port)
-            .expect("Unable to write");
-        binary_endpoint.extend_from_slice(&buffer);
-        // path
-        if let Some(ref path) = self.path {
-            binary_endpoint.extend_from_slice(path.as_bytes());
-        }
-        binary_endpoint
-    }
-    /// Create endpoint from bytes vector
-    fn from_bytes(binary_ep: &[u8]) -> Result<EndpointV2, EndpointReadBytesError> {
-        if binary_ep.len() < *ENDPOINTV2_FIXED_SIZE {
-            return Err(EndpointReadBytesError::TooShort());
-        }
-        let api_size = binary_ep[0] as usize;
-        let host_size = binary_ep[1] as usize;
-        let path_size = binary_ep[2] as usize;
-        if binary_ep.len() < (*ENDPOINTV2_FIXED_SIZE + api_size + host_size + path_size) {
-            return Err(EndpointReadBytesError::TooShort());
-        }
-        let mut index: usize = 3;
-        // read api
-        let api_datas = if api_size == 0 {
-            index += 1;
-            &binary_ep[index - 1..index]
-        } else {
-            index += api_size;
-            &binary_ep[index - api_size..index]
-        };
-        let api = NetworkEndpointApi::api_from_bytes(api_size, api_datas)?;
-        // read api_version
-        let mut api_version_bytes = Cursor::new(binary_ep[index..index + 2].to_vec());
-        index += 2;
-        let api_version = api_version_bytes.read_u16::<BigEndian>()?;
-        // read nf_size
-        let nf_size = binary_ep[index] as usize;
-        index += 1;
-        if binary_ep.len() < index + nf_size + 1 {
-            return Err(EndpointReadBytesError::TooShort());
-        }
-        // read network_features
-        let network_features =
-            EndpointV2NetworkFeatures(binary_ep[index..index + nf_size].to_vec());
-        index += nf_size;
-        // read af_size
-        let af_size = binary_ep[index] as usize;
-        index += 1;
-        if binary_ep.len() < index + af_size + 1 {
-            return Err(EndpointReadBytesError::TooShort());
-        }
-        // read api_features
-        let api_features = ApiFeatures(binary_ep[index..index + nf_size].to_vec());
-        index += af_size;
-        // read ip_v4
-        let ip_v4 = network_features.ip_v4();
-        if binary_ep.len() < index + 4 && ip_v4 {
-            return Err(EndpointReadBytesError::TooShort());
-        }
-        let ip_v4 = if ip_v4 {
-            index += 4;
-            Some(Ipv4Addr::new(
-                binary_ep[index - 4],
-                binary_ep[index - 3],
-                binary_ep[index - 2],
-                binary_ep[index - 1],
-            ))
-        } else {
-            None
-        };
-        // read ip_v6
-        let ip_v6 = network_features.ip_v6();
-        if binary_ep.len() < index + 16 && ip_v6 {
-            return Err(EndpointReadBytesError::TooShort());
-        }
-        let ip_v6 = if ip_v6 {
-            index += 16;
-            let mut ip_v6_datas: [u8; 16] = [0u8; 16];
-            ip_v6_datas.copy_from_slice(&binary_ep[index - 16..index]);
-            Some(Ipv6Addr::from(ip_v6_datas))
-        } else {
-            None
-        };
-        // read host
-        if binary_ep.len() < index + host_size + 2 {
-            return Err(EndpointReadBytesError::TooShort());
-        }
-        let host = if host_size > 0 {
-            index += host_size;
-            Some(String::from_utf8(
-                binary_ep[index - host_size..index].to_vec(),
-            )?)
-        } else {
-            None
-        };
-        // read port
-        let mut port_bytes = Cursor::new((&binary_ep[index..index + 2]).to_vec());
-        index += 2;
-        let port = port_bytes.read_u16::<BigEndian>()?;
-        // read path
-        if binary_ep.len() < index + path_size {
-            return Err(EndpointReadBytesError::TooShort());
-        } else if binary_ep.len() > index + path_size {
-            return Err(EndpointReadBytesError::TooLong());
-        }
-        let path = if path_size > 0 {
-            Some(String::from_utf8(
-                binary_ep[index..index + path_size].to_vec(),
-            )?)
-        } else {
-            None
-        };
-        Ok(EndpointV2 {
-            api,
-            api_version,
-            network_features,
-            api_features,
-            ip_v4,
-            ip_v6,
-            host,
-            port,
-            path,
-            status: 0,
-            last_check: 0,
-        })
-    }
-}*/
 
 impl EndpointV2 {
     /// Generate endpoint url
@@ -710,7 +629,7 @@ impl ToString for EndpointEnum {
     fn to_string(&self) -> String {
         match *self {
             EndpointEnum::V1(ref ep) => ep.raw_endpoint.clone(),
-            EndpointEnum::V2(ref _ep) => panic!("Endpoint version is not supported !"),
+            EndpointEnum::V2(ref ep) => ep.to_string(),
         }
     }
 }
@@ -869,7 +788,8 @@ mod tests {
         let binary_endpoint = serialize(&endpoint).expect("Fail to serialize endpoint !");
         let endpoint2: EndpointV2 =
             deserialize(&binary_endpoint).expect("Fail to deserialize endpoint !");
-        assert_eq!(endpoint, endpoint2,)
+        assert_eq!(endpoint, endpoint2,);
+        assert_eq!(str_endpoint, endpoint.to_string());
     }
 
     #[test]

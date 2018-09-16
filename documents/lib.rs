@@ -38,7 +38,6 @@ extern crate base64;
 extern crate byteorder;
 extern crate crypto;
 extern crate duniter_crypto;
-extern crate dup_binarizer;
 extern crate linked_hash_map;
 extern crate regex;
 extern crate serde;
@@ -46,7 +45,6 @@ extern crate serde;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use currencies_codes::*;
 use duniter_crypto::hashs::Hash;
-use dup_binarizer::BinMessage;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::io::Cursor;
@@ -240,6 +238,7 @@ impl From<::std::io::Error> for ReadBytesBlockstampError {
     }
 }
 
+/*
 impl BinMessage for Blockstamp {
     type ReadBytesError = ReadBytesBlockstampError;
     fn from_bytes(bytes: &[u8]) -> Result<Self, Self::ReadBytesError> {
@@ -272,7 +271,7 @@ impl BinMessage for Blockstamp {
         bytes.extend(self.hash.0.to_bytes_vector());
         bytes
     }
-}
+}*/
 
 impl Blockstamp {
     /// Create a `BlockUId` from a text.

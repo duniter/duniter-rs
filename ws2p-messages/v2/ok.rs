@@ -35,49 +35,6 @@ impl Default for WS2Pv2OkMsg {
     }
 }
 
-/*
-impl BinMessage for WS2Pv2OkMsg {
-    type ReadBytesError = WS2Pv0MsgPayloadContentParseError;
-    fn from_bytes(datas: &[u8]) -> Result<Self, Self::ReadBytesError> {
-        match datas.len() {
-            0 => Ok(WS2Pv2OkMsg::default()),
-            1 => Err(WS2Pv0MsgPayloadContentParseError::TooShort(
-                "Size of WS2Pv2OkMsg cannot be 1",
-            )),
-            2 => Ok(WS2Pv2OkMsg {
-                prefix: NonZeroU16::new(u16::read_u16_be(&datas)?),
-                sync_target: None,
-            }),
-            _ => Ok(WS2Pv2OkMsg {
-                prefix: NonZeroU16::new(u16::read_u16_be(&datas[0..2])?),
-                sync_target: Some(WS2Pv2SyncTarget::from_bytes(&datas[2..])?),
-            }),
-        }
-    }
-    fn to_bytes_vector(&self) -> Vec<u8> {
-        if let Some(ref sync_target) = self.sync_target {
-            let sync_target_bytes = sync_target.to_bytes_vector();
-            let mut ok_msg_bytes = Vec::with_capacity(2 + sync_target_bytes.len());
-            if let Some(prefix) = self.prefix {
-                u16::write_u16_be(&mut ok_msg_bytes, prefix.get())
-                    .expect("Fail to write prefix in WS2Pv2OkMsg !");
-            } else {
-                u16::write_u16_be(&mut ok_msg_bytes, 0)
-                    .expect("Fail to write prefix in WS2Pv2OkMsg !");
-            }
-            ok_msg_bytes.extend(sync_target_bytes);
-            ok_msg_bytes
-        } else if let Some(prefix) = self.prefix {
-            let mut ok_msg_bytes = Vec::with_capacity(2);
-            u16::write_u16_be(&mut ok_msg_bytes, prefix.get())
-                .expect("Fail to write prefix in WS2Pv2OkMsg !");
-            ok_msg_bytes
-        } else {
-            vec![]
-        }
-    }
-}*/
-
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 /// WS2Pv2SyncTarget
 pub struct WS2Pv2SyncTarget {
@@ -86,49 +43,6 @@ pub struct WS2Pv2SyncTarget {
     /// Hash table of the last block of each chunk. We do not need the block numbers, we know them. Here the remote node sends the hashs of all these chunk, which correspond to the current hashs of all the blocks having a number in 250 module 249, in ascending order.
     pub chunks_hash: Vec<Hash>,
 }
-
-/*
-impl BinMessage for WS2Pv2SyncTarget {
-    type ReadBytesError = WS2Pv0MsgPayloadContentParseError;
-    fn from_bytes(datas: &[u8]) -> Result<Self, Self::ReadBytesError> {
-        // target_blockstamp
-        let target_blockstamp = if datas.len() < (Blockstamp::SIZE_IN_BYTES + 2) {
-            return Err(WS2Pv0MsgPayloadContentParseError::TooShort("blockstamp"));
-        } else {
-            Blockstamp::from_bytes(&datas[0..Blockstamp::SIZE_IN_BYTES])?
-        };
-        // chunks_hash_count
-        let mut index = Blockstamp::SIZE_IN_BYTES + 2;
-        let chunks_hash_count = u16::read_u16_be(&datas[index - 2..index])? as usize;
-        let chunks_hash = if datas.len() < (index + (chunks_hash_count * Hash::SIZE_IN_BYTES)) {
-            return Err(WS2Pv0MsgPayloadContentParseError::TooShort("chunks_hash"));
-        } else {
-            let mut chunks_hash = Vec::with_capacity(chunks_hash_count);
-            for _ in 0..chunks_hash_count {
-                let mut hash_bytes: [u8; 32] = [0u8; 32];
-                hash_bytes.copy_from_slice(&datas[index..index + Hash::SIZE_IN_BYTES]);
-                chunks_hash.push(Hash(hash_bytes));
-                index += Hash::SIZE_IN_BYTES;
-            }
-            chunks_hash
-        };
-        Ok(WS2Pv2SyncTarget {
-            target_blockstamp,
-            chunks_hash,
-        })
-    }
-    fn to_bytes_vector(&self) -> Vec<u8> {
-        let chunks_hash_size = self.chunks_hash.len() * Hash::SIZE_IN_BYTES;
-        let mut bytes = Vec::with_capacity(Blockstamp::SIZE_IN_BYTES + 2 + chunks_hash_size);
-        bytes.extend(self.target_blockstamp.to_bytes_vector());
-        u16::write_u16_be(&mut bytes, self.chunks_hash.len() as u16)
-            .expect("Fail to write chunks_hash_count in WS2Pv2SyncTarget !");
-        for hash in &self.chunks_hash {
-            bytes.extend_from_slice(&hash.0);
-        }
-        bytes
-    }
-}*/
 
 #[cfg(test)]
 mod tests {

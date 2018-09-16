@@ -9,11 +9,11 @@ license = "AGPL-3.0"
 path = "lib.rs"
 
 [dependencies]
+base58 = "0.1.*"
 byteorder = "1.2.3"
 duniter-crypto = { path = "../crypto" }
 duniter-documents = { path = "../documents" }
 duniter-module = { path = "../module" }
-dup-binarizer = { path = "../binarizer" }
 lazy_static = "1.0.*"
 regex = "1.0.*"
 rust-crypto = "0.2.*"

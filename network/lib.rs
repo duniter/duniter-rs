@@ -30,18 +30,18 @@
 
 #[macro_use]
 extern crate lazy_static;
-//#[cfg(test)]
-//#[macro_use]
-//extern crate pretty_assertions;
+#[cfg(test)]
+#[macro_use]
+extern crate pretty_assertions;
 #[macro_use]
 extern crate serde_derive;
 
+extern crate base58;
 extern crate byteorder;
 extern crate crypto;
 extern crate duniter_crypto;
 extern crate duniter_documents;
 extern crate duniter_module;
-extern crate dup_binarizer;
 extern crate serde;
 extern crate serde_json;
 
@@ -62,15 +62,12 @@ use duniter_documents::blockchain::v10::documents::{
 use duniter_documents::blockchain::Document;
 use duniter_documents::{BlockHash, BlockId, Blockstamp};
 use duniter_module::*;
+use network_endpoint::ApiFeatures;
 use network_head::NetworkHead;
 use network_peer::PeerCard;
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::ops::Deref;
 use std::sync::mpsc;
-
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
-/// ApiFeatures
-pub struct ApiFeatures(pub Vec<u8>);
 
 /// ApiModule
 pub trait ApiModule<DC: DuniterConf, M: ModuleMessage>: DuniterModule<DC, M> {
@@ -353,6 +350,13 @@ mod tests {
     pub extern crate bincode;
     use super::network_endpoint::*;
     use super::*;
+
+    pub fn keypair1() -> ed25519::KeyPair {
+        ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(
+            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV".as_bytes(),
+            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV_".as_bytes(),
+        )
+    }
 
     #[test]
     fn parse_endpoint() {

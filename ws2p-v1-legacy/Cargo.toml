@@ -18,7 +18,6 @@ duniter-message =  { path = "../message" }
 duniter-module = { path = "../module" }
 duniter-network = { path = "../network" }
 duniter-wotb = { path = "../wotb" }
-dup-binarizer = { path = "../binarizer" }
 lazy_static = "1.0.*"
 log = "0.4.*"
 rand = "0.4.*"

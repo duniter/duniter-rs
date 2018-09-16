@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Durs Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,56 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Defined all aspects of the inter-node network that concern all modules and are therefore independent of one implementation or another of this network layer.
+//! Generic code for signing data in binary format
 
-#![cfg_attr(feature = "strict", deny(warnings))]
-#![deny(
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_import_braces
-)]
-
-//#[cfg(test)]
-//#[macro_use]
-//extern crate pretty_assertions;
-
-extern crate bincode;
-extern crate byteorder;
-extern crate crypto;
-extern crate duniter_crypto;
-extern crate serde;
-
-pub mod pubkey_box;
-pub mod sig_box;
-pub mod u16;
-pub mod u32;
-
-use bincode::serialize;
-use duniter_crypto::hashs::*;
-use duniter_crypto::keys::*;
+use super::*;
+use bincode;
+use hashs::Hash;
 use serde::{Deserialize, Serialize};
 
-/// BinMessage := Message in binary format.
-pub trait BinMessage: Sized {
-    /// ReadBytesError
-    type ReadBytesError;
-    /// Create Self from bytes slice
-    fn from_bytes(&[u8]) -> Result<Self, Self::ReadBytesError>;
-    /// Convert Self to bytes vector
-    fn to_bytes_vector(&self) -> Vec<u8>;
-}
-
-/// Signatureable bin message
-pub trait BinMessageSignable<'de>: Serialize + Deserialize<'de> {
+/// Signatureable in binary format
+pub trait BinSignable<'de>: Serialize + Deserialize<'de> {
     /// Return message issuer pubkey
-    fn issuer_pubkey(&self) -> PubKey {
-        PubKey::default()
-    }
+    fn issuer_pubkey(&self) -> PubKey;
     /// Return true if message store is hash
     fn store_hash(&self) -> bool {
         false
@@ -74,19 +35,19 @@ pub trait BinMessageSignable<'de>: Serialize + Deserialize<'de> {
     /// Change hash (redefine ly by messages with hash field)
     fn set_hash(&mut self, _hash: Hash) {}
     /// Return message signature
-    fn signature(&self) -> Option<Sig> {
-        None
-    }
-    /// Store signature
+    fn signature(&self) -> Option<Sig>;
+    /// Change signature
     fn set_signature(&mut self, _signature: Sig);
     /// Compute hash
     fn compute_hash(&self) -> Result<(Hash, Vec<u8>), bincode::Error> {
-        let mut bin_msg = serialize(&self)?;
-        bin_msg.pop(); // Delete sig: None
+        let mut bin_msg = bincode::serialize(&self)?;
+        let sig_size = bincode::serialized_size(&self.signature())?;
+        let bin_msg_len = bin_msg.len();
+        bin_msg.truncate(bin_msg_len - (sig_size as usize));
         if self.store_hash() {
             bin_msg.pop(); // Delete hash: None
         }
-        // Compute hash
+        // Compute hash of binary datas without signature
         let hash = Hash::compute(&bin_msg);
         Ok((hash, bin_msg))
     }
@@ -105,11 +66,12 @@ pub trait BinMessageSignable<'de>: Serialize + Deserialize<'de> {
                     self.set_signature(sig);
                     if self.hash().is_some() {
                         bin_msg.extend_from_slice(
-                            &serialize(&Some(hash)).expect("Fail to binarize hash !"),
+                            &bincode::serialize(&Some(hash)).expect("Fail to binarize hash !"),
                         );
                     }
-                    bin_msg
-                        .extend_from_slice(&serialize(&Some(sig)).expect("Fail to binarize sig !"));
+                    bin_msg.extend_from_slice(
+                        &bincode::serialize(&Some(sig)).expect("Fail to binarize sig !"),
+                    );
                     Ok(bin_msg)
                 }
                 _ => Err(SignError::WrongAlgo()),
@@ -128,6 +90,7 @@ pub trait BinMessageSignable<'de>: Serialize + Deserialize<'de> {
                         } else {
                             self.compute_hash()?
                         };
+                        println!("DEBUG: verified hash={:?}", hash.0);
                         if pubkey.verify(&hash.0, &sig) {
                             Ok(())
                         } else {

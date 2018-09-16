@@ -19,7 +19,6 @@ use duniter_documents::blockchain::v10::documents::identity::CompactIdentityDocu
 use duniter_documents::blockchain::v10::documents::membership::CompactPoolMembershipDoc;
 use duniter_documents::blockchain::v10::documents::BlockDocument;
 use duniter_documents::Blockstamp;
-use dup_binarizer::*;
 use std::str;
 
 /// WS2Pv2 request response

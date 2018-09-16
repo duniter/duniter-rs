@@ -39,7 +39,6 @@ extern crate byteorder;
 extern crate duniter_crypto;
 extern crate duniter_documents;
 extern crate duniter_network;
-extern crate dup_binarizer;
 
 /// WS2Pv2 Messages
 pub mod v2;
@@ -57,13 +56,13 @@ pub enum WS2PMessage {
 mod tests {
     use bincode;
     use bincode::{deserialize, serialize};
+    use duniter_crypto::keys::bin_signable::BinSignable;
     use duniter_crypto::keys::*;
     use duniter_documents::blockchain::v10::documents::certification::*;
     use duniter_documents::{Blockstamp, CurrencyName};
     use duniter_network::network_endpoint::*;
     use duniter_network::network_peer::*;
     use duniter_network::*;
-    use dup_binarizer::BinMessageSignable;
     use std::net::Ipv4Addr;
     use std::str::FromStr;
     use v2::payload_container::WS2Pv0MessagePayload;

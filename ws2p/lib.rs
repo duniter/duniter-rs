@@ -46,7 +46,7 @@ use duniter_conf::DuRsConf;
 use duniter_crypto::keys::*;
 use duniter_message::DuniterMessage;
 use duniter_module::*;
-use duniter_network::network_endpoint::EndpointEnum;
+use duniter_network::network_endpoint::*;
 use duniter_network::*;
 use std::sync::mpsc;
 

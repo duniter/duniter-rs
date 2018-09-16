@@ -14,7 +14,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use duniter_documents::{BlockId, Blockstamp};
-use dup_binarizer::*;
 
 /// WS2Pv2Request
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -70,131 +69,6 @@ impl WS2Pv2RequestBody {
         }
     }
 }
-
-/*
-impl BinMessage for WS2Pv2Request {
-    type ReadBytesError = WS2Pv2RequestParseError;
-    fn from_bytes(bytes: &[u8]) -> Result<Self, Self::ReadBytesError> {
-        if bytes.len() >= 4 {
-            let id = u32::read_u32_be(&bytes[0..4])?;
-            let body = WS2Pv2RequestBody::from_bytes(&bytes[4..])?;
-            Ok(WS2Pv2Request { id, body })
-        } else {
-            Err(WS2Pv2RequestParseError::TooShort("id"))
-        }
-    }
-    fn to_bytes_vector(&self) -> Vec<u8> {
-        let mut buffer = Vec::with_capacity(self.size_in_bytes());
-        u32::write_u32_be(&mut buffer, self.id).expect("Fail to binarize WS2pv2Request !");
-        buffer.append(&mut self.body.to_bytes_vector());
-        buffer
-    }
-}*/
-
-/*
-impl BinMessage for WS2Pv2RequestBody {
-    type ReadBytesError = WS2Pv2RequestParseError;
-    fn from_bytes(bytes: &[u8]) -> Result<Self, Self::ReadBytesError> {
-        if bytes.is_empty() {
-            return Err(WS2Pv2RequestParseError::TooShort("empty"));
-        }
-        match bytes[0] {
-            0x00 => if bytes.len() == 1 {
-                Ok(WS2Pv2RequestBody::None)
-            } else {
-                Err(WS2Pv2RequestParseError::WrongSize(
-                    "None request with params",
-                ))
-            },
-            0x01 => if bytes.len() == 1 {
-                Ok(WS2Pv2RequestBody::Current)
-            } else {
-                Err(WS2Pv2RequestParseError::WrongSize(
-                    "Current request with params",
-                ))
-            },
-            0x02 => {
-                if bytes.len() == 7 {
-                    Ok(WS2Pv2RequestBody::BlocksHashs(
-                        BlockId(u32::read_u32_be(&bytes[1..=5])?),
-                        u16::read_u16_be(&bytes[5..7])?,
-                    ))
-                } else {
-                    Err(WS2Pv2RequestParseError::WrongSize(
-                        "BlocksHashs request with wrong size",
-                    ))
-                }
-            }
-            0x03 => {
-                if bytes.len() == 7 {
-                    Ok(WS2Pv2RequestBody::Chunk(
-                        BlockId(u32::read_u32_be(&bytes[1..=4])?),
-                        u16::read_u16_be(&bytes[5..7])?,
-                    ))
-                } else {
-                    Err(WS2Pv2RequestParseError::WrongSize(
-                        "Chunk request with wrong size",
-                    ))
-                }
-            }
-            0x04 => {
-                if bytes.len() == 37 {
-                    Ok(WS2Pv2RequestBody::ChunkByHash(Blockstamp::from_bytes(
-                        &bytes[1..],
-                    )?))
-                } else {
-                    Err(WS2Pv2RequestParseError::WrongSize(
-                        "ChunkByHash request with wrong size",
-                    ))
-                }
-            }
-            0x05 => {
-                if bytes.len() == 4 {
-                    Ok(WS2Pv2RequestBody::WotPool(
-                        u16::read_u16_be(&bytes[1..=2])?,
-                        bytes[3],
-                    ))
-                } else {
-                    Err(WS2Pv2RequestParseError::WrongSize(
-                        "WotPool request with wrong size",
-                    ))
-                }
-            }
-            _ => Err(WS2Pv2RequestParseError::UnknowRequestType()),
-        }
-    }
-    fn to_bytes_vector(&self) -> Vec<u8> {
-        let mut buffer = Vec::with_capacity(self.size_in_bytes());
-        match *self {
-            WS2Pv2RequestBody::None => {
-                buffer.push(0x00);
-            }
-            WS2Pv2RequestBody::Current => {
-                buffer.push(0x01);
-            }
-            WS2Pv2RequestBody::BlocksHashs(param1, param2) => {
-                buffer.push(0x02);
-                u32::write_u32_be(&mut buffer, param1.0).expect("Fail to binarize WS2pv2Request !");
-                u16::write_u16_be(&mut buffer, param2).expect("Fail to binarize WS2pv2Request !");
-            }
-            WS2Pv2RequestBody::Chunk(param1, param2) => {
-                buffer.push(0x03);
-                u32::write_u32_be(&mut buffer, param1.0).expect("Fail to binarize WS2pv2Request !");
-                u16::write_u16_be(&mut buffer, param2).expect("Fail to binarize WS2pv2Request !");
-            }
-            WS2Pv2RequestBody::ChunkByHash(param1) => {
-                buffer.push(0x04);
-                buffer.append(&mut param1.to_bytes_vector());
-            }
-            WS2Pv2RequestBody::WotPool(param1, param2) => {
-                buffer.push(0x05);
-                u16::write_u16_be(&mut buffer, param1).expect("Fail to binarize WS2pv2Request !");
-                buffer.push(param2);
-            }
-        }
-        buffer
-    }
-}*/
 
 #[cfg(test)]
 mod tests {

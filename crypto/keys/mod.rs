@@ -56,10 +56,11 @@ use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::Hash;
 
+pub mod bin_signable;
 pub mod ed25519;
 
 /// Cryptographic keys algorithms list
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum KeysAlgo {
     /// Ed25519 algorithm
     Ed25519 = 0,

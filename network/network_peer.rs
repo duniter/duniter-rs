@@ -21,9 +21,10 @@ extern crate duniter_documents;
 extern crate duniter_module;
 extern crate serde;
 
+use base58::ToBase58;
+use duniter_crypto::keys::bin_signable::BinSignable;
 use duniter_crypto::keys::*;
 use duniter_documents::{Blockstamp, CurrencyName};
-use dup_binarizer::*;
 use network_endpoint::*;
 use *;
 
@@ -55,7 +56,48 @@ pub struct PeerCardV11 {
     pub sig: Option<Sig>,
 }
 
-impl<'de> BinMessageSignable<'de> for PeerCardV11 {
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+/// Peer card V11 for JSON Serializer
+pub struct JsonPeerCardV11<'a> {
+    /// PeerCard version
+    pub version: usize,
+    /// Currency Name
+    pub currency_name: &'a str,
+    /// Issuer node id
+    pub node_id: NodeId,
+    /// Issuer pubkey alogirithm
+    pub algorithm: KeysAlgo,
+    /// Issuer pubkey
+    pub pubkey: String,
+    /// Peer card creation blockstamp
+    pub blockstamp: String,
+    /// Endpoints
+    pub endpoints: Vec<String>,
+    /// Signature
+    pub signature: Option<String>,
+}
+
+impl PeerCardV11 {
+    /// Convert to JSON String
+    pub fn to_json_peer(&self) -> Result<String, serde_json::Error> {
+        Ok(serde_json::to_string_pretty(&JsonPeerCardV11 {
+            version: 11,
+            currency_name: &self.currency_name.0,
+            node_id: self.node_id,
+            algorithm: self.issuer.algo(),
+            pubkey: self.issuer.to_base58(),
+            blockstamp: self.blockstamp.to_string(),
+            endpoints: self.endpoints.iter().map(|ep| ep.to_string()).collect(),
+            signature: if let Some(sig) = self.sig {
+                Some(sig.to_base64())
+            } else {
+                None
+            },
+        })?)
+    }
+}
+
+impl<'de> BinSignable<'de> for PeerCardV11 {
     fn issuer_pubkey(&self) -> PubKey {
         self.issuer
     }
@@ -114,13 +156,8 @@ mod tests {
     use std::net::Ipv4Addr;
     use std::str::FromStr;
     use tests::bincode::deserialize;
+    use tests::keypair1;
 
-    fn keypair1() -> ed25519::KeyPair {
-        ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(
-            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV".as_bytes(),
-            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV_".as_bytes(),
-        )
-    }
     fn create_endpoint_v2() -> EndpointV2 {
         EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
@@ -149,7 +186,7 @@ mod tests {
     }
 
     #[test]
-    fn test_convert_peer_card_v11_into_bytes_vector() {
+    fn peer_card_v11_sign_and_verify() {
         let keypair1 = keypair1();
         let mut peer_card_v11 = PeerCardV11 {
             currency_name: CurrencyName(String::from("g1")),
@@ -173,5 +210,9 @@ mod tests {
         } else {
             panic!("failt to sign peer card : {:?}", sign_result.err().unwrap())
         }
+        // Verify signature
+        peer_card_v11
+            .verify()
+            .expect("Fail to verify PeerCardV11 !");
     }
 }
