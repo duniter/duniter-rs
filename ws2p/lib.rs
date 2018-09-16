@@ -31,6 +31,8 @@
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate structopt;
 
 extern crate duniter_conf;
 extern crate duniter_crypto;
@@ -140,14 +142,23 @@ impl NetworkModule<DuRsConf, DuniterMessage> for WS2Pv2Module {
         _keys: RequiredKeysContent,
         _conf: WS2PConf,
         _main_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
-        _sync_endpoint: SyncEndpoint,
+        _sync_params: SyncParams,
     ) -> Result<(), ModuleInitError> {
         unimplemented!()
     }
 }
 
+#[derive(StructOpt, Debug, Copy, Clone)]
+#[structopt(
+    name = "ws2p",
+    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+)]
+/// WS2P subcommand options
+pub struct WS2POpt {}
+
 impl DuniterModule<DuRsConf, DuniterMessage> for WS2Pv2Module {
     type ModuleConf = WS2PConf;
+    type ModuleOpt = WS2POpt;
 
     fn id() -> ModuleId {
         ModuleId(String::from("ws2p"))
@@ -157,6 +168,17 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2Pv2Module {
     }
     fn ask_required_keys() -> RequiredKeys {
         RequiredKeys::NetworkKeyPair()
+    }
+    fn have_subcommand() -> bool {
+        true
+    }
+    fn exec_subcommand(
+        _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
+        _keys: RequiredKeysContent,
+        _module_conf: Self::ModuleConf,
+        _subcommand_args: WS2POpt,
+    ) -> () {
+        println!("Succesfully exec ws2p subcommand !")
     }
     fn start(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,

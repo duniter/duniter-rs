@@ -267,7 +267,7 @@ impl WS2PModuleDatas {
                     .expect("WS2P: Fail to get mut ep !")
                     .1 = new_con_state;
                 if let WS2PConnectionState::AckMessOk = self.ws2p_endpoints[&ws2p_full_id].1 {
-                    trace!("DEBUG : Send: {:#?}", r);
+                    trace!("Send: {:#?}", r);
                     self.websockets
                         .get_mut(&ws2p_full_id)
                         .unwrap_or_else(|| {

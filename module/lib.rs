@@ -37,6 +37,7 @@ extern crate duniter_crypto;
 extern crate duniter_documents;
 extern crate serde;
 extern crate serde_json;
+extern crate structopt;
 
 use duniter_crypto::keys::{KeyPair, KeyPairEnum};
 use duniter_documents::CurrencyName;
@@ -45,10 +46,18 @@ use serde::ser::{Serialize, Serializer};
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::sync::mpsc;
+//use structopt::clap::ArgMatches;
+use structopt::StructOpt;
 
 #[derive(Clone, Deserialize, Debug, PartialEq, Eq, Hash, Serialize)]
 /// Store module identifier
 pub struct ModuleId(pub String);
+
+impl<'a> From<&'a str> for ModuleId {
+    fn from(source: &str) -> Self {
+        ModuleId(String::from(source))
+    }
+}
 
 impl ToString for ModuleId {
     fn to_string(&self) -> String {
@@ -100,6 +109,8 @@ pub trait DuniterConf: Clone + Debug + Default + PartialEq + Serialize + Deseria
     fn enabled_modules(&self) -> HashSet<ModuleId>;
     /// Get modules conf
     fn modules(&self) -> serde_json::Value;
+    /// Change module conf
+    fn set_module_conf(&mut self, module_id: String, new_module_conf: serde_json::Value);
 }
 
 /// Sofware meta datas
@@ -230,6 +241,8 @@ pub fn module_valid_filters<DC: DuniterConf, Mess: ModuleMessage, M: DuniterModu
 pub trait DuniterModule<DC: DuniterConf, M: ModuleMessage> {
     /// Module configuration
     type ModuleConf: Clone + Debug + Default + DeserializeOwned + Send + Serialize + Sync;
+    /// Module subcommand options
+    type ModuleOpt: StructOpt;
 
     /// Returns the module identifier
     fn id() -> ModuleId;
@@ -237,6 +250,17 @@ pub trait DuniterModule<DC: DuniterConf, M: ModuleMessage> {
     fn priority() -> ModulePriority;
     /// Indicates which keys the module needs
     fn ask_required_keys() -> RequiredKeys;
+    /// Define if module have a cli subcommand
+    fn have_subcommand() -> bool {
+        false
+    }
+    /// Execute injected subcommand
+    fn exec_subcommand(
+        soft_meta_datas: &SoftwareMetaDatas<DC>,
+        keys: RequiredKeysContent,
+        module_conf: Self::ModuleConf,
+        subcommand_args: Self::ModuleOpt,
+    ) -> ();
     /// Launch the module
     fn start(
         soft_meta_datas: &SoftwareMetaDatas<DC>,

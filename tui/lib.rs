@@ -33,6 +33,8 @@
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate structopt;
 
 extern crate duniter_conf;
 extern crate duniter_crypto;
@@ -42,6 +44,7 @@ extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
 extern crate serde;
+extern crate serde_json;
 extern crate termion;
 
 use duniter_conf::DuRsConf;
@@ -61,13 +64,17 @@ use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
 use termion::{clear, color, cursor, style};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Tui Module Configuration (For future use)
-pub struct TuiConf {}
+pub struct TuiConf {
+    test_fake_conf_field: String,
+}
 
 impl Default for TuiConf {
     fn default() -> Self {
-        TuiConf {}
+        TuiConf {
+            test_fake_conf_field: String::from("default"),
+        }
     }
 }
 
@@ -83,6 +90,17 @@ pub enum TuiMess {
 #[derive(Debug, Copy, Clone)]
 /// Tui module
 pub struct TuiModule {}
+
+#[derive(StructOpt, Debug, Clone)]
+#[structopt(
+    name = "tui",
+    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+)]
+/// Tui subcommand options
+pub struct TuiOpt {
+    /// Change test conf fake field
+    pub new_conf_field: String,
+}
 
 #[derive(Debug, Clone)]
 /// Network connexion (data to display)
@@ -358,6 +376,7 @@ impl Default for TuiModule {
 
 impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
     type ModuleConf = TuiConf;
+    type ModuleOpt = TuiOpt;
 
     fn id() -> ModuleId {
         ModuleId(String::from("tui"))
@@ -367,6 +386,30 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
     }
     fn ask_required_keys() -> RequiredKeys {
         RequiredKeys::None()
+    }
+    fn have_subcommand() -> bool {
+        true
+    }
+    fn exec_subcommand(
+        soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
+        _keys: RequiredKeysContent,
+        module_conf: Self::ModuleConf,
+        subcommand_args: TuiOpt,
+    ) -> () {
+        let mut conf = soft_meta_datas.conf.clone();
+        let new_tui_conf = TuiConf {
+            test_fake_conf_field: subcommand_args.new_conf_field.clone(),
+        };
+        conf.set_module_conf(
+            Self::id().0,
+            serde_json::value::to_value(new_tui_conf).expect("Fail to jsonifie TuiConf !"),
+        );
+        duniter_conf::write_conf_file(&soft_meta_datas.profile, &conf)
+            .expect("Fail to write new Tui conf file ! ");
+        println!(
+            "Succesfully exec tui subcommand whit terminal name : {} and conf={:?}!",
+            subcommand_args.new_conf_field, module_conf
+        )
     }
     fn start(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,

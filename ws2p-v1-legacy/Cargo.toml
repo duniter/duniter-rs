@@ -27,6 +27,7 @@ sqlite = "0.23.*"
 serde = "1.0.*"
 serde_derive = "1.0.*"
 serde_json = "1.0.*"
+structopt= "0.2.*"
 ws = { version = "0.7.*", features = ["permessage-deflate"] }
 
 [features]

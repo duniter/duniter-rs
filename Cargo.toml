@@ -7,14 +7,16 @@ license = "AGPL-3.0"
 
 [dependencies]
 duniter-core = { path = "./core" }
-duniter-tui = { path = "./tui", optional = true }
 durs-ws2p = { path = "./ws2p" }
 durs-ws2p-v1-legacy = { path = "./ws2p-v1-legacy" }
+structopt= "0.2.*"
+
+[target.'cfg(unix)'.dependencies]
+duniter-tui = { path = "./tui" }
 
 [features]
-default = ["tui","ssl"]
+default = ["ssl"]
 ssl = ["durs-ws2p-v1-legacy/ssl"]
-tui = ["duniter-tui"]
 # Treat warnings as a build error.
 strict = []
 

@@ -172,6 +172,25 @@ impl DuniterConf for DuRsConf {
             _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
+    fn set_module_conf(&mut self, module_id: String, new_module_conf: serde_json::Value) {
+        match *self {
+            DuRsConf::V1(ref mut conf_v1) => {
+                if conf_v1.modules.is_null() {
+                    let mut new_modules_conf = serde_json::Map::with_capacity(1);
+                    new_modules_conf.insert(module_id, new_module_conf);
+                    conf_v1.modules = serde_json::value::to_value(new_modules_conf)
+                        .expect("Fail to create map of new modules conf !");
+                } else {
+                    conf_v1
+                        .modules
+                        .as_object_mut()
+                        .expect("Conf file currupted !")
+                        .insert(module_id, new_module_conf);
+                }
+            }
+            _ => panic!("Fail to set duniter conf : conf version not supported !"),
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

@@ -85,8 +85,19 @@ pub trait NetworkModule<DC: DuniterConf, M: ModuleMessage>: ApiModule<DC, M> {
         keys: RequiredKeysContent,
         module_conf: <Self as DuniterModule<DC, M>>::ModuleConf,
         main_sender: mpsc::Sender<RooterThreadMessage<M>>,
-        sync_endpoint: SyncEndpoint,
+        sync_params: SyncParams,
     ) -> Result<(), ModuleInitError>;
+}
+
+/// SyncParams
+#[derive(Debug, Clone)]
+pub struct SyncParams {
+    /// Synchronisation endpoint
+    pub sync_endpoint: SyncEndpoint,
+    /// Cautious flag
+    pub cautious: bool,
+    /// VERIF_HASHS flag
+    pub verif_hashs: bool,
 }
 
 #[derive(Debug, Clone)]

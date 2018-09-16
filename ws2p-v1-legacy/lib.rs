@@ -36,6 +36,8 @@ extern crate log;
 extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
+#[macro_use]
+extern crate structopt;
 
 extern crate byteorder;
 extern crate duniter_conf;
@@ -218,7 +220,7 @@ impl NetworkModule<DuRsConf, DuniterMessage> for WS2PModule {
         _keys: RequiredKeysContent,
         _conf: WS2PConf,
         _main_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
-        _sync_endpoint: SyncEndpoint,
+        _sync_params: SyncParams,
     ) -> Result<(), ModuleInitError> {
         println!("Downlaod blockchain from network...");
         println!("Error : not yet implemented !");
@@ -226,8 +228,17 @@ impl NetworkModule<DuRsConf, DuniterMessage> for WS2PModule {
     }
 }
 
+#[derive(StructOpt, Debug, Copy, Clone)]
+#[structopt(
+    name = "ws2p",
+    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+)]
+/// WS2Pv1 subcommand options
+pub struct WS2POpt {}
+
 impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
     type ModuleConf = WS2PConf;
+    type ModuleOpt = WS2POpt;
 
     fn id() -> ModuleId {
         ModuleId(String::from("ws2p"))
@@ -237,6 +248,17 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
     }
     fn ask_required_keys() -> RequiredKeys {
         RequiredKeys::NetworkKeyPair()
+    }
+    fn have_subcommand() -> bool {
+        true
+    }
+    fn exec_subcommand(
+        _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
+        _keys: RequiredKeysContent,
+        _module_conf: Self::ModuleConf,
+        _subcommand_args: WS2POpt,
+    ) -> () {
+        println!("Succesfully exec ws2p subcommand !")
     }
     fn start(
         soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
