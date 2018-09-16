@@ -49,16 +49,18 @@
 extern crate serde;
 
 use base58::ToBase58;
+use bincode;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::Hash;
 
+pub mod bin_signable;
 pub mod ed25519;
 
 /// Cryptographic keys algorithms list
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum KeysAlgo {
     /// Ed25519 algorithm
     Ed25519 = 0,
@@ -83,6 +85,36 @@ pub enum BaseConvertionError {
     InvalidBaseConverterLength(),
 }
 
+/// Errors enumeration for signature verification.
+#[derive(Debug)]
+pub enum SigError {
+    /// Signature and pubkey are not the same algo
+    NotSameAlgo(),
+    /// Invalid signature
+    InvalidSig(),
+    /// Absence of signature
+    NotSig(),
+    /// Deserialization error
+    DeserError(bincode::Error),
+}
+
+impl From<bincode::Error> for SigError {
+    fn from(e: bincode::Error) -> Self {
+        SigError::DeserError(e)
+    }
+}
+
+/// SignError
+#[derive(Debug, Copy, Clone)]
+pub enum SignError {
+    /// WrongAlgo
+    WrongAlgo(),
+    /// WrongPrivkey
+    WrongPrivkey(),
+    /// AlreadySign
+    AlreadySign(),
+}
+
 /// Define the operations that can be performed on a cryptographic signature.
 ///
 /// A signature can be converted from/to Base64 format.
@@ -103,6 +135,9 @@ pub trait Signature: Clone + Display + Debug + PartialEq + Eq + Hash {
     /// [`BaseConvertionError`]: enum.BaseConvertionError.html
     fn from_base64(base64_string: &str) -> Result<Self, BaseConvertionError>;
 
+    /// Convert Signature into butes vector
+    fn to_bytes_vector(&self) -> Vec<u8>;
+
     /// Encode the signature into Base64 string format.
     fn to_base64(&self) -> String;
 }
@@ -114,6 +149,16 @@ pub enum Sig {
     Ed25519(ed25519::Signature),
     /// Store a Schnorr Signature
     Schnorr(),
+}
+
+impl Sig {
+    /// Get Sig size in bytes
+    pub fn size_in_bytes(&self) -> usize {
+        match *self {
+            Sig::Ed25519(_) => *ed25519::SIG_SIZE_IN_BYTES + 2,
+            Sig::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
+    }
 }
 
 impl Display for Sig {
@@ -134,6 +179,12 @@ impl GetKeysAlgo for Sig {
 impl Signature for Sig {
     fn from_base64(_base64_string: &str) -> Result<Self, BaseConvertionError> {
         unimplemented!()
+    }
+    fn to_bytes_vector(&self) -> Vec<u8> {
+        match *self {
+            Sig::Ed25519(ed25519_sig) => ed25519_sig.to_bytes_vector(),
+            Sig::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
     }
     fn to_base64(&self) -> String {
         match *self {
@@ -165,6 +216,9 @@ pub trait PublicKey: Clone + Display + Debug + PartialEq + Eq + Hash + ToBase58 
     /// [`BaseConvertionError`]: enum.BaseConvertionError.html
     fn from_base58(base58_string: &str) -> Result<Self, BaseConvertionError>;
 
+    /// Convert into bytes vector
+    fn to_bytes_vector(&self) -> Vec<u8>;
+
     /// Verify a signature with this public key.
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool;
 }
@@ -176,6 +230,22 @@ pub enum PubKey {
     Ed25519(ed25519::PublicKey),
     /// Store a Schnorr public key.
     Schnorr(),
+}
+
+impl PubKey {
+    /// Compute PubKey size in bytes
+    pub fn size_in_bytes(&self) -> usize {
+        match *self {
+            PubKey::Ed25519(_) => ed25519::PUBKEY_SIZE_IN_BYTES + 3,
+            PubKey::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
+    }
+}
+
+impl Default for PubKey {
+    fn default() -> Self {
+        PubKey::Schnorr()
+    }
 }
 
 impl GetKeysAlgo for PubKey {
@@ -207,6 +277,12 @@ impl PublicKey for PubKey {
 
     fn from_base58(_base58_string: &str) -> Result<Self, BaseConvertionError> {
         unimplemented!()
+    }
+    fn to_bytes_vector(&self) -> Vec<u8> {
+        match *self {
+            PubKey::Ed25519(ed25519_pubkey) => ed25519_pubkey.to_bytes_vector(),
+            PubKey::Schnorr() => panic!("Schnorr algo not yet supported !"),
+        }
     }
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool {
         match *self {

@@ -19,19 +19,23 @@
 //!
 //! [`KeyPairGenerator`]: struct.KeyPairGenerator.html
 
-extern crate serde;
-
-use self::serde::de::{Deserialize, Deserializer, SeqAccess, Visitor};
-use self::serde::ser::{Serialize, SerializeSeq, Serializer};
 use super::{BaseConvertionError, PrivateKey as PrivateKeyMethods, PublicKey as PublicKeyMethods};
 use base58::{FromBase58, FromBase58Error, ToBase58};
 use base64;
 use base64::DecodeError;
 use crypto;
+use serde::de::{Deserialize, Deserializer, Error, SeqAccess, Visitor};
+use serde::ser::{Serialize, SerializeTuple, Serializer};
 use std::collections::hash_map::DefaultHasher;
-use std::fmt::{self, Debug, Display, Error, Formatter};
+use std::fmt;
+use std::fmt::{Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
+
+/// Size of a public key in bytes
+pub static PUBKEY_SIZE_IN_BYTES: &'static usize = &32;
+/// Size of a signature in bytes
+pub static SIG_SIZE_IN_BYTES: &'static usize = &64;
 
 /// Store a ed25519 signature.
 #[derive(Clone, Copy)]
@@ -45,6 +49,56 @@ impl Hash for Signature {
 }
 
 impl Serialize for Signature {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_tuple(self.0.len())?;
+        for elem in &self.0[..] {
+            seq.serialize_element(elem)?;
+        }
+        seq.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Signature {
+    fn deserialize<D>(deserializer: D) -> Result<Signature, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ArrayVisitor<u8> {
+            element: PhantomData<u8>,
+        }
+
+        impl<'de, u8> Visitor<'de> for ArrayVisitor<u8> {
+            type Value = Signature;
+
+            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+                formatter.write_str(concat!("an array of length ", 64))
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Signature, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                let mut arr = [0u8; 64];
+                for (i, byte) in arr.iter_mut().take(64).enumerate() {
+                    *byte = seq
+                        .next_element()?
+                        .ok_or_else(|| Error::invalid_length(i, &self))?;
+                }
+                Ok(Signature(arr))
+            }
+        }
+
+        let visitor: ArrayVisitor<u8> = ArrayVisitor {
+            element: PhantomData,
+        };
+        deserializer.deserialize_tuple(64, visitor)
+    }
+}
+
+/*impl Serialize for Signature {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -109,7 +163,7 @@ impl<'de> Deserialize<'de> for Signature {
         // it over the input data, resulting in an instance of Signature.
         deserializer.deserialize_seq(SignatureVisitor::new())
     }
-}
+}*/
 
 impl super::Signature for Signature {
     fn from_base64(base64_data: &str) -> Result<Signature, BaseConvertionError> {
@@ -134,13 +188,17 @@ impl super::Signature for Signature {
         }
     }
 
+    fn to_bytes_vector(&self) -> Vec<u8> {
+        self.0.to_vec()
+    }
+
     fn to_base64(&self) -> String {
         base64::encode(&self.0[..]) // need to take a slice for required trait `AsRef<[u8]>`
     }
 }
 
 impl Display for Signature {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         use super::Signature;
 
         write!(f, "{}", self.to_base64())
@@ -178,14 +236,14 @@ impl ToBase58 for PublicKey {
 }
 
 impl Display for PublicKey {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.to_base58())
     }
 }
 
 impl Debug for PublicKey {
     // PublicKey { DNann1L... }
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(f, "PublicKey {{ {} }}", self)
     }
 }
@@ -215,6 +273,10 @@ impl super::PublicKey for PublicKey {
         }
     }
 
+    fn to_bytes_vector(&self) -> Vec<u8> {
+        self.0.to_vec()
+    }
+
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool {
         crypto::ed25519::verify(message, &self.0, &signature.0)
     }
@@ -235,14 +297,14 @@ impl ToBase58 for PrivateKey {
 }
 
 impl Display for PrivateKey {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.to_base58())
     }
 }
 
 impl Debug for PrivateKey {
     // PrivateKey { 468Q1XtT... }
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(f, "PrivateKey {{ {} }}", self)
     }
 }
@@ -297,7 +359,7 @@ pub struct KeyPair {
 }
 
 impl Display for KeyPair {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(f, "({}, hidden)", self.pubkey.to_base58())
     }
 }

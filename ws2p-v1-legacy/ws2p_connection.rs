@@ -1,8 +1,8 @@
 use constants::*;
 use duniter_crypto::keys::*;
 use duniter_module::ModuleReqId;
-use duniter_network::network_endpoint::{NetworkEndpoint, NetworkEndpointApi};
-use duniter_network::{NetworkDocument, NodeUUID};
+use duniter_network::network_endpoint::{EndpointEnum, NetworkEndpointApi};
+use duniter_network::{NetworkDocument, NodeId};
 use parsers::blocks::parse_json_block;
 use rand::Rng;
 use std::sync::mpsc;
@@ -270,7 +270,7 @@ pub enum WS2PConnectionMessagePayload {
     ValidAckMessage(String, WS2PConnectionState),
     ValidOk(WS2PConnectionState),
     DalRequest(ModuleReqId, serde_json::Value),
-    PeerCard(serde_json::Value, Vec<NetworkEndpoint>),
+    PeerCard(serde_json::Value, Vec<EndpointEnum>),
     Heads(Vec<serde_json::Value>),
     Document(NetworkDocument),
     ReqResponse(ModuleReqId, serde_json::Value),
@@ -295,7 +295,7 @@ pub enum WS2PCloseConnectionReason {
 #[derive(Debug, Clone)]
 pub struct WS2PConnectionMetaDatas {
     pub state: WS2PConnectionState,
-    pub remote_uuid: Option<NodeUUID>,
+    pub remote_uuid: Option<NodeId>,
     pub remote_pubkey: Option<PubKey>,
     pub challenge: String,
     pub remote_challenge: String,
@@ -536,18 +536,17 @@ impl WS2PConnectionMetaDatas {
                 Some(raw_pubkey) => {
                     match ed25519::PublicKey::from_base58(raw_pubkey.as_str().unwrap_or("")) {
                         Ok(pubkey) => {
-                            let mut ws2p_endpoints: Vec<
-                                NetworkEndpoint,
-                            > = Vec::new();
+                            let mut ws2p_endpoints: Vec<EndpointEnum> = Vec::new();
                             match peer.get("endpoints") {
                                 Some(endpoints) => match endpoints.as_array() {
                                     Some(array_endpoints) => {
                                         for endpoint in array_endpoints {
-                                            if let Some(ep) = NetworkEndpoint::parse_from_raw(
+                                            if let Ok(ep) = EndpointEnum::parse_from_raw(
                                                 endpoint.as_str().unwrap_or(""),
                                                 PubKey::Ed25519(pubkey),
                                                 0,
                                                 0,
+                                                1u16,
                                             ) {
                                                 if ep.api()
                                                     == NetworkEndpointApi(String::from("WS2P"))
@@ -577,7 +576,7 @@ impl WS2PConnectionMetaDatas {
 }
 
 pub fn get_random_connection<S: ::std::hash::BuildHasher>(
-    connections: &HashMap<NodeFullId, (NetworkEndpoint, WS2PConnectionState), S>,
+    connections: &HashMap<NodeFullId, (EndpointEnum, WS2PConnectionState), S>,
 ) -> NodeFullId {
     let mut rng = rand::thread_rng();
     let mut loop_count = 0;
@@ -597,13 +596,13 @@ pub fn get_random_connection<S: ::std::hash::BuildHasher>(
 }
 
 pub fn connect_to_ws2p_endpoint(
-    endpoint: &NetworkEndpoint,
+    endpoint: &EndpointEnum,
     conductor_sender: &mpsc::Sender<WS2PThreadSignal>,
     currency: &str,
     key_pair: KeyPairEnum,
 ) -> ws::Result<()> {
     // Get endpoint url
-    let ws_url = endpoint.get_url(true);
+    let ws_url = endpoint.get_url(true, false).expect("Endpoint unreachable");
 
     // Create WS2PConnectionMetaDatass
     let mut conn_meta_datas = WS2PConnectionMetaDatas::new(

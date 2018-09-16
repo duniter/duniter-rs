@@ -20,11 +20,12 @@ extern crate threadpool;
 
 use self::pbr::ProgressBar;
 use self::threadpool::ThreadPool;
+use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::*;
 use duniter_dal::currency_params::CurrencyParameters;
 use duniter_dal::writers::requests::*;
 use duniter_dal::ForkId;
-use duniter_documents::{BlockHash, BlockId, Hash};
+use duniter_documents::{BlockHash, BlockId};
 use duniter_network::NetworkBlock;
 use duniter_wotb::NodeId;
 use std::collections::{HashMap, VecDeque};
@@ -50,7 +51,7 @@ pub struct BlockHeader {
 #[derive(Debug)]
 /// Message for main sync thread
 enum MessForSyncThread {
-    Target(Currency, Blockstamp),
+    Target(CurrencyName, Blockstamp),
     NetworkBlock(NetworkBlock),
     DownloadFinish(),
     ApplyFinish(),
@@ -137,7 +138,7 @@ pub fn sync_ts<DC: DuniterConf>(
                     ).expect("Fail to parse current ts blockstamp !"),
                 );
                 (
-                    Currency::Str(String::from(
+                    CurrencyName(String::from(
                         row[2]
                             .as_string()
                             .expect("Fatal error :Fail to get currency !"),
@@ -550,42 +551,41 @@ pub fn sync_ts<DC: DuniterConf>(
                     "Fail to communicate with blocks worker thread, please reset data & resync !",
                 );
             // Send wot requests to wot worker thread
-            wot_db_reqs
-                .iter()
-                .map(|req| {
-                    if let WotsDBsWriteQuery::CreateCert(
-                        ref _source_pubkey,
-                        ref source,
-                        ref target,
-                        ref created_block_id,
-                        ref _median_time,
-                    ) = req
-                    {
-                        certs_count += 1;
-                        // Add cert in certs_db
-                        certs_db
-                            .write(|db| {
-                                let mut created_certs =
-                                    db.get(&created_block_id).cloned().unwrap_or_default();
-                                created_certs.insert((*source, *target));
-                                db.insert(*created_block_id, created_certs);
-                            })
-                            .expect("RustBreakError : please reset data and resync !");
-                    }
-                    sender_wot_thread
-                        .send(SyncJobsMess::WotsDBsWriteQuery(req.clone(), Box::new(currency_params)))
-                        .expect("Fail to communicate with tx worker thread, please reset data & resync !")
-                })
-                .collect::<()>();
+            for req in wot_db_reqs {
+                if let WotsDBsWriteQuery::CreateCert(
+                    ref _source_pubkey,
+                    ref source,
+                    ref target,
+                    ref created_block_id,
+                    ref _median_time,
+                ) = req
+                {
+                    certs_count += 1;
+                    // Add cert in certs_db
+                    certs_db
+                        .write(|db| {
+                            let mut created_certs =
+                                db.get(&created_block_id).cloned().unwrap_or_default();
+                            created_certs.insert((*source, *target));
+                            db.insert(*created_block_id, created_certs);
+                        }).expect("RustBreakError : please reset data and resync !");
+                }
+                sender_wot_thread
+                    .send(SyncJobsMess::WotsDBsWriteQuery(
+                        req.clone(),
+                        Box::new(currency_params),
+                    )).expect(
+                        "Fail to communicate with tx worker thread, please reset data & resync !",
+                    )
+            }
             // Send blocks and wot requests to wot worker thread
-            currency_db_reqs
-                .iter()
-                .map(|req| {
-                    sender_tx_thread
-                        .send(SyncJobsMess::CurrencyDBsWriteQuery(req.clone()))
-                        .expect("Fail to communicate with tx worker thread, please reset data & resync !")
-                })
-                .collect::<()>();
+            for req in currency_db_reqs {
+                sender_tx_thread
+                    .send(SyncJobsMess::CurrencyDBsWriteQuery(req.clone()))
+                    .expect(
+                        "Fail to communicate with tx worker thread, please reset data & resync !",
+                    );
+            }
             debug!("Success to apply block #{}", current_blockstamp.id.0);
             if current_blockstamp.id.0 >= target_blockstamp.id.0 {
                 if current_blockstamp == target_blockstamp {

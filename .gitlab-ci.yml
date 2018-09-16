@@ -12,6 +12,7 @@ variables:
   CARGO_HOME: $CI_PROJECT_DIR/cargo
 
 .rust_stable_lin64: &rust_stable_lin64
+  image: registry.duniter.org/docker/duniter-rs-ci:v0.0.6
   tags:
     - redshift-rs-stable
   before_script:
@@ -36,14 +37,14 @@ variables:
     - rustc --version && cargo --version
 
 .rust_stable_armv7: &rust_stable_armv7
-  image: registry.duniter.org/docker/rust/armv7-builder:v0.0.3
+  image: registry.duniter.org/docker/rust/armv7-builder:v0.0.4
   tags:
     - redshift-rs-stable
   before_script:
     - rustc --version && cargo --version
 
 .rust_stable_win64: &rust_stable_win64
-  image: registry.duniter.org/docker/rust/win64-builder:v0.0.4
+  image: registry.duniter.org/docker/rust/win64-builder:v0.0.7
   tags:
     - redshift-rs-stable
   before_script:

@@ -16,10 +16,7 @@
 //! Module managing the Duniter blockchain.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(
-    feature = "cargo-clippy",
-    allow(unused_collect, duration_subsec)
-)]
+#![cfg_attr(feature = "cargo-clippy", allow(duration_subsec))]
 #![deny(
     missing_docs,
     missing_debug_implementations,
@@ -102,7 +99,7 @@ pub struct BlockchainModule {
     /// Name of the user datas profile
     pub profile: String,
     /// Currency
-    pub currency: Currency,
+    pub currency: CurrencyName,
     // Currency parameters
     currency_params: CurrencyParameters,
     /// Wots Databases
@@ -330,24 +327,18 @@ impl BlockchainModule {
                         Ok(ValidBlockApplyReqs(block_req, wot_dbs_reqs, currency_dbs_reqs)) => {
                             let block_doc = network_block.uncompleted_block_doc().clone();
                             // Apply wot dbs requests
-                            wot_dbs_reqs
-                                .iter()
-                                .map(|req| {
-                                    req.apply(&self.wot_databases, &self.currency_params)
-                                            .expect(
-                                            "Fatal error : fail to apply WotsDBsWriteQuery : DALError !",
-                                        )
-                                })
-                                .collect::<()>();
+                            for req in &wot_dbs_reqs {
+                                req.apply(&self.wot_databases, &self.currency_params)
+                                    .expect(
+                                    "Fatal error : fail to apply WotsDBsWriteQuery : DALError !",
+                                );
+                            }
                             // Apply currency dbs requests
-                            currency_dbs_reqs
-                                .iter()
-                                .map(|req| {
-                                    req.apply(&self.currency_databases).expect(
-                                            "Fatal error : fail to apply CurrencyDBsWriteQuery : DALError !",
-                                        )
-                                })
-                                .collect::<()>();
+                            for req in currency_dbs_reqs {
+                                req.apply(&self.currency_databases).expect(
+                                    "Fatal error : fail to apply CurrencyDBsWriteQuery : DALError !",
+                                );
+                            }
                             // Write block
                             block_req.apply(&self.blocks_databases, false).expect(
                                 "Fatal error : fail to write block in BlocksDBs : DALError !",
@@ -477,18 +468,16 @@ impl BlockchainModule {
                 bc_db_query
                     .apply(&self.blocks_databases, false)
                     .expect("Fatal error : Fail to apply DBWriteRequest !");
-                wot_dbs_queries
-                    .iter()
-                    .map(|req| {
-                        req.apply(&self.wot_databases, &self.currency_params)
-                            .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
-                    }).collect::<()>();
-                tx_dbs_queries
-                    .iter()
-                    .map(|req| {
-                        req.apply(&self.currency_databases)
-                            .expect("Fatal error : Fail to apply CurrencyDBsWriteRequest !");
-                    }).collect::<()>();
+                for query in &wot_dbs_queries {
+                    query
+                        .apply(&self.wot_databases, &self.currency_params)
+                        .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
+                }
+                for query in &tx_dbs_queries {
+                    query
+                        .apply(&self.currency_databases)
+                        .expect("Fatal error : Fail to apply CurrencyDBsWriteRequest !");
+                }
                 save_blocks_dbs = true;
                 if !wot_dbs_queries.is_empty() {
                     save_wots_dbs = true;
@@ -757,21 +746,18 @@ impl BlockchainModule {
                                 bc_db_query
                                     .apply(&self.blocks_databases, false)
                                     .expect("Fatal error : Fail to apply DBWriteRequest !");
-                                wot_dbs_queries
-                                    .iter()
-                                    .map(|req| {
-                                        req.apply(&self.wot_databases, &self.currency_params)
-                                            .expect(
-                                                "Fatal error : Fail to apply WotsDBsWriteRequest !",
-                                            );
-                                    }).collect::<()>();
-                                tx_dbs_queries
-                                    .iter()
-                                    .map(|req| {
-                                        req.apply(&self.currency_databases).expect(
-                                            "Fatal error : Fail to apply CurrencyDBsWriteRequest !",
+                                for query in &wot_dbs_queries {
+                                    query
+                                        .apply(&self.wot_databases, &self.currency_params)
+                                        .expect(
+                                            "Fatal error : Fail to apply WotsDBsWriteRequest !",
                                         );
-                                    }).collect::<()>();
+                                }
+                                for query in &tx_dbs_queries {
+                                    query.apply(&self.currency_databases).expect(
+                                        "Fatal error : Fail to apply CurrencyDBsWriteRequest !",
+                                    );
+                                }
                                 // Save databases
                                 self.blocks_databases.save_dbs();
                                 if !wot_dbs_queries.is_empty() {
@@ -789,10 +775,7 @@ impl BlockchainModule {
                                 find_valid_block = true;
                                 break;
                             } else {
-                                warn!(
-                                    "DEBUG: fail to stackable_block({})",
-                                    stackable_block.block.number
-                                );
+                                warn!("fail to stackable_block({})", stackable_block.block.number);
                                 // Delete this fork
                                 DALBlock::delete_fork(
                                     &self.blocks_databases.forks_db,

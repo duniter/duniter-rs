@@ -16,9 +16,10 @@
 extern crate duniter_crypto;
 extern crate duniter_documents;
 
+use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::PubKey;
 use duniter_documents::blockchain::v10::documents::transaction::*;
-use duniter_documents::{BlockId, Hash};
+use duniter_documents::BlockId;
 use std::cmp::Ordering;
 use std::ops::{Add, Sub};
 

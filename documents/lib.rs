@@ -16,7 +16,6 @@
 //! Implements the Duniter Documents Protocol.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(unused_collect))]
 #![deny(
     missing_docs,
     missing_debug_implementations,
@@ -36,17 +35,88 @@ extern crate serde_derive;
 
 extern crate base58;
 extern crate base64;
+extern crate byteorder;
 extern crate crypto;
 extern crate duniter_crypto;
 extern crate linked_hash_map;
 extern crate regex;
 extern crate serde;
 
-use duniter_crypto::keys::BaseConvertionError;
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+use currencies_codes::*;
+use duniter_crypto::hashs::Hash;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Error, Formatter};
+use std::io::Cursor;
+use std::mem;
 
 pub mod blockchain;
+mod currencies_codes;
+
+/// Currency name
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize, Hash)]
+pub struct CurrencyName(pub String);
+
+impl Default for CurrencyName {
+    fn default() -> CurrencyName {
+        CurrencyName(String::from("default_currency"))
+    }
+}
+
+impl Display for CurrencyName {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "{}", self.0)
+    }
+}
+
+/// CurrencyCodeError
+#[derive(Debug)]
+pub enum CurrencyCodeError {
+    /// UnknowCurrencyCode
+    UnknowCurrencyCode(),
+    /// IoError
+    IoError(::std::io::Error),
+    /// UnknowCurrencyName
+    UnknowCurrencyName(),
+}
+
+impl From<::std::io::Error> for CurrencyCodeError {
+    fn from(error: ::std::io::Error) -> Self {
+        CurrencyCodeError::IoError(error)
+    }
+}
+
+impl CurrencyName {
+    /// Convert bytes to CurrencyName
+    pub fn from(currency_code: [u8; 2]) -> Result<Self, CurrencyCodeError> {
+        let mut currency_code_bytes = Cursor::new(currency_code.to_vec());
+        let currency_code = currency_code_bytes.read_u16::<BigEndian>()?;
+        Self::from_u16(currency_code)
+    }
+    /// Convert u16 to CurrencyName
+    pub fn from_u16(currency_code: u16) -> Result<Self, CurrencyCodeError> {
+        match currency_code {
+            tmp if tmp == *CURRENCY_NULL => Ok(CurrencyName(String::from(""))),
+            tmp if tmp == *CURRENCY_G1 => Ok(CurrencyName(String::from("g1"))),
+            tmp if tmp == *CURRENCY_G1_TEST => Ok(CurrencyName(String::from("g1-test"))),
+            _ => Err(CurrencyCodeError::UnknowCurrencyCode()),
+        }
+    }
+    /// Convert CurrencyName to bytes
+    pub fn to_bytes(&self) -> Result<[u8; 2], CurrencyCodeError> {
+        let currency_code = match self.0.as_str() {
+            "g1" => *CURRENCY_G1,
+            "g1-test" => *CURRENCY_G1_TEST,
+            _ => return Err(CurrencyCodeError::UnknowCurrencyName()),
+        };
+        let mut buffer = [0u8; mem::size_of::<u16>()];
+        buffer
+            .as_mut()
+            .write_u16::<BigEndian>(currency_code)
+            .expect("Unable to write");
+        Ok(buffer)
+    }
+}
 
 /// A block Id.
 #[derive(Copy, Clone, Debug, Deserialize, Ord, PartialEq, PartialOrd, Eq, Hash, Serialize)]
@@ -55,77 +125,6 @@ pub struct BlockId(pub u32);
 impl Display for BlockId {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "{}", self.0)
-    }
-}
-
-/// A hash wrapper.
-///
-/// A hash is often provided as string composed of 64 hexadecimal character (0 to 9 then A to F).
-#[derive(Copy, Clone, Deserialize, Eq, Ord, PartialEq, PartialOrd, Hash, Serialize)]
-pub struct Hash(pub [u8; 32]);
-
-impl Display for Hash {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "{}", self.to_hex())
-    }
-}
-
-impl Debug for Hash {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "Hash({})", self)
-    }
-}
-
-impl Default for Hash {
-    fn default() -> Hash {
-        let default: [u8; 32] = [0; 32];
-        Hash(default)
-    }
-}
-
-impl Hash {
-    /// Convert a `Hash` to an hex string.
-    pub fn to_hex(&self) -> String {
-        let strings: Vec<String> = self.0.iter().map(|b| format!("{:02X}", b)).collect();
-
-        strings.join("")
-    }
-
-    /// Convert a hex string in a `Hash`.
-    ///
-    /// The hex string must only contains hex characters
-    /// and produce a 32 bytes value.
-    pub fn from_hex(text: &str) -> Result<Hash, BaseConvertionError> {
-        if text.len() != 64 {
-            Err(BaseConvertionError::InvalidKeyLendth(text.len(), 64))
-        } else {
-            let mut hash = Hash([0u8; 32]);
-
-            let chars: Vec<char> = text.chars().collect();
-
-            for i in 0..64 {
-                if i % 2 != 0 {
-                    continue;
-                }
-
-                let byte1 = chars[i].to_digit(16);
-                let byte2 = chars[i + 1].to_digit(16);
-
-                if byte1.is_none() {
-                    return Err(BaseConvertionError::InvalidCharacter(chars[i], i));
-                } else if byte2.is_none() {
-                    return Err(BaseConvertionError::InvalidCharacter(chars[i + 1], i + 1));
-                }
-
-                let byte1 = byte1.unwrap() as u8;
-                let byte2 = byte2.unwrap() as u8;
-
-                let byte = (byte1 << 4) | byte2;
-                hash.0[i / 2] = byte;
-            }
-
-            Ok(hash)
-        }
     }
 }
 
@@ -168,6 +167,7 @@ pub enum BlockUIdParseError {
 ///
 /// [`BlockId`]: struct.BlockId.html
 /// [`BlockHash`]: struct.BlockHash.html
+
 #[derive(Copy, Clone, Deserialize, PartialEq, Eq, Hash, Serialize)]
 pub struct Blockstamp {
     /// Block Id.
@@ -178,6 +178,11 @@ pub struct Blockstamp {
 
 /// Previous blockstamp (BlockId-1, previous_hash)
 pub type PreviousBlockstamp = Blockstamp;
+
+impl Blockstamp {
+    /// Blockstamp size (in bytes).
+    pub const SIZE_IN_BYTES: usize = 36;
+}
 
 impl Display for Blockstamp {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
@@ -215,6 +220,58 @@ impl Ord for Blockstamp {
         }
     }
 }
+
+#[derive(Debug)]
+/// Error when converting a byte vector to Blockstamp
+pub enum ReadBytesBlockstampError {
+    /// Bytes vector is too short
+    TooShort(),
+    /// Bytes vector is too long
+    TooLong(),
+    /// IoError
+    IoError(::std::io::Error),
+}
+
+impl From<::std::io::Error> for ReadBytesBlockstampError {
+    fn from(e: ::std::io::Error) -> Self {
+        ReadBytesBlockstampError::IoError(e)
+    }
+}
+
+/*
+impl BinMessage for Blockstamp {
+    type ReadBytesError = ReadBytesBlockstampError;
+    fn from_bytes(bytes: &[u8]) -> Result<Self, Self::ReadBytesError> {
+        if bytes.len() > 36 {
+            Err(ReadBytesBlockstampError::TooLong())
+        } else if bytes.len() < 36 {
+            Err(ReadBytesBlockstampError::TooShort())
+        } else {
+            // read id
+            let mut id_bytes = Cursor::new(bytes[0..4].to_vec());
+            let id = BlockId(id_bytes.read_u32::<BigEndian>()?);
+            // read hash
+            let mut hash_datas: [u8; 32] = [0u8; 32];
+            hash_datas.copy_from_slice(&bytes[4..36]);
+            let hash = BlockHash(Hash(hash_datas));
+            // return Blockstamp
+            Ok(Blockstamp { id, hash })
+        }
+    }
+    fn to_bytes_vector(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(36);
+        // BlockId
+        let mut buffer = [0u8; mem::size_of::<u32>()];
+        buffer
+            .as_mut()
+            .write_u32::<BigEndian>(self.id.0)
+            .expect("Unable to write");
+        bytes.extend_from_slice(&buffer);
+        // BlockHash
+        bytes.extend(self.hash.0.to_bytes_vector());
+        bytes
+    }
+}*/
 
 impl Blockstamp {
     /// Create a `BlockUId` from a text.

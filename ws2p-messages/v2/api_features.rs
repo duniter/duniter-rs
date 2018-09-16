@@ -13,32 +13,30 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Provide wrappers for cryptographic building blocks used by Duniter.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+/// WS2PFeatures
+pub struct WS2PFeatures(pub Vec<u8>);
 
-#![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(builtin_type_shadow))]
-#![deny(
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_import_braces,
-    unused_qualifications
-)]
-#![allow(non_camel_case_types)]
-
-#[macro_use]
-extern crate serde_derive;
-
-extern crate base58;
-extern crate base64;
-extern crate bincode;
-extern crate crypto;
-extern crate rand;
-extern crate serde;
-
-pub mod hashs;
-pub mod keys;
+impl WS2PFeatures {
+    /// Return true if all flags are disabled (or if it's really empty).
+    pub fn is_empty(&self) -> bool {
+        for byte in &self.0 {
+            if *byte > 0u8 {
+                return false;
+            }
+        }
+        true
+    }
+    /// Check flag DEF
+    pub fn _def(&self) -> bool {
+        self.0[0] | 0b1111_1110 == 255u8
+    }
+    /// Check flag LOW
+    pub fn _low(&self) -> bool {
+        self.0[0] | 0b1111_1101 == 255u8
+    }
+    /// Check flag ABF
+    pub fn _abf(&self) -> bool {
+        self.0[0] | 0b1111_1011 == 255u8
+    }
+}

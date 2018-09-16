@@ -17,6 +17,7 @@
 
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
+use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::*;
 
 use blockchain::v10::documents::certification::CertificationDocument;
@@ -26,25 +27,9 @@ use blockchain::v10::documents::revocation::RevocationDocument;
 use blockchain::v10::documents::transaction::TransactionDocument;
 use blockchain::v10::documents::*;
 use blockchain::{BlockchainProtocol, Document, IntoSpecializedDocument};
-use std::fmt::{Display, Error, Formatter};
 use std::ops::Deref;
-use {BlockHash, BlockId, Blockstamp, Hash};
-
-/// Currency name
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
-pub struct CurrencyName(pub String);
-
-impl Default for CurrencyName {
-    fn default() -> CurrencyName {
-        CurrencyName(String::from("default_currency"))
-    }
-}
-
-impl Display for CurrencyName {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "{}", self.0)
-    }
-}
+use CurrencyName;
+use {BlockHash, BlockId, Blockstamp};
 
 #[derive(Debug, Clone)]
 /// Store error in block parameters parsing
@@ -172,7 +157,7 @@ impl ::std::str::FromStr for BlockV10Parameters {
 }
 
 /// Store a transaction document or just its hash.
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum TxDocOrTxHash {
     /// Transaction document
     TxDoc(Box<TransactionDocument>),
@@ -267,6 +252,14 @@ pub struct BlockDocument {
     pub inner_hash_and_nonce_str: String,
 }
 
+impl PartialEq for BlockDocument {
+    fn eq(&self, other: &BlockDocument) -> bool {
+        self.hash == other.hash
+    }
+}
+
+impl Eq for BlockDocument {}
+
 impl BlockDocument {
     /// Return previous blockstamp
     pub fn previous_blockstamp(&self) -> Blockstamp {
@@ -322,14 +315,21 @@ impl BlockDocument {
         //self.hash = None;
         self.inner_hash = None;
         self.inner_hash_and_nonce_str = String::with_capacity(0);
-        self.identities
-            .iter_mut()
-            .map(|i| i.reduce())
-            .collect::<()>();
-        self.joiners.iter_mut().map(|i| i.reduce()).collect::<()>();
-        self.actives.iter_mut().map(|i| i.reduce()).collect::<()>();
-        self.leavers.iter_mut().map(|i| i.reduce()).collect::<()>();
-        self.transactions = self.transactions.iter_mut().map(|t| t.reduce()).collect();
+        for i in &mut self.identities {
+            i.reduce();
+        }
+        for i in &mut self.joiners {
+            i.reduce();
+        }
+        for i in &mut self.actives {
+            i.reduce();
+        }
+        for i in &mut self.leavers {
+            i.reduce();
+        }
+        for i in &mut self.transactions {
+            i.reduce();
+        }
     }
     /// Generate compact inner text (for compute inner_hash)
     pub fn generate_compact_inner_text(&self) -> String {

@@ -40,17 +40,15 @@ impl<T: WebOfTrust> PathFinder<T> for RustyPathFinder {
 
         // Stores for each node its distance to `to` node and its backward links.
         // By default all nodes are out of range (`k_max + 1`) and links are known.
-        let mut graph: Vec<(u32, Vec<NodeId>)> = (0..wot.size())
-            .into_iter()
-            .map(|_| (k_max + 1, vec![]))
-            .collect();
+        let mut graph: Vec<(u32, Vec<NodeId>)> =
+            (0..wot.size()).map(|_| (k_max + 1, vec![])).collect();
         // `to` node is at distance 0, and have no backward links.
         graph[to.0] = (0, vec![]);
         // Explored zone border.
         let mut border = HashSet::new();
         border.insert(to);
 
-        for distance in 1..(k_max + 1) {
+        for distance in 1..=k_max {
             let mut next_border = HashSet::new();
 
             for node in border {
@@ -74,7 +72,7 @@ impl<T: WebOfTrust> PathFinder<T> for RustyPathFinder {
         //    For each path, we look at the last element sources and build new paths with them.
         let mut paths = vec![vec![from]];
 
-        for _ in 1..(k_max + 1) {
+        for _ in 1..=k_max {
             let mut new_paths = vec![];
 
             for path in &paths {

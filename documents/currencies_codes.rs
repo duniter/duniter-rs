@@ -13,32 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Provide wrappers for cryptographic building blocks used by Duniter.
+//! Implements the Duniter Documents Protocol.
 
-#![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(builtin_type_shadow))]
-#![deny(
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_import_braces,
-    unused_qualifications
-)]
-#![allow(non_camel_case_types)]
-
-#[macro_use]
-extern crate serde_derive;
-
-extern crate base58;
-extern crate base64;
-extern crate bincode;
-extern crate crypto;
-extern crate rand;
-extern crate serde;
-
-pub mod hashs;
-pub mod keys;
+/// CURRENCY_NULL
+pub static CURRENCY_NULL: &'static u16 = &0x_0000;
+/// CURRENCY_G1
+pub static CURRENCY_G1: &'static u16 = &0x_0001;
+/// CURRENCY_G1_TEST
+pub static CURRENCY_G1_TEST: &'static u16 = &0x_1000;

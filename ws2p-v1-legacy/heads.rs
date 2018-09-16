@@ -14,12 +14,12 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use duniter_documents::Blockstamp;
-use duniter_network::network_head::*;
+use duniter_network::network_head_v2::*;
 use *;
 
 pub fn generate_my_head(
     network_keypair: &KeyPairEnum,
-    node_id: NodeUUID,
+    node_id: NodeId,
     soft_name: &str,
     soft_version: &str,
     my_current_blockstamp: &Blockstamp,

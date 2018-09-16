@@ -79,10 +79,12 @@ pub mod tools;
 /// Contains all write databases functions
 pub mod writers;
 
+use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::*;
-use duniter_documents::blockchain::v10::documents::block::{BlockV10Parameters, CurrencyName};
+use duniter_documents::blockchain::v10::documents::block::BlockV10Parameters;
 use duniter_documents::blockchain::v10::documents::transaction::*;
-use duniter_documents::{BlockHash, BlockId, Blockstamp, Hash, PreviousBlockstamp};
+use duniter_documents::CurrencyName;
+use duniter_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
 use duniter_wotb::{NodeId, WebOfTrust};
 use rustbreak::backend::{FileBackend, MemoryBackend};
 use rustbreak::error::{RustbreakError, RustbreakErrorKind};

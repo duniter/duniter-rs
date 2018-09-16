@@ -1,8 +1,6 @@
 {
     "V1": {
-        "currency": {
-            "Str": "g1"
-        },
+        "currency":"g1",
         "my_node_id": 1191678020,
         "disabled": [],
         "enabled": [],

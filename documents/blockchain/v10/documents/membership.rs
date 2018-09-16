@@ -33,7 +33,7 @@ lazy_static! {
 }
 
 /// Type of a Membership.
-#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Hash, Serialize)]
+#[derive(Debug, Deserialize, Clone, Copy, Hash, Serialize, PartialEq, Eq)]
 pub enum MembershipType {
     /// The member wishes to opt-in.
     In(),
@@ -44,7 +44,7 @@ pub enum MembershipType {
 /// Wrap an Membership document.
 ///
 /// Must be created by parsing a text document or using a builder.
-#[derive(Debug, Clone, PartialEq, Hash, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct MembershipDocument {
     /// Document as text.
     ///
@@ -150,6 +150,15 @@ impl CompactTextDocument for MembershipDocument {
             username = self.identity_username,
         )
     }
+}
+
+/// CompactPoolMembershipDoc
+#[derive(Copy, Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
+pub struct CompactPoolMembershipDoc {
+    /// Document creation blockstamp
+    pub blockstamp: Blockstamp,
+    /// Signature
+    pub signature: Sig,
 }
 
 impl TextDocument for MembershipDocument {

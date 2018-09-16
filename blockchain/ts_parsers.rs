@@ -16,16 +16,16 @@
 extern crate serde_json;
 extern crate sqlite;
 
+use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::*;
-use duniter_documents::blockchain::v10::documents::block::{
-    BlockV10Parameters, CurrencyName, TxDocOrTxHash,
-};
+use duniter_documents::blockchain::v10::documents::block::{BlockV10Parameters, TxDocOrTxHash};
 use duniter_documents::blockchain::v10::documents::identity::IdentityDocumentBuilder;
 use duniter_documents::blockchain::v10::documents::membership::*;
 use duniter_documents::blockchain::v10::documents::transaction::*;
 use duniter_documents::blockchain::v10::documents::*;
 use duniter_documents::blockchain::DocumentBuilder;
-use duniter_documents::{BlockHash, BlockId, Blockstamp, Hash};
+use duniter_documents::CurrencyName;
+use duniter_documents::{BlockHash, BlockId, Blockstamp};
 use duniter_network::{NetworkBlock, NetworkBlockV10};
 use std::str::FromStr;
 use sync::BlockHeader;
