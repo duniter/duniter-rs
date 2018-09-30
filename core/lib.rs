@@ -407,7 +407,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                     .conf
                     .clone()
                     .modules()
-                    .get(&NM::id().to_string().as_str())
+                    .get(&NM::name().to_string().as_str())
                     .cloned();
                 let keypairs = self.keypairs;
                 let sync_params = network_sync.clone();
@@ -427,12 +427,12 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                     .unwrap_or_else(|_| {
                         panic!(
                             "Fatal error : fail to load {} Module !",
-                            NM::id().to_string()
+                            NM::name().to_string()
                         )
                     });
                 });
                 self.modules_count += 1;
-                info!("Success to load {} module.", NM::id().to_string());
+                info!("Success to load {} module.", NM::name().to_string());
             } else {
                 self.plug_::<NM>(true);
             }
@@ -468,7 +468,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                     .conf
                     .clone()
                     .modules()
-                    .get(&M::id().to_string().as_str())
+                    .get(&M::name().to_string().as_str())
                     .cloned();
                 let keypairs = self.keypairs;
                 self.thread_pool.execute(move || {
@@ -487,20 +487,20 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                     .unwrap_or_else(|_| {
                         panic!(
                             "Fatal error : fail to load {} Module !",
-                            M::id().to_string()
+                            M::name().to_string()
                         )
                     });
                 });
                 self.modules_count += 1;
-                info!("Success to load {} module.", M::id().to_string());
+                info!("Success to load {} module.", M::name().to_string());
             } else if let Some(UserCommand::UnknowCommand(ref subcommand)) = self.user_command {
-                if M::have_subcommand() && *subcommand == M::id().to_string() {
+                if M::have_subcommand() && *subcommand == M::name().to_string() {
                     // Math command line arguments
                     if let Some(subcommand_args) = self
                         .cli_args
                         .clone()
                         .expect("cli_args must be Some !")
-                        .subcommand_matches(M::id().to_string())
+                        .subcommand_matches(M::name().to_string())
                     {
                         // Load module conf and keys
                         let module_conf_json = self
@@ -508,7 +508,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                             .conf
                             .clone()
                             .modules()
-                            .get(&M::id().to_string().as_str())
+                            .get(&M::name().to_string().as_str())
                             .cloned();
                         let (_conf, keypairs) =
                             duniter_conf::load_conf(self.soft_meta_datas.profile.as_str());
@@ -532,9 +532,9 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                 is_network_module,
             ) {
                 if enabled {
-                    println!("{}", M::id().to_string());
+                    println!("{}", M::name().to_string());
                 } else {
-                    println!("{} (disabled)", M::id().to_string());
+                    println!("{} (disabled)", M::name().to_string());
                 }
             }
         }
@@ -558,7 +558,7 @@ pub fn get_module_conf<M: DuniterModule<DuRsConf, DuniterMessage>>(
 ) -> M::ModuleConf {
     if let Some(module_conf_json) = module_conf_json {
         serde_json::from_str(module_conf_json.to_string().as_str())
-            .unwrap_or_else(|_| panic!("Fail to parse conf of module {}", M::id().to_string()))
+            .unwrap_or_else(|_| panic!("Fail to parse conf of module {}", M::name().to_string()))
     } else {
         M::ModuleConf::default()
     }

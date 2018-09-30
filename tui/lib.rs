@@ -394,8 +394,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
     type ModuleConf = TuiConf;
     type ModuleOpt = TuiOpt;
 
-    fn id() -> ModuleId {
-        ModuleId(String::from("tui"))
+    fn name() -> ModuleStaticName {
+        ModuleStaticName("tui")
     }
     fn priority() -> ModulePriority {
         ModulePriority::Recommended()
@@ -417,7 +417,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
             test_fake_conf_field: subcommand_args.new_conf_field.clone(),
         };
         conf.set_module_conf(
-            Self::id().0,
+            Self::name().to_string(),
             serde_json::value::to_value(new_tui_conf).expect("Fail to jsonifie TuiConf !"),
         );
         duniter_conf::write_conf_file(&soft_meta_datas.profile, &conf)

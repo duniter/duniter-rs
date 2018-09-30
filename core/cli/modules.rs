@@ -29,7 +29,7 @@ use std::collections::HashSet;
 pub struct EnableOpt {
     #[structopt(parse(from_str))]
     /// The module name to enable
-    pub module_name: ModuleId,
+    pub module_name: ModuleName,
 }
 
 #[derive(StructOpt, Debug)]
@@ -41,7 +41,7 @@ pub struct EnableOpt {
 pub struct DisableOpt {
     #[structopt(parse(from_str))]
     /// The module name to disable
-    pub module_name: ModuleId,
+    pub module_name: ModuleName,
 }
 
 #[derive(StructOpt, Debug, Copy, Clone)]

@@ -25,7 +25,7 @@ use duniter_documents::blockchain::v10::documents::{
 use duniter_documents::Blockstamp;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 /// Inter-module DAL request for pool data
 pub enum DALReqPendings {
     /// All pending identities with their pending certifications

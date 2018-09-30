@@ -146,8 +146,8 @@ pub enum CompletedBlockError {
 
 impl BlockchainModule {
     /// Return module identifier
-    pub fn id() -> ModuleId {
-        ModuleId(String::from("blockchain"))
+    pub fn name() -> ModuleStaticName {
+        ModuleStaticName("blockchain")
     }
     /// Loading blockchain configuration
     pub fn load_blockchain_conf<DC: DuniterConf>(
@@ -222,7 +222,7 @@ impl BlockchainModule {
     /// Request chunk from network (chunk = group of blocks)
     fn request_chunk(&self, req_id: ModuleReqId, from: u32) -> (ModuleReqId, NetworkRequest) {
         let req = NetworkRequest::GetBlocks(
-            ModuleReqFullId(BlockchainModule::id(), req_id),
+            ModuleReqFullId(BlockchainModule::name(), req_id),
             NodeFullId::default(),
             *CHUNK_SIZE,
             from,
@@ -531,7 +531,7 @@ impl BlockchainModule {
         loop {
             // Request Consensus
             let req = NetworkRequest::GetConsensus(ModuleReqFullId(
-                BlockchainModule::id(),
+                BlockchainModule::name(),
                 ModuleReqId(pending_network_requests.len() as u32),
             ));
             let req_id = self.request_network(&req);

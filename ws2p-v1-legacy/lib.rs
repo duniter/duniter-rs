@@ -244,8 +244,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
     type ModuleConf = WS2PConf;
     type ModuleOpt = WS2POpt;
 
-    fn id() -> ModuleId {
-        ModuleId(String::from("ws2p"))
+    fn name() -> ModuleStaticName {
+        ModuleStaticName("ws2p")
     }
     fn priority() -> ModulePriority {
         ModulePriority::Essential()
@@ -401,7 +401,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                         ws2p_module.send_dal_request(
                                             &DALRequest::BlockchainRequest(
                                                 DALReqBlockchain::CurrentBlock(ModuleReqFullId(
-                                                    WS2PModule::id(),
+                                                    WS2PModule::name(),
                                                     ModuleReqId(0),
                                                 )),
                                             ),
@@ -624,7 +624,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                         WS2PSignal::ConnectionEstablished(ws2p_full_id) => {
                             let req_id =
                                 ModuleReqId(ws2p_module.requests_awaiting_response.len() as u32);
-                            let module_id = WS2PModule::id();
+                            let module_id = WS2PModule::name();
                             let _current_request_result = ws2p_module
                                 .send_request_to_specific_node(
                                     &ws2p_full_id,
@@ -747,7 +747,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                     if let Some(block) = parse_json_block(&response) {
                                         ws2p_module.send_network_event(&NetworkEvent::ReqResponse(
                                             Box::new(NetworkResponse::CurrentBlock(
-                                                ModuleReqFullId(WS2PModule::id(), req_id),
+                                                ModuleReqFullId(WS2PModule::name(), req_id),
                                                 recipient_full_id,
                                                 Box::new(block),
                                             )),
@@ -860,7 +860,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                         request_blocks_from += 1;
                     }
                     info!("get chunks from all connections...");
-                    let module_id = WS2PModule::id();
+                    let module_id = WS2PModule::name();
                     let _blocks_request_result =
                         ws2p_module.send_request_to_all_connections(&NetworkRequest::GetBlocks(
                             ModuleReqFullId(module_id, ModuleReqId(0 as u32)),
@@ -1158,7 +1158,7 @@ mod tests {
 
     #[test]
     fn ws2p_requests() {
-        let module_id = WS2PModule::id();
+        let module_id = WS2PModule::name();
         let request = NetworkRequest::GetBlocks(
             ModuleReqFullId(module_id, ModuleReqId(58)),
             NodeFullId::default(),

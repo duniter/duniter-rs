@@ -257,7 +257,7 @@ pub enum NetworkConsensusError {
     Fork(),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 /// Type containing a request addressed to the network module
 pub enum NetworkRequest {
     /// Get a current block of a specific node

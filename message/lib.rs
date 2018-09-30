@@ -45,7 +45,7 @@ use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALRequest, DALResponse};
 use duniter_documents::blockchain::BlockchainProtocol;
 use duniter_documents::BlockId;
-use duniter_module::{ModuleId, ModuleMessage};
+use duniter_module::{ModuleMessage, ModuleName};
 use duniter_network::{NetworkEvent, NetworkRequest};
 
 #[derive(Debug, Clone)]
@@ -56,7 +56,7 @@ pub enum DuniterMessage {
     /// Brut binary message
     Binary(Vec<u8>),
     /// New configuration of a module to save
-    SaveNewModuleConf(ModuleId, serde_json::Value),
+    SaveNewModuleConf(ModuleName, serde_json::Value),
     /// Subscriptions to the module feed
     Followers(Vec<mpsc::Sender<DuniterMessage>>),
     /// Blockchain datas request

@@ -164,8 +164,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2Pv2Module {
     type ModuleConf = WS2PConf;
     type ModuleOpt = WS2POpt;
 
-    fn id() -> ModuleId {
-        ModuleId(String::from("ws2p"))
+    fn name() -> ModuleStaticName {
+        ModuleStaticName("ws2p")
     }
     fn priority() -> ModulePriority {
         ModulePriority::Essential()

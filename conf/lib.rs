@@ -42,7 +42,7 @@ extern crate rand;
 extern crate serde;
 use duniter_crypto::keys::*;
 use duniter_documents::CurrencyName;
-use duniter_module::{DuniterConf, ModuleId, RequiredKeys, RequiredKeysContent};
+use duniter_module::{DuniterConf, ModuleName, RequiredKeys, RequiredKeysContent};
 use rand::Rng;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use std::collections::HashSet;
@@ -62,9 +62,9 @@ pub enum ChangeGlobalConf {
     /// Change currency
     ChangeCurrency(CurrencyName),
     /// Disable module
-    DisableModule(ModuleId),
+    DisableModule(ModuleName),
     /// Enable module
-    EnableModule(ModuleId),
+    EnableModule(ModuleName),
     /// None
     None(),
 }
@@ -79,9 +79,9 @@ pub struct DuRsConfV1 {
     /// Configuration of modules in json format (obtained from the conf.json file)
     pub modules: serde_json::Value,
     /// Disabled modules
-    pub disabled: HashSet<ModuleId>,
+    pub disabled: HashSet<ModuleName>,
     /// Enabled modules
-    pub enabled: HashSet<ModuleId>,
+    pub enabled: HashSet<ModuleName>,
 }
 
 impl Default for DuRsConfV1 {
@@ -136,7 +136,7 @@ impl DuniterConf for DuRsConf {
             _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
-    fn disable(&mut self, module: ModuleId) {
+    fn disable(&mut self, module: ModuleName) {
         match *self {
             DuRsConf::V1(ref mut conf_v1) => {
                 conf_v1.disabled.insert(module.clone());
@@ -145,7 +145,7 @@ impl DuniterConf for DuRsConf {
             _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
-    fn enable(&mut self, module: ModuleId) {
+    fn enable(&mut self, module: ModuleName) {
         match *self {
             DuRsConf::V1(ref mut conf_v1) => {
                 conf_v1.disabled.remove(&module);
@@ -154,13 +154,13 @@ impl DuniterConf for DuRsConf {
             _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
-    fn disabled_modules(&self) -> HashSet<ModuleId> {
+    fn disabled_modules(&self) -> HashSet<ModuleName> {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.disabled.clone(),
             _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
-    fn enabled_modules(&self) -> HashSet<ModuleId> {
+    fn enabled_modules(&self) -> HashSet<ModuleName> {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.enabled.clone(),
             _ => panic!("Fail to load duniter conf : conf version not supported !"),

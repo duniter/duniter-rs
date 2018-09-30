@@ -49,17 +49,33 @@ use std::sync::mpsc;
 //use structopt::clap::ArgMatches;
 use structopt::StructOpt;
 
-#[derive(Clone, Deserialize, Debug, PartialEq, Eq, Hash, Serialize)]
-/// Store module identifier
-pub struct ModuleId(pub String);
+#[derive(Copy, Clone, Deserialize, Debug, PartialEq, Eq, Hash, Serialize)]
+/// Store module name in static lifetime
+pub struct ModuleStaticName(pub &'static str);
 
-impl<'a> From<&'a str> for ModuleId {
-    fn from(source: &str) -> Self {
-        ModuleId(String::from(source))
+impl ToString for ModuleStaticName {
+    fn to_string(&self) -> String {
+        String::from(self.0)
     }
 }
 
-impl ToString for ModuleId {
+#[derive(Clone, Deserialize, Debug, PartialEq, Eq, Hash, Serialize)]
+/// Store module name
+pub struct ModuleName(pub String);
+
+impl From<ModuleStaticName> for ModuleName {
+    fn from(source: ModuleStaticName) -> Self {
+        ModuleName(String::from(source.0))
+    }
+}
+
+impl<'a> From<&'a str> for ModuleName {
+    fn from(source: &str) -> Self {
+        ModuleName(String::from(source))
+    }
+}
+
+impl ToString for ModuleName {
     fn to_string(&self) -> String {
         self.0.clone()
     }
@@ -78,10 +94,10 @@ impl Serialize for ModuleReqId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// Several modules can simultaneously send requests with the same identifier.
 /// To identify each request in a unique way, we must therefore also take into account the identifier of the module performing the request.
-pub struct ModuleReqFullId(pub ModuleId, pub ModuleReqId);
+pub struct ModuleReqFullId(pub ModuleStaticName, pub ModuleReqId);
 
 impl ToString for ModuleReqFullId {
     fn to_string(&self) -> String {
@@ -100,13 +116,13 @@ pub trait DuniterConf: Clone + Debug + Default + PartialEq + Serialize + Deseria
     /// Get node id
     fn my_node_id(&self) -> u32;
     /// Disable a module
-    fn disable(&mut self, module: ModuleId);
+    fn disable(&mut self, module: ModuleName);
     /// Enable a module
-    fn enable(&mut self, module: ModuleId);
+    fn enable(&mut self, module: ModuleName);
     /// Get disabled modules
-    fn disabled_modules(&self) -> HashSet<ModuleId>;
+    fn disabled_modules(&self) -> HashSet<ModuleName>;
     /// Get enabled modules
-    fn enabled_modules(&self) -> HashSet<ModuleId>;
+    fn enabled_modules(&self) -> HashSet<ModuleName>;
     /// Get modules conf
     fn modules(&self) -> serde_json::Value;
     /// Change module conf
@@ -197,8 +213,8 @@ pub fn enabled<DC: DuniterConf, Mess: ModuleMessage, M: DuniterModule<DC, Mess>>
     let enabled_modules = conf.enabled_modules();
     match M::priority() {
         ModulePriority::Essential() => true,
-        ModulePriority::Recommended() => !disabled_modules.contains(&M::id()),
-        ModulePriority::Optional() => enabled_modules.contains(&M::id()),
+        ModulePriority::Recommended() => !disabled_modules.contains(&ModuleName::from(M::name())),
+        ModulePriority::Optional() => enabled_modules.contains(&ModuleName::from(M::name())),
     }
 }
 
@@ -244,8 +260,8 @@ pub trait DuniterModule<DC: DuniterConf, M: ModuleMessage> {
     /// Module subcommand options
     type ModuleOpt: StructOpt;
 
-    /// Returns the module identifier
-    fn id() -> ModuleId;
+    /// Returns the module name
+    fn name() -> ModuleStaticName;
     /// Returns the module priority
     fn priority() -> ModulePriority;
     /// Indicates which keys the module needs
