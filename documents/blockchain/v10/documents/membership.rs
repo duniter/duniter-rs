@@ -29,7 +29,8 @@ lazy_static! {
          Membership: (?P<membership>(IN|OUT))\n\
          UserID: (?P<ity_user>[[:alnum:]_-]+)\n\
          CertTS: (?P<ity_block>[0-9]+-[0-9A-F]{64})\n$"
-    ).unwrap();
+    )
+    .unwrap();
 }
 
 /// Type of a Membership.
@@ -320,19 +321,22 @@ mod tests {
             ed25519::PrivateKey::from_base58(
                 "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5G\
                  iERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
-            ).unwrap(),
+            )
+            .unwrap(),
         );
 
         let sig = Sig::Ed25519(
             ed25519::Signature::from_base64(
                 "s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkEl\
                  AyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw==",
-            ).unwrap(),
+            )
+            .unwrap(),
         );
 
         let block = Blockstamp::from_string(
             "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
-        ).unwrap();
+        )
+        .unwrap();
 
         let builder = MembershipDocumentBuilder {
             currency: "duniter_unit_test_currency",

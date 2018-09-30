@@ -170,11 +170,13 @@ impl DALIdentity {
                 DALIdentityState::ExpireMember(renewed_counts) => {
                     DALIdentityState::ExplicitExpireRevoked(renewed_counts)
                 }
-                DALIdentityState::Member(renewed_counts) => if explicit {
-                    DALIdentityState::ExplicitRevoked(renewed_counts)
-                } else {
-                    DALIdentityState::ImplicitRevoked(renewed_counts)
-                },
+                DALIdentityState::Member(renewed_counts) => {
+                    if explicit {
+                        DALIdentityState::ExplicitRevoked(renewed_counts)
+                    } else {
+                        DALIdentityState::ImplicitRevoked(renewed_counts)
+                    }
+                }
                 _ => panic!("Try to revert revoke an already revoked idty !"),
             }
         };

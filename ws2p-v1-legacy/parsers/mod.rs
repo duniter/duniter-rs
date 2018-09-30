@@ -58,7 +58,8 @@ mod tests {
             currency: "g1",
             blockstamp: &Blockstamp::from_string(
                 "112533-000002150F2E805E604D9B31212D079570AAD8D3A4D8BB75F2C15A94A345B6B1",
-            ).unwrap(),
+            )
+            .unwrap(),
             locktime: &0,
             issuers: &vec![PubKey::Ed25519(
                 ed25519::PublicKey::from_base58("51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2")
@@ -67,12 +68,14 @@ mod tests {
             inputs: &vec![
                 TransactionInput::parse_from_str(
                     "1000:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:46496",
-                ).unwrap(),
+                )
+                .unwrap(),
             ],
             outputs: &vec![
                 TransactionOutput::parse_from_str(
                     "1000:0:SIG(2yN8BRSkARcqE8NCxKMBiHfTpx1EvwULFn56Myf6qRmy)",
-                ).unwrap(),
+                )
+                .unwrap(),
             ],
             unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)").unwrap()],
             comment: "Merci pour la calligraphie ;) de Liam",
@@ -118,7 +121,8 @@ mod tests {
             currency: "g1",
             blockstamp: &Blockstamp::from_string(
                 "58-00005B9167EBA1E32C6EAD42AE7F72D8F14B765D3C9E47D233B553D47C5AEE0C",
-            ).unwrap(),
+            )
+            .unwrap(),
             locktime: &0,
             issuers: &vec![PubKey::Ed25519(
                 ed25519::PublicKey::from_base58("FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD")
@@ -127,15 +131,18 @@ mod tests {
             inputs: &vec![
                 TransactionInput::parse_from_str(
                     "1000:0:D:FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD:1",
-                ).unwrap(),
+                )
+                .unwrap(),
             ],
             outputs: &vec![
                 TransactionOutput::parse_from_str(
                     "3:0:SIG(7vU9BMDhN6fBuRa2iK3JRbC6pqQKb4qDMGsFcQuT5cz)",
-                ).unwrap(),
+                )
+                .unwrap(),
                 TransactionOutput::parse_from_str(
                     "997:0:SIG(FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD)",
-                ).unwrap(),
+                )
+                .unwrap(),
             ],
             unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)").unwrap()],
             comment: "Un petit cafe ;-)",

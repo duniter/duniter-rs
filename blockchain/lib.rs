@@ -359,7 +359,8 @@ impl BlockchainModule {
                             self.forks_states = duniter_dal::block::get_forks(
                                 &self.blocks_databases.forks_db,
                                 current_blockstamp,
-                            ).expect("get_forks() : DALError");
+                            )
+                            .expect("get_forks() : DALError");
                             save_blocks_dbs = true;
                             if !wot_dbs_reqs.is_empty() {
                                 save_wots_dbs = true;
@@ -463,7 +464,8 @@ impl BlockchainModule {
                 self.forks_states = duniter_dal::block::get_forks(
                     &self.blocks_databases.forks_db,
                     current_blockstamp,
-                ).expect("get_forks() : DALError");
+                )
+                .expect("get_forks() : DALError");
                 // Apply db requests
                 bc_db_query
                     .apply(&self.blocks_databases, false)
@@ -665,7 +667,8 @@ impl BlockchainModule {
                                                             .tx_db
                                                             .read(|db| db.clone())
                                                             .expect("Fail to read TxDB."),
-                                                    ).expect("Fail to revert block");
+                                                    )
+                                                    .expect("Fail to revert block");
                                                 }
                                             }
                                         }
@@ -686,7 +689,8 @@ impl BlockchainModule {
                                                 self.forks_states = duniter_dal::block::get_forks(
                                                     &self.blocks_databases.forks_db,
                                                     current_blockstamp,
-                                                ).expect("get_forks() : DALError");
+                                                )
+                                                .expect("get_forks() : DALError");
                                             }
                                         }
                                     }
@@ -722,7 +726,8 @@ impl BlockchainModule {
                         &self.blocks_databases.forks_db,
                         &self.blocks_databases.forks_blocks_db,
                         &current_blockstamp,
-                    ).expect("Fatal error : Fail to read ForksV10DB !");
+                    )
+                    .expect("Fatal error : Fail to read ForksV10DB !");
                     if stackable_blocks.is_empty() {
                         break;
                     } else {
@@ -781,7 +786,8 @@ impl BlockchainModule {
                                     &self.blocks_databases.forks_db,
                                     &self.blocks_databases.forks_blocks_db,
                                     stackable_block.fork_id,
-                                ).expect("delete_fork() : DALError");
+                                )
+                                .expect("delete_fork() : DALError");
                                 // Update forks states
                                 self.forks_states[stackable_block.fork_id.0] = ForkStatus::Free();
                             }

@@ -121,7 +121,8 @@ pub fn write_endpoint(
                 "UPDATE endpoints SET status={} WHERE hash_full_id='{}'",
                 endpoint.status(),
                 hash_full_id
-            )).expect("Fail to parse SQL request update endpoint  status !");
+            ))
+            .expect("Fail to parse SQL request update endpoint  status !");
         }
     } else if let EndpointEnum::V1(ref ep_v10) = *endpoint {
         db

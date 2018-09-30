@@ -71,23 +71,27 @@ impl Default for WS2PConf {
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(
                             "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx",
-                        ).unwrap(),
+                        )
+                        .unwrap(),
                     ),
                     0,
                     0,
                     1u16,
-                ).unwrap(),
+                )
+                .unwrap(),
                 EndpointEnum::parse_from_raw(
                     "WS2P b48824f0 g1.monnaielibreoccitanie.org 443 /ws2p",
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(
                             "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef",
-                        ).unwrap(),
+                        )
+                        .unwrap(),
                     ),
                     0,
                     0,
                     1u16,
-                ).unwrap(),
+                )
+                .unwrap(),
             ],
         }
     }

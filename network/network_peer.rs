@@ -194,7 +194,8 @@ mod tests {
             node_id: NodeId(0),
             blockstamp: Blockstamp::from_string(
                 "50-000005B1CEB4EC5245EF7E33101A330A1C9A358EC45A25FC13F78BB58C9E7370",
-            ).unwrap(),
+            )
+            .unwrap(),
             endpoints: vec![
                 EndpointEnum::V2(create_endpoint_v2()),
                 EndpointEnum::V2(create_second_endpoint_v2()),

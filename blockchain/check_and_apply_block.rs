@@ -155,7 +155,8 @@ pub fn check_and_apply_block<W: WebOfTrust>(
                         None,
                         false,
                         false,
-                    ).expect("duniter_dal::writers::block::write() : DALError")
+                    )
+                    .expect("duniter_dal::writers::block::write() : DALError")
                 }
                 Block::LocalBlock(block_doc) => {
                     let old_fork_id = None;
@@ -173,7 +174,8 @@ pub fn check_and_apply_block<W: WebOfTrust>(
                         old_fork_id,
                         false,
                         false,
-                    ).expect("duniter_dal::writers::block::write() : DALError")
+                    )
+                    .expect("duniter_dal::writers::block::write() : DALError")
                 }
             };
         } else {

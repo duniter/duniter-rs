@@ -71,7 +71,8 @@ pub fn apply_valid_block<W: WebOfTrust>(
             wot_db
                 .write(|db| {
                     db.add_node();
-                }).expect("Fail to write in WotDB");
+                })
+                .expect("Fail to write in WotDB");
             wot_index.insert(pubkey, wotb_id);
             wot_dbs_requests.push(WotsDBsWriteQuery::CreateIdentity(
                 wotb_id,
@@ -86,7 +87,8 @@ pub fn apply_valid_block<W: WebOfTrust>(
             wot_db
                 .write(|db| {
                     db.set_enabled(wotb_id, true);
-                }).expect("Fail to write in WotDB");
+                })
+                .expect("Fail to write in WotDB");
             wot_dbs_requests.push(WotsDBsWriteQuery::RenewalIdentity(
                 joiner.issuers()[0],
                 wotb_id,
@@ -102,7 +104,8 @@ pub fn apply_valid_block<W: WebOfTrust>(
             wot_db
                 .write(|db| {
                     db.set_enabled(wotb_id, true);
-                }).expect("Fail to write in WotDB");
+                })
+                .expect("Fail to write in WotDB");
             wot_dbs_requests.push(WotsDBsWriteQuery::RenewalIdentity(
                 pubkey,
                 wotb_id,
@@ -120,7 +123,8 @@ pub fn apply_valid_block<W: WebOfTrust>(
         wot_db
             .write(|db| {
                 db.set_enabled(*wot_id, false);
-            }).expect("Fail to write in WotDB");
+            })
+            .expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::ExcludeIdentity(
             exclusion,
             block.blockstamp(),
@@ -136,7 +140,8 @@ pub fn apply_valid_block<W: WebOfTrust>(
         wot_db
             .write(|db| {
                 db.set_enabled(*wot_id, false);
-            }).expect("Fail to write in WotDB");
+            })
+            .expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::RevokeIdentity(
             compact_revoc.issuer,
             block.blockstamp(),
@@ -158,7 +163,8 @@ pub fn apply_valid_block<W: WebOfTrust>(
                         wotb_node_from.0, wotb_node_to.0, result
                     ),
                 }
-            }).expect("Fail to write in WotDB");
+            })
+            .expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::CreateCert(
             compact_cert.issuer,
             wotb_node_from,
@@ -182,7 +188,8 @@ pub fn apply_valid_block<W: WebOfTrust>(
                         RemLinkResult::Removed(_) => {}
                         _ => panic!("Fail to rem_link {}->{} : {:?}", source.0, target.0, result),
                     }
-                }).expect("Fail to write in WotDB");
+                })
+                .expect("Fail to write in WotDB");
         }
     }
     if let Some(du_amount) = block.dividend {
@@ -208,53 +215,53 @@ pub fn apply_valid_block<W: WebOfTrust>(
     }
 
     /*// Calculate the state of the wot
-        if !wot_events.is_empty() && verif_level != SyncVerificationLevel::FastSync() {
-            // Calculate sentries_count
-            let sentries_count = wot.get_sentries(3).len();
-            // Calculate average_density
-            let average_density = calculate_average_density::<W>(&wot);
-            let sentry_requirement =
-                get_sentry_requirement(block.members_count, G1_PARAMS.step_max);
-            // Calculate distances and connectivities
-            let (average_distance, distances, average_connectivity, connectivities) =
-                compute_distances::<W>(
-                    &wot,
-                    sentry_requirement,
-                    G1_PARAMS.step_max,
-                    G1_PARAMS.x_percent,
-                );
-            // Calculate centralities and average_centrality
-            let centralities =
-                calculate_distance_stress_centralities::<W>(&wot, G1_PARAMS.step_max);
-            let average_centrality =
-                (centralities.iter().sum::<u64>() as f64 / centralities.len() as f64) as usize;
-            // Register the state of the wot
-            let max_connectivity = currency_params.max_connectivity();
-            duniter_dal::register_wot_state(
-                db,
-                &WotState {
-                    block_number: block.number.0,
-                    block_hash: block.hash.expect("Fail to get block hash").to_string(),
-                    sentries_count,
-                    average_density,
-                    average_distance,
-                    distances,
-                    average_connectivity,
-                    connectivities: connectivities
-                        .iter()
-                        .map(|c| {
-                            if *c > max_connectivity {
-                                max_connectivity
-                            } else {
-                                *c
-                            }
-                        })
-                        .collect(),
-                    average_centrality,
-                    centralities,
-                },
+    if !wot_events.is_empty() && verif_level != SyncVerificationLevel::FastSync() {
+        // Calculate sentries_count
+        let sentries_count = wot.get_sentries(3).len();
+        // Calculate average_density
+        let average_density = calculate_average_density::<W>(&wot);
+        let sentry_requirement =
+            get_sentry_requirement(block.members_count, G1_PARAMS.step_max);
+        // Calculate distances and connectivities
+        let (average_distance, distances, average_connectivity, connectivities) =
+            compute_distances::<W>(
+                &wot,
+                sentry_requirement,
+                G1_PARAMS.step_max,
+                G1_PARAMS.x_percent,
             );
-        }*/
+        // Calculate centralities and average_centrality
+        let centralities =
+            calculate_distance_stress_centralities::<W>(&wot, G1_PARAMS.step_max);
+        let average_centrality =
+            (centralities.iter().sum::<u64>() as f64 / centralities.len() as f64) as usize;
+        // Register the state of the wot
+        let max_connectivity = currency_params.max_connectivity();
+        duniter_dal::register_wot_state(
+            db,
+            &WotState {
+                block_number: block.number.0,
+                block_hash: block.hash.expect("Fail to get block hash").to_string(),
+                sentries_count,
+                average_density,
+                average_distance,
+                distances,
+                average_connectivity,
+                connectivities: connectivities
+                    .iter()
+                    .map(|c| {
+                        if *c > max_connectivity {
+                            max_connectivity
+                        } else {
+                            *c
+                        }
+                    })
+                    .collect(),
+                average_centrality,
+                centralities,
+            },
+        );
+    }*/
     // Create DALBlock
     let mut block = block.clone();
     let previous_blockcstamp = block.previous_blockstamp();

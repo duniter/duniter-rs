@@ -184,7 +184,8 @@ impl WS2PModuleDatas {
                         &endpoint
                             .node_full_id()
                             .expect("WS2P: Fail to get ep.node_full_id() !"),
-                    ).expect("WS2P: Fail to get_mut() a ws2p_endpoint !")
+                    )
+                    .expect("WS2P: Fail to get_mut() a ws2p_endpoint !")
                     .1 = WS2PConnectionState::NeverTry;
             }
             None => {
@@ -272,7 +273,8 @@ impl WS2PModuleDatas {
                         .get_mut(&ws2p_full_id)
                         .unwrap_or_else(|| {
                             panic!("Fatal error : no websocket for {} !", ws2p_full_id)
-                        }).0
+                        })
+                        .0
                         .send(Message::text(r))
                         .expect("WS2P: Fail to send Message in websocket !");
                 }
@@ -436,34 +438,34 @@ impl WS2PModuleDatas {
                 }
             }
             /* NetworkRequest::GetBlock(req_full_id, number) => {} */
-            NetworkRequest::GetBlocks(_req_full_id, _receiver, _count, _from_number) => {}
-            NetworkRequest::GetRequirementsPending(req_full_id, _receiver, min_cert) => {
-                for (ws2p_full_id, (_ep, state)) in self.ws2p_endpoints.clone() {
-                    if let WS2PConnectionState::Established = state {
-                        let ws2p_request = NetworkRequest::GetRequirementsPending(
-                            ModuleReqFullId(
-                                req_full_id.0,
-                                ModuleReqId(self.requests_awaiting_response.len() as u32),
-                            ),
-                            ws2p_full_id,
-                            min_cert,
-                        );
-                        match self.send_request_to_specific_node(&ws2p_full_id, &ws2p_request) {
-                            Ok(_) => count_successful_sending += 1,
-                            Err(e) => errors.push(e),
-                        };
-                    }
-                }
-            }
-            _ => {
-                return Err(SendRequestError::RequestTypeMustNotBeTransmitted());
-            }
-        }
-        debug!("count_successful_sending = {}", count_successful_sending);
-        if !errors.is_empty() {
-            return Err(SendRequestError::WSError(count_successful_sending, errors));
-        }
-        Ok(())
+    NetworkRequest::GetBlocks(_req_full_id, _receiver, _count, _from_number) => {}
+    NetworkRequest::GetRequirementsPending(req_full_id, _receiver, min_cert) => {
+    for (ws2p_full_id, (_ep, state)) in self.ws2p_endpoints.clone() {
+    if let WS2PConnectionState::Established = state {
+    let ws2p_request = NetworkRequest::GetRequirementsPending(
+    ModuleReqFullId(
+    req_full_id.0,
+    ModuleReqId(self.requests_awaiting_response.len() as u32),
+    ),
+    ws2p_full_id,
+    min_cert,
+    );
+    match self.send_request_to_specific_node(&ws2p_full_id, &ws2p_request) {
+    Ok(_) => count_successful_sending += 1,
+    Err(e) => errors.push(e),
+    };
+    }
+    }
+    }
+    _ => {
+    return Err(SendRequestError::RequestTypeMustNotBeTransmitted());
+    }
+    }
+    debug!("count_successful_sending = {}", count_successful_sending);
+    if !errors.is_empty() {
+    return Err(SendRequestError::WSError(count_successful_sending, errors));
+    }
+    Ok(())
     }*/
 
     pub fn send_request_to_specific_node(

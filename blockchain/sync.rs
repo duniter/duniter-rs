@@ -345,32 +345,33 @@ pub fn sync_ts<DC: DuniterConf>(
         // Indexing blockchain meta datas
         info!("Indexing blockchain meta datas...");
         /*let blockchain_meta_datas: HashMap<PreviousBlockstamp, BlockHash> = databases
-            .blockchain_db
-            .read(|db| {
-                let mut blockchain_meta_datas: HashMap<
-                    PreviousBlockstamp,
-                    BlockHash,
-                > = HashMap::new();
-                for dal_block in db.values() {
-                    let block_previous_hash = if dal_block.block.number.0 == 0 {
-                        PreviousBlockstamp::default()
-                    } else {
-                        PreviousBlockstamp {
-                            id: BlockId(dal_block.block.number.0 - 1),
-                            hash: BlockHash(dal_block.block.previous_hash),
-                        }
-                    };
-                    blockchain_meta_datas
-                        .insert(block_previous_hash, dal_block.block.expect("Try to get hash of an uncompleted or reduce block !"));
-                }
+        .blockchain_db
+        .read(|db| {
+            let mut blockchain_meta_datas: HashMap<
+                PreviousBlockstamp,
+                BlockHash,
+            > = HashMap::new();
+            for dal_block in db.values() {
+                let block_previous_hash = if dal_block.block.number.0 == 0 {
+                    PreviousBlockstamp::default()
+                } else {
+                    PreviousBlockstamp {
+                        id: BlockId(dal_block.block.number.0 - 1),
+                        hash: BlockHash(dal_block.block.previous_hash),
+                    }
+                };
                 blockchain_meta_datas
-            })
-            .expect("Indexing blockchain meta datas : DALError");*/
+                    .insert(block_previous_hash, dal_block.block.expect("Try to get hash of an uncompleted or reduce block !"));
+            }
+            blockchain_meta_datas
+        })
+        .expect("Indexing blockchain meta datas : DALError");*/
         databases
             .forks_db
             .write(|db| {
                 db.insert(ForkId(0), blockchain_meta_datas);
-            }).expect("Indexing blockchain meta datas : DALError");
+            })
+            .expect("Indexing blockchain meta datas : DALError");
 
         // Increment progress bar (last chunk)
         apply_pb.inc();
@@ -505,7 +506,8 @@ pub fn sync_ts<DC: DuniterConf>(
                     .write(|db| {
                         db.0 = block_doc.currency.clone();
                         db.1 = block_doc.parameters.unwrap();
-                    }).expect("fail to write in params DB");
+                    })
+                    .expect("fail to write in params DB");
                 currency_params = CurrencyParameters::from((
                     block_doc.currency.clone(),
                     block_doc.parameters.unwrap(),
@@ -568,13 +570,15 @@ pub fn sync_ts<DC: DuniterConf>(
                                 db.get(&created_block_id).cloned().unwrap_or_default();
                             created_certs.insert((*source, *target));
                             db.insert(*created_block_id, created_certs);
-                        }).expect("RustBreakError : please reset data and resync !");
+                        })
+                        .expect("RustBreakError : please reset data and resync !");
                 }
                 sender_wot_thread
                     .send(SyncJobsMess::WotsDBsWriteQuery(
                         req.clone(),
                         Box::new(currency_params),
-                    )).expect(
+                    ))
+                    .expect(
                         "Fail to communicate with tx worker thread, please reset data & resync !",
                     )
             }

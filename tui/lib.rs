@@ -182,7 +182,8 @@ impl TuiModuleDatas {
             color::Bg(color::Black),
             clear::All,
             cursor::Goto(1, 1)
-        ).unwrap();
+        )
+        .unwrap();
 
         // Draw headers
         let mut line = 1;
@@ -192,7 +193,8 @@ impl TuiModuleDatas {
             cursor::Goto(1, line),
             color::Fg(color::White),
             out_established_conns.len()
-        ).unwrap();
+        )
+        .unwrap();
         line += 1;
         write!(
             stdout,
@@ -200,7 +202,8 @@ impl TuiModuleDatas {
             cursor::Goto(1, line),
             color::Fg(color::White),
             style::Italic,
-        ).unwrap();
+        )
+        .unwrap();
 
         // Draw inter-nodes established connections
         if out_established_conns.is_empty() {
@@ -211,7 +214,8 @@ impl TuiModuleDatas {
                 cursor::Goto(2, line),
                 color::Fg(color::Red),
                 style::Bold,
-            ).unwrap();
+            )
+            .unwrap();
         } else {
             for (ref node_full_id, ref uid, ref url) in out_established_conns {
                 line += 1;
@@ -227,7 +231,8 @@ impl TuiModuleDatas {
                     node_full_id.to_human_string(),
                     uid_string,
                     url,
-                ).unwrap();
+                )
+                .unwrap();
             }
         }
 
@@ -244,7 +249,8 @@ impl TuiModuleDatas {
             out_trying_conns_count,
             out_denial_conns_count,
             out_disconnected_conns_count,
-        ).unwrap();
+        )
+        .unwrap();
 
         // Draw separated line
         line += 1;
@@ -258,7 +264,8 @@ impl TuiModuleDatas {
             cursor::Goto(1, line),
             color::Fg(color::White),
             separated_line,
-        ).unwrap();
+        )
+        .unwrap();
 
         // Draw HEADs
         line += 1;
@@ -268,7 +275,8 @@ impl TuiModuleDatas {
             cursor::Goto(1, line),
             color::Fg(color::White),
             heads.len()
-        ).unwrap();
+        )
+        .unwrap();
         line += 1;
         if heads_index > 0 {
             write!(
@@ -276,14 +284,16 @@ impl TuiModuleDatas {
                 "{}{}/\\",
                 cursor::Goto(35, line),
                 color::Fg(color::Green),
-            ).unwrap();
+            )
+            .unwrap();
         } else {
             write!(
                 stdout,
                 "{}{}/\\",
                 cursor::Goto(35, line),
                 color::Fg(color::Black),
-            ).unwrap();
+            )
+            .unwrap();
         }
         line += 1;
         write!(
@@ -302,7 +312,8 @@ impl TuiModuleDatas {
                         cursor::Goto(1, line),
                         color::Fg(color::Blue),
                         head.to_human_string(w as usize),
-                    ).unwrap();
+                    )
+                    .unwrap();
                 } else {
                     write!(
                         stdout,
@@ -310,7 +321,8 @@ impl TuiModuleDatas {
                         cursor::Goto(1, line),
                         color::Fg(color::Green),
                         head.to_human_string(w as usize),
-                    ).unwrap();
+                    )
+                    .unwrap();
                 }
             } else {
                 break;
@@ -323,14 +335,16 @@ impl TuiModuleDatas {
                 "{}{}\\/",
                 cursor::Goto(35, line),
                 color::Fg(color::Green),
-            ).unwrap();
+            )
+            .unwrap();
         } else {
             write!(
                 stdout,
                 "{}{}\\/",
                 cursor::Goto(35, line),
                 color::Fg(color::Black),
-            ).unwrap();
+            )
+            .unwrap();
         }
 
         // Draw footer
@@ -353,7 +367,8 @@ impl TuiModuleDatas {
             color::Bg(color::Blue),
             color::Fg(color::White),
             runtime_str,
-        ).unwrap();
+        )
+        .unwrap();
         write!(
             stdout,
             "{}{}{}q : quit{}",
@@ -361,7 +376,8 @@ impl TuiModuleDatas {
             color::Bg(color::Blue),
             color::Fg(color::White),
             cursor::Hide,
-        ).unwrap();
+        )
+        .unwrap();
 
         // Flush stdout (i.e. make the output appear).
         stdout.flush().unwrap();
@@ -498,7 +514,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
                 tui_sender
                     .send(TuiMess::TermionEvent(
                         c.expect("error to read stdin event !"),
-                    )).expect("Fatal error : tui stdin thread module fail to send message !");
+                    ))
+                    .expect("Fatal error : tui stdin thread module fail to send message !");
                 trace!("Send stdin event to tui main thread.");
             }
         });
@@ -520,7 +537,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
                                     color::Bg(color::Reset),
                                     cursor::Show,
                                     clear::All,
-                                ).unwrap();
+                                )
+                                .unwrap();
                                 let _result_stop_propagation: Result<
                                 (),
                                 mpsc::SendError<DuniterMessage>,
@@ -575,7 +593,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
                                         .iter()
                                         .map(|h| {
                                             tui.heads_cache.insert(h.node_full_id(), h.clone())
-                                        }).for_each(drop);
+                                        })
+                                        .for_each(drop);
                                 }
                                 _ => {}
                             },
@@ -593,7 +612,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
                                 color::Bg(color::Reset),
                                 cursor::Show,
                                 clear::All,
-                            ).unwrap();
+                            )
+                            .unwrap();
                             let _result_stop_propagation: Result<
                                 (),
                                 mpsc::SendError<DuniterMessage>,

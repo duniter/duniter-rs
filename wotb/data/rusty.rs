@@ -199,7 +199,8 @@ impl WebOfTrust for RustyWebOfTrust {
                 n.enabled
                     && n.issued_count >= sentry_requirement
                     && n.links_source.len() >= sentry_requirement
-            }).map(|(i, _)| NodeId(i))
+            })
+            .map(|(i, _)| NodeId(i))
             .collect()
     }
 
@@ -211,7 +212,8 @@ impl WebOfTrust for RustyWebOfTrust {
                 n.enabled
                     && (n.issued_count < sentry_requirement
                         || n.links_source.len() < sentry_requirement)
-            }).map(|(i, _)| NodeId(i))
+            })
+            .map(|(i, _)| NodeId(i))
             .collect()
     }
 }

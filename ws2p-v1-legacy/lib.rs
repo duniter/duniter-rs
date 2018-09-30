@@ -108,23 +108,27 @@ impl Default for WS2PConf {
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(
                             "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx",
-                        ).unwrap(),
+                        )
+                        .unwrap(),
                     ),
                     0,
                     0,
                     1u16,
-                ).unwrap(),
+                )
+                .unwrap(),
                 EndpointEnum::parse_from_raw(
                     "WS2P b48824f0 g1.monnaielibreoccitanie.org 443 /ws2p",
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(
                             "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef",
-                        ).unwrap(),
+                        )
+                        .unwrap(),
                     ),
                     0,
                     0,
                     1u16,
-                ).unwrap(),
+                )
+                .unwrap(),
             ],
         }
     }
@@ -519,9 +523,11 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                                 "body": {
                                                     "heads": [my_json_head]
                                                 }
-                                            }).to_string(),
+                                            })
+                                                .to_string(),
                                             ))
-                                        }).collect();
+                                        })
+                                        .collect();
                                 }
                                 DALEvent::RevertBlocks(ref _blocks) => {}
                                 _ => {}
@@ -721,7 +727,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                             new_head.set_uid(uid);
                                         }
                                         new_head
-                                    }).collect(),
+                                    })
+                                    .collect(),
                             ));
                         }
                         WS2PSignal::Document(ws2p_full_id, network_doc) => {
@@ -871,9 +878,9 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                     && SystemTime::now().duration_since(start_time).unwrap() > Duration::new(10, 0)
                 {
                     /*info!("get pending_identities from all connections...");
-                                    let _blocks_request_result = ws2p_module.send_request_to_all_connections(
-                                        &NetworkRequest::GetRequirementsPending(ModuleReqId(0 as u32), 5),
-                                    );*/
+                    let _blocks_request_result = ws2p_module.send_request_to_all_connections(
+                        &NetworkRequest::GetRequirementsPending(ModuleReqId(0 as u32), 5),
+                    );*/
                     last_identities_request = SystemTime::now();
                 }
                 // Write pending endpoints
@@ -885,14 +892,14 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                             ws2p_module.ws2p_endpoints.get(&ep_full_id)
                         {
                             /*let dal_endpoint = duniter_dal::endpoint::DALEndpoint::new(
-                                                state.clone() as u32,
-                                                ep.node_uuid().unwrap().0,
-                                                ep.pubkey(),
-                                                duniter_dal::endpoint::string_to_api(&ep.api().0).unwrap(),
-                                                1,
-                                                ep.to_string(),
-                                                received_time.duration_since(UNIX_EPOCH).unwrap(),
-                                            );*/
+                                state.clone() as u32,
+                                ep.node_uuid().unwrap().0,
+                                ep.pubkey(),
+                                duniter_dal::endpoint::string_to_api(&ep.api().0).unwrap(),
+                                1,
+                                ep.to_string(),
+                                received_time.duration_since(UNIX_EPOCH).unwrap(),
+                            );*/
                             ws2p_db::write_endpoint(
                                 &db,
                                 &ep,
@@ -1133,7 +1140,8 @@ mod tests {
             1,
             current_time.as_secs(),
             1,
-        ).expect("Failt to parse test endpoint !");
+        )
+        .expect("Failt to parse test endpoint !");
 
         ws2p_db::write_endpoint(&db, &endpoint, 1, current_time.as_secs());
         let mut written_endpoints =

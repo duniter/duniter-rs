@@ -478,13 +478,15 @@ mod tests {
         assert_eq!(
             super::PrivateKey::from_base58(
                 "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9",
-            ).unwrap_err(),
+            )
+            .unwrap_err(),
             BaseConvertionError::InvalidKeyLendth(53, 64)
         );
         assert_eq!(
             super::PrivateKey::from_base58(
                 "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9<<",
-            ).unwrap_err(),
+            )
+            .unwrap_err(),
             BaseConvertionError::InvalidCharacter('<', 73)
         );
     }
@@ -538,14 +540,16 @@ mod tests {
             super::Signature::from_base64(
                 "YmhlaW9iaHNlcGlvaGVvaXNlcGl2ZXBvdm5pc2V2c2JlaW9idmVpb3Zqc\
                  2V2Z3BpaHNlamVwZ25qZXNqb2dwZWpnaW9zZXNkdnNic3JicmJyZGJyZGI=",
-            ).unwrap_err(),
+            )
+            .unwrap_err(),
             BaseConvertionError::InvalidKeyLendth(86, 64)
         );
         assert_eq!(
             super::Signature::from_base64(
                 "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMM\
                  mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAgdha<<",
-            ).unwrap_err(),
+            )
+            .unwrap_err(),
             BaseConvertionError::InvalidCharacter('<', 89)
         );
     }
@@ -558,12 +562,14 @@ mod tests {
         let prikey = super::PrivateKey::from_base58(
             "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt\
              5GiERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
-        ).unwrap();
+        )
+        .unwrap();
 
         let expected_signature = super::Signature::from_base64(
             "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FG\
              MMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
-        ).unwrap();
+        )
+        .unwrap();
 
         let message = "Version: 10
 Type: Identity

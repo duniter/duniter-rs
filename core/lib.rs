@@ -272,21 +272,23 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                     opts.csv,
                     &DBExQuery::WotQuery(DBExWotQuery::MemberDatas(member_opts.uid)),
                 ),
-                DbExSubCommand::MembersOpt(members_opts) => if members_opts.expire {
-                    dbex(
-                        profile.as_str(),
-                        &conf,
-                        opts.csv,
-                        &DBExQuery::WotQuery(DBExWotQuery::ExpireMembers(members_opts.reverse)),
-                    );
-                } else {
-                    dbex(
-                        profile.as_str(),
-                        &conf,
-                        opts.csv,
-                        &DBExQuery::WotQuery(DBExWotQuery::ListMembers(members_opts.reverse)),
-                    );
-                },
+                DbExSubCommand::MembersOpt(members_opts) => {
+                    if members_opts.expire {
+                        dbex(
+                            profile.as_str(),
+                            &conf,
+                            opts.csv,
+                            &DBExQuery::WotQuery(DBExWotQuery::ExpireMembers(members_opts.reverse)),
+                        );
+                    } else {
+                        dbex(
+                            profile.as_str(),
+                            &conf,
+                            opts.csv,
+                            &DBExQuery::WotQuery(DBExWotQuery::ListMembers(members_opts.reverse)),
+                        );
+                    }
+                }
                 DbExSubCommand::BalanceOpt(balance_opts) => dbex(
                     &profile,
                     &conf,
@@ -421,7 +423,8 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                         module_conf,
                         rooter_sender,
                         sync_params,
-                    ).unwrap_or_else(|_| {
+                    )
+                    .unwrap_or_else(|_| {
                         panic!(
                             "Fatal error : fail to load {} Module !",
                             NM::id().to_string()
@@ -480,7 +483,8 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                         module_conf,
                         rooter_sender_clone,
                         false,
-                    ).unwrap_or_else(|_| {
+                    )
+                    .unwrap_or_else(|_| {
                         panic!(
                             "Fatal error : fail to load {} Module !",
                             M::id().to_string()
@@ -733,7 +737,8 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
             log_file_path
                 .to_str()
                 .expect("Fatal error : fail to get log file path !"),
-        ).expect("Fatal error : fail to create log file path !");
+        )
+        .expect("Fatal error : fail to create log file path !");
     }
 
     CombinedLogger::init(vec![WriteLogger::new(
@@ -746,6 +751,8 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
                 log_file_path
                     .to_str()
                     .expect("Fatal error : fail to get log file path !"),
-            ).expect("Fatal error : fail to open log file !"),
-    )]).expect("Fatal error : fail to init logger !");
+            )
+            .expect("Fatal error : fail to open log file !"),
+    )])
+    .expect("Fatal error : fail to init logger !");
 }

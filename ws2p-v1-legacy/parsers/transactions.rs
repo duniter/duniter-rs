@@ -114,7 +114,8 @@ Merci pour la calligraphie ;) de Liam$\
             currency: "g1",
             blockstamp: &Blockstamp::from_string(
                 "112533-000002150F2E805E604D9B31212D079570AAD8D3A4D8BB75F2C15A94A345B6B1",
-            ).unwrap(),
+            )
+            .unwrap(),
             locktime: &0,
             issuers: &vec![PubKey::Ed25519(
                 ed25519::PublicKey::from_base58("51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2")
@@ -123,12 +124,14 @@ Merci pour la calligraphie ;) de Liam$\
             inputs: &vec![
                 TransactionInput::parse_from_str(
                     "1000:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:46496",
-                ).unwrap(),
+                )
+                .unwrap(),
             ],
             outputs: &vec![
                 TransactionOutput::parse_from_str(
                     "1000:0:SIG(2yN8BRSkARcqE8NCxKMBiHfTpx1EvwULFn56Myf6qRmy)",
-                ).unwrap(),
+                )
+                .unwrap(),
             ],
             unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)").unwrap()],
             comment: "Merci pour la calligraphie ;) de Liam",
