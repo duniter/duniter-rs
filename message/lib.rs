@@ -37,28 +37,43 @@ extern crate duniter_network;
 extern crate serde;
 extern crate serde_json;
 
-use std::sync::mpsc;
-
 use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::Sig;
 use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALRequest, DALResponse};
 use duniter_documents::blockchain::BlockchainProtocol;
 use duniter_documents::BlockId;
-use duniter_module::{ModuleMessage, ModuleName};
-use duniter_network::{NetworkEvent, NetworkRequest};
+use duniter_module::*;
+use duniter_network::{NetworkEvent, NetworkRequest, NetworkResponse};
 
 #[derive(Debug, Clone)]
-/// Message exchanged between Duniter-rs modules
-pub enum DuniterMessage {
+/// Message exchanged between Durs modules
+pub struct DursMsg(pub DursMsgReceiver, pub DursMsgContent);
+
+impl ModuleMessage for DursMsg {}
+
+/// The recipient of a message
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum DursMsgReceiver {
+    /// Message for all modules
+    All,
+    /// Message for one specific module
+    One(ModuleStaticName),
+    /// Message for all modules who play a specific role
+    Role(ModuleRole),
+    /// Message for all modules that are subscribed to a specific type of event
+    Event(ModuleEvent),
+}
+
+#[derive(Debug, Clone)]
+/// Content of message exchanged between Durs modules
+pub enum DursMsgContent {
     /// Brut text message
     Text(String),
     /// Brut binary message
     Binary(Vec<u8>),
     /// New configuration of a module to save
     SaveNewModuleConf(ModuleName, serde_json::Value),
-    /// Subscriptions to the module feed
-    Followers(Vec<mpsc::Sender<DuniterMessage>>),
     /// Blockchain datas request
     DALRequest(DALRequest),
     /// Response of DALRequest
@@ -69,6 +84,8 @@ pub enum DuniterMessage {
     NetworkRequest(NetworkRequest),
     /// Network event
     NetworkEvent(NetworkEvent),
+    /// Response of NetworkRequest
+    NetworkResponse(NetworkResponse),
     /// Request to the pow module
     ProverRequest(BlockId, Hash),
     /// Pow module response
@@ -78,5 +95,3 @@ pub enum DuniterMessage {
     /// Stop signal
     Stop(),
 }
-
-impl ModuleMessage for DuniterMessage {}

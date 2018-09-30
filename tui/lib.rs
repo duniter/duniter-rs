@@ -49,7 +49,7 @@ extern crate termion;
 
 use duniter_conf::DuRsConf;
 use duniter_dal::dal_event::DALEvent;
-use duniter_message::DuniterMessage;
+use duniter_message::*;
 use duniter_module::*;
 use duniter_network::network_head::NetworkHead;
 use duniter_network::{NetworkEvent, NodeFullId};
@@ -82,7 +82,7 @@ impl Default for TuiConf {
 /// Format of messages received by the tui module
 pub enum TuiMess {
     /// Message from another module
-    DuniterMessage(Box<DuniterMessage>),
+    DursMsg(Box<DursMsg>),
     /// Message from stdin (user event)
     TermionEvent(Event),
 }
@@ -117,7 +117,7 @@ pub struct Connection {
 /// Data that the Tui module needs to cache
 pub struct TuiModuleDatas {
     /// Sender of all other modules
-    pub followers: Vec<mpsc::Sender<DuniterMessage>>,
+    pub followers: Vec<mpsc::Sender<DursMsgContent>>,
     /// HEADs cache content
     pub heads_cache: HashMap<NodeFullId, NetworkHead>,
     /// Position of the 1st head displayed on the screen
@@ -390,7 +390,7 @@ impl Default for TuiModule {
     }
 }
 
-impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
+impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
     type ModuleConf = TuiConf;
     type ModuleOpt = TuiOpt;
 
@@ -431,7 +431,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
         _conf: Self::ModuleConf,
-        main_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
+        main_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
         load_conf_only: bool,
     ) -> Result<(), ModuleInitError> {
         let start_time = SystemTime::now(); //: DateTime<Utc> = Utc::now();
@@ -456,32 +456,47 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
 
         // Create proxy channel
         let (proxy_sender, proxy_receiver): (
-            mpsc::Sender<DuniterMessage>,
-            mpsc::Receiver<DuniterMessage>,
+            mpsc::Sender<DursMsg>,
+            mpsc::Receiver<DursMsg>,
         ) = mpsc::channel();
 
-        // Launch a proxy thread that transform DuniterMessage() to TuiMess::DuniterMessage(DuniterMessage())
+        // Launch a proxy thread that transform DursMsgContent() to TuiMess::DursMsgContent(DursMsgContent())
         let tui_sender_clone = tui_sender.clone();
         thread::spawn(move || {
             // Send proxy sender to main
             main_sender
-                .send(RooterThreadMessage::ModuleSender(proxy_sender))
+                .send(RooterThreadMessage::ModuleSender(
+                    TuiModule::name(),
+                    proxy_sender,
+                    vec![ModuleRole::UserInterface],
+                    vec![
+                        ModuleEvent::NewValidBlock,
+                        ModuleEvent::ConnectionsChangeNodeNetwork,
+                        ModuleEvent::NewValidHeadFromNetwork,
+                        ModuleEvent::NewValidPeerFromNodeNetwork,
+                    ],
+                ))
                 .expect("Fatal error : tui module fail to send is sender channel !");
             debug!("Send tui sender to main thread.");
             loop {
                 match proxy_receiver.recv() {
-                    Ok(message) => match tui_sender_clone
-                        .send(TuiMess::DuniterMessage(Box::new(message.clone())))
-                    {
-                        Ok(_) => {
-                            if let DuniterMessage::Stop() = message {
-                                break;
-                            };
+                    Ok(message) => {
+                        let stop = if let DursMsg(_, DursMsgContent::Stop()) = message {
+                            true
+                        } else {
+                            false
+                        };
+                        match tui_sender_clone.send(TuiMess::DursMsg(Box::new(message))) {
+                            Ok(_) => {
+                                if stop {
+                                    break;
+                                };
+                            }
+                            Err(_) => {
+                                debug!("tui proxy : fail to relay DursMsg to tui main thread !")
+                            }
                         }
-                        Err(_) => {
-                            debug!("tui proxy : fail to relay DuniterMessage to tui main thread !")
-                        }
-                    },
+                    }
                     Err(e) => {
                         warn!("{}", e);
                         break;
@@ -526,81 +541,69 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
             // Get messages
             match tui_receiver.recv_timeout(Duration::from_millis(250)) {
                 Ok(ref message) => match *message {
-                    TuiMess::DuniterMessage(ref duniter_message) => {
-                        match *duniter_message.deref() {
-                            DuniterMessage::Stop() => {
-                                writeln!(
-                                    stdout,
-                                    "{}{}{}{}{}",
-                                    color::Fg(color::Reset),
-                                    cursor::Goto(1, 1),
-                                    color::Bg(color::Reset),
-                                    cursor::Show,
-                                    clear::All,
-                                )
-                                .unwrap();
-                                let _result_stop_propagation: Result<
+                    TuiMess::DursMsg(ref duniter_message) => match (*duniter_message.deref()).1 {
+                        DursMsgContent::Stop() => {
+                            writeln!(
+                                stdout,
+                                "{}{}{}{}{}",
+                                color::Fg(color::Reset),
+                                cursor::Goto(1, 1),
+                                color::Bg(color::Reset),
+                                cursor::Show,
+                                clear::All,
+                            )
+                            .unwrap();
+                            let _result_stop_propagation: Result<
                                 (),
-                                mpsc::SendError<DuniterMessage>,
+                                mpsc::SendError<DursMsgContent>,
                             > = tui
                                 .followers
                                 .iter()
-                                .map(|f| f.send(DuniterMessage::Stop()))
+                                .map(|f| f.send(DursMsgContent::Stop()))
                                 .collect();
-                                break;
-                            }
-                            DuniterMessage::Followers(ref new_followers) => {
-                                info!("Tui module receive followers !");
-                                for new_follower in new_followers {
-                                    debug!("TuiModule : push one follower.");
-                                    tui.followers.push(new_follower.clone());
-                                }
-                            }
-                            DuniterMessage::DALEvent(ref dal_event) => match *dal_event {
-                                DALEvent::StackUpValidBlock(ref _block, ref _blockstamp) => {}
-                                DALEvent::RevertBlocks(ref _blocks) => {}
-                                _ => {}
-                            },
-                            DuniterMessage::NetworkEvent(ref network_event) => match *network_event
-                            {
-                                NetworkEvent::ConnectionStateChange(
-                                    ref node_full_id,
-                                    ref status,
-                                    ref uid,
-                                    ref url,
-                                ) => {
-                                    if let Some(conn) = tui.connections_status.get(&node_full_id) {
-                                        if *status == 12 && (*conn).status != 12 {
-                                            tui.established_conns_count += 1;
-                                        } else if *status != 12
-                                            && (*conn).status == 12
-                                            && tui.established_conns_count > 0
-                                        {
-                                            tui.established_conns_count -= 1;
-                                        }
-                                    };
-                                    tui.connections_status.insert(
-                                        *node_full_id,
-                                        Connection {
-                                            status: *status,
-                                            url: url.clone(),
-                                            uid: uid.clone(),
-                                        },
-                                    );
-                                }
-                                NetworkEvent::ReceiveHeads(ref heads) => {
-                                    heads
-                                        .iter()
-                                        .map(|h| {
-                                            tui.heads_cache.insert(h.node_full_id(), h.clone())
-                                        })
-                                        .for_each(drop);
-                                }
-                                _ => {}
-                            },
-                            _ => {}
+                            break;
                         }
-                    }
+                        DursMsgContent::DALEvent(ref dal_event) => match *dal_event {
+                            DALEvent::StackUpValidBlock(ref _block, ref _blockstamp) => {}
+                            DALEvent::RevertBlocks(ref _blocks) => {}
+                            _ => {}
+                        },
+                        DursMsgContent::NetworkEvent(ref network_event) => match *network_event {
+                            NetworkEvent::ConnectionStateChange(
+                                ref node_full_id,
+                                ref status,
+                                ref uid,
+                                ref url,
+                            ) => {
+                                if let Some(conn) = tui.connections_status.get(&node_full_id) {
+                                    if *status == 12 && (*conn).status != 12 {
+                                        tui.established_conns_count += 1;
+                                    } else if *status != 12
+                                        && (*conn).status == 12
+                                        && tui.established_conns_count > 0
+                                    {
+                                        tui.established_conns_count -= 1;
+                                    }
+                                };
+                                tui.connections_status.insert(
+                                    *node_full_id,
+                                    Connection {
+                                        status: *status,
+                                        url: url.clone(),
+                                        uid: uid.clone(),
+                                    },
+                                );
+                            }
+                            NetworkEvent::ReceiveHeads(ref heads) => {
+                                heads
+                                    .iter()
+                                    .map(|h| tui.heads_cache.insert(h.node_full_id(), h.clone()))
+                                    .for_each(drop);
+                            }
+                            _ => {}
+                        },
+                        _ => {}
+                    },
                     TuiMess::TermionEvent(ref term_event) => match *term_event {
                         Event::Key(Key::Char('q')) => {
                             // Exit
@@ -616,11 +619,11 @@ impl DuniterModule<DuRsConf, DuniterMessage> for TuiModule {
                             .unwrap();
                             let _result_stop_propagation: Result<
                                 (),
-                                mpsc::SendError<DuniterMessage>,
+                                mpsc::SendError<DursMsgContent>,
                             > = tui
                                 .followers
                                 .iter()
-                                .map(|f| f.send(DuniterMessage::Stop()))
+                                .map(|f| f.send(DursMsgContent::Stop()))
                                 .collect();
                             break;
                         }

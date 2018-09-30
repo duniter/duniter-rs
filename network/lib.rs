@@ -284,7 +284,7 @@ impl NetworkRequest {
             | NetworkRequest::GetRequirementsPending(ref req_id, _, _)
             | NetworkRequest::GetConsensus(ref req_id)
             | NetworkRequest::GetHeadsCache(ref req_id)
-            | NetworkRequest::GetEndpoints(ref req_id) => req_id.clone(),
+            | NetworkRequest::GetEndpoints(ref req_id) => *req_id,
         }
     }
     /// Get request identitifier
@@ -332,7 +332,7 @@ impl NetworkResponse {
             | NetworkResponse::Chunk(ref req_id, _, _)
             | NetworkResponse::PendingDocuments(ref req_id, _)
             | NetworkResponse::Consensus(ref req_id, _)
-            | NetworkResponse::HeadsCache(ref req_id, _) => req_id.clone(),
+            | NetworkResponse::HeadsCache(ref req_id, _) => *req_id,
         }
     }
     /// Get request identifier
@@ -344,8 +344,6 @@ impl NetworkResponse {
 #[derive(Debug, Clone)]
 /// Type containing a network event, each time a network event occurs it's relayed to all modules
 pub enum NetworkEvent {
-    /// Receiving a response to a network request
-    ReqResponse(Box<NetworkResponse>),
     /// A connection has changed state(`u32` is the new state, `Option<String>` est l'uid du noeud)
     ConnectionStateChange(NodeFullId, u32, Option<String>, String),
     /// Receiving Pending Documents

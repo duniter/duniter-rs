@@ -263,16 +263,15 @@ pub fn sync_ts<DC: DuniterConf>(
     // Open blocks databases
     let databases = BlocksV10DBs::open(Some(&db_path));
 
+    // Open wot databases
+    let wot_databases = WotsV10DBs::open(Some(&db_path));
+
     // Get local current blockstamp
     debug!("Get local current blockstamp...");
     let mut current_blockstamp: Blockstamp = duniter_dal::block::get_current_blockstamp(&databases)
         .expect("ForksV10DB : RustBreakError !")
         .unwrap_or_default();
     debug!("Success to get local current blockstamp.");
-
-    // Instanciate blockchain module
-    let blockchain_module =
-        BlockchainModule::load_blockchain_conf(profile, &conf, RequiredKeysContent::None());
 
     // Node is already synchronized ?
     if target_blockstamp.id.0 < current_blockstamp.id.0 {
@@ -282,7 +281,7 @@ pub fn sync_ts<DC: DuniterConf>(
 
     // Get wotb index
     let mut wotb_index: HashMap<PubKey, NodeId> =
-        DALIdentity::get_wotb_index(&blockchain_module.wot_databases.identities_db)
+        DALIdentity::get_wotb_index(&wot_databases.identities_db)
             .expect("Fatal eror : get_wotb_index : Fail to read blockchain databases");
 
     // Start sync

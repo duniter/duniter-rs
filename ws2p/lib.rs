@@ -46,7 +46,7 @@ mod constants;
 use constants::*;
 use duniter_conf::DuRsConf;
 use duniter_crypto::keys::*;
-use duniter_message::DuniterMessage;
+use duniter_message::DursMsg;
 use duniter_module::*;
 use duniter_network::network_endpoint::*;
 use duniter_network::*;
@@ -114,7 +114,7 @@ pub enum WS2PFeaturesParseError {
     UnknowApiFeature(String),
 }
 
-impl ApiModule<DuRsConf, DuniterMessage> for WS2Pv2Module {
+impl ApiModule<DuRsConf, DursMsg> for WS2Pv2Module {
     type ParseErr = WS2PFeaturesParseError;
     /// Parse raw api features
     fn parse_raw_api_features(str_features: &str) -> Result<ApiFeatures, Self::ParseErr> {
@@ -140,12 +140,12 @@ impl ApiModule<DuRsConf, DuniterMessage> for WS2Pv2Module {
     }
 }
 
-impl NetworkModule<DuRsConf, DuniterMessage> for WS2Pv2Module {
+impl NetworkModule<DuRsConf, DursMsg> for WS2Pv2Module {
     fn sync(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
         _conf: WS2PConf,
-        _main_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
+        _main_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
         _sync_params: SyncParams,
     ) -> Result<(), ModuleInitError> {
         unimplemented!()
@@ -160,7 +160,7 @@ impl NetworkModule<DuRsConf, DuniterMessage> for WS2Pv2Module {
 /// WS2P subcommand options
 pub struct WS2POpt {}
 
-impl DuniterModule<DuRsConf, DuniterMessage> for WS2Pv2Module {
+impl DuniterModule<DuRsConf, DursMsg> for WS2Pv2Module {
     type ModuleConf = WS2PConf;
     type ModuleOpt = WS2POpt;
 
@@ -188,7 +188,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2Pv2Module {
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
         _conf: WS2PConf,
-        _rooter_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
+        _rooter_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
         _load_conf_only: bool,
     ) -> Result<(), ModuleInitError> {
         unimplemented!()

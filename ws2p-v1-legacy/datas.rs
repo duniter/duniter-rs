@@ -17,7 +17,7 @@ use constants::*;
 use duniter_crypto::keys::*;
 use duniter_dal::dal_requests::DALRequest;
 use duniter_documents::Blockstamp;
-use duniter_message::DuniterMessage;
+use duniter_message::*;
 use duniter_network::network_endpoint::*;
 use duniter_network::network_head::*;
 use duniter_network::*;
@@ -27,7 +27,7 @@ use *;
 
 #[derive(Debug)]
 pub struct WS2PModuleDatas {
-    pub followers: Vec<mpsc::Sender<DuniterMessage>>,
+    pub rooter_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
     pub currency: Option<String>,
     pub key_pair: Option<KeyPairEnum>,
     pub conf: WS2PConf,
@@ -59,26 +59,50 @@ impl WS2PModuleDatas {
         Ok(conn)
     }
     pub fn send_dal_request(&self, req: &DALRequest) {
-        for follower in &self.followers {
-            if follower
-                .send(DuniterMessage::DALRequest(req.clone()))
-                .is_err()
-            {
-                // handle error
-            }
-        }
+        self.rooter_sender
+            .send(RooterThreadMessage::ModuleMessage(DursMsg(
+                DursMsgReceiver::Role(ModuleRole::BlockchainDatas),
+                DursMsgContent::DALRequest(req.clone()),
+            )))
+            .expect("Fail to send message to rooter !");
+    }
+    pub fn send_network_req_response(
+        &self,
+        requester: ModuleStaticName,
+        response: NetworkResponse,
+    ) {
+        self.rooter_sender
+            .send(RooterThreadMessage::ModuleMessage(DursMsg(
+                DursMsgReceiver::One(requester),
+                DursMsgContent::NetworkResponse(response),
+            )))
+            .expect("Fail to send message to rooter !");
     }
     pub fn send_network_event(&self, event: &NetworkEvent) {
-        for follower in &self.followers {
-            match follower.send(DuniterMessage::NetworkEvent(event.clone())) {
-                Ok(_) => {
-                    debug!("Send NetworkEvent to one follower.");
-                }
-                Err(_) => {
-                    warn!("Fail to send NetworkEvent to one follower !");
+        let module_event = match event {
+            NetworkEvent::ConnectionStateChange(_, _, _, _) => {
+                ModuleEvent::ConnectionsChangeNodeNetwork
+            }
+            NetworkEvent::ReceiveDocuments(network_docs) => {
+                if !network_docs.is_empty() {
+                    match network_docs[0] {
+                        NetworkDocument::Block(_) => ModuleEvent::NewBlockFromNetwork,
+                        NetworkDocument::Transaction(_) => ModuleEvent::NewTxFromNetwork,
+                        _ => ModuleEvent::NewWotDocFromNetwork,
+                    }
+                } else {
+                    return;
                 }
             }
-        }
+            NetworkEvent::ReceiveHeads(_) => ModuleEvent::NewValidHeadFromNetwork,
+            NetworkEvent::ReceivePeers(_) => ModuleEvent::NewValidPeerFromNodeNetwork,
+        };
+        self.rooter_sender
+            .send(RooterThreadMessage::ModuleMessage(DursMsg(
+                DursMsgReceiver::Event(module_event),
+                DursMsgContent::NetworkEvent(event.clone()),
+            )))
+            .expect("Fail to send network event to rooter !");
     }
     pub fn get_network_consensus(&self) -> Result<Blockstamp, NetworkConsensusError> {
         let mut count_known_blockstamps = 0;
@@ -329,7 +353,7 @@ impl WS2PModuleDatas {
                     {
                         return WS2PSignal::ReqResponse(
                             req_id,
-                            ws2p_request.clone(),
+                            *ws2p_request,
                             *recipient_fulld_id,
                             response,
                         );
@@ -482,11 +506,7 @@ impl WS2PModuleDatas {
             ))?;
         self.requests_awaiting_response.insert(
             ws2p_request.get_req_id(),
-            (
-                ws2p_request.clone(),
-                *receiver_ws2p_full_id,
-                SystemTime::now(),
-            ),
+            (*ws2p_request, *receiver_ws2p_full_id, SystemTime::now()),
         );
         debug!(
             "send request {} to {}",

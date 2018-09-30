@@ -47,10 +47,11 @@ extern crate threadpool;
 
 pub mod change_conf;
 pub mod cli;
+pub mod rooter;
 
 use duniter_blockchain::{BlockchainModule, DBExQuery, DBExTxQuery, DBExWotQuery};
 pub use duniter_conf::{ChangeGlobalConf, DuRsConf, DuniterKeyPairs};
-use duniter_message::DuniterMessage;
+use duniter_message::*;
 use duniter_module::*;
 use duniter_network::{NetworkModule, SyncEndpoint, SyncParams};
 use log::Level;
@@ -61,8 +62,6 @@ use cli::*;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::sync::mpsc;
-use std::thread;
-use std::time::Duration;
 use structopt::clap::{App, ArgMatches};
 use structopt::StructOpt;
 use threadpool::ThreadPool;
@@ -111,7 +110,7 @@ pub struct DuniterCore<'a, 'b: 'a, DC: DuniterConf> {
     /// Run duration. Zero = infinite duration.
     pub run_duration_in_secs: u64,
     /// Sender channel of rooter thread
-    pub rooter_sender: Option<mpsc::Sender<RooterThreadMessage<DuniterMessage>>>,
+    pub rooter_sender: Option<mpsc::Sender<RooterThreadMessage<DursMsg>>>,
     ///  Count the number of plugged modules
     pub modules_count: usize,
     ///  Count the number of plugged network modules
@@ -159,7 +158,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
         &mut self,
         sup_apps: Vec<App<'a, 'b>>,
         sup_apps_fn: Option<&Fn(&str, &ArgMatches) -> bool>,
-        external_followers: Vec<mpsc::Sender<DuniterMessage>>,
+        external_followers: Vec<mpsc::Sender<DursMsgContent>>,
     ) -> bool {
         // Inject core subcommands
         //let core_cli_conf = inject_core_subcommands(self.cli_conf.0.clone());
@@ -218,11 +217,11 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             self.user_command = Some(UserCommand::ListModules(ListModulesOpt::from_clap(matches)));
 
             // Start rooter thread
-            self.rooter_sender = Some(start_rooter::<DuRsConf>(0, vec![]));
+            self.rooter_sender = Some(rooter::start_rooter::<DuRsConf>(0, vec![]));
             true
         } else if let Some(_matches) = cli_args.subcommand_matches("start") {
             // Start rooter thread
-            self.rooter_sender = Some(start_rooter::<DuRsConf>(
+            self.rooter_sender = Some(rooter::start_rooter::<DuRsConf>(
                 self.run_duration_in_secs,
                 external_followers,
             ));
@@ -242,7 +241,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                 verif_hashs: opts.unsafe_mode,
             }));
             // Start rooter thread
-            self.rooter_sender = Some(start_rooter::<DuRsConf>(0, vec![]));
+            self.rooter_sender = Some(rooter::start_rooter::<DuRsConf>(0, vec![]));
             true
         } else if let Some(matches) = cli_args.subcommand_matches("sync_ts") {
             let opts = SyncTsOpt::from_clap(matches);
@@ -356,11 +355,10 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             panic!("You must plug at least one network layer !");
         }
         if let Some(UserCommand::Start()) = self.user_command {
-            thread::sleep(Duration::from_secs(2));
             // Create blockchain module channel
             let (blockchain_sender, blockchain_receiver): (
-                mpsc::Sender<DuniterMessage>,
-                mpsc::Receiver<DuniterMessage>,
+                mpsc::Sender<DursMsg>,
+                mpsc::Receiver<DursMsg>,
             ) = mpsc::channel();
 
             let rooter_sender = if let Some(ref rooter_sender) = self.rooter_sender {
@@ -371,16 +369,17 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
 
             // Send blockchain sender to rooter thread
             rooter_sender
-                .send(RooterThreadMessage::ModuleSender(blockchain_sender))
+                .send(RooterThreadMessage::ModuleSender(
+                    BlockchainModule::name(),
+                    blockchain_sender,
+                    vec![ModuleRole::BlockchainDatas, ModuleRole::BlockValidation],
+                    vec![ModuleEvent::NewBlockFromNetwork],
+                ))
                 .expect("Fatal error: fail to send blockchain sender to rooter thread !");
-
-            // Send modules_count to rooter thread
-            rooter_sender
-                .send(RooterThreadMessage::ModulesCount(self.modules_count + 1))
-                .expect("Fatal error: fail to send modules count to rooter thread !");
 
             // Instantiate blockchain module and load is conf
             let mut blockchain_module = BlockchainModule::load_blockchain_conf(
+                rooter_sender.clone(),
                 &self.soft_meta_datas.profile,
                 &self.soft_meta_datas.conf,
                 RequiredKeysContent::MemberKeyPair(None),
@@ -392,8 +391,8 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
         }
     }
     /// Plug a network module
-    pub fn plug_network<NM: NetworkModule<DuRsConf, DuniterMessage>>(&mut self) {
-        let enabled = enabled::<DuRsConf, DuniterMessage, NM>(&self.soft_meta_datas.conf);
+    pub fn plug_network<NM: NetworkModule<DuRsConf, DursMsg>>(&mut self) {
+        let enabled = enabled::<DuRsConf, DursMsg, NM>(&self.soft_meta_datas.conf);
         if enabled {
             if let Some(UserCommand::Sync(ref network_sync)) = self.user_command {
                 // Start module in a new thread
@@ -442,19 +441,19 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
     }
 
     /// Inject cli subcommand
-    pub fn inject_cli_subcommand<M: DuniterModule<DuRsConf, DuniterMessage>>(&mut self) {
+    pub fn inject_cli_subcommand<M: DuniterModule<DuRsConf, DursMsg>>(&mut self) {
         //self.cli_conf = TupleApp(&self.cli_conf.0.clone().subcommand(M::ModuleOpt::clap()));
         self.plugins_cli_conf.push(M::ModuleOpt::clap());
     }
 
     /// Plug a module
-    pub fn plug<M: DuniterModule<DuRsConf, DuniterMessage>>(&mut self) {
+    pub fn plug<M: DuniterModule<DuRsConf, DursMsg>>(&mut self) {
         self.plug_::<M>(false);
     }
 
     /// Plug a module
-    fn plug_<M: DuniterModule<DuRsConf, DuniterMessage>>(&mut self, is_network_module: bool) {
-        let enabled = enabled::<DuRsConf, DuniterMessage, M>(&self.soft_meta_datas.conf);
+    fn plug_<M: DuniterModule<DuRsConf, DursMsg>>(&mut self, is_network_module: bool) {
+        let enabled = enabled::<DuRsConf, DursMsg, M>(&self.soft_meta_datas.conf);
         if enabled {
             if let Some(UserCommand::Start()) = self.user_command {
                 // Start module in a new thread
@@ -526,7 +525,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             }
         }
         if let Some(UserCommand::ListModules(ref options)) = self.user_command {
-            if module_valid_filters::<DuRsConf, DuniterMessage, M>(
+            if module_valid_filters::<DuRsConf, DursMsg, M>(
                 &self.soft_meta_datas.conf,
                 &options.get_filters(),
                 is_network_module,
@@ -542,7 +541,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
 }
 
 /// Get module conf and keys
-pub fn get_module_conf_and_keys<M: DuniterModule<DuRsConf, DuniterMessage>>(
+pub fn get_module_conf_and_keys<M: DuniterModule<DuRsConf, DursMsg>>(
     module_conf_json: Option<serde_json::Value>,
     keypairs: DuniterKeyPairs,
 ) -> (M::ModuleConf, RequiredKeysContent) {
@@ -553,7 +552,7 @@ pub fn get_module_conf_and_keys<M: DuniterModule<DuRsConf, DuniterMessage>>(
 }
 
 /// get module conf
-pub fn get_module_conf<M: DuniterModule<DuRsConf, DuniterMessage>>(
+pub fn get_module_conf<M: DuniterModule<DuRsConf, DursMsg>>(
     module_conf_json: Option<serde_json::Value>,
 ) -> M::ModuleConf {
     if let Some(module_conf_json) = module_conf_json {
@@ -567,107 +566,6 @@ pub fn get_module_conf<M: DuniterModule<DuRsConf, DuniterMessage>>(
 /// Match cli option --profile
 pub fn match_profile(cli_args: &ArgMatches) -> String {
     String::from(cli_args.value_of("profile").unwrap_or("default"))
-}
-
-/// Start rooter thread
-pub fn start_rooter<DC: DuniterConf>(
-    run_duration_in_secs: u64,
-    external_followers: Vec<mpsc::Sender<DuniterMessage>>,
-) -> mpsc::Sender<RooterThreadMessage<DuniterMessage>> {
-    // Create senders channel
-    let (rooter_sender, main_receiver): (
-        mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
-        mpsc::Receiver<RooterThreadMessage<DuniterMessage>>,
-    ) = mpsc::channel();
-
-    // Create rooter thread
-    thread::spawn(move || {
-        // Wait to receiver modules senders
-        let mut modules_senders: Vec<mpsc::Sender<DuniterMessage>> = Vec::new();
-        let mut modules_count_expected = None;
-        while modules_count_expected.is_none()
-            || modules_senders.len() < modules_count_expected.expect("safe unwrap") + 1
-        {
-            match main_receiver.recv_timeout(Duration::from_secs(20)) {
-                Ok(mess) => {
-                    match mess {
-                        RooterThreadMessage::ModuleSender(module_sender) => {
-                            // Subscribe this module to all others modules
-                            for other_module in modules_senders.clone() {
-                                if other_module
-                                    .send(DuniterMessage::Followers(vec![module_sender.clone()]))
-                                    .is_err()
-                                {
-                                    panic!("Fatal error : fail to send all modules senders to all modules !");
-                                }
-                            }
-                            // Subcribe this module to all external_followers
-                            for external_follower in external_followers.clone() {
-                                if external_follower
-                                    .send(DuniterMessage::Followers(vec![module_sender.clone()]))
-                                    .is_err()
-                                {
-                                    panic!("Fatal error : fail to send all modules senders to all external_followers !");
-                                }
-                            }
-                            // Subscribe all other modules to this module
-                            if module_sender
-                                .send(DuniterMessage::Followers(modules_senders.clone()))
-                                .is_err()
-                            {
-                                panic!("Fatal error : fail to send all modules senders to all modules !");
-                            }
-                            // Subcribe all external_followers to this module
-                            if module_sender
-                                .send(DuniterMessage::Followers(external_followers.clone()))
-                                .is_err()
-                            {
-                                panic!("Fatal error : fail to send all external_followers to all modules !");
-                            }
-                            // Push this module to modules_senders list
-                            modules_senders.push(module_sender);
-                            // Log the number of modules_senders received
-                            info!(
-                                "Rooter thread receive {} module senders",
-                                modules_senders.len()
-                            );
-                        }
-                        RooterThreadMessage::ModulesCount(modules_count) => {
-                            info!("Rooter thread receive ModulesCount({})", modules_count);
-                            if modules_senders.len() == modules_count {
-                                break;
-                            } else if modules_senders.len() < modules_count {
-                                modules_count_expected = Some(modules_count);
-                            } else {
-                                panic!("Fatal error : Receive more modules_sender than expected !")
-                            }
-                        }
-                    }
-                }
-                Err(e) => match e {
-                    mpsc::RecvTimeoutError::Timeout => {
-                        panic!("Fatal error : not receive all modules_senders after 20 secs !")
-                    }
-                    mpsc::RecvTimeoutError::Disconnected => {
-                        panic!("Fatal error : rooter thread disconnnected !")
-                    }
-                },
-            }
-        }
-        info!("Receive all modules senders.");
-        if run_duration_in_secs > 0 {
-            thread::sleep(Duration::from_secs(run_duration_in_secs));
-            // Send DuniterMessage::Stop() to all modules
-            for sender in modules_senders {
-                if sender.send(DuniterMessage::Stop()).is_err() {
-                    panic!("Fail to send Stop() message to one module !")
-                }
-            }
-            thread::sleep(Duration::from_secs(2));
-        }
-    });
-
-    rooter_sender
 }
 
 /// Launch synchronisation from a duniter-ts database
