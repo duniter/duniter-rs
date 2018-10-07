@@ -259,7 +259,7 @@ pub enum NetworkConsensusError {
 
 #[derive(Debug, Copy, Clone)]
 /// Type containing a request addressed to the network module
-pub enum NetworkRequest {
+pub enum OldNetworkRequest {
     /// Get a current block of a specific node
     GetCurrent(ModuleReqFullId, NodeFullId),
     //GetBlock(NodeFullId, u64),
@@ -275,16 +275,16 @@ pub enum NetworkRequest {
     GetEndpoints(ModuleReqFullId),
 }
 
-impl NetworkRequest {
+impl OldNetworkRequest {
     /// Get request full identitifier
     pub fn get_req_full_id(&self) -> ModuleReqFullId {
         match *self {
-            NetworkRequest::GetCurrent(ref req_id, _)
-            | NetworkRequest::GetBlocks(ref req_id, _, _, _)
-            | NetworkRequest::GetRequirementsPending(ref req_id, _, _)
-            | NetworkRequest::GetConsensus(ref req_id)
-            | NetworkRequest::GetHeadsCache(ref req_id)
-            | NetworkRequest::GetEndpoints(ref req_id) => *req_id,
+            OldNetworkRequest::GetCurrent(ref req_id, _)
+            | OldNetworkRequest::GetBlocks(ref req_id, _, _, _)
+            | OldNetworkRequest::GetRequirementsPending(ref req_id, _, _)
+            | OldNetworkRequest::GetConsensus(ref req_id)
+            | OldNetworkRequest::GetHeadsCache(ref req_id)
+            | OldNetworkRequest::GetEndpoints(ref req_id) => *req_id,
         }
     }
     /// Get request identitifier
@@ -295,7 +295,7 @@ impl NetworkRequest {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// Type returned when the network module does not get a satisfying answer to a request
-pub enum NetworkRequestError {
+pub enum OldNetworkRequestError {
     /// Receiving an invalid format response
     WrongFormat(),
     /// Unknow error

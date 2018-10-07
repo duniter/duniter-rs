@@ -3,14 +3,14 @@ extern crate duniter_network;
 extern crate serde;
 extern crate serde_json;
 
-use duniter_network::NetworkRequest;
+use duniter_network::OldNetworkRequest;
 
-pub fn network_request_to_json(request: &NetworkRequest) -> serde_json::Value {
+pub fn network_request_to_json(request: &OldNetworkRequest) -> serde_json::Value {
     let (request_id, request_type, request_params) = match *request {
-        NetworkRequest::GetCurrent(ref req_full_id, _receiver) => {
+        OldNetworkRequest::GetCurrent(ref req_full_id, _receiver) => {
             (req_full_id.1, "CURRENT", json!({}))
         }
-        NetworkRequest::GetBlocks(ref req_full_id, _receiver, count, from_mumber) => (
+        OldNetworkRequest::GetBlocks(ref req_full_id, _receiver, count, from_mumber) => (
             req_full_id.1,
             "BLOCKS_CHUNK",
             json!({
@@ -18,18 +18,18 @@ pub fn network_request_to_json(request: &NetworkRequest) -> serde_json::Value {
                     "fromNumber": from_mumber
                 }),
         ),
-        NetworkRequest::GetRequirementsPending(ref req_full_id, _receiver, min_cert) => (
+        OldNetworkRequest::GetRequirementsPending(ref req_full_id, _receiver, min_cert) => (
             req_full_id.1,
             "WOT_REQUIREMENTS_OF_PENDING",
             json!({ "minCert": min_cert }),
         ),
-        NetworkRequest::GetConsensus(_) => {
+        OldNetworkRequest::GetConsensus(_) => {
             panic!("GetConsensus() request must be not convert to json !");
         }
-        NetworkRequest::GetHeadsCache(_) => {
+        OldNetworkRequest::GetHeadsCache(_) => {
             panic!("GetHeadsCache() request must be not convert to json !");
         }
-        NetworkRequest::GetEndpoints(_) => {
+        OldNetworkRequest::GetEndpoints(_) => {
             panic!("GetEndpoints() request must be not convert to json !");
         }
     };

@@ -38,7 +38,8 @@ pub struct WS2PModuleDatas {
     ),
     pub ws2p_endpoints: HashMap<NodeFullId, (EndpointEnum, WS2PConnectionState)>,
     pub websockets: HashMap<NodeFullId, WsSender>,
-    pub requests_awaiting_response: HashMap<ModuleReqId, (NetworkRequest, NodeFullId, SystemTime)>,
+    pub requests_awaiting_response:
+        HashMap<ModuleReqId, (OldNetworkRequest, NodeFullId, SystemTime)>,
     pub heads_cache: HashMap<NodeFullId, NetworkHead>,
     pub my_head: Option<NetworkHead>,
     pub uids_cache: HashMap<PubKey, String>,
@@ -444,15 +445,15 @@ impl WS2PModuleDatas {
 
     /*pub fn send_request_to_all_connections(
         &mut self,
-        ws2p_request: &NetworkRequest,
+        ws2p_request: &OldNetworkRequest,
     ) -> Result<(), SendRequestError> {
         let mut count_successful_sending: usize = 0;
         let mut errors: Vec<ws::Error> = Vec::new();
         match *ws2p_request {
-            NetworkRequest::GetCurrent(req_full_id, _receiver) => {
+            OldNetworkRequest::GetCurrent(req_full_id, _receiver) => {
                 for (ws2p_full_id, (_ep, state)) in self.ws2p_endpoints.clone() {
                     if let WS2PConnectionState::Established = state {
-                        let ws2p_request = NetworkRequest::GetCurrent(
+                        let ws2p_request = OldNetworkRequest::GetCurrent(
                             ModuleReqFullId(
                                 req_full_id.0,
                                 ModuleReqId(
@@ -470,12 +471,12 @@ impl WS2PModuleDatas {
                     }
                 }
             }
-            /* NetworkRequest::GetBlock(req_full_id, number) => {} */
-    NetworkRequest::GetBlocks(_req_full_id, _receiver, _count, _from_number) => {}
-    NetworkRequest::GetRequirementsPending(req_full_id, _receiver, min_cert) => {
+            /* OldNetworkRequest::GetBlock(req_full_id, number) => {} */
+    OldNetworkRequest::GetBlocks(_req_full_id, _receiver, _count, _from_number) => {}
+    OldNetworkRequest::GetRequirementsPending(req_full_id, _receiver, min_cert) => {
     for (ws2p_full_id, (_ep, state)) in self.ws2p_endpoints.clone() {
     if let WS2PConnectionState::Established = state {
-    let ws2p_request = NetworkRequest::GetRequirementsPending(
+    let ws2p_request = OldNetworkRequest::GetRequirementsPending(
     ModuleReqFullId(
     req_full_id.0,
     ModuleReqId(self.requests_awaiting_response.len() as u32),
@@ -504,7 +505,7 @@ impl WS2PModuleDatas {
     pub fn send_request_to_specific_node(
         &mut self,
         receiver_ws2p_full_id: &NodeFullId,
-        ws2p_request: &NetworkRequest,
+        ws2p_request: &OldNetworkRequest,
     ) -> ws::Result<()> {
         self.websockets
             .get_mut(receiver_ws2p_full_id)

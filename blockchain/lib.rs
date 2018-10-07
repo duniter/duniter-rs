@@ -76,7 +76,7 @@ use duniter_documents::*;
 use duniter_message::*;
 use duniter_module::*;
 use duniter_network::{
-    NetworkBlock, NetworkDocument, NetworkEvent, NetworkRequest, NetworkResponse, NodeFullId,
+    NetworkBlock, NetworkDocument, NetworkEvent, NetworkResponse, NodeFullId, OldNetworkRequest,
 };
 use duniter_wotb::data::rusty::RustyWebOfTrust;
 use duniter_wotb::operations::distance::RustyDistanceCalculator;
@@ -221,8 +221,8 @@ impl BlockchainModule {
         sync::sync_ts(profile, conf, db_ts_path, cautious, verif_inner_hash);
     }
     /// Request chunk from network (chunk = group of blocks)
-    fn request_chunk(&self, req_id: ModuleReqId, from: u32) -> (ModuleReqId, NetworkRequest) {
-        let req = NetworkRequest::GetBlocks(
+    fn request_chunk(&self, req_id: ModuleReqId, from: u32) -> (ModuleReqId, OldNetworkRequest) {
+        let req = OldNetworkRequest::GetBlocks(
             ModuleReqFullId(BlockchainModule::name(), req_id),
             NodeFullId::default(),
             *CHUNK_SIZE,
@@ -233,10 +233,10 @@ impl BlockchainModule {
     /// Requests blocks from current to `to`
     fn request_blocks_to(
         &self,
-        pending_network_requests: &HashMap<ModuleReqId, NetworkRequest>,
+        pending_network_requests: &HashMap<ModuleReqId, OldNetworkRequest>,
         current_blockstamp: &Blockstamp,
         to: BlockId,
-    ) -> HashMap<ModuleReqId, NetworkRequest> {
+    ) -> HashMap<ModuleReqId, OldNetworkRequest> {
         let mut from = if *current_blockstamp == Blockstamp::default() {
             0
         } else {
@@ -269,13 +269,13 @@ impl BlockchainModule {
         requests_ids
     }
     /// Send network request
-    fn request_network(&self, _req_id: ModuleReqId, request: &NetworkRequest) -> ModuleReqId {
+    fn request_network(&self, _req_id: ModuleReqId, request: &OldNetworkRequest) -> ModuleReqId {
         self.rooter_sender
             .send(RooterThreadMessage::ModuleMessage(DursMsg(
                 DursMsgReceiver::Role(ModuleRole::InterNodesNetwork),
-                DursMsgContent::NetworkRequest(*request),
+                DursMsgContent::OldNetworkRequest(*request),
             )))
-            .unwrap_or_else(|_| panic!("Fail to send NetworkRequest to rooter"));
+            .unwrap_or_else(|_| panic!("Fail to send OldNetworkRequest to rooter"));
         request.get_req_id()
     }
     /// Send blockchain event
@@ -525,12 +525,12 @@ impl BlockchainModule {
         // Init datas
         let mut last_get_stackables_blocks = UNIX_EPOCH;
         let mut last_request_blocks = UNIX_EPOCH;
-        let mut pending_network_requests: HashMap<ModuleReqId, NetworkRequest> = HashMap::new();
+        let mut pending_network_requests: HashMap<ModuleReqId, OldNetworkRequest> = HashMap::new();
         let mut consensus = Blockstamp::default();
 
         loop {
             // Request Consensus
-            let req = NetworkRequest::GetConsensus(ModuleReqFullId(
+            let req = OldNetworkRequest::GetConsensus(ModuleReqFullId(
                 BlockchainModule::name(),
                 ModuleReqId(pending_network_requests.len() as u32),
             ));
@@ -642,7 +642,7 @@ impl BlockchainModule {
                                 pending_network_requests.remove(&network_response.get_req_id())
                             {
                                 match request {
-                                    NetworkRequest::GetConsensus(_) => {
+                                    OldNetworkRequest::GetConsensus(_) => {
                                         if let NetworkResponse::Consensus(_, response) =
                                             *network_response.deref()
                                         {
@@ -678,7 +678,7 @@ impl BlockchainModule {
                                             }
                                         }
                                     }
-                                    NetworkRequest::GetBlocks(_, _, _, _) => {
+                                    OldNetworkRequest::GetBlocks(_, _, _, _) => {
                                         if let NetworkResponse::Chunk(_, _, ref blocks) =
                                             *network_response.deref()
                                         {

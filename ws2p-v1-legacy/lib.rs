@@ -147,7 +147,12 @@ pub enum WS2PSignal {
     PeerCard(NodeFullId, serde_json::Value, Vec<EndpointEnum>),
     Heads(NodeFullId, Vec<NetworkHead>),
     Document(NodeFullId, NetworkDocument),
-    ReqResponse(ModuleReqId, NetworkRequest, NodeFullId, serde_json::Value),
+    ReqResponse(
+        ModuleReqId,
+        OldNetworkRequest,
+        NodeFullId,
+        serde_json::Value,
+    ),
     Empty,
     NoConnection,
 }
@@ -440,8 +445,8 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                     }
                                 }
                             }*/
-                            DursMsgContent::NetworkRequest(ref request) => match *request {
-                                NetworkRequest::GetBlocks(
+                            DursMsgContent::OldNetworkRequest(ref request) => match *request {
+                                OldNetworkRequest::GetBlocks(
                                     ref req_id,
                                     ref receiver,
                                     ref count,
@@ -478,7 +483,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                             let _blocks_request_result = ws2p_module
                                                 .send_request_to_specific_node(
                                                     &real_receiver,
-                                                    &NetworkRequest::GetBlocks(
+                                                    &OldNetworkRequest::GetBlocks(
                                                         *req_id, *receiver, *count, *from,
                                                     ),
                                                 );
@@ -487,13 +492,13 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                         let _blocks_request_result = ws2p_module
                                             .send_request_to_specific_node(
                                                 &receiver,
-                                                &NetworkRequest::GetBlocks(
+                                                &OldNetworkRequest::GetBlocks(
                                                     *req_id, *receiver, *count, *from,
                                                 ),
                                             );
                                     }
                                 }
-                                NetworkRequest::GetEndpoints(ref _request) => {}
+                                OldNetworkRequest::GetEndpoints(ref _request) => {}
                                 _ => {}
                             },
                             DursMsgContent::DALEvent(ref dal_event) => match *dal_event {
@@ -637,7 +642,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                             let _current_request_result = ws2p_module
                                 .send_request_to_specific_node(
                                     &ws2p_full_id,
-                                    &NetworkRequest::GetCurrent(
+                                    &OldNetworkRequest::GetCurrent(
                                         ModuleReqFullId(module_id, req_id),
                                         ws2p_full_id,
                                     ),
@@ -748,7 +753,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                         }
                         WS2PSignal::ReqResponse(req_id, req, recipient_full_id, response) => {
                             match req {
-                                NetworkRequest::GetCurrent(ref _req_id, _receiver) => {
+                                OldNetworkRequest::GetCurrent(ref _req_id, _receiver) => {
                                     info!(
                                         "WS2PSignal::ReceiveCurrent({}, {:?}, {:#?})",
                                         req_id.0, req, response
@@ -764,7 +769,12 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                         );
                                     }
                                 }
-                                NetworkRequest::GetBlocks(ref _req_id, _receiver, _count, from) => {
+                                OldNetworkRequest::GetBlocks(
+                                    ref _req_id,
+                                    _receiver,
+                                    _count,
+                                    from,
+                                ) => {
                                     info!("WS2PSignal::ReceiveChunk({}, {:?})", req_id.0, req);
                                     if response.is_array() {
                                         let mut chunk = Vec::new();
@@ -781,7 +791,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                         );
                                     }
                                 }
-                                NetworkRequest::GetRequirementsPending(
+                                OldNetworkRequest::GetRequirementsPending(
                                     _req_id,
                                     _receiver,
                                     min_cert,
@@ -872,7 +882,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                     info!("get chunks from all connections...");
                     let module_id = WS2PModule::name();
                     let _blocks_request_result =
-                        ws2p_module.send_request_to_all_connections(&NetworkRequest::GetBlocks(
+                        ws2p_module.send_request_to_all_connections(&OldNetworkRequest::GetBlocks(
                             ModuleReqFullId(module_id, ModuleReqId(0 as u32)),
                             NodeFullId::default(),
                             50,
@@ -889,7 +899,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                 {
                     /*info!("get pending_identities from all connections...");
                     let _blocks_request_result = ws2p_module.send_request_to_all_connections(
-                        &NetworkRequest::GetRequirementsPending(ModuleReqId(0 as u32), 5),
+                        &OldNetworkRequest::GetRequirementsPending(ModuleReqId(0 as u32), 5),
                     );*/
                     last_identities_request = SystemTime::now();
                 }
@@ -1169,7 +1179,7 @@ mod tests {
     #[test]
     fn ws2p_requests() {
         let module_id = WS2PModule::name();
-        let request = NetworkRequest::GetBlocks(
+        let request = OldNetworkRequest::GetBlocks(
             ModuleReqFullId(module_id, ModuleReqId(58)),
             NodeFullId::default(),
             50,

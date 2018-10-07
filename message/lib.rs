@@ -44,7 +44,7 @@ use duniter_dal::dal_requests::{DALRequest, DALResponse};
 use duniter_documents::blockchain::BlockchainProtocol;
 use duniter_documents::BlockId;
 use duniter_module::*;
-use duniter_network::{NetworkEvent, NetworkRequest, NetworkResponse};
+use duniter_network::{NetworkEvent, NetworkResponse, OldNetworkRequest};
 
 #[derive(Debug, Clone)]
 /// Message exchanged between Durs modules
@@ -81,10 +81,10 @@ pub enum DursMsgContent {
     /// Blockchain event
     DALEvent(DALEvent),
     /// Request to the network module
-    NetworkRequest(NetworkRequest),
+    OldNetworkRequest(OldNetworkRequest),
     /// Network event
     NetworkEvent(NetworkEvent),
-    /// Response of NetworkRequest
+    /// Response of OldNetworkRequest
     NetworkResponse(NetworkResponse),
     /// Pow module response
     ProverResponse(BlockId, Sig, u64),
@@ -108,6 +108,8 @@ pub struct DursReq {
 #[derive(Debug, Clone)]
 /// Modules request content
 pub enum DursReqContent {
+    /// Network request (Not yet implemented)
+    NetworkRequest(),
     /// Blockchain datas request
     DALRequest(DALRequest),
     /// Request to the pow module
