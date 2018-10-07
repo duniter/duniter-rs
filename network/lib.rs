@@ -262,7 +262,7 @@ pub enum NetworkConsensusError {
 pub enum NetworkRequest {
     /// Get a current block of a specific node
     GetCurrent(ModuleReqFullId, NodeFullId),
-    //GetBlock(ModuleReqFullId, NodeFullId, u64),
+    //GetBlock(NodeFullId, u64),
     /// Get a blocks chunk from specified node
     GetBlocks(ModuleReqFullId, NodeFullId, u32, u32),
     /// Get pending wot documents from specified node

@@ -288,6 +288,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
             heads_cache: HashMap::new(),
             my_head: None,
             uids_cache: HashMap::new(),
+            count_dal_requests: 0,
         };
 
         // load conf
@@ -571,7 +572,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                                 ]),
                                             );
                                         }
-                                        DALResBlockchain::UIDs(ref uids) => {
+                                        DALResBlockchain::UIDs(ref _req_id, ref uids) => {
                                             // Add uids to heads
                                             for head in ws2p_module.heads_cache.values_mut() {
                                                 if let Some(uid_option) = uids.get(&head.pubkey()) {
@@ -618,7 +619,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                         _ => {}
                                     }
                                 }
-                                DALResponse::Pendings(_, _) => {}
+                                DALResponse::Pendings(_) => {}
                             },
                             _ => {}
                         }

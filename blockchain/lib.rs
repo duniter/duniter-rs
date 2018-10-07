@@ -228,7 +228,7 @@ impl BlockchainModule {
             *CHUNK_SIZE,
             from,
         );
-        (self.request_network(&req), req)
+        (self.request_network(req_id, &req), req)
     }
     /// Requests blocks from current to `to`
     fn request_blocks_to(
@@ -269,7 +269,7 @@ impl BlockchainModule {
         requests_ids
     }
     /// Send network request
-    fn request_network(&self, request: &NetworkRequest) -> ModuleReqId {
+    fn request_network(&self, _req_id: ModuleReqId, request: &NetworkRequest) -> ModuleReqId {
         self.rooter_sender
             .send(RooterThreadMessage::ModuleMessage(DursMsg(
                 DursMsgReceiver::Role(ModuleRole::InterNodesNetwork),
@@ -534,7 +534,8 @@ impl BlockchainModule {
                 BlockchainModule::name(),
                 ModuleReqId(pending_network_requests.len() as u32),
             ));
-            let req_id = self.request_network(&req);
+            let req_id =
+                self.request_network(ModuleReqId(pending_network_requests.len() as u32), &req);
             pending_network_requests.insert(req_id, req);
             // Request Blocks
             let now = SystemTime::now();
@@ -569,86 +570,91 @@ impl BlockchainModule {
                 }
             }
             match blockchain_receiver.recv_timeout(Duration::from_millis(1000)) {
-                Ok(ref message) => match (*message).1 {
-                    DursMsgContent::DALRequest(ref dal_request) => match *dal_request {
-                        DALRequest::BlockchainRequest(ref blockchain_req) => {
-                            match *blockchain_req {
-                                DALReqBlockchain::CurrentBlock(ref requester_full_id) => {
-                                    debug!("BlockchainModule : receive DALReqBc::CurrentBlock()");
+                Ok(ref message) => {
+                    match (*message).1 {
+                        DursMsgContent::Request(ref request) => match request.content {
+                            DursReqContent::DALRequest(ref dal_request) => match *dal_request {
+                                DALRequest::BlockchainRequest(ref blockchain_req) => {
+                                    match *blockchain_req {
+                                        DALReqBlockchain::CurrentBlock() => {
+                                            debug!("BlockchainModule : receive DALReqBc::CurrentBlock()");
 
-                                    if let Some(current_block) =
-                                        DALBlock::get_block(
-                                            &self.blocks_databases.blockchain_db,
-                                            None,
-                                            &current_blockstamp,
-                                        ).expect(
-                                            "Fatal error : get_block : fail to read LocalBlockchainV10DB !",
-                                        ) {
-                                        debug!("BlockchainModule : send_req_response(CurrentBlock({}))", current_blockstamp);
-                                        self.send_req_response((*message).0, &DALResponse::Blockchain(Box::new(
-                                            DALResBlockchain::CurrentBlock(
-                                                *requester_full_id,
-                                                Box::new(current_block.block),
-                                                current_blockstamp,
+                                            if let Some(current_block) =
+                                            DALBlock::get_block(
+                                                &self.blocks_databases.blockchain_db,
+                                                None,
+                                                &current_blockstamp,
+                                            ).expect(
+                                                "Fatal error : get_block : fail to read LocalBlockchainV10DB !",
+                                            ) {
+                                            debug!("BlockchainModule : send_req_response(CurrentBlock({}))", current_blockstamp);
+                                            self.send_req_response(DursMsgReceiver::One(request.requester), &DALResponse::Blockchain(Box::new(
+                                                DALResBlockchain::CurrentBlock(
+                                                    request.id,
+                                                    Box::new(current_block.block),
+                                                    current_blockstamp,
+                                                ),
+                                            )));
+                                        } else {
+                                            warn!("BlockchainModule : Req : fail to get current_block in bdd !");
+                                        }
+                                        }
+                                        DALReqBlockchain::UIDs(ref pubkeys) => {
+                                            self.send_req_response(DursMsgReceiver::One(request.requester), &DALResponse::Blockchain(Box::new(
+                                            DALResBlockchain::UIDs(
+                                                request.id,
+                                                pubkeys
+                                                    .iter()
+                                                    .map(|p| {
+                                                        (
+                                                            *p,
+                                                            duniter_dal::identity::get_uid(&self.wot_databases.identities_db, *p)
+                                                                .expect("Fatal error : get_uid : Fail to read WotV10DB !")
+                                                        )
+                                                    })
+                                                    .collect(),
                                             ),
                                         )));
-                                    } else {
-                                        warn!("BlockchainModule : Req : fail to get current_block in bdd !");
+                                        }
+                                        _ => {}
                                     }
                                 }
-                                DALReqBlockchain::UIDs(ref pubkeys) => {
-                                    self.send_req_response((*message).0, &DALResponse::Blockchain(Box::new(
-                                        DALResBlockchain::UIDs(
-                                            pubkeys
-                                                .iter()
-                                                .map(|p| {
-                                                    (
-                                                        *p,
-                                                        duniter_dal::identity::get_uid(&self.wot_databases.identities_db, *p)
-                                                            .expect("Fatal error : get_uid : Fail to read WotV10DB !")
-                                                    )
-                                                })
-                                                .collect(),
-                                        ),
-                                    )));
-                                }
-                                _ => {}
+                                DALRequest::PendingsRequest(ref _pending_req) => {}
+                            },
+                            _ => {}
+                        },
+                        DursMsgContent::NetworkEvent(ref network_event) => match *network_event {
+                            NetworkEvent::ReceiveDocuments(ref network_docs) => {
+                                let new_current_blockstamp = self.receive_network_documents(
+                                    network_docs,
+                                    &current_blockstamp,
+                                    &mut wotb_index,
+                                    &wot_db,
+                                );
+                                current_blockstamp = new_current_blockstamp;
                             }
-                        }
-                        DALRequest::PendingsRequest(ref _pending_req) => {}
-                    },
-                    DursMsgContent::NetworkEvent(ref network_event) => match *network_event {
-                        NetworkEvent::ReceiveDocuments(ref network_docs) => {
-                            let new_current_blockstamp = self.receive_network_documents(
-                                network_docs,
-                                &current_blockstamp,
-                                &mut wotb_index,
-                                &wot_db,
-                            );
-                            current_blockstamp = new_current_blockstamp;
-                        }
-                        NetworkEvent::ReceiveHeads(_) => {}
-                        _ => {}
-                    },
-                    DursMsgContent::NetworkResponse(ref network_response) => {
-                        debug!("BlockchainModule : receive NetworkEvent::ReqResponse() !");
-                        if let Some(request) =
-                            pending_network_requests.remove(&network_response.get_req_id())
-                        {
-                            match request {
-                                NetworkRequest::GetConsensus(_) => {
-                                    if let NetworkResponse::Consensus(_, response) =
-                                        *network_response.deref()
-                                    {
-                                        if let Ok(blockstamp) = response {
-                                            consensus = blockstamp;
-                                            if current_blockstamp.id.0 > consensus.id.0 + 2 {
-                                                // Find free fork id
-                                                let free_fork_id = ForkId(49);
-                                                // Get last dal_block
-                                                let last_dal_block_id =
-                                                    BlockId(current_blockstamp.id.0 - 1);
-                                                let last_dal_block = self
+                            NetworkEvent::ReceiveHeads(_) => {}
+                            _ => {}
+                        },
+                        DursMsgContent::NetworkResponse(ref network_response) => {
+                            debug!("BlockchainModule : receive NetworkEvent::ReqResponse() !");
+                            if let Some(request) =
+                                pending_network_requests.remove(&network_response.get_req_id())
+                            {
+                                match request {
+                                    NetworkRequest::GetConsensus(_) => {
+                                        if let NetworkResponse::Consensus(_, response) =
+                                            *network_response.deref()
+                                        {
+                                            if let Ok(blockstamp) = response {
+                                                consensus = blockstamp;
+                                                if current_blockstamp.id.0 > consensus.id.0 + 2 {
+                                                    // Find free fork id
+                                                    let free_fork_id = ForkId(49);
+                                                    // Get last dal_block
+                                                    let last_dal_block_id =
+                                                        BlockId(current_blockstamp.id.0 - 1);
+                                                    let last_dal_block = self
                                                     .blocks_databases
                                                     .blockchain_db
                                                     .read(|db| db.get(&last_dal_block_id).cloned())
@@ -656,53 +662,54 @@ impl BlockchainModule {
                                                     .expect(
                                                         "Fatal error : not foutn last dal block !",
                                                     );
-                                                revert_block::revert_block(
-                                                    &last_dal_block,
-                                                    &mut wotb_index,
-                                                    &wot_db,
-                                                    Some(free_fork_id),
-                                                    &self
-                                                        .currency_databases
-                                                        .tx_db
-                                                        .read(|db| db.clone())
-                                                        .expect("Fail to read TxDB."),
-                                                )
-                                                .expect("Fail to revert block");
+                                                    revert_block::revert_block(
+                                                        &last_dal_block,
+                                                        &mut wotb_index,
+                                                        &wot_db,
+                                                        Some(free_fork_id),
+                                                        &self
+                                                            .currency_databases
+                                                            .tx_db
+                                                            .read(|db| db.clone())
+                                                            .expect("Fail to read TxDB."),
+                                                    )
+                                                    .expect("Fail to revert block");
+                                                }
                                             }
                                         }
                                     }
-                                }
-                                NetworkRequest::GetBlocks(_, _, _, _) => {
-                                    if let NetworkResponse::Chunk(_, _, ref blocks) =
-                                        *network_response.deref()
-                                    {
-                                        let new_current_blockstamp = self.receive_blocks(
-                                            blocks,
-                                            &current_blockstamp,
-                                            &mut wotb_index,
-                                            &wot_db,
-                                        );
-                                        if current_blockstamp != new_current_blockstamp {
-                                            current_blockstamp = new_current_blockstamp;
-                                            // Update forks states
-                                            self.forks_states = duniter_dal::block::get_forks(
-                                                &self.blocks_databases.forks_db,
-                                                current_blockstamp,
-                                            )
-                                            .expect("get_forks() : DALError");
+                                    NetworkRequest::GetBlocks(_, _, _, _) => {
+                                        if let NetworkResponse::Chunk(_, _, ref blocks) =
+                                            *network_response.deref()
+                                        {
+                                            let new_current_blockstamp = self.receive_blocks(
+                                                blocks,
+                                                &current_blockstamp,
+                                                &mut wotb_index,
+                                                &wot_db,
+                                            );
+                                            if current_blockstamp != new_current_blockstamp {
+                                                current_blockstamp = new_current_blockstamp;
+                                                // Update forks states
+                                                self.forks_states = duniter_dal::block::get_forks(
+                                                    &self.blocks_databases.forks_db,
+                                                    current_blockstamp,
+                                                )
+                                                .expect("get_forks() : DALError");
+                                            }
                                         }
                                     }
+                                    _ => {}
                                 }
-                                _ => {}
                             }
                         }
+                        DursMsgContent::ReceiveDocsFromClient(ref docs) => {
+                            self.receive_documents(docs);
+                        }
+                        DursMsgContent::Stop() => break,
+                        _ => {}
                     }
-                    DursMsgContent::ReceiveDocsFromClient(ref docs) => {
-                        self.receive_documents(docs);
-                    }
-                    DursMsgContent::Stop() => break,
-                    _ => {}
-                },
+                }
                 Err(e) => match e {
                     mpsc::RecvTimeoutError::Disconnected => {
                         panic!("Disconnected blockchain module !");

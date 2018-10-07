@@ -68,14 +68,14 @@ pub enum DursMsgReceiver {
 #[derive(Debug, Clone)]
 /// Content of message exchanged between Durs modules
 pub enum DursMsgContent {
+    /// Request
+    Request(DursReq),
     /// Brut text message
     Text(String),
     /// Brut binary message
     Binary(Vec<u8>),
     /// New configuration of a module to save
     SaveNewModuleConf(ModuleName, serde_json::Value),
-    /// Blockchain datas request
-    DALRequest(DALRequest),
     /// Response of DALRequest
     DALResponse(Box<DALResponse>),
     /// Blockchain event
@@ -86,12 +86,34 @@ pub enum DursMsgContent {
     NetworkEvent(NetworkEvent),
     /// Response of NetworkRequest
     NetworkResponse(NetworkResponse),
-    /// Request to the pow module
-    ProverRequest(BlockId, Hash),
     /// Pow module response
     ProverResponse(BlockId, Sig, u64),
     /// Client API event
     ReceiveDocsFromClient(Vec<BlockchainProtocol>),
     /// Stop signal
     Stop(),
+}
+
+#[derive(Debug, Clone)]
+/// Durs modules requests
+pub struct DursReq {
+    /// Requester
+    pub requester: ModuleStaticName,
+    /// Request unique id
+    pub id: ModuleReqId,
+    /// Request content
+    pub content: DursReqContent,
+}
+
+#[derive(Debug, Clone)]
+/// Modules request content
+pub enum DursReqContent {
+    /// Blockchain datas request
+    DALRequest(DALRequest),
+    /// Request to the pow module
+    ProverRequest(BlockId, Hash),
+    /// Brut text request
+    Text(String),
+    /// Brut binary request
+    Binary(Vec<u8>),
 }

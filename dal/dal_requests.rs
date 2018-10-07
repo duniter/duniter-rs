@@ -16,7 +16,7 @@
 extern crate duniter_module;
 extern crate serde;
 
-use self::duniter_module::ModuleReqFullId;
+use self::duniter_module::ModuleReqId;
 use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::{
@@ -29,22 +29,22 @@ use std::collections::HashMap;
 /// Inter-module DAL request for pool data
 pub enum DALReqPendings {
     /// All pending identities with their pending certifications
-    AllPendingIdentities(ModuleReqFullId, usize),
+    AllPendingIdentities(usize),
     /// All pending identities without their pending certifications
-    AllPendingIdentitiesWithoutCerts(ModuleReqFullId, usize),
+    AllPendingIdentitiesWithoutCerts(usize),
     /// All pending datas for given pubkey
-    PendingWotDatasForPubkey(ModuleReqFullId, PubKey),
+    PendingWotDatasForPubkey(PubKey),
 }
 
 #[derive(Debug, Clone, PartialEq)]
 /// Inter-module DAL request for blockchain data
 pub enum DALReqBlockchain {
     /// Current block
-    CurrentBlock(ModuleReqFullId),
+    CurrentBlock(),
     /// Block by number
-    BlockByNumber(ModuleReqFullId, u64),
+    BlockByNumber(u64),
     /// Chunk (block pack)
-    Chunk(ModuleReqFullId, u64, usize),
+    Chunk(u64, usize),
     /// Usernames corresponding to the public keys in parameter
     UIDs(Vec<PubKey>),
 }
@@ -77,24 +77,24 @@ pub struct PendingIdtyDatas {
 /// Response to a DALReqPendings request
 pub enum DALResPendings {
     /// All pending identities with their pending certifications
-    AllPendingIdentities(HashMap<Hash, PendingIdtyDatas>),
+    AllPendingIdentities(ModuleReqId, HashMap<Hash, PendingIdtyDatas>),
     /// All pending identities without their pending certifications
-    AllPendingIdentitiesWithoutCerts(HashMap<Hash, PendingIdtyDatas>),
+    AllPendingIdentitiesWithoutCerts(ModuleReqId, HashMap<Hash, PendingIdtyDatas>),
     /// All pending datas for given pubkey
-    PendingWotDatasForPubkey(Box<PendingIdtyDatas>),
+    PendingWotDatasForPubkey(ModuleReqId, Box<PendingIdtyDatas>),
 }
 
 #[derive(Debug, Clone)]
 /// Response to a DALReqBlockchain request
 pub enum DALResBlockchain {
     /// Current block
-    CurrentBlock(ModuleReqFullId, Box<BlockDocument>, Blockstamp),
+    CurrentBlock(ModuleReqId, Box<BlockDocument>, Blockstamp),
     /// Block by number
-    BlockByNumber(ModuleReqFullId, Box<BlockDocument>),
+    BlockByNumber(ModuleReqId, Box<BlockDocument>),
     /// Chunk (block pack)
-    Chunk(ModuleReqFullId, Vec<BlockDocument>),
+    Chunk(ModuleReqId, Vec<BlockDocument>),
     /// Usernames corresponding to the public keys in parameter
-    UIDs(HashMap<PubKey, Option<String>>),
+    UIDs(ModuleReqId, HashMap<PubKey, Option<String>>),
 }
 
 #[derive(Debug, Clone)]
@@ -103,5 +103,5 @@ pub enum DALResponse {
     /// Response to a DALReqBlockchain request
     Blockchain(Box<DALResBlockchain>),
     /// Response to a DALReqPendings request
-    Pendings(ModuleReqFullId, Box<DALResPendings>),
+    Pendings(Box<DALResPendings>),
 }

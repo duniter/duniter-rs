@@ -42,6 +42,7 @@ pub struct WS2PModuleDatas {
     pub heads_cache: HashMap<NodeFullId, NetworkHead>,
     pub my_head: Option<NetworkHead>,
     pub uids_cache: HashMap<PubKey, String>,
+    pub count_dal_requests: u32,
 }
 
 impl WS2PModuleDatas {
@@ -58,11 +59,19 @@ impl WS2PModuleDatas {
         }
         Ok(conn)
     }
-    pub fn send_dal_request(&self, req: &DALRequest) {
+    pub fn send_dal_request(&mut self, req: &DALRequest) {
+        self.count_dal_requests += 1;
+        if self.count_dal_requests == std::u32::MAX {
+            self.count_dal_requests = 0;
+        }
         self.rooter_sender
             .send(RooterThreadMessage::ModuleMessage(DursMsg(
                 DursMsgReceiver::Role(ModuleRole::BlockchainDatas),
-                DursMsgContent::DALRequest(req.clone()),
+                DursMsgContent::Request(DursReq {
+                    requester: WS2PModule::name(),
+                    id: ModuleReqId(self.count_dal_requests),
+                    content: DursReqContent::DALRequest(req.clone()),
+                }),
             )))
             .expect("Fail to send message to rooter !");
     }
