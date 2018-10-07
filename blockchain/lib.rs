@@ -16,7 +16,7 @@
 //! Module managing the Duniter blockchain.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(duration_subsec))]
+//#![cfg_attr(feature = "cargo-clippy", allow(duration_subsec))]
 #![deny(
     missing_docs,
     missing_debug_implementations,
@@ -572,14 +572,15 @@ impl BlockchainModule {
             match blockchain_receiver.recv_timeout(Duration::from_millis(1000)) {
                 Ok(ref message) => {
                     match (*message).1 {
-                        DursMsgContent::Request(ref request) => match request.content {
-                            DursReqContent::DALRequest(ref dal_request) => match *dal_request {
-                                DALRequest::BlockchainRequest(ref blockchain_req) => {
-                                    match *blockchain_req {
-                                        DALReqBlockchain::CurrentBlock() => {
-                                            debug!("BlockchainModule : receive DALReqBc::CurrentBlock()");
+                        DursMsgContent::Request(ref request) => {
+                            if let DursReqContent::DALRequest(ref dal_request) = request.content {
+                                match dal_request {
+                                    DALRequest::BlockchainRequest(ref blockchain_req) => {
+                                        match *blockchain_req {
+                                            DALReqBlockchain::CurrentBlock() => {
+                                                debug!("BlockchainModule : receive DALReqBc::CurrentBlock()");
 
-                                            if let Some(current_block) =
+                                                if let Some(current_block) =
                                             DALBlock::get_block(
                                                 &self.blocks_databases.blockchain_db,
                                                 None,
@@ -598,9 +599,9 @@ impl BlockchainModule {
                                         } else {
                                             warn!("BlockchainModule : Req : fail to get current_block in bdd !");
                                         }
-                                        }
-                                        DALReqBlockchain::UIDs(ref pubkeys) => {
-                                            self.send_req_response(DursMsgReceiver::One(request.requester), &DALResponse::Blockchain(Box::new(
+                                            }
+                                            DALReqBlockchain::UIDs(ref pubkeys) => {
+                                                self.send_req_response(DursMsgReceiver::One(request.requester), &DALResponse::Blockchain(Box::new(
                                             DALResBlockchain::UIDs(
                                                 request.id,
                                                 pubkeys
@@ -615,14 +616,14 @@ impl BlockchainModule {
                                                     .collect(),
                                             ),
                                         )));
+                                            }
+                                            _ => {}
                                         }
-                                        _ => {}
                                     }
+                                    DALRequest::PendingsRequest(ref _pending_req) => {}
                                 }
-                                DALRequest::PendingsRequest(ref _pending_req) => {}
-                            },
-                            _ => {}
-                        },
+                            }
+                        }
                         DursMsgContent::NetworkEvent(ref network_event) => match *network_event {
                             NetworkEvent::ReceiveDocuments(ref network_docs) => {
                                 let new_current_blockstamp = self.receive_network_documents(

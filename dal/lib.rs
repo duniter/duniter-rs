@@ -16,7 +16,7 @@
 //! Datas Access Layer
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
+//#![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
 #![cfg_attr(feature = "exp", allow(warnings))]
 #![deny(
     missing_docs,

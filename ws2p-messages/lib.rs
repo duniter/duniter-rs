@@ -177,7 +177,7 @@ mod tests {
                 ed25519::PublicKey::from_base58("4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR")
                     .unwrap(),
             ),
-            target: target,
+            target,
             block_number: blockstamp.id,
             signature: sig,
         }

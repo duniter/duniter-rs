@@ -73,7 +73,7 @@ pub fn dbex_tx<DC: DuniterConf>(profile: &str, conf: &DC, _csv: bool, query: &DB
     println!(
         "Databases loaded in {}.{:03} seconds.",
         load_dbs_duration.as_secs(),
-        load_dbs_duration.subsec_nanos() / 1_000_000
+        load_dbs_duration.subsec_millis()
     );
     let req_process_begin = SystemTime::now();
     match *query {
@@ -112,7 +112,7 @@ pub fn dbex_tx<DC: DuniterConf>(profile: &str, conf: &DC, _csv: bool, query: &DB
     println!(
         "Request processed in  {}.{:06} seconds.",
         req_process_duration.as_secs(),
-        req_process_duration.subsec_nanos() / 1_000
+        req_process_duration.subsec_micros()
     );
 }
 
@@ -131,7 +131,7 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
     println!(
         "Databases loaded in {}.{:03} seconds.",
         load_dbs_duration.as_secs(),
-        load_dbs_duration.subsec_nanos() / 1_000_000
+        load_dbs_duration.subsec_millis()
     );
 
     // Get currency parameters
@@ -221,7 +221,7 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
             println!(
                 "compute_distances_duration = {},{:03}.",
                 compute_distances_duration.as_secs(),
-                compute_distances_duration.subsec_nanos() / 1_000_000
+                compute_distances_duration.subsec_millis()
             );
         }
         DBExWotQuery::ExpireMembers(ref reverse) => {

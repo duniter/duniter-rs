@@ -16,7 +16,6 @@
 //! WebSocketToPeer API for the Duniter project.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(cyclomatic_complexity))]
 #![deny(
     missing_debug_implementations,
     missing_copy_implementations,

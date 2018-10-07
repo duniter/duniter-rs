@@ -16,7 +16,6 @@
 //! Provide wrappers for cryptographic building blocks used by Duniter.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(builtin_type_shadow))]
 #![deny(
     missing_docs,
     missing_debug_implementations,

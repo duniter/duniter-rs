@@ -234,7 +234,7 @@ pub fn sync_ts<DC: DuniterConf>(
         info!(
             "ts_job_duration={},{:03} seconds.",
             ts_job_duration.as_secs(),
-            ts_job_duration.subsec_nanos() / 1_000_000
+            ts_job_duration.subsec_millis()
         );
     });
 
@@ -387,7 +387,7 @@ pub fn sync_ts<DC: DuniterConf>(
         info!(
             "blocks_job_duration={},{:03} seconds.",
             blocks_job_duration.as_secs(),
-            blocks_job_duration.subsec_nanos() / 1_000_000
+            blocks_job_duration.subsec_millis()
         );
     });
 
@@ -429,7 +429,7 @@ pub fn sync_ts<DC: DuniterConf>(
         info!(
             "wot_job_duration={},{:03} seconds.",
             wot_job_duration.as_secs(),
-            wot_job_duration.subsec_nanos() / 1_000_000
+            wot_job_duration.subsec_millis()
         );
     });
 
@@ -466,7 +466,7 @@ pub fn sync_ts<DC: DuniterConf>(
         info!(
             "tx_job_duration={},{:03} seconds.",
             tx_job_duration.as_secs(),
-            tx_job_duration.subsec_nanos() / 1_000_000
+            tx_job_duration.subsec_millis()
         );
     });
     let main_job_begin = SystemTime::now();
@@ -631,17 +631,17 @@ pub fn sync_ts<DC: DuniterConf>(
     info!(
         "main_job_duration={},{:03} seconds.",
         main_job_duration.as_secs(),
-        main_job_duration.subsec_nanos() / 1_000_000
+        main_job_duration.subsec_millis()
     );
     info!(
         "all_complete_block_duration={},{:03} seconds.",
         all_complete_block_duration.as_secs(),
-        all_complete_block_duration.subsec_nanos() / 1_000_000
+        all_complete_block_duration.subsec_millis()
     );
     info!(
         "all_apply_valid_block_duration={},{:03} seconds.",
         all_apply_valid_block_duration.as_secs(),
-        all_apply_valid_block_duration.subsec_nanos() / 1_000_000
+        all_apply_valid_block_duration.subsec_millis()
     );
 
     // Wait recv two finish signals
@@ -662,12 +662,12 @@ pub fn sync_ts<DC: DuniterConf>(
         "Sync {} blocks in {}.{:03} seconds.",
         current_blockstamp.id.0 + 1,
         sync_duration.as_secs(),
-        sync_duration.subsec_nanos() / 1_000_000,
+        sync_duration.subsec_millis(),
     );
     info!(
         "Sync {} blocks in {}.{:03} seconds.",
         current_blockstamp.id.0 + 1,
         sync_duration.as_secs(),
-        sync_duration.subsec_nanos() / 1_000_000,
+        sync_duration.subsec_millis(),
     );
 }

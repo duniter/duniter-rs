@@ -66,11 +66,11 @@ impl<'de> Deserialize<'de> for Signature {
     where
         D: Deserializer<'de>,
     {
-        struct ArrayVisitor<u8> {
+        struct ArrayVisitor {
             element: PhantomData<u8>,
         }
 
-        impl<'de, u8> Visitor<'de> for ArrayVisitor<u8> {
+        impl<'de> Visitor<'de> for ArrayVisitor {
             type Value = Signature;
 
             fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
@@ -91,7 +91,7 @@ impl<'de> Deserialize<'de> for Signature {
             }
         }
 
-        let visitor: ArrayVisitor<u8> = ArrayVisitor {
+        let visitor: ArrayVisitor = ArrayVisitor {
             element: PhantomData,
         };
         deserializer.deserialize_tuple(64, visitor)

@@ -16,7 +16,7 @@
 //! Crate containing Duniter-rust core.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
+//#![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
 #![deny(
     missing_docs,
     missing_copy_implementations,
@@ -531,7 +531,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             }
         }
         if let Some(UserCommand::ListModules(ref options)) = self.user_command {
-            if module_valid_filters::<DuRsConf, DursMsg, M>(
+            if module_valid_filters::<DuRsConf, DursMsg, M, std::collections::hash_map::RandomState>(
                 &self.soft_meta_datas.conf,
                 &options.get_filters(),
                 is_network_module,

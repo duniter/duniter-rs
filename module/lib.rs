@@ -17,7 +17,6 @@
 //! as well as the DuniterModule trait that all modules must implement.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
 #![deny(
     missing_docs,
     missing_debug_implementations,
@@ -288,9 +287,14 @@ pub enum ModulesFilter {
 }
 
 /// Returns true only if the module checks all filters
-pub fn module_valid_filters<DC: DuniterConf, Mess: ModuleMessage, M: DuniterModule<DC, Mess>>(
+pub fn module_valid_filters<
+    DC: DuniterConf,
+    Mess: ModuleMessage,
+    M: DuniterModule<DC, Mess>,
+    S: ::std::hash::BuildHasher,
+>(
     conf: &DC,
-    filters: &HashSet<ModulesFilter>,
+    filters: &HashSet<ModulesFilter, S>,
     network_module: bool,
 ) -> bool {
     if filters.contains(&ModulesFilter::Network()) && !network_module {
