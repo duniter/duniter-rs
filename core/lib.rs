@@ -183,15 +183,18 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
         init_logger(profile.as_str(), self.soft_meta_datas.soft_name, &cli_args);
 
         // Print panic! in logs
-        log_panics::init();
+        //log_panics::init();
 
         // Load global conf
-        let (conf, _keypairs) = duniter_conf::load_conf(profile.as_str());
+        let (conf, keypairs) = duniter_conf::load_conf(profile.as_str());
         info!("Success to load global conf.");
 
         // save profile and conf
         self.soft_meta_datas.profile = profile.clone();
         self.soft_meta_datas.conf = conf.clone();
+
+        // Save keypairs
+        self.keypairs = Some(keypairs);
 
         /*
          * COMMAND LINE PROCESSING
@@ -220,6 +223,9 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             self.rooter_sender = Some(rooter::start_rooter::<DuRsConf>(0, vec![]));
             true
         } else if let Some(_matches) = cli_args.subcommand_matches("start") {
+            // Store user command
+            self.user_command = Some(UserCommand::Start());
+
             // Start rooter thread
             self.rooter_sender = Some(rooter::start_rooter::<DuRsConf>(
                 self.run_duration_in_secs,
@@ -302,7 +308,6 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                 Some(path) => path,
                 None => panic!("Impossible to get user config directory !"),
             };
-            profile_path.push(".config");
             profile_path.push(duniter_conf::get_user_datas_folder());
             profile_path.push(profile.clone());
             if !profile_path.as_path().exists() {
@@ -394,6 +399,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
     pub fn plug_network<NM: NetworkModule<DuRsConf, DursMsg>>(&mut self) {
         let enabled = enabled::<DuRsConf, DursMsg, NM>(&self.soft_meta_datas.conf);
         if enabled {
+            self.network_modules_count += 1;
             if let Some(UserCommand::Sync(ref network_sync)) = self.user_command {
                 // Start module in a new thread
                 let rooter_sender = self
@@ -474,7 +480,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                     // Load module conf and keys
                     let (module_conf, required_keys) = get_module_conf_and_keys::<M>(
                         module_conf_json,
-                        keypairs.expect("Try to pluf addon into a core without keypair !"),
+                        keypairs.expect("Try to plug addon into a core without keypair !"),
                     );
                     M::start(
                         &soft_meta_datas,
@@ -565,7 +571,7 @@ pub fn get_module_conf<M: DuniterModule<DuRsConf, DursMsg>>(
 
 /// Match cli option --profile
 pub fn match_profile(cli_args: &ArgMatches) -> String {
-    String::from(cli_args.value_of("profile").unwrap_or("default"))
+    String::from(cli_args.value_of("profile_name").unwrap_or("default"))
 }
 
 /// Launch synchronisation from a duniter-ts database
@@ -593,7 +599,6 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
         Some(path) => path,
         None => panic!("Fatal error : Impossible to get user config directory"),
     };
-    log_file_path.push(".config");
     if !log_file_path.as_path().exists() {
         fs::create_dir(log_file_path.as_path()).expect("Impossible to create ~/.config dir !");
     }
@@ -611,7 +616,7 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
     log_file_path.push(format!("{}.log", soft_name));
 
     // Get log level
-    let log_level = match cli_args.value_of("logs").unwrap_or("i") {
+    let log_level = match cli_args.value_of("logs_level").unwrap_or("i") {
         "e" | "error" => Level::Error,
         "w" | "warn" => Level::Warn,
         "i" | "info" => Level::Info,
@@ -653,4 +658,6 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
             .expect("Fatal error : fail to open log file !"),
     )])
     .expect("Fatal error : fail to init logger !");
+
+    info!("Successfully init logger");
 }
