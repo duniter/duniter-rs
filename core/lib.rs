@@ -16,10 +16,9 @@
 //! Crate containing Duniter-rust core.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
+//#![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
 #![deny(
     missing_docs,
-    missing_debug_implementations,
     missing_copy_implementations,
     trivial_casts,
     trivial_numeric_casts,
@@ -30,10 +29,9 @@
 )]
 
 #[macro_use]
-extern crate clap;
-
-#[macro_use]
 extern crate log;
+#[macro_use]
+extern crate structopt;
 
 extern crate dirs;
 extern crate duniter_blockchain;
@@ -45,26 +43,31 @@ extern crate duniter_network;
 extern crate log_panics;
 extern crate serde_json;
 extern crate simplelog;
-extern crate sqlite;
 extern crate threadpool;
 
 pub mod change_conf;
+pub mod cli;
+pub mod rooter;
 
-use clap::{App, ArgMatches};
 use duniter_blockchain::{BlockchainModule, DBExQuery, DBExTxQuery, DBExWotQuery};
 pub use duniter_conf::{ChangeGlobalConf, DuRsConf, DuniterKeyPairs};
-use duniter_message::DuniterMessage;
+use duniter_message::*;
 use duniter_module::*;
-use duniter_network::{NetworkModule, SyncEndpoint};
+use duniter_network::{NetworkModule, SyncEndpoint, SyncParams};
 use log::Level;
 use simplelog::*;
-use std::collections::HashSet;
+//use std::error::Error;
+//use std::fmt::{Debug, Formatter};
+use cli::*;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::sync::mpsc;
-use std::thread;
-use std::time::Duration;
+use structopt::clap::{App, ArgMatches};
+use structopt::StructOpt;
 use threadpool::ThreadPool;
+
+/// Number of thread in plugins ThreadPool
+pub static THREAD_POOL_SIZE: &'static usize = &2;
 
 #[derive(Debug, Clone)]
 /// User command
@@ -72,26 +75,42 @@ pub enum UserCommand {
     /// Start
     Start(),
     /// Sync (SyncEndpoint)
-    Sync(SyncEndpoint),
+    Sync(SyncParams),
     /// List modules
-    ListModules(HashSet<ModulesFilter>),
-    /// Other command
-    Other(),
+    ListModules(ListModulesOpt),
+    /// Unknow command
+    UnknowCommand(String),
 }
 
-#[derive(Debug)]
+/// TupleApp
+#[derive(Clone)]
+pub struct TupleApp<'b, 'a: 'b>(&'b App<'a, 'b>);
+
+/*impl<'b, 'a: 'b> Debug for TupleApp<'a, 'b> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "TupleApp()")
+    }
+}*/
+
+#[derive(Clone)]
 /// Duniter Core Datas
-pub struct DuniterCore<DC: DuniterConf> {
+pub struct DuniterCore<'a, 'b: 'a, DC: DuniterConf> {
+    /// Command line configuration
+    pub cli_conf: TupleApp<'a, 'b>,
+    /// Command line arguments parsing by clap
+    pub cli_args: Option<ArgMatches<'a>>,
+    /// Plugins command line configuration
+    pub plugins_cli_conf: Vec<App<'b, 'a>>,
     /// Does the entered command require to launch server ?
-    pub user_command: UserCommand,
+    pub user_command: Option<UserCommand>,
     /// Software meta datas
     pub soft_meta_datas: SoftwareMetaDatas<DC>,
     /// Keypairs
-    pub keypairs: DuniterKeyPairs,
+    pub keypairs: Option<DuniterKeyPairs>,
     /// Run duration. Zero = infinite duration.
     pub run_duration_in_secs: u64,
     /// Sender channel of rooter thread
-    pub rooter_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
+    pub rooter_sender: Option<mpsc::Sender<RooterThreadMessage<DursMsg>>>,
     ///  Count the number of plugged modules
     pub modules_count: usize,
     ///  Count the number of plugged network modules
@@ -100,210 +119,208 @@ pub struct DuniterCore<DC: DuniterConf> {
     pub thread_pool: ThreadPool,
 }
 
-impl DuniterCore<DuRsConf> {
-    /// Instantiate Duniter classic node
+impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
+    /// Instantiate Duniter node
     pub fn new(
         soft_name: &'static str,
         soft_version: &'static str,
-    ) -> Option<DuniterCore<DuRsConf>> {
-        DuniterCore::new_specialized_node(soft_name, soft_version, 0, vec![], vec![], None)
-    }
-    /// Instantiate Duniter specialize node
-    pub fn new_specialized_node<'a, 'b>(
-        soft_name: &'static str,
-        soft_version: &'static str,
+        cli_conf: &'a App<'b, 'a>,
         run_duration_in_secs: u64,
-        external_followers: Vec<mpsc::Sender<DuniterMessage>>,
-        sup_apps: Vec<App<'a, 'b>>,
-        sup_apps_fn: Option<&Fn(&str, &ArgMatches) -> ()>,
-    ) -> Option<DuniterCore<DuRsConf>> {
+    ) -> DuniterCore<'b, 'a, DuRsConf> {
         // Get cli conf
-        let yaml = load_yaml!("./cli/en.yml");
-        let cli_conf = App::from_yaml(yaml);
-
-        // Math command line arguments
-        let cli_args = if !sup_apps.is_empty() {
+        //let yaml = load_yaml!("./cli/en.yml");
+        //let cli_conf = TupleApp(App::from_yaml(yaml));
+        DuniterCore {
+            cli_conf: TupleApp(cli_conf),
+            cli_args: None,
+            plugins_cli_conf: vec![],
+            user_command: None,
+            soft_meta_datas: SoftwareMetaDatas {
+                soft_name,
+                soft_version,
+                profile: String::from("default"),
+                conf: DuRsConf::default(),
+            },
+            keypairs: None,
+            run_duration_in_secs,
+            rooter_sender: None,
+            modules_count: 0,
+            network_modules_count: 0,
+            thread_pool: ThreadPool::new(*THREAD_POOL_SIZE),
+        }
+    }
+    /// Execute user command
+    pub fn match_user_command(&mut self) -> bool {
+        self.match_specialize_user_command(vec![], None, vec![])
+    }
+    /// Execute specialize user command
+    pub fn match_specialize_user_command(
+        &mut self,
+        sup_apps: Vec<App<'a, 'b>>,
+        sup_apps_fn: Option<&Fn(&str, &ArgMatches) -> bool>,
+        external_followers: Vec<mpsc::Sender<DursMsgContent>>,
+    ) -> bool {
+        // Inject core subcommands
+        //let core_cli_conf = inject_core_subcommands(self.cli_conf.0.clone());
+        let core_cli_conf = self.cli_conf.0.clone();
+        // Inject plugins subcommands
+        let cli_conf = if !self.plugins_cli_conf.is_empty() {
+            core_cli_conf.subcommands(self.plugins_cli_conf.clone())
+        } else {
+            core_cli_conf
+        };
+        // Inject specialize node subcommands a Math command line arguments
+        self.cli_args = Some(if !sup_apps.is_empty() {
             cli_conf.subcommands(sup_apps).get_matches()
         } else {
             cli_conf.get_matches()
-        };
-
+        });
+        let cli_args = self.cli_args.clone().expect("cli_args must be Some !");
         // Get datas profile name
         let profile = match_profile(&cli_args);
 
         // Init logger
-        init_logger(profile.as_str(), soft_name, &cli_args);
+        init_logger(profile.as_str(), self.soft_meta_datas.soft_name, &cli_args);
 
         // Print panic! in logs
-        log_panics::init();
+        //log_panics::init();
 
         // Load global conf
         let (conf, keypairs) = duniter_conf::load_conf(profile.as_str());
         info!("Success to load global conf.");
 
-        // Define SoftwareMetaDatas
-        let soft_meta_datas = SoftwareMetaDatas {
-            soft_name,
-            soft_version,
-            profile: profile.clone(),
-            conf: conf.clone(),
-        };
+        // save profile and conf
+        self.soft_meta_datas.profile = profile.clone();
+        self.soft_meta_datas.conf = conf.clone();
+
+        // Save keypairs
+        self.keypairs = Some(keypairs);
 
         /*
          * COMMAND LINE PROCESSING
          */
         if let Some(matches) = cli_args.subcommand_matches("disable") {
-            let module_name = matches
-                .value_of("MODULE_NAME")
-                .expect("disable: you must enter a module name !")
-                .to_string();
+            let opts = DisableOpt::from_clap(matches);
             change_conf::change_global_conf(
                 &profile,
                 conf,
-                ChangeGlobalConf::DisableModule(ModuleId(module_name)),
+                ChangeGlobalConf::DisableModule(opts.module_name),
             );
-            None
+            false
         } else if let Some(matches) = cli_args.subcommand_matches("enable") {
-            let module_name = matches
-                .value_of("MODULE_NAME")
-                .expect("enable: you must enter a module name !")
-                .to_string();
+            let opts = EnableOpt::from_clap(matches);
             change_conf::change_global_conf(
                 &profile,
                 conf,
-                ChangeGlobalConf::EnableModule(ModuleId(module_name)),
+                ChangeGlobalConf::EnableModule(opts.module_name),
             );
-            None
+            false
         } else if let Some(matches) = cli_args.subcommand_matches("modules") {
-            let mut filters = HashSet::new();
-            if matches.is_present("disabled") {
-                filters.insert(ModulesFilter::Enabled(false));
-            } else if matches.is_present("enabled") {
-                filters.insert(ModulesFilter::Enabled(true));
-            }
-            if matches.is_present("network") {
-                filters.insert(ModulesFilter::Network());
-            }
-            if matches.is_present("secret") {
-                filters.insert(ModulesFilter::RequireMemberPrivKey());
-            }
-            Some(list_modules(soft_meta_datas, keypairs, filters))
+            // Store user command
+            self.user_command = Some(UserCommand::ListModules(ListModulesOpt::from_clap(matches)));
+
+            // Start rooter thread
+            self.rooter_sender = Some(rooter::start_rooter::<DuRsConf>(0, vec![]));
+            true
         } else if let Some(_matches) = cli_args.subcommand_matches("start") {
-            Some(start(
-                soft_meta_datas,
-                keypairs,
-                run_duration_in_secs,
+            // Store user command
+            self.user_command = Some(UserCommand::Start());
+
+            // Start rooter thread
+            self.rooter_sender = Some(rooter::start_rooter::<DuRsConf>(
+                self.run_duration_in_secs,
                 external_followers,
-            ))
+            ));
+            true
         } else if let Some(matches) = cli_args.subcommand_matches("sync") {
-            let domain_or_ip = matches
-                .value_of("DOMAIN_OR_IP")
-                .expect("sync: you must enter a domain name or ip address !")
-                .to_string();
-            let port: u16 = matches
-                .value_of("PORT")
-                .expect("sync: you must enter a port number !")
-                .parse()
-                .expect("sync: port : you must enter an integer value !");
-            let path = if let Some(path) = matches.value_of("PATH") {
-                Some(path.to_string())
-            } else {
-                None
-            };
+            let opts = SyncOpt::from_clap(matches);
             let sync_endpoint = SyncEndpoint {
-                domain_or_ip,
-                port,
-                path,
+                domain_or_ip: opts.host,
+                port: opts.port,
+                path: opts.path,
                 tls: false,
             };
-            Some(sync(
-                soft_meta_datas,
-                keypairs,
+            // Store sync command parameters
+            self.user_command = Some(UserCommand::Sync(SyncParams {
                 sync_endpoint,
-                matches.is_present("cautious"),
-                !matches.is_present("unsafe"),
-            ))
+                cautious: opts.cautious_mode,
+                verif_hashs: opts.unsafe_mode,
+            }));
+            // Start rooter thread
+            self.rooter_sender = Some(rooter::start_rooter::<DuRsConf>(0, vec![]));
+            true
         } else if let Some(matches) = cli_args.subcommand_matches("sync_ts") {
-            let ts_profile = matches.value_of("TS_PROFILE").unwrap_or("duniter_default");
+            let opts = SyncTsOpt::from_clap(matches);
+            let ts_profile = opts
+                .ts_profile
+                .unwrap_or_else(|| String::from("duniter_default"));
             sync_ts(
                 profile.as_str(),
                 &conf,
-                ts_profile,
-                matches.is_present("cautious"),
-                !matches.is_present("unsafe"),
+                &ts_profile,
+                opts.cautious_mode,
+                opts.unsafe_mode,
             );
-            None
+            false
         } else if let Some(matches) = cli_args.subcommand_matches("dbex") {
-            let csv = matches.is_present("csv");
-            if let Some(distances_matches) = matches.subcommand_matches("distances") {
-                dbex(
+            let opts = DbExOpt::from_clap(matches);
+            match opts.subcommand {
+                DbExSubCommand::DistanceOpt(distance_opts) => dbex(
                     profile.as_str(),
                     &conf,
-                    csv,
-                    &DBExQuery::WotQuery(DBExWotQuery::AllDistances(
-                        distances_matches.is_present("reverse"),
-                    )),
-                );
-            } else if let Some(member_matches) = matches.subcommand_matches("member") {
-                let uid = member_matches.value_of("UID").unwrap_or("");
-                dbex(
+                    opts.csv,
+                    &DBExQuery::WotQuery(DBExWotQuery::AllDistances(distance_opts.reverse)),
+                ),
+                DbExSubCommand::MemberOpt(member_opts) => dbex(
                     profile.as_str(),
                     &conf,
-                    csv,
-                    &DBExQuery::WotQuery(DBExWotQuery::MemberDatas(String::from(uid))),
-                );
-            } else if let Some(members_matches) = matches.subcommand_matches("members") {
-                if members_matches.is_present("expire") {
-                    dbex(
-                        profile.as_str(),
-                        &conf,
-                        csv,
-                        &DBExQuery::WotQuery(DBExWotQuery::ExpireMembers(
-                            members_matches.is_present("reverse"),
-                        )),
-                    );
-                } else {
-                    dbex(
-                        profile.as_str(),
-                        &conf,
-                        csv,
-                        &DBExQuery::WotQuery(DBExWotQuery::ListMembers(
-                            members_matches.is_present("reverse"),
-                        )),
-                    );
+                    opts.csv,
+                    &DBExQuery::WotQuery(DBExWotQuery::MemberDatas(member_opts.uid)),
+                ),
+                DbExSubCommand::MembersOpt(members_opts) => {
+                    if members_opts.expire {
+                        dbex(
+                            profile.as_str(),
+                            &conf,
+                            opts.csv,
+                            &DBExQuery::WotQuery(DBExWotQuery::ExpireMembers(members_opts.reverse)),
+                        );
+                    } else {
+                        dbex(
+                            profile.as_str(),
+                            &conf,
+                            opts.csv,
+                            &DBExQuery::WotQuery(DBExWotQuery::ListMembers(members_opts.reverse)),
+                        );
+                    }
                 }
-            } else if let Some(balance_matches) = matches.subcommand_matches("balance") {
-                let address = balance_matches.value_of("ADDRESS").unwrap_or("");
-                dbex(
+                DbExSubCommand::BalanceOpt(balance_opts) => dbex(
                     &profile,
                     &conf,
-                    csv,
-                    &DBExQuery::TxQuery(DBExTxQuery::Balance(String::from(address))),
-                );
+                    opts.csv,
+                    &DBExQuery::TxQuery(DBExTxQuery::Balance(balance_opts.address)),
+                ),
             }
-            None
+            false
         } else if let Some(matches) = cli_args.subcommand_matches("reset") {
+            let opts = ResetOpt::from_clap(matches);
             let mut profile_path = match dirs::config_dir() {
                 Some(path) => path,
                 None => panic!("Impossible to get user config directory !"),
             };
-            profile_path.push(".config");
             profile_path.push(duniter_conf::get_user_datas_folder());
             profile_path.push(profile.clone());
             if !profile_path.as_path().exists() {
                 panic!(format!("Error : {} profile don't exist !", profile));
             }
-            match matches
-                .value_of("DATAS_TYPE")
-                .expect("cli param DATAS_TYPE is missing !")
-            {
-                "data" => {
+            match opts.reset_type {
+                ResetType::Datas => {
                     let mut currency_datas_path = profile_path.clone();
                     currency_datas_path.push("g1");
                     fs::remove_dir_all(currency_datas_path.as_path())
                         .expect("Fail to remove all currency datas !");
                 }
-                "conf" => {
+                ResetType::Conf => {
                     let mut conf_file_path = profile_path.clone();
                     conf_file_path.push("conf.json");
                     fs::remove_file(conf_file_path.as_path()).expect("Fail to remove conf file !");
@@ -312,45 +329,62 @@ impl DuniterCore<DuRsConf> {
                     fs::remove_file(conf_keys_path.as_path())
                         .expect("Fail to remove keypairs file !");
                 }
-                "all" => {
+                ResetType::All => {
                     fs::remove_dir_all(profile_path.as_path())
                         .expect("Fail to remove all profile datas !");
                 }
-                _ => {}
             }
-            None
-        } else if let Some(sup_apps_fn) = sup_apps_fn {
-            sup_apps_fn(profile.as_str(), &cli_args);
-            None
+            false
+        } else if let Some(unknow_subcommand) = cli_args.subcommand_name() {
+            let mut module_subcommand = true;
+            if let Some(sup_apps_fn) = sup_apps_fn {
+                if sup_apps_fn(profile.as_str(), &cli_args) {
+                    module_subcommand = false;
+                }
+            }
+            if module_subcommand {
+                self.user_command =
+                    Some(UserCommand::UnknowCommand(String::from(unknow_subcommand)));
+                true
+            } else {
+                false
+            }
         } else {
-            panic!("unknow sub-command !")
+            println!("Please use a subcommand. -h for help.");
+            false
         }
     }
-    /// Start blockchain module
-    pub fn start_blockchain(&self) {
+    /// Start core (=blockchain module)
+    pub fn start_core(&self) {
         if self.network_modules_count == 0 {
             panic!("You must plug at least one network layer !");
         }
-        if let UserCommand::Start() = self.user_command {
-            thread::sleep(Duration::from_secs(2));
+        if let Some(UserCommand::Start()) = self.user_command {
             // Create blockchain module channel
             let (blockchain_sender, blockchain_receiver): (
-                mpsc::Sender<DuniterMessage>,
-                mpsc::Receiver<DuniterMessage>,
+                mpsc::Sender<DursMsg>,
+                mpsc::Receiver<DursMsg>,
             ) = mpsc::channel();
 
-            // Send blockchain sender to rooter thread
-            self.rooter_sender
-                .send(RooterThreadMessage::ModuleSender(blockchain_sender))
-                .expect("Fatal error: fail to send blockchain sender to rooter thread !");
+            let rooter_sender = if let Some(ref rooter_sender) = self.rooter_sender {
+                rooter_sender
+            } else {
+                panic!("Try to start core without rooter_sender !");
+            };
 
-            // Send modules_count to rooter thread
-            self.rooter_sender
-                .send(RooterThreadMessage::ModulesCount(self.modules_count + 1))
-                .expect("Fatal error: fail to send modules count to rooter thread !");
+            // Send blockchain sender to rooter thread
+            rooter_sender
+                .send(RooterThreadMessage::ModuleSender(
+                    BlockchainModule::name(),
+                    blockchain_sender,
+                    vec![ModuleRole::BlockchainDatas, ModuleRole::BlockValidation],
+                    vec![ModuleEvent::NewBlockFromNetwork],
+                ))
+                .expect("Fatal error: fail to send blockchain sender to rooter thread !");
 
             // Instantiate blockchain module and load is conf
             let mut blockchain_module = BlockchainModule::load_blockchain_conf(
+                rooter_sender.clone(),
                 &self.soft_meta_datas.profile,
                 &self.soft_meta_datas.conf,
                 RequiredKeysContent::MemberKeyPair(None),
@@ -362,306 +396,182 @@ impl DuniterCore<DuRsConf> {
         }
     }
     /// Plug a network module
-    pub fn plug_network<NM: NetworkModule<DuRsConf, DuniterMessage>>(&mut self) {
-        let enabled = enabled::<DuRsConf, DuniterMessage, NM>(&self.soft_meta_datas.conf);
+    pub fn plug_network<NM: NetworkModule<DuRsConf, DursMsg>>(&mut self) {
+        let enabled = enabled::<DuRsConf, DursMsg, NM>(&self.soft_meta_datas.conf);
         if enabled {
-            if let UserCommand::Start() = self.user_command {
-                self.network_modules_count += 1;
-                self.plug::<NM>();
-            } else if let UserCommand::Sync(ref sync_endpoint) = self.user_command {
-                self.network_modules_count += 1;
+            self.network_modules_count += 1;
+            if let Some(UserCommand::Sync(ref network_sync)) = self.user_command {
                 // Start module in a new thread
-                let rooter_sender = self.rooter_sender.clone();
+                let rooter_sender = self
+                    .rooter_sender
+                    .clone()
+                    .expect("Try to start a core without rooter_sender !");
                 let soft_meta_datas = self.soft_meta_datas.clone();
                 let module_conf_json = self
                     .soft_meta_datas
                     .conf
                     .clone()
                     .modules()
-                    .get(&NM::id().to_string().as_str())
+                    .get(&NM::name().to_string().as_str())
                     .cloned();
                 let keypairs = self.keypairs;
-                let sync_endpoint = sync_endpoint.clone();
+                let sync_params = network_sync.clone();
                 self.thread_pool.execute(move || {
                     // Load module conf and keys
-                    let (module_conf, required_keys) =
-                        load_module_conf_and_keys::<NM>(module_conf_json, keypairs);
+                    let (module_conf, required_keys) = get_module_conf_and_keys::<NM>(
+                        module_conf_json,
+                        keypairs.expect("Try to plug addon into a core without keypair !"),
+                    );
                     NM::sync(
                         &soft_meta_datas,
                         required_keys,
                         module_conf,
                         rooter_sender,
-                        sync_endpoint,
-                    ).unwrap_or_else(|_| {
+                        sync_params,
+                    )
+                    .unwrap_or_else(|_| {
                         panic!(
                             "Fatal error : fail to load {} Module !",
-                            NM::id().to_string()
+                            NM::name().to_string()
                         )
                     });
                 });
                 self.modules_count += 1;
-                info!("Success to load {} module.", NM::id().to_string());
+                info!("Success to load {} module.", NM::name().to_string());
+            } else {
+                self.plug_::<NM>(true);
             }
-        }
-        if let UserCommand::ListModules(ref filters) = self.user_command {
-            if module_valid_filters::<DuRsConf, DuniterMessage, NM>(
-                &self.soft_meta_datas.conf,
-                filters,
-                true,
-            ) {
-                if enabled {
-                    println!("{}", NM::id().to_string());
-                } else {
-                    println!("{} (disabled)", NM::id().to_string());
-                }
-            }
+        } else {
+            self.plug_::<NM>(true);
         }
     }
+
+    /// Inject cli subcommand
+    pub fn inject_cli_subcommand<M: DuniterModule<DuRsConf, DursMsg>>(&mut self) {
+        //self.cli_conf = TupleApp(&self.cli_conf.0.clone().subcommand(M::ModuleOpt::clap()));
+        self.plugins_cli_conf.push(M::ModuleOpt::clap());
+    }
+
     /// Plug a module
-    pub fn plug<M: DuniterModule<DuRsConf, DuniterMessage>>(&mut self) {
-        let enabled = enabled::<DuRsConf, DuniterMessage, M>(&self.soft_meta_datas.conf);
+    pub fn plug<M: DuniterModule<DuRsConf, DursMsg>>(&mut self) {
+        self.plug_::<M>(false);
+    }
+
+    /// Plug a module
+    fn plug_<M: DuniterModule<DuRsConf, DursMsg>>(&mut self, is_network_module: bool) {
+        let enabled = enabled::<DuRsConf, DursMsg, M>(&self.soft_meta_datas.conf);
         if enabled {
-            if let UserCommand::Start() = self.user_command {
+            if let Some(UserCommand::Start()) = self.user_command {
                 // Start module in a new thread
-                let rooter_sender_clone = self.rooter_sender.clone();
+                let rooter_sender_clone = self
+                    .rooter_sender
+                    .clone()
+                    .expect("Try to start a core without rooter_sender !");
                 let soft_meta_datas = self.soft_meta_datas.clone();
                 let module_conf_json = self
                     .soft_meta_datas
                     .conf
                     .clone()
                     .modules()
-                    .get(&M::id().to_string().as_str())
+                    .get(&M::name().to_string().as_str())
                     .cloned();
                 let keypairs = self.keypairs;
                 self.thread_pool.execute(move || {
                     // Load module conf and keys
-                    let (module_conf, required_keys) =
-                        load_module_conf_and_keys::<M>(module_conf_json, keypairs);
+                    let (module_conf, required_keys) = get_module_conf_and_keys::<M>(
+                        module_conf_json,
+                        keypairs.expect("Try to plug addon into a core without keypair !"),
+                    );
                     M::start(
                         &soft_meta_datas,
                         required_keys,
                         module_conf,
                         rooter_sender_clone,
                         false,
-                    ).unwrap_or_else(|_| {
+                    )
+                    .unwrap_or_else(|_| {
                         panic!(
                             "Fatal error : fail to load {} Module !",
-                            M::id().to_string()
+                            M::name().to_string()
                         )
                     });
                 });
                 self.modules_count += 1;
-                info!("Success to load {} module.", M::id().to_string());
+                info!("Success to load {} module.", M::name().to_string());
+            } else if let Some(UserCommand::UnknowCommand(ref subcommand)) = self.user_command {
+                if M::have_subcommand() && *subcommand == M::name().to_string() {
+                    // Math command line arguments
+                    if let Some(subcommand_args) = self
+                        .cli_args
+                        .clone()
+                        .expect("cli_args must be Some !")
+                        .subcommand_matches(M::name().to_string())
+                    {
+                        // Load module conf and keys
+                        let module_conf_json = self
+                            .soft_meta_datas
+                            .conf
+                            .clone()
+                            .modules()
+                            .get(&M::name().to_string().as_str())
+                            .cloned();
+                        let (_conf, keypairs) =
+                            duniter_conf::load_conf(self.soft_meta_datas.profile.as_str());
+                        let (module_conf, required_keys) =
+                            get_module_conf_and_keys::<M>(module_conf_json, keypairs);
+                        // Execute module subcommand
+                        M::exec_subcommand(
+                            &self.soft_meta_datas,
+                            required_keys, //required_keys,
+                            module_conf,   //module_conf,
+                            M::ModuleOpt::from_clap(subcommand_args),
+                        );
+                    }
+                }
             }
         }
-        if let UserCommand::ListModules(ref filters) = self.user_command {
-            if module_valid_filters::<DuRsConf, DuniterMessage, M>(
+        if let Some(UserCommand::ListModules(ref options)) = self.user_command {
+            if module_valid_filters::<DuRsConf, DursMsg, M, std::collections::hash_map::RandomState>(
                 &self.soft_meta_datas.conf,
-                filters,
-                false,
+                &options.get_filters(),
+                is_network_module,
             ) {
                 if enabled {
-                    println!("{}", M::id().to_string());
+                    println!("{}", M::name().to_string());
                 } else {
-                    println!("{} (disabled)", M::id().to_string());
+                    println!("{} (disabled)", M::name().to_string());
                 }
             }
         }
     }
 }
 
-/// Load module conf and keys
-pub fn load_module_conf_and_keys<M: DuniterModule<DuRsConf, DuniterMessage>>(
+/// Get module conf and keys
+pub fn get_module_conf_and_keys<M: DuniterModule<DuRsConf, DursMsg>>(
     module_conf_json: Option<serde_json::Value>,
     keypairs: DuniterKeyPairs,
 ) -> (M::ModuleConf, RequiredKeysContent) {
-    let module_conf = if let Some(module_conf_json) = module_conf_json {
+    (
+        get_module_conf::<M>(module_conf_json),
+        DuniterKeyPairs::get_required_keys_content(M::ask_required_keys(), keypairs),
+    )
+}
+
+/// get module conf
+pub fn get_module_conf<M: DuniterModule<DuRsConf, DursMsg>>(
+    module_conf_json: Option<serde_json::Value>,
+) -> M::ModuleConf {
+    if let Some(module_conf_json) = module_conf_json {
         serde_json::from_str(module_conf_json.to_string().as_str())
-            .unwrap_or_else(|_| panic!("Fail to parse conf of module {}", M::id().to_string()))
+            .unwrap_or_else(|_| panic!("Fail to parse conf of module {}", M::name().to_string()))
     } else {
         M::ModuleConf::default()
-    };
-    let required_keys =
-        DuniterKeyPairs::get_required_keys_content(M::ask_required_keys(), keypairs);
-
-    (module_conf, required_keys)
+    }
 }
 
 /// Match cli option --profile
 pub fn match_profile(cli_args: &ArgMatches) -> String {
-    String::from(cli_args.value_of("profile").unwrap_or("default"))
-}
-
-/// List modules
-pub fn list_modules<DC: DuniterConf>(
-    soft_meta_datas: SoftwareMetaDatas<DC>,
-    keypairs: DuniterKeyPairs,
-    modules_filter: HashSet<ModulesFilter>,
-) -> DuniterCore<DC> {
-    // Start rooter thread
-    let rooter_sender = start_rooter::<DC>(0, vec![]);
-
-    // Instanciate DuniterCore
-    DuniterCore {
-        user_command: UserCommand::ListModules(modules_filter),
-        soft_meta_datas,
-        keypairs,
-        run_duration_in_secs: 0,
-        rooter_sender,
-        modules_count: 0,
-        network_modules_count: 0,
-        thread_pool: ThreadPool::new(2),
-    }
-}
-
-/// Start rooter thread
-pub fn start_rooter<DC: DuniterConf>(
-    run_duration_in_secs: u64,
-    external_followers: Vec<mpsc::Sender<DuniterMessage>>,
-) -> mpsc::Sender<RooterThreadMessage<DuniterMessage>> {
-    // Create senders channel
-    let (rooter_sender, main_receiver): (
-        mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
-        mpsc::Receiver<RooterThreadMessage<DuniterMessage>>,
-    ) = mpsc::channel();
-
-    // Create rooter thread
-    thread::spawn(move || {
-        // Wait to receiver modules senders
-        let mut modules_senders: Vec<mpsc::Sender<DuniterMessage>> = Vec::new();
-        let mut modules_count_expected = None;
-        while modules_count_expected.is_none()
-            || modules_senders.len() < modules_count_expected.expect("safe unwrap") + 1
-        {
-            match main_receiver.recv_timeout(Duration::from_secs(20)) {
-                Ok(mess) => {
-                    match mess {
-                        RooterThreadMessage::ModuleSender(module_sender) => {
-                            // Subscribe this module to all others modules
-                            for other_module in modules_senders.clone() {
-                                if other_module
-                                    .send(DuniterMessage::Followers(vec![module_sender.clone()]))
-                                    .is_err()
-                                {
-                                    panic!("Fatal error : fail to send all modules senders to all modules !");
-                                }
-                            }
-                            // Subcribe this module to all external_followers
-                            for external_follower in external_followers.clone() {
-                                if external_follower
-                                    .send(DuniterMessage::Followers(vec![module_sender.clone()]))
-                                    .is_err()
-                                {
-                                    panic!("Fatal error : fail to send all modules senders to all external_followers !");
-                                }
-                            }
-                            // Subscribe all other modules to this module
-                            if module_sender
-                                .send(DuniterMessage::Followers(modules_senders.clone()))
-                                .is_err()
-                            {
-                                panic!("Fatal error : fail to send all modules senders to all modules !");
-                            }
-                            // Subcribe all external_followers to this module
-                            if module_sender
-                                .send(DuniterMessage::Followers(external_followers.clone()))
-                                .is_err()
-                            {
-                                panic!("Fatal error : fail to send all external_followers to all modules !");
-                            }
-                            // Push this module to modules_senders list
-                            modules_senders.push(module_sender);
-                            // Log the number of modules_senders received
-                            info!(
-                                "Rooter thread receive {} module senders",
-                                modules_senders.len()
-                            );
-                        }
-                        RooterThreadMessage::ModulesCount(modules_count) => {
-                            info!("Rooter thread receive ModulesCount({})", modules_count);
-                            if modules_senders.len() == modules_count {
-                                break;
-                            } else if modules_senders.len() < modules_count {
-                                modules_count_expected = Some(modules_count);
-                            } else {
-                                panic!("Fatal error : Receive more modules_sender than expected !")
-                            }
-                        }
-                    }
-                }
-                Err(e) => match e {
-                    mpsc::RecvTimeoutError::Timeout => {
-                        panic!("Fatal error : not receive all modules_senders after 20 secs !")
-                    }
-                    mpsc::RecvTimeoutError::Disconnected => {
-                        panic!("Fatal error : rooter thread disconnnected !")
-                    }
-                },
-            }
-        }
-        info!("Receive all modules senders.");
-        if run_duration_in_secs > 0 {
-            thread::sleep(Duration::from_secs(run_duration_in_secs));
-            // Send DuniterMessage::Stop() to all modules
-            for sender in modules_senders {
-                if sender.send(DuniterMessage::Stop()).is_err() {
-                    panic!("Fail to send Stop() message to one module !")
-                }
-            }
-            thread::sleep(Duration::from_secs(2));
-        }
-    });
-
-    rooter_sender
-}
-
-/// Launch duniter server
-pub fn start<DC: DuniterConf>(
-    soft_meta_datas: SoftwareMetaDatas<DC>,
-    keypairs: DuniterKeyPairs,
-    run_duration_in_secs: u64,
-    external_followers: Vec<mpsc::Sender<DuniterMessage>>,
-) -> DuniterCore<DC> {
-    info!("Starting Duniter-rs...");
-
-    // Start rooter thread
-    let rooter_sender = start_rooter::<DC>(run_duration_in_secs, external_followers);
-
-    // Instanciate DuniterCore
-    DuniterCore {
-        user_command: UserCommand::Start(),
-        soft_meta_datas,
-        keypairs,
-        run_duration_in_secs,
-        rooter_sender,
-        modules_count: 0,
-        network_modules_count: 0,
-        thread_pool: ThreadPool::new(2),
-    }
-}
-
-/// Launch synchronisation from network
-pub fn sync<DC: DuniterConf>(
-    soft_meta_datas: SoftwareMetaDatas<DC>,
-    keypairs: DuniterKeyPairs,
-    sync_endpoint: SyncEndpoint,
-    _cautious: bool,
-    _verif_hashs: bool,
-) -> DuniterCore<DC> {
-    // Start rooter thread
-    let rooter_sender = start_rooter::<DC>(0, vec![]);
-
-    // Instanciate DuniterCore
-    DuniterCore {
-        user_command: UserCommand::Sync(sync_endpoint),
-        soft_meta_datas,
-        keypairs,
-        run_duration_in_secs: 0,
-        rooter_sender,
-        modules_count: 0,
-        network_modules_count: 0,
-        thread_pool: ThreadPool::new(2),
-    }
+    String::from(cli_args.value_of("profile_name").unwrap_or("default"))
 }
 
 /// Launch synchronisation from a duniter-ts database
@@ -689,7 +599,6 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
         Some(path) => path,
         None => panic!("Fatal error : Impossible to get user config directory"),
     };
-    log_file_path.push(".config");
     if !log_file_path.as_path().exists() {
         fs::create_dir(log_file_path.as_path()).expect("Impossible to create ~/.config dir !");
     }
@@ -707,7 +616,7 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
     log_file_path.push(format!("{}.log", soft_name));
 
     // Get log level
-    let log_level = match cli_args.value_of("logs").unwrap_or("i") {
+    let log_level = match cli_args.value_of("logs_level").unwrap_or("i") {
         "e" | "error" => Level::Error,
         "w" | "warn" => Level::Warn,
         "i" | "info" => Level::Info,
@@ -731,7 +640,8 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
             log_file_path
                 .to_str()
                 .expect("Fatal error : fail to get log file path !"),
-        ).expect("Fatal error : fail to create log file path !");
+        )
+        .expect("Fatal error : fail to create log file path !");
     }
 
     CombinedLogger::init(vec![WriteLogger::new(
@@ -744,6 +654,10 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
                 log_file_path
                     .to_str()
                     .expect("Fatal error : fail to get log file path !"),
-            ).expect("Fatal error : fail to open log file !"),
-    )]).expect("Fatal error : fail to init logger !");
+            )
+            .expect("Fatal error : fail to open log file !"),
+    )])
+    .expect("Fatal error : fail to init logger !");
+
+    info!("Successfully init logger");
 }

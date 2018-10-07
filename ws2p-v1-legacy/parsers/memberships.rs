@@ -25,11 +25,13 @@ pub fn parse_memberships(
                 currency,
                 membership_type,
                 raw_memberships.as_array().unwrap(),
-            ).iter()
+            )
+            .iter()
             .map(|m| {
                 m.clone()
                     .expect("Fatal error : Fail to parse membership from local DB !")
-            }).collect(),
+            })
+            .collect(),
         );
     }
     None
@@ -62,5 +64,6 @@ pub fn parse_memberships_from_json_value(
             } else {
                 Err(MembershipParseError::WrongFormat())
             }
-        }).collect()
+        })
+        .collect()
 }

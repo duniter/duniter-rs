@@ -37,40 +37,55 @@ extern crate duniter_network;
 extern crate serde;
 extern crate serde_json;
 
-use std::sync::mpsc;
-
 use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::Sig;
 use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALRequest, DALResponse};
 use duniter_documents::blockchain::BlockchainProtocol;
 use duniter_documents::BlockId;
-use duniter_module::{ModuleId, ModuleMessage};
-use duniter_network::{NetworkEvent, NetworkRequest};
+use duniter_module::*;
+use duniter_network::{NetworkEvent, NetworkResponse, OldNetworkRequest};
 
 #[derive(Debug, Clone)]
-/// Message exchanged between Duniter-rs modules
-pub enum DuniterMessage {
+/// Message exchanged between Durs modules
+pub struct DursMsg(pub DursMsgReceiver, pub DursMsgContent);
+
+impl ModuleMessage for DursMsg {}
+
+/// The recipient of a message
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum DursMsgReceiver {
+    /// Message for all modules
+    All,
+    /// Message for one specific module
+    One(ModuleStaticName),
+    /// Message for all modules who play a specific role
+    Role(ModuleRole),
+    /// Message for all modules that are subscribed to a specific type of event
+    Event(ModuleEvent),
+}
+
+#[derive(Debug, Clone)]
+/// Content of message exchanged between Durs modules
+pub enum DursMsgContent {
+    /// Request
+    Request(DursReq),
     /// Brut text message
     Text(String),
     /// Brut binary message
     Binary(Vec<u8>),
     /// New configuration of a module to save
-    SaveNewModuleConf(ModuleId, serde_json::Value),
-    /// Subscriptions to the module feed
-    Followers(Vec<mpsc::Sender<DuniterMessage>>),
-    /// Blockchain datas request
-    DALRequest(DALRequest),
+    SaveNewModuleConf(ModuleName, serde_json::Value),
     /// Response of DALRequest
     DALResponse(Box<DALResponse>),
     /// Blockchain event
     DALEvent(DALEvent),
     /// Request to the network module
-    NetworkRequest(NetworkRequest),
+    OldNetworkRequest(OldNetworkRequest),
     /// Network event
     NetworkEvent(NetworkEvent),
-    /// Request to the pow module
-    ProverRequest(BlockId, Hash),
+    /// Response of OldNetworkRequest
+    NetworkResponse(NetworkResponse),
     /// Pow module response
     ProverResponse(BlockId, Sig, u64),
     /// Client API event
@@ -79,4 +94,28 @@ pub enum DuniterMessage {
     Stop(),
 }
 
-impl ModuleMessage for DuniterMessage {}
+#[derive(Debug, Clone)]
+/// Durs modules requests
+pub struct DursReq {
+    /// Requester
+    pub requester: ModuleStaticName,
+    /// Request unique id
+    pub id: ModuleReqId,
+    /// Request content
+    pub content: DursReqContent,
+}
+
+#[derive(Debug, Clone)]
+/// Modules request content
+pub enum DursReqContent {
+    /// Network request (Not yet implemented)
+    NetworkRequest(),
+    /// Blockchain datas request
+    DALRequest(DALRequest),
+    /// Request to the pow module
+    ProverRequest(BlockId, Hash),
+    /// Brut text request
+    Text(String),
+    /// Brut binary request
+    Binary(Vec<u8>),
+}

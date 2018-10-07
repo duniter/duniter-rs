@@ -19,11 +19,13 @@ fn parse_previous_hash(block_number: BlockId, source: &serde_json::Value) -> Opt
             Ok(hash) => Some(hash),
             Err(_) => None,
         },
-        None => if block_number.0 > 0 {
-            None
-        } else {
-            Some(Hash::default())
-        },
+        None => {
+            if block_number.0 > 0 {
+                None
+            } else {
+                Some(Hash::default())
+            }
+        }
     }
 }
 

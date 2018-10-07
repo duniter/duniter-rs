@@ -13,31 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Provide wrappers for cryptographic building blocks used by Duniter.
+//! Durs-core cli : start subcommands.
 
-#![cfg_attr(feature = "strict", deny(warnings))]
-#![deny(
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_import_braces,
-    unused_qualifications
+extern crate structopt;
+
+#[derive(StructOpt, Debug, Copy, Clone)]
+#[structopt(
+    name = "start",
+    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
 )]
-#![allow(non_camel_case_types)]
-
-#[macro_use]
-extern crate serde_derive;
-
-extern crate base58;
-extern crate base64;
-extern crate bincode;
-extern crate crypto;
-extern crate rand;
-extern crate serde;
-
-pub mod hashs;
-pub mod keys;
+/// start durs server
+pub struct StartOpt {}

@@ -202,7 +202,8 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
             ed25519::Signature::from_base64(
                 "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMM\
                  mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
-            ).unwrap(),
+            )
+            .unwrap(),
         );
 
         // incorrect pair
@@ -215,7 +216,8 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
             ed25519::Signature::from_base64(
                 "1eubHHbuNfilHHH0G2bI30iZzebQ2cQ1PC7uPAw08FGMM\
                  mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
-            ).unwrap(),
+            )
+            .unwrap(),
         );
 
         {

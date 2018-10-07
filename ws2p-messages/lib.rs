@@ -109,7 +109,8 @@ mod tests {
             node_id: NodeId(0),
             blockstamp: Blockstamp::from_string(
                 "50-000005B1CEB4EC5245EF7E33101A330A1C9A358EC45A25FC13F78BB58C9E7370",
-            ).unwrap(),
+            )
+            .unwrap(),
             endpoints: vec![create_endpoint_v11(), create_second_endpoint_v11()],
             sig: None,
         }
@@ -168,14 +169,15 @@ mod tests {
 
         let blockstamp = Blockstamp::from_string(
             "36-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B865",
-        ).unwrap();
+        )
+        .unwrap();
 
         CompactCertificationDocument {
             issuer: PubKey::Ed25519(
                 ed25519::PublicKey::from_base58("4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR")
                     .unwrap(),
             ),
-            target: target,
+            target,
             block_number: blockstamp.id,
             signature: sig,
         }

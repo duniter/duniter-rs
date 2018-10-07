@@ -17,7 +17,7 @@ use constants::*;
 use duniter_crypto::keys::*;
 use duniter_dal::dal_requests::DALRequest;
 use duniter_documents::Blockstamp;
-use duniter_message::DuniterMessage;
+use duniter_message::*;
 use duniter_network::network_endpoint::*;
 use duniter_network::network_head::*;
 use duniter_network::*;
@@ -27,7 +27,7 @@ use *;
 
 #[derive(Debug)]
 pub struct WS2PModuleDatas {
-    pub followers: Vec<mpsc::Sender<DuniterMessage>>,
+    pub rooter_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
     pub currency: Option<String>,
     pub key_pair: Option<KeyPairEnum>,
     pub conf: WS2PConf,
@@ -38,10 +38,12 @@ pub struct WS2PModuleDatas {
     ),
     pub ws2p_endpoints: HashMap<NodeFullId, (EndpointEnum, WS2PConnectionState)>,
     pub websockets: HashMap<NodeFullId, WsSender>,
-    pub requests_awaiting_response: HashMap<ModuleReqId, (NetworkRequest, NodeFullId, SystemTime)>,
+    pub requests_awaiting_response:
+        HashMap<ModuleReqId, (OldNetworkRequest, NodeFullId, SystemTime)>,
     pub heads_cache: HashMap<NodeFullId, NetworkHead>,
     pub my_head: Option<NetworkHead>,
     pub uids_cache: HashMap<PubKey, String>,
+    pub count_dal_requests: u32,
 }
 
 impl WS2PModuleDatas {
@@ -58,27 +60,59 @@ impl WS2PModuleDatas {
         }
         Ok(conn)
     }
-    pub fn send_dal_request(&self, req: &DALRequest) {
-        for follower in &self.followers {
-            if follower
-                .send(DuniterMessage::DALRequest(req.clone()))
-                .is_err()
-            {
-                // handle error
-            }
+    pub fn send_dal_request(&mut self, req: &DALRequest) {
+        self.count_dal_requests += 1;
+        if self.count_dal_requests == std::u32::MAX {
+            self.count_dal_requests = 0;
         }
+        self.rooter_sender
+            .send(RooterThreadMessage::ModuleMessage(DursMsg(
+                DursMsgReceiver::Role(ModuleRole::BlockchainDatas),
+                DursMsgContent::Request(DursReq {
+                    requester: WS2PModule::name(),
+                    id: ModuleReqId(self.count_dal_requests),
+                    content: DursReqContent::DALRequest(req.clone()),
+                }),
+            )))
+            .expect("Fail to send message to rooter !");
+    }
+    pub fn send_network_req_response(
+        &self,
+        requester: ModuleStaticName,
+        response: NetworkResponse,
+    ) {
+        self.rooter_sender
+            .send(RooterThreadMessage::ModuleMessage(DursMsg(
+                DursMsgReceiver::One(requester),
+                DursMsgContent::NetworkResponse(response),
+            )))
+            .expect("Fail to send message to rooter !");
     }
     pub fn send_network_event(&self, event: &NetworkEvent) {
-        for follower in &self.followers {
-            match follower.send(DuniterMessage::NetworkEvent(event.clone())) {
-                Ok(_) => {
-                    debug!("Send NetworkEvent to one follower.");
-                }
-                Err(_) => {
-                    warn!("Fail to send NetworkEvent to one follower !");
+        let module_event = match event {
+            NetworkEvent::ConnectionStateChange(_, _, _, _) => {
+                ModuleEvent::ConnectionsChangeNodeNetwork
+            }
+            NetworkEvent::ReceiveDocuments(network_docs) => {
+                if !network_docs.is_empty() {
+                    match network_docs[0] {
+                        NetworkDocument::Block(_) => ModuleEvent::NewBlockFromNetwork,
+                        NetworkDocument::Transaction(_) => ModuleEvent::NewTxFromNetwork,
+                        _ => ModuleEvent::NewWotDocFromNetwork,
+                    }
+                } else {
+                    return;
                 }
             }
-        }
+            NetworkEvent::ReceiveHeads(_) => ModuleEvent::NewValidHeadFromNetwork,
+            NetworkEvent::ReceivePeers(_) => ModuleEvent::NewValidPeerFromNodeNetwork,
+        };
+        self.rooter_sender
+            .send(RooterThreadMessage::ModuleMessage(DursMsg(
+                DursMsgReceiver::Event(module_event),
+                DursMsgContent::NetworkEvent(event.clone()),
+            )))
+            .expect("Fail to send network event to rooter !");
     }
     pub fn get_network_consensus(&self) -> Result<Blockstamp, NetworkConsensusError> {
         let mut count_known_blockstamps = 0;
@@ -184,7 +218,8 @@ impl WS2PModuleDatas {
                         &endpoint
                             .node_full_id()
                             .expect("WS2P: Fail to get ep.node_full_id() !"),
-                    ).expect("WS2P: Fail to get_mut() a ws2p_endpoint !")
+                    )
+                    .expect("WS2P: Fail to get_mut() a ws2p_endpoint !")
                     .1 = WS2PConnectionState::NeverTry;
             }
             None => {
@@ -267,12 +302,13 @@ impl WS2PModuleDatas {
                     .expect("WS2P: Fail to get mut ep !")
                     .1 = new_con_state;
                 if let WS2PConnectionState::AckMessOk = self.ws2p_endpoints[&ws2p_full_id].1 {
-                    trace!("DEBUG : Send: {:#?}", r);
+                    trace!("Send: {:#?}", r);
                     self.websockets
                         .get_mut(&ws2p_full_id)
                         .unwrap_or_else(|| {
                             panic!("Fatal error : no websocket for {} !", ws2p_full_id)
-                        }).0
+                        })
+                        .0
                         .send(Message::text(r))
                         .expect("WS2P: Fail to send Message in websocket !");
                 }
@@ -327,7 +363,7 @@ impl WS2PModuleDatas {
                     {
                         return WS2PSignal::ReqResponse(
                             req_id,
-                            ws2p_request.clone(),
+                            *ws2p_request,
                             *recipient_fulld_id,
                             response,
                         );
@@ -409,15 +445,15 @@ impl WS2PModuleDatas {
 
     /*pub fn send_request_to_all_connections(
         &mut self,
-        ws2p_request: &NetworkRequest,
+        ws2p_request: &OldNetworkRequest,
     ) -> Result<(), SendRequestError> {
         let mut count_successful_sending: usize = 0;
         let mut errors: Vec<ws::Error> = Vec::new();
         match *ws2p_request {
-            NetworkRequest::GetCurrent(req_full_id, _receiver) => {
+            OldNetworkRequest::GetCurrent(req_full_id, _receiver) => {
                 for (ws2p_full_id, (_ep, state)) in self.ws2p_endpoints.clone() {
                     if let WS2PConnectionState::Established = state {
-                        let ws2p_request = NetworkRequest::GetCurrent(
+                        let ws2p_request = OldNetworkRequest::GetCurrent(
                             ModuleReqFullId(
                                 req_full_id.0,
                                 ModuleReqId(
@@ -435,41 +471,41 @@ impl WS2PModuleDatas {
                     }
                 }
             }
-            /* NetworkRequest::GetBlock(req_full_id, number) => {} */
-            NetworkRequest::GetBlocks(_req_full_id, _receiver, _count, _from_number) => {}
-            NetworkRequest::GetRequirementsPending(req_full_id, _receiver, min_cert) => {
-                for (ws2p_full_id, (_ep, state)) in self.ws2p_endpoints.clone() {
-                    if let WS2PConnectionState::Established = state {
-                        let ws2p_request = NetworkRequest::GetRequirementsPending(
-                            ModuleReqFullId(
-                                req_full_id.0,
-                                ModuleReqId(self.requests_awaiting_response.len() as u32),
-                            ),
-                            ws2p_full_id,
-                            min_cert,
-                        );
-                        match self.send_request_to_specific_node(&ws2p_full_id, &ws2p_request) {
-                            Ok(_) => count_successful_sending += 1,
-                            Err(e) => errors.push(e),
-                        };
-                    }
-                }
-            }
-            _ => {
-                return Err(SendRequestError::RequestTypeMustNotBeTransmitted());
-            }
-        }
-        debug!("count_successful_sending = {}", count_successful_sending);
-        if !errors.is_empty() {
-            return Err(SendRequestError::WSError(count_successful_sending, errors));
-        }
-        Ok(())
+            /* OldNetworkRequest::GetBlock(req_full_id, number) => {} */
+    OldNetworkRequest::GetBlocks(_req_full_id, _receiver, _count, _from_number) => {}
+    OldNetworkRequest::GetRequirementsPending(req_full_id, _receiver, min_cert) => {
+    for (ws2p_full_id, (_ep, state)) in self.ws2p_endpoints.clone() {
+    if let WS2PConnectionState::Established = state {
+    let ws2p_request = OldNetworkRequest::GetRequirementsPending(
+    ModuleReqFullId(
+    req_full_id.0,
+    ModuleReqId(self.requests_awaiting_response.len() as u32),
+    ),
+    ws2p_full_id,
+    min_cert,
+    );
+    match self.send_request_to_specific_node(&ws2p_full_id, &ws2p_request) {
+    Ok(_) => count_successful_sending += 1,
+    Err(e) => errors.push(e),
+    };
+    }
+    }
+    }
+    _ => {
+    return Err(SendRequestError::RequestTypeMustNotBeTransmitted());
+    }
+    }
+    debug!("count_successful_sending = {}", count_successful_sending);
+    if !errors.is_empty() {
+    return Err(SendRequestError::WSError(count_successful_sending, errors));
+    }
+    Ok(())
     }*/
 
     pub fn send_request_to_specific_node(
         &mut self,
         receiver_ws2p_full_id: &NodeFullId,
-        ws2p_request: &NetworkRequest,
+        ws2p_request: &OldNetworkRequest,
     ) -> ws::Result<()> {
         self.websockets
             .get_mut(receiver_ws2p_full_id)
@@ -480,11 +516,7 @@ impl WS2PModuleDatas {
             ))?;
         self.requests_awaiting_response.insert(
             ws2p_request.get_req_id(),
-            (
-                ws2p_request.clone(),
-                *receiver_ws2p_full_id,
-                SystemTime::now(),
-            ),
+            (*ws2p_request, *receiver_ws2p_full_id, SystemTime::now()),
         );
         debug!(
             "send request {} to {}",

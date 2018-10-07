@@ -825,7 +825,8 @@ mod tests {
             ed25519::PrivateKey::from_base58(
                 "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5G\
                  iERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
-            ).unwrap(),
+            )
+            .unwrap(),
         );
 
         let sig = Sig::Ed25519(ed25519::Signature::from_base64(
@@ -834,7 +835,8 @@ mod tests {
 
         let block = Blockstamp::from_string(
             "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
-        ).unwrap();
+        )
+        .unwrap();
 
         let builder = TransactionDocumentBuilder {
             currency: "duniter_unit_test_currency",
@@ -844,7 +846,8 @@ mod tests {
             inputs: &vec![
                 TransactionInput::parse_from_str(
                     "10:0:D:DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV:0",
-                ).expect("fail to parse input !"),
+                )
+                .expect("fail to parse input !"),
             ],
             unlocks: &vec![
                 TransactionInputUnlocks::parse_from_str("0:SIG(0)")
@@ -853,7 +856,8 @@ mod tests {
             outputs: &vec![
                 TransactionOutput::parse_from_str(
                     "10:0:SIG(FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa)",
-                ).expect("fail to parse output !"),
+                )
+                .expect("fail to parse output !"),
             ],
             comment: "test",
             hash: None,
@@ -885,7 +889,8 @@ mod tests {
 
         let block = Blockstamp::from_string(
             "60-00001FE00410FCD5991EDD18AA7DDF15F4C8393A64FA92A1DB1C1CA2E220128D",
-        ).unwrap();
+        )
+        .unwrap();
 
         let builder = TransactionDocumentBuilder {
             currency: "g1",
@@ -895,7 +900,8 @@ mod tests {
             inputs: &vec![
                 TransactionInput::parse_from_str(
                     "950:0:T:2CF1ACD8FE8DC93EE39A1D55881C50D87C55892AE8E4DB71D4EBAB3D412AA8FD:1",
-                ).expect("fail to parse input !"),
+                )
+                .expect("fail to parse input !"),
             ],
             unlocks: &vec![
                 TransactionInputUnlocks::parse_from_str("0:SIG(0)")
@@ -904,10 +910,12 @@ mod tests {
             outputs: &vec![
                 TransactionOutput::parse_from_str(
                     "30:0:SIG(38MEAZN68Pz1DTvT3tqgxx4yQP6snJCQhPqEFxbDk4aE)",
-                ).expect("fail to parse output !"),
+                )
+                .expect("fail to parse output !"),
                 TransactionOutput::parse_from_str(
                     "920:0:SIG(FEkbc4BfJukSWnCU6Hed6dgwwTuPFTVdgz5LpL4iHr9J)",
-                ).expect("fail to parse output !"),
+                )
+                .expect("fail to parse output !"),
             ],
             comment: "Pour cesium merci",
             hash: None,

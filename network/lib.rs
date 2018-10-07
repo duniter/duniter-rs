@@ -85,8 +85,19 @@ pub trait NetworkModule<DC: DuniterConf, M: ModuleMessage>: ApiModule<DC, M> {
         keys: RequiredKeysContent,
         module_conf: <Self as DuniterModule<DC, M>>::ModuleConf,
         main_sender: mpsc::Sender<RooterThreadMessage<M>>,
-        sync_endpoint: SyncEndpoint,
+        sync_params: SyncParams,
     ) -> Result<(), ModuleInitError>;
+}
+
+/// SyncParams
+#[derive(Debug, Clone)]
+pub struct SyncParams {
+    /// Synchronisation endpoint
+    pub sync_endpoint: SyncEndpoint,
+    /// Cautious flag
+    pub cautious: bool,
+    /// VERIF_HASHS flag
+    pub verif_hashs: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -246,12 +257,12 @@ pub enum NetworkConsensusError {
     Fork(),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 /// Type containing a request addressed to the network module
-pub enum NetworkRequest {
+pub enum OldNetworkRequest {
     /// Get a current block of a specific node
     GetCurrent(ModuleReqFullId, NodeFullId),
-    //GetBlock(ModuleReqFullId, NodeFullId, u64),
+    //GetBlock(NodeFullId, u64),
     /// Get a blocks chunk from specified node
     GetBlocks(ModuleReqFullId, NodeFullId, u32, u32),
     /// Get pending wot documents from specified node
@@ -264,16 +275,16 @@ pub enum NetworkRequest {
     GetEndpoints(ModuleReqFullId),
 }
 
-impl NetworkRequest {
+impl OldNetworkRequest {
     /// Get request full identitifier
     pub fn get_req_full_id(&self) -> ModuleReqFullId {
         match *self {
-            NetworkRequest::GetCurrent(ref req_id, _)
-            | NetworkRequest::GetBlocks(ref req_id, _, _, _)
-            | NetworkRequest::GetRequirementsPending(ref req_id, _, _)
-            | NetworkRequest::GetConsensus(ref req_id)
-            | NetworkRequest::GetHeadsCache(ref req_id)
-            | NetworkRequest::GetEndpoints(ref req_id) => req_id.clone(),
+            OldNetworkRequest::GetCurrent(ref req_id, _)
+            | OldNetworkRequest::GetBlocks(ref req_id, _, _, _)
+            | OldNetworkRequest::GetRequirementsPending(ref req_id, _, _)
+            | OldNetworkRequest::GetConsensus(ref req_id)
+            | OldNetworkRequest::GetHeadsCache(ref req_id)
+            | OldNetworkRequest::GetEndpoints(ref req_id) => *req_id,
         }
     }
     /// Get request identitifier
@@ -284,7 +295,7 @@ impl NetworkRequest {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// Type returned when the network module does not get a satisfying answer to a request
-pub enum NetworkRequestError {
+pub enum OldNetworkRequestError {
     /// Receiving an invalid format response
     WrongFormat(),
     /// Unknow error
@@ -321,7 +332,7 @@ impl NetworkResponse {
             | NetworkResponse::Chunk(ref req_id, _, _)
             | NetworkResponse::PendingDocuments(ref req_id, _)
             | NetworkResponse::Consensus(ref req_id, _)
-            | NetworkResponse::HeadsCache(ref req_id, _) => req_id.clone(),
+            | NetworkResponse::HeadsCache(ref req_id, _) => *req_id,
         }
     }
     /// Get request identifier
@@ -333,8 +344,6 @@ impl NetworkResponse {
 #[derive(Debug, Clone)]
 /// Type containing a network event, each time a network event occurs it's relayed to all modules
 pub enum NetworkEvent {
-    /// Receiving a response to a network request
-    ReqResponse(Box<NetworkResponse>),
     /// A connection has changed state(`u32` is the new state, `Option<String>` est l'uid du noeud)
     ConnectionStateChange(NodeFullId, u32, Option<String>, String),
     /// Receiving Pending Documents

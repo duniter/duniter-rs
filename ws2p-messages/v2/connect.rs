@@ -98,14 +98,16 @@ mod tests {
         let connect_msg = WS2Pv2ConnectMsg {
             challenge: Hash::from_hex(
                 "000007722B243094269E548F600BD34D73449F7578C05BD370A6D301D20B5F10",
-            ).unwrap(),
+            )
+            .unwrap(),
             api_features: WS2PFeatures(vec![7u8]),
             flags_queries: WS2PConnectFlags(vec![]),
             peer_card: Some(peer),
             chunkstamp: Some(
                 Blockstamp::from_string(
                     "499-000011BABEEE1020B1F6B2627E2BC1C35BCD24375E114349634404D2C266D84F",
-                ).unwrap(),
+                )
+                .unwrap(),
             ),
         };
         test_ws2p_message(WS2Pv0MessagePayload::Connect(Box::new(connect_msg)));

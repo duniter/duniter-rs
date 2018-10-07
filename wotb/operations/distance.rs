@@ -93,7 +93,8 @@ impl<T: WebOfTrust + Sync> DistanceCalculator<T> for RustyDistanceCalculator {
                         .filter(|source| !area.contains(source))
                         .cloned()
                         .collect::<HashSet<_>>()
-                }).reduce(HashSet::new, |mut acc, sources| {
+                })
+                .reduce(HashSet::new, |mut acc, sources| {
                     for source in sources {
                         acc.insert(source);
                     }

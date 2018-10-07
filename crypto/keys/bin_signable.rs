@@ -90,7 +90,6 @@ pub trait BinSignable<'de>: Serialize + Deserialize<'de> {
                         } else {
                             self.compute_hash()?
                         };
-                        println!("DEBUG: verified hash={:?}", hash.0);
                         if pubkey.verify(&hash.0, &sig) {
                             Ok(())
                         } else {

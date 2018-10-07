@@ -31,6 +31,8 @@
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate structopt;
 
 extern crate duniter_conf;
 extern crate duniter_crypto;
@@ -44,7 +46,7 @@ mod constants;
 use constants::*;
 use duniter_conf::DuRsConf;
 use duniter_crypto::keys::*;
-use duniter_message::DuniterMessage;
+use duniter_message::DursMsg;
 use duniter_module::*;
 use duniter_network::network_endpoint::*;
 use duniter_network::*;
@@ -69,23 +71,27 @@ impl Default for WS2PConf {
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(
                             "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx",
-                        ).unwrap(),
+                        )
+                        .unwrap(),
                     ),
                     0,
                     0,
                     1u16,
-                ).unwrap(),
+                )
+                .unwrap(),
                 EndpointEnum::parse_from_raw(
                     "WS2P b48824f0 g1.monnaielibreoccitanie.org 443 /ws2p",
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(
                             "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef",
-                        ).unwrap(),
+                        )
+                        .unwrap(),
                     ),
                     0,
                     0,
                     1u16,
-                ).unwrap(),
+                )
+                .unwrap(),
             ],
         }
     }
@@ -108,7 +114,7 @@ pub enum WS2PFeaturesParseError {
     UnknowApiFeature(String),
 }
 
-impl ApiModule<DuRsConf, DuniterMessage> for WS2Pv2Module {
+impl ApiModule<DuRsConf, DursMsg> for WS2Pv2Module {
     type ParseErr = WS2PFeaturesParseError;
     /// Parse raw api features
     fn parse_raw_api_features(str_features: &str) -> Result<ApiFeatures, Self::ParseErr> {
@@ -134,23 +140,32 @@ impl ApiModule<DuRsConf, DuniterMessage> for WS2Pv2Module {
     }
 }
 
-impl NetworkModule<DuRsConf, DuniterMessage> for WS2Pv2Module {
+impl NetworkModule<DuRsConf, DursMsg> for WS2Pv2Module {
     fn sync(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
         _conf: WS2PConf,
-        _main_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
-        _sync_endpoint: SyncEndpoint,
+        _main_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
+        _sync_params: SyncParams,
     ) -> Result<(), ModuleInitError> {
         unimplemented!()
     }
 }
 
-impl DuniterModule<DuRsConf, DuniterMessage> for WS2Pv2Module {
-    type ModuleConf = WS2PConf;
+#[derive(StructOpt, Debug, Copy, Clone)]
+#[structopt(
+    name = "ws2p",
+    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+)]
+/// WS2P subcommand options
+pub struct WS2POpt {}
 
-    fn id() -> ModuleId {
-        ModuleId(String::from("ws2p"))
+impl DuniterModule<DuRsConf, DursMsg> for WS2Pv2Module {
+    type ModuleConf = WS2PConf;
+    type ModuleOpt = WS2POpt;
+
+    fn name() -> ModuleStaticName {
+        ModuleStaticName("ws2p")
     }
     fn priority() -> ModulePriority {
         ModulePriority::Essential()
@@ -158,11 +173,22 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2Pv2Module {
     fn ask_required_keys() -> RequiredKeys {
         RequiredKeys::NetworkKeyPair()
     }
+    fn have_subcommand() -> bool {
+        true
+    }
+    fn exec_subcommand(
+        _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
+        _keys: RequiredKeysContent,
+        _module_conf: Self::ModuleConf,
+        _subcommand_args: WS2POpt,
+    ) -> () {
+        println!("Succesfully exec ws2p subcommand !")
+    }
     fn start(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
         _conf: WS2PConf,
-        _rooter_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
+        _rooter_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
         _load_conf_only: bool,
     ) -> Result<(), ModuleInitError> {
         unimplemented!()

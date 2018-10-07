@@ -88,7 +88,8 @@ mod tests {
     fn test_ws2p_message_req_res_current() {
         let blockstamp = Blockstamp::from_string(
             "499-000011BABEEE1020B1F6B2627E2BC1C35BCD24375E114349634404D2C266D84F",
-        ).unwrap();
+        )
+        .unwrap();
         let response = WS2Pv2ReqRes {
             id: 28,
             body: WS2Pv2ReqResBody::Current(blockstamp),

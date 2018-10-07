@@ -59,14 +59,17 @@ mod tests {
             sync_target: Some(WS2Pv2SyncTarget {
                 target_blockstamp: Blockstamp::from_string(
                     "500-000011BABEEE1020B1F6B2627E2BC1C35BCD24375E114349634404D2C266D84F",
-                ).unwrap(),
+                )
+                .unwrap(),
                 chunks_hash: vec![
                     Hash::from_hex(
                         "000007722B243094269E548F600BD34D73449F7578C05BD370A6D301D20B5F10",
-                    ).unwrap(),
+                    )
+                    .unwrap(),
                     Hash::from_hex(
                         "0000095FD4C8EA96DE2844E3A4B62FD18761E9B4C13A74FAB716A4C81F438D91",
-                    ).unwrap(),
+                    )
+                    .unwrap(),
                 ],
             }),
         };

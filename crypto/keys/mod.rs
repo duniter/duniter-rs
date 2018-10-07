@@ -286,11 +286,13 @@ impl PublicKey for PubKey {
     }
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool {
         match *self {
-            PubKey::Ed25519(ed25519_pubkey) => if let Sig::Ed25519(ed25519_sig) = signature {
-                ed25519_pubkey.verify(message, ed25519_sig)
-            } else {
-                panic!("Try to verify a signature with public key of a different algorithm !\nSignature={:?}\nPublickey={:?}", signature, self)
-            },
+            PubKey::Ed25519(ed25519_pubkey) => {
+                if let Sig::Ed25519(ed25519_sig) = signature {
+                    ed25519_pubkey.verify(message, ed25519_sig)
+                } else {
+                    panic!("Try to verify a signature with public key of a different algorithm !\nSignature={:?}\nPublickey={:?}", signature, self)
+                }
+            }
             PubKey::Schnorr() => panic!("Schnorr algo not yet supported !"),
         }
     }
@@ -440,11 +442,13 @@ impl KeyPair for KeyPairEnum {
     }
     fn verify(&self, message: &[u8], signature: &Sig) -> bool {
         match *self {
-            KeyPairEnum::Ed25519(ed25519_keypair) => if let Sig::Ed25519(ed25519_sig) = signature {
-                ed25519_keypair.verify(message, ed25519_sig)
-            } else {
-                panic!("Try to verify a signature with key pair of a different algorithm !\nSignature={:?}\nKeyPair={:?}", signature, self)
-            },
+            KeyPairEnum::Ed25519(ed25519_keypair) => {
+                if let Sig::Ed25519(ed25519_sig) = signature {
+                    ed25519_keypair.verify(message, ed25519_sig)
+                } else {
+                    panic!("Try to verify a signature with key pair of a different algorithm !\nSignature={:?}\nKeyPair={:?}", signature, self)
+                }
+            }
             KeyPairEnum::Schnorr() => panic!("Schnorr algo not yet supported !"),
         }
     }

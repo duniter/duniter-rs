@@ -16,7 +16,6 @@
 //! WebSocketToPeer API for the Duniter project.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(cyclomatic_complexity))]
 #![deny(
     missing_debug_implementations,
     missing_copy_implementations,
@@ -36,6 +35,8 @@ extern crate log;
 extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
+#[macro_use]
+extern crate structopt;
 
 extern crate byteorder;
 extern crate duniter_conf;
@@ -70,7 +71,7 @@ use duniter_crypto::keys::*;
 use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALReqBlockchain, DALRequest, DALResBlockchain, DALResponse};
 use duniter_documents::Blockstamp;
-use duniter_message::DuniterMessage;
+use duniter_message::*;
 use duniter_module::*;
 use duniter_network::network_endpoint::*;
 use duniter_network::network_head::*;
@@ -106,23 +107,27 @@ impl Default for WS2PConf {
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(
                             "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx",
-                        ).unwrap(),
+                        )
+                        .unwrap(),
                     ),
                     0,
                     0,
                     1u16,
-                ).unwrap(),
+                )
+                .unwrap(),
                 EndpointEnum::parse_from_raw(
                     "WS2P b48824f0 g1.monnaielibreoccitanie.org 443 /ws2p",
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(
                             "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef",
-                        ).unwrap(),
+                        )
+                        .unwrap(),
                     ),
                     0,
                     0,
                     1u16,
-                ).unwrap(),
+                )
+                .unwrap(),
             ],
         }
     }
@@ -141,7 +146,12 @@ pub enum WS2PSignal {
     PeerCard(NodeFullId, serde_json::Value, Vec<EndpointEnum>),
     Heads(NodeFullId, Vec<NetworkHead>),
     Document(NodeFullId, NetworkDocument),
-    ReqResponse(ModuleReqId, NetworkRequest, NodeFullId, serde_json::Value),
+    ReqResponse(
+        ModuleReqId,
+        OldNetworkRequest,
+        NodeFullId,
+        serde_json::Value,
+    ),
     Empty,
     NoConnection,
 }
@@ -163,7 +173,7 @@ pub struct WS2PModule {}
 
 #[derive(Debug)]
 pub enum WS2PThreadSignal {
-    DuniterMessage(Box<DuniterMessage>),
+    DursMsg(Box<DursMsg>),
     WS2PConnectionMessage(WS2PConnectionMessage),
 }
 
@@ -190,7 +200,7 @@ pub enum WS2PFeaturesParseError {
     UnknowApiFeature(String),
 }
 
-impl ApiModule<DuRsConf, DuniterMessage> for WS2PModule {
+impl ApiModule<DuRsConf, DursMsg> for WS2PModule {
     type ParseErr = WS2PFeaturesParseError;
     /// Parse raw api features
     fn parse_raw_api_features(str_features: &str) -> Result<ApiFeatures, Self::ParseErr> {
@@ -212,13 +222,13 @@ impl ApiModule<DuRsConf, DuniterMessage> for WS2PModule {
     }
 }
 
-impl NetworkModule<DuRsConf, DuniterMessage> for WS2PModule {
+impl NetworkModule<DuRsConf, DursMsg> for WS2PModule {
     fn sync(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
         _conf: WS2PConf,
-        _main_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
-        _sync_endpoint: SyncEndpoint,
+        _main_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
+        _sync_params: SyncParams,
     ) -> Result<(), ModuleInitError> {
         println!("Downlaod blockchain from network...");
         println!("Error : not yet implemented !");
@@ -226,11 +236,20 @@ impl NetworkModule<DuRsConf, DuniterMessage> for WS2PModule {
     }
 }
 
-impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
-    type ModuleConf = WS2PConf;
+#[derive(StructOpt, Debug, Copy, Clone)]
+#[structopt(
+    name = "ws2p",
+    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+)]
+/// WS2Pv1 subcommand options
+pub struct WS2POpt {}
 
-    fn id() -> ModuleId {
-        ModuleId(String::from("ws2p"))
+impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
+    type ModuleConf = WS2PConf;
+    type ModuleOpt = WS2POpt;
+
+    fn name() -> ModuleStaticName {
+        ModuleStaticName("ws2p")
     }
     fn priority() -> ModulePriority {
         ModulePriority::Essential()
@@ -238,11 +257,22 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
     fn ask_required_keys() -> RequiredKeys {
         RequiredKeys::NetworkKeyPair()
     }
+    fn have_subcommand() -> bool {
+        true
+    }
+    fn exec_subcommand(
+        _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
+        _keys: RequiredKeysContent,
+        _module_conf: Self::ModuleConf,
+        _subcommand_args: WS2POpt,
+    ) -> () {
+        println!("Succesfully exec ws2p subcommand !")
+    }
     fn start(
         soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         keys: RequiredKeysContent,
         conf: WS2PConf,
-        rooter_sender: mpsc::Sender<RooterThreadMessage<DuniterMessage>>,
+        rooter_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
         load_conf_only: bool,
     ) -> Result<(), ModuleInitError> {
         // Get start time
@@ -250,7 +280,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
 
         // Define WS2PModuleDatas
         let mut ws2p_module = WS2PModuleDatas {
-            followers: Vec::new(),
+            rooter_sender: rooter_sender.clone(),
             key_pair: None,
             currency: None,
             conf,
@@ -262,6 +292,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
             heads_cache: HashMap::new(),
             my_head: None,
             uids_cache: HashMap::new(),
+            count_dal_requests: 0,
         };
 
         // load conf
@@ -287,27 +318,41 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
 
         // Create proxy channel
         let (proxy_sender, proxy_receiver): (
-            mpsc::Sender<DuniterMessage>,
-            mpsc::Receiver<DuniterMessage>,
+            mpsc::Sender<DursMsg>,
+            mpsc::Receiver<DursMsg>,
         ) = mpsc::channel();
         let proxy_sender_clone = proxy_sender.clone();
 
-        // Launch a proxy thread that transform DuniterMessage to WS2PThreadSignal(DuniterMessage)
+        // Launch a proxy thread that transform DursMsg to WS2PThreadSignal(DursMsg)
         thread::spawn(move || {
             // Send proxy sender to main
             rooter_sender
-                .send(RooterThreadMessage::ModuleSender(proxy_sender_clone))
+                .send(RooterThreadMessage::ModuleSender(
+                    WS2PModule::name(),
+                    proxy_sender_clone,
+                    vec![ModuleRole::InterNodesNetwork],
+                    vec![
+                        ModuleEvent::NewValidBlock,
+                        ModuleEvent::NewWotDocInPool,
+                        ModuleEvent::NewTxinPool,
+                    ],
+                ))
                 .expect("Fatal error : ws2p module fail to send is sender channel !");
             debug!("Send ws2p sender to main thread.");
             loop {
                 match proxy_receiver.recv() {
                     Ok(message) => {
+                        let stop = if let DursMsgContent::Stop() = message.1 {
+                            true
+                        } else {
+                            false
+                        };
                         ws2p_sender_clone
-                            .send(WS2PThreadSignal::DuniterMessage(Box::new(message.clone())))
+                            .send(WS2PThreadSignal::DursMsg(Box::new(message)))
                             .expect(
-                                "Fatal error : fail to relay DuniterMessage to ws2p main thread !",
+                                "Fatal error : fail to relay DursMsgContent to ws2p main thread !",
                             );
-                        if let DuniterMessage::Stop() = message {
+                        if stop {
                             break;
                         };
                     }
@@ -362,10 +407,10 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                 .recv_timeout(Duration::from_millis(200))
             {
                 Ok(message) => match message {
-                    WS2PThreadSignal::DuniterMessage(ref duniter_mesage) => {
-                        match *duniter_mesage.deref() {
-                            DuniterMessage::Stop() => break,
-                            DuniterMessage::Followers(ref new_followers) => {
+                    WS2PThreadSignal::DursMsg(ref duniter_mesage) => {
+                        match (*duniter_mesage.deref()).1 {
+                            DursMsgContent::Stop() => break,
+                            /*DursMsgContent::Followers(ref new_followers) => {
                                 info!("WS2P module receive followers !");
                                 for new_follower in new_followers {
                                     debug!("WS2PModule : push one follower.");
@@ -375,7 +420,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                         ws2p_module.send_dal_request(
                                             &DALRequest::BlockchainRequest(
                                                 DALReqBlockchain::CurrentBlock(ModuleReqFullId(
-                                                    WS2PModule::id(),
+                                                    WS2PModule::name(),
                                                     ModuleReqId(0),
                                                 )),
                                             ),
@@ -398,9 +443,9 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                         );
                                     }
                                 }
-                            }
-                            DuniterMessage::NetworkRequest(ref request) => match *request {
-                                NetworkRequest::GetBlocks(
+                            }*/
+                            DursMsgContent::OldNetworkRequest(ref request) => match *request {
+                                OldNetworkRequest::GetBlocks(
                                     ref req_id,
                                     ref receiver,
                                     ref count,
@@ -437,11 +482,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                             let _blocks_request_result = ws2p_module
                                                 .send_request_to_specific_node(
                                                     &real_receiver,
-                                                    &NetworkRequest::GetBlocks(
-                                                        req_id.clone(),
-                                                        *receiver,
-                                                        *count,
-                                                        *from,
+                                                    &OldNetworkRequest::GetBlocks(
+                                                        *req_id, *receiver, *count, *from,
                                                     ),
                                                 );
                                         }
@@ -449,19 +491,16 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                         let _blocks_request_result = ws2p_module
                                             .send_request_to_specific_node(
                                                 &receiver,
-                                                &NetworkRequest::GetBlocks(
-                                                    req_id.clone(),
-                                                    *receiver,
-                                                    *count,
-                                                    *from,
+                                                &OldNetworkRequest::GetBlocks(
+                                                    *req_id, *receiver, *count, *from,
                                                 ),
                                             );
                                     }
                                 }
-                                NetworkRequest::GetEndpoints(ref _request) => {}
+                                OldNetworkRequest::GetEndpoints(ref _request) => {}
                                 _ => {}
                             },
-                            DuniterMessage::DALEvent(ref dal_event) => match *dal_event {
+                            DursMsgContent::DALEvent(ref dal_event) => match *dal_event {
                                 DALEvent::StackUpValidBlock(ref _block, ref blockstamp) => {
                                     current_blockstamp = *blockstamp;
                                     debug!(
@@ -497,14 +536,16 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                                 "body": {
                                                     "heads": [my_json_head]
                                                 }
-                                            }).to_string(),
+                                            })
+                                                .to_string(),
                                             ))
-                                        }).collect();
+                                        })
+                                        .collect();
                                 }
                                 DALEvent::RevertBlocks(ref _blocks) => {}
                                 _ => {}
                             },
-                            DuniterMessage::DALResponse(ref dal_res) => match *dal_res.deref() {
+                            DursMsgContent::DALResponse(ref dal_res) => match *dal_res.deref() {
                                 DALResponse::Blockchain(ref dal_res_bc) => {
                                     match *dal_res_bc.deref() {
                                         DALResBlockchain::CurrentBlock(
@@ -535,7 +576,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                                 ]),
                                             );
                                         }
-                                        DALResBlockchain::UIDs(ref uids) => {
+                                        DALResBlockchain::UIDs(ref _req_id, ref uids) => {
                                             // Add uids to heads
                                             for head in ws2p_module.heads_cache.values_mut() {
                                                 if let Some(uid_option) = uids.get(&head.pubkey()) {
@@ -582,7 +623,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                         _ => {}
                                     }
                                 }
-                                DALResponse::Pendings(_, _) => {}
+                                DALResponse::Pendings(_) => {}
                             },
                             _ => {}
                         }
@@ -596,11 +637,11 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                         WS2PSignal::ConnectionEstablished(ws2p_full_id) => {
                             let req_id =
                                 ModuleReqId(ws2p_module.requests_awaiting_response.len() as u32);
-                            let module_id = WS2PModule::id();
+                            let module_id = WS2PModule::name();
                             let _current_request_result = ws2p_module
                                 .send_request_to_specific_node(
                                     &ws2p_full_id,
-                                    &NetworkRequest::GetCurrent(
+                                    &OldNetworkRequest::GetCurrent(
                                         ModuleReqFullId(module_id, req_id),
                                         ws2p_full_id,
                                     ),
@@ -699,7 +740,8 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                             new_head.set_uid(uid);
                                         }
                                         new_head
-                                    }).collect(),
+                                    })
+                                    .collect(),
                             ));
                         }
                         WS2PSignal::Document(ws2p_full_id, network_doc) => {
@@ -710,22 +752,28 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                         }
                         WS2PSignal::ReqResponse(req_id, req, recipient_full_id, response) => {
                             match req {
-                                NetworkRequest::GetCurrent(ref _req_id, _receiver) => {
+                                OldNetworkRequest::GetCurrent(ref _req_id, _receiver) => {
                                     info!(
                                         "WS2PSignal::ReceiveCurrent({}, {:?}, {:#?})",
                                         req_id.0, req, response
                                     );
                                     if let Some(block) = parse_json_block(&response) {
-                                        ws2p_module.send_network_event(&NetworkEvent::ReqResponse(
-                                            Box::new(NetworkResponse::CurrentBlock(
-                                                ModuleReqFullId(WS2PModule::id(), req_id),
+                                        ws2p_module.send_network_req_response(
+                                            req.get_req_full_id().0,
+                                            NetworkResponse::CurrentBlock(
+                                                ModuleReqFullId(WS2PModule::name(), req_id),
                                                 recipient_full_id,
                                                 Box::new(block),
-                                            )),
-                                        ));
+                                            ),
+                                        );
                                     }
                                 }
-                                NetworkRequest::GetBlocks(ref _req_id, _receiver, _count, from) => {
+                                OldNetworkRequest::GetBlocks(
+                                    ref _req_id,
+                                    _receiver,
+                                    _count,
+                                    from,
+                                ) => {
                                     info!("WS2PSignal::ReceiveChunk({}, {:?})", req_id.0, req);
                                     if response.is_array() {
                                         let mut chunk = Vec::new();
@@ -742,7 +790,7 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                                         );
                                     }
                                 }
-                                NetworkRequest::GetRequirementsPending(
+                                OldNetworkRequest::GetRequirementsPending(
                                     _req_id,
                                     _receiver,
                                     min_cert,
@@ -831,9 +879,9 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                         request_blocks_from += 1;
                     }
                     info!("get chunks from all connections...");
-                    let module_id = WS2PModule::id();
+                    let module_id = WS2PModule::name();
                     let _blocks_request_result =
-                        ws2p_module.send_request_to_all_connections(&NetworkRequest::GetBlocks(
+                        ws2p_module.send_request_to_all_connections(&OldNetworkRequest::GetBlocks(
                             ModuleReqFullId(module_id, ModuleReqId(0 as u32)),
                             NodeFullId::default(),
                             50,
@@ -849,9 +897,9 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                     && SystemTime::now().duration_since(start_time).unwrap() > Duration::new(10, 0)
                 {
                     /*info!("get pending_identities from all connections...");
-                                    let _blocks_request_result = ws2p_module.send_request_to_all_connections(
-                                        &NetworkRequest::GetRequirementsPending(ModuleReqId(0 as u32), 5),
-                                    );*/
+                    let _blocks_request_result = ws2p_module.send_request_to_all_connections(
+                        &OldNetworkRequest::GetRequirementsPending(ModuleReqId(0 as u32), 5),
+                    );*/
                     last_identities_request = SystemTime::now();
                 }
                 // Write pending endpoints
@@ -863,14 +911,14 @@ impl DuniterModule<DuRsConf, DuniterMessage> for WS2PModule {
                             ws2p_module.ws2p_endpoints.get(&ep_full_id)
                         {
                             /*let dal_endpoint = duniter_dal::endpoint::DALEndpoint::new(
-                                                state.clone() as u32,
-                                                ep.node_uuid().unwrap().0,
-                                                ep.pubkey(),
-                                                duniter_dal::endpoint::string_to_api(&ep.api().0).unwrap(),
-                                                1,
-                                                ep.to_string(),
-                                                received_time.duration_since(UNIX_EPOCH).unwrap(),
-                                            );*/
+                                state.clone() as u32,
+                                ep.node_uuid().unwrap().0,
+                                ep.pubkey(),
+                                duniter_dal::endpoint::string_to_api(&ep.api().0).unwrap(),
+                                1,
+                                ep.to_string(),
+                                received_time.duration_since(UNIX_EPOCH).unwrap(),
+                            );*/
                             ws2p_db::write_endpoint(
                                 &db,
                                 &ep,
@@ -1111,7 +1159,8 @@ mod tests {
             1,
             current_time.as_secs(),
             1,
-        ).expect("Failt to parse test endpoint !");
+        )
+        .expect("Failt to parse test endpoint !");
 
         ws2p_db::write_endpoint(&db, &endpoint, 1, current_time.as_secs());
         let mut written_endpoints =
@@ -1128,8 +1177,8 @@ mod tests {
 
     #[test]
     fn ws2p_requests() {
-        let module_id = WS2PModule::id();
-        let request = NetworkRequest::GetBlocks(
+        let module_id = WS2PModule::name();
+        let request = OldNetworkRequest::GetBlocks(
             ModuleReqFullId(module_id, ModuleReqId(58)),
             NodeFullId::default(),
             50,

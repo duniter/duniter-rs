@@ -16,7 +16,7 @@
 //! Module managing the Duniter blockchain.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "cargo-clippy", allow(duration_subsec))]
+//#![cfg_attr(feature = "cargo-clippy", allow(duration_subsec))]
 #![deny(
     missing_docs,
     missing_debug_implementations,
@@ -73,10 +73,10 @@ use duniter_dal::*;
 use duniter_documents::blockchain::v10::documents::{BlockDocument, V10Document};
 use duniter_documents::blockchain::{BlockchainProtocol, Document};
 use duniter_documents::*;
-use duniter_message::DuniterMessage;
+use duniter_message::*;
 use duniter_module::*;
 use duniter_network::{
-    NetworkBlock, NetworkDocument, NetworkEvent, NetworkRequest, NetworkResponse, NodeFullId,
+    NetworkBlock, NetworkDocument, NetworkEvent, NetworkResponse, NodeFullId, OldNetworkRequest,
 };
 use duniter_wotb::data::rusty::RustyWebOfTrust;
 use duniter_wotb::operations::distance::RustyDistanceCalculator;
@@ -94,8 +94,8 @@ pub static DISTANCE_CALCULATOR: &'static RustyDistanceCalculator = &RustyDistanc
 /// Blockchain Module
 #[derive(Debug)]
 pub struct BlockchainModule {
-    /// Subscribers
-    pub followers: Vec<mpsc::Sender<DuniterMessage>>,
+    /// Rooter sender
+    pub rooter_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
     /// Name of the user datas profile
     pub profile: String,
     /// Currency
@@ -146,11 +146,12 @@ pub enum CompletedBlockError {
 
 impl BlockchainModule {
     /// Return module identifier
-    pub fn id() -> ModuleId {
-        ModuleId(String::from("blockchain"))
+    pub fn name() -> ModuleStaticName {
+        ModuleStaticName("blockchain")
     }
     /// Loading blockchain configuration
     pub fn load_blockchain_conf<DC: DuniterConf>(
+        rooter_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
         profile: &str,
         conf: &DC,
         _keys: RequiredKeysContent,
@@ -183,7 +184,7 @@ impl BlockchainModule {
 
         // Instanciate BlockchainModule
         BlockchainModule {
-            followers: Vec::new(),
+            rooter_sender,
             profile: profile.to_string(),
             currency: conf.currency(),
             currency_params,
@@ -220,22 +221,22 @@ impl BlockchainModule {
         sync::sync_ts(profile, conf, db_ts_path, cautious, verif_inner_hash);
     }
     /// Request chunk from network (chunk = group of blocks)
-    fn request_chunk(&self, req_id: ModuleReqId, from: u32) -> (ModuleReqId, NetworkRequest) {
-        let req = NetworkRequest::GetBlocks(
-            ModuleReqFullId(BlockchainModule::id(), req_id),
+    fn request_chunk(&self, req_id: ModuleReqId, from: u32) -> (ModuleReqId, OldNetworkRequest) {
+        let req = OldNetworkRequest::GetBlocks(
+            ModuleReqFullId(BlockchainModule::name(), req_id),
             NodeFullId::default(),
             *CHUNK_SIZE,
             from,
         );
-        (self.request_network(&req), req)
+        (self.request_network(req_id, &req), req)
     }
     /// Requests blocks from current to `to`
     fn request_blocks_to(
         &self,
-        pending_network_requests: &HashMap<ModuleReqId, NetworkRequest>,
+        pending_network_requests: &HashMap<ModuleReqId, OldNetworkRequest>,
         current_blockstamp: &Blockstamp,
         to: BlockId,
-    ) -> HashMap<ModuleReqId, NetworkRequest> {
+    ) -> HashMap<ModuleReqId, OldNetworkRequest> {
         let mut from = if *current_blockstamp == Blockstamp::default() {
             0
         } else {
@@ -268,37 +269,36 @@ impl BlockchainModule {
         requests_ids
     }
     /// Send network request
-    fn request_network(&self, request: &NetworkRequest) -> ModuleReqId {
-        for follower in &self.followers {
-            if follower
-                .send(DuniterMessage::NetworkRequest(request.clone()))
-                .is_err()
-            {
-                debug!("BlockchainModule : one follower is unreachable !");
-            }
-        }
+    fn request_network(&self, _req_id: ModuleReqId, request: &OldNetworkRequest) -> ModuleReqId {
+        self.rooter_sender
+            .send(RooterThreadMessage::ModuleMessage(DursMsg(
+                DursMsgReceiver::Role(ModuleRole::InterNodesNetwork),
+                DursMsgContent::OldNetworkRequest(*request),
+            )))
+            .unwrap_or_else(|_| panic!("Fail to send OldNetworkRequest to rooter"));
         request.get_req_id()
     }
     /// Send blockchain event
     fn send_event(&self, event: &DALEvent) {
-        for follower in &self.followers {
-            if follower
-                .send(DuniterMessage::DALEvent(event.clone()))
-                .is_err()
-            {
-                // Handle error
-            }
-        }
+        let module_event = match event {
+            DALEvent::StackUpValidBlock(_, _) => ModuleEvent::NewValidBlock,
+            DALEvent::RevertBlocks(_) => ModuleEvent::RevertBlocks,
+            _ => return,
+        };
+        self.rooter_sender
+            .send(RooterThreadMessage::ModuleMessage(DursMsg(
+                DursMsgReceiver::Event(module_event),
+                DursMsgContent::DALEvent(event.clone()),
+            )))
+            .unwrap_or_else(|_| panic!("Fail to send DalEvent to rooter"));
     }
-    fn send_req_response(&self, response: &DALResponse) {
-        for follower in &self.followers {
-            if follower
-                .send(DuniterMessage::DALResponse(Box::new(response.clone())))
-                .is_err()
-            {
-                // Handle error
-            }
-        }
+    fn send_req_response(&self, requester: DursMsgReceiver, response: &DALResponse) {
+        self.rooter_sender
+            .send(RooterThreadMessage::ModuleMessage(DursMsg(
+                requester,
+                DursMsgContent::DALResponse(Box::new(response.clone())),
+            )))
+            .unwrap_or_else(|_| panic!("Fail to send ReqRes to rooter"));
     }
     fn receive_network_documents<W: WebOfTrust>(
         &mut self,
@@ -359,7 +359,8 @@ impl BlockchainModule {
                             self.forks_states = duniter_dal::block::get_forks(
                                 &self.blocks_databases.forks_db,
                                 current_blockstamp,
-                            ).expect("get_forks() : DALError");
+                            )
+                            .expect("get_forks() : DALError");
                             save_blocks_dbs = true;
                             if !wot_dbs_reqs.is_empty() {
                                 save_wots_dbs = true;
@@ -463,7 +464,8 @@ impl BlockchainModule {
                 self.forks_states = duniter_dal::block::get_forks(
                     &self.blocks_databases.forks_db,
                     current_blockstamp,
-                ).expect("get_forks() : DALError");
+                )
+                .expect("get_forks() : DALError");
                 // Apply db requests
                 bc_db_query
                     .apply(&self.blocks_databases, false)
@@ -500,7 +502,7 @@ impl BlockchainModule {
         current_blockstamp
     }
     /// Start blockchain module.
-    pub fn start_blockchain(&mut self, blockchain_receiver: &mpsc::Receiver<DuniterMessage>) -> () {
+    pub fn start_blockchain(&mut self, blockchain_receiver: &mpsc::Receiver<DursMsg>) -> () {
         info!("BlockchainModule::start_blockchain()");
 
         // Get dbs path
@@ -523,16 +525,17 @@ impl BlockchainModule {
         // Init datas
         let mut last_get_stackables_blocks = UNIX_EPOCH;
         let mut last_request_blocks = UNIX_EPOCH;
-        let mut pending_network_requests: HashMap<ModuleReqId, NetworkRequest> = HashMap::new();
+        let mut pending_network_requests: HashMap<ModuleReqId, OldNetworkRequest> = HashMap::new();
         let mut consensus = Blockstamp::default();
 
         loop {
             // Request Consensus
-            let req = NetworkRequest::GetConsensus(ModuleReqFullId(
-                BlockchainModule::id(),
+            let req = OldNetworkRequest::GetConsensus(ModuleReqFullId(
+                BlockchainModule::name(),
                 ModuleReqId(pending_network_requests.len() as u32),
             ));
-            let req_id = self.request_network(&req);
+            let req_id =
+                self.request_network(ModuleReqId(pending_network_requests.len() as u32), &req);
             pending_network_requests.insert(req_id, req);
             // Request Blocks
             let now = SystemTime::now();
@@ -567,77 +570,80 @@ impl BlockchainModule {
                 }
             }
             match blockchain_receiver.recv_timeout(Duration::from_millis(1000)) {
-                Ok(ref message) => match *message {
-                    DuniterMessage::Followers(ref new_followers) => {
-                        info!("Blockchain module receive followers !");
-                        for new_follower in new_followers {
-                            self.followers.push(new_follower.clone());
-                        }
-                    }
-                    DuniterMessage::DALRequest(ref dal_request) => match *dal_request {
-                        DALRequest::BlockchainRequest(ref blockchain_req) => {
-                            match *blockchain_req {
-                                DALReqBlockchain::CurrentBlock(ref requester_full_id) => {
-                                    debug!("BlockchainModule : receive DALReqBc::CurrentBlock()");
+                Ok(ref message) => {
+                    match (*message).1 {
+                        DursMsgContent::Request(ref request) => {
+                            if let DursReqContent::DALRequest(ref dal_request) = request.content {
+                                match dal_request {
+                                    DALRequest::BlockchainRequest(ref blockchain_req) => {
+                                        match *blockchain_req {
+                                            DALReqBlockchain::CurrentBlock() => {
+                                                debug!("BlockchainModule : receive DALReqBc::CurrentBlock()");
 
-                                    if let Some(current_block) =
-                                        DALBlock::get_block(
-                                            &self.blocks_databases.blockchain_db,
-                                            None,
-                                            &current_blockstamp,
-                                        ).expect(
-                                            "Fatal error : get_block : fail to read LocalBlockchainV10DB !",
-                                        ) {
-                                        debug!("BlockchainModule : send_req_response(CurrentBlock({}))", current_blockstamp);
-                                        self.send_req_response(&DALResponse::Blockchain(Box::new(
-                                            DALResBlockchain::CurrentBlock(
-                                                requester_full_id.clone(),
-                                                Box::new(current_block.block),
-                                                current_blockstamp,
+                                                if let Some(current_block) =
+                                            DALBlock::get_block(
+                                                &self.blocks_databases.blockchain_db,
+                                                None,
+                                                &current_blockstamp,
+                                            ).expect(
+                                                "Fatal error : get_block : fail to read LocalBlockchainV10DB !",
+                                            ) {
+                                            debug!("BlockchainModule : send_req_response(CurrentBlock({}))", current_blockstamp);
+                                            self.send_req_response(DursMsgReceiver::One(request.requester), &DALResponse::Blockchain(Box::new(
+                                                DALResBlockchain::CurrentBlock(
+                                                    request.id,
+                                                    Box::new(current_block.block),
+                                                    current_blockstamp,
+                                                ),
+                                            )));
+                                        } else {
+                                            warn!("BlockchainModule : Req : fail to get current_block in bdd !");
+                                        }
+                                            }
+                                            DALReqBlockchain::UIDs(ref pubkeys) => {
+                                                self.send_req_response(DursMsgReceiver::One(request.requester), &DALResponse::Blockchain(Box::new(
+                                            DALResBlockchain::UIDs(
+                                                request.id,
+                                                pubkeys
+                                                    .iter()
+                                                    .map(|p| {
+                                                        (
+                                                            *p,
+                                                            duniter_dal::identity::get_uid(&self.wot_databases.identities_db, *p)
+                                                                .expect("Fatal error : get_uid : Fail to read WotV10DB !")
+                                                        )
+                                                    })
+                                                    .collect(),
                                             ),
                                         )));
-                                    } else {
-                                        warn!("BlockchainModule : Req : fail to get current_block in bdd !");
+                                            }
+                                            _ => {}
+                                        }
                                     }
+                                    DALRequest::PendingsRequest(ref _pending_req) => {}
                                 }
-                                DALReqBlockchain::UIDs(ref pubkeys) => {
-                                    self.send_req_response(&DALResponse::Blockchain(Box::new(
-                                        DALResBlockchain::UIDs(
-                                            pubkeys
-                                                .iter()
-                                                .map(|p| {
-                                                    (
-                                                        *p,
-                                                        duniter_dal::identity::get_uid(&self.wot_databases.identities_db, *p)
-                                                            .expect("Fatal error : get_uid : Fail to read WotV10DB !")
-                                                    )
-                                                })
-                                                .collect(),
-                                        ),
-                                    )));
-                                }
-                                _ => {}
                             }
                         }
-                        DALRequest::PendingsRequest(ref _pending_req) => {}
-                    },
-                    DuniterMessage::NetworkEvent(ref network_event) => match *network_event {
-                        NetworkEvent::ReceiveDocuments(ref network_docs) => {
-                            let new_current_blockstamp = self.receive_network_documents(
-                                network_docs,
-                                &current_blockstamp,
-                                &mut wotb_index,
-                                &wot_db,
-                            );
-                            current_blockstamp = new_current_blockstamp;
-                        }
-                        NetworkEvent::ReqResponse(ref network_response) => {
+                        DursMsgContent::NetworkEvent(ref network_event) => match *network_event {
+                            NetworkEvent::ReceiveDocuments(ref network_docs) => {
+                                let new_current_blockstamp = self.receive_network_documents(
+                                    network_docs,
+                                    &current_blockstamp,
+                                    &mut wotb_index,
+                                    &wot_db,
+                                );
+                                current_blockstamp = new_current_blockstamp;
+                            }
+                            NetworkEvent::ReceiveHeads(_) => {}
+                            _ => {}
+                        },
+                        DursMsgContent::NetworkResponse(ref network_response) => {
                             debug!("BlockchainModule : receive NetworkEvent::ReqResponse() !");
                             if let Some(request) =
                                 pending_network_requests.remove(&network_response.get_req_id())
                             {
                                 match request {
-                                    NetworkRequest::GetConsensus(_) => {
+                                    OldNetworkRequest::GetConsensus(_) => {
                                         if let NetworkResponse::Consensus(_, response) =
                                             *network_response.deref()
                                         {
@@ -650,11 +656,13 @@ impl BlockchainModule {
                                                     let last_dal_block_id =
                                                         BlockId(current_blockstamp.id.0 - 1);
                                                     let last_dal_block = self
-                                                        .blocks_databases
-                                                        .blockchain_db
-                                                        .read(|db| db.get(&last_dal_block_id).cloned())
-                                                        .expect("Fail to read blockchain DB.")
-                                                        .expect("Fatal error : not foutn last dal block !");
+                                                    .blocks_databases
+                                                    .blockchain_db
+                                                    .read(|db| db.get(&last_dal_block_id).cloned())
+                                                    .expect("Fail to read blockchain DB.")
+                                                    .expect(
+                                                        "Fatal error : not foutn last dal block !",
+                                                    );
                                                     revert_block::revert_block(
                                                         &last_dal_block,
                                                         &mut wotb_index,
@@ -665,12 +673,13 @@ impl BlockchainModule {
                                                             .tx_db
                                                             .read(|db| db.clone())
                                                             .expect("Fail to read TxDB."),
-                                                    ).expect("Fail to revert block");
+                                                    )
+                                                    .expect("Fail to revert block");
                                                 }
                                             }
                                         }
                                     }
-                                    NetworkRequest::GetBlocks(_, _, _, _) => {
+                                    OldNetworkRequest::GetBlocks(_, _, _, _) => {
                                         if let NetworkResponse::Chunk(_, _, ref blocks) =
                                             *network_response.deref()
                                         {
@@ -686,7 +695,8 @@ impl BlockchainModule {
                                                 self.forks_states = duniter_dal::block::get_forks(
                                                     &self.blocks_databases.forks_db,
                                                     current_blockstamp,
-                                                ).expect("get_forks() : DALError");
+                                                )
+                                                .expect("get_forks() : DALError");
                                             }
                                         }
                                     }
@@ -694,14 +704,13 @@ impl BlockchainModule {
                                 }
                             }
                         }
+                        DursMsgContent::ReceiveDocsFromClient(ref docs) => {
+                            self.receive_documents(docs);
+                        }
+                        DursMsgContent::Stop() => break,
                         _ => {}
-                    },
-                    DuniterMessage::ReceiveDocsFromClient(ref docs) => {
-                        self.receive_documents(docs);
                     }
-                    DuniterMessage::Stop() => break,
-                    _ => {}
-                },
+                }
                 Err(e) => match e {
                     mpsc::RecvTimeoutError::Disconnected => {
                         panic!("Disconnected blockchain module !");
@@ -722,7 +731,8 @@ impl BlockchainModule {
                         &self.blocks_databases.forks_db,
                         &self.blocks_databases.forks_blocks_db,
                         &current_blockstamp,
-                    ).expect("Fatal error : Fail to read ForksV10DB !");
+                    )
+                    .expect("Fatal error : Fail to read ForksV10DB !");
                     if stackable_blocks.is_empty() {
                         break;
                     } else {
@@ -781,7 +791,8 @@ impl BlockchainModule {
                                     &self.blocks_databases.forks_db,
                                     &self.blocks_databases.forks_blocks_db,
                                     stackable_block.fork_id,
-                                ).expect("delete_fork() : DALError");
+                                )
+                                .expect("delete_fork() : DALError");
                                 // Update forks states
                                 self.forks_states[stackable_block.fork_id.0] = ForkStatus::Free();
                             }

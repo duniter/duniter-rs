@@ -166,7 +166,8 @@ mod tests {
                 pubkey: PubKey::Ed25519(keypair1().public_key()),
                 blockstamp: Blockstamp::from_string(
                     "50-000005B1CEB4EC5245EF7E33101A330A1C9A358EC45A25FC13F78BB58C9E7370",
-                ).unwrap(),
+                )
+                .unwrap(),
                 software: String::from("durs"),
                 soft_version: String::from("0.1.0-a0.1"),
                 signature: None,

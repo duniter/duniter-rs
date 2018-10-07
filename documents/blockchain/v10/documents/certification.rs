@@ -301,7 +301,8 @@ mod tests {
 
         let identity_blockstamp = Blockstamp::from_string(
             "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
-        ).unwrap();
+        )
+        .unwrap();
 
         let identity_sig = Sig::Ed25519(ed25519::Signature::from_base64(
             "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
@@ -309,7 +310,8 @@ mod tests {
 
         let blockstamp = Blockstamp::from_string(
             "36-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B865",
-        ).unwrap();
+        )
+        .unwrap();
 
         let builder = CertificationDocumentBuilder {
             currency: "duniter_unit_test_currency",
@@ -378,11 +380,11 @@ CertTimestamp: 167884-0001DFCA28002A8C96575E53B8CEF8317453A7B0BA255542CCF0EC8AB5
             println!("Doc : {:?}", doc);
             assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
         /*assert_eq!(
-                doc.generate_compact_text(),
-                "2sZF6j2PkxBDNAqUde7Dgo5x3crkerZpQ4rBqqJGn8QT:\
-                7jzkd8GiFnpys4X7mP78w2Y3y3kwdK6fVSLEaojd3aH9:99956:\
-                Hkps1QU4HxIcNXKT8YmprYTVByBhPP1U2tIM7Z8wENzLKIWAvQClkAvBE7pW9dnVa18sJIJhVZUcRrPAZfmjBA=="
-            );*/
+            doc.generate_compact_text(),
+            "2sZF6j2PkxBDNAqUde7Dgo5x3crkerZpQ4rBqqJGn8QT:\
+            7jzkd8GiFnpys4X7mP78w2Y3y3kwdK6fVSLEaojd3aH9:99956:\
+            Hkps1QU4HxIcNXKT8YmprYTVByBhPP1U2tIM7Z8wENzLKIWAvQClkAvBE7pW9dnVa18sJIJhVZUcRrPAZfmjBA=="
+        );*/
         } else {
             panic!("Wrong document type");
         }

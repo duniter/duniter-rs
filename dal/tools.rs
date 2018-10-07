@@ -113,7 +113,8 @@ pub fn compute_distances<T: WebOfTrust + Sync>(
                     step_max,
                     x_percent,
                 },
-            ).expect("Fatal Error: compute_distance return None !");
+            )
+            .expect("Fatal Error: compute_distance return None !");
         let mut distance = ((f64::from(distance_datas.success)
             / (x_percent * f64::from(distance_datas.sentries)))
             * 100.0) as usize;

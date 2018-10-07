@@ -47,7 +47,8 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
         issuer: PubKey::Ed25519(
             ed25519::PublicKey::from_base58(
                 row[4].as_string().expect("Fail to parse block issuer"),
-            ).expect("Failt to parse block issuer (2)"),
+            )
+            .expect("Failt to parse block issuer (2)"),
         ),
     };
     let previous_header = if current_header.number.0 > 0 {
@@ -58,14 +59,16 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
                     row[6]
                         .as_string()
                         .expect("Fail to parse block previous hash"),
-                ).expect("Fail to parse block previous hash (2)"),
+                )
+                .expect("Fail to parse block previous hash (2)"),
             ),
             issuer: PubKey::Ed25519(
                 ed25519::PublicKey::from_base58(
                     row[7]
                         .as_string()
                         .expect("Fail to parse previous block issuer"),
-                ).expect("Fail to parse previous block issuer (2)"),
+                )
+                .expect("Fail to parse previous block issuer (2)"),
             ),
         })
     } else {
@@ -157,17 +160,20 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
             currency,
             MembershipType::In(),
             row[21].as_string().expect("Fail to parse joiners"),
-        ).expect("Fail to parse joiners (2)"),
+        )
+        .expect("Fail to parse joiners (2)"),
         actives: parse_memberships(
             currency,
             MembershipType::In(),
             row[22].as_string().expect("Fail to parse actives"),
-        ).expect("Fail to parse actives (2)"),
+        )
+        .expect("Fail to parse actives (2)"),
         leavers: parse_memberships(
             currency,
             MembershipType::In(),
             row[23].as_string().expect("Fail to parse leavers"),
-        ).expect("Fail to parse leavers (2)"),
+        )
+        .expect("Fail to parse leavers (2)"),
         revoked: Vec::new(),
         excluded: excluded
             .as_array()
@@ -178,9 +184,11 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
                 PubKey::Ed25519(
                     ed25519::PublicKey::from_base58(
                         e.as_str().expect("Fail to parse excluded (4)"),
-                    ).expect("Fail to parse excluded (5)"),
+                    )
+                    .expect("Fail to parse excluded (5)"),
                 )
-            }).collect(),
+            })
+            .collect(),
         certifications: Vec::new(),
         transactions,
         inner_hash_and_nonce_str: String::new(),
@@ -250,11 +258,13 @@ pub fn parse_memberships(
                 currency,
                 membership_type,
                 raw_memberships.as_array().unwrap(),
-            ).iter()
+            )
+            .iter()
             .map(|m| {
                 m.clone()
                     .expect("Fatal error : Fail to parse membership from local DB !")
-            }).collect(),
+            })
+            .collect(),
         );
     }
     None
@@ -288,7 +298,8 @@ pub fn parse_memberships_from_json_value(
             } else {
                 Err(MembershipParseError::WrongFormat())
             }
-        }).collect()
+        })
+        .collect()
 }
 
 /// Parse transaction from json value
@@ -343,7 +354,8 @@ pub fn parse_transaction(
                 output
                     .as_str()
                     .unwrap_or_else(|| panic!("Fail to parse output : {:?}", output)),
-            ).unwrap_or_else(|_| panic!("Fail to parse output : {:?}", output)),
+            )
+            .unwrap_or_else(|_| panic!("Fail to parse output : {:?}", output)),
         );
     }
     let signatures_array = source.get("signatures")?.as_array()?;

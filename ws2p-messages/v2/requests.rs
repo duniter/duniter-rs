@@ -81,7 +81,8 @@ mod tests {
     fn test_ws2p_message_request() {
         let chunkstamp = Blockstamp::from_string(
             "499-000011BABEEE1020B1F6B2627E2BC1C35BCD24375E114349634404D2C266D84F",
-        ).unwrap();
+        )
+        .unwrap();
         let request = WS2Pv2Request {
             id: 27,
             body: WS2Pv2RequestBody::ChunkByHash(chunkstamp),

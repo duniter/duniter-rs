@@ -479,45 +479,52 @@ impl WS2PConnectionMetaDatas {
         }
         if let Some(body) = m.get("body") {
             match body.get("name") {
-                Some(s) => if s.is_string() {
-                    match s.as_str().unwrap() {
-                        "BLOCK" => match body.get("block") {
-                            Some(block) => {
-                                if let Some(network_block) = parse_json_block(&block) {
-                                    return WS2PConnectionMessagePayload::Document(
-                                        NetworkDocument::Block(network_block),
-                                    );
-                                } else {
-                                    info!("WS2PSignal: receive invalid block (wrong format).");
-                                };
-                            }
-                            None => return WS2PConnectionMessagePayload::WrongFormatMessage,
-                        },
-                        "HEAD" => match body.get("heads") {
-                            Some(heads) => match heads.as_array() {
-                                Some(heads_array) => {
-                                    return WS2PConnectionMessagePayload::Heads(heads_array.clone())
+                Some(s) => {
+                    if s.is_string() {
+                        match s.as_str().unwrap() {
+                            "BLOCK" => match body.get("block") {
+                                Some(block) => {
+                                    if let Some(network_block) = parse_json_block(&block) {
+                                        return WS2PConnectionMessagePayload::Document(
+                                            NetworkDocument::Block(network_block),
+                                        );
+                                    } else {
+                                        info!("WS2PSignal: receive invalid block (wrong format).");
+                                    };
                                 }
                                 None => return WS2PConnectionMessagePayload::WrongFormatMessage,
                             },
-                            None => return WS2PConnectionMessagePayload::WrongFormatMessage,
-                        },
-                        "PEER" => return self.parse_and_check_peer_message(body),
-                        "CERTIFICATION" => {
-                            trace!("WS2P : Receive CERTIFICATION from {}.", self.node_full_id());
-                            /*return WS2PConnectionMessagePayload::Document(
-                                NetworkDocument::Certification(_)
-                            );*/
-                        }
-                        _ => {
-                            /*trace!(
-                                "WS2P : Receive Unknow Message from {}.",
-                                self.node_full_id()
-                            );*/
-                            return WS2PConnectionMessagePayload::UnknowMessage;
-                        }
-                    };
-                },
+                            "HEAD" => match body.get("heads") {
+                                Some(heads) => match heads.as_array() {
+                                    Some(heads_array) => {
+                                        return WS2PConnectionMessagePayload::Heads(
+                                            heads_array.clone(),
+                                        )
+                                    }
+                                    None => return WS2PConnectionMessagePayload::WrongFormatMessage,
+                                },
+                                None => return WS2PConnectionMessagePayload::WrongFormatMessage,
+                            },
+                            "PEER" => return self.parse_and_check_peer_message(body),
+                            "CERTIFICATION" => {
+                                trace!(
+                                    "WS2P : Receive CERTIFICATION from {}.",
+                                    self.node_full_id()
+                                );
+                                /*return WS2PConnectionMessagePayload::Document(
+                                    NetworkDocument::Certification(_)
+                                );*/
+                            }
+                            _ => {
+                                /*trace!(
+                                    "WS2P : Receive Unknow Message from {}.",
+                                    self.node_full_id()
+                                );*/
+                                return WS2PConnectionMessagePayload::UnknowMessage;
+                            }
+                        };
+                    }
+                }
                 None => {
                     warn!("WS2P Error : invalid format : Body must contain a field name !");
                     return WS2PConnectionMessagePayload::WrongFormatMessage;

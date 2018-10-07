@@ -254,19 +254,22 @@ mod tests {
             ed25519::PrivateKey::from_base58(
                 "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5G\
                  iERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
-            ).unwrap(),
+            )
+            .unwrap(),
         );
 
         let sig = Sig::Ed25519(
             ed25519::Signature::from_base64(
                 "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGM\
                  MmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
-            ).unwrap(),
+            )
+            .unwrap(),
         );
 
         let block = Blockstamp::from_string(
             "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
-        ).unwrap();
+        )
+        .unwrap();
 
         let builder = IdentityDocumentBuilder {
             currency: "duniter_unit_test_currency",
