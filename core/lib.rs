@@ -69,6 +69,32 @@ use threadpool::ThreadPool;
 /// Number of thread in plugins ThreadPool
 pub static THREAD_POOL_SIZE: &'static usize = &2;
 
+/// Durs main function
+pub fn main<'b, 'a: 'b, CliFunc, PlugFunc>(
+    soft_name: &'static str,
+    soft_version: &'static str,
+    clap_app: &'a App<'b, 'a>,
+    mut inject_modules_subcommands: CliFunc,
+    mut plug_modules: PlugFunc,
+) where
+    'b: 'a,
+    CliFunc: FnMut(&mut DuniterCore<'a, 'b, DuRsConf>) -> (),
+    PlugFunc: FnMut(&mut DuniterCore<'a, 'b, DuRsConf>) -> (),
+{
+    // Instantiate duniter core
+    let mut duniter_core = DuniterCore::<DuRsConf>::new(soft_name, soft_version, clap_app, 0);
+
+    // Inject modules subcommands
+    inject_modules_subcommands(&mut duniter_core);
+
+    // Match user command
+    if duniter_core.match_user_command() {
+        // Plug all plugins
+        plug_modules(&mut duniter_core);
+        duniter_core.start_core();
+    }
+}
+
 #[derive(Debug, Clone)]
 /// User command
 pub enum UserCommand {
@@ -148,6 +174,11 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             network_modules_count: 0,
             thread_pool: ThreadPool::new(*THREAD_POOL_SIZE),
         }
+    }
+    /// Inject cli subcommand
+    pub fn inject_cli_subcommand<M: DuniterModule<DuRsConf, DursMsg>>(&mut self) {
+        //self.cli_conf = TupleApp(&self.cli_conf.0.clone().subcommand(M::ModuleOpt::clap()));
+        self.plugins_cli_conf.push(M::ModuleOpt::clap());
     }
     /// Execute user command
     pub fn match_user_command(&mut self) -> bool {
@@ -446,19 +477,13 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
         }
     }
 
-    /// Inject cli subcommand
-    pub fn inject_cli_subcommand<M: DuniterModule<DuRsConf, DursMsg>>(&mut self) {
-        //self.cli_conf = TupleApp(&self.cli_conf.0.clone().subcommand(M::ModuleOpt::clap()));
-        self.plugins_cli_conf.push(M::ModuleOpt::clap());
-    }
-
     /// Plug a module
     pub fn plug<M: DuniterModule<DuRsConf, DursMsg>>(&mut self) {
         self.plug_::<M>(false);
     }
 
     /// Plug a module
-    fn plug_<M: DuniterModule<DuRsConf, DursMsg>>(&mut self, is_network_module: bool) {
+    pub fn plug_<M: DuniterModule<DuRsConf, DursMsg>>(&mut self, is_network_module: bool) {
         let enabled = enabled::<DuRsConf, DursMsg, M>(&self.soft_meta_datas.conf);
         if enabled {
             if let Some(UserCommand::Start()) = self.user_command {
