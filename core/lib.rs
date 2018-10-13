@@ -70,11 +70,24 @@ use threadpool::ThreadPool;
 pub static THREAD_POOL_SIZE: &'static usize = &2;
 
 #[macro_export]
+macro_rules! durs_core_server {
+    ( $closure_inject_cli:expr, $closure_plug:expr ) => {{
+        duniter_core::main(
+            env!("CARGO_PKG_NAME"),
+            env!("CARGO_PKG_VERSION"),
+            &DursOpt::clap(),
+            $closure_inject_cli,
+            $closure_plug,
+        );
+    }};
+}
+
+#[macro_export]
 macro_rules! durs_inject_cli {
-    ( $( $x:ty ),* ) => {
+    ( $( $Module:ty ),* ) => {
         {
             |core| {
-                $(core.inject_cli_subcommand::<$x>();)*
+                $(core.inject_cli_subcommand::<$Module>();)*
             }
         }
     };
@@ -82,11 +95,11 @@ macro_rules! durs_inject_cli {
 
 #[macro_export]
 macro_rules! durs_plug {
-    ( $x:ty, $( $y:ty ),* ) => {
+    ( [ $( $NetworkModule:ty ),* ], [ $( $Module:ty ),* ] ) => {
         {
             |core| {
-                $(core.plug::<$y>();)*
-                core.plug_network::<$x>();
+                $(core.plug::<$Module>();)*
+                $(core.plug_network::<$NetworkModule>();)*
             }
         }
     };

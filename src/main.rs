@@ -48,32 +48,20 @@ use structopt::StructOpt;
 #[cfg(unix)]
 #[cfg(not(target_arch = "arm"))]
 fn main() {
-    duniter_core::main(
-        env!("CARGO_PKG_NAME"),
-        env!("CARGO_PKG_VERSION"),
-        &DursOpt::clap(),
-        durs_inject_cli![WS2PModule, TuiModule],
-        durs_plug![WS2PModule, TuiModule],
+    durs_core_server!(
+        durs_inject_cli![WS2PModule, TuiModule /*,DasaModule*/],
+        durs_plug!([WS2PModule], [TuiModule /*,DasaModule*/])
     );
 }
 #[cfg(unix)]
 #[cfg(target_arch = "arm")]
 fn main() {
-    duniter_core::main(
-        env!("CARGO_PKG_NAME"),
-        env!("CARGO_PKG_VERSION"),
-        &DursOpt::clap(),
+    durs_core_server!(
         durs_inject_cli![WS2PModule, TuiModule],
-        durs_plug![WS2PModule, TuiModule],
+        durs_plug!([WS2PModule], [TuiModule])
     );
 }
 #[cfg(windows)]
 fn main() {
-    duniter_core::main(
-        env!("CARGO_PKG_NAME"),
-        env!("CARGO_PKG_VERSION"),
-        &DursOpt::clap(),
-        durs_inject_cli![WS2PModule],
-        durs_plug![WS2PModule],
-    );
+    durs_core_server!(durs_inject_cli![WS2PModule], durs_plug!([WS2PModule], []));
 }
