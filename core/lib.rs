@@ -69,6 +69,52 @@ use threadpool::ThreadPool;
 /// Number of thread in plugins ThreadPool
 pub static THREAD_POOL_SIZE: &'static usize = &2;
 
+#[macro_export]
+macro_rules! durs_inject_cli {
+    ( $( $x:ty ),* ) => {
+        {
+            |core| {
+                $(core.inject_cli_subcommand::<$x>();)*
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! durs_plug {
+    ( $x:ty, $( $y:ty ),* ) => {
+        {
+            |core| {
+                $(core.plug::<$y>();)*
+                core.plug_network::<$x>();
+            }
+        }
+    };
+}
+/*
+macro_rules! o_O {
+    (
+        $(
+            $x:expr; [ $( $y:expr ),* ]
+        );*
+    ) => {
+        &[ $($( $x + $y ),*),* ]
+    }
+}
+
+
+macro_rules! vec {
+    ( $( $x:expr ),* ) => {
+        {
+            let mut temp_vec = Vec::new();
+            $(
+                temp_vec.push($x);
+            )*
+            temp_vec
+        }
+    };
+}*/
+
 /// Durs main function
 pub fn main<'b, 'a: 'b, CliFunc, PlugFunc>(
     soft_name: &'static str,

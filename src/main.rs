@@ -28,7 +28,9 @@
     unused_qualifications
 )]
 
+#[macro_use]
 extern crate duniter_core;
+
 #[cfg(unix)]
 extern crate duniter_tui;
 extern crate durs_ws2p_v1_legacy;
@@ -50,16 +52,8 @@ fn main() {
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
         &DursOpt::clap(),
-        |core| {
-            //core.inject_cli_subcommand::<DasaModule>();
-            core.inject_cli_subcommand::<TuiModule>();
-            core.inject_cli_subcommand::<WS2PModule>();
-        },
-        |core| {
-            //core.inject_cli_subcommand::<DasaModule>();
-            core.plug::<TuiModule>();
-            core.plug_network::<WS2PModule>();
-        },
+        durs_inject_cli![WS2PModule, TuiModule],
+        durs_plug![WS2PModule, TuiModule],
     );
 }
 #[cfg(unix)]
@@ -69,14 +63,8 @@ fn main() {
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
         &DursOpt::clap(),
-        |core| {
-            core.inject_cli_subcommand::<TuiModule>();
-            core.inject_cli_subcommand::<WS2PModule>();
-        },
-        |core| {
-            core.plug::<TuiModule>();
-            core.plug_network::<WS2PModule>();
-        },
+        durs_inject_cli![WS2PModule, TuiModule],
+        durs_plug![WS2PModule, TuiModule],
     );
 }
 #[cfg(windows)]
@@ -85,11 +73,7 @@ fn main() {
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
         &DursOpt::clap(),
-        |core| {
-            core.inject_cli_subcommand::<WS2PModule>();
-        },
-        |core| {
-            core.plug_network::<WS2PModule>();
-        },
+        durs_inject_cli![WS2PModule],
+        durs_plug![WS2PModule],
     );
 }
