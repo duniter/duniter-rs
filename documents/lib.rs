@@ -238,41 +238,6 @@ impl From<::std::io::Error> for ReadBytesBlockstampError {
     }
 }
 
-/*
-impl BinMessage for Blockstamp {
-    type ReadBytesError = ReadBytesBlockstampError;
-    fn from_bytes(bytes: &[u8]) -> Result<Self, Self::ReadBytesError> {
-        if bytes.len() > 36 {
-            Err(ReadBytesBlockstampError::TooLong())
-        } else if bytes.len() < 36 {
-            Err(ReadBytesBlockstampError::TooShort())
-        } else {
-            // read id
-            let mut id_bytes = Cursor::new(bytes[0..4].to_vec());
-            let id = BlockId(id_bytes.read_u32::<BigEndian>()?);
-            // read hash
-            let mut hash_datas: [u8; 32] = [0u8; 32];
-            hash_datas.copy_from_slice(&bytes[4..36]);
-            let hash = BlockHash(Hash(hash_datas));
-            // return Blockstamp
-            Ok(Blockstamp { id, hash })
-        }
-    }
-    fn to_bytes_vector(&self) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(36);
-        // BlockId
-        let mut buffer = [0u8; mem::size_of::<u32>()];
-        buffer
-            .as_mut()
-            .write_u32::<BigEndian>(self.id.0)
-            .expect("Unable to write");
-        bytes.extend_from_slice(&buffer);
-        // BlockHash
-        bytes.extend(self.hash.0.to_bytes_vector());
-        bytes
-    }
-}*/
-
 impl Blockstamp {
     /// Create a `BlockUId` from a text.
     pub fn from_string(src: &str) -> Result<Blockstamp, BlockUIdParseError> {

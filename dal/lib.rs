@@ -486,28 +486,3 @@ pub fn open_wot_db<W: WebOfTrust>(dbs_folder_path: Option<&PathBuf>) -> Result<B
         Ok(BinDB::Mem(open_memory_db::<W>()?))
     }
 }
-
-// Open wot file (cf. duniter-wot crate)
-/*pub fn open_wot_file<W: WebOfTrust>(wot_path: &PathBuf, sig_stock: usize) -> (W, Blockstamp) {
-    if wot_path.as_path().exists() {
-        match file_formater.from_file(
-            wot_path
-                .as_path()
-                .to_str()
-                .expect("Fail to convert wo_path to str"),
-            sig_stock,
-        ) {
-            Ok((wot, binary_blockstamp)) => match ::std::str::from_utf8(&binary_blockstamp) {
-                Ok(str_blockstamp) => (
-                    wot,
-                    Blockstamp::from_string(str_blockstamp)
-                        .expect("Fail to deserialize wot blockstamp"),
-                ),
-                Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-            },
-            Err(e) => panic!("Fatal Error : fail to read wot file : {:?}", e),
-        }
-    } else {
-        (W::new(sig_stock), Blockstamp::default())
-    }
-}*/

@@ -410,40 +410,6 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                     WS2PThreadSignal::DursMsg(ref duniter_mesage) => {
                         match (*duniter_mesage.deref()).1 {
                             DursMsgContent::Stop() => break,
-                            /*DursMsgContent::Followers(ref new_followers) => {
-                                info!("WS2P module receive followers !");
-                                for new_follower in new_followers {
-                                    debug!("WS2PModule : push one follower.");
-                                    ws2p_module.followers.push(new_follower.clone());
-                                    if current_blockstamp == Blockstamp::default() {
-                                        // Request local current blockstamp
-                                        ws2p_module.send_dal_request(
-                                            &DALRequest::BlockchainRequest(
-                                                DALReqBlockchain::CurrentBlock(ModuleReqFullId(
-                                                    WS2PModule::name(),
-                                                    ModuleReqId(0),
-                                                )),
-                                            ),
-                                        );
-                                    } else {
-                                        if ws2p_module.my_head.is_none() {
-                                            ws2p_module.my_head = Some(heads::generate_my_head(
-                                                &key_pair,
-                                                NodeId(soft_meta_datas.conf.my_node_id()),
-                                                soft_meta_datas.soft_name,
-                                                soft_meta_datas.soft_version,
-                                                &current_blockstamp,
-                                                None,
-                                            ));
-                                        }
-                                        ws2p_module.send_network_event(
-                                            &NetworkEvent::ReceiveHeads(vec![
-                                                ws2p_module.my_head.clone().unwrap(),
-                                            ]),
-                                        );
-                                    }
-                                }
-                            }*/
                             DursMsgContent::OldNetworkRequest(ref request) => match *request {
                                 OldNetworkRequest::GetBlocks(
                                     ref req_id,

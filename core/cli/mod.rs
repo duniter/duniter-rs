@@ -30,20 +30,6 @@ pub use reset::*;
 pub use start::*;
 pub use sync::*;
 
-/*/// Inject core subcommands
-pub fn inject_core_subcommands<'a, 'b>(
-    core_cli_conf_without_subcommands: App<'a, 'b>,
-) -> App<'a, 'b> {
-    core_cli_conf_without_subcommands.subcommands(vec![
-        EnableOpt::clap(),
-        DisableOpt::clap(),
-        ListModulesOpt::clap(),
-        StartOpt::clap(),
-        SyncOpt::clap(),
-        SyncTsOpt::clap(),
-    ])
-}*/
-
 #[derive(StructOpt, Debug)]
 #[structopt(
     name = "durs",

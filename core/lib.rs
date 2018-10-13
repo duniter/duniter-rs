@@ -104,29 +104,6 @@ macro_rules! durs_plug {
         }
     };
 }
-/*
-macro_rules! o_O {
-    (
-        $(
-            $x:expr; [ $( $y:expr ),* ]
-        );*
-    ) => {
-        &[ $($( $x + $y ),*),* ]
-    }
-}
-
-
-macro_rules! vec {
-    ( $( $x:expr ),* ) => {
-        {
-            let mut temp_vec = Vec::new();
-            $(
-                temp_vec.push($x);
-            )*
-            temp_vec
-        }
-    };
-}*/
 
 /// Durs main function
 pub fn main<'b, 'a: 'b, CliFunc, PlugFunc>(
