@@ -28,7 +28,9 @@
     unused_qualifications
 )]
 
+#[macro_use]
 extern crate duniter_core;
+
 #[cfg(unix)]
 extern crate duniter_tui;
 extern crate durs_ws2p_v1_legacy;
@@ -46,84 +48,20 @@ use structopt::StructOpt;
 #[cfg(unix)]
 #[cfg(not(target_arch = "arm"))]
 fn main() {
-    // Get software name and version
-    let soft_name = env!("CARGO_PKG_NAME");
-    let soft_version = env!("CARGO_PKG_VERSION");
-
-    // Instantiate duniter core
-    let clap_app = DursOpt::clap();
-    let mut duniter_core = DuniterCore::<DuRsConf>::new(soft_name, soft_version, &clap_app, 0);
-
-    // Inject plugins subcommands
-    //duniter_core.inject_cli_subcommand::<GvaModule>();
-    duniter_core.inject_cli_subcommand::<TuiModule>();
-    duniter_core.inject_cli_subcommand::<WS2PModule>();
-
-    // Match user command
-    if duniter_core.match_user_command() {
-        // Plug all plugins
-        //duniter_core.plug::<GuiModule>();
-        //duniter_core.plug::<GvaModule>();
-        //duniter_core.plug::<PoolModule>();
-        //duniter_core.plug::<PowModule>();
-        duniter_core.plug::<TuiModule>();
-        duniter_core.plug_network::<WS2PModule>();
-        duniter_core.start_core();
-    }
+    durs_core_server!(
+        durs_inject_cli![WS2PModule, TuiModule /*,DasaModule*/],
+        durs_plug!([WS2PModule], [TuiModule /*,DasaModule*/])
+    );
 }
 #[cfg(unix)]
 #[cfg(target_arch = "arm")]
 fn main() {
-    // Get software name and version
-    let soft_name = env!("CARGO_PKG_NAME");
-    let soft_version = env!("CARGO_PKG_VERSION");
-
-    // Instantiate duniter core
-    let clap_app = DursOpt::clap();
-    let mut duniter_core = DuniterCore::<DuRsConf>::new(soft_name, soft_version, &clap_app, 0);
-
-    // Inject plugins subcommands
-    //duniter_core.inject_cli_subcommand::<DasaModule>();
-    //duniter_core.inject_cli_subcommand::<GvaModule>();
-    duniter_core.inject_cli_subcommand::<TuiModule>();
-    duniter_core.inject_cli_subcommand::<WS2PModule>();
-
-    // Match user command
-    if duniter_core.match_user_command() {
-        // Plug all plugins
-        //duniter_core.plug::<DasaModule>();
-        //duniter_core.plug::<GuiModule>();
-        //duniter_core.plug::<GvaModule>();
-        //duniter_core.plug::<PoolModule>();
-        //duniter_core.plug::<PowModule>();
-        duniter_core.plug::<TuiModule>();
-        duniter_core.plug_network::<WS2PModule>();
-        duniter_core.start_core();
-    }
+    durs_core_server!(
+        durs_inject_cli![WS2PModule, TuiModule],
+        durs_plug!([WS2PModule], [TuiModule])
+    );
 }
 #[cfg(windows)]
 fn main() {
-    // Get software name and version
-    let soft_name = env!("CARGO_PKG_NAME");
-    let soft_version = env!("CARGO_PKG_VERSION");
-
-    // Instantiate duniter core
-    let clap_app = DursOpt::clap();
-    let mut duniter_core = DuniterCore::<DuRsConf>::new(soft_name, soft_version, &clap_app, 0);
-
-    // Inject plugins subcommands
-    //duniter_core.inject_cli_subcommand::<GvaModule>();
-    duniter_core.inject_cli_subcommand::<WS2PModule>();
-
-    // Match user command
-    if duniter_core.match_user_command() {
-        // Plug all plugins
-        //duniter_core.plug::<DasaModule>();
-        //duniter_core.plug::<GuiModule>();
-        //duniter_core.plug::<GvaModule>();
-        //duniter_core.plug::<PoolModule>();
-        //duniter_core.plug::<PowModule>();
-        duniter_core.plug_network::<WS2PModule>();
-        duniter_core.start_core();
-    }
+    durs_core_server!(durs_inject_cli![WS2PModule], durs_plug!([WS2PModule], []));
 }
