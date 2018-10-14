@@ -75,7 +75,7 @@ pub enum DursMsgContent {
     /// Brut binary message
     Binary(Vec<u8>),
     /// New configuration of a module to save
-    SaveNewModuleConf(ModuleName, serde_json::Value),
+    SaveNewModuleConf(ModuleStaticName, serde_json::Value),
     /// Response of DALRequest
     DALResponse(Box<DALResponse>),
     /// Blockchain event

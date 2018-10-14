@@ -287,15 +287,17 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             self.user_command = Some(UserCommand::ListModules(ListModulesOpt::from_clap(matches)));
 
             // Start rooter thread
-            self.rooter_sender = Some(rooter::start_rooter::<DuRsConf>(0, vec![]));
+            self.rooter_sender = Some(rooter::start_rooter(0, profile.clone(), conf, vec![]));
             true
         } else if let Some(_matches) = cli_args.subcommand_matches("start") {
             // Store user command
             self.user_command = Some(UserCommand::Start());
 
             // Start rooter thread
-            self.rooter_sender = Some(rooter::start_rooter::<DuRsConf>(
+            self.rooter_sender = Some(rooter::start_rooter(
                 self.run_duration_in_secs,
+                profile.clone(),
+                conf,
                 external_followers,
             ));
             true
@@ -314,7 +316,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                 verif_hashs: opts.unsafe_mode,
             }));
             // Start rooter thread
-            self.rooter_sender = Some(rooter::start_rooter::<DuRsConf>(0, vec![]));
+            self.rooter_sender = Some(rooter::start_rooter(0, profile.clone(), conf, vec![]));
             true
         } else if let Some(matches) = cli_args.subcommand_matches("sync_ts") {
             let opts = SyncTsOpt::from_clap(matches);

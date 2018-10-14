@@ -15,6 +15,8 @@
 
 //! Relay messages between durs modules.
 
+use duniter_conf;
+use duniter_conf::DuRsConf;
 use duniter_message::*;
 use duniter_module::*;
 use std::collections::HashMap;
@@ -176,6 +178,29 @@ fn start_broadcasting_thread(
     }
 }
 
+/// Start conf thread
+fn start_conf_thread(
+    profile: &str,
+    conf: &mut DuRsConf,
+    receiver: &mpsc::Receiver<DursMsgContent>,
+) {
+    loop {
+        match receiver.recv() {
+            Ok(msg) => {
+                if let DursMsgContent::SaveNewModuleConf(module_static_name, new_json_conf) = msg {
+                    conf.set_module_conf(module_static_name.to_string(), new_json_conf);
+                    duniter_conf::write_conf_file(&profile, conf)
+                        .expect("Fail to write new module conf in conf file ! ");
+                }
+            }
+            Err(_) => {
+                info!("Conf thread stops.");
+                break;
+            }
+        }
+    }
+}
+
 /// Send msg to several receivers
 fn send_msg_to_several_receivers(
     msg: DursMsg,
@@ -226,8 +251,10 @@ fn store_msg_in_pool(
 }
 
 /// Start rooter thread
-pub fn start_rooter<DC: DuniterConf>(
+pub fn start_rooter(
     run_duration_in_secs: u64,
+    profile: String,
+    conf: DuRsConf,
     external_followers: Vec<mpsc::Sender<DursMsgContent>>,
 ) -> mpsc::Sender<RooterThreadMessage<DursMsg>> {
     let start_time = SystemTime::now();
@@ -254,6 +281,17 @@ pub fn start_rooter<DC: DuniterConf>(
                 &broadcasting_receiver,
                 &external_followers,
             );
+        });
+
+        // Create conf thread channel
+        let (conf_sender, conf_receiver): (
+            mpsc::Sender<DursMsgContent>,
+            mpsc::Receiver<DursMsgContent>,
+        ) = mpsc::channel();
+
+        // Create conf thread
+        thread::spawn(move || {
+            start_conf_thread(&profile, &mut conf.clone(), &conf_receiver);
         });
 
         // Define variables
@@ -320,9 +358,21 @@ pub fn start_rooter<DC: DuniterConf>(
                                         break;
                                     }
                                 }
-                                DursMsgReceiver::Role(_module_role) => broadcasting_sender
-                                    .send(RooterThreadMessage::ModuleMessage(msg))
-                                    .expect("Fail to relay message to broadcasting thread !"),
+                                DursMsgReceiver::Role(role) =>
+                                // If the message is intended for role "ChangeConf", forward it to the conf thread
+                                {
+                                    if let ModuleRole::ChangeConf = role {
+                                        conf_sender
+                                            .send(msg.1)
+                                            .expect("Fail to reach conf thread !");
+                                    } else {
+                                        broadcasting_sender
+                                            .send(RooterThreadMessage::ModuleMessage(msg))
+                                            .expect(
+                                                "Fail to relay message to broadcasting thread !",
+                                            );
+                                    }
+                                }
                                 DursMsgReceiver::Event(_module_event) => broadcasting_sender
                                     .send(RooterThreadMessage::ModuleMessage(msg))
                                     .expect("Fail to relay message to broadcasting thread !"),
