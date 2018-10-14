@@ -105,7 +105,9 @@ impl ToString for ModuleReqFullId {
 }
 
 /// Duniter configuration
-pub trait DuniterConf: Clone + Debug + Default + PartialEq + Serialize + DeserializeOwned {
+pub trait DuniterConf:
+    Clone + Debug + Default + PartialEq + Serialize + DeserializeOwned + Send + ToOwned
+{
     /// Get conf version profile
     fn version(&self) -> usize;
     /// Get currency
@@ -155,16 +157,18 @@ pub enum ModuleRole {
     BlockValidation,
     /// Generates the content of the next block
     BlockGeneration,
-    /// Manage pending data for the wot
-    WotPool,
+    /// Change configuration file
+    ChangeConf,
+    /// Communicates with client software
+    ClientsNetwork,
     /// Manage pending data for the currency (transactions and scripts)
     CurrencyPool,
     /// Manages the network between nodes implementing the DUP protocol
     InterNodesNetwork,
-    /// Communicates with client software
-    ClientsNetwork,
     /// Communicates with the node user
     UserInterface,
+    /// Manage pending data for the wot
+    WotPool,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
