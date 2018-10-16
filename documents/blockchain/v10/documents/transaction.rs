@@ -508,6 +508,10 @@ impl TransactionDocument {
         self.hash = Some(Hash::from_hex(&sha256.result_str()).unwrap());
         self.hash.expect("Try to get hash of a reduce tx !")
     }
+    /// get transaction hash option
+    pub fn get_hash_opt(&self) -> Option<Hash> {
+        self.hash
+    }
     /// Get transaction hash
     pub fn get_hash(&mut self) -> Hash {
         if let Some(hash) = self.hash {

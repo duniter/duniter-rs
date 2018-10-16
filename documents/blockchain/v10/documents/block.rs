@@ -170,8 +170,12 @@ impl TxDocOrTxHash {
     /// lightening consists in transforming the document by its hash.
     pub fn reduce(&self) -> TxDocOrTxHash {
         if let TxDocOrTxHash::TxDoc(ref tx_doc) = self {
-            let mut tx_doc = tx_doc.deref().clone();
-            TxDocOrTxHash::TxHash(tx_doc.get_hash())
+            let tx_doc = tx_doc.deref();
+            if let Some(ref hash) = tx_doc.get_hash_opt() {
+                TxDocOrTxHash::TxHash(*hash)
+            } else {
+                TxDocOrTxHash::TxHash(tx_doc.clone().compute_hash())
+            }
         } else {
             self.clone()
         }
