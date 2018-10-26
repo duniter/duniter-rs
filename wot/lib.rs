@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! `wotb` is a crate making "Web of Trust" computations for
+//! `wot` is a crate making "Web of Trust" computations for
 //! the [Duniter] project.
 //!
 //! [Duniter]: https://duniter.org/
@@ -22,9 +22,9 @@
 //!
 //! It also contains an "legacy" implementation translated from the original C++ code.
 //!
-//! Web of Trust tests are translated from [duniter/wotb Javascript test][js-tests].
+//! Web of Trust tests are translated from [duniter/wot Javascript test][js-tests].
 //!
-//! [js-tests]: https://github.com/duniter/wotb/blob/master/wotcpp/webOfTrust.cpp
+//! [js-tests]: https://github.com/duniter/wot/blob/master/wotcpp/webOfTrust.cpp
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
@@ -60,7 +60,7 @@ mod tests {
     use operations::file::*;
     use operations::path::*;
 
-    /// Test translated from https://github.com/duniter/wotb/blob/master/tests/test.js
+    /// Test translated from https://github.com/duniter/wot/blob/master/tests/test.js
     ///
     /// Clone and file tests are not included in this generic test and should be done in
     /// the implementation test.

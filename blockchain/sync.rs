@@ -27,7 +27,7 @@ use duniter_dal::writers::requests::*;
 use duniter_dal::ForkId;
 use duniter_documents::{BlockHash, BlockId};
 use duniter_network::NetworkBlock;
-use duniter_wotb::NodeId;
+use durs_wot::NodeId;
 use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::ops::Deref;
@@ -279,10 +279,10 @@ pub fn sync_ts<DC: DuniterConf>(
         return;
     }
 
-    // Get wotb index
-    let mut wotb_index: HashMap<PubKey, NodeId> =
-        DALIdentity::get_wotb_index(&wot_databases.identities_db)
-            .expect("Fatal eror : get_wotb_index : Fail to read blockchain databases");
+    // Get wot index
+    let mut wot_index: HashMap<PubKey, NodeId> =
+        DALIdentity::get_wot_index(&wot_databases.identities_db)
+            .expect("Fatal eror : get_wot_index : Fail to read blockchain databases");
 
     // Start sync
     let sync_start_time = SystemTime::now();
@@ -535,7 +535,7 @@ pub fn sync_ts<DC: DuniterConf>(
         if let Ok(ValidBlockApplyReqs(block_req, wot_db_reqs, currency_db_reqs)) =
             apply_valid_block::<RustyWebOfTrust>(
                 &block_doc,
-                &mut wotb_index,
+                &mut wot_index,
                 &wot_db,
                 &expire_certs,
                 None,
@@ -624,7 +624,7 @@ pub fn sync_ts<DC: DuniterConf>(
     currency_params_db.save().expect("Fail to save params db");
 
     // Save wot file
-    wot_db.save().expect("Fail to save wotb db");
+    wot_db.save().expect("Fail to save wot db");
 
     let main_job_duration =
         SystemTime::now().duration_since(main_job_begin).unwrap() - all_wait_duration;

@@ -18,7 +18,7 @@ use duniter_crypto::keys::PubKey;
 use duniter_documents::blockchain::v10::documents::IdentityDocument;
 use duniter_documents::blockchain::Document;
 use duniter_documents::{BlockId, Blockstamp};
-use duniter_wotb::NodeId;
+use durs_wot::NodeId;
 use identity::{DALIdentity, DALIdentityState};
 use {BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
 

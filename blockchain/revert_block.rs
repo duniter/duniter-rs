@@ -22,8 +22,8 @@ use duniter_dal::{BinDB, ForkId, TxV10Datas};
 use duniter_documents::blockchain::v10::documents::block::TxDocOrTxHash;
 use duniter_documents::blockchain::v10::documents::transaction::{TxAmount, TxBase};
 use duniter_documents::blockchain::Document;
-use duniter_wotb::data::{NewLinkResult, RemLinkResult};
-use duniter_wotb::{NodeId, WebOfTrust};
+use durs_wot::data::{NewLinkResult, RemLinkResult};
+use durs_wot::{NodeId, WebOfTrust};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -85,8 +85,8 @@ pub fn revert_block<W: WebOfTrust>(
                 .read(|db| db.get_enabled())
                 .expect("Fail to read WotDB");
             let mut members_pubkeys = Vec::new();
-            for (pubkey, wotb_id) in wot_index.iter() {
-                if members_wot_ids.contains(wotb_id) {
+            for (pubkey, wot_id) in wot_index.iter() {
+                if members_wot_ids.contains(wot_id) {
                     members_pubkeys.push(*pubkey);
                 }
             }
@@ -122,24 +122,24 @@ pub fn revert_block<W: WebOfTrust>(
     for certification in block.certifications.clone() {
         trace!("stack_up_valid_block: apply cert...");
         let compact_cert = certification.to_compact_document();
-        let wotb_node_from = wot_index[&compact_cert.issuer];
-        let wotb_node_to = wot_index[&compact_cert.target];
+        let wot_node_from = wot_index[&compact_cert.issuer];
+        let wot_node_to = wot_index[&compact_cert.target];
         wot_db
             .write(|db| {
-                let result = db.rem_link(wotb_node_from, wotb_node_to);
+                let result = db.rem_link(wot_node_from, wot_node_to);
                 match result {
                     RemLinkResult::Removed(_) => {}
                     _ => panic!(
                         "Fail to rem_link {}->{} : {:?}",
-                        wotb_node_from.0, wotb_node_to.0, result
+                        wot_node_from.0, wot_node_to.0, result
                     ),
                 }
             })
             .expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::RevertCert(
             compact_cert,
-            wotb_node_from,
-            wotb_node_to,
+            wot_node_from,
+            wot_node_to,
         ));
         trace!("stack_up_valid_block: apply cert...success.");
     }
@@ -188,15 +188,15 @@ pub fn revert_block<W: WebOfTrust>(
     for active in block.actives.clone() {
         let pubkey = active.issuers()[0];
         if !identities.contains_key(&pubkey) {
-            let wotb_id = wot_index[&pubkey];
+            let wot_id = wot_index[&pubkey];
             wot_db
                 .write(|db| {
-                    db.set_enabled(wotb_id, true);
+                    db.set_enabled(wot_id, true);
                 })
                 .expect("Fail to write in WotDB");
             wot_dbs_requests.push(WotsDBsWriteQuery::RevertRenewalIdentity(
                 pubkey,
-                wotb_id,
+                wot_id,
                 block.median_time,
                 active.blockstamp().id,
             ));
@@ -216,15 +216,15 @@ pub fn revert_block<W: WebOfTrust>(
             wot_dbs_requests.push(WotsDBsWriteQuery::RevertCreateIdentity(pubkey));
         } else {
             // Renewer
-            let wotb_id = wot_index[&joiner.issuers()[0]];
+            let wot_id = wot_index[&joiner.issuers()[0]];
             wot_db
                 .write(|db| {
-                    db.set_enabled(wotb_id, true);
+                    db.set_enabled(wot_id, true);
                 })
                 .expect("Fail to write in WotDB");
             wot_dbs_requests.push(WotsDBsWriteQuery::RevertRenewalIdentity(
                 joiner.issuers()[0],
-                wotb_id,
+                wot_id,
                 block.median_time,
                 joiner.blockstamp().id,
             ));

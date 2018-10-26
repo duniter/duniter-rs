@@ -40,7 +40,7 @@ extern crate duniter_documents;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
-extern crate duniter_wotb;
+extern crate durs_wot;
 extern crate serde;
 extern crate serde_json;
 extern crate sqlite;
@@ -78,9 +78,9 @@ use duniter_module::*;
 use duniter_network::{
     NetworkBlock, NetworkDocument, NetworkEvent, NetworkResponse, NodeFullId, OldNetworkRequest,
 };
-use duniter_wotb::data::rusty::RustyWebOfTrust;
-use duniter_wotb::operations::distance::RustyDistanceCalculator;
-use duniter_wotb::{NodeId, WebOfTrust};
+use durs_wot::data::rusty::RustyWebOfTrust;
+use durs_wot::operations::distance::RustyDistanceCalculator;
+use durs_wot::{NodeId, WebOfTrust};
 
 /// The blocks are requested by packet groups. This constant sets the block packet size.
 pub static CHUNK_SIZE: &'static u32 = &50;
@@ -304,7 +304,7 @@ impl BlockchainModule {
         &mut self,
         network_documents: &[NetworkDocument],
         current_blockstamp: &Blockstamp,
-        wotb_index: &mut HashMap<PubKey, NodeId>,
+        wot_index: &mut HashMap<PubKey, NodeId>,
         wot_db: &BinDB<W>,
     ) -> Blockstamp {
         let mut blockchain_documents = Vec::new();
@@ -320,7 +320,7 @@ impl BlockchainModule {
                         &self.wot_databases.certs_db,
                         &Block::NetworkBlock(network_block),
                         &current_blockstamp,
-                        wotb_index,
+                        wot_index,
                         wot_db,
                         &self.forks_states,
                     ) {
@@ -439,7 +439,7 @@ impl BlockchainModule {
         &mut self,
         blocks_in_box: &[Box<NetworkBlock>],
         current_blockstamp: &Blockstamp,
-        wotb_index: &mut HashMap<PubKey, NodeId>,
+        wot_index: &mut HashMap<PubKey, NodeId>,
         wot: &BinDB<W>,
     ) -> Blockstamp {
         debug!("BlockchainModule : receive_blocks()");
@@ -455,7 +455,7 @@ impl BlockchainModule {
                     &self.wot_databases.certs_db,
                     &Block::NetworkBlock(block),
                     &current_blockstamp,
-                    wotb_index,
+                    wot_index,
                     wot,
                     &self.forks_states,
                 ) {
@@ -508,10 +508,10 @@ impl BlockchainModule {
         // Get dbs path
         let dbs_path = duniter_conf::get_blockchain_db_path(self.profile.as_str(), &self.currency);
 
-        // Get wotb index
-        let mut wotb_index: HashMap<PubKey, NodeId> =
-            DALIdentity::get_wotb_index(&self.wot_databases.identities_db)
-                .expect("Fatal eror : get_wotb_index : Fail to read blockchain databases");
+        // Get wot index
+        let mut wot_index: HashMap<PubKey, NodeId> =
+            DALIdentity::get_wot_index(&self.wot_databases.identities_db)
+                .expect("Fatal eror : get_wot_index : Fail to read blockchain databases");
 
         // Open wot file
         let wot_db = open_wot_db::<RustyWebOfTrust>(Some(&dbs_path)).expect("Fail to open WotDB !");
@@ -629,7 +629,7 @@ impl BlockchainModule {
                                 let new_current_blockstamp = self.receive_network_documents(
                                     network_docs,
                                     &current_blockstamp,
-                                    &mut wotb_index,
+                                    &mut wot_index,
                                     &wot_db,
                                 );
                                 current_blockstamp = new_current_blockstamp;
@@ -665,7 +665,7 @@ impl BlockchainModule {
                                                     );
                                                     revert_block::revert_block(
                                                         &last_dal_block,
-                                                        &mut wotb_index,
+                                                        &mut wot_index,
                                                         &wot_db,
                                                         Some(free_fork_id),
                                                         &self
@@ -686,7 +686,7 @@ impl BlockchainModule {
                                             let new_current_blockstamp = self.receive_blocks(
                                                 blocks,
                                                 &current_blockstamp,
-                                                &mut wotb_index,
+                                                &mut wot_index,
                                                 &wot_db,
                                             );
                                             if current_blockstamp != new_current_blockstamp {
@@ -748,7 +748,7 @@ impl BlockchainModule {
                                 &self.wot_databases.certs_db,
                                 &Block::LocalBlock(&stackable_block.block),
                                 &current_blockstamp,
-                                &mut wotb_index,
+                                &mut wot_index,
                                 &wot_db,
                                 &self.forks_states,
                             ) {

@@ -17,7 +17,7 @@ duniter-documents = { path = "../documents" }
 duniter-message =  { path = "../message" }
 duniter-module = { path = "../module" }
 duniter-network = { path = "../network" }
-duniter-wotb = { path = "../wotb" }
+durs-wot = { path = "../wot" }
 log = "0.4.*"
 num_cpus = "1.8.*"
 pbr = "1.0.*"

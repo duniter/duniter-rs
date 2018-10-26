@@ -22,8 +22,8 @@ use duniter_documents::blockchain::v10::documents::transaction::{TxAmount, TxBas
 use duniter_documents::blockchain::v10::documents::BlockDocument;
 use duniter_documents::blockchain::Document;
 use duniter_documents::BlockId;
-use duniter_wotb::data::{NewLinkResult, RemLinkResult};
-use duniter_wotb::{NodeId, WebOfTrust};
+use durs_wot::data::{NewLinkResult, RemLinkResult};
+use durs_wot::{NodeId, WebOfTrust};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
@@ -63,7 +63,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
         let pubkey = joiner.clone().issuers()[0];
         if let Some(idty_doc) = identities.get(&pubkey) {
             // Newcomer
-            let wotb_id = NodeId(
+            let wot_id = NodeId(
                 wot_db
                     .read(|db| db.size())
                     .expect("Fatal error : fail to read WotDB !"),
@@ -73,9 +73,9 @@ pub fn apply_valid_block<W: WebOfTrust>(
                     db.add_node();
                 })
                 .expect("Fail to write in WotDB");
-            wot_index.insert(pubkey, wotb_id);
+            wot_index.insert(pubkey, wot_id);
             wot_dbs_requests.push(WotsDBsWriteQuery::CreateIdentity(
-                wotb_id,
+                wot_id,
                 current_blockstamp,
                 block.median_time,
                 Box::new(idty_doc.clone()),
@@ -83,15 +83,15 @@ pub fn apply_valid_block<W: WebOfTrust>(
             ));
         } else {
             // Renewer
-            let wotb_id = wot_index[&joiner.issuers()[0]];
+            let wot_id = wot_index[&joiner.issuers()[0]];
             wot_db
                 .write(|db| {
-                    db.set_enabled(wotb_id, true);
+                    db.set_enabled(wot_id, true);
                 })
                 .expect("Fail to write in WotDB");
             wot_dbs_requests.push(WotsDBsWriteQuery::RenewalIdentity(
                 joiner.issuers()[0],
-                wotb_id,
+                wot_id,
                 block.median_time,
                 joiner.blockstamp().id,
             ));
@@ -100,15 +100,15 @@ pub fn apply_valid_block<W: WebOfTrust>(
     for active in block.actives.clone() {
         let pubkey = active.issuers()[0];
         if !identities.contains_key(&pubkey) {
-            let wotb_id = wot_index[&pubkey];
+            let wot_id = wot_index[&pubkey];
             wot_db
                 .write(|db| {
-                    db.set_enabled(wotb_id, true);
+                    db.set_enabled(wot_id, true);
                 })
                 .expect("Fail to write in WotDB");
             wot_dbs_requests.push(WotsDBsWriteQuery::RenewalIdentity(
                 pubkey,
-                wotb_id,
+                wot_id,
                 block.median_time,
                 active.blockstamp().id,
             ));
@@ -151,24 +151,24 @@ pub fn apply_valid_block<W: WebOfTrust>(
     for certification in block.certifications.clone() {
         trace!("stack_up_valid_block: apply cert...");
         let compact_cert = certification.to_compact_document();
-        let wotb_node_from = wot_index[&compact_cert.issuer];
-        let wotb_node_to = wot_index[&compact_cert.target];
+        let wot_node_from = wot_index[&compact_cert.issuer];
+        let wot_node_to = wot_index[&compact_cert.target];
         wot_db
             .write(|db| {
-                let result = db.add_link(wotb_node_from, wotb_node_to);
+                let result = db.add_link(wot_node_from, wot_node_to);
                 match result {
                     NewLinkResult::Ok(_) => {}
                     _ => panic!(
                         "Fail to add_link {}->{} : {:?}",
-                        wotb_node_from.0, wotb_node_to.0, result
+                        wot_node_from.0, wot_node_to.0, result
                     ),
                 }
             })
             .expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::CreateCert(
             compact_cert.issuer,
-            wotb_node_from,
-            wotb_node_to,
+            wot_node_from,
+            wot_node_to,
             compact_cert.block_number,
             block.median_time,
         ));
@@ -198,8 +198,8 @@ pub fn apply_valid_block<W: WebOfTrust>(
                 .read(|db| db.get_enabled())
                 .expect("Fail to read WotDB");
             let mut members_pubkeys = Vec::new();
-            for (pubkey, wotb_id) in wot_index {
-                if members_wot_ids.contains(wotb_id) {
+            for (pubkey, wot_id) in wot_index {
+                if members_wot_ids.contains(wot_id) {
                     members_pubkeys.push(*pubkey);
                 }
             }
