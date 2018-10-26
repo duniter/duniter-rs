@@ -106,11 +106,11 @@ pub struct ClearOpt {
 #[derive(StructOpt, Debug, Clone)]
 /// SaltPasswordOpt
 pub struct SaltPasswordOpt {
-    #[structopt(long = "salt", required = true)]
+    #[structopt(long = "salt")]
     /// Salt of key generator
     pub salt: String,
 
-    #[structopt(long = "password", required = true)]
+    #[structopt(long = "password")]
     /// Password of key generator
     pub password: String,
 }
