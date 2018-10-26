@@ -18,12 +18,15 @@
 extern crate structopt;
 
 pub mod dbex;
+pub mod keys;
 pub mod modules;
 pub mod reset;
 pub mod start;
 pub mod sync;
 
+use cli::keys::KeysOpt;
 pub use dbex::*;
+pub use keys::*;
 use log::Level;
 pub use modules::*;
 pub use reset::*;
@@ -82,6 +85,12 @@ pub enum CoreSubCommand {
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
     DbExOpt(DbExOpt),
+    /// keys operations
+    #[structopt(
+        name = "keys",
+        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+    )]
+    KeysOpt(KeysOpt),
 }
 
 /// InvalidInput

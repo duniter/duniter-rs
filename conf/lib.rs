@@ -40,7 +40,12 @@ extern crate duniter_module;
 extern crate dup_crypto;
 extern crate rand;
 extern crate serde;
+
+pub mod keys;
+
 use dubp_documents::CurrencyName;
+use duniter_crypto::keys::*;
+use duniter_documents::CurrencyName;
 use duniter_module::{DuniterConf, ModuleName, RequiredKeys, RequiredKeysContent};
 use dup_crypto::keys::*;
 use rand::Rng;
@@ -55,6 +60,9 @@ static USER_DATAS_FOLDER: &'static str = "durs-dev";
 
 /// If no currency is specified by the user, is the currency will be chosen by default
 pub static DEFAULT_CURRRENCY: &'static str = "g1";
+
+/// Keypairs filename
+pub static KEYPAIRS_FILENAME: &'static str = "keypairs.json";
 
 #[derive(Debug, Clone)]
 /// User request on global conf
@@ -315,6 +323,14 @@ pub fn get_profile_path(profile: &str) -> PathBuf {
     profile_path
 }
 
+/// Get keypairs file path
+pub fn keypairs_filepath(profile: &str) -> PathBuf {
+    let profile_path = get_profile_path(profile);
+    let mut conf_keys_path = profile_path.clone();
+    conf_keys_path.push(KEYPAIRS_FILENAME);
+    conf_keys_path
+}
+
 /// Load configuration.
 pub fn load_conf(profile: &str) -> (DuRsConf, DuniterKeyPairs) {
     let mut profile_path = get_profile_path(profile);
@@ -336,7 +352,7 @@ pub fn load_conf(profile: &str) -> (DuRsConf, DuniterKeyPairs) {
 pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuRsConf, DuniterKeyPairs) {
     // Get KeyPairs
     let mut keypairs_path = profile_path.clone();
-    keypairs_path.push("keypairs.json");
+    keypairs_path.push(KEYPAIRS_FILENAME);
     let keypairs = if keypairs_path.as_path().exists() {
         if let Ok(mut f) = File::open(keypairs_path.as_path()) {
             let mut contents = String::new();
