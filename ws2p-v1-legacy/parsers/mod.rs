@@ -65,18 +65,14 @@ mod tests {
                 ed25519::PublicKey::from_base58("51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2")
                     .unwrap(),
             )],
-            inputs: &vec![
-                TransactionInput::parse_from_str(
-                    "1000:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:46496",
-                )
-                .unwrap(),
-            ],
-            outputs: &vec![
-                TransactionOutput::parse_from_str(
-                    "1000:0:SIG(2yN8BRSkARcqE8NCxKMBiHfTpx1EvwULFn56Myf6qRmy)",
-                )
-                .unwrap(),
-            ],
+            inputs: &vec![TransactionInput::parse_from_str(
+                "1000:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:46496",
+            )
+            .unwrap()],
+            outputs: &vec![TransactionOutput::parse_from_str(
+                "1000:0:SIG(2yN8BRSkARcqE8NCxKMBiHfTpx1EvwULFn56Myf6qRmy)",
+            )
+            .unwrap()],
             unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)").unwrap()],
             comment: "Merci pour la calligraphie ;) de Liam",
             hash: None,
@@ -128,12 +124,10 @@ mod tests {
                 ed25519::PublicKey::from_base58("FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD")
                     .unwrap(),
             )],
-            inputs: &vec![
-                TransactionInput::parse_from_str(
-                    "1000:0:D:FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD:1",
-                )
-                .unwrap(),
-            ],
+            inputs: &vec![TransactionInput::parse_from_str(
+                "1000:0:D:FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD:1",
+            )
+            .unwrap()],
             outputs: &vec![
                 TransactionOutput::parse_from_str(
                     "3:0:SIG(7vU9BMDhN6fBuRa2iK3JRbC6pqQKb4qDMGsFcQuT5cz)",

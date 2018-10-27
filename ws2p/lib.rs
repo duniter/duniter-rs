@@ -181,7 +181,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2Pv2Module {
         _keys: RequiredKeysContent,
         _module_conf: Self::ModuleConf,
         _subcommand_args: WS2POpt,
-    ) -> () {
+    ) {
         println!("Succesfully exec ws2p subcommand !")
     }
     fn start(

@@ -197,39 +197,39 @@ impl NetworkHead {
         match message {
             NetworkHeadMessage::V2(_) => Ok(NetworkHead::V2(Box::new(NetworkHeadV2 {
                 message,
-                sig: Sig::Ed25519(ed25519::Signature::from_base64(if let Some(str_sig) =
-                    source.get("sig")
-                {
-                    if let Some(str_sig) = str_sig.as_str() {
-                        str_sig
+                sig: Sig::Ed25519(ed25519::Signature::from_base64(
+                    if let Some(str_sig) = source.get("sig") {
+                        if let Some(str_sig) = str_sig.as_str() {
+                            str_sig
+                        } else {
+                            return Err(NetworkHeadParseErr::InvalidStr("sig"));
+                        }
                     } else {
-                        return Err(NetworkHeadParseErr::InvalidStr("sig"));
-                    }
-                } else {
-                    return Err(NetworkHeadParseErr::MissingField("sigV2"));
-                })?),
-                message_v2: NetworkHeadMessage::from_str(if let Some(str_msg) =
-                    source.get("messageV2")
-                {
-                    if let Some(str_msg) = str_msg.as_str() {
-                        str_msg
+                        return Err(NetworkHeadParseErr::MissingField("sigV2"));
+                    },
+                )?),
+                message_v2: NetworkHeadMessage::from_str(
+                    if let Some(str_msg) = source.get("messageV2") {
+                        if let Some(str_msg) = str_msg.as_str() {
+                            str_msg
+                        } else {
+                            return Err(NetworkHeadParseErr::InvalidStr("messageV2"));
+                        }
                     } else {
-                        return Err(NetworkHeadParseErr::InvalidStr("messageV2"));
-                    }
-                } else {
-                    return Err(NetworkHeadParseErr::MissingField("messageV2"));
-                })?,
-                sig_v2: Sig::Ed25519(ed25519::Signature::from_base64(if let Some(str_sig) =
-                    source.get("sigV2")
-                {
-                    if let Some(str_sig) = str_sig.as_str() {
-                        str_sig
+                        return Err(NetworkHeadParseErr::MissingField("messageV2"));
+                    },
+                )?,
+                sig_v2: Sig::Ed25519(ed25519::Signature::from_base64(
+                    if let Some(str_sig) = source.get("sigV2") {
+                        if let Some(str_sig) = str_sig.as_str() {
+                            str_sig
+                        } else {
+                            return Err(NetworkHeadParseErr::InvalidStr("sigV2"));
+                        }
                     } else {
-                        return Err(NetworkHeadParseErr::InvalidStr("sigV2"));
-                    }
-                } else {
-                    return Err(NetworkHeadParseErr::MissingField("sigV2"));
-                })?),
+                        return Err(NetworkHeadParseErr::MissingField("sigV2"));
+                    },
+                )?),
                 step: if let Some(step) = source.get("step") {
                     if let Some(step) = step.as_u64() {
                         step as u32

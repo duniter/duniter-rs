@@ -329,11 +329,9 @@ mod tests {
             path_finder.find_paths(&wot, NodeId(3), NodeId(0), 2).len(),
             1
         ); // It exists 3 -> 2 -> 0
-        assert!(
-            path_finder
-                .find_paths(&wot, NodeId(3), NodeId(0), 2)
-                .contains(&vec![NodeId(3), NodeId(2), NodeId(0)])
-        );
+        assert!(path_finder
+            .find_paths(&wot, NodeId(3), NodeId(0), 2)
+            .contains(&vec![NodeId(3), NodeId(2), NodeId(0)]));
 
         assert_eq!(
             distance_calculator.is_outdistanced(
@@ -407,11 +405,9 @@ mod tests {
             path_finder.find_paths(&wot, NodeId(3), NodeId(0), 2).len(),
             1
         ); // It exists 3 -> 2 -> 0
-        assert!(
-            path_finder
-                .find_paths(&wot, NodeId(3), NodeId(0), 2)
-                .contains(&vec![NodeId(3), NodeId(2), NodeId(0)])
-        );
+        assert!(path_finder
+            .find_paths(&wot, NodeId(3), NodeId(0), 2)
+            .contains(&vec![NodeId(3), NodeId(2), NodeId(0)]));
 
         assert_eq!(
             distance_calculator.is_outdistanced(

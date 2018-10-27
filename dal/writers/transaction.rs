@@ -432,16 +432,12 @@ mod tests {
             blockstamp: &block,
             locktime: &0,
             issuers: &vec![pubkey],
-            inputs: &vec![
-                TransactionInput::parse_from_str(
-                    "1000:0:D:2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ:1",
-                )
-                .expect("fail to parse input !"),
-            ],
-            unlocks: &vec![
-                TransactionInputUnlocks::parse_from_str("0:SIG(0)")
-                    .expect("fail to parse unlock !"),
-            ],
+            inputs: &vec![TransactionInput::parse_from_str(
+                "1000:0:D:2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ:1",
+            )
+            .expect("fail to parse input !")],
+            unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)")
+                .expect("fail to parse unlock !")],
             outputs: &vec![
                 TransactionOutput::parse_from_str(
                     "1:0:SIG(Com8rJukCozHZyFao6AheSsfDQdPApxQRnz7QYFf64mm)",

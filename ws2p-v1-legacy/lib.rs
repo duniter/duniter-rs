@@ -265,7 +265,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
         _keys: RequiredKeysContent,
         _module_conf: Self::ModuleConf,
         _subcommand_args: WS2POpt,
-    ) -> () {
+    ) {
         println!("Succesfully exec ws2p subcommand !")
     }
     fn start(
@@ -537,9 +537,10 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                                     ));
                                             }
                                             ws2p_module.send_network_event(
-                                                &NetworkEvent::ReceiveHeads(vec![
-                                                    ws2p_module.my_head.clone().unwrap(),
-                                                ]),
+                                                &NetworkEvent::ReceiveHeads(vec![ws2p_module
+                                                    .my_head
+                                                    .clone()
+                                                    .unwrap()]),
                                             );
                                         }
                                         DALResBlockchain::UIDs(ref _req_id, ref uids) => {
@@ -900,10 +901,11 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                         info!(
                             "Write {} endpoint in {} secs.",
                             ep_full_id,
-                            *DURATION_BEFORE_RECORDING_ENDPOINT - SystemTime::now()
-                                .duration_since(received_time)
-                                .unwrap()
-                                .as_secs()
+                            *DURATION_BEFORE_RECORDING_ENDPOINT
+                                - SystemTime::now()
+                                    .duration_since(received_time)
+                                    .unwrap()
+                                    .as_secs()
                         );
                     }
                 }

@@ -411,13 +411,11 @@ pub fn write_keypairs_file(
     keypairs: &DuniterKeyPairs,
 ) -> Result<(), std::io::Error> {
     let mut f = try!(File::create(file_path.as_path()));
-    try!(
-        f.write_all(
-            serde_json::to_string_pretty(keypairs)
-                .expect("Fatal error : fail to write default keypairs file !")
-                .as_bytes()
-        )
-    );
+    try!(f.write_all(
+        serde_json::to_string_pretty(keypairs)
+            .expect("Fatal error : fail to write default keypairs file !")
+            .as_bytes()
+    ));
     try!(f.sync_all());
     Ok(())
 }

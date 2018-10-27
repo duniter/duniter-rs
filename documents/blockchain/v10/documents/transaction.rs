@@ -847,22 +847,16 @@ mod tests {
             blockstamp: &block,
             locktime: &0,
             issuers: &vec![pubkey],
-            inputs: &vec![
-                TransactionInput::parse_from_str(
-                    "10:0:D:DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV:0",
-                )
-                .expect("fail to parse input !"),
-            ],
-            unlocks: &vec![
-                TransactionInputUnlocks::parse_from_str("0:SIG(0)")
-                    .expect("fail to parse unlock !"),
-            ],
-            outputs: &vec![
-                TransactionOutput::parse_from_str(
-                    "10:0:SIG(FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa)",
-                )
-                .expect("fail to parse output !"),
-            ],
+            inputs: &vec![TransactionInput::parse_from_str(
+                "10:0:D:DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV:0",
+            )
+            .expect("fail to parse input !")],
+            unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)")
+                .expect("fail to parse unlock !")],
+            outputs: &vec![TransactionOutput::parse_from_str(
+                "10:0:SIG(FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa)",
+            )
+            .expect("fail to parse output !")],
             comment: "test",
             hash: None,
         };
@@ -901,16 +895,12 @@ mod tests {
             blockstamp: &block,
             locktime: &0,
             issuers: &vec![pubkey],
-            inputs: &vec![
-                TransactionInput::parse_from_str(
-                    "950:0:T:2CF1ACD8FE8DC93EE39A1D55881C50D87C55892AE8E4DB71D4EBAB3D412AA8FD:1",
-                )
-                .expect("fail to parse input !"),
-            ],
-            unlocks: &vec![
-                TransactionInputUnlocks::parse_from_str("0:SIG(0)")
-                    .expect("fail to parse unlock !"),
-            ],
+            inputs: &vec![TransactionInput::parse_from_str(
+                "950:0:T:2CF1ACD8FE8DC93EE39A1D55881C50D87C55892AE8E4DB71D4EBAB3D412AA8FD:1",
+            )
+            .expect("fail to parse input !")],
+            unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)")
+                .expect("fail to parse unlock !")],
             outputs: &vec![
                 TransactionOutput::parse_from_str(
                     "30:0:SIG(38MEAZN68Pz1DTvT3tqgxx4yQP6snJCQhPqEFxbDk4aE)",

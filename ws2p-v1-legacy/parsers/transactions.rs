@@ -121,18 +121,14 @@ Merci pour la calligraphie ;) de Liam$\
                 ed25519::PublicKey::from_base58("51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2")
                     .unwrap(),
             )],
-            inputs: &vec![
-                TransactionInput::parse_from_str(
-                    "1000:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:46496",
-                )
-                .unwrap(),
-            ],
-            outputs: &vec![
-                TransactionOutput::parse_from_str(
-                    "1000:0:SIG(2yN8BRSkARcqE8NCxKMBiHfTpx1EvwULFn56Myf6qRmy)",
-                )
-                .unwrap(),
-            ],
+            inputs: &vec![TransactionInput::parse_from_str(
+                "1000:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:46496",
+            )
+            .unwrap()],
+            outputs: &vec![TransactionOutput::parse_from_str(
+                "1000:0:SIG(2yN8BRSkARcqE8NCxKMBiHfTpx1EvwULFn56Myf6qRmy)",
+            )
+            .unwrap()],
             unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)").unwrap()],
             comment: "Merci pour la calligraphie ;) de Liam",
             hash: None,

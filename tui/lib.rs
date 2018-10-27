@@ -411,7 +411,7 @@ impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
         _keys: RequiredKeysContent,
         module_conf: Self::ModuleConf,
         subcommand_args: TuiOpt,
-    ) -> () {
+    ) {
         let mut conf = soft_meta_datas.conf.clone();
         let new_tui_conf = TuiConf {
             test_fake_conf_field: subcommand_args.new_conf_field.clone(),

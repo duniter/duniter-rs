@@ -161,7 +161,7 @@ impl WS2PModuleDatas {
         }
         count_established_connections
     }
-    pub fn connect_to_know_endpoints(&mut self) -> () {
+    pub fn connect_to_know_endpoints(&mut self) {
         info!("WS2P: connect to know endpoints...");
         let mut count_established_connections = 0;
         let mut pubkeys = HashSet::new();
@@ -205,7 +205,7 @@ impl WS2PModuleDatas {
             }
         }
     }
-    pub fn connect_to(&mut self, endpoint: &EndpointEnum) -> () {
+    pub fn connect_to(&mut self, endpoint: &EndpointEnum) {
         // Add endpoint to endpoints list (if there isn't already)
         match self.ws2p_endpoints.get(
             &endpoint
@@ -340,11 +340,13 @@ impl WS2PModuleDatas {
                 for head in heads {
                     if let Ok(head) = NetworkHead::from_json_value(&head) {
                         if head.verify()
-                            && (self.my_head.is_none() || head.node_full_id() != self
-                                .my_head
-                                .clone()
-                                .expect("WS2P: Fail to clone my_head")
-                                .node_full_id())
+                            && (self.my_head.is_none()
+                                || head.node_full_id()
+                                    != self
+                                        .my_head
+                                        .clone()
+                                        .expect("WS2P: Fail to clone my_head")
+                                        .node_full_id())
                             && head.apply(&mut self.heads_cache)
                         {
                             applied_heads.push(head);
