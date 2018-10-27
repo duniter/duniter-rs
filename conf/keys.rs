@@ -13,8 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Defined the few global types used by all modules,
-//! as well as the DuniterModule trait that all modules must implement.
+//! Durs keys configuration module
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
