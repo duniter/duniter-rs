@@ -426,13 +426,12 @@ pub fn write_keypairs_file(
     file_path: &PathBuf,
     keypairs: &DuniterKeyPairs,
 ) -> Result<(), std::io::Error> {
-    let mut f = try!(File::create(file_path.as_path()));
-    try!(f.write_all(
+    let mut f = File::create(file_path.as_path())?;
+    f.write_all(
         serde_json::to_string_pretty(keypairs)
             .expect("Fatal error : fail to write default keypairs file !")
-            .as_bytes()
-    ));
-    try!(f.sync_all());
+            .as_bytes())?;
+    f.sync_all()?;
     Ok(())
 }
 
@@ -440,7 +439,7 @@ pub fn write_keypairs_file(
 pub fn write_conf_file<DC: DuniterConf>(profile: &str, conf: &DC) -> Result<(), std::io::Error> {
     let mut conf_path = get_profile_path(profile);
     conf_path.push("conf.json");
-    let mut f = try!(File::create(conf_path.as_path()));
+    let mut f = File::create(conf_path.as_path())?;
     f.write_all(
         serde_json::to_string_pretty(conf)
             .expect("Fatal error : fail to write default conf file !")
