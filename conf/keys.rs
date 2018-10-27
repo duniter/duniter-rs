@@ -154,3 +154,186 @@ pub fn key_wizard(mut key_pairs: DuniterKeyPairs) -> Result<DuniterKeyPairs, Wiz
 
     Ok(key_pairs)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    static BASE58_SEC_INIT: &'static str =
+        "4iXXx5GgRkZ85BVPwn8vFXvztdXAAa5yB573ErcAnngAgSVEknNqc16xRnCmsuHFAJ3j3XArB4mv8UVpvrG32vLV";
+    static BASE58_PUB_INIT: &'static str = "otDgSpKvKAPPmE1MUYxc3UQ3RtEnKYz4iGD3BmwKPzM";
+    //static SALT_INIT: &'static str = "initsalt";
+    //static PASSWORD_INIT: &'static str = "initpassword";
+
+    static BASE58_SEC_TEST: &'static str =
+        "4xr2CFHWQtDUQiPCon3FhEAvSpXEoFZHeEPiBzDUtEbt2wnrFS9ZTtAvUyZypbDvw8wmYhHrJgBVo6GidMrpwoQq";
+    static BASE58_PUB_TEST: &'static str = "6sewkaNWyEMqkEa2PVRWrDb3hxWtjPdUSB1zXVCqhdWV";
+    static SALT_TEST: &'static str = "testsalt";
+    static PASSWORD_TEST: &'static str = "testpassword";
+
+    #[test]
+    fn test_modify_member_keys() {
+        let key_pairs = DuniterKeyPairs {
+            network_keypair: KeyPairEnum::Ed25519(ed25519::KeyPair {
+                privkey: ed25519::PrivateKey::from_base58(BASE58_SEC_INIT)
+                    .expect("conf : keypairs file : fail to parse network_sec !"),
+                pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
+                    .expect("conf : keypairs file : fail to parse network_pub !"),
+            }),
+            member_keypair: None,
+        };
+        let result_key_pairs =
+            modify_member_keys(SALT_TEST.to_string(), PASSWORD_TEST.to_string(), key_pairs);
+        // We expect network key not to change
+        assert_eq!(
+            result_key_pairs.network_keypair.public_key(),
+            PubKey::Ed25519(
+                ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
+                    .expect("Wrong data in BASE58_PUB_TEST")
+            )
+        );
+        assert_eq!(
+            result_key_pairs.network_keypair.private_key(),
+            PrivKey::Ed25519(
+                ed25519::PrivateKey::from_base58(BASE58_SEC_INIT)
+                    .expect("Wrong data in BASE58_SEC_TEST")
+            )
+        );
+
+        // We expect member key to update as intended
+        assert_eq!(
+            result_key_pairs.member_keypair.unwrap().public_key(),
+            PubKey::Ed25519(
+                ed25519::PublicKey::from_base58(BASE58_PUB_TEST)
+                    .expect("Wrong data in BASE58_PUB_TEST")
+            )
+        );
+        assert_eq!(
+            result_key_pairs.member_keypair.unwrap().private_key(),
+            PrivKey::Ed25519(
+                ed25519::PrivateKey::from_base58(BASE58_SEC_TEST)
+                    .expect("Wrong data in BASE58_SEC_TEST")
+            )
+        );
+    }
+
+    #[test]
+    fn test_modify_network_keys() {
+        let key_pairs = DuniterKeyPairs {
+            network_keypair: KeyPairEnum::Ed25519(ed25519::KeyPair {
+                privkey: ed25519::PrivateKey::from_base58(BASE58_SEC_INIT)
+                    .expect("conf : keypairs file : fail to parse network_sec !"),
+                pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
+                    .expect("conf : keypairs file : fail to parse network_pub !"),
+            }),
+            member_keypair: None,
+        };
+        let result_key_pairs =
+            modify_network_keys(SALT_TEST.to_string(), PASSWORD_TEST.to_string(), key_pairs);
+        // We expect network key to update
+        assert_eq!(
+            result_key_pairs.network_keypair.public_key(),
+            PubKey::Ed25519(
+                ed25519::PublicKey::from_base58(BASE58_PUB_TEST)
+                    .expect("Wrong data in BASE58_PUB_TEST")
+            )
+        );
+        assert_eq!(
+            result_key_pairs.network_keypair.private_key(),
+            PrivKey::Ed25519(
+                ed25519::PrivateKey::from_base58(BASE58_SEC_TEST)
+                    .expect("Wrong data in BASE58_SEC_TEST")
+            )
+        );
+        // We expect member key not to change
+        assert_eq!(result_key_pairs.member_keypair, None);
+    }
+
+    #[test]
+    fn test_clear_network_keys() {
+        let key_pairs = DuniterKeyPairs {
+            network_keypair: KeyPairEnum::Ed25519(ed25519::KeyPair {
+                privkey: ed25519::PrivateKey::from_base58(BASE58_SEC_INIT)
+                    .expect("conf : keypairs file : fail to parse network_sec !"),
+                pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
+                    .expect("conf : keypairs file : fail to parse network_pub !"),
+            }),
+            member_keypair: Some(KeyPairEnum::Ed25519(ed25519::KeyPair {
+                privkey: ed25519::PrivateKey::from_base58(BASE58_SEC_INIT)
+                    .expect("conf : keypairs file : fail to parse network_sec !"),
+                pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
+                    .expect("conf : keypairs file : fail to parse network_pub !"),
+            })),
+        };
+        let result_key_pairs = clear_keys(true, false, key_pairs);
+        // We expect network key to be reset to a new random key
+        assert_ne!(
+            result_key_pairs.network_keypair.public_key(),
+            PubKey::Ed25519(
+                ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
+                    .expect("Wrong data in BASE58_PUB_TEST")
+            )
+        );
+        assert_ne!(
+            result_key_pairs.network_keypair.private_key(),
+            PrivKey::Ed25519(
+                ed25519::PrivateKey::from_base58(BASE58_SEC_INIT)
+                    .expect("Wrong data in BASE58_SEC_TEST")
+            )
+        );
+
+        // We expect member key not to change
+        assert_eq!(
+            result_key_pairs.member_keypair.unwrap().public_key(),
+            PubKey::Ed25519(
+                ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
+                    .expect("Wrong data in BASE58_PUB_TEST")
+            )
+        );
+        assert_eq!(
+            result_key_pairs.member_keypair.unwrap().private_key(),
+            PrivKey::Ed25519(
+                ed25519::PrivateKey::from_base58(BASE58_SEC_INIT)
+                    .expect("Wrong data in BASE58_SEC_TEST")
+            )
+        );
+    }
+
+    #[test]
+    fn test_clear_member_keys() {
+        let key_pairs = DuniterKeyPairs {
+            network_keypair: KeyPairEnum::Ed25519(ed25519::KeyPair {
+                privkey: ed25519::PrivateKey::from_base58(BASE58_SEC_INIT)
+                    .expect("conf : keypairs file : fail to parse network_sec !"),
+                pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
+                    .expect("conf : keypairs file : fail to parse network_pub !"),
+            }),
+            member_keypair: Some(KeyPairEnum::Ed25519(ed25519::KeyPair {
+                privkey: ed25519::PrivateKey::from_base58(BASE58_SEC_INIT)
+                    .expect("conf : keypairs file : fail to parse network_sec !"),
+                pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
+                    .expect("conf : keypairs file : fail to parse network_pub !"),
+            })),
+        };
+        let result_key_pairs = clear_keys(false, true, key_pairs);
+        // We expect network key not to change
+        assert_eq!(
+            result_key_pairs.network_keypair.public_key(),
+            PubKey::Ed25519(
+                ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
+                    .expect("Wrong data in BASE58_PUB_TEST")
+            )
+        );
+        assert_eq!(
+            result_key_pairs.network_keypair.private_key(),
+            PrivKey::Ed25519(
+                ed25519::PrivateKey::from_base58(BASE58_SEC_INIT)
+                    .expect("Wrong data in BASE58_SEC_TEST")
+            )
+        );
+
+        // We expect member key to change
+        assert_eq!(result_key_pairs.member_keypair, None);
+        assert_eq!(result_key_pairs.member_keypair, None);
+    }
+}

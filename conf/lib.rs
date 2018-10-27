@@ -429,7 +429,8 @@ pub fn write_keypairs_file(
     f.write_all(
         serde_json::to_string_pretty(keypairs)
             .expect("Fatal error : fail to write default keypairs file !")
-            .as_bytes())?;
+            .as_bytes(),
+    )?;
     f.sync_all()?;
     Ok(())
 }
