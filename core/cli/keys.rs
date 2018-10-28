@@ -20,6 +20,7 @@ extern crate structopt;
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(
     name = "keys",
+    author = "inso <inso@tuta.io>",
     raw(setting = "structopt::clap::AppSettings::ColoredHelp")
 )]
 /// durs databases explorer

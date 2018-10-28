@@ -358,6 +358,7 @@ pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuRsConf, Du
             if f.read_to_string(&mut contents).is_ok() {
                 let json_conf: serde_json::Value =
                     serde_json::from_str(&contents).expect("Conf: Fail to parse keypairs file !");
+
                 if let Some(network_sec) = json_conf.get("network_sec") {
                     if let Some(network_pub) = json_conf.get("network_pub") {
                         let network_sec = network_sec
@@ -366,14 +367,46 @@ pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuRsConf, Du
                         let network_pub = network_pub
                             .as_str()
                             .expect("Conf: Fail to parse keypairs file !");
+                        let network_keypair = KeyPairEnum::Ed25519(ed25519::KeyPair {
+                            privkey: ed25519::PrivateKey::from_base58(network_sec)
+                                .expect("conf : keypairs file : fail to parse network_sec !"),
+                            pubkey: ed25519::PublicKey::from_base58(network_pub)
+                                .expect("conf : keypairs file : fail to parse network_pub !"),
+                        });
+
+                        let member_keypair = if let Some(member_sec) = json_conf.get("member_sec") {
+                            if let Some(member_pub) = json_conf.get("member_pub") {
+                                let member_sec = member_sec
+                                    .as_str()
+                                    .expect("Conf: Fail to parse keypairs file !");
+                                let member_pub = member_pub
+                                    .as_str()
+                                    .expect("Conf: Fail to parse keypairs file !");
+                                if member_sec.is_empty() || member_pub.is_empty() {
+                                    None
+                                } else {
+                                    Some(KeyPairEnum::Ed25519(ed25519::KeyPair {
+                                        privkey: ed25519::PrivateKey::from_base58(network_sec)
+                                            .expect(
+                                                "conf : keypairs file : fail to parse member_sec !",
+                                            ),
+                                        pubkey: ed25519::PublicKey::from_base58(network_pub)
+                                            .expect(
+                                                "conf : keypairs file : fail to parse member_pub !",
+                                            ),
+                                    }))
+                                }
+                            } else {
+                                panic!("Fatal error : keypairs file wrong format : no field salt !")
+                            }
+                        } else {
+                            panic!("Fatal error : keypairs file wrong format : no field password !")
+                        };
+
+                        // Create keypairs file with random keypair
                         DuniterKeyPairs {
-                            network_keypair: KeyPairEnum::Ed25519(ed25519::KeyPair {
-                                privkey: ed25519::PrivateKey::from_base58(network_sec)
-                                    .expect("conf : keypairs file : fail to parse network_sec !"),
-                                pubkey: ed25519::PublicKey::from_base58(network_pub)
-                                    .expect("conf : keypairs file : fail to parse network_pub !"),
-                            }),
-                            member_keypair: None,
+                            network_keypair,
+                            member_keypair,
                         }
                     } else {
                         panic!("Fatal error : keypairs file wrong format : no field salt !")
