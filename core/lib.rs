@@ -418,12 +418,12 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                 KeysSubCommand::Modify(modifyopt) => match modifyopt.subcommand {
                     ModifySubCommand::NetworkSaltPassword(networkopt) => {
                         let new_keypairs =
-                            modify_network_keys(networkopt.salt, networkopt.password, keypairs);
+                            modify_network_keys(&networkopt.salt, &networkopt.password, keypairs);
                         save_keypairs(profile.as_str(), new_keypairs);
                     }
                     ModifySubCommand::MemberSaltPassword(memberopt) => {
                         let new_keypairs =
-                            modify_member_keys(memberopt.salt, memberopt.password, keypairs);
+                            modify_member_keys(&memberopt.salt, &memberopt.password, keypairs);
                         save_keypairs(profile.as_str(), new_keypairs);
                     }
                 },

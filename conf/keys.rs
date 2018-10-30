@@ -45,8 +45,8 @@ impl From<std::io::Error> for WizardError {
 
 /// Modify network keys command
 pub fn modify_network_keys(
-    salt: String,
-    password: String,
+    salt: &str,
+    password: &str,
     mut key_pairs: DuniterKeyPairs,
 ) -> DuniterKeyPairs {
     let generator = ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters();
@@ -57,8 +57,8 @@ pub fn modify_network_keys(
 
 /// Modify member keys command
 pub fn modify_member_keys(
-    salt: String,
-    password: String,
+    salt: &str,
+    password: &str,
     mut key_pairs: DuniterKeyPairs,
 ) -> DuniterKeyPairs {
     let generator = ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters();

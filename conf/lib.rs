@@ -386,11 +386,11 @@ pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuRsConf, Du
                                     None
                                 } else {
                                     Some(KeyPairEnum::Ed25519(ed25519::KeyPair {
-                                        privkey: ed25519::PrivateKey::from_base58(network_sec)
+                                        privkey: ed25519::PrivateKey::from_base58(member_sec)
                                             .expect(
                                                 "conf : keypairs file : fail to parse member_sec !",
                                             ),
-                                        pubkey: ed25519::PublicKey::from_base58(network_pub)
+                                        pubkey: ed25519::PublicKey::from_base58(member_pub)
                                             .expect(
                                                 "conf : keypairs file : fail to parse member_pub !",
                                             ),
