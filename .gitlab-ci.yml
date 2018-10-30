@@ -12,7 +12,7 @@ variables:
   CARGO_HOME: $CI_PROJECT_DIR/cargo
 
 .rust_stable_lin64: &rust_stable_lin64
-  image: registry.duniter.org/docker/duniter-rs-ci:v0.0.6
+  image: registry.duniter.org/docker/duniter-rs-ci:0.0.7
   tags:
     - redshift-rs-stable
   before_script:
@@ -70,11 +70,23 @@ tests:linux64:stable:
     - cargo build --features strict
     - cargo test --all
 
-tests:armv7:stable:
+tests:arm-v7-:stable:
   <<: *rust_stable_armv7
   stage: tests
   script: 
     - cargo test --all --target=armv7-unknown-linux-gnueabihf
+  allow_failure: true
+  when: manual
+  except:
+    - dev
+
+tests:arm-v7:stable:
+  <<: *rust_stable_armv7
+  stage: tests
+  script: 
+    - cargo test --all --target=armv7-unknown-linux-gnueabihf
+  only:
+    - dev
 
 tests:win64:stable:
   <<: *rust_stable_win64
