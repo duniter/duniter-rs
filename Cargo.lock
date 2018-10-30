@@ -196,7 +196,7 @@ dependencies = [
  "duniter-message 0.1.0-a0.1",
  "duniter-module 0.1.0-a0.1",
  "duniter-network 0.1.0-a0.1",
- "duniter-wotb 0.8.0-a0.7",
+ "durs-wot 0.8.0-a0.8",
  "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 1.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "pbr 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -265,7 +265,7 @@ dependencies = [
  "duniter-documents 0.8.0-a0.1",
  "duniter-module 0.1.0-a0.1",
  "duniter-network 0.1.0-a0.1",
- "duniter-wotb 0.8.0-a0.7",
+ "durs-wot 0.8.0-a0.8",
  "lazy_static 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -358,17 +358,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "duniter-wotb"
-version = "0.8.0-a0.7"
-dependencies = [
- "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "byteorder 1.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "rayon 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.78 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "durs"
 version = "0.1.0-a0.1"
 dependencies = [
@@ -377,6 +366,17 @@ dependencies = [
  "durs-ws2p 0.1.0-a0.1",
  "durs-ws2p-v1-legacy 0.1.0-a0.1",
  "structopt 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "durs-wot"
+version = "0.8.0-a0.8"
+dependencies = [
+ "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "byteorder 1.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rayon 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.78 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -425,7 +425,7 @@ dependencies = [
  "duniter-message 0.1.0-a0.1",
  "duniter-module 0.1.0-a0.1",
  "duniter-network 0.1.0-a0.1",
- "duniter-wotb 0.8.0-a0.7",
+ "durs-wot 0.8.0-a0.8",
  "lazy_static 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",

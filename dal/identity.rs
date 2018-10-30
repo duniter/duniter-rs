@@ -17,7 +17,7 @@ use currency_params::CurrencyParameters;
 use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::IdentityDocument;
 use duniter_documents::{BlockId, Blockstamp};
-use duniter_wotb::NodeId;
+use durs_wot::NodeId;
 use std::collections::HashMap;
 use {BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
 
@@ -129,16 +129,16 @@ impl DALIdentity {
     }
 
     /// Get wot_id index
-    pub fn get_wotb_index(
+    pub fn get_wot_index(
         identities_db: &BinDB<IdentitiesV10Datas>,
     ) -> Result<HashMap<PubKey, NodeId>, DALError> {
         Ok(identities_db.read(|db| {
-            let mut wotb_index: HashMap<PubKey, NodeId> = HashMap::new();
+            let mut wot_index: HashMap<PubKey, NodeId> = HashMap::new();
             for (pubkey, member_datas) in db {
-                let wotb_id = member_datas.wot_id;
-                wotb_index.insert(*pubkey, wotb_id);
+                let wot_id = member_datas.wot_id;
+                wot_index.insert(*pubkey, wot_id);
             }
-            wotb_index
+            wot_index
         })?)
     }
 

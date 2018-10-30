@@ -13,15 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-extern crate duniter_wotb;
+extern crate durs_wot;
 
-use duniter_wotb::operations::centrality::{
-    CentralitiesCalculator, UlrikBrandesCentralityCalculator,
-};
-use duniter_wotb::operations::distance::{
+use durs_wot::operations::centrality::{CentralitiesCalculator, UlrikBrandesCentralityCalculator};
+use durs_wot::operations::distance::{
     DistanceCalculator, RustyDistanceCalculator, WotDistance, WotDistanceParameters,
 };
-use duniter_wotb::{NodeId, WebOfTrust};
+use durs_wot::{NodeId, WebOfTrust};
 
 /// CENTRALITY_CALCULATOR
 pub static CENTRALITY_CALCULATOR: UlrikBrandesCentralityCalculator =

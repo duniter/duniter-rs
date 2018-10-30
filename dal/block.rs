@@ -18,7 +18,7 @@ use duniter_crypto::keys::*;
 use duniter_documents::blockchain::v10::documents::BlockDocument;
 use duniter_documents::blockchain::Document;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
-use duniter_wotb::NodeId;
+use durs_wot::NodeId;
 use std::collections::HashMap;
 use *;
 

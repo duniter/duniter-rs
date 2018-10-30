@@ -58,7 +58,7 @@ pub fn check_and_apply_block<W: WebOfTrust>(
     certs_db: &BinDB<CertsExpirV10Datas>,
     block: &Block,
     current_blockstamp: &Blockstamp,
-    wotb_index: &mut HashMap<PubKey, NodeId>,
+    wot_index: &mut HashMap<PubKey, NodeId>,
     wot_db: &BinDB<W>,
     forks_states: &[ForkStatus],
 ) -> Result<ValidBlockApplyReqs, BlockError> {
@@ -101,7 +101,7 @@ pub fn check_and_apply_block<W: WebOfTrust>(
         };
         return Ok(apply_valid_block(
             &block_doc,
-            wotb_index,
+            wot_index,
             wot_db,
             &expire_certs,
             old_fork_id,

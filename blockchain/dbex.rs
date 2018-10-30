@@ -17,8 +17,8 @@ use duniter_crypto::keys::*;
 use duniter_dal::identity::DALIdentity;
 use duniter_documents::blockchain::v10::documents::transaction::*;
 use duniter_module::DuniterConf;
-use duniter_wotb::data::rusty::RustyWebOfTrust;
-use duniter_wotb::operations::distance::{DistanceCalculator, WotDistance, WotDistanceParameters};
+use durs_wot::data::rusty::RustyWebOfTrust;
+use durs_wot::operations::distance::{DistanceCalculator, WotDistance, WotDistanceParameters};
 use std::time::*;
 use *;
 
@@ -140,7 +140,7 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
         .expect("Fail to parse currency params !");
 
     // get wot_index
-    let wot_index = DALIdentity::get_wotb_index(&wot_databases.identities_db).expect("DALError");
+    let wot_index = DALIdentity::get_wot_index(&wot_databases.identities_db).expect("DALError");
 
     // get wot_reverse_index
     let wot_reverse_index: HashMap<NodeId, &PubKey> =

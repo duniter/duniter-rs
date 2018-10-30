@@ -39,7 +39,7 @@ extern crate serde_derive;
 
 extern crate duniter_crypto;
 extern crate duniter_documents;
-extern crate duniter_wotb;
+extern crate durs_wot;
 extern crate rustbreak;
 extern crate serde;
 
@@ -85,7 +85,7 @@ use duniter_documents::blockchain::v10::documents::block::BlockV10Parameters;
 use duniter_documents::blockchain::v10::documents::transaction::*;
 use duniter_documents::CurrencyName;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
-use duniter_wotb::{NodeId, WebOfTrust};
+use durs_wot::{NodeId, WebOfTrust};
 use rustbreak::backend::{FileBackend, MemoryBackend};
 use rustbreak::error::{RustbreakError, RustbreakErrorKind};
 use rustbreak::{deser::Bincode, Database, FileDatabase, MemoryDatabase};
@@ -478,7 +478,7 @@ pub fn open_db<D: Serialize + DeserializeOwned + Debug + Default + Clone + Send>
     }
 }
 
-/// Open wot db (cf. duniter-wot crate)
+/// Open wot db (cf. durs-wot crate)
 pub fn open_wot_db<W: WebOfTrust>(dbs_folder_path: Option<&PathBuf>) -> Result<BinDB<W>, DALError> {
     if let Some(dbs_folder_path) = dbs_folder_path {
         Ok(BinDB::File(open_db::<W>(dbs_folder_path, "wot.db")?))

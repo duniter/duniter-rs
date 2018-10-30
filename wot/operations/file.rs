@@ -87,7 +87,7 @@ impl FileFormater for BinaryFileFormater {
     ) -> Result<(T, Vec<u8>), WotParseError> {
         let mut wot = T::new(max_links);
 
-        let file_size = fs::metadata(path).expect("fail to read wotb file !").len();
+        let file_size = fs::metadata(path).expect("fail to read wot file !").len();
         let mut file_pointing_to_blockstamp_size: Vec<u8> = vec![0; file_size as usize];
         match File::open(path) {
             Ok(mut file) => {

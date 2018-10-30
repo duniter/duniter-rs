@@ -32,7 +32,7 @@ members = [
     "module",
     "network",
     "tui",
-    "wotb",
+    "wot",
     "ws2p",
     "ws2p-messages",
     "ws2p-v1-legacy"

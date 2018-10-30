@@ -22,7 +22,7 @@ use duniter_crypto::keys::PubKey;
 use duniter_documents::blockchain::v10::documents::certification::CompactCertificationDocument;
 use duniter_documents::blockchain::v10::documents::identity::IdentityDocument;
 use duniter_documents::Blockstamp;
-use duniter_wotb::NodeId;
+use durs_wot::NodeId;
 use identity::DALIdentity;
 use sources::SourceAmount;
 use std::ops::Deref;
@@ -89,9 +89,9 @@ impl BlocksDBsWriteQuery {
 #[derive(Debug, Clone)]
 /// Contain a pending write request for wots databases
 pub enum WotsDBsWriteQuery {
-    /// Newcomer (wotb_id, blockstamp, current_bc_time, idty_doc, ms_created_block_id)
+    /// Newcomer (wot_id, blockstamp, current_bc_time, idty_doc, ms_created_block_id)
     CreateIdentity(NodeId, Blockstamp, u64, Box<IdentityDocument>, BlockId),
-    /// Revert newcomer event (wotb_id, blockstamp, current_bc_time, idty_doc, ms_created_block_id)
+    /// Revert newcomer event (wot_id, blockstamp, current_bc_time, idty_doc, ms_created_block_id)
     RevertCreateIdentity(PubKey),
     /// Active (pubKey, idty_wot_id, current_bc_time, ms_created_block_id)
     RenewalIdentity(PubKey, NodeId, u64, BlockId),
@@ -124,7 +124,7 @@ impl WotsDBsWriteQuery {
     ) -> Result<(), DALError> {
         match *self {
             WotsDBsWriteQuery::CreateIdentity(
-                ref wotb_id,
+                ref wot_id,
                 ref blockstamp,
                 ref current_bc_time,
                 ref idty_doc,
@@ -136,7 +136,7 @@ impl WotsDBsWriteQuery {
                     &databases.ms_db,
                     idty_doc.deref(),
                     *ms_created_block_id,
-                    *wotb_id,
+                    *wot_id,
                     *blockstamp,
                     *current_bc_time,
                 )?;
