@@ -16,8 +16,7 @@
 //! Module defining the format of network heads and how to handle them.
 
 use duniter_crypto::keys::*;
-use duniter_documents::BlockUIdParseError;
-use duniter_documents::Blockstamp;
+use duniter_documents::blockstamp::*;
 use network_head_v2::*;
 use network_head_v3::*;
 use serde_json;
@@ -52,8 +51,8 @@ pub enum NetworkHeadParseErr {
     BaseConvertionError(BaseConvertionError),
     /// ParseIntError
     ParseIntError(ParseIntError),
-    /// BlockUIdParseError
-    BlockUIdParseError(BlockUIdParseError),
+    /// BlockstampParseError
+    BlockstampParseError(BlockstampParseError),
     /// NetworkHeadMessageParseErr
     NetworkHeadMessageParseErr(NetworkHeadMessageParseErr),
     /// InvalidMessageVersion
@@ -78,9 +77,9 @@ impl From<BaseConvertionError> for NetworkHeadParseErr {
     }
 }
 
-impl From<BlockUIdParseError> for NetworkHeadParseErr {
-    fn from(e: BlockUIdParseError) -> Self {
-        NetworkHeadParseErr::BlockUIdParseError(e)
+impl From<BlockstampParseError> for NetworkHeadParseErr {
+    fn from(e: BlockstampParseError) -> Self {
+        NetworkHeadParseErr::BlockstampParseError(e)
     }
 }
 

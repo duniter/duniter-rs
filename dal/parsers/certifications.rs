@@ -17,8 +17,8 @@ extern crate serde;
 extern crate serde_json;
 
 use duniter_crypto::keys::*;
-use duniter_documents::blockchain::v10::documents::certification::CompactCertificationDocument;
-use duniter_documents::blockchain::v10::documents::{CertificationDocument, TextDocumentFormat};
+use duniter_documents::v10::certification::{CertificationDocument, CompactCertificationDocument};
+use duniter_documents::v10::TextDocumentFormat;
 use duniter_documents::BlockId;
 
 /// Parse array of certification json documents into vector of `CompactCertificationDocument`

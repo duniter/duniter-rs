@@ -18,7 +18,7 @@ extern crate serde_json;
 
 use currency_params::CurrencyParameters;
 use duniter_crypto::keys::*;
-use duniter_documents::blockchain::v10::documents::certification::CompactCertificationDocument;
+use duniter_documents::v10::certification::CompactCertificationDocument;
 use duniter_documents::BlockId;
 use durs_wot::NodeId;
 use {BinDB, CertsExpirV10Datas, DALError, IdentitiesV10Datas};

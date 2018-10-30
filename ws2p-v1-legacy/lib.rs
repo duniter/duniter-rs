@@ -929,7 +929,7 @@ mod tests {
     use super::parsers::blocks::parse_json_block;
     use super::*;
     use duniter_crypto::keys::PublicKey;
-    use duniter_documents::blockchain::v10::documents::BlockDocument;
+    use duniter_documents::v10::BlockDocument;
     use duniter_module::DuniterModule;
     use duniter_network::network_endpoint::{EndpointEnum, NetworkEndpointApi};
     use duniter_network::NetworkBlock;

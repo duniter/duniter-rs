@@ -18,7 +18,7 @@
 use base58::ToBase58;
 use duniter_crypto::keys::bin_signable::BinSignable;
 use duniter_crypto::keys::*;
-use duniter_documents::Blockstamp;
+use duniter_documents::blockstamp::Blockstamp;
 use serde_json;
 use std::cmp::Ordering;
 use NodeId;

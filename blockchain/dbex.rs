@@ -15,7 +15,7 @@
 
 use duniter_crypto::keys::*;
 use duniter_dal::identity::DALIdentity;
-use duniter_documents::blockchain::v10::documents::transaction::*;
+use duniter_documents::v10::transaction::*;
 use duniter_module::DuniterConf;
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::operations::distance::{DistanceCalculator, WotDistance, WotDistanceParameters};

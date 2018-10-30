@@ -58,7 +58,7 @@ mod tests {
     use bincode::{deserialize, serialize};
     use duniter_crypto::keys::bin_signable::BinSignable;
     use duniter_crypto::keys::*;
-    use duniter_documents::blockchain::v10::documents::certification::*;
+    use duniter_documents::v10::certification::*;
     use duniter_documents::{Blockstamp, CurrencyName};
     use duniter_network::network_endpoint::*;
     use duniter_network::network_peer::*;

@@ -15,8 +15,8 @@
 
 use currency_params::CurrencyParameters;
 use duniter_crypto::keys::PubKey;
-use duniter_documents::blockchain::v10::documents::IdentityDocument;
-use duniter_documents::blockchain::Document;
+use duniter_documents::v10::identity::IdentityDocument;
+use duniter_documents::Document;
 use duniter_documents::{BlockId, Blockstamp};
 use durs_wot::NodeId;
 use identity::{DALIdentity, DALIdentityState};

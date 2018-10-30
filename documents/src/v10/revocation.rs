@@ -16,20 +16,11 @@
 //! Wrappers around Revocation documents.
 
 use duniter_crypto::keys::*;
-use regex::Regex;
+use pest::Parser;
 
-use blockchain::v10::documents::*;
-use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
-use Blockstamp;
-
-lazy_static! {
-    static ref REVOCATION_REGEX: Regex = Regex::new(
-        "^Issuer: (?P<issuer>[1-9A-Za-z][^OIl]{43,44})\n\
-         IdtyUniqueID: (?P<idty_uid>[[:alnum:]_-]+)\n\
-         IdtyTimestamp: (?P<idty_blockstamp>[0-9]+-[0-9A-F]{64})\n\
-         IdtySignature: (?P<idty_sig>(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)\n$"
-    ).unwrap();
-}
+use blockstamp::Blockstamp;
+use v10::*;
+use *;
 
 #[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq)]
 /// Wrap an Compact Revocation document (in block content)
@@ -106,7 +97,7 @@ impl Document for RevocationDocument {
     }
 
     fn as_bytes(&self) -> &[u8] {
-        self.as_text().as_bytes()
+        self.as_text_without_signature().as_bytes()
     }
 }
 
@@ -198,26 +189,92 @@ IdtySignature: {idty_sig}
 #[derive(Debug, Clone, Copy)]
 pub struct RevocationDocumentParser;
 
-impl StandardTextDocumentParser for RevocationDocumentParser {
-    fn parse_standard(
-        doc: &str,
-        body: &str,
-        currency: &str,
-        signatures: Vec<Sig>,
-    ) -> Result<V10Document, V10DocumentParsingError> {
-        if let Some(caps) = REVOCATION_REGEX.captures(body) {
+impl TextDocumentParser for RevocationDocumentParser {
+    fn parse(doc: &str, currency: &str) -> Result<V10Document, V10DocumentParsingError> {
+        match DocumentsParser::parse(Rule::revoc, doc) {
+            Ok(mut doc_ast) => {
+                let revoc_ast = doc_ast.next().unwrap(); // get and unwrap the `revoc` rule; never fails
+                let revoc_vx_ast = revoc_ast.into_inner().next().unwrap(); // get and unwrap the `revoc_vX` rule; never fails
+
+                match revoc_vx_ast.as_rule() {
+                    Rule::revoc_v10 => {
+                        let mut pubkeys = Vec::with_capacity(1);
+                        let mut uid = "";
+                        let mut sigs = Vec::with_capacity(2);
+                        let mut blockstamps = Vec::with_capacity(1);
+                        for field in revoc_vx_ast.into_inner() {
+                            match field.as_rule() {
+                                Rule::currency => {
+                                    if currency != field.as_str() {
+                                        return Err(V10DocumentParsingError::InvalidCurrency());
+                                    }
+                                }
+                                Rule::pubkey => {
+                                    if !pubkeys.is_empty() {
+                                        return Err(V10DocumentParsingError::InvalidInnerFormat(
+                                            "Revocation document must contain exactly one pubkey !",
+                                        ));
+                                    }
+                                    pubkeys.push(PubKey::Ed25519(
+                                        ed25519::PublicKey::from_base58(field.as_str()).unwrap(), // Grammar ensures that we have a base58 string.
+                                    ));
+                                }
+                                Rule::uid => {
+                                    uid = field.as_str();
+                                }
+                                Rule::blockstamp => {
+                                    if blockstamps.len() > 1 {
+                                        return Err(V10DocumentParsingError::InvalidInnerFormat(
+                                            "Revocation document must contain exactly one blockstamp !",
+                                        ));
+                                    }
+                                    let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
+
+                                    let block_id: &str = inner_rules.next().unwrap().as_str();
+                                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                                    blockstamps.push(Blockstamp {
+                                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
+                                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                                    });
+                                }
+                                Rule::ed25519_sig => {
+                                    sigs.push(Sig::Ed25519(
+                                        ed25519::Signature::from_base64(field.as_str()).unwrap(), // Grammar ensures that we have a base64 string.
+                                    ));
+                                }
+                                Rule::EOI => (),
+                                _ => panic!("unexpected rule"), // Grammar ensures that we never reach this line
+                            }
+                        }
+                        Ok(V10Document::Revocation(Box::new(RevocationDocument {
+                            text: doc.to_owned(),
+                            issuers: vec![pubkeys[0]],
+                            currency: currency.to_owned(),
+                            identity_username: uid.to_owned(),
+                            identity_blockstamp: blockstamps[0],
+                            identity_sig: sigs[0],
+                            signatures: vec![sigs[1]],
+                        })))
+                    }
+                    _ => Err(V10DocumentParsingError::UnexpectedVersion()),
+                }
+            }
+            Err(pest_error) => panic!("{}", pest_error), //Err(V10DocumentParsingError::PestError()),
+        }
+
+        /*if let Some(caps) = REVOCATION_REGEX.captures(body) {
             let issuer = &caps["issuer"];
             let identity_username = &caps["idty_uid"];
             let identity_blockstamp = &caps["idty_blockstamp"];
             let identity_sig = &caps["idty_sig"];
-
+        
             // Regex match so should not fail.
             // TODO : Test it anyway
             let issuer = PubKey::Ed25519(ed25519::PublicKey::from_base58(issuer).unwrap());
             let identity_username = String::from(identity_username);
             let identity_blockstamp = Blockstamp::from_string(identity_blockstamp).unwrap();
             let identity_sig = Sig::Ed25519(Signature::from_base64(identity_sig).unwrap());
-
+        
             Ok(V10Document::Revocation(Box::new(RevocationDocument {
                 text: doc.to_owned(),
                 issuers: vec![issuer],
@@ -228,18 +285,16 @@ impl StandardTextDocumentParser for RevocationDocumentParser {
                 signatures,
             })))
         } else {
-            Err(V10DocumentParsingError::InvalidInnerFormat(
-                "Revocation".to_string(),
-            ))
-        }
+            Err(V10DocumentParsingError::InvalidInnerFormat("Revocation"))
+        }*/
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use blockchain::VerificationResult;
     use duniter_crypto::keys::{PrivateKey, PublicKey, Signature};
+    use VerificationResult;
 
     #[test]
     fn generate_real_document() {
@@ -289,17 +344,6 @@ mod tests {
     }
 
     #[test]
-    fn revocation_standard_regex() {
-        assert!(REVOCATION_REGEX.is_match(
-            "Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
-IdtyUniqueID: tic
-IdtyTimestamp: 98221-000000575AC04F5164F7A307CDB766139EA47DD249E4A2444F292BC8AAB408B3
-IdtySignature: DjeipIeb/RF0tpVCnVnuw6mH1iLJHIsDfPGLR90Twy3PeoaDz6Yzhc/UjLWqHCi5Y6wYajV0dNg4jQRUneVBCQ==
-"
-        ));
-    }
-
-    #[test]
     fn revocation_document() {
         let doc = "Version: 10
 Type: Revocation
@@ -308,22 +352,11 @@ Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
 IdtyUniqueID: tic
 IdtyTimestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 IdtySignature: 1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==
-";
-
-        let body = "Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
-IdtyUniqueID: tic
-IdtyTimestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
-IdtySignature: 1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==
-";
+XXOgI++6qpY9O31ml/FcfbXCE6aixIrgkT5jL7kBle3YOMr+8wrp7Rt+z9hDVjrNfYX2gpeJsuMNfG4T/fzVDQ==";
 
         let currency = "g1";
 
-        let signatures = vec![Sig::Ed25519(ed25519::Signature::from_base64(
-"XXOgI++6qpY9O31ml/FcfbXCE6aixIrgkT5jL7kBle3YOMr+8wrp7Rt+z9hDVjrNfYX2gpeJsuMNfG4T/fzVDQ=="
-        ).unwrap())];
-
-        let doc =
-            RevocationDocumentParser::parse_standard(doc, body, currency, signatures).unwrap();
+        let doc = RevocationDocumentParser::parse(doc, currency).unwrap();
         if let V10Document::Revocation(doc) = doc {
             println!("Doc : {:?}", doc);
             assert_eq!(doc.verify_signatures(), VerificationResult::Valid())

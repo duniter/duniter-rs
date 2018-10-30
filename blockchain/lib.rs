@@ -70,9 +70,9 @@ use duniter_dal::dal_requests::{DALReqBlockchain, DALRequest, DALResBlockchain, 
 use duniter_dal::identity::DALIdentity;
 use duniter_dal::writers::requests::BlocksDBsWriteQuery;
 use duniter_dal::*;
-use duniter_documents::blockchain::v10::documents::{BlockDocument, V10Document};
-use duniter_documents::blockchain::{BlockchainProtocol, Document};
+use duniter_documents::v10::{BlockDocument, V10Document};
 use duniter_documents::*;
+use duniter_documents::{BlockchainProtocol, Document};
 use duniter_message::*;
 use duniter_module::*;
 use duniter_network::{

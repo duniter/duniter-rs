@@ -15,16 +15,11 @@
 
 //! Wrappers around Identity documents.
 
-use blockchain::v10::documents::*;
-use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
-use regex::Regex;
-use Blockstamp;
+use pest::Parser;
 
-lazy_static! {
-    static ref IDENTITY_REGEX: Regex = Regex::new(
-        "^Issuer: (?P<issuer>[1-9A-Za-z][^OIl]{43,44})\nUniqueID: (?P<uid>[[:alnum:]_-]+)\nTimestamp: (?P<blockstamp>[0-9]+-[0-9A-F]{64})\n$"
-    ).unwrap();
-}
+use v10::*;
+use Blockstamp;
+use *;
 
 /// Wrap an Identity document.
 ///
@@ -86,7 +81,7 @@ impl Document for IdentityDocument {
     }
 
     fn as_bytes(&self) -> &[u8] {
-        self.as_text().as_bytes()
+        self.as_text_without_signature().as_bytes()
     }
 }
 
@@ -204,35 +199,60 @@ Timestamp: {blockstamp}
 #[derive(Debug, Clone, Copy)]
 pub struct IdentityDocumentParser;
 
-impl StandardTextDocumentParser for IdentityDocumentParser {
-    fn parse_standard(
-        doc: &str,
-        body: &str,
-        currency: &str,
-        signatures: Vec<Sig>,
-    ) -> Result<V10Document, V10DocumentParsingError> {
-        if let Some(caps) = IDENTITY_REGEX.captures(body) {
-            let issuer = &caps["issuer"];
-            let uid = &caps["uid"];
-            let blockstamp = &caps["blockstamp"];
+impl TextDocumentParser for IdentityDocumentParser {
+    fn parse(doc: &str, currency: &str) -> Result<V10Document, V10DocumentParsingError> {
+        match DocumentsParser::parse(Rule::idty, doc) {
+            Ok(mut doc_ast) => {
+                let idty_ast = doc_ast.next().unwrap(); // get and unwrap the `idty` rule; never fails
+                let idty_vx_ast = idty_ast.into_inner().next().unwrap(); // get and unwrap the `idty_vX` rule; never fails
 
-            // Regex match so should not fail.
-            // TODO : Test it anyway
-            let issuer = PubKey::Ed25519(ed25519::PublicKey::from_base58(issuer).unwrap());
-            let blockstamp = Blockstamp::from_string(blockstamp).unwrap();
+                match idty_vx_ast.as_rule() {
+                    Rule::idty_v10 => {
+                        let mut pubkey_str = "";
+                        let mut uid = "";
+                        let mut blockstamp = Blockstamp::default();
+                        let mut sig_str = "";
+                        for field in idty_vx_ast.into_inner() {
+                            match field.as_rule() {
+                                Rule::currency => {
+                                    if currency != field.as_str() {
+                                        return Err(V10DocumentParsingError::InvalidCurrency());
+                                    }
+                                }
+                                Rule::pubkey => pubkey_str = field.as_str(),
+                                Rule::uid => uid = field.as_str(),
+                                Rule::blockstamp => {
+                                    let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
 
-            Ok(V10Document::Identity(IdentityDocument {
-                text: Some(doc.to_owned()),
-                currency: currency.to_owned(),
-                username: uid.to_owned(),
-                blockstamp,
-                issuers: vec![issuer],
-                signatures,
-            }))
-        } else {
-            Err(V10DocumentParsingError::InvalidInnerFormat(
-                "Identity".to_string(),
-            ))
+                                    let block_id: &str = inner_rules.next().unwrap().as_str();
+                                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                                    blockstamp = Blockstamp {
+                                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
+                                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                                    };
+                                }
+                                Rule::ed25519_sig => sig_str = field.as_str(),
+                                Rule::EOI => (),
+                                _ => panic!("unexpected rule"), // Grammar ensures that we never reach this line
+                            }
+                        }
+                        Ok(V10Document::Identity(IdentityDocument {
+                            text: Some(doc.to_owned()),
+                            currency: currency.to_owned(),
+                            username: uid.to_owned(),
+                            blockstamp,
+                            issuers: vec![PubKey::Ed25519(
+                                ed25519::PublicKey::from_base58(pubkey_str).unwrap(),
+                            )], // Grammar ensures that we have a base58 string.
+                            signatures: vec![Sig::Ed25519(
+                                ed25519::Signature::from_base64(sig_str).unwrap(),
+                            )], // Grammar ensures that we have a base64 string.
+                        }))
+                    }
+                    _ => Err(V10DocumentParsingError::UnexpectedVersion()),
+                }
+            }
+            Err(pest_error) => panic!("{}", pest_error), //Err(V10DocumentParsingError::PestError()),
         }
     }
 }
@@ -240,8 +260,8 @@ impl StandardTextDocumentParser for IdentityDocumentParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use blockchain::{Document, VerificationResult};
     use duniter_crypto::keys::{PrivateKey, PublicKey, Signature};
+    use {Document, VerificationResult};
 
     #[test]
     fn generate_real_document() {
@@ -289,16 +309,6 @@ mod tests {
     }
 
     #[test]
-    fn identity_standard_regex() {
-        assert!(IDENTITY_REGEX.is_match(
-            "Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
-UniqueID: tic
-Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
-"
-        ));
-    }
-
-    #[test]
     fn parse_identity_document() {
         let doc = "Version: 10
 Type: Identity
@@ -306,20 +316,11 @@ Currency: duniter_unit_test_currency
 Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
 UniqueID: tic
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
-";
-
-        let body = "Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
-UniqueID: tic
-Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
-";
+1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==";
 
         let currency = "duniter_unit_test_currency";
 
-        let signatures = vec![Sig::Ed25519(ed25519::Signature::from_base64(
-"1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg=="
-        ).unwrap())];
-
-        let doc = IdentityDocumentParser::parse_standard(doc, body, currency, signatures).unwrap();
+        let doc = IdentityDocumentParser::parse(doc, currency).expect("Fail to parse idty doc !");
         if let V10Document::Identity(doc) = doc {
             println!("Doc : {:?}", doc);
             assert_eq!(doc.verify_signatures(), VerificationResult::Valid())

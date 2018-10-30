@@ -15,12 +15,6 @@
 
 //! Provide wrappers around Duniter blockchain documents for protocol version 10.
 
-use blockchain::v10::documents::identity::IdentityDocumentParser;
-use blockchain::{Document, DocumentBuilder, DocumentParser};
-use crypto::digest::Digest;
-use duniter_crypto::keys::*;
-use regex::Regex;
-
 pub mod block;
 pub mod certification;
 pub mod identity;
@@ -28,31 +22,16 @@ pub mod membership;
 pub mod revocation;
 pub mod transaction;
 
-pub use blockchain::v10::documents::block::BlockDocument;
-pub use blockchain::v10::documents::certification::{
-    CertificationDocument, CertificationDocumentParser,
-};
-pub use blockchain::v10::documents::identity::{IdentityDocument, IdentityDocumentBuilder};
-pub use blockchain::v10::documents::membership::{MembershipDocument, MembershipDocumentParser};
-pub use blockchain::v10::documents::revocation::{RevocationDocument, RevocationDocumentParser};
-pub use blockchain::v10::documents::transaction::{
-    TransactionDocument, TransactionDocumentBuilder, TransactionDocumentParser,
-};
+use crypto::digest::Digest;
+use duniter_crypto::keys::PrivateKey;
 
-use std::marker::Sized;
-
-// Use of lazy_static so the regex is only compiled at first use.
-lazy_static! {
-    static ref DOCUMENT_REGEX: Regex = Regex::new(
-        "^(?P<doc>Version: (?P<version>[0-9]+)\n\
-         Type: (?P<type>[[:alpha:]]+)\n\
-         Currency: (?P<currency>[[:alnum:] _-]+)\n\
-         (?P<body>(?:.*\n)+?))\
-         (?P<sigs>([[:alnum:]+/=]+\n)*([[:alnum:]+/=]+))$"
-    )
-    .unwrap();
-    static ref SIGNATURES_REGEX: Regex = Regex::new("[[:alnum:]+/=]+\n?").unwrap();
-}
+pub use v10::block::BlockDocument;
+use v10::certification::*;
+use v10::identity::*;
+use v10::membership::*;
+use v10::revocation::*;
+use v10::transaction::*;
+use *;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// Contains a document in full or compact format
@@ -124,22 +103,34 @@ pub trait TextDocument: Document<PublicKey = PubKey, CurrencyType = str> {
     /// Return document as text.
     fn as_text(&self) -> &str;
 
+    /// Return document as text without signature.
+    fn as_text_without_signature(&self) -> &str {
+        let text = self.as_text();
+        let mut lines: Vec<&str> = self.as_text().split('\n').collect();
+        let sigs = self.signatures();
+        let mut sigs_str_len = sigs.len() - 1;
+        for _ in sigs {
+            sigs_str_len += lines.pop().unwrap_or("").len();
+        }
+        &text[0..(text.len() - sigs_str_len)]
+    }
+
     /// Return sha256 hash of text document
     fn hash<H: Digest>(&self, digest: &mut H) -> String {
         digest.input_str(self.as_text());
         digest.result_str()
     }
 
-    /// Return document as text with leading signatures.
+    /*/// Return document as text with leading signatures.
     fn as_text_with_signatures(&self) -> String {
         let mut text = self.as_text().to_string();
-
+    
         for sig in self.signatures() {
             text = format!("{}{}\n", text, sig.to_base64());
         }
-
+    
         text
-    }
+    }*/
 
     /// Generate compact document.
     /// the compact format is the one used in the blocks.
@@ -191,9 +182,15 @@ pub enum V10DocumentParsingError {
     /// The given source don't have a valid document format.
     InvalidWrapperFormat(),
     /// The given source don't have a valid specific document format (document type).
-    InvalidInnerFormat(String),
+    InvalidInnerFormat(&'static str),
     /// Type fields contains an unknown document type.
     UnknownDocumentType(String),
+    /// Error with pest parser
+    PestError(),
+    /// Invalid currency
+    InvalidCurrency(),
+    /// UnexpectedVersion
+    UnexpectedVersion(),
 }
 
 /// V10 Documents in separated parts
@@ -209,134 +206,186 @@ pub struct V10DocumentParts {
     pub signatures: Vec<Sig>,
 }
 
-trait StandardTextDocumentParser {
-    fn parse_standard(
-        doc: &str,
-        body: &str,
-        currency: &str,
-        signatures: Vec<Sig>,
-    ) -> Result<V10Document, V10DocumentParsingError>;
+trait TextDocumentParser {
+    fn parse(doc: &str, currency: &str) -> Result<V10Document, V10DocumentParsingError>;
 }
 
-/// A V10 document parser.
+/*/// A V10 document parser.
 #[derive(Debug, Clone, Copy)]
 pub struct V10DocumentParser;
 
 impl<'a> DocumentParser<&'a str, V10Document, V10DocumentParsingError> for V10DocumentParser {
     fn parse(source: &'a str) -> Result<V10Document, V10DocumentParsingError> {
-        if let Some(caps) = DOCUMENT_REGEX.captures(source) {
-            let doctype = &caps["type"];
-            let doc = &caps["doc"];
-            let currency = &caps["currency"];
-            let body = &caps["body"];
-            let sigs = SIGNATURES_REGEX
-                .captures_iter(&caps["sigs"])
-                .map(|capture| Sig::Ed25519(ed25519::Signature::from_base64(&capture[0]).unwrap()))
-                .collect::<Vec<_>>();
-
-            // TODO : Improve error handling of Signature::from_base64 failure
-
-            match doctype {
-                "Identity" => IdentityDocumentParser::parse_standard(doc, body, currency, sigs),
-                "Membership" => MembershipDocumentParser::parse_standard(doc, body, currency, sigs),
-                "Certification" => {
-                    CertificationDocumentParser::parse_standard(doc, body, currency, sigs)
+        /*match DocumentsParser::parse(Rule::document_v10, source) {
+            Ok(mut source_ast) => {
+                let doc_v10_ast = source_ast.next().unwrap(); // get and unwrap the `document_v10` rule; never fails
+                let doc_type_v10_ast = doc_v10_ast.into_inner().next().unwrap(); // get and unwrap the `{DOC_TYPE}_v10` rule; never fails
+        
+                match doc_type_v10_ast.as_rule() {
+                    Rule::idty_v10 => IdentityDocumentParser::parse_standard(doc_type_v10_ast.as_str(), "", currency, vec![]),
+                    Rule::membership_v10 => MembershipDocumentParser::parse_standard(doc_type_v10_ast.as_str(), "", currency, vec![]),
+                    Rule::cert_v10 => CertificationDocumentParser::parse_standard(doc_type_v10_ast.as_str(), "", currency, vec![]),
+                    Rule::revoc_v10 => RevocationDocumentParser::parse_standard(doc_type_v10_ast.as_str(), "", currency, vec![]),
+                    Rule::tx_v10 => TransactionDocumentParser::parse_standard(doc_type_v10_ast.as_str(), "", currency, vec![]),
                 }
-                "Revocation" => RevocationDocumentParser::parse_standard(doc, body, currency, sigs),
-                "Transaction" => {
-                    TransactionDocumentParser::parse_standard(doc, body, currency, sigs)
-                }
-                _ => Err(V10DocumentParsingError::UnknownDocumentType(
-                    doctype.to_string(),
-                )),
             }
-        } else {
-            Err(V10DocumentParsingError::InvalidWrapperFormat())
-        }
-    }
+            Err(_) => Err(V10DocumentParsingError::InvalidWrapperFormat()),
+        }*/
+if let Some(caps) = DOCUMENT_REGEX.captures(source) {
+let doctype = &caps["type"];
+let currency = &caps["currency"];
+
+// TODO : Improve error handling of Signature::from_base64 failure
+
+match doctype {
+"Identity" => IdentityDocumentParser::parse_standard(source, currency),
+"Membership" => MembershipDocumentParser::parse_standard(source, currency),
+"Certification" => CertificationDocumentParser::parse_standard(source, currency),
+"Revocation" => RevocationDocumentParser::parse_standard(source, currency),
+"Transaction" => TransactionDocumentParser::parse_standard(source, currency),
+_ => Err(V10DocumentParsingError::UnknownDocumentType(
+doctype.to_string(),
+)),
 }
+} else {
+Err(V10DocumentParsingError::InvalidWrapperFormat())
+}
+}
+}*/
 
 #[cfg(test)]
 mod tests {
+    use super::certification::CertificationDocumentParser;
+    use super::identity::IdentityDocumentParser;
+    use super::membership::MembershipDocumentParser;
+    use super::revocation::RevocationDocumentParser;
+    use super::transaction::TransactionDocumentParser;
     use super::*;
-    use blockchain::{Document, VerificationResult};
+    use duniter_crypto::keys::*;
 
-    #[test]
-    fn document_regex() {
-        assert!(DOCUMENT_REGEX.is_match(
-            "Version: 10
-Type: Transaction
-Currency: beta_brousouf
-Blockstamp: 204-00003E2B8A35370BA5A7064598F628A62D4E9EC1936BE8651CE9A85F2E06981B
-Locktime: 0
-Issuers:
-HsLShAtzXTVxeUtQd7yi5Z5Zh4zNvbu8sTEZ53nfKcqY
-CYYjHsNyg3HMRMpTHqCJAN9McjH5BwFLmDKGV3PmCuKp
-9WYHTavL1pmhunFCzUwiiq4pXwvgGG5ysjZnjz9H8yB
-Inputs:
-40:2:T:6991C993631BED4733972ED7538E41CCC33660F554E3C51963E2A0AC4D6453D3:2
-70:2:T:3A09A20E9014110FD224889F13357BAB4EC78A72F95CA03394D8CCA2936A7435:8
-20:2:D:HsLShAtzXTVxeUtQd7yi5Z5Zh4zNvbu8sTEZ53nfKcqY:46
-70:2:T:A0D9B4CDC113ECE1145C5525873821398890AE842F4B318BD076095A23E70956:3
-20:2:T:67F2045B5318777CC52CD38B424F3E40DDA823FA0364625F124BABE0030E7B5B:5
-15:2:D:9WYHTavL1pmhunFCzUwiiq4pXwvgGG5ysjZnjz9H8yB:46
-Unlocks:
-0:SIG(0)
-1:XHX(7665798292)
-2:SIG(0)
-3:SIG(0) SIG(2)
-4:SIG(0) SIG(1) SIG(2)
-5:SIG(2)
-Outputs:
-120:2:SIG(BYfWYFrsyjpvpFysgu19rGK3VHBkz4MqmQbNyEuVU64g)
-146:2:SIG(DSz4rgncXCytsUMW2JU2yhLquZECD2XpEkpP9gG5HyAx)
-49:2:(SIG(6DyGr5LFtFmbaJYRvcs9WmBsr4cbJbJ1EV9zBbqG7A6i)\
- || XHX(3EB4702F2AC2FD3FA4FDC46A4FC05AE8CDEE1A85))
-Comment: -----@@@----- (why not this comment?)
-42yQm4hGTJYWkPg39hQAUgP6S6EQ4vTfXdJuxKEHL1ih6YHiDL2hcwrFgBHjXLRgxRhj2VNVqqc6b4JayKqTE14r
-2D96KZwNUvVtcapQPq2mm7J9isFcDCfykwJpVEZwBc7tCgL4qPyu17BT5ePozAE9HS6Yvj51f62Mp4n9d9dkzJoX
-2XiBDpuUdu6zCPWGzHXXy8c4ATSscfFQG9DjmqMZUxDZVt1Dp4m2N5oHYVUfoPdrU9SLk4qxi65RNrfCVnvQtQJk"
-        ));
+    // simple text document for signature testing
+    #[derive(Debug, Clone)]
+    struct PlainTextDocument {
+        pub text: &'static str,
+        pub issuers: Vec<PubKey>,
+        pub signatures: Vec<Sig>,
+    }
 
-        assert!(DOCUMENT_REGEX.is_match(
-            "Version: 10
-Type: Certification
-Currency: beta_brousouf
-Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
-IdtyIssuer: HgTTJLAQ5sqfknMq7yLPZbehtuLSsKj9CxWN7k8QvYJd
-IdtyUniqueID: lolcat
-IdtyTimestamp: 32-DB30D958EE5CB75186972286ED3F4686B8A1C2CD
-IdtySignature: J3G9oM5AKYZNLAB5Wx499w61NuUoS57JVccTShUb\
-GpCMjCqj9yXXqNq7dyZpDWA6BxipsiaMZhujMeBfCznzyci
-CertTimestamp: 36-1076F10A7397715D2BEE82579861999EA1F274AC
-SoKwoa8PFfCDJWZ6dNCv7XstezHcc2BbKiJgVDXv82R5zYR83nis9dShLgWJ5w48noVUHimdngzYQneNYSMV3rk"
-        ));
+    impl Document for PlainTextDocument {
+        type PublicKey = PubKey;
+        type CurrencyType = str;
+
+        fn version(&self) -> u16 {
+            unimplemented!()
+        }
+
+        fn currency(&self) -> &str {
+            unimplemented!()
+        }
+
+        fn blockstamp(&self) -> Blockstamp {
+            unimplemented!()
+        }
+
+        fn issuers(&self) -> &Vec<PubKey> {
+            &self.issuers
+        }
+
+        fn signatures(&self) -> &Vec<Sig> {
+            &self.signatures
+        }
+
+        fn as_bytes(&self) -> &[u8] {
+            self.text.as_bytes()
+        }
     }
 
     #[test]
-    fn signatures_regex() {
-        assert_eq!(
-            SIGNATURES_REGEX
-                .captures_iter(
-                    "
-42yQm4hGTJYWkPg39hQAUgP6S6EQ4vTfXdJuxKEHL1ih6YHiDL2hcwrFgBHjXLRgxRhj2VNVqqc6b4JayKqTE14r
-2D96KZwNUvVtcapQPq2mm7J9isFcDCfykwJpVEZwBc7tCgL4qPyu17BT5ePozAE9HS6Yvj51f62Mp4n9d9dkzJoX
-2XiBDpuUdu6zCPWGzHXXy8c4ATSscfFQG9DjmqMZUxDZVt1Dp4m2N5oHYVUfoPdrU9SLk4qxi65RNrfCVnvQtQJk"
-                )
-                .count(),
-            3
+    fn verify_signatures() {
+        let text = "Version: 10
+Type: Identity
+Currency: duniter_unit_test_currency
+Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+UniqueID: tic
+Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+";
+
+        // good pair
+        let issuer1 = PubKey::Ed25519(
+            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
+                .unwrap(),
         );
 
-        assert_eq!(
-            SIGNATURES_REGEX
-                .captures_iter(
-                    "
-42yQm4hGTJYWkPg39hQAUgP6S6EQ4vTfXdJuxKEHL1ih6YHiDL2hcwrFgBHjXLRgxRhj2VNVqqc6b4JayKqTE14r
-2XiBDpuUdu6zCPWGzHXXy8c4ATSscfFQG9DjmqMZUxDZVt1Dp4m2N5oHYVUfoPdrU9SLk4qxi65RNrfCVnvQtQJk"
-                )
-                .count(),
-            2
+        let sig1 = Sig::Ed25519(
+            ed25519::Signature::from_base64(
+                "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMM\
+                 mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
+            )
+            .unwrap(),
         );
+
+        // incorrect pair
+        let issuer2 = PubKey::Ed25519(
+            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt32bzHbA3NJR46DeQYCS2qQdLV")
+                .unwrap(),
+        );
+
+        let sig2 = Sig::Ed25519(
+            ed25519::Signature::from_base64(
+                "1eubHHbuNfilHHH0G2bI30iZzebQ2cQ1PC7uPAw08FGMM\
+                 mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
+            )
+            .unwrap(),
+        );
+
+        {
+            let doc = PlainTextDocument {
+                text,
+                issuers: vec![issuer1],
+                signatures: vec![sig1],
+            };
+
+            assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
+        }
+
+        {
+            let doc = PlainTextDocument {
+                text,
+                issuers: vec![issuer1],
+                signatures: vec![sig2],
+            };
+
+            assert_eq!(
+                doc.verify_signatures(),
+                VerificationResult::Invalid(vec![0])
+            );
+        }
+
+        {
+            let doc = PlainTextDocument {
+                text,
+                issuers: vec![issuer1, issuer2],
+                signatures: vec![sig1],
+            };
+
+            assert_eq!(
+                doc.verify_signatures(),
+                VerificationResult::IncompletePairs(2, 1)
+            );
+        }
+
+        {
+            let doc = PlainTextDocument {
+                text,
+                issuers: vec![issuer1],
+                signatures: vec![sig1, sig2],
+            };
+
+            assert_eq!(
+                doc.verify_signatures(),
+                VerificationResult::IncompletePairs(1, 2)
+            );
+        }
     }
 
     #[test]
@@ -349,7 +398,7 @@ UniqueID: elois
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 Ydnclvw76/JHcKSmU9kl9Ie0ne5/X8NYOqPqbGnufIK3eEPRYYdEYaQh+zffuFhbtIRjv6m/DkVLH5cLy/IyAg==";
 
-        let doc = V10DocumentParser::parse(text).unwrap();
+        let doc = IdentityDocumentParser::parse(text, "g1").unwrap();
         if let V10Document::Identity(doc) = doc {
             println!("Doc : {:?}", doc);
             assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
@@ -370,7 +419,7 @@ UserID: elois
 CertTS: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 FFeyrvYio9uYwY5aMcDGswZPNjGLrl8THn9l3EPKSNySD3SDSHjCljSfFEwb87sroyzJQoVzPwER0sW/cbZMDg==";
 
-        let doc = V10DocumentParser::parse(text).unwrap();
+        let doc = MembershipDocumentParser::parse(text, "g1").unwrap();
         if let V10Document::Membership(doc) = doc {
             println!("Doc : {:?}", doc);
             assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
@@ -392,7 +441,7 @@ IdtySignature: DjeipIeb/RF0tpVCnVnuw6mH1iLJHIsDfPGLR90Twy3PeoaDz6Yzhc/UjLWqHCi5Y
 CertTimestamp: 99956-00000472758331FDA8388E30E50CA04736CBFD3B7C21F34E74707107794B56DD
 Hkps1QU4HxIcNXKT8YmprYTVByBhPP1U2tIM7Z8wENzLKIWAvQClkAvBE7pW9dnVa18sJIJhVZUcRrPAZfmjBA==";
 
-        let doc = V10DocumentParser::parse(text).unwrap();
+        let doc = CertificationDocumentParser::parse(text, "g1").unwrap();
         if let V10Document::Certification(doc) = doc {
             println!("Doc : {:?}", doc);
             assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
@@ -412,7 +461,7 @@ IdtyTimestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B85
 IdtySignature: 1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==
 XXOgI++6qpY9O31ml/FcfbXCE6aixIrgkT5jL7kBle3YOMr+8wrp7Rt+z9hDVjrNfYX2gpeJsuMNfG4T/fzVDQ==";
 
-        let doc = V10DocumentParser::parse(text).unwrap();
+        let doc = RevocationDocumentParser::parse(text, "g1").unwrap();
         if let V10Document::Revocation(doc) = doc {
             println!("Doc : {:?}", doc);
             assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
@@ -441,7 +490,7 @@ Outputs:
 Comment: c est pour 2 mois d adhesion ressourcerie
 lnpuFsIymgz7qhKF/GsZ3n3W8ZauAAfWmT4W0iJQBLKJK2GFkesLWeMj/+GBfjD6kdkjreg9M6VfkwIZH+hCCQ==";
 
-        let doc = V10DocumentParser::parse(text).unwrap();
+        let doc = TransactionDocumentParser::parse(text, "g1").unwrap();
         if let V10Document::Transaction(doc) = doc {
             println!("Doc : {:?}", doc);
             assert_eq!(doc.verify_signatures(), VerificationResult::Valid())

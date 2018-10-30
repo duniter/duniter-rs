@@ -16,8 +16,8 @@
 extern crate serde_json;
 
 use duniter_crypto::keys::*;
-use duniter_documents::blockchain::v10::documents::revocation::CompactRevocationDocument;
-use duniter_documents::blockchain::v10::documents::{RevocationDocument, TextDocumentFormat};
+use duniter_documents::v10::revocation::{CompactRevocationDocument, RevocationDocument};
+use duniter_documents::v10::TextDocumentFormat;
 
 /// Parse array of revocations json documents into vector of `CompactRevocationDocument`
 pub fn parse_revocations_into_compact(

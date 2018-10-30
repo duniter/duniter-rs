@@ -1,12 +1,9 @@
 extern crate serde_json;
 
 use duniter_crypto::keys::*;
-use duniter_documents::blockchain::v10::documents::membership::{
-    MembershipDocumentBuilder, MembershipType,
-};
-use duniter_documents::blockchain::v10::documents::MembershipDocument;
-use duniter_documents::blockchain::DocumentBuilder;
+use duniter_documents::v10::membership::*;
 use duniter_documents::Blockstamp;
+use duniter_documents::DocumentBuilder;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MembershipParseError {

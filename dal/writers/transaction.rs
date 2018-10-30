@@ -13,7 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use duniter_documents::blockchain::v10::documents::transaction::*;
+use duniter_documents::v10::transaction::*;
+
 use sources::{SourceAmount, SourceIndexV10, UTXOIndexV10, UTXOV10};
 use *;
 
@@ -413,7 +414,8 @@ pub fn apply_and_write_tx(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use duniter_documents::blockchain::{Document, DocumentBuilder, VerificationResult};
+    use duniter_documents::{Document, DocumentBuilder, VerificationResult};
+    use std::str::FromStr;
 
     fn build_first_tx_of_g1() -> TransactionDocument {
         let pubkey = PubKey::Ed25519(
@@ -432,18 +434,19 @@ mod tests {
             blockstamp: &block,
             locktime: &0,
             issuers: &vec![pubkey],
-            inputs: &vec![TransactionInput::parse_from_str(
+            inputs: &vec![TransactionInput::from_str(
                 "1000:0:D:2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ:1",
             )
             .expect("fail to parse input !")],
-            unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)")
-                .expect("fail to parse unlock !")],
+            unlocks: &vec![
+                TransactionInputUnlocks::from_str("0:SIG(0)").expect("fail to parse unlock !")
+            ],
             outputs: &vec![
-                TransactionOutput::parse_from_str(
+                TransactionOutput::from_str(
                     "1:0:SIG(Com8rJukCozHZyFao6AheSsfDQdPApxQRnz7QYFf64mm)",
                 )
                 .expect("fail to parse output !"),
-                TransactionOutput::parse_from_str(
+                TransactionOutput::from_str(
                     "999:0:SIG(2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ)",
                 )
                 .expect("fail to parse output !"),

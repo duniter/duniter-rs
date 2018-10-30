@@ -17,21 +17,14 @@
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
-    missing_docs,
     missing_debug_implementations,
     missing_copy_implementations,
     trivial_casts,
     trivial_numeric_casts,
     unsafe_code,
     unstable_features,
-    unused_import_braces,
-    unused_qualifications
+    unused_import_braces
 )]
-
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate serde_derive;
 
 extern crate base58;
 extern crate base64;
@@ -39,19 +32,41 @@ extern crate byteorder;
 extern crate crypto;
 extern crate duniter_crypto;
 extern crate linked_hash_map;
-extern crate regex;
+extern crate pest;
+#[macro_use]
+extern crate pest_derive;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+
+pub mod blockstamp;
+mod currencies_codes;
+pub mod v10;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use currencies_codes::*;
 use duniter_crypto::hashs::Hash;
+use duniter_crypto::keys::*;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::io::Cursor;
 use std::mem;
 
-pub mod blockchain;
-mod currencies_codes;
+pub use blockstamp::{Blockstamp, PreviousBlockstamp};
+
+#[derive(Parser)]
+#[grammar = "documents_grammar.pest"]
+/// Parser for Documents
+struct DocumentsParser;
+
+/// List of blockchain protocol versions.
+#[derive(Debug, Clone)]
+pub enum BlockchainProtocol {
+    /// Version 10.
+    V10(Box<v10::V10Document>),
+    /// Version 11. (not done yet, but defined for tests)
+    V11(),
+}
 
 /// Currency name
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize, Hash)]
@@ -144,128 +159,110 @@ impl Debug for BlockHash {
     }
 }
 
-/// Type of errors for [`BlockUId`] parsing.
+/// trait providing commun methods for any documents of any protocol version.
 ///
-/// [`BlockUId`]: struct.BlockUId.html
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum BlockUIdParseError {
-    /// Given string have invalid format
-    InvalidFormat(),
-    /// [`BlockId`](struct.BlockHash.html) part is not a valid number.
-    InvalidBlockId(),
-    /// [`BlockHash`](struct.BlockHash.html) part is not a valid hex number.
-    InvalidBlockHash(),
-}
-
-/// A blockstamp (Unique ID).
+/// # Design choice
 ///
-/// It's composed of the [`BlockId`] and
-/// the [`BlockHash`] of the block.
-///
-/// Thanks to blockchain immutability and frequent block production, it can
-/// be used to date information.
-///
-/// [`BlockId`]: struct.BlockId.html
-/// [`BlockHash`]: struct.BlockHash.html
+/// Allow only ed25519 for protocol 10 and many differents
+/// schemes for protocol 11 through a proxy type.
+pub trait Document: Debug + Clone {
+    /// Type of the `PublicKey` used by the document.
+    type PublicKey: PublicKey;
+    /// Data type of the currency code used by the document.
+    type CurrencyType: ?Sized;
 
-#[derive(Copy, Clone, Deserialize, PartialEq, Eq, Hash, Serialize)]
-pub struct Blockstamp {
-    /// Block Id.
-    pub id: BlockId,
-    /// Block hash.
-    pub hash: BlockHash,
-}
+    /// Get document version.
+    fn version(&self) -> u16;
 
-/// Previous blockstamp (BlockId-1, previous_hash)
-pub type PreviousBlockstamp = Blockstamp;
+    /// Get document currency.
+    fn currency(&self) -> &Self::CurrencyType;
 
-impl Blockstamp {
-    /// Blockstamp size (in bytes).
-    pub const SIZE_IN_BYTES: usize = 36;
-}
+    /// Get document blockstamp
+    fn blockstamp(&self) -> Blockstamp;
 
-impl Display for Blockstamp {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "{}-{}", self.id, self.hash)
-    }
-}
+    /// Iterate over document issuers.
+    fn issuers(&self) -> &Vec<Self::PublicKey>;
 
-impl Debug for Blockstamp {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "BlockUId({})", self)
-    }
-}
+    /// Iterate over document signatures.
+    fn signatures(&self) -> &Vec<<Self::PublicKey as PublicKey>::Signature>;
 
-impl Default for Blockstamp {
-    fn default() -> Blockstamp {
-        Blockstamp {
-            id: BlockId(0),
-            hash: BlockHash(Hash::default()),
-        }
-    }
-}
+    /// Get document as bytes for signature verification.
+    fn as_bytes(&self) -> &[u8];
 
-impl PartialOrd for Blockstamp {
-    fn partial_cmp(&self, other: &Blockstamp) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
+    /// Verify signatures of document content (as text format)
+    fn verify_signatures(&self) -> VerificationResult {
+        let issuers_count = self.issuers().len();
+        let signatures_count = self.signatures().len();
 
-impl Ord for Blockstamp {
-    fn cmp(&self, other: &Blockstamp) -> Ordering {
-        if self.id == other.id {
-            self.hash.cmp(&other.hash)
+        if issuers_count != signatures_count {
+            VerificationResult::IncompletePairs(issuers_count, signatures_count)
         } else {
-            self.id.cmp(&other.id)
-        }
-    }
-}
+            let issuers = self.issuers();
+            let signatures = self.signatures();
+            let mismatches: Vec<_> = issuers
+                .iter()
+                .zip(signatures)
+                .enumerate()
+                .filter(|&(_, (key, signature))| !key.verify(self.as_bytes(), signature))
+                .map(|(i, _)| i)
+                .collect();
 
-#[derive(Debug)]
-/// Error when converting a byte vector to Blockstamp
-pub enum ReadBytesBlockstampError {
-    /// Bytes vector is too short
-    TooShort(),
-    /// Bytes vector is too long
-    TooLong(),
-    /// IoError
-    IoError(::std::io::Error),
-}
-
-impl From<::std::io::Error> for ReadBytesBlockstampError {
-    fn from(e: ::std::io::Error) -> Self {
-        ReadBytesBlockstampError::IoError(e)
-    }
-}
-
-impl Blockstamp {
-    /// Create a `BlockUId` from a text.
-    pub fn from_string(src: &str) -> Result<Blockstamp, BlockUIdParseError> {
-        let mut split = src.split('-');
-
-        if split.clone().count() != 2 {
-            Err(BlockUIdParseError::InvalidFormat())
-        } else {
-            let id = split.next().unwrap().parse::<u32>();
-            let hash = Hash::from_hex(split.next().unwrap());
-
-            if id.is_err() {
-                Err(BlockUIdParseError::InvalidBlockId())
-            } else if hash.is_err() {
-                Err(BlockUIdParseError::InvalidBlockHash())
+            if mismatches.is_empty() {
+                VerificationResult::Valid()
             } else {
-                Ok(Blockstamp {
-                    id: BlockId(id.unwrap()),
-                    hash: BlockHash(
-                        hash.expect("Try to get hash of an uncompleted or reduce block !"),
-                    ),
-                })
+                VerificationResult::Invalid(mismatches)
             }
         }
     }
+}
 
-    /// Convert a `BlockUId` to its text format.
-    pub fn to_string(&self) -> String {
-        format!("{}", self)
-    }
+/// List of possible results for signature verification.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum VerificationResult {
+    /// All signatures are valid.
+    Valid(),
+    /// Not same amount of issuers and signatures.
+    /// (issuers count, signatures count)
+    IncompletePairs(usize, usize),
+    /// Signatures don't match.
+    /// List of mismatching pairs indexes.
+    Invalid(Vec<usize>),
+}
+
+/// Trait allowing access to the document through it's proper protocol version.
+///
+/// This trait is generic over `P` providing all supported protocol version variants.
+///
+/// A lifetime is specified to allow enum variants to hold references to the document.
+pub trait IntoSpecializedDocument<P> {
+    /// Get a protocol-specific document wrapped in an enum variant.
+    fn into_specialized(self) -> P;
+}
+
+/// Trait helper for building new documents.
+pub trait DocumentBuilder {
+    /// Type of the builded document.
+    type Document: Document;
+
+    /// Type of the private keys signing the documents.
+    type PrivateKey: PrivateKey<
+        Signature = <<Self::Document as Document>::PublicKey as PublicKey>::Signature,
+    >;
+
+    /// Build a document with provided signatures.
+    fn build_with_signature(
+        &self,
+        signatures: Vec<<<Self::Document as Document>::PublicKey as PublicKey>::Signature>,
+    ) -> Self::Document;
+
+    /// Build a document and sign it with the private key.
+    fn build_and_sign(&self, private_keys: Vec<Self::PrivateKey>) -> Self::Document;
+}
+
+/// Trait for a document parser from a `S` source
+/// format to a `D` document. Will return the
+/// parsed document or an `E` error.
+pub trait DocumentParser<S, D, E> {
+    /// Parse a source and return a document or an error.
+    fn parse(source: S) -> Result<D, E>;
 }

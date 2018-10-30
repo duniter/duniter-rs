@@ -14,10 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use duniter_crypto::hashs::Hash;
-use duniter_documents::blockchain::v10::documents::certification::CompactCertificationDocument;
-use duniter_documents::blockchain::v10::documents::identity::CompactIdentityDocument;
-use duniter_documents::blockchain::v10::documents::membership::CompactPoolMembershipDoc;
-use duniter_documents::blockchain::v10::documents::BlockDocument;
+use duniter_documents::v10::block::BlockDocument;
+use duniter_documents::v10::certification::CompactCertificationDocument;
+use duniter_documents::v10::identity::CompactIdentityDocument;
+use duniter_documents::v10::membership::CompactPoolMembershipDoc;
 use duniter_documents::Blockstamp;
 use std::str;
 
