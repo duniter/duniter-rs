@@ -88,6 +88,7 @@ pub enum CoreSubCommand {
     /// keys operations
     #[structopt(
         name = "keys",
+        author = "inso <inso@tuta.io>",
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
     KeysOpt(KeysOpt),

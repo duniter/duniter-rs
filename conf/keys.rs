@@ -182,8 +182,7 @@ mod tests {
             }),
             member_keypair: None,
         };
-        let result_key_pairs =
-            modify_member_keys(SALT_TEST.to_string(), PASSWORD_TEST.to_string(), key_pairs);
+        let result_key_pairs = modify_member_keys(SALT_TEST, PASSWORD_TEST, key_pairs);
         // We expect network key not to change
         assert_eq!(
             result_key_pairs.network_keypair.public_key(),
@@ -228,8 +227,7 @@ mod tests {
             }),
             member_keypair: None,
         };
-        let result_key_pairs =
-            modify_network_keys(SALT_TEST.to_string(), PASSWORD_TEST.to_string(), key_pairs);
+        let result_key_pairs = modify_network_keys(SALT_TEST, PASSWORD_TEST, key_pairs);
         // We expect network key to update
         assert_eq!(
             result_key_pairs.network_keypair.public_key(),

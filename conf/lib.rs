@@ -43,8 +43,6 @@ extern crate serde;
 pub mod keys;
 
 use dubp_documents::CurrencyName;
-use duniter_crypto::keys::*;
-use duniter_documents::CurrencyName;
 use duniter_module::{DuniterConf, ModuleName, RequiredKeys, RequiredKeysContent};
 use dup_crypto::keys::*;
 use rand::Rng;
@@ -390,10 +388,9 @@ pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuRsConf, Du
                                             .expect(
                                                 "conf : keypairs file : fail to parse member_sec !",
                                             ),
-                                        pubkey: ed25519::PublicKey::from_base58(member_pub)
-                                            .expect(
-                                                "conf : keypairs file : fail to parse member_pub !",
-                                            ),
+                                        pubkey: ed25519::PublicKey::from_base58(member_pub).expect(
+                                            "conf : keypairs file : fail to parse member_pub !",
+                                        ),
                                     }))
                                 }
                             } else {
