@@ -19,9 +19,11 @@ extern crate serde;
 use self::duniter_module::ModuleReqId;
 use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::*;
-use duniter_documents::blockchain::v10::documents::{
-    BlockDocument, CertificationDocument, IdentityDocument, MembershipDocument, RevocationDocument,
-};
+use duniter_documents::v10::block::BlockDocument;
+use duniter_documents::v10::certification::CertificationDocument;
+use duniter_documents::v10::identity::IdentityDocument;
+use duniter_documents::v10::membership::MembershipDocument;
+use duniter_documents::v10::revocation::RevocationDocument;
 use duniter_documents::Blockstamp;
 use std::collections::HashMap;
 

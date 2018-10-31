@@ -15,44 +15,17 @@
 
 //! Wrappers around Transaction documents.
 
-use blockchain::v10::documents::*;
-use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
-use regex::Regex;
-use regex::RegexBuilder;
+use pest::iterators::Pair;
+use pest::iterators::Pairs;
+use pest::Parser;
 use std::ops::{Add, Deref, Sub};
 use std::str::FromStr;
-use {BlockId, Blockstamp, Hash};
 
-lazy_static! {
-    static ref TRANSACTION_REGEX_SIZE: &'static usize = &40_000_000;
-    static ref TRANSACTION_REGEX_BUILDER: &'static str =
-        r"^Blockstamp: (?P<blockstamp>[0-9]+-[0-9A-F]{64})\nLocktime: (?P<locktime>[0-9]+)\nIssuers:(?P<issuers>(?:\n[1-9A-Za-z][^OIl]{43,44})+)Inputs:\n(?P<inputs>([0-9A-Za-z:]+\n)+)Unlocks:\n(?P<unlocks>([0-9]+:(SIG\([0-9]+\) ?|XHX\(\w+\) ?)+\n)+)Outputs:\n(?P<outputs>([0-9A-Za-z()&|: ]+\n)+)Comment: (?P<comment>[\\\w:/;*\[\]()?!^+=@&~#{}|<>%. -]{0,255})\n";
-    static ref ISSUER_REGEX: Regex = Regex::new("(?P<issuer>[1-9A-Za-z]{43,44})\n").unwrap();
-    static ref D_INPUT_REGEX: Regex = Regex::new(
-        "^(?P<amount>[1-9][0-9]*):(?P<base>[0-9]+):D:(?P<pubkey>[1-9A-Za-z]{43,44}):(?P<block_number>[0-9]+)$"
-    ).unwrap();
-    static ref T_INPUT_REGEX: Regex = Regex::new(
-        "^(?P<amount>[1-9][0-9]*):(?P<base>[0-9]+):T:(?P<tx_hash>[0-9A-F]{64}):(?P<tx_index>[0-9]+)$"
-    ).unwrap();
-    static ref UNLOCKS_REGEX: Regex = Regex::new(
-        r"^(?P<index>[0-9]+):(?P<unlocks>(SIG\([0-9]+\) ?|XHX\(\w+\) ?)+)$"
-    ).unwrap();
-    static ref UNLOCK_SIG_REGEX: Regex =
-        Regex::new(r"^SIG\((?P<index>[0-9]+)\)$").unwrap();
-    static ref UNLOCK_XHX_REGEX: Regex = Regex::new(r"^XHX\((?P<code>\w+)\)$").unwrap();
-    static ref OUTPUT_COND_SIG_REGEX: Regex = Regex::new(r"^SIG\((?P<pubkey>[1-9A-Za-z]{43,44})\)*$").unwrap();
-    static ref OUTPUT_COND_XHX_REGEX: Regex = Regex::new(r"^XHX\((?P<hash>[0-9A-F]{64})\)*$").unwrap();
-    static ref OUTPUT_COND_CLTV_REGEX: Regex = Regex::new(r"^CLTV\((?P<timestamp>[0-9]+)\)*$").unwrap();
-    static ref OUTPUT_COND_CSV_REGEX: Regex = Regex::new(r"^CSV\((?P<duration>[0-9]+)\)*$").unwrap();
-    static ref OUPUT_CONDS_BRAKETS: Regex = Regex::new(r"^\((?P<conditions>[0-9A-Za-z()&| ]+)\)$").unwrap();
-    static ref OUPUT_CONDS_AND: Regex = Regex::new(r"^(?P<conditions_group_1>[0-9A-Za-z()&| ]+) && (?P<conditions_group_2>[0-9A-Za-z()&| ]+)$").unwrap();
-    static ref OUPUT_CONDS_OR: Regex = Regex::new(r"^(?P<conditions_group_1>[0-9A-Za-z()&| ]+) \|\| (?P<conditions_group_2>[0-9A-Za-z()&| ]+)$").unwrap();
-    static ref OUTPUT_REGEX: Regex = Regex::new(
-        "^(?P<amount>[1-9][0-9]*):(?P<base>[0-9]+):(?P<conditions>[0-9A-Za-z()&| ]+)$"
-    ).unwrap();
-}
+use blockstamp::Blockstamp;
+use v10::*;
+use *;
 
 /// Wrap a transaction amount
 #[derive(Debug, Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Deserialize, Hash, Serialize)]
@@ -103,8 +76,55 @@ impl ToString for TransactionInput {
 }
 
 impl TransactionInput {
+    fn from_pest_pairs(mut pairs: Pairs<Rule>) -> TransactionInput {
+        let tx_input_type_pair = pairs.next().unwrap();
+        match tx_input_type_pair.as_rule() {
+            Rule::tx_input_du => {
+                let mut inner_rules = tx_input_type_pair.into_inner(); // ${ tx_amount ~ ":" ~ tx_amount_base ~ ":D:" ~ pubkey ~ ":" ~ du_block_id }
+
+                TransactionInput::D(
+                    TxAmount(inner_rules.next().unwrap().as_str().parse().unwrap()),
+                    TxBase(inner_rules.next().unwrap().as_str().parse().unwrap()),
+                    PubKey::Ed25519(
+                        ed25519::PublicKey::from_base58(inner_rules.next().unwrap().as_str())
+                            .unwrap(),
+                    ),
+                    BlockId(inner_rules.next().unwrap().as_str().parse().unwrap()),
+                )
+            }
+            Rule::tx_input_tx => {
+                let mut inner_rules = tx_input_type_pair.into_inner(); // ${ tx_amount ~ ":" ~ tx_amount_base ~ ":D:" ~ pubkey ~ ":" ~ du_block_id }
+
+                TransactionInput::T(
+                    TxAmount(inner_rules.next().unwrap().as_str().parse().unwrap()),
+                    TxBase(inner_rules.next().unwrap().as_str().parse().unwrap()),
+                    Hash::from_hex(inner_rules.next().unwrap().as_str()).unwrap(),
+                    TxIndex(inner_rules.next().unwrap().as_str().parse().unwrap()),
+                )
+            }
+            _ => panic!("unexpected rule: {:?}", tx_input_type_pair.as_rule()), // Grammar ensures that we never reach this line
+        }
+    }
+}
+
+impl FromStr for TransactionInput {
+    type Err = V10DocumentParsingError;
+
+    fn from_str(source: &str) -> Result<Self, Self::Err> {
+        match DocumentsParser::parse(Rule::tx_input, source) {
+            Ok(mut pairs) => Ok(TransactionInput::from_pest_pairs(
+                pairs.next().unwrap().into_inner(),
+            )),
+            Err(_) => Err(V10DocumentParsingError::InvalidInnerFormat(
+                "Invalid unlocks !",
+            )),
+        }
+    }
+}
+
+/*impl TransactionInput {
     /// Parse Transaction Input from string.
-    pub fn parse_from_str(source: &str) -> Result<TransactionInput, V10DocumentParsingError> {
+    pub fn from_str(source: &str) -> Result<TransactionInput, V10DocumentParsingError> {
         if let Some(caps) = D_INPUT_REGEX.captures(source) {
             let amount = &caps["amount"];
             let base = &caps["base"];
@@ -136,12 +156,10 @@ impl TransactionInput {
             ))
         } else {
             println!("Fail to parse this input = {:?}", source);
-            Err(V10DocumentParsingError::InvalidInnerFormat(String::from(
-                "Transaction2",
-            )))
+            Err(V10DocumentParsingError::InvalidInnerFormat("Transaction2"))
         }
     }
-}
+}*/
 
 /// Wrap a transaction unlock proof
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -157,24 +175,6 @@ impl ToString for TransactionUnlockProof {
         match *self {
             TransactionUnlockProof::Sig(ref index) => format!("SIG({})", index),
             TransactionUnlockProof::Xhx(ref hash) => format!("XHX({})", hash),
-        }
-    }
-}
-
-impl TransactionUnlockProof {
-    fn parse_from_str(source: &str) -> Result<TransactionUnlockProof, V10DocumentParsingError> {
-        if let Some(caps) = UNLOCK_SIG_REGEX.captures(source) {
-            let index = &caps["index"];
-            Ok(TransactionUnlockProof::Sig(
-                index.parse().expect("fail to parse SIG unlock"),
-            ))
-        } else if let Some(caps) = UNLOCK_XHX_REGEX.captures(source) {
-            let code = &caps["code"];
-            Ok(TransactionUnlockProof::Xhx(String::from(code)))
-        } else {
-            Err(V10DocumentParsingError::InvalidInnerFormat(String::from(
-                "Transaction3",
-            )))
         }
     }
 }
@@ -201,28 +201,46 @@ impl ToString for TransactionInputUnlocks {
 }
 
 impl TransactionInputUnlocks {
-    /// Parse Transaction Unlock from string.
-    pub fn parse_from_str(
-        source: &str,
-    ) -> Result<TransactionInputUnlocks, V10DocumentParsingError> {
-        if let Some(caps) = UNLOCKS_REGEX.captures(source) {
-            let index = &caps["index"].parse().expect("fail to parse unlock index");
-            let unlocks = &caps["unlocks"];
-
-            let unlocks_array: Vec<&str> = unlocks.split(' ').collect();
-            let mut unlocks = Vec::new();
-            for unlock in unlocks_array {
-                unlocks.push(TransactionUnlockProof::parse_from_str(unlock)?);
+    fn from_pest_pairs(pairs: Pairs<Rule>) -> TransactionInputUnlocks {
+        let mut input_index = 0;
+        let mut unlock_conds = Vec::new();
+        for unlock_field in pairs {
+            // ${ input_index ~ ":" ~ unlock_cond ~ (" " ~ unlock_cond)* }
+            match unlock_field.as_rule() {
+                Rule::input_index => input_index = unlock_field.as_str().parse().unwrap(),
+                Rule::unlock_sig => unlock_conds.push(TransactionUnlockProof::Sig(
+                    unlock_field
+                        .into_inner()
+                        .next()
+                        .unwrap()
+                        .as_str()
+                        .parse()
+                        .unwrap(),
+                )),
+                Rule::unlock_xhx => unlock_conds.push(TransactionUnlockProof::Xhx(String::from(
+                    unlock_field.into_inner().next().unwrap().as_str(),
+                ))),
+                _ => panic!("unexpected rule: {:?}", unlock_field.as_rule()), // Grammar ensures that we never reach this line
             }
-            Ok(TransactionInputUnlocks {
-                index: *index,
-                unlocks,
-            })
-        } else {
-            println!("Fail to parse this unlock = {:?}", source);
-            Err(V10DocumentParsingError::InvalidInnerFormat(String::from(
-                "Transaction4",
-            )))
+        }
+        TransactionInputUnlocks {
+            index: input_index,
+            unlocks: unlock_conds,
+        }
+    }
+}
+
+impl FromStr for TransactionInputUnlocks {
+    type Err = V10DocumentParsingError;
+
+    fn from_str(source: &str) -> Result<Self, Self::Err> {
+        match DocumentsParser::parse(Rule::tx_unlock, source) {
+            Ok(mut pairs) => Ok(TransactionInputUnlocks::from_pest_pairs(
+                pairs.next().unwrap().into_inner(),
+            )),
+            Err(_) => Err(V10DocumentParsingError::InvalidInnerFormat(
+                "Invalid unlocks !",
+            )),
         }
     }
 }
@@ -247,48 +265,6 @@ impl ToString for TransactionOutputCondition {
             TransactionOutputCondition::Xhx(ref hash) => format!("XHX({})", hash),
             TransactionOutputCondition::Cltv(timestamp) => format!("CLTV({})", timestamp),
             TransactionOutputCondition::Csv(duration) => format!("CSV({})", duration),
-        }
-    }
-}
-
-impl TransactionOutputCondition {
-    fn parse_from_str(source: &str) -> Result<TransactionOutputCondition, V10DocumentParsingError> {
-        if let Some(caps) = OUTPUT_COND_SIG_REGEX.captures(source) {
-            if let Ok(pubkey) = ed25519::PublicKey::from_base58(&caps["pubkey"]) {
-                Ok(TransactionOutputCondition::Sig(PubKey::Ed25519(pubkey)))
-            } else {
-                Err(V10DocumentParsingError::InvalidInnerFormat(String::from(
-                    "OutputCondition : Fail to parse SIG pubkey.",
-                )))
-            }
-        } else if let Some(caps) = OUTPUT_COND_XHX_REGEX.captures(source) {
-            if let Ok(hash) = Hash::from_hex(&caps["hash"]) {
-                Ok(TransactionOutputCondition::Xhx(hash))
-            } else {
-                Err(V10DocumentParsingError::InvalidInnerFormat(String::from(
-                    "OutputCondition : Fail to parse XHX Hash.",
-                )))
-            }
-        } else if let Some(caps) = OUTPUT_COND_CLTV_REGEX.captures(source) {
-            if let Ok(timestamp) = caps["timestamp"].parse() {
-                Ok(TransactionOutputCondition::Cltv(timestamp))
-            } else {
-                Err(V10DocumentParsingError::InvalidInnerFormat(String::from(
-                    "OutputCondition : Fail to parse CLTV timestamp.",
-                )))
-            }
-        } else if let Some(caps) = OUTPUT_COND_CSV_REGEX.captures(source) {
-            if let Ok(duration) = caps["duration"].parse() {
-                Ok(TransactionOutputCondition::Csv(duration))
-            } else {
-                Err(V10DocumentParsingError::InvalidInnerFormat(String::from(
-                    "OutputCondition : Fail to parse CSV duraion.",
-                )))
-            }
-        } else {
-            Err(V10DocumentParsingError::InvalidInnerFormat(
-                "Transaction5".to_string(),
-            ))
         }
     }
 }
@@ -329,17 +305,6 @@ impl ToString for UTXOConditions {
     }
 }
 
-impl ::std::str::FromStr for UTXOConditions {
-    type Err = V10DocumentParsingError;
-
-    fn from_str(source: &str) -> Result<Self, Self::Err> {
-        Ok(UTXOConditions {
-            origin_str: Some(String::from(source)),
-            conditions: UTXOConditionsGroup::from_str(source)?,
-        })
-    }
-}
-
 /// Wrap a transaction ouput condition group
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub enum UTXOConditionsGroup {
@@ -351,6 +316,79 @@ pub enum UTXOConditionsGroup {
     And(Box<UTXOConditionsGroup>, Box<UTXOConditionsGroup>),
     /// Or operator
     Or(Box<UTXOConditionsGroup>, Box<UTXOConditionsGroup>),
+}
+
+macro_rules! utxo_conds_wrap_op_chain {
+    ($op:expr, $fn_name:ident) => {
+        fn $fn_name(conds_subgroups: &mut Vec<UTXOConditionsGroup>) -> UTXOConditionsGroup {
+            if conds_subgroups.len() == 2 {
+                $op(
+                    Box::new(conds_subgroups[0].clone()),
+                    Box::new(conds_subgroups[1].clone()),
+                )
+            } else if conds_subgroups.len() > 2 {
+                let last_subgroup = conds_subgroups.pop().unwrap();
+                let previous_last_subgroup = conds_subgroups.pop().unwrap();
+                conds_subgroups.push($op(
+                    Box::new(previous_last_subgroup),
+                    Box::new(last_subgroup),
+                ));
+                UTXOConditionsGroup::$fn_name(conds_subgroups)
+            } else {
+                panic!(
+                    "Grammar should ensure that and chain contains at least two conditions subgroups !"
+                )
+            }
+        }
+    }
+}
+
+impl UTXOConditionsGroup {
+    /// Wrap UTXO and chain
+    utxo_conds_wrap_op_chain!(UTXOConditionsGroup::And, new_and_chain);
+    /// Wrap UTXO or chain
+    utxo_conds_wrap_op_chain!(UTXOConditionsGroup::Or, new_or_chain);
+
+    /// Wrap UTXO conditions
+    pub fn wrap_utxo_conds(pair: Pair<Rule>) -> UTXOConditionsGroup {
+        match pair.as_rule() {
+            Rule::output_and_group => {
+                let mut and_pairs = pair.into_inner();
+                let mut conds_subgroups: Vec<UTXOConditionsGroup> = and_pairs
+                    .map(UTXOConditionsGroup::wrap_utxo_conds)
+                    .collect();
+                UTXOConditionsGroup::Brackets(Box::new(UTXOConditionsGroup::new_and_chain(
+                    &mut conds_subgroups,
+                )))
+            }
+            Rule::output_or_group => {
+                let mut or_pairs = pair.into_inner();
+                let mut conds_subgroups: Vec<UTXOConditionsGroup> =
+                    or_pairs.map(UTXOConditionsGroup::wrap_utxo_conds).collect();
+                UTXOConditionsGroup::Brackets(Box::new(UTXOConditionsGroup::new_or_chain(
+                    &mut conds_subgroups,
+                )))
+            }
+            Rule::output_cond_sig => {
+                UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58(pair.into_inner().next().unwrap().as_str())
+                        .unwrap(),
+                )))
+            }
+            Rule::output_cond_xhx => UTXOConditionsGroup::Single(TransactionOutputCondition::Xhx(
+                Hash::from_hex(pair.into_inner().next().unwrap().as_str()).unwrap(),
+            )),
+            Rule::output_cond_csv => UTXOConditionsGroup::Single(TransactionOutputCondition::Csv(
+                pair.into_inner().next().unwrap().as_str().parse().unwrap(),
+            )),
+            Rule::output_cond_cltv => {
+                UTXOConditionsGroup::Single(TransactionOutputCondition::Cltv(
+                    pair.into_inner().next().unwrap().as_str().parse().unwrap(),
+                ))
+            }
+            _ => panic!("unexpected rule: {:?}", pair.as_rule()), // Grammar ensures that we never reach this line
+        }
+    }
 }
 
 impl ToString for UTXOConditionsGroup {
@@ -370,38 +408,6 @@ impl ToString for UTXOConditionsGroup {
                 condition_group_1.deref().to_string(),
                 condition_group_2.deref().to_string()
             ),
-        }
-    }
-}
-
-impl ::std::str::FromStr for UTXOConditionsGroup {
-    type Err = V10DocumentParsingError;
-
-    fn from_str(conditions: &str) -> Result<Self, Self::Err> {
-        if let Ok(single_condition) = TransactionOutputCondition::parse_from_str(conditions) {
-            Ok(UTXOConditionsGroup::Single(single_condition))
-        } else if let Some(caps) = OUPUT_CONDS_BRAKETS.captures(conditions) {
-            let inner_conditions = UTXOConditionsGroup::from_str(&caps["conditions"])?;
-            Ok(UTXOConditionsGroup::Brackets(Box::new(inner_conditions)))
-        } else if let Some(caps) = OUPUT_CONDS_AND.captures(conditions) {
-            let conditions_group_1 = UTXOConditionsGroup::from_str(&caps["conditions_group_1"])?;
-            let conditions_group_2 = UTXOConditionsGroup::from_str(&caps["conditions_group_2"])?;
-            Ok(UTXOConditionsGroup::And(
-                Box::new(conditions_group_1),
-                Box::new(conditions_group_2),
-            ))
-        } else if let Some(caps) = OUPUT_CONDS_OR.captures(conditions) {
-            let conditions_group_1 = UTXOConditionsGroup::from_str(&caps["conditions_group_1"])?;
-            let conditions_group_2 = UTXOConditionsGroup::from_str(&caps["conditions_group_2"])?;
-            Ok(UTXOConditionsGroup::Or(
-                Box::new(conditions_group_1),
-                Box::new(conditions_group_2),
-            ))
-        } else {
-            println!("fail to parse this output condition = {:?}", conditions);
-            Err(V10DocumentParsingError::InvalidInnerFormat(String::from(
-                "Transaction6",
-            )))
         }
     }
 }
@@ -440,21 +446,33 @@ impl ToString for TransactionOutput {
 }
 
 impl TransactionOutput {
-    /// Parse Transaction Output from string.
-    pub fn parse_from_str(source: &str) -> Result<TransactionOutput, V10DocumentParsingError> {
-        if let Some(caps) = OUTPUT_REGEX.captures(source) {
-            let amount = TxAmount(caps["amount"].parse().expect("fail to parse output amount"));
-            let base = TxBase(caps["base"].parse().expect("fail to parse base amount"));
-            let conditions = UTXOConditions::from_str(&caps["conditions"])?;
-            Ok(TransactionOutput {
-                conditions,
-                amount,
-                base,
-            })
-        } else {
-            Err(V10DocumentParsingError::InvalidInnerFormat(
-                "Transaction7".to_string(),
-            ))
+    fn from_pest_pairs(mut utxo_pairs: Pairs<Rule>) -> TransactionOutput {
+        let amount = TxAmount(utxo_pairs.next().unwrap().as_str().parse().unwrap());
+        let base = TxBase(utxo_pairs.next().unwrap().as_str().parse().unwrap());
+        let conditions_pairs = utxo_pairs.next().unwrap();
+        let conditions_origin_str = conditions_pairs.as_str();
+        TransactionOutput {
+            amount,
+            base,
+            conditions: UTXOConditions {
+                origin_str: Some(String::from(conditions_origin_str)),
+                conditions: UTXOConditionsGroup::wrap_utxo_conds(conditions_pairs),
+            },
+        }
+    }
+}
+
+impl FromStr for TransactionOutput {
+    type Err = V10DocumentParsingError;
+
+    fn from_str(source: &str) -> Result<Self, Self::Err> {
+        match DocumentsParser::parse(Rule::tx_output, source) {
+            Ok(mut utxo_pairs) => Ok(TransactionOutput::from_pest_pairs(
+                utxo_pairs.next().unwrap().into_inner(),
+            )),
+            Err(_) => Err(V10DocumentParsingError::InvalidInnerFormat(
+                "Invalid output !",
+            )),
         }
     }
 }
@@ -563,7 +581,7 @@ impl Document for TransactionDocument {
     }
 
     fn as_bytes(&self) -> &[u8] {
-        self.as_text().as_bytes()
+        self.as_text_without_signature().as_bytes()
     }
 }
 
@@ -743,72 +761,80 @@ Issuers:
 #[derive(Debug, Clone, Copy)]
 pub struct TransactionDocumentParser;
 
-impl StandardTextDocumentParser for TransactionDocumentParser {
-    fn parse_standard(
-        doc: &str,
-        body: &str,
-        currency: &str,
-        signatures: Vec<Sig>,
-    ) -> Result<V10Document, V10DocumentParsingError> {
-        let tx_regex: Regex = RegexBuilder::new(&TRANSACTION_REGEX_BUILDER)
-            .size_limit(**TRANSACTION_REGEX_SIZE)
-            .build()
-            .expect("fail to build TRANSACTION_REGEX !");
-        if let Some(caps) = tx_regex.captures(body) {
-            let blockstamp =
-                Blockstamp::from_string(&caps["blockstamp"]).expect("fail to parse blockstamp");
-            let locktime = caps["locktime"].parse().expect("fail to parse locktime");
-            let issuers_str = &caps["issuers"];
-            let inputs = &caps["inputs"];
-            let unlocks = &caps["unlocks"];
-            let outputs = &caps["outputs"];
-            let comment = String::from(&caps["comment"]);
+impl TextDocumentParser for TransactionDocumentParser {
+    fn parse(doc: &str, currency: &str) -> Result<V10Document, V10DocumentParsingError> {
+        match DocumentsParser::parse(Rule::tx, doc) {
+            Ok(mut doc_ast) => {
+                let tx_ast = doc_ast.next().unwrap(); // get and unwrap the `tx` rule; never fails
+                let tx_vx_ast = tx_ast.into_inner().next().unwrap(); // get and unwrap the `tx_vX` rule; never fails
 
-            let mut issuers = Vec::new();
-            for caps in ISSUER_REGEX.captures_iter(issuers_str) {
-                issuers.push(PubKey::Ed25519(
-                    ed25519::PublicKey::from_base58(&caps["issuer"]).expect("fail to parse issuer"),
-                ));
-            }
-            let inputs_array: Vec<&str> = inputs.split('\n').collect();
-            let mut inputs = Vec::new();
-            for input in inputs_array {
-                if !input.is_empty() {
-                    inputs.push(TransactionInput::parse_from_str(input)?);
-                }
-            }
-            let unlocks_array: Vec<&str> = unlocks.split('\n').collect();
-            let mut unlocks = Vec::new();
-            for unlock in unlocks_array {
-                if !unlock.is_empty() {
-                    unlocks.push(TransactionInputUnlocks::parse_from_str(unlock)?);
-                }
-            }
-            let outputs_array: Vec<&str> = outputs.split('\n').collect();
-            let mut outputs = Vec::new();
-            for output in outputs_array {
-                if !output.is_empty() {
-                    outputs.push(TransactionOutput::parse_from_str(output)?);
-                }
-            }
+                match tx_vx_ast.as_rule() {
+                    Rule::tx_v10 => {
+                        let mut blockstamp = Blockstamp::default();
+                        let mut locktime = 0;
+                        let mut issuers = Vec::new();
+                        let mut inputs = Vec::new();
+                        let mut unlocks = Vec::new();
+                        let mut outputs = Vec::new();
+                        let mut comment = "";
+                        let mut sigs = Vec::new();
 
-            Ok(V10Document::Transaction(Box::new(TransactionDocument {
-                text: Some(doc.to_owned()),
-                currency: currency.to_owned(),
-                blockstamp,
-                locktime,
-                issuers,
-                inputs,
-                unlocks,
-                outputs,
-                comment,
-                signatures,
-                hash: None,
-            })))
-        } else {
-            Err(V10DocumentParsingError::InvalidInnerFormat(
-                "Transaction1".to_string(),
-            ))
+                        for field in tx_vx_ast.into_inner() {
+                            match field.as_rule() {
+                                Rule::currency => {
+                                    if currency != field.as_str() {
+                                        return Err(V10DocumentParsingError::InvalidCurrency());
+                                    }
+                                }
+                                Rule::blockstamp => {
+                                    let mut inner_rules = field.into_inner(); // ${ block_id ~ "-" ~ hash }
+
+                                    let block_id: &str = inner_rules.next().unwrap().as_str();
+                                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                                    blockstamp = Blockstamp {
+                                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
+                                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                                    };
+                                }
+                                Rule::tx_locktime => locktime = field.as_str().parse().unwrap(), // Grammar ensures that we have digits characters.
+                                Rule::pubkey => issuers.push(PubKey::Ed25519(
+                                    ed25519::PublicKey::from_base58(field.as_str()).unwrap(), // Grammar ensures that we have a base58 string.
+                                )),
+                                Rule::tx_input => inputs
+                                    .push(TransactionInput::from_pest_pairs(field.into_inner())),
+                                Rule::tx_unlock => unlocks.push(
+                                    TransactionInputUnlocks::from_pest_pairs(field.into_inner()),
+                                ),
+                                Rule::tx_output => outputs
+                                    .push(TransactionOutput::from_pest_pairs(field.into_inner())),
+                                Rule::tx_comment => comment = field.as_str(),
+                                Rule::ed25519_sig => {
+                                    sigs.push(Sig::Ed25519(
+                                        ed25519::Signature::from_base64(field.as_str()).unwrap(), // Grammar ensures that we have a base64 string.
+                                    ));
+                                }
+                                Rule::EOI => (),
+                                _ => panic!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
+                            }
+                        }
+                        Ok(V10Document::Transaction(Box::new(TransactionDocument {
+                            text: Some(doc.to_owned()),
+                            currency: currency.to_owned(),
+                            blockstamp,
+                            locktime,
+                            issuers,
+                            inputs,
+                            unlocks,
+                            outputs,
+                            comment: comment.to_owned(),
+                            signatures: sigs,
+                            hash: None,
+                        })))
+                    }
+                    _ => Err(V10DocumentParsingError::UnexpectedVersion()),
+                }
+            }
+            Err(pest_error) => panic!("{}", pest_error), //Err(V10DocumentParsingError::PestError()),
         }
     }
 }
@@ -816,7 +842,7 @@ impl StandardTextDocumentParser for TransactionDocumentParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use blockchain::{Document, VerificationResult};
+    use {Document, VerificationResult};
 
     #[test]
     fn generate_real_document() {
@@ -847,13 +873,20 @@ mod tests {
             blockstamp: &block,
             locktime: &0,
             issuers: &vec![pubkey],
-            inputs: &vec![TransactionInput::parse_from_str(
-                "10:0:D:DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV:0",
-            )
-            .expect("fail to parse input !")],
-            unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)")
-                .expect("fail to parse unlock !")],
-            outputs: &vec![TransactionOutput::parse_from_str(
+            inputs: &vec![TransactionInput::D(
+                TxAmount(10),
+                TxBase(0),
+                PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
+                        .unwrap(),
+                ),
+                BlockId(0),
+            )],
+            unlocks: &vec![TransactionInputUnlocks {
+                index: 0,
+                unlocks: vec![TransactionUnlockProof::Sig(0)],
+            }],
+            outputs: &vec![TransactionOutput::from_str(
                 "10:0:SIG(FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa)",
             )
             .expect("fail to parse output !")],
@@ -895,18 +928,22 @@ mod tests {
             blockstamp: &block,
             locktime: &0,
             issuers: &vec![pubkey],
-            inputs: &vec![TransactionInput::parse_from_str(
-                "950:0:T:2CF1ACD8FE8DC93EE39A1D55881C50D87C55892AE8E4DB71D4EBAB3D412AA8FD:1",
-            )
-            .expect("fail to parse input !")],
-            unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)")
-                .expect("fail to parse unlock !")],
+            inputs: &vec![TransactionInput::T(
+                TxAmount(950),
+                TxBase(0),
+                Hash::from_hex("2CF1ACD8FE8DC93EE39A1D55881C50D87C55892AE8E4DB71D4EBAB3D412AA8FD")
+                    .unwrap(),
+                TxIndex(1),
+            )],
+            unlocks: &vec![
+                TransactionInputUnlocks::from_str("0:SIG(0)").expect("fail to parse unlock !")
+            ],
             outputs: &vec![
-                TransactionOutput::parse_from_str(
+                TransactionOutput::from_str(
                     "30:0:SIG(38MEAZN68Pz1DTvT3tqgxx4yQP6snJCQhPqEFxbDk4aE)",
                 )
                 .expect("fail to parse output !"),
-                TransactionOutput::parse_from_str(
+                TransactionOutput::from_str(
                     "920:0:SIG(FEkbc4BfJukSWnCU6Hed6dgwwTuPFTVdgz5LpL4iHr9J)",
                 )
                 .expect("fail to parse output !"),
@@ -922,42 +959,6 @@ mod tests {
             Hash::from_hex("876D2430E0B66E2CE4467866D8F923D68896CACD6AA49CDD8BDD0096B834DEF1")
                 .expect("fail to parse hash")
         );
-    }
-
-    #[test]
-    fn transaction_standard_regex() {
-        let tx_regex: Regex = RegexBuilder::new(&TRANSACTION_REGEX_BUILDER)
-            .size_limit(**TRANSACTION_REGEX_SIZE)
-            .build()
-            .expect("fail to build TRANSACTION_REGEX !");
-        assert!(tx_regex.is_match(
-            "Blockstamp: 204-00003E2B8A35370BA5A7064598F628A62D4E9EC1936BE8651CE9A85F2E06981B
-Locktime: 0
-Issuers:
-HsLShAtzXTVxeUtQd7yi5Z5Zh4zNvbu8sTEZ53nfKcqY
-CYYjHsNyg3HMRMpTHqCJAN9McjH5BwFLmDKGV3PmCuKp
-FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa
-Inputs:
-40:2:T:6991C993631BED4733972ED7538E41CCC33660F554E3C51963E2A0AC4D6453D3:2
-70:2:T:3A09A20E9014110FD224889F13357BAB4EC78A72F95CA03394D8CCA2936A7435:8
-20:2:D:HsLShAtzXTVxeUtQd7yi5Z5Zh4zNvbu8sTEZ53nfKcqY:46
-70:2:T:A0D9B4CDC113ECE1145C5525873821398890AE842F4B318BD076095A23E70956:3
-20:2:T:67F2045B5318777CC52CD38B424F3E40DDA823FA0364625F124BABE0030E7B5B:5
-15:2:D:FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa:46
-Unlocks:
-0:SIG(0)
-1:XHX(7665798292)
-2:SIG(0)
-3:SIG(0) SIG(2)
-4:SIG(0) SIG(1) SIG(2)
-5:SIG(2)
-Outputs:
-120:2:SIG(BYfWYFrsyjpvpFysgu19rGK3VHBkz4MqmQbNyEuVU64g)
-146:2:SIG(DSz4rgncXCytsUMW2JU2yhLquZECD2XpEkpP9gG5HyAx)
-49:2:(SIG(6DyGr5LFtFmbaJYRvcs9WmBsr4cbJbJ1EV9zBbqG7A6i) || XHX(3EB4702F2AC2FD3FA4FDC46A4FC05AE8CDEE1A85))
-Comment: -----@@@----- (why not this comment?)
-"
-        ));
     }
 
     #[test]
@@ -990,51 +991,13 @@ Outputs:
 146:2:SIG(DSz4rgncXCytsUMW2JU2yhLquZECD2XpEkpP9gG5HyAx)
 49:2:(SIG(6DyGr5LFtFmbaJYRvcs9WmBsr4cbJbJ1EV9zBbqG7A6i) || XHX(3EB4702F2AC2FD3FA4FDC46A4FC05AE8CDEE1A85F2AC2FD3FA4FDC46A4FC01CA))
 Comment: -----@@@----- (why not this comment?)
-";
-
-        let body =
-            "Blockstamp: 204-00003E2B8A35370BA5A7064598F628A62D4E9EC1936BE8651CE9A85F2E06981B
-Locktime: 0
-Issuers:
-DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
-4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR
-FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa
-Inputs:
-40:2:T:6991C993631BED4733972ED7538E41CCC33660F554E3C51963E2A0AC4D6453D3:2
-70:2:T:3A09A20E9014110FD224889F13357BAB4EC78A72F95CA03394D8CCA2936A7435:8
-20:2:D:DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV:46
-70:2:T:A0D9B4CDC113ECE1145C5525873821398890AE842F4B318BD076095A23E70956:3
-20:2:T:67F2045B5318777CC52CD38B424F3E40DDA823FA0364625F124BABE0030E7B5B:5
-15:2:D:FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa:46
-Unlocks:
-0:SIG(0)
-1:XHX(7665798292)
-2:SIG(0)
-3:SIG(0) SIG(2)
-4:SIG(0) SIG(1) SIG(2)
-5:SIG(2)
-Outputs:
-120:2:SIG(BYfWYFrsyjpvpFysgu19rGK3VHBkz4MqmQbNyEuVU64g)
-146:2:SIG(DSz4rgncXCytsUMW2JU2yhLquZECD2XpEkpP9gG5HyAx)
-49:2:(SIG(6DyGr5LFtFmbaJYRvcs9WmBsr4cbJbJ1EV9zBbqG7A6i) || XHX(3EB4702F2AC2FD3FA4FDC46A4FC05AE8CDEE1A85F2AC2FD3FA4FDC46A4FC01CA))
-Comment: -----@@@----- (why not this comment?)
-";
+kL59C1izKjcRN429AlKdshwhWbasvyL7sthI757zm1DfZTdTIctDWlKbYeG/tS7QyAgI3gcfrTHPhu1E1lKCBw==
+e3LpgB2RZ/E/BCxPJsn+TDDyxGYzrIsMyDt//KhJCjIQD6pNUxr5M5jrq2OwQZgwmz91YcmoQ2XRQAUDpe4BAw==
+w69bYgiQxDmCReB0Dugt9BstXlAKnwJkKCdWvCeZ9KnUCv0FJys6klzYk/O/b9t74tYhWZSX0bhETWHiwfpWBw==";
 
         let currency = "duniter_unit_test_currency";
 
-        let signatures = vec![
-            Sig::Ed25519(ed25519::Signature::from_base64(
-"kL59C1izKjcRN429AlKdshwhWbasvyL7sthI757zm1DfZTdTIctDWlKbYeG/tS7QyAgI3gcfrTHPhu1E1lKCBw=="
-        ).expect("fail to parse test signature")),
-            Sig::Ed25519(ed25519::Signature::from_base64(
-"e3LpgB2RZ/E/BCxPJsn+TDDyxGYzrIsMyDt//KhJCjIQD6pNUxr5M5jrq2OwQZgwmz91YcmoQ2XRQAUDpe4BAw=="
-            ).expect("fail to parse test signature")),
-            Sig::Ed25519(ed25519::Signature::from_base64(
-"w69bYgiQxDmCReB0Dugt9BstXlAKnwJkKCdWvCeZ9KnUCv0FJys6klzYk/O/b9t74tYhWZSX0bhETWHiwfpWBw=="
-            ).expect("fail to parse test signature")),
-        ];
-
-        let doc = TransactionDocumentParser::parse_standard(doc, body, currency, signatures)
+        let doc = TransactionDocumentParser::parse(doc, currency)
             .expect("fail to parse test transaction document !");
         if let V10Document::Transaction(doc) = doc {
             //println!("Doc : {:?}", doc);

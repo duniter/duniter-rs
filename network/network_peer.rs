@@ -24,7 +24,7 @@ extern crate serde;
 use base58::ToBase58;
 use duniter_crypto::keys::bin_signable::BinSignable;
 use duniter_crypto::keys::*;
-use duniter_documents::{Blockstamp, CurrencyName};
+use duniter_documents::{blockstamp::Blockstamp, CurrencyName};
 use network_endpoint::*;
 use *;
 

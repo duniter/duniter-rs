@@ -41,8 +41,8 @@ use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::Sig;
 use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALRequest, DALResponse};
-use duniter_documents::blockchain::BlockchainProtocol;
 use duniter_documents::BlockId;
+use duniter_documents::BlockchainProtocol;
 use duniter_module::*;
 use duniter_network::{NetworkEvent, NetworkResponse, OldNetworkRequest};
 

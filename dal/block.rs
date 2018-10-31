@@ -15,8 +15,8 @@
 
 use super::constants::MAX_FORKS;
 use duniter_crypto::keys::*;
-use duniter_documents::blockchain::v10::documents::BlockDocument;
-use duniter_documents::blockchain::Document;
+use duniter_documents::v10::BlockDocument;
+use duniter_documents::Document;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
 use durs_wot::NodeId;
 use std::collections::HashMap;

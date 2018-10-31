@@ -3,12 +3,13 @@ extern crate serde_json;
 
 use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::*;
-use duniter_documents::blockchain::v10::documents::transaction::{
+use duniter_documents::v10::transaction::{
     TransactionDocument, TransactionDocumentBuilder, TransactionInput, TransactionInputUnlocks,
     TransactionOutput,
 };
-use duniter_documents::blockchain::DocumentBuilder;
 use duniter_documents::Blockstamp;
+use duniter_documents::DocumentBuilder;
+use std::str::FromStr;
 
 pub fn parse_transaction(
     currency: &str,
@@ -36,7 +37,7 @@ pub fn parse_transaction(
     let mut inputs = Vec::with_capacity(inputs_array.len());
     for input in inputs_array {
         let input_str = input.as_str()?;
-        match TransactionInput::parse_from_str(input_str) {
+        match TransactionInput::from_str(input_str) {
             Ok(input) => inputs.push(input),
             Err(_) => {
                 return None;
@@ -46,7 +47,7 @@ pub fn parse_transaction(
     let unlocks_array = source.get("unlocks")?.as_array()?;
     let mut unlocks = Vec::with_capacity(unlocks_array.len());
     for unlock in unlocks_array {
-        match TransactionInputUnlocks::parse_from_str(unlock.as_str()?) {
+        match TransactionInputUnlocks::from_str(unlock.as_str()?) {
             Ok(unlock) => unlocks.push(unlock),
             Err(_) => {
                 return None;
@@ -56,7 +57,7 @@ pub fn parse_transaction(
     let outputs_array = source.get("outputs")?.as_array()?;
     let mut outputs = Vec::with_capacity(outputs_array.len());
     for output in outputs_array {
-        match TransactionOutput::parse_from_str(output.as_str()?) {
+        match TransactionOutput::from_str(output.as_str()?) {
             Ok(output) => outputs.push(output),
             Err(_) => {
                 return None;
@@ -121,15 +122,15 @@ Merci pour la calligraphie ;) de Liam$\
                 ed25519::PublicKey::from_base58("51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2")
                     .unwrap(),
             )],
-            inputs: &vec![TransactionInput::parse_from_str(
+            inputs: &vec![TransactionInput::from_str(
                 "1000:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:46496",
             )
             .unwrap()],
-            outputs: &vec![TransactionOutput::parse_from_str(
+            outputs: &vec![TransactionOutput::from_str(
                 "1000:0:SIG(2yN8BRSkARcqE8NCxKMBiHfTpx1EvwULFn56Myf6qRmy)",
             )
             .unwrap()],
-            unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)").unwrap()],
+            unlocks: &vec![TransactionInputUnlocks::from_str("0:SIG(0)").unwrap()],
             comment: "Merci pour la calligraphie ;) de Liam",
             hash: None,
         };

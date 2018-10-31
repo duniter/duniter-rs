@@ -16,8 +16,7 @@
 //! Module defining the format of network heads v2 and how to handle them.
 
 use duniter_crypto::keys::*;
-use duniter_documents::BlockUIdParseError;
-use duniter_documents::Blockstamp;
+use duniter_documents::blockstamp::*;
 use std::cmp::Ordering;
 use std::num::ParseIntError;
 use std::ops::Deref;
@@ -145,8 +144,8 @@ pub enum NetworkHeadMessageParseErr {
     BaseConvertionError(BaseConvertionError),
     /// ParseIntError
     ParseIntError(ParseIntError),
-    /// BlockUIdParseError
-    BlockUIdParseError(BlockUIdParseError),
+    /// BlockstampParseError
+    BlockstampParseError(BlockstampParseError),
 }
 
 impl From<BaseConvertionError> for NetworkHeadMessageParseErr {
@@ -155,9 +154,9 @@ impl From<BaseConvertionError> for NetworkHeadMessageParseErr {
     }
 }
 
-impl From<BlockUIdParseError> for NetworkHeadMessageParseErr {
-    fn from(e: BlockUIdParseError) -> Self {
-        NetworkHeadMessageParseErr::BlockUIdParseError(e)
+impl From<BlockstampParseError> for NetworkHeadMessageParseErr {
+    fn from(e: BlockstampParseError) -> Self {
+        NetworkHeadMessageParseErr::BlockstampParseError(e)
     }
 }
 

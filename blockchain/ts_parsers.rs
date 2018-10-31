@@ -18,13 +18,13 @@ extern crate sqlite;
 
 use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::*;
-use duniter_documents::blockchain::v10::documents::block::{BlockV10Parameters, TxDocOrTxHash};
-use duniter_documents::blockchain::v10::documents::identity::IdentityDocumentBuilder;
-use duniter_documents::blockchain::v10::documents::membership::*;
-use duniter_documents::blockchain::v10::documents::transaction::*;
-use duniter_documents::blockchain::v10::documents::*;
-use duniter_documents::blockchain::DocumentBuilder;
+use duniter_documents::v10::block::{BlockV10Parameters, TxDocOrTxHash};
+use duniter_documents::v10::identity::*;
+use duniter_documents::v10::membership::*;
+use duniter_documents::v10::transaction::*;
+use duniter_documents::v10::*;
 use duniter_documents::CurrencyName;
+use duniter_documents::DocumentBuilder;
 use duniter_documents::{BlockHash, BlockId, Blockstamp};
 use duniter_network::{NetworkBlock, NetworkBlockV10};
 use std::str::FromStr;
@@ -329,7 +329,7 @@ pub fn parse_transaction(
     let mut inputs = Vec::with_capacity(inputs_array.len());
     for input in inputs_array {
         let input_str = input.as_str()?;
-        match TransactionInput::parse_from_str(input_str) {
+        match TransactionInput::from_str(input_str) {
             Ok(input) => inputs.push(input),
             Err(_) => {
                 return None;
@@ -339,7 +339,7 @@ pub fn parse_transaction(
     let unlocks_array = source.get("unlocks")?.as_array()?;
     let mut unlocks = Vec::with_capacity(unlocks_array.len());
     for unlock in unlocks_array {
-        match TransactionInputUnlocks::parse_from_str(unlock.as_str()?) {
+        match TransactionInputUnlocks::from_str(unlock.as_str()?) {
             Ok(unlock) => unlocks.push(unlock),
             Err(_) => {
                 return None;
@@ -350,7 +350,7 @@ pub fn parse_transaction(
     let mut outputs = Vec::with_capacity(outputs_array.len());
     for output in outputs_array {
         outputs.push(
-            TransactionOutput::parse_from_str(
+            TransactionOutput::from_str(
                 output
                     .as_str()
                     .unwrap_or_else(|| panic!("Fail to parse output : {:?}", output)),

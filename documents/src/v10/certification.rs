@@ -16,18 +16,11 @@
 //! Wrappers around Certification documents.
 
 use duniter_crypto::keys::*;
-use regex::Regex;
+use pest::Parser;
 
-use blockchain::v10::documents::*;
-use blockchain::{BlockchainProtocol, Document, DocumentBuilder, IntoSpecializedDocument};
-use BlockId;
-use Blockstamp;
-
-lazy_static! {
-    static ref CERTIFICATION_REGEX: Regex = Regex::new(
-        "^Issuer: (?P<issuer>[1-9A-Za-z]{43,44})\nIdtyIssuer: (?P<target>[1-9A-Za-z]{43,44})\nIdtyUniqueID: (?P<idty_uid>[[:alnum:]_-]+)\nIdtyTimestamp: (?P<idty_blockstamp>[0-9]+-[0-9A-F]{64})\nIdtySignature: (?P<idty_sig>(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)\nCertTimestamp: (?P<blockstamp>[0-9]+-[0-9A-F]{64})\n$"
-    ).unwrap();
-}
+use blockstamp::Blockstamp;
+use v10::*;
+use *;
 
 #[derive(Copy, Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 /// Wrap an Compact Revocation document (in block content)
@@ -124,7 +117,7 @@ impl Document for CertificationDocument {
     }
 
     fn as_bytes(&self) -> &[u8] {
-        self.as_text().as_bytes()
+        self.as_text_without_signature().as_bytes()
     }
 }
 
@@ -228,47 +221,74 @@ CertTimestamp: {blockstamp}
 #[derive(Debug, Clone, Copy)]
 pub struct CertificationDocumentParser;
 
-impl StandardTextDocumentParser for CertificationDocumentParser {
-    fn parse_standard(
-        doc: &str,
-        body: &str,
-        currency: &str,
-        signatures: Vec<Sig>,
-    ) -> Result<V10Document, V10DocumentParsingError> {
-        if let Some(caps) = CERTIFICATION_REGEX.captures(body) {
-            let issuer = &caps["issuer"];
-            let target = &caps["target"];
-            let identity_username = &caps["idty_uid"];
-            let identity_blockstamp = &caps["idty_blockstamp"];
-            let identity_sig = &caps["idty_sig"];
-            let blockstamp = &caps["blockstamp"];
+impl TextDocumentParser for CertificationDocumentParser {
+    fn parse(doc: &str, currency: &str) -> Result<V10Document, V10DocumentParsingError> {
+        match DocumentsParser::parse(Rule::cert, doc) {
+            Ok(mut doc_ast) => {
+                let cert_ast = doc_ast.next().unwrap(); // get and unwrap the `cert` rule; never fails
+                let cert_vx_ast = cert_ast.into_inner().next().unwrap(); // get and unwrap the `cert_vX` rule; never fails
 
-            // Regex match so should not fail.
-            // TODO : Test it anyway
-            let issuer = PubKey::Ed25519(ed25519::PublicKey::from_base58(issuer).unwrap());
-            let target = PubKey::Ed25519(ed25519::PublicKey::from_base58(target).unwrap());
-            let identity_username = String::from(identity_username);
-            let identity_blockstamp = Blockstamp::from_string(identity_blockstamp).unwrap();
-            let identity_sig = Sig::Ed25519(ed25519::Signature::from_base64(identity_sig).unwrap());
-            let blockstamp = Blockstamp::from_string(blockstamp).unwrap();
+                match cert_vx_ast.as_rule() {
+                    Rule::cert_v10 => {
+                        let mut pubkeys = Vec::with_capacity(2);
+                        let mut uid = "";
+                        let mut sigs = Vec::with_capacity(2);
+                        let mut blockstamps = Vec::with_capacity(2);
+                        for field in cert_vx_ast.into_inner() {
+                            match field.as_rule() {
+                                Rule::currency => {
+                                    if currency != field.as_str() {
+                                        return Err(V10DocumentParsingError::InvalidCurrency());
+                                    }
+                                }
+                                Rule::pubkey => pubkeys.push(PubKey::Ed25519(
+                                    ed25519::PublicKey::from_base58(field.as_str()).unwrap(), // Grammar ensures that we have a base58 string.
+                                )),
+                                Rule::uid => {
+                                    uid = field.as_str();
+                                }
+                                Rule::blockstamp => {
+                                    if blockstamps.len() > 1 {
+                                        return Err(V10DocumentParsingError::InvalidInnerFormat(
+                                            "Cert document must contain exactly two blockstamps !",
+                                        ));
+                                    }
+                                    let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
 
-            Ok(V10Document::Certification(Box::new(
-                CertificationDocument {
-                    text: doc.to_owned(),
-                    issuers: vec![issuer],
-                    currency: currency.to_owned(),
-                    target,
-                    identity_username,
-                    identity_blockstamp,
-                    identity_sig,
-                    blockstamp,
-                    signatures,
-                },
-            )))
-        } else {
-            Err(V10DocumentParsingError::InvalidInnerFormat(
-                "Certification".to_string(),
-            ))
+                                    let block_id: &str = inner_rules.next().unwrap().as_str();
+                                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                                    blockstamps.push(Blockstamp {
+                                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
+                                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                                    });
+                                }
+                                Rule::ed25519_sig => {
+                                    sigs.push(Sig::Ed25519(
+                                        ed25519::Signature::from_base64(field.as_str()).unwrap(), // Grammar ensures that we have a base64 string.
+                                    ));
+                                }
+                                Rule::EOI => (),
+                                _ => panic!("unexpected rule"), // Grammar ensures that we never reach this line
+                            }
+                        }
+                        Ok(V10Document::Certification(Box::new(
+                            CertificationDocument {
+                                text: doc.to_owned(),
+                                issuers: vec![pubkeys[0]],
+                                currency: currency.to_owned(),
+                                target: pubkeys[1],
+                                identity_username: uid.to_owned(),
+                                identity_blockstamp: blockstamps[0],
+                                identity_sig: sigs[0],
+                                blockstamp: blockstamps[1],
+                                signatures: vec![sigs[1]],
+                            },
+                        )))
+                    }
+                    _ => Err(V10DocumentParsingError::UnexpectedVersion()),
+                }
+            }
+            Err(pest_error) => panic!("{}", pest_error), //Err(V10DocumentParsingError::PestError()),
         }
     }
 }
@@ -276,8 +296,8 @@ impl StandardTextDocumentParser for CertificationDocumentParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use blockchain::VerificationResult;
     use duniter_crypto::keys::{PrivateKey, PublicKey, Signature};
+    use VerificationResult;
 
     #[test]
     fn generate_real_document() {
@@ -335,19 +355,6 @@ mod tests {
     }
 
     #[test]
-    fn certification_standard_regex() {
-        assert!(CERTIFICATION_REGEX.is_match(
-            "Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
-IdtyIssuer: 7jzkd8GiFnpys4X7mP78w2Y3y3kwdK6fVSLEaojd3aH9
-IdtyUniqueID: fbarbut
-IdtyTimestamp: 98221-000000575AC04F5164F7A307CDB766139EA47DD249E4A2444F292BC8AAB408B3
-IdtySignature: DjeipIeb/RF0tpVCnVnuw6mH1iLJHIsDfPGLR90Twy3PeoaDz6Yzhc/UjLWqHCi5Y6wYajV0dNg4jQRUneVBCQ==
-CertTimestamp: 99956-00000472758331FDA8388E30E50CA04736CBFD3B7C21F34E74707107794B56DD
-"
-        ));
-    }
-
-    #[test]
     fn certification_document() {
         let doc = "Version: 10
 Type: Certification
@@ -358,24 +365,11 @@ IdtyUniqueID: mmpio
 IdtyTimestamp: 7543-000044410C5370DE8DBA911A358F318096B7A269CFC2BB93272E397CC513EA0A
 IdtySignature: SmSweUD4lEMwiZfY8ux9maBjrQQDkC85oMNsin6oSQCPdXG8sFCZ4FisUaWqKsfOlZVb/HNa+TKzD2t0Yte+DA==
 CertTimestamp: 167884-0001DFCA28002A8C96575E53B8CEF8317453A7B0BA255542CCF0EC8AB5E99038
-";
-
-        let body = "Issuer: 5B8iMAzq1dNmFe3ZxFTBQkqhq4fsztg1gZvxHXCk1XYH
-IdtyIssuer: mMPioknj2MQCX9KyKykdw8qMRxYR2w1u3UpdiEJHgXg
-IdtyUniqueID: mmpio
-IdtyTimestamp: 7543-000044410C5370DE8DBA911A358F318096B7A269CFC2BB93272E397CC513EA0A
-IdtySignature: SmSweUD4lEMwiZfY8ux9maBjrQQDkC85oMNsin6oSQCPdXG8sFCZ4FisUaWqKsfOlZVb/HNa+TKzD2t0Yte+DA==
-CertTimestamp: 167884-0001DFCA28002A8C96575E53B8CEF8317453A7B0BA255542CCF0EC8AB5E99038
-";
+wqZxPEGxLrHGv8VdEIfUGvUcf+tDdNTMXjLzVRCQ4UhlhDRahOMjfcbP7byNYr5OfIl83S1MBxF7VJgu8YasCA==";
 
         let currency = "g1-test";
 
-        let signatures = vec![Sig::Ed25519(ed25519::Signature::from_base64(
-"wqZxPEGxLrHGv8VdEIfUGvUcf+tDdNTMXjLzVRCQ4UhlhDRahOMjfcbP7byNYr5OfIl83S1MBxF7VJgu8YasCA=="
-        ).unwrap())];
-
-        let doc =
-            CertificationDocumentParser::parse_standard(doc, body, currency, signatures).unwrap();
+        let doc = CertificationDocumentParser::parse(doc, currency).unwrap();
         if let V10Document::Certification(doc) = doc {
             println!("Doc : {:?}", doc);
             assert_eq!(doc.verify_signatures(), VerificationResult::Valid());

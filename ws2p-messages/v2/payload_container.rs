@@ -19,10 +19,12 @@ use super::req_responses::WS2Pv2ReqRes;
 use super::requests::WS2Pv2Request;
 use super::secret_flags::WS2Pv2SecretFlagsMsg;
 use duniter_crypto::hashs::Hash;
-use duniter_documents::blockchain::v10::documents::{
-    BlockDocument, CertificationDocument, IdentityDocument, MembershipDocument, RevocationDocument,
-    TransactionDocument,
-};
+use duniter_documents::v10::block::BlockDocument;
+use duniter_documents::v10::certification::CertificationDocument;
+use duniter_documents::v10::identity::IdentityDocument;
+use duniter_documents::v10::membership::MembershipDocument;
+use duniter_documents::v10::revocation::RevocationDocument;
+use duniter_documents::v10::transaction::TransactionDocument;
 use duniter_network::network_head_v2::NetworkHeadV2;
 use duniter_network::network_head_v3::NetworkHeadV3Container;
 use duniter_network::network_peer::PeerCardV11;

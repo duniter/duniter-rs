@@ -13,9 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use duniter_documents::blockchain::v10::documents::BlockDocument;
-use duniter_documents::blockchain::BlockchainProtocol;
-use duniter_documents::Blockstamp;
+use duniter_documents::v10::block::BlockDocument;
+use duniter_documents::*;
 
 #[derive(Debug, Clone)]
 /// Event to be transmitted to the other modules

@@ -1,0 +1,162 @@
+nl = _{ "\n" }
+hexa = { ASCII_DIGIT | 'A'..'F' }
+base58 = { !("O" | "I" | "l") ~ ASCII_ALPHANUMERIC }
+base64 = { ASCII_ALPHANUMERIC | "+" | "/" }
+
+integer = @{ "0" | ('1'..'9' ~ ASCII_DIGIT*) }
+hash = @{ hexa{64} }
+
+currency = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_")* }
+pubkey = @{ base58{43,44} }
+uid = @{ ASCII_ALPHA+ }
+block_id = @{ integer }
+blockstamp =  ${ block_id ~ "-" ~ hash }
+ed25519_sig = @{ base64{86,88} ~ "="{0,2} }
+
+v10 = _{ "Version: 10" }
+
+idty_v10 = ${
+    v10 ~ nl ~
+    "Type: Identity" ~ nl ~
+    "Currency: " ~ currency ~ nl ~
+    "Issuer: " ~ pubkey ~ nl ~
+    "UniqueID: " ~ uid ~ nl ~
+    "Timestamp: " ~ blockstamp ~ nl ~
+    ed25519_sig? ~ nl*
+}
+
+idty = ${
+    SOI ~
+    (&(v10 ~ nl) ~ idty_v10)
+    ~ EOI
+}
+
+membership_in = @{ "IN" }
+membership_out = @{ "OUT" }
+
+membership_v10 = ${
+    v10 ~ nl ~
+    "Type: Membership" ~ nl ~
+    "Currency: " ~ currency ~ nl ~
+    "Issuer: " ~ pubkey ~ nl ~
+    "Block: " ~ blockstamp ~ nl ~
+    "Membership: " ~ (membership_in | membership_out) ~ nl ~
+    "UserID: " ~ uid ~ nl ~
+    "CertTS: " ~ blockstamp ~ nl ~
+    ed25519_sig? ~ nl*
+}
+
+membership = ${
+    SOI ~
+    (&("Version: 10" ~ nl) ~ membership_v10)
+    ~ EOI
+}
+
+cert_v10 = ${
+    v10 ~ nl ~
+    "Type: Certification" ~ nl ~
+    "Currency: " ~ currency ~ nl ~
+    "Issuer: " ~ pubkey ~ nl ~
+    "IdtyIssuer: " ~ pubkey ~ nl ~
+    "IdtyUniqueID: " ~ uid ~ nl ~
+    "IdtyTimestamp: " ~ blockstamp ~ nl ~
+    "IdtySignature: " ~ ed25519_sig ~ nl ~
+    "CertTimestamp: " ~ blockstamp ~ nl ~
+    ed25519_sig? ~ nl*
+}
+
+cert = ${
+    SOI ~
+    (&("Version: 10" ~ nl) ~ cert_v10)
+    ~ EOI
+}
+
+revoc_v10 = ${
+    v10 ~ nl ~
+    "Type: Revocation" ~ nl ~
+    "Currency: " ~ currency ~ nl ~
+    "Issuer: " ~ pubkey ~ nl ~
+    "IdtyUniqueID: " ~ uid ~ nl ~
+    "IdtyTimestamp: " ~ blockstamp ~ nl ~
+    "IdtySignature: " ~ ed25519_sig ~ nl ~
+    ed25519_sig? ~ nl*
+}
+
+revoc = ${
+    SOI ~
+    (&("Version: 10" ~ nl) ~ revoc_v10)
+    ~ EOI
+}
+
+tx_locktime = @{ integer }
+tx_amount =  @{ integer }
+tx_amount_base =  @{ integer }
+du_block_id = @{ integer }
+tx_index =  @{ integer }
+input_index = @{ integer }
+issuer_index = @{ integer }
+xhx_secret = @ { ASCII_ALPHANUMERIC+ }
+csv_duration = @{ integer }
+cltv_timestamp = @{ integer }
+
+tx_input = ${ tx_input_du | tx_input_tx }
+tx_input_du = ${ tx_amount ~ ":" ~ tx_amount_base ~ ":D:" ~ pubkey ~ ":" ~ du_block_id }
+tx_input_tx = ${ tx_amount ~ ":" ~ tx_amount_base ~ ":T:" ~ hash ~ ":" ~ tx_index }
+
+tx_unlock = ${ input_index ~ ":" ~ unlock_cond ~ (" " ~ unlock_cond)* }
+unlock_cond = _{ unlock_sig | unlock_xhx }
+unlock_sig = ${ "SIG(" ~ issuer_index ~ ")" }
+unlock_xhx = ${ "XHX(" ~ xhx_secret ~ ")" }
+
+tx_output = ${ tx_amount ~ ":" ~ tx_amount_base ~ ":" ~ output_conds_group }
+output_conds_group = _{ output_and_group | output_or_group | output_single_cond }
+output_and_group = ${ "(" ~ output_conds_group ~ (" && " ~ output_conds_group)+ ~ ")" }
+output_or_group = ${ "(" ~ output_conds_group ~ (" || " ~ output_conds_group)+ ~ ")" }
+output_single_cond = _{ output_cond_sig | output_cond_xhx | output_cond_csv | output_cond_cltv }
+output_cond_sig = ${ "SIG(" ~ pubkey ~ ")"? }
+output_cond_xhx = ${ "XHX(" ~ hash ~ ")"? }
+output_cond_csv = ${ "CSV(" ~ csv_duration ~ ")"? }
+output_cond_cltv = ${ "CLTV(" ~ cltv_timestamp ~ ")"? }
+
+tx_comment_char = {
+    ASCII_ALPHANUMERIC | "\\" | ":" | "/" | ";" | "*" | "[" | "]" | "(" | ")" | "?" | "!" | "^" 
+    | "+" | "=" | "@" | "&" | "~" | "#" | "{" | "}" | "|" | "<" | ">" | "%" | "." | " " | "-" 
+}
+tx_comment = @{ tx_comment_char{0,255} }
+
+tx_v10 = ${
+    "Version: 10" ~ nl ~
+    "Type: Transaction" ~ nl ~
+    "Currency: " ~ currency ~ nl ~
+    "Blockstamp: " ~ blockstamp ~ nl ~
+    "Locktime: " ~ tx_locktime ~ nl ~
+    "Issuers:" ~ nl ~ (pubkey ~ nl)+ ~
+    "Inputs:" ~ nl ~ (tx_input ~ nl)+ ~
+    "Unlocks:" ~ nl ~ (tx_unlock ~ nl)+ ~
+    "Outputs:" ~ nl ~ (tx_output ~ nl)+ ~
+    "Comment: " ~ tx_comment ~ nl ~
+    (ed25519_sig ~ nl)* ~ // intermediate signatures (zero if the transaction has only one signature)
+    ed25519_sig? ~ nl* // last signature
+}
+
+tx = ${
+    SOI ~
+    (&("Version: 10" ~ nl) ~ tx_v10)
+    ~ EOI
+}
+
+document_v10 = ${
+    SOI ~
+    (&"Type: Identity" ~ idty_v10) | 
+    (&"Type: Membership" ~ membership_v10) | 
+    (&"Type: Certification" ~ cert_v10) | 
+    (&"Type: Revocation" ~ revoc_v10) |
+    (&"Type: Transaction" ~ tx_v10)
+    ~ EOI
+}
+
+document = ${
+    SOI ~
+    (&("Version: 10" ~ nl) ~ document_v10)
+    ~ EOI
+}

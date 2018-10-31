@@ -55,12 +55,14 @@ use crypto::digest::Digest;
 use crypto::sha2::Sha256;
 use duniter_crypto::hashs::*;
 use duniter_crypto::keys::*;
-use duniter_documents::blockchain::v10::documents::{
-    BlockDocument, CertificationDocument, IdentityDocument, MembershipDocument, RevocationDocument,
-    TransactionDocument,
-};
-use duniter_documents::blockchain::Document;
-use duniter_documents::{BlockHash, BlockId, Blockstamp};
+use duniter_documents::v10::block::BlockDocument;
+use duniter_documents::v10::certification::CertificationDocument;
+use duniter_documents::v10::identity::IdentityDocument;
+use duniter_documents::v10::membership::MembershipDocument;
+use duniter_documents::v10::revocation::RevocationDocument;
+use duniter_documents::v10::transaction::TransactionDocument;
+use duniter_documents::Document;
+use duniter_documents::{blockstamp::Blockstamp, BlockHash, BlockId};
 use duniter_module::*;
 use network_endpoint::ApiFeatures;
 use network_head::NetworkHead;

@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use duniter_crypto::keys::PubKey;
-use duniter_documents::blockchain::v10::documents::transaction::*;
+use duniter_documents::v10::transaction::*;
 use duniter_documents::BlockId;
 use sources::SourceAmount;
 use std::collections::{HashMap, HashSet};

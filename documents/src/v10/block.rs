@@ -19,17 +19,16 @@ use crypto::digest::Digest;
 use crypto::sha2::Sha256;
 use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::*;
-
-use blockchain::v10::documents::certification::CertificationDocument;
-use blockchain::v10::documents::identity::IdentityDocument;
-use blockchain::v10::documents::membership::MembershipDocument;
-use blockchain::v10::documents::revocation::RevocationDocument;
-use blockchain::v10::documents::transaction::TransactionDocument;
-use blockchain::v10::documents::*;
-use blockchain::{BlockchainProtocol, Document, IntoSpecializedDocument};
 use std::ops::Deref;
-use CurrencyName;
-use {BlockHash, BlockId, Blockstamp};
+
+use blockstamp::Blockstamp;
+use v10::certification::CertificationDocument;
+use v10::identity::IdentityDocument;
+use v10::membership::MembershipDocument;
+use v10::revocation::RevocationDocument;
+use v10::transaction::TransactionDocument;
+use v10::*;
+use *;
 
 #[derive(Debug, Clone)]
 /// Store error in block parameters parsing
@@ -510,10 +509,11 @@ impl IntoSpecializedDocument<BlockchainProtocol> for BlockDocument {
 
 #[cfg(test)]
 mod tests {
+    use super::certification::CertificationDocumentParser;
+    use super::transaction::TransactionDocumentParser;
     use super::*;
-    use blockchain::v10::documents::V10DocumentParser;
-    use blockchain::{Document, DocumentParser, VerificationResult};
     use std::ops::Deref;
+    use {Document, VerificationResult};
 
     #[test]
     fn generate_and_verify_empty_block() {
@@ -575,7 +575,7 @@ mod tests {
 
     #[test]
     fn generate_and_verify_block() {
-        let cert1_ = V10DocumentParser::parse("Version: 10
+        let cert1 = CertificationDocumentParser::parse("Version: 10
 Type: Certification
 Currency: g1
 Issuer: 6TAzLWuNcSqgNDNpAutrKpPXcGJwy1ZEMeVvZSZNs2e3
@@ -584,13 +584,13 @@ IdtyUniqueID: PascaleM
 IdtyTimestamp: 97401-0000003821911909F98519CC773D2D3E5CFE3D5DBB39F4F4FF33B96B4D41800E
 IdtySignature: QncUVXxZ2NfARjdJOn6luILvDuG1NuK9qSoaU4CST2Ij8z7oeVtEgryHl+EXOjSe6XniALsCT0gU8wtadcA/Cw==
 CertTimestamp: 106669-000003682E6FE38C44433DCE92E8B2A26C69B6D7867A2BAED231E788DDEF4251
-UmseG2XKNwKcY8RFi6gUCT91udGnnNmSh7se10J1jeRVlwf+O2Tyb2Cccot9Dt7BO4+Kx2P6vFJB3oVGGHMxBA==").unwrap();
-        let cert1 = match cert1_ {
+UmseG2XKNwKcY8RFi6gUCT91udGnnNmSh7se10J1jeRVlwf+O2Tyb2Cccot9Dt7BO4+Kx2P6vFJB3oVGGHMxBA==", "g1").expect("Fail to parse cert1");
+        let cert1 = match cert1 {
             V10Document::Certification(doc) => (*doc.deref()).clone(),
             _ => panic!("Wrong document type"),
         };
 
-        let tx1_ = V10DocumentParser::parse("Version: 10
+        let tx1 = TransactionDocumentParser::parse("Version: 10
 Type: Transaction
 Currency: g1
 Blockstamp: 107982-000001242F6DA51C06A915A96C58BAA37AB3D1EB51F6E1C630C707845ACF764B
@@ -604,13 +604,13 @@ Unlocks:
 Outputs:
 1002:0:SIG(CitdnuQgZ45tNFCagay7Wh12gwwHM8VLej1sWmfHWnQX)
 Comment: DU symbolique pour demander le codage de nouvelles fonctionnalites cf. https://forum.monnaie-libre.fr/t/creer-de-nouvelles-fonctionnalites-dans-cesium-les-autres-applications/2025  Merci
-T0LlCcbIn7xDFws48H8LboN6NxxwNXXTovG4PROLf7tkUAueHFWjfwZFKQXeZEHxfaL1eYs3QspGtLWUHPRVCQ==").unwrap();
-        let tx1 = match tx1_ {
+T0LlCcbIn7xDFws48H8LboN6NxxwNXXTovG4PROLf7tkUAueHFWjfwZFKQXeZEHxfaL1eYs3QspGtLWUHPRVCQ==", "g1").expect("Fail to parse tx1");
+        let tx1 = match tx1 {
             V10Document::Transaction(doc) => (*doc.deref()).clone(),
             _ => panic!("Wrong document type"),
         };
 
-        let tx2_ = V10DocumentParser::parse("Version: 10
+        let tx2 = TransactionDocumentParser::parse("Version: 10
 Type: Transaction
 Currency: g1
 Blockstamp: 107982-000001242F6DA51C06A915A96C58BAA37AB3D1EB51F6E1C630C707845ACF764B
@@ -624,8 +624,8 @@ Unlocks:
 Outputs:
 1002:0:SIG(78ZwwgpgdH5uLZLbThUQH7LKwPgjMunYfLiCfUCySkM8)
 Comment: DU symbolique pour demander le codage de nouvelles fonctionnalites cf. https://forum.monnaie-libre.fr/t/creer-de-nouvelles-fonctionnalites-dans-cesium-les-autres-applications/2025  Merci
-a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8xrNcCg==").unwrap();
-        let tx2 = match tx2_ {
+a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8xrNcCg==", "g1").expect("Fail to parse tx2");
+        let tx2 = match tx2 {
             V10Document::Transaction(doc) => (*doc.deref()).clone(),
             _ => panic!("Wrong document type"),
         };

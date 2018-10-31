@@ -81,8 +81,8 @@ pub mod writers;
 
 use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::*;
-use duniter_documents::blockchain::v10::documents::block::BlockV10Parameters;
-use duniter_documents::blockchain::v10::documents::transaction::*;
+use duniter_documents::v10::block::BlockV10Parameters;
+use duniter_documents::v10::transaction::*;
 use duniter_documents::CurrencyName;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
 use durs_wot::{NodeId, WebOfTrust};

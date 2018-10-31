@@ -23,9 +23,10 @@ pub mod transactions;
 mod tests {
     use super::transactions::*;
     use duniter_crypto::keys::*;
-    use duniter_documents::blockchain::v10::documents::transaction::*;
-    use duniter_documents::blockchain::DocumentBuilder;
+    use duniter_documents::v10::transaction::*;
     use duniter_documents::Blockstamp;
+    use duniter_documents::DocumentBuilder;
+    use std::str::FromStr;
 
     #[test]
     fn parse_json_tx() {
@@ -65,15 +66,15 @@ mod tests {
                 ed25519::PublicKey::from_base58("51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2")
                     .unwrap(),
             )],
-            inputs: &vec![TransactionInput::parse_from_str(
+            inputs: &vec![TransactionInput::from_str(
                 "1000:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:46496",
             )
             .unwrap()],
-            outputs: &vec![TransactionOutput::parse_from_str(
+            outputs: &vec![TransactionOutput::from_str(
                 "1000:0:SIG(2yN8BRSkARcqE8NCxKMBiHfTpx1EvwULFn56Myf6qRmy)",
             )
             .unwrap()],
-            unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)").unwrap()],
+            unlocks: &vec![TransactionInputUnlocks::from_str("0:SIG(0)").unwrap()],
             comment: "Merci pour la calligraphie ;) de Liam",
             hash: None,
         };
@@ -124,21 +125,19 @@ mod tests {
                 ed25519::PublicKey::from_base58("FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD")
                     .unwrap(),
             )],
-            inputs: &vec![TransactionInput::parse_from_str(
+            inputs: &vec![TransactionInput::from_str(
                 "1000:0:D:FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD:1",
             )
             .unwrap()],
             outputs: &vec![
-                TransactionOutput::parse_from_str(
-                    "3:0:SIG(7vU9BMDhN6fBuRa2iK3JRbC6pqQKb4qDMGsFcQuT5cz)",
-                )
-                .unwrap(),
-                TransactionOutput::parse_from_str(
+                TransactionOutput::from_str("3:0:SIG(7vU9BMDhN6fBuRa2iK3JRbC6pqQKb4qDMGsFcQuT5cz)")
+                    .unwrap(),
+                TransactionOutput::from_str(
                     "997:0:SIG(FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD)",
                 )
                 .unwrap(),
             ],
-            unlocks: &vec![TransactionInputUnlocks::parse_from_str("0:SIG(0)").unwrap()],
+            unlocks: &vec![TransactionInputUnlocks::from_str("0:SIG(0)").unwrap()],
             comment: "Un petit cafe ;-)",
             hash: None,
         };
