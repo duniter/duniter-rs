@@ -375,7 +375,7 @@ impl DALBlock {
         })?)
     }
     /// Compute median issuers frame
-    pub fn compute_median_issuers_frame(&mut self, db: &BinDB<LocalBlockchainV10Datas>) -> () {
+    pub fn compute_median_issuers_frame(&mut self, db: &BinDB<LocalBlockchainV10Datas>) {
         let current_frame = self
             .get_current_frame(db)
             .expect("Fatal error : fail to read LocalBlockchainV10DB !");
