@@ -502,7 +502,7 @@ impl BlockchainModule {
         current_blockstamp
     }
     /// Start blockchain module.
-    pub fn start_blockchain(&mut self, blockchain_receiver: &mpsc::Receiver<DursMsg>) -> () {
+    pub fn start_blockchain(&mut self, blockchain_receiver: &mpsc::Receiver<DursMsg>) {
         info!("BlockchainModule::start_blockchain()");
 
         // Get dbs path

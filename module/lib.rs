@@ -341,7 +341,7 @@ pub trait DuniterModule<DC: DuniterConf, M: ModuleMessage> {
         keys: RequiredKeysContent,
         module_conf: Self::ModuleConf,
         subcommand_args: Self::ModuleOpt,
-    ) -> ();
+    );
     /// Launch the module
     fn start(
         soft_meta_datas: &SoftwareMetaDatas<DC>,

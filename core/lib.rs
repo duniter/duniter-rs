@@ -114,8 +114,8 @@ pub fn main<'b, 'a: 'b, CliFunc, PlugFunc>(
     mut plug_modules: PlugFunc,
 ) where
     'b: 'a,
-    CliFunc: FnMut(&mut DuniterCore<'a, 'b, DuRsConf>) -> (),
-    PlugFunc: FnMut(&mut DuniterCore<'a, 'b, DuRsConf>) -> (),
+    CliFunc: FnMut(&mut DuniterCore<'a, 'b, DuRsConf>),
+    PlugFunc: FnMut(&mut DuniterCore<'a, 'b, DuRsConf>),
 {
     // Instantiate duniter core
     let mut duniter_core = DuniterCore::<DuRsConf>::new(soft_name, soft_version, clap_app, 0);

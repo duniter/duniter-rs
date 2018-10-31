@@ -162,7 +162,7 @@ impl<D: Serialize + DeserializeOwned + Debug + Default + Clone + Send> BinDB<D> 
     /// This gives you an exclusive lock on the memory object. Trying to open the database in writing will block if it is currently being written to.
     pub fn write<T>(&self, task: T) -> Result<(), RustbreakError>
     where
-        T: FnOnce(&mut D) -> (),
+        T: FnOnce(&mut D),
     {
         match *self {
             BinDB::File(ref file_db) => file_db.write(task),
@@ -172,7 +172,7 @@ impl<D: Serialize + DeserializeOwned + Debug + Default + Clone + Send> BinDB<D> 
     /// Write lock the database and get write access to the Data container in a safe way (clone of the internal data is made).
     pub fn write_safe<T>(&self, task: T) -> Result<(), RustbreakError>
     where
-        T: FnOnce(&mut D) -> () + UnwindSafe,
+        T: FnOnce(&mut D) + UnwindSafe,
     {
         match *self {
             BinDB::File(ref file_db) => file_db.write_safe(task),
