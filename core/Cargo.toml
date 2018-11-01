@@ -12,7 +12,7 @@ path = "lib.rs"
 dirs = "1.0.2"
 duniter-blockchain = { path = "../blockchain" }
 duniter-conf = { path = "../conf" }
-dup-crypto = { path = "../crypto" }
+dup-crypto = "0.3.0-b2"
 duniter-message =  { path = "../message" }
 duniter-module = { path = "../module" }
 duniter-network = { path = "../network" }

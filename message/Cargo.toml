@@ -9,7 +9,7 @@ license = "AGPL-3.0"
 path = "lib.rs"
 
 [dependencies]
-dup-crypto = { path = "../crypto" }
+dup-crypto = "0.3.0-b2"
 duniter-dal = { path = "../dal" }
 duniter-documents = { path = "../documents" }
 duniter-module = { path = "../module" }

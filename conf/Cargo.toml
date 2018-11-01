@@ -14,7 +14,7 @@ serde = "1.0.*"
 serde_derive = "1.0.*"
 serde_json = "1.0.*"
 dirs = "1.0.2"
-dup-crypto = { path = "../crypto" }
+dup-crypto = "0.3.0-b2"
 duniter-documents = { path = "../documents" }
 duniter-module = { path = "../module" }
 
