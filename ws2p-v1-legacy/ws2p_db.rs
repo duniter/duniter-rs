@@ -1,13 +1,6 @@
-extern crate duniter_crypto;
-extern crate duniter_documents;
-extern crate duniter_message;
-extern crate duniter_module;
-extern crate duniter_network;
-extern crate serde_json;
-extern crate sqlite;
-
 use duniter_crypto::keys::*;
-use duniter_network::network_endpoint::{EndpointEnum, NetworkEndpointApi};
+use durs_network_documents::network_endpoint::{EndpointEnum, NetworkEndpointApi};
+use sqlite::*;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum EndpointApi {
@@ -51,17 +44,14 @@ pub fn api_to_integer(api: &NetworkEndpointApi) -> i64 {
     }
 }
 
-pub fn get_endpoints_for_api(
-    db: &sqlite::Connection,
-    api: &NetworkEndpointApi,
-) -> Vec<EndpointEnum> {
-    let mut cursor:sqlite::Cursor = db
+pub fn get_endpoints_for_api(db: &Connection, api: &NetworkEndpointApi) -> Vec<EndpointEnum> {
+    let mut cursor: Cursor = db
         .prepare("SELECT hash_full_id, status, node_id, pubkey, api, version, endpoint, last_check FROM endpoints WHERE api=? ORDER BY status DESC;")
         .expect("get_endpoints_for_api() : Error in SQL request !")
         .cursor();
 
     cursor
-        .bind(&[sqlite::Value::Integer(api_to_integer(&api))])
+        .bind(&[Value::Integer(api_to_integer(&api))])
         .expect("get_endpoints_for_api() : Error in cursor binding !");
     let mut endpoints = Vec::new();
     while let Some(row) = cursor
@@ -93,7 +83,7 @@ pub fn get_endpoints_for_api(
 }
 
 pub fn write_endpoint(
-    db: &sqlite::Connection,
+    db: &Connection,
     endpoint: &EndpointEnum,
     new_status: u32,
     new_last_check: u64,
@@ -103,12 +93,12 @@ pub fn write_endpoint(
         .expect("Fail to write endpoint : node_full_id() return None !")
         .sha256();
     // Check if endpoint it's already written
-    let mut cursor: sqlite::Cursor = db
+    let mut cursor: Cursor = db
         .prepare("SELECT status FROM endpoints WHERE hash_full_id=? ORDER BY status DESC;")
         .expect("write_endpoint() : Error in SQL request !")
         .cursor();
     cursor
-        .bind(&[sqlite::Value::String(hash_full_id.to_string())])
+        .bind(&[Value::String(hash_full_id.to_string())])
         .expect("write_endpoint() : Error in cursor binding !");
 
     // If endpoint it's already written, update status

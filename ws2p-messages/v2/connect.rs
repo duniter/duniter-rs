@@ -17,7 +17,7 @@
 use super::api_features::WS2PFeatures;
 use duniter_crypto::hashs::Hash;
 use duniter_documents::Blockstamp;
-use duniter_network::network_peer::PeerCardV11;
+use durs_network_documents::network_peer::PeerCardV11;
 
 /// WS2P v2 connect message min size
 pub static CONNECT_MSG_MIN_SIZE: &'static usize = &36;

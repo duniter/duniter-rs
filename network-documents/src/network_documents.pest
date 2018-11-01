@@ -1,0 +1,16 @@
+//r"^(?P<api>[A-Z0-9_]+) (?P<version>[1-9][0-9]*)? ?(?P<uuid>[a-f0-9]{6,8})? ?(?P<host>[a-z_][a-z0-9-_.]*|[0-9.]+|[0-9a-f:]+) (?P<port>[0-9]+)(?: /?(?P<path>.+)?)? *$"
+
+no_zero_u_int = @{ '1'..'9' ~ ASCII_DIGIT* }
+u_int = @{ "0" | no_zero_u_int }
+
+api_name = @{ (ASCII_ALPHA_UPPER | ASCII_DIGIT)+ }
+version = @{ u_int }
+node_id = @{ ASCII_HEX_DIGIT{6,8} }
+host = @{ ASCII_ALPHA_LOWER ~ (ASCII_ALPHA_LOWER | ASCII_DIGIT | "-" | "_" | ".")* }
+port = @{ u_int }
+path_inner = @{ (ASCII_ALPHANUMERIC | "-" | "_" | ".")+ }
+path = _{ "/"? ~ path_inner }
+
+endpoint_v1 = { api_name ~ version? ~ node_id? ~ host ~ port ~ path? }
+
+WHITESPACE = _{ " " }

@@ -32,7 +32,7 @@ use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::bin_signable::BinSignable;
 use duniter_crypto::keys::*;
 use duniter_documents::CurrencyName;
-use duniter_network::NodeId;
+use durs_network_documents::NodeId;
 use v2::payload_container::*;
 
 /// WS2P v2 message metadata size

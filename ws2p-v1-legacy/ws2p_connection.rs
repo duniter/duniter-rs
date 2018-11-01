@@ -1,8 +1,9 @@
 use constants::*;
 use duniter_crypto::keys::*;
 use duniter_module::ModuleReqId;
-use duniter_network::network_endpoint::{EndpointEnum, NetworkEndpointApi};
-use duniter_network::{NetworkDocument, NodeId};
+use duniter_network::BlockchainDocument;
+use durs_network_documents::network_endpoint::{EndpointEnum, NetworkEndpointApi};
+use durs_network_documents::NodeId;
 use parsers::blocks::parse_json_block;
 use rand::Rng;
 use std::sync::mpsc;
@@ -272,7 +273,7 @@ pub enum WS2PConnectionMessagePayload {
     DalRequest(ModuleReqId, serde_json::Value),
     PeerCard(serde_json::Value, Vec<EndpointEnum>),
     Heads(Vec<serde_json::Value>),
-    Document(NetworkDocument),
+    Document(BlockchainDocument),
     ReqResponse(ModuleReqId, serde_json::Value),
     InvalidMessage,
     WrongFormatMessage,
@@ -486,7 +487,7 @@ impl WS2PConnectionMetaDatas {
                                 Some(block) => {
                                     if let Some(network_block) = parse_json_block(&block) {
                                         return WS2PConnectionMessagePayload::Document(
-                                            NetworkDocument::Block(network_block),
+                                            BlockchainDocument::Block(network_block),
                                         );
                                     } else {
                                         info!("WS2PSignal: receive invalid block (wrong format).");
@@ -512,7 +513,7 @@ impl WS2PConnectionMetaDatas {
                                     self.node_full_id()
                                 );
                                 /*return WS2PConnectionMessagePayload::Document(
-                                    NetworkDocument::Certification(_)
+                                    BlockchainDocument::Certification(_)
                                 );*/
                             }
                             _ => {

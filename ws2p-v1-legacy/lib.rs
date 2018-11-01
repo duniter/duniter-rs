@@ -28,8 +28,6 @@
 #![recursion_limit = "256"]
 
 #[macro_use]
-extern crate lazy_static;
-#[macro_use]
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
@@ -46,6 +44,7 @@ extern crate duniter_documents;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
+extern crate durs_network_documents;
 extern crate rand;
 extern crate sqlite;
 extern crate ws;
@@ -73,9 +72,10 @@ use duniter_dal::dal_requests::{DALReqBlockchain, DALRequest, DALResBlockchain, 
 use duniter_documents::Blockstamp;
 use duniter_message::*;
 use duniter_module::*;
-use duniter_network::network_endpoint::*;
-use duniter_network::network_head::*;
 use duniter_network::*;
+use durs_network_documents::network_endpoint::*;
+use durs_network_documents::network_head::*;
+use durs_network_documents::*;
 use ok_message::WS2POkMessageV1;
 use parsers::blocks::parse_json_block;
 use std::collections::HashMap;
@@ -145,7 +145,7 @@ pub enum WS2PSignal {
     DalRequest(NodeFullId, ModuleReqId, serde_json::Value),
     PeerCard(NodeFullId, serde_json::Value, Vec<EndpointEnum>),
     Heads(NodeFullId, Vec<NetworkHead>),
-    Document(NodeFullId, NetworkDocument),
+    Document(NodeFullId, BlockchainDocument),
     ReqResponse(
         ModuleReqId,
         OldNetworkRequest,
@@ -746,7 +746,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                         let mut chunk = Vec::new();
                                         for json_block in response.as_array().unwrap() {
                                             if let Some(block) = parse_json_block(json_block) {
-                                                chunk.push(NetworkDocument::Block(block));
+                                                chunk.push(BlockchainDocument::Block(block));
                                             } else {
                                                 warn!("WS2PModule: Error : fail to parse one json block !");
                                             }
@@ -931,7 +931,6 @@ mod tests {
     use duniter_crypto::keys::PublicKey;
     use duniter_documents::v10::BlockDocument;
     use duniter_module::DuniterModule;
-    use duniter_network::network_endpoint::{EndpointEnum, NetworkEndpointApi};
     use duniter_network::NetworkBlock;
     use std::fs;
     use std::path::PathBuf;

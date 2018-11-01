@@ -40,6 +40,7 @@ extern crate duniter_documents;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
+extern crate durs_network_documents;
 extern crate durs_wot;
 extern crate serde;
 extern crate serde_json;
@@ -76,8 +77,9 @@ use duniter_documents::{BlockchainProtocol, Document};
 use duniter_message::*;
 use duniter_module::*;
 use duniter_network::{
-    NetworkBlock, NetworkDocument, NetworkEvent, NetworkResponse, NodeFullId, OldNetworkRequest,
+    BlockchainDocument, NetworkBlock, NetworkEvent, NetworkResponse, OldNetworkRequest,
 };
+use durs_network_documents::NodeFullId;
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::operations::distance::RustyDistanceCalculator;
 use durs_wot::{NodeId, WebOfTrust};
@@ -302,7 +304,7 @@ impl BlockchainModule {
     }
     fn receive_network_documents<W: WebOfTrust>(
         &mut self,
-        network_documents: &[NetworkDocument],
+        network_documents: &[BlockchainDocument],
         current_blockstamp: &Blockstamp,
         wot_index: &mut HashMap<PubKey, NodeId>,
         wot_db: &BinDB<W>,
@@ -314,7 +316,7 @@ impl BlockchainModule {
         let mut save_currency_dbs = false;
         for network_document in network_documents {
             match *network_document {
-                NetworkDocument::Block(ref network_block) => {
+                BlockchainDocument::Block(ref network_block) => {
                     match check_and_apply_block::<W>(
                         &self.blocks_databases,
                         &self.wot_databases.certs_db,
@@ -385,23 +387,23 @@ impl BlockchainModule {
                         }
                     }
                 }
-                NetworkDocument::Identity(ref doc) => blockchain_documents.push(
+                BlockchainDocument::Identity(ref doc) => blockchain_documents.push(
                     BlockchainProtocol::V10(Box::new(V10Document::Identity(doc.deref().clone()))),
                 ),
-                NetworkDocument::Membership(ref doc) => blockchain_documents.push(
+                BlockchainDocument::Membership(ref doc) => blockchain_documents.push(
                     BlockchainProtocol::V10(Box::new(V10Document::Membership(doc.deref().clone()))),
                 ),
-                NetworkDocument::Certification(ref doc) => {
+                BlockchainDocument::Certification(ref doc) => {
                     blockchain_documents.push(BlockchainProtocol::V10(Box::new(
                         V10Document::Certification(Box::new(doc.deref().clone())),
                     )))
                 }
-                NetworkDocument::Revocation(ref doc) => {
+                BlockchainDocument::Revocation(ref doc) => {
                     blockchain_documents.push(BlockchainProtocol::V10(Box::new(
                         V10Document::Revocation(Box::new(doc.deref().clone())),
                     )))
                 }
-                NetworkDocument::Transaction(ref doc) => {
+                BlockchainDocument::Transaction(ref doc) => {
                     blockchain_documents.push(BlockchainProtocol::V10(Box::new(
                         V10Document::Transaction(Box::new(doc.deref().clone())),
                     )))

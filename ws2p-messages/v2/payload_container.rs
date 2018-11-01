@@ -25,9 +25,9 @@ use duniter_documents::v10::identity::IdentityDocument;
 use duniter_documents::v10::membership::MembershipDocument;
 use duniter_documents::v10::revocation::RevocationDocument;
 use duniter_documents::v10::transaction::TransactionDocument;
-use duniter_network::network_head_v2::NetworkHeadV2;
-use duniter_network::network_head_v3::NetworkHeadV3Container;
-use duniter_network::network_peer::PeerCardV11;
+use durs_network_documents::network_head_v2::NetworkHeadV2;
+use durs_network_documents::network_head_v3::NetworkHeadV3Container;
+use durs_network_documents::network_peer::PeerCardV11;
 
 /// WS2P v2 message payload metadata size
 pub static WS2P_V2_MESSAGE_PAYLOAD_METADATA_SIZE: &'static usize = &8;

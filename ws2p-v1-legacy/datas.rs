@@ -18,9 +18,10 @@ use duniter_crypto::keys::*;
 use duniter_dal::dal_requests::DALRequest;
 use duniter_documents::Blockstamp;
 use duniter_message::*;
-use duniter_network::network_endpoint::*;
-use duniter_network::network_head::*;
 use duniter_network::*;
+use durs_network_documents::network_endpoint::*;
+use durs_network_documents::network_head::*;
+use durs_network_documents::*;
 use std::collections::HashSet;
 use std::sync::mpsc;
 use *;
@@ -96,8 +97,8 @@ impl WS2PModuleDatas {
             NetworkEvent::ReceiveDocuments(network_docs) => {
                 if !network_docs.is_empty() {
                     match network_docs[0] {
-                        NetworkDocument::Block(_) => ModuleEvent::NewBlockFromNetwork,
-                        NetworkDocument::Transaction(_) => ModuleEvent::NewTxFromNetwork,
+                        BlockchainDocument::Block(_) => ModuleEvent::NewBlockFromNetwork,
+                        BlockchainDocument::Transaction(_) => ModuleEvent::NewTxFromNetwork,
                         _ => ModuleEvent::NewWotDocFromNetwork,
                     }
                 } else {
