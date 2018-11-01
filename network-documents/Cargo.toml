@@ -10,7 +10,7 @@ path = "src/lib.rs"
 
 [dependencies]
 base58 = "0.1.*"
-duniter-crypto = { path = "../crypto" }
+dup-crypto = { path = "../crypto" }
 duniter-documents = { path = "../documents" }
 pest = "2.0"
 pest_derive = "2.0"

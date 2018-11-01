@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use duniter_crypto::keys::*;
+use dup_crypto::keys::*;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 /// WS2Pv2SecretFlags

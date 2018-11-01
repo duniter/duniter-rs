@@ -20,13 +20,13 @@ extern crate threadpool;
 
 use self::pbr::ProgressBar;
 use self::threadpool::ThreadPool;
-use duniter_crypto::hashs::Hash;
-use duniter_crypto::keys::*;
 use duniter_dal::currency_params::CurrencyParameters;
 use duniter_dal::writers::requests::*;
 use duniter_dal::ForkId;
 use duniter_documents::{BlockHash, BlockId};
 use duniter_network::NetworkBlock;
+use dup_crypto::hashs::Hash;
+use dup_crypto::keys::*;
 use durs_wot::NodeId;
 use std::collections::{HashMap, VecDeque};
 use std::fs;

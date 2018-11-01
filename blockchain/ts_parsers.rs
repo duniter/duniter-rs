@@ -16,8 +16,6 @@
 extern crate serde_json;
 extern crate sqlite;
 
-use duniter_crypto::hashs::Hash;
-use duniter_crypto::keys::*;
 use duniter_documents::v10::block::{BlockV10Parameters, TxDocOrTxHash};
 use duniter_documents::v10::identity::*;
 use duniter_documents::v10::membership::*;
@@ -27,6 +25,8 @@ use duniter_documents::CurrencyName;
 use duniter_documents::DocumentBuilder;
 use duniter_documents::{BlockHash, BlockId, Blockstamp};
 use duniter_network::{NetworkBlock, NetworkBlockV10};
+use dup_crypto::hashs::Hash;
+use dup_crypto::keys::*;
 use std::str::FromStr;
 use sync::BlockHeader;
 

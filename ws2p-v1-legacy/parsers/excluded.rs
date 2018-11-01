@@ -1,8 +1,8 @@
 extern crate serde;
 extern crate serde_json;
 
-use duniter_crypto::keys::ed25519;
-use duniter_crypto::keys::*;
+use dup_crypto::keys::ed25519;
+use dup_crypto::keys::*;
 
 pub fn parse_exclusions(json_datas: &str) -> Option<Vec<PubKey>> {
     let raw_exclusions: serde_json::Value = serde_json::from_str(json_datas).unwrap();

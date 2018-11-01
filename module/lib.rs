@@ -32,14 +32,14 @@
 #[macro_use]
 extern crate serde_derive;
 
-extern crate duniter_crypto;
 extern crate duniter_documents;
+extern crate dup_crypto;
 extern crate serde;
 extern crate serde_json;
 extern crate structopt;
 
-use duniter_crypto::keys::{KeyPair, KeyPairEnum};
 use duniter_documents::CurrencyName;
+use dup_crypto::keys::{KeyPair, KeyPairEnum};
 use serde::de::DeserializeOwned;
 use serde::ser::{Serialize, Serializer};
 use std::collections::HashSet;

@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Provide wrappers for cryptographic building blocks used by Duniter.
+//! Provide wrappers for cryptographic hashs
 
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;

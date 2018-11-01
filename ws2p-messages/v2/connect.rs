@@ -15,8 +15,8 @@
 
 //use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use super::api_features::WS2PFeatures;
-use duniter_crypto::hashs::Hash;
 use duniter_documents::Blockstamp;
+use dup_crypto::hashs::Hash;
 use durs_network_documents::network_peer::PeerCardV11;
 
 /// WS2P v2 connect message min size

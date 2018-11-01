@@ -29,22 +29,22 @@
     unused_qualifications
 )]
 
-extern crate duniter_crypto;
 extern crate duniter_dal;
 extern crate duniter_documents;
 extern crate duniter_module;
 extern crate duniter_network;
+extern crate dup_crypto;
 extern crate serde;
 extern crate serde_json;
 
-use duniter_crypto::hashs::Hash;
-use duniter_crypto::keys::Sig;
 use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALRequest, DALResponse};
 use duniter_documents::BlockId;
 use duniter_documents::DUBPDocument;
 use duniter_module::*;
 use duniter_network::{NetworkEvent, NetworkResponse, OldNetworkRequest};
+use dup_crypto::hashs::Hash;
+use dup_crypto::keys::Sig;
 
 #[derive(Debug, Clone)]
 /// Message exchanged between Durs modules

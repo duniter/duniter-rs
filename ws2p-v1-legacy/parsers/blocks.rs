@@ -3,14 +3,14 @@ extern crate serde_json;
 use super::excluded::parse_exclusions_from_json_value;
 use super::identities::parse_compact_identity;
 use super::transactions::parse_transaction;
-use duniter_crypto::hashs::Hash;
-use duniter_crypto::keys::*;
 use duniter_documents::v10::block::{BlockV10Parameters, TxDocOrTxHash};
 use duniter_documents::v10::membership::*;
 use duniter_documents::v10::BlockDocument;
 use duniter_documents::CurrencyName;
 use duniter_documents::{BlockHash, BlockId};
 use duniter_network::{NetworkBlock, NetworkBlockV10};
+use dup_crypto::hashs::Hash;
+use dup_crypto::keys::*;
 use std::str::FromStr;
 
 fn parse_previous_hash(block_number: BlockId, source: &serde_json::Value) -> Option<Hash> {

@@ -1,5 +1,5 @@
-extern crate duniter_crypto;
 extern crate duniter_network;
+extern crate dup_crypto;
 extern crate serde;
 extern crate serde_json;
 

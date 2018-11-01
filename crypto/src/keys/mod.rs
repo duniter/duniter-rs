@@ -21,8 +21,8 @@
 //! # Usage
 //!
 //! ```
-//! use duniter_crypto::keys::{Signature, PublicKey, PrivateKey, KeyPair};
-//! use duniter_crypto::keys::ed25519::KeyPairFromSaltedPasswordGenerator;
+//! use dup_crypto::keys::{Signature, PublicKey, PrivateKey, KeyPair};
+//! use dup_crypto::keys::ed25519::KeyPairFromSaltedPasswordGenerator;
 //!
 //! let generator = KeyPairFromSaltedPasswordGenerator::with_default_parameters();
 //!

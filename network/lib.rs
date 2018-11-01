@@ -28,13 +28,10 @@
     unused_qualifications
 )]
 
-extern crate duniter_crypto;
 extern crate duniter_documents;
 extern crate duniter_module;
+extern crate dup_crypto;
 extern crate durs_network_documents;
-#[cfg(test)]
-#[macro_use]
-extern crate pretty_assertions;
 extern crate serde;
 extern crate serde_json;
 

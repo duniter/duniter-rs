@@ -1,9 +1,9 @@
 extern crate serde_json;
 
-use duniter_crypto::keys::*;
 use duniter_documents::v10::identity::*;
 use duniter_documents::Blockstamp;
 use duniter_documents::DocumentBuilder;
+use dup_crypto::keys::*;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum IdentityParseError {

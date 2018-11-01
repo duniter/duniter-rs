@@ -14,9 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use currency_params::CurrencyParameters;
-use duniter_crypto::keys::*;
 use duniter_documents::v10::identity::IdentityDocument;
 use duniter_documents::{BlockId, Blockstamp};
+use dup_crypto::keys::*;
 use durs_wot::NodeId;
 use std::collections::HashMap;
 use {BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};

@@ -17,8 +17,8 @@
 
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
-use duniter_crypto::hashs::Hash;
-use duniter_crypto::keys::*;
+use dup_crypto::hashs::Hash;
+use dup_crypto::keys::*;
 use std::ops::Deref;
 
 use blockstamp::Blockstamp;

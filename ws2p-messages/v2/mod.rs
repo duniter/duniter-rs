@@ -28,10 +28,10 @@ pub mod requests;
 /// WS2P v2 SECRET_FLAGS Message
 pub mod secret_flags;
 
-use duniter_crypto::hashs::Hash;
-use duniter_crypto::keys::bin_signable::BinSignable;
-use duniter_crypto::keys::*;
 use duniter_documents::CurrencyName;
+use dup_crypto::hashs::Hash;
+use dup_crypto::keys::bin_signable::BinSignable;
+use dup_crypto::keys::*;
 use durs_network_documents::NodeId;
 use v2::payload_container::*;
 

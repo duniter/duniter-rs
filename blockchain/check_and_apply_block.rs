@@ -16,12 +16,12 @@
 use std::collections::HashMap;
 
 use apply_valid_block::*;
-use duniter_crypto::keys::*;
 use duniter_dal::block::DALBlock;
 use duniter_dal::*;
 use duniter_documents::Document;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
 use duniter_network::NetworkBlock;
+use dup_crypto::keys::*;
 use *;
 
 #[derive(Debug, Copy, Clone)]

@@ -30,7 +30,7 @@ extern crate base58;
 extern crate base64;
 extern crate byteorder;
 extern crate crypto;
-extern crate duniter_crypto;
+extern crate dup_crypto;
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;
@@ -44,8 +44,8 @@ pub mod v10;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use currencies_codes::*;
-use duniter_crypto::hashs::Hash;
-use duniter_crypto::keys::*;
+use dup_crypto::hashs::Hash;
+use dup_crypto::keys::*;
 use pest::iterators::Pair;
 use pest::Parser;
 use std::cmp::Ordering;

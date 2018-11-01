@@ -15,14 +15,14 @@
 
 //! Module defining the format of network peer cards and how to handle them.
 
-extern crate duniter_crypto;
 extern crate duniter_documents;
+extern crate dup_crypto;
 extern crate serde;
 
 use base58::ToBase58;
-use duniter_crypto::keys::bin_signable::BinSignable;
-use duniter_crypto::keys::*;
 use duniter_documents::{blockstamp::Blockstamp, CurrencyName};
+use dup_crypto::keys::bin_signable::BinSignable;
+use dup_crypto::keys::*;
 use network_endpoint::*;
 use *;
 

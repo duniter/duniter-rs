@@ -37,12 +37,12 @@ extern crate serde_derive;
 extern crate structopt;
 
 extern crate duniter_conf;
-extern crate duniter_crypto;
 extern crate duniter_dal;
 extern crate duniter_documents;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
+extern crate dup_crypto;
 extern crate durs_network_documents;
 extern crate serde;
 extern crate serde_json;

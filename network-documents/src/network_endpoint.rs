@@ -15,12 +15,12 @@
 
 //! Module defining the format of network endpoints and how to handle them.
 
-extern crate duniter_crypto;
 extern crate duniter_documents;
+extern crate dup_crypto;
 extern crate serde;
 
-use duniter_crypto::hashs::Hash;
-use duniter_crypto::keys::PubKey;
+use dup_crypto::hashs::Hash;
+use dup_crypto::keys::PubKey;
 use pest::Parser;
 use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr};
 use std::num::ParseIntError;

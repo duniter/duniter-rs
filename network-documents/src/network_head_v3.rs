@@ -16,9 +16,9 @@
 //! Module defining the format of network heads v3 and how to handle them.
 
 use base58::ToBase58;
-use duniter_crypto::keys::bin_signable::BinSignable;
-use duniter_crypto::keys::*;
 use duniter_documents::blockstamp::Blockstamp;
+use dup_crypto::keys::bin_signable::BinSignable;
+use dup_crypto::keys::*;
 use serde_json;
 use std::cmp::Ordering;
 use NodeId;
@@ -149,7 +149,7 @@ pub struct JsonHeadV3<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use duniter_crypto::keys::bin_signable::BinSignable;
+    use dup_crypto::keys::bin_signable::BinSignable;
     use tests::bincode::deserialize;
     use tests::keypair1;
 

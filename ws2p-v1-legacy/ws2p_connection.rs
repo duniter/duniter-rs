@@ -1,7 +1,7 @@
 use constants::*;
-use duniter_crypto::keys::*;
 use duniter_module::ModuleReqId;
 use duniter_network::BlockchainDocument;
+use dup_crypto::keys::*;
 use durs_network_documents::network_endpoint::{EndpointEnum, NetworkEndpointApi};
 use durs_network_documents::NodeId;
 use parsers::blocks::parse_json_block;

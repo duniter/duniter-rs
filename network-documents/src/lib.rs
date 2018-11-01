@@ -27,8 +27,8 @@
 )]
 
 extern crate base58;
-extern crate duniter_crypto;
 extern crate duniter_documents;
+extern crate dup_crypto;
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;
@@ -46,8 +46,8 @@ pub mod network_head_v2;
 pub mod network_head_v3;
 pub mod network_peer;
 
-use duniter_crypto::hashs::*;
-use duniter_crypto::keys::*;
+use dup_crypto::hashs::*;
+use dup_crypto::keys::*;
 use std::fmt::{Display, Error, Formatter};
 
 #[derive(Parser)]

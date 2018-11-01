@@ -1,10 +1,10 @@
-extern crate duniter_crypto;
+extern crate dup_crypto;
 extern crate serde;
 extern crate serde_json;
 
 use self::serde::ser::{Serialize, SerializeStruct, Serializer};
 use super::WS2PMessage;
-use duniter_crypto::keys::*;
+use dup_crypto::keys::*;
 
 #[derive(Debug, Clone)]
 pub struct WS2POkMessageV1 {
@@ -28,7 +28,7 @@ impl WS2PMessage for WS2POkMessageV1 {
                 .expect("fail to create default pubkey !"),
         );
         let signature: Option<Sig> = Some(Sig::Ed25519(
-            duniter_crypto::keys::Signature::from_base64(&signature)
+            dup_crypto::keys::Signature::from_base64(&signature)
                 .expect("fail to parse signature of OK message !"),
         ));
         Some(WS2POkMessageV1 {

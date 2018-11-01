@@ -13,12 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use duniter_crypto::hashs::Hash;
 use duniter_documents::v10::block::BlockDocument;
 use duniter_documents::v10::certification::CompactCertificationDocument;
 use duniter_documents::v10::identity::CompactIdentityDocument;
 use duniter_documents::v10::membership::CompactPoolMembershipDoc;
 use duniter_documents::Blockstamp;
+use dup_crypto::hashs::Hash;
 use std::str;
 
 /// WS2Pv2 request response

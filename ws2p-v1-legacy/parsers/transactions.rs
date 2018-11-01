@@ -1,14 +1,14 @@
 extern crate serde;
 extern crate serde_json;
 
-use duniter_crypto::hashs::Hash;
-use duniter_crypto::keys::*;
 use duniter_documents::v10::transaction::{
     TransactionDocument, TransactionDocumentBuilder, TransactionInput, TransactionInputUnlocks,
     TransactionOutput,
 };
 use duniter_documents::Blockstamp;
 use duniter_documents::DocumentBuilder;
+use dup_crypto::hashs::Hash;
+use dup_crypto::keys::*;
 use std::str::FromStr;
 
 pub fn parse_transaction(

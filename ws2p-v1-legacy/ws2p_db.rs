@@ -1,4 +1,4 @@
-use duniter_crypto::keys::*;
+use dup_crypto::keys::*;
 use durs_network_documents::network_endpoint::{EndpointEnum, NetworkEndpointApi};
 use sqlite::*;
 

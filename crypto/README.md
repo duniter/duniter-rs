@@ -1,7 +1,7 @@
 # crypto
 
-`duniter-crypto` is a crate managing cryptographic building blocks for the Duniter project.
+`dup-crypto` is a crate managing cryptographic operations for the DUP (DUniter Protocol).
 
 ## How to use it
 
-You can add `duniter-crypto` as a `cargo` dependency in your Rust project.
+You can add `dup-crypto` as a `cargo` dependency in your Rust project.

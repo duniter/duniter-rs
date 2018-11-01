@@ -14,11 +14,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use constants::*;
-use duniter_crypto::keys::*;
 use duniter_dal::dal_requests::DALRequest;
 use duniter_documents::Blockstamp;
 use duniter_message::*;
 use duniter_network::*;
+use dup_crypto::keys::*;
 use durs_network_documents::network_endpoint::*;
 use durs_network_documents::network_head::*;
 use durs_network_documents::*;

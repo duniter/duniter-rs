@@ -118,6 +118,9 @@ impl super::Signature for Signature {
             Err(DecodeError::InvalidLength) => {
                 Err(BaseConvertionError::InvalidBaseConverterLength())
             }
+            Err(DecodeError::InvalidLastSymbol(pos, byte)) => {
+                Err(BaseConvertionError::InvalidCharacter(byte as char, pos))
+            }
         }
     }
 

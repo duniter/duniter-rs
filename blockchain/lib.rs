@@ -34,12 +34,12 @@ extern crate log;
 
 extern crate dirs;
 extern crate duniter_conf;
-extern crate duniter_crypto;
 extern crate duniter_dal;
 extern crate duniter_documents;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
+extern crate dup_crypto;
 extern crate durs_network_documents;
 extern crate durs_wot;
 extern crate serde;
@@ -62,7 +62,6 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use apply_valid_block::*;
 use check_and_apply_block::*;
 pub use dbex::{DBExQuery, DBExTxQuery, DBExWotQuery};
-use duniter_crypto::keys::*;
 use duniter_dal::block::DALBlock;
 use duniter_dal::currency_params::CurrencyParameters;
 use duniter_dal::dal_event::DALEvent;
@@ -78,6 +77,7 @@ use duniter_module::*;
 use duniter_network::{
     BlockchainDocument, NetworkBlock, NetworkEvent, NetworkResponse, OldNetworkRequest,
 };
+use dup_crypto::keys::*;
 use durs_network_documents::NodeFullId;
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::operations::distance::RustyDistanceCalculator;

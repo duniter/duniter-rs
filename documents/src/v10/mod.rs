@@ -23,7 +23,7 @@ pub mod revocation;
 pub mod transaction;
 
 use crypto::digest::Digest;
-use duniter_crypto::keys::PrivateKey;
+use dup_crypto::keys::PrivateKey;
 use pest::Parser;
 
 pub use v10::block::BlockDocument;
@@ -274,7 +274,7 @@ mod tests {
     use super::revocation::RevocationDocumentParser;
     use super::transaction::TransactionDocumentParser;
     use super::*;
-    use duniter_crypto::keys::*;
+    use dup_crypto::keys::*;
 
     // simple text document for signature testing
     #[derive(Debug, Clone)]

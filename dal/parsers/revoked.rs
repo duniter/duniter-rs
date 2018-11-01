@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use duniter_crypto::keys::*;
 use duniter_documents::v10::revocation::{CompactRevocationDocument, RevocationDocument};
 use duniter_documents::v10::TextDocumentFormat;
+use dup_crypto::keys::*;
 use serde_json;
 
 /// Parse array of revocations json documents into vector of `CompactRevocationDocument`

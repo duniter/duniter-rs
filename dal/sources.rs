@@ -13,13 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-extern crate duniter_crypto;
 extern crate duniter_documents;
+extern crate dup_crypto;
 
-use duniter_crypto::hashs::Hash;
-use duniter_crypto::keys::PubKey;
 use duniter_documents::v10::transaction::*;
 use duniter_documents::BlockId;
+use dup_crypto::hashs::Hash;
+use dup_crypto::keys::PubKey;
 use std::cmp::Ordering;
 use std::ops::{Add, Sub};
 

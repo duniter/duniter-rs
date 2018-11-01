@@ -264,7 +264,7 @@ impl TextDocumentParser for IdentityDocumentParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use duniter_crypto::keys::{PrivateKey, PublicKey, Signature};
+    use dup_crypto::keys::{PrivateKey, PublicKey, Signature};
     use {Document, VerificationResult};
 
     #[test]

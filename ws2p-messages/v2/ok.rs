@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use duniter_crypto::hashs::Hash;
 use duniter_documents::Blockstamp;
+use dup_crypto::hashs::Hash;
 use std::num::NonZeroU16;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]

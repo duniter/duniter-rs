@@ -35,10 +35,10 @@ extern crate serde_derive;
 extern crate structopt;
 
 extern crate duniter_conf;
-extern crate duniter_crypto;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
+extern crate dup_crypto;
 extern crate durs_network_documents;
 extern crate durs_ws2p_messages;
 
@@ -46,10 +46,10 @@ mod constants;
 
 use constants::*;
 use duniter_conf::DuRsConf;
-use duniter_crypto::keys::*;
 use duniter_message::DursMsg;
 use duniter_module::*;
 use duniter_network::*;
+use dup_crypto::keys::*;
 use durs_network_documents::network_endpoint::*;
 use std::sync::mpsc;
 

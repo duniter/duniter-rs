@@ -14,10 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use super::constants::MAX_FORKS;
-use duniter_crypto::keys::*;
 use duniter_documents::v10::BlockDocument;
 use duniter_documents::Document;
 use duniter_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
+use dup_crypto::keys::*;
 use durs_wot::NodeId;
 use std::collections::HashMap;
 use *;

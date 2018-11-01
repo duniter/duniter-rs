@@ -35,14 +35,14 @@ extern crate serde_derive;
 extern crate serde_json;
 
 extern crate dirs;
-extern crate duniter_crypto;
 extern crate duniter_documents;
 extern crate duniter_module;
+extern crate dup_crypto;
 extern crate rand;
 extern crate serde;
-use duniter_crypto::keys::*;
 use duniter_documents::CurrencyName;
 use duniter_module::{DuniterConf, ModuleName, RequiredKeys, RequiredKeysContent};
+use dup_crypto::keys::*;
 use rand::Rng;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use std::collections::HashSet;

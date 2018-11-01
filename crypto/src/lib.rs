@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Provide wrappers for cryptographic building blocks used by Duniter.
+//! Manage cryptographic operations for the DUP (DUniter Protocol).
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(

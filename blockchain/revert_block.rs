@@ -13,7 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use duniter_crypto::keys::*;
 use duniter_dal::block::DALBlock;
 use duniter_dal::sources::SourceAmount;
 use duniter_dal::writers::requests::*;
@@ -22,6 +21,7 @@ use duniter_dal::{BinDB, ForkId, TxV10Datas};
 use duniter_documents::v10::block::TxDocOrTxHash;
 use duniter_documents::v10::transaction::{TxAmount, TxBase};
 use duniter_documents::Document;
+use dup_crypto::keys::*;
 use durs_wot::data::{NewLinkResult, RemLinkResult};
 use durs_wot::{NodeId, WebOfTrust};
 use std::collections::HashMap;

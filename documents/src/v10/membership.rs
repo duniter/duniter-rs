@@ -15,7 +15,7 @@
 
 //! Wrappers around Membership documents.
 
-use duniter_crypto::keys::*;
+use dup_crypto::keys::*;
 use pest::Parser;
 
 use blockstamp::Blockstamp;
@@ -320,7 +320,7 @@ impl TextDocumentParser for MembershipDocumentParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use duniter_crypto::keys::{PrivateKey, PublicKey, Signature};
+    use dup_crypto::keys::{PrivateKey, PublicKey, Signature};
     use VerificationResult;
 
     #[test]
