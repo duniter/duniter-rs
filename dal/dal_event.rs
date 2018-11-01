@@ -24,7 +24,7 @@ pub enum DALEvent {
     /// Revert blocks in local blockchain
     RevertBlocks(Vec<Box<BlockDocument>>),
     /// Receive new valid pending document
-    NewValidPendingDoc(BlockchainProtocol),
+    NewValidPendingDoc(DUBPDocument),
     /// Receive new refused pending document
-    RefusedPendingDoc(BlockchainProtocol),
+    RefusedPendingDoc(DUBPDocument),
 }

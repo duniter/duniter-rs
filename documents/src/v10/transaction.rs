@@ -76,7 +76,7 @@ impl ToString for TransactionInput {
 }
 
 impl TransactionInput {
-    fn from_pest_pairs(mut pairs: Pairs<Rule>) -> TransactionInput {
+    fn from_pest_pair(mut pairs: Pairs<Rule>) -> TransactionInput {
         let tx_input_type_pair = pairs.next().unwrap();
         match tx_input_type_pair.as_rule() {
             Rule::tx_input_du => {
@@ -108,14 +108,14 @@ impl TransactionInput {
 }
 
 impl FromStr for TransactionInput {
-    type Err = V10DocumentParsingError;
+    type Err = TextDocumentParseError;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
         match DocumentsParser::parse(Rule::tx_input, source) {
-            Ok(mut pairs) => Ok(TransactionInput::from_pest_pairs(
+            Ok(mut pairs) => Ok(TransactionInput::from_pest_pair(
                 pairs.next().unwrap().into_inner(),
             )),
-            Err(_) => Err(V10DocumentParsingError::InvalidInnerFormat(
+            Err(_) => Err(TextDocumentParseError::InvalidInnerFormat(
                 "Invalid unlocks !",
             )),
         }
@@ -124,7 +124,7 @@ impl FromStr for TransactionInput {
 
 /*impl TransactionInput {
     /// Parse Transaction Input from string.
-    pub fn from_str(source: &str) -> Result<TransactionInput, V10DocumentParsingError> {
+    pub fn from_str(source: &str) -> Result<TransactionInput, TextDocumentParseError> {
         if let Some(caps) = D_INPUT_REGEX.captures(source) {
             let amount = &caps["amount"];
             let base = &caps["base"];
@@ -156,7 +156,7 @@ impl FromStr for TransactionInput {
             ))
         } else {
             println!("Fail to parse this input = {:?}", source);
-            Err(V10DocumentParsingError::InvalidInnerFormat("Transaction2"))
+            Err(TextDocumentParseError::InvalidInnerFormat("Transaction2"))
         }
     }
 }*/
@@ -201,7 +201,7 @@ impl ToString for TransactionInputUnlocks {
 }
 
 impl TransactionInputUnlocks {
-    fn from_pest_pairs(pairs: Pairs<Rule>) -> TransactionInputUnlocks {
+    fn from_pest_pair(pairs: Pairs<Rule>) -> TransactionInputUnlocks {
         let mut input_index = 0;
         let mut unlock_conds = Vec::new();
         for unlock_field in pairs {
@@ -231,14 +231,14 @@ impl TransactionInputUnlocks {
 }
 
 impl FromStr for TransactionInputUnlocks {
-    type Err = V10DocumentParsingError;
+    type Err = TextDocumentParseError;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
         match DocumentsParser::parse(Rule::tx_unlock, source) {
-            Ok(mut pairs) => Ok(TransactionInputUnlocks::from_pest_pairs(
+            Ok(mut pairs) => Ok(TransactionInputUnlocks::from_pest_pair(
                 pairs.next().unwrap().into_inner(),
             )),
-            Err(_) => Err(V10DocumentParsingError::InvalidInnerFormat(
+            Err(_) => Err(TextDocumentParseError::InvalidInnerFormat(
                 "Invalid unlocks !",
             )),
         }
@@ -446,7 +446,7 @@ impl ToString for TransactionOutput {
 }
 
 impl TransactionOutput {
-    fn from_pest_pairs(mut utxo_pairs: Pairs<Rule>) -> TransactionOutput {
+    fn from_pest_pair(mut utxo_pairs: Pairs<Rule>) -> TransactionOutput {
         let amount = TxAmount(utxo_pairs.next().unwrap().as_str().parse().unwrap());
         let base = TxBase(utxo_pairs.next().unwrap().as_str().parse().unwrap());
         let conditions_pairs = utxo_pairs.next().unwrap();
@@ -463,14 +463,14 @@ impl TransactionOutput {
 }
 
 impl FromStr for TransactionOutput {
-    type Err = V10DocumentParsingError;
+    type Err = TextDocumentParseError;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
         match DocumentsParser::parse(Rule::tx_output, source) {
-            Ok(mut utxo_pairs) => Ok(TransactionOutput::from_pest_pairs(
+            Ok(mut utxo_pairs) => Ok(TransactionOutput::from_pest_pair(
                 utxo_pairs.next().unwrap().into_inner(),
             )),
-            Err(_) => Err(V10DocumentParsingError::InvalidInnerFormat(
+            Err(_) => Err(TextDocumentParseError::InvalidInnerFormat(
                 "Invalid output !",
             )),
         }
@@ -654,9 +654,9 @@ impl TextDocument for TransactionDocument {
     }
 }
 
-impl IntoSpecializedDocument<BlockchainProtocol> for TransactionDocument {
-    fn into_specialized(self) -> BlockchainProtocol {
-        BlockchainProtocol::V10(Box::new(V10Document::Transaction(Box::new(self))))
+impl IntoSpecializedDocument<DUBPDocument> for TransactionDocument {
+    fn into_specialized(self) -> DUBPDocument {
+        DUBPDocument::V10(Box::new(V10Document::Transaction(Box::new(self))))
     }
 }
 
@@ -762,79 +762,83 @@ Issuers:
 pub struct TransactionDocumentParser;
 
 impl TextDocumentParser for TransactionDocumentParser {
-    fn parse(doc: &str, currency: &str) -> Result<V10Document, V10DocumentParsingError> {
+    type DocumentType = TransactionDocument;
+
+    fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
         match DocumentsParser::parse(Rule::tx, doc) {
-            Ok(mut doc_ast) => {
-                let tx_ast = doc_ast.next().unwrap(); // get and unwrap the `tx` rule; never fails
-                let tx_vx_ast = tx_ast.into_inner().next().unwrap(); // get and unwrap the `tx_vX` rule; never fails
+            Ok(mut tx_pairs) => {
+                let tx_pair = tx_pairs.next().unwrap(); // get and unwrap the `tx` rule; never fails
+                let tx_vx_pair = tx_pair.into_inner().next().unwrap(); // get and unwrap the `tx_vX` rule; never fails
 
-                match tx_vx_ast.as_rule() {
-                    Rule::tx_v10 => {
-                        let mut blockstamp = Blockstamp::default();
-                        let mut locktime = 0;
-                        let mut issuers = Vec::new();
-                        let mut inputs = Vec::new();
-                        let mut unlocks = Vec::new();
-                        let mut outputs = Vec::new();
-                        let mut comment = "";
-                        let mut sigs = Vec::new();
-
-                        for field in tx_vx_ast.into_inner() {
-                            match field.as_rule() {
-                                Rule::currency => {
-                                    if currency != field.as_str() {
-                                        return Err(V10DocumentParsingError::InvalidCurrency());
-                                    }
-                                }
-                                Rule::blockstamp => {
-                                    let mut inner_rules = field.into_inner(); // ${ block_id ~ "-" ~ hash }
-
-                                    let block_id: &str = inner_rules.next().unwrap().as_str();
-                                    let block_hash: &str = inner_rules.next().unwrap().as_str();
-                                    blockstamp = Blockstamp {
-                                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
-                                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
-                                    };
-                                }
-                                Rule::tx_locktime => locktime = field.as_str().parse().unwrap(), // Grammar ensures that we have digits characters.
-                                Rule::pubkey => issuers.push(PubKey::Ed25519(
-                                    ed25519::PublicKey::from_base58(field.as_str()).unwrap(), // Grammar ensures that we have a base58 string.
-                                )),
-                                Rule::tx_input => inputs
-                                    .push(TransactionInput::from_pest_pairs(field.into_inner())),
-                                Rule::tx_unlock => unlocks.push(
-                                    TransactionInputUnlocks::from_pest_pairs(field.into_inner()),
-                                ),
-                                Rule::tx_output => outputs
-                                    .push(TransactionOutput::from_pest_pairs(field.into_inner())),
-                                Rule::tx_comment => comment = field.as_str(),
-                                Rule::ed25519_sig => {
-                                    sigs.push(Sig::Ed25519(
-                                        ed25519::Signature::from_base64(field.as_str()).unwrap(), // Grammar ensures that we have a base64 string.
-                                    ));
-                                }
-                                Rule::EOI => (),
-                                _ => panic!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
-                            }
-                        }
-                        Ok(V10Document::Transaction(Box::new(TransactionDocument {
-                            text: Some(doc.to_owned()),
-                            currency: currency.to_owned(),
-                            blockstamp,
-                            locktime,
-                            issuers,
-                            inputs,
-                            unlocks,
-                            outputs,
-                            comment: comment.to_owned(),
-                            signatures: sigs,
-                            hash: None,
-                        })))
-                    }
-                    _ => Err(V10DocumentParsingError::UnexpectedVersion()),
+                match tx_vx_pair.as_rule() {
+                    Rule::tx_v10 => Ok(TransactionDocumentParser::from_pest_pair(tx_vx_pair)),
+                    _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
+                        "{:#?}",
+                        tx_vx_pair.as_rule()
+                    ))),
                 }
             }
-            Err(pest_error) => panic!("{}", pest_error), //Err(V10DocumentParsingError::PestError()),
+            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
+        }
+    }
+    fn from_pest_pair(pair: Pair<Rule>) -> Self::DocumentType {
+        let doc = pair.as_str();
+        let mut currency = "";
+        let mut blockstamp = Blockstamp::default();
+        let mut locktime = 0;
+        let mut issuers = Vec::new();
+        let mut inputs = Vec::new();
+        let mut unlocks = Vec::new();
+        let mut outputs = Vec::new();
+        let mut comment = "";
+        let mut sigs = Vec::new();
+
+        for field in pair.into_inner() {
+            match field.as_rule() {
+                Rule::currency => currency = field.as_str(),
+                Rule::blockstamp => {
+                    let mut inner_rules = field.into_inner(); // ${ block_id ~ "-" ~ hash }
+
+                    let block_id: &str = inner_rules.next().unwrap().as_str();
+                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                    blockstamp = Blockstamp {
+                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
+                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                    };
+                }
+                Rule::tx_locktime => locktime = field.as_str().parse().unwrap(), // Grammar ensures that we have digits characters.
+                Rule::pubkey => issuers.push(PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58(field.as_str()).unwrap(), // Grammar ensures that we have a base58 string.
+                )),
+                Rule::tx_input => inputs.push(TransactionInput::from_pest_pair(field.into_inner())),
+                Rule::tx_unlock => {
+                    unlocks.push(TransactionInputUnlocks::from_pest_pair(field.into_inner()))
+                }
+                Rule::tx_output => {
+                    outputs.push(TransactionOutput::from_pest_pair(field.into_inner()))
+                }
+                Rule::tx_comment => comment = field.as_str(),
+                Rule::ed25519_sig => {
+                    sigs.push(Sig::Ed25519(
+                        ed25519::Signature::from_base64(field.as_str()).unwrap(), // Grammar ensures that we have a base64 string.
+                    ));
+                }
+                Rule::EOI => (),
+                _ => panic!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
+            }
+        }
+        TransactionDocument {
+            text: Some(doc.to_owned()),
+            currency: currency.to_owned(),
+            blockstamp,
+            locktime,
+            issuers,
+            inputs,
+            unlocks,
+            outputs,
+            comment: comment.to_owned(),
+            signatures: sigs,
+            hash: None,
         }
     }
 }
@@ -995,17 +999,14 @@ kL59C1izKjcRN429AlKdshwhWbasvyL7sthI757zm1DfZTdTIctDWlKbYeG/tS7QyAgI3gcfrTHPhu1E
 e3LpgB2RZ/E/BCxPJsn+TDDyxGYzrIsMyDt//KhJCjIQD6pNUxr5M5jrq2OwQZgwmz91YcmoQ2XRQAUDpe4BAw==
 w69bYgiQxDmCReB0Dugt9BstXlAKnwJkKCdWvCeZ9KnUCv0FJys6klzYk/O/b9t74tYhWZSX0bhETWHiwfpWBw==";
 
-        let currency = "duniter_unit_test_currency";
-
-        let doc = TransactionDocumentParser::parse(doc, currency)
+        let doc = TransactionDocumentParser::parse(doc)
             .expect("fail to parse test transaction document !");
-        if let V10Document::Transaction(doc) = doc {
-            //println!("Doc : {:?}", doc);
-            println!("{}", doc.generate_compact_text());
-            assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
-            assert_eq!(
-                doc.generate_compact_text(),
-                "TX:10:3:6:6:3:1:0
+        //println!("Doc : {:?}", doc);
+        println!("{}", doc.generate_compact_text());
+        assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
+        assert_eq!(
+            doc.generate_compact_text(),
+            "TX:10:3:6:6:3:1:0
 204-00003E2B8A35370BA5A7064598F628A62D4E9EC1936BE8651CE9A85F2E06981B
 DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
 4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR
@@ -1029,9 +1030,6 @@ FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa
 kL59C1izKjcRN429AlKdshwhWbasvyL7sthI757zm1DfZTdTIctDWlKbYeG/tS7QyAgI3gcfrTHPhu1E1lKCBw==
 e3LpgB2RZ/E/BCxPJsn+TDDyxGYzrIsMyDt//KhJCjIQD6pNUxr5M5jrq2OwQZgwmz91YcmoQ2XRQAUDpe4BAw==
 w69bYgiQxDmCReB0Dugt9BstXlAKnwJkKCdWvCeZ9KnUCv0FJys6klzYk/O/b9t74tYhWZSX0bhETWHiwfpWBw=="
-            );
-        } else {
-            panic!("Wrong document type");
-        }
+        );
     }
 }

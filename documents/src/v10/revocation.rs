@@ -116,9 +116,9 @@ impl TextDocument for RevocationDocument {
     }
 }
 
-impl IntoSpecializedDocument<BlockchainProtocol> for RevocationDocument {
-    fn into_specialized(self) -> BlockchainProtocol {
-        BlockchainProtocol::V10(Box::new(V10Document::Revocation(Box::new(self))))
+impl IntoSpecializedDocument<DUBPDocument> for RevocationDocument {
+    fn into_specialized(self) -> DUBPDocument {
+        DUBPDocument::V10(Box::new(V10Document::Revocation(Box::new(self))))
     }
 }
 
@@ -190,103 +190,69 @@ IdtySignature: {idty_sig}
 pub struct RevocationDocumentParser;
 
 impl TextDocumentParser for RevocationDocumentParser {
-    fn parse(doc: &str, currency: &str) -> Result<V10Document, V10DocumentParsingError> {
+    type DocumentType = RevocationDocument;
+
+    fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
         match DocumentsParser::parse(Rule::revoc, doc) {
-            Ok(mut doc_ast) => {
-                let revoc_ast = doc_ast.next().unwrap(); // get and unwrap the `revoc` rule; never fails
-                let revoc_vx_ast = revoc_ast.into_inner().next().unwrap(); // get and unwrap the `revoc_vX` rule; never fails
+            Ok(mut revoc_pairs) => {
+                let revoc_pair = revoc_pairs.next().unwrap(); // get and unwrap the `revoc` rule; never fails
+                let revoc_vx_pair = revoc_pair.into_inner().next().unwrap(); // get and unwrap the `revoc_vX` rule; never fails
 
-                match revoc_vx_ast.as_rule() {
-                    Rule::revoc_v10 => {
-                        let mut pubkeys = Vec::with_capacity(1);
-                        let mut uid = "";
-                        let mut sigs = Vec::with_capacity(2);
-                        let mut blockstamps = Vec::with_capacity(1);
-                        for field in revoc_vx_ast.into_inner() {
-                            match field.as_rule() {
-                                Rule::currency => {
-                                    if currency != field.as_str() {
-                                        return Err(V10DocumentParsingError::InvalidCurrency());
-                                    }
-                                }
-                                Rule::pubkey => {
-                                    if !pubkeys.is_empty() {
-                                        return Err(V10DocumentParsingError::InvalidInnerFormat(
-                                            "Revocation document must contain exactly one pubkey !",
-                                        ));
-                                    }
-                                    pubkeys.push(PubKey::Ed25519(
-                                        ed25519::PublicKey::from_base58(field.as_str()).unwrap(), // Grammar ensures that we have a base58 string.
-                                    ));
-                                }
-                                Rule::uid => {
-                                    uid = field.as_str();
-                                }
-                                Rule::blockstamp => {
-                                    if blockstamps.len() > 1 {
-                                        return Err(V10DocumentParsingError::InvalidInnerFormat(
-                                            "Revocation document must contain exactly one blockstamp !",
-                                        ));
-                                    }
-                                    let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
-
-                                    let block_id: &str = inner_rules.next().unwrap().as_str();
-                                    let block_hash: &str = inner_rules.next().unwrap().as_str();
-                                    blockstamps.push(Blockstamp {
-                                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
-                                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
-                                    });
-                                }
-                                Rule::ed25519_sig => {
-                                    sigs.push(Sig::Ed25519(
-                                        ed25519::Signature::from_base64(field.as_str()).unwrap(), // Grammar ensures that we have a base64 string.
-                                    ));
-                                }
-                                Rule::EOI => (),
-                                _ => panic!("unexpected rule"), // Grammar ensures that we never reach this line
-                            }
-                        }
-                        Ok(V10Document::Revocation(Box::new(RevocationDocument {
-                            text: doc.to_owned(),
-                            issuers: vec![pubkeys[0]],
-                            currency: currency.to_owned(),
-                            identity_username: uid.to_owned(),
-                            identity_blockstamp: blockstamps[0],
-                            identity_sig: sigs[0],
-                            signatures: vec![sigs[1]],
-                        })))
-                    }
-                    _ => Err(V10DocumentParsingError::UnexpectedVersion()),
+                match revoc_vx_pair.as_rule() {
+                    Rule::revoc_v10 => Ok(RevocationDocumentParser::from_pest_pair(revoc_vx_pair)),
+                    _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
+                        "{:#?}",
+                        revoc_vx_pair.as_rule()
+                    ))),
                 }
             }
-            Err(pest_error) => panic!("{}", pest_error), //Err(V10DocumentParsingError::PestError()),
+            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
         }
+    }
+    fn from_pest_pair(pair: Pair<Rule>) -> Self::DocumentType {
+        let doc = pair.as_str();
+        let mut currency = "";
+        let mut pubkeys = Vec::with_capacity(1);
+        let mut uid = "";
+        let mut sigs = Vec::with_capacity(2);
+        let mut blockstamps = Vec::with_capacity(1);
+        for field in pair.into_inner() {
+            match field.as_rule() {
+                Rule::currency => currency = field.as_str(),
+                Rule::pubkey => pubkeys.push(PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58(field.as_str()).unwrap(), // Grammar ensures that we have a base58 string.
+                )),
+                Rule::uid => {
+                    uid = field.as_str();
+                }
+                Rule::blockstamp => {
+                    let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
 
-        /*if let Some(caps) = REVOCATION_REGEX.captures(body) {
-            let issuer = &caps["issuer"];
-            let identity_username = &caps["idty_uid"];
-            let identity_blockstamp = &caps["idty_blockstamp"];
-            let identity_sig = &caps["idty_sig"];
-        
-            // Regex match so should not fail.
-            // TODO : Test it anyway
-            let issuer = PubKey::Ed25519(ed25519::PublicKey::from_base58(issuer).unwrap());
-            let identity_username = String::from(identity_username);
-            let identity_blockstamp = Blockstamp::from_string(identity_blockstamp).unwrap();
-            let identity_sig = Sig::Ed25519(Signature::from_base64(identity_sig).unwrap());
-        
-            Ok(V10Document::Revocation(Box::new(RevocationDocument {
-                text: doc.to_owned(),
-                issuers: vec![issuer],
-                currency: currency.to_owned(),
-                identity_username,
-                identity_blockstamp,
-                identity_sig,
-                signatures,
-            })))
-        } else {
-            Err(V10DocumentParsingError::InvalidInnerFormat("Revocation"))
-        }*/
+                    let block_id: &str = inner_rules.next().unwrap().as_str();
+                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                    blockstamps.push(Blockstamp {
+                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
+                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                    });
+                }
+                Rule::ed25519_sig => {
+                    sigs.push(Sig::Ed25519(
+                        ed25519::Signature::from_base64(field.as_str()).unwrap(), // Grammar ensures that we have a base64 string.
+                    ));
+                }
+                Rule::EOI => (),
+                _ => panic!("unexpected rule"), // Grammar ensures that we never reach this line
+            }
+        }
+        RevocationDocument {
+            text: doc.to_owned(),
+            issuers: vec![pubkeys[0]],
+            currency: currency.to_owned(),
+            identity_username: uid.to_owned(),
+            identity_blockstamp: blockstamps[0],
+            identity_sig: sigs[0],
+            signatures: vec![sigs[1]],
+        }
     }
 }
 
@@ -354,14 +320,8 @@ IdtyTimestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B85
 IdtySignature: 1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==
 XXOgI++6qpY9O31ml/FcfbXCE6aixIrgkT5jL7kBle3YOMr+8wrp7Rt+z9hDVjrNfYX2gpeJsuMNfG4T/fzVDQ==";
 
-        let currency = "g1";
-
-        let doc = RevocationDocumentParser::parse(doc, currency).unwrap();
-        if let V10Document::Revocation(doc) = doc {
-            println!("Doc : {:?}", doc);
-            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
-        } else {
-            panic!("Wrong document type");
-        }
+        let doc = RevocationDocumentParser::parse(doc).unwrap();
+        println!("Doc : {:?}", doc);
+        assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
     }
 }

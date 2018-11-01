@@ -72,7 +72,7 @@ use duniter_dal::writers::requests::BlocksDBsWriteQuery;
 use duniter_dal::*;
 use duniter_documents::v10::{BlockDocument, V10Document};
 use duniter_documents::*;
-use duniter_documents::{BlockchainProtocol, Document};
+use duniter_documents::{DUBPDocument, Document};
 use duniter_message::*;
 use duniter_module::*;
 use duniter_network::{
@@ -378,7 +378,7 @@ impl BlockchainModule {
                                 "RefusedBlock({})",
                                 network_block.uncompleted_block_doc().number.0
                             );
-                            self.send_event(&DALEvent::RefusedPendingDoc(BlockchainProtocol::V10(
+                            self.send_event(&DALEvent::RefusedPendingDoc(DUBPDocument::V10(
                                 Box::new(V10Document::Block(Box::new(
                                     network_block.uncompleted_block_doc().clone(),
                                 ))),
@@ -387,23 +387,23 @@ impl BlockchainModule {
                     }
                 }
                 BlockchainDocument::Identity(ref doc) => blockchain_documents.push(
-                    BlockchainProtocol::V10(Box::new(V10Document::Identity(doc.deref().clone()))),
+                    DUBPDocument::V10(Box::new(V10Document::Identity(doc.deref().clone()))),
                 ),
                 BlockchainDocument::Membership(ref doc) => blockchain_documents.push(
-                    BlockchainProtocol::V10(Box::new(V10Document::Membership(doc.deref().clone()))),
+                    DUBPDocument::V10(Box::new(V10Document::Membership(doc.deref().clone()))),
                 ),
                 BlockchainDocument::Certification(ref doc) => {
-                    blockchain_documents.push(BlockchainProtocol::V10(Box::new(
+                    blockchain_documents.push(DUBPDocument::V10(Box::new(
                         V10Document::Certification(Box::new(doc.deref().clone())),
                     )))
                 }
                 BlockchainDocument::Revocation(ref doc) => {
-                    blockchain_documents.push(BlockchainProtocol::V10(Box::new(
-                        V10Document::Revocation(Box::new(doc.deref().clone())),
-                    )))
+                    blockchain_documents.push(DUBPDocument::V10(Box::new(V10Document::Revocation(
+                        Box::new(doc.deref().clone()),
+                    ))))
                 }
                 BlockchainDocument::Transaction(ref doc) => {
-                    blockchain_documents.push(BlockchainProtocol::V10(Box::new(
+                    blockchain_documents.push(DUBPDocument::V10(Box::new(
                         V10Document::Transaction(Box::new(doc.deref().clone())),
                     )))
                 }
@@ -424,12 +424,12 @@ impl BlockchainModule {
         }
         current_blockstamp
     }
-    fn receive_documents(&self, documents: &[BlockchainProtocol]) {
+    fn receive_documents(&self, documents: &[DUBPDocument]) {
         debug!("BlockchainModule : receive_documents()");
         for document in documents {
             trace!("BlockchainModule : Treat one document.");
             match *document {
-                BlockchainProtocol::V10(ref doc_v10) => match doc_v10.deref() {
+                DUBPDocument::V10(ref doc_v10) => match doc_v10.deref() {
                     _ => {}
                 },
                 _ => self.send_event(&DALEvent::RefusedPendingDoc(document.clone())),

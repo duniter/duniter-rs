@@ -1,11 +1,14 @@
-nl = _{ "\n" }
-hexa = { ASCII_DIGIT | 'A'..'F' }
+
+
+WHITESPACE = _{ "" } // Prohibition of white spaces
+nl = _{ "\n" } // Only one way to break a line is accepted
+
+hexa_upper = { ASCII_DIGIT | 'A'..'F' }
 base58 = { !("O" | "I" | "l") ~ ASCII_ALPHANUMERIC }
 base64 = { ASCII_ALPHANUMERIC | "+" | "/" }
-
 integer = @{ "0" | ('1'..'9' ~ ASCII_DIGIT*) }
-hash = @{ hexa{64} }
 
+hash = @{ hexa_upper{64} }
 currency = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_")* }
 pubkey = @{ base58{43,44} }
 uid = @{ ASCII_ALPHA+ }
@@ -16,26 +19,25 @@ ed25519_sig = @{ base64{86,88} ~ "="{0,2} }
 v10 = _{ "Version: 10" }
 
 idty_v10 = ${
-    v10 ~ nl ~
+    SOI ~ v10 ~ nl ~
     "Type: Identity" ~ nl ~
     "Currency: " ~ currency ~ nl ~
     "Issuer: " ~ pubkey ~ nl ~
     "UniqueID: " ~ uid ~ nl ~
     "Timestamp: " ~ blockstamp ~ nl ~
     ed25519_sig? ~ nl*
+    ~ EOI
 }
 
 idty = ${
-    SOI ~
-    (&(v10 ~ nl) ~ idty_v10)
-    ~ EOI
+    (&(SOI ~ v10 ~ nl) ~ idty_v10)
 }
 
 membership_in = @{ "IN" }
 membership_out = @{ "OUT" }
 
 membership_v10 = ${
-    v10 ~ nl ~
+    SOI ~ v10 ~ nl ~
     "Type: Membership" ~ nl ~
     "Currency: " ~ currency ~ nl ~
     "Issuer: " ~ pubkey ~ nl ~
@@ -44,12 +46,11 @@ membership_v10 = ${
     "UserID: " ~ uid ~ nl ~
     "CertTS: " ~ blockstamp ~ nl ~
     ed25519_sig? ~ nl*
+    ~ EOI
 }
 
 membership = ${
-    SOI ~
-    (&("Version: 10" ~ nl) ~ membership_v10)
-    ~ EOI
+    (&(SOI ~ v10 ~ nl) ~ membership_v10)
 }
 
 cert_v10 = ${
@@ -63,16 +64,15 @@ cert_v10 = ${
     "IdtySignature: " ~ ed25519_sig ~ nl ~
     "CertTimestamp: " ~ blockstamp ~ nl ~
     ed25519_sig? ~ nl*
-}
-
-cert = ${
-    SOI ~
-    (&("Version: 10" ~ nl) ~ cert_v10)
     ~ EOI
 }
 
+cert = ${
+    (&(SOI ~ v10 ~ nl) ~ cert_v10)
+}
+
 revoc_v10 = ${
-    v10 ~ nl ~
+    SOI ~ v10 ~ nl ~
     "Type: Revocation" ~ nl ~
     "Currency: " ~ currency ~ nl ~
     "Issuer: " ~ pubkey ~ nl ~
@@ -80,12 +80,11 @@ revoc_v10 = ${
     "IdtyTimestamp: " ~ blockstamp ~ nl ~
     "IdtySignature: " ~ ed25519_sig ~ nl ~
     ed25519_sig? ~ nl*
+    ~ EOI
 }
 
 revoc = ${
-    SOI ~
-    (&("Version: 10" ~ nl) ~ revoc_v10)
-    ~ EOI
+    (&(SOI ~ v10 ~ nl) ~ revoc_v10)
 }
 
 tx_locktime = @{ integer }
@@ -125,7 +124,7 @@ tx_comment_char = {
 tx_comment = @{ tx_comment_char{0,255} }
 
 tx_v10 = ${
-    "Version: 10" ~ nl ~
+    SOI ~ v10 ~ nl ~
     "Type: Transaction" ~ nl ~
     "Currency: " ~ currency ~ nl ~
     "Blockstamp: " ~ blockstamp ~ nl ~
@@ -137,26 +136,23 @@ tx_v10 = ${
     "Comment: " ~ tx_comment ~ nl ~
     (ed25519_sig ~ nl)* ~ // intermediate signatures (zero if the transaction has only one signature)
     ed25519_sig? ~ nl* // last signature
-}
-
-tx = ${
-    SOI ~
-    (&("Version: 10" ~ nl) ~ tx_v10)
     ~ EOI
 }
 
+tx = ${
+    (&(SOI ~ v10 ~ nl) ~ tx_v10)
+}
+
 document_v10 = ${
-    SOI ~
+    &(SOI ~ v10 ~ nl) ~
     (&"Type: Identity" ~ idty_v10) | 
     (&"Type: Membership" ~ membership_v10) | 
     (&"Type: Certification" ~ cert_v10) | 
     (&"Type: Revocation" ~ revoc_v10) |
     (&"Type: Transaction" ~ tx_v10)
-    ~ EOI
 }
 
 document = ${
-    SOI ~
-    (&("Version: 10" ~ nl) ~ document_v10)
-    ~ EOI
+    &SOI ~
+    (&(v10  ~ nl) ~ document_v10)
 }

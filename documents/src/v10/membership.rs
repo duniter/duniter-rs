@@ -167,9 +167,9 @@ impl TextDocument for MembershipDocument {
     }
 }
 
-impl IntoSpecializedDocument<BlockchainProtocol> for MembershipDocument {
-    fn into_specialized(self) -> BlockchainProtocol {
-        BlockchainProtocol::V10(Box::new(V10Document::Membership(self)))
+impl IntoSpecializedDocument<DUBPDocument> for MembershipDocument {
+    fn into_specialized(self) -> DUBPDocument {
+        DUBPDocument::V10(Box::new(V10Document::Membership(self)))
     }
 }
 
@@ -249,67 +249,70 @@ CertTS: {ity_blockstamp}
 pub struct MembershipDocumentParser;
 
 impl TextDocumentParser for MembershipDocumentParser {
-    fn parse(doc: &str, currency: &str) -> Result<V10Document, V10DocumentParsingError> {
+    type DocumentType = MembershipDocument;
+
+    fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
         match DocumentsParser::parse(Rule::membership, doc) {
-            Ok(mut doc_ast) => {
-                let membership_ast = doc_ast.next().unwrap(); // get and unwrap the `membership` rule; never fails
-                let membership_vx_ast = membership_ast.into_inner().next().unwrap(); // get and unwrap the `membership_vX` rule; never fails
+            Ok(mut ms_pairs) => {
+                let ms_pair = ms_pairs.next().unwrap(); // get and unwrap the `membership` rule; never fails
+                let ms_vx_pair = ms_pair.into_inner().next().unwrap(); // get and unwrap the `membership_vX` rule; never fails
 
-                match membership_vx_ast.as_rule() {
+                match ms_vx_pair.as_rule() {
                     Rule::membership_v10 => {
-                        let mut pubkey_str = "";
-                        let mut uid = "";
-                        let mut blockstamps = Vec::with_capacity(2);
-                        let mut membership = MembershipType::In();
-                        let mut sig_str = "";
-                        for field in membership_vx_ast.into_inner() {
-                            match field.as_rule() {
-                                Rule::currency => {
-                                    if currency != field.as_str() {
-                                        return Err(V10DocumentParsingError::InvalidCurrency());
-                                    }
-                                }
-                                Rule::pubkey => pubkey_str = field.as_str(),
-                                Rule::uid => uid = field.as_str(),
-                                Rule::membership_in => membership = MembershipType::In(),
-                                Rule::membership_out => membership = MembershipType::Out(),
-                                Rule::blockstamp => {
-                                    if blockstamps.len() > 1 {
-                                        return Err(V10DocumentParsingError::InvalidInnerFormat("Membership document must have exactly two blockstamps !"));
-                                    }
-                                    let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
-
-                                    let block_id: &str = inner_rules.next().unwrap().as_str();
-                                    let block_hash: &str = inner_rules.next().unwrap().as_str();
-                                    blockstamps.push(Blockstamp {
-                                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
-                                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
-                                    });
-                                }
-                                Rule::ed25519_sig => sig_str = field.as_str(),
-                                Rule::EOI => (),
-                                _ => panic!("unexpected rule"), // Grammar ensures that we never reach this line
-                            }
-                        }
-                        Ok(V10Document::Membership(MembershipDocument {
-                            text: Some(doc.to_owned()),
-                            issuers: vec![PubKey::Ed25519(
-                                ed25519::PublicKey::from_base58(pubkey_str).unwrap(),
-                            )], // Grammar ensures that we have a base58 string.
-                            currency: currency.to_owned(),
-                            blockstamp: blockstamps[0],
-                            membership,
-                            identity_username: uid.to_owned(),
-                            identity_blockstamp: blockstamps[1],
-                            signatures: vec![Sig::Ed25519(
-                                ed25519::Signature::from_base64(sig_str).unwrap(),
-                            )], // Grammar ensures that we have a base64 string.
-                        }))
+                        Ok(MembershipDocumentParser::from_pest_pair(ms_vx_pair))
                     }
-                    _ => Err(V10DocumentParsingError::UnexpectedVersion()),
+                    _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
+                        "{:#?}",
+                        ms_vx_pair.as_rule()
+                    ))),
                 }
             }
-            Err(pest_error) => panic!("{}", pest_error), //Err(V10DocumentParsingError::PestError()),
+            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
+        }
+    }
+    fn from_pest_pair(pair: Pair<Rule>) -> Self::DocumentType {
+        let doc = pair.as_str();
+        let mut currency = "";
+        let mut pubkey_str = "";
+        let mut uid = "";
+        let mut blockstamps = Vec::with_capacity(2);
+        let mut membership = MembershipType::In();
+        let mut sig_str = "";
+        for field in pair.into_inner() {
+            match field.as_rule() {
+                Rule::currency => currency = field.as_str(),
+                Rule::uid => uid = field.as_str(),
+                Rule::pubkey => pubkey_str = field.as_str(),
+                Rule::membership_in => membership = MembershipType::In(),
+                Rule::membership_out => membership = MembershipType::Out(),
+                Rule::blockstamp => {
+                    let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
+
+                    let block_id: &str = inner_rules.next().unwrap().as_str();
+                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                    blockstamps.push(Blockstamp {
+                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
+                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                    });
+                }
+                Rule::ed25519_sig => sig_str = field.as_str(),
+                Rule::EOI => (),
+                _ => panic!("unexpected rule"), // Grammar ensures that we never reach this line
+            }
+        }
+        MembershipDocument {
+            text: Some(doc.to_owned()),
+            issuers: vec![PubKey::Ed25519(
+                ed25519::PublicKey::from_base58(pubkey_str).unwrap(),
+            )], // Grammar ensures that we have a base58 string.
+            currency: currency.to_owned(),
+            blockstamp: blockstamps[0],
+            membership,
+            identity_username: uid.to_owned(),
+            identity_blockstamp: blockstamps[1],
+            signatures: vec![Sig::Ed25519(
+                ed25519::Signature::from_base64(sig_str).unwrap(),
+            )], // Grammar ensures that we have a base64 string.
         }
     }
 }
@@ -379,13 +382,10 @@ UserID: tic
 CertTS: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw==";
 
-        let currency = "duniter_unit_test_currency";
-
-        let doc = MembershipDocumentParser::parse(doc, currency).unwrap();
-        if let V10Document::Membership(doc) = doc {
-            println!("Doc : {:?}", doc);
-            assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
-            assert_eq!(
+        let doc = MembershipDocumentParser::parse(doc).unwrap();
+        println!("Doc : {:?}", doc);
+        assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
+        assert_eq!(
             doc.generate_compact_text(),
                 "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV:\
                 s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw==:\
@@ -393,8 +393,5 @@ s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrD
                 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855:\
                 tic"
             );
-        } else {
-            panic!("Wrong document type");
-        }
     }
 }

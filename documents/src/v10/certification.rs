@@ -138,9 +138,9 @@ impl TextDocument for CertificationDocument {
     }
 }
 
-impl IntoSpecializedDocument<BlockchainProtocol> for CertificationDocument {
-    fn into_specialized(self) -> BlockchainProtocol {
-        BlockchainProtocol::V10(Box::new(V10Document::Certification(Box::new(self))))
+impl IntoSpecializedDocument<DUBPDocument> for CertificationDocument {
+    fn into_specialized(self) -> DUBPDocument {
+        DUBPDocument::V10(Box::new(V10Document::Certification(Box::new(self))))
     }
 }
 
@@ -222,73 +222,70 @@ CertTimestamp: {blockstamp}
 pub struct CertificationDocumentParser;
 
 impl TextDocumentParser for CertificationDocumentParser {
-    fn parse(doc: &str, currency: &str) -> Result<V10Document, V10DocumentParsingError> {
+    type DocumentType = CertificationDocument;
+
+    fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
         match DocumentsParser::parse(Rule::cert, doc) {
-            Ok(mut doc_ast) => {
-                let cert_ast = doc_ast.next().unwrap(); // get and unwrap the `cert` rule; never fails
-                let cert_vx_ast = cert_ast.into_inner().next().unwrap(); // get and unwrap the `cert_vX` rule; never fails
+            Ok(mut cert_pairs) => {
+                let cert_pair = cert_pairs.next().unwrap(); // get and unwrap the `cert` rule; never fails
+                let cert_vx_pair = cert_pair.into_inner().next().unwrap(); // get and unwrap the `cert_vX` rule; never fails
 
-                match cert_vx_ast.as_rule() {
-                    Rule::cert_v10 => {
-                        let mut pubkeys = Vec::with_capacity(2);
-                        let mut uid = "";
-                        let mut sigs = Vec::with_capacity(2);
-                        let mut blockstamps = Vec::with_capacity(2);
-                        for field in cert_vx_ast.into_inner() {
-                            match field.as_rule() {
-                                Rule::currency => {
-                                    if currency != field.as_str() {
-                                        return Err(V10DocumentParsingError::InvalidCurrency());
-                                    }
-                                }
-                                Rule::pubkey => pubkeys.push(PubKey::Ed25519(
-                                    ed25519::PublicKey::from_base58(field.as_str()).unwrap(), // Grammar ensures that we have a base58 string.
-                                )),
-                                Rule::uid => {
-                                    uid = field.as_str();
-                                }
-                                Rule::blockstamp => {
-                                    if blockstamps.len() > 1 {
-                                        return Err(V10DocumentParsingError::InvalidInnerFormat(
-                                            "Cert document must contain exactly two blockstamps !",
-                                        ));
-                                    }
-                                    let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
-
-                                    let block_id: &str = inner_rules.next().unwrap().as_str();
-                                    let block_hash: &str = inner_rules.next().unwrap().as_str();
-                                    blockstamps.push(Blockstamp {
-                                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
-                                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
-                                    });
-                                }
-                                Rule::ed25519_sig => {
-                                    sigs.push(Sig::Ed25519(
-                                        ed25519::Signature::from_base64(field.as_str()).unwrap(), // Grammar ensures that we have a base64 string.
-                                    ));
-                                }
-                                Rule::EOI => (),
-                                _ => panic!("unexpected rule"), // Grammar ensures that we never reach this line
-                            }
-                        }
-                        Ok(V10Document::Certification(Box::new(
-                            CertificationDocument {
-                                text: doc.to_owned(),
-                                issuers: vec![pubkeys[0]],
-                                currency: currency.to_owned(),
-                                target: pubkeys[1],
-                                identity_username: uid.to_owned(),
-                                identity_blockstamp: blockstamps[0],
-                                identity_sig: sigs[0],
-                                blockstamp: blockstamps[1],
-                                signatures: vec![sigs[1]],
-                            },
-                        )))
-                    }
-                    _ => Err(V10DocumentParsingError::UnexpectedVersion()),
+                match cert_vx_pair.as_rule() {
+                    Rule::cert_v10 => Ok(CertificationDocumentParser::from_pest_pair(cert_vx_pair)),
+                    _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
+                        "{:#?}",
+                        cert_vx_pair.as_rule()
+                    ))),
                 }
             }
-            Err(pest_error) => panic!("{}", pest_error), //Err(V10DocumentParsingError::PestError()),
+            Err(pest_error) => panic!("{}", pest_error), //Err(TextDocumentParseError::PestError()),
+        }
+    }
+    fn from_pest_pair(pair: Pair<Rule>) -> Self::DocumentType {
+        let doc = pair.as_str();
+        let mut currency = "";
+        let mut pubkeys = Vec::with_capacity(2);
+        let mut uid = "";
+        let mut sigs = Vec::with_capacity(2);
+        let mut blockstamps = Vec::with_capacity(2);
+        for field in pair.into_inner() {
+            match field.as_rule() {
+                Rule::currency => currency = field.as_str(),
+                Rule::pubkey => pubkeys.push(PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58(field.as_str()).unwrap(), // Grammar ensures that we have a base58 string.
+                )),
+                Rule::uid => {
+                    uid = field.as_str();
+                }
+                Rule::blockstamp => {
+                    let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
+
+                    let block_id: &str = inner_rules.next().unwrap().as_str();
+                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                    blockstamps.push(Blockstamp {
+                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
+                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                    });
+                }
+                Rule::ed25519_sig => {
+                    sigs.push(Sig::Ed25519(
+                        ed25519::Signature::from_base64(field.as_str()).unwrap(), // Grammar ensures that we have a base64 string.
+                    ));
+                }
+                Rule::EOI => (),
+                _ => panic!("unexpected rule"), // Grammar ensures that we never reach this line
+            }
+        }
+        CertificationDocument {
+            text: doc.to_owned(),
+            issuers: vec![pubkeys[0]],
+            currency: currency.to_owned(),
+            target: pubkeys[1],
+            identity_username: uid.to_owned(),
+            identity_blockstamp: blockstamps[0],
+            identity_sig: sigs[0],
+            blockstamp: blockstamps[1],
+            signatures: vec![sigs[1]],
         }
     }
 }
@@ -367,20 +364,14 @@ IdtySignature: SmSweUD4lEMwiZfY8ux9maBjrQQDkC85oMNsin6oSQCPdXG8sFCZ4FisUaWqKsfOl
 CertTimestamp: 167884-0001DFCA28002A8C96575E53B8CEF8317453A7B0BA255542CCF0EC8AB5E99038
 wqZxPEGxLrHGv8VdEIfUGvUcf+tDdNTMXjLzVRCQ4UhlhDRahOMjfcbP7byNYr5OfIl83S1MBxF7VJgu8YasCA==";
 
-        let currency = "g1-test";
-
-        let doc = CertificationDocumentParser::parse(doc, currency).unwrap();
-        if let V10Document::Certification(doc) = doc {
-            println!("Doc : {:?}", doc);
-            assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
+        let doc = CertificationDocumentParser::parse(doc).unwrap();
+        println!("Doc : {:?}", doc);
+        assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
         /*assert_eq!(
             doc.generate_compact_text(),
             "2sZF6j2PkxBDNAqUde7Dgo5x3crkerZpQ4rBqqJGn8QT:\
             7jzkd8GiFnpys4X7mP78w2Y3y3kwdK6fVSLEaojd3aH9:99956:\
             Hkps1QU4HxIcNXKT8YmprYTVByBhPP1U2tIM7Z8wENzLKIWAvQClkAvBE7pW9dnVa18sJIJhVZUcRrPAZfmjBA=="
         );*/
-        } else {
-            panic!("Wrong document type");
-        }
     }
 }

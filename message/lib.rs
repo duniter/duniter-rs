@@ -42,7 +42,7 @@ use duniter_crypto::keys::Sig;
 use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALRequest, DALResponse};
 use duniter_documents::BlockId;
-use duniter_documents::BlockchainProtocol;
+use duniter_documents::DUBPDocument;
 use duniter_module::*;
 use duniter_network::{NetworkEvent, NetworkResponse, OldNetworkRequest};
 
@@ -89,7 +89,7 @@ pub enum DursMsgContent {
     /// Pow module response
     ProverResponse(BlockId, Sig, u64),
     /// Client API event
-    ReceiveDocsFromClient(Vec<BlockchainProtocol>),
+    ReceiveDocsFromClient(Vec<DUBPDocument>),
     /// Stop signal
     Stop(),
 }

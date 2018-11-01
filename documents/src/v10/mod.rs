@@ -24,6 +24,7 @@ pub mod transaction;
 
 use crypto::digest::Digest;
 use duniter_crypto::keys::PrivateKey;
+use pest::Parser;
 
 pub use v10::block::BlockDocument;
 use v10::certification::*;
@@ -53,8 +54,6 @@ impl<D: TextDocument> TextDocumentFormat<D> {
 }
 
 /// List of wrapped document types.
-///
-/// > TODO Add wrapped types in enum variants.
 #[derive(Debug, Clone)]
 pub enum V10Document {
     /// Block document.
@@ -74,6 +73,41 @@ pub enum V10Document {
 
     /// Revocation document.
     Revocation(Box<RevocationDocument>),
+}
+
+impl TextDocumentParser for V10Document {
+    type DocumentType = V10Document;
+
+    fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
+        match DocumentsParser::parse(Rule::document_v10, doc) {
+            Ok(mut document_v10_pairs) => Ok(V10Document::from_pest_pair(
+                document_v10_pairs.next().unwrap(),
+            )), // get and unwrap the `document_v10` rule; never fails
+            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
+        }
+    }
+    fn from_pest_pair(pair: Pair<Rule>) -> Self::DocumentType {
+        let doc_type_v10_pair = pair.into_inner().next().unwrap(); // get and unwrap the `{DOC_TYPE}_v10` rule; never fails
+
+        match doc_type_v10_pair.as_rule() {
+            Rule::idty_v10 => V10Document::Identity(
+                identity::IdentityDocumentParser::from_pest_pair(doc_type_v10_pair),
+            ),
+            Rule::membership_v10 => V10Document::Membership(
+                membership::MembershipDocumentParser::from_pest_pair(doc_type_v10_pair),
+            ),
+            Rule::cert_v10 => V10Document::Certification(Box::new(
+                certification::CertificationDocumentParser::from_pest_pair(doc_type_v10_pair),
+            )),
+            Rule::revoc_v10 => V10Document::Revocation(Box::new(
+                revocation::RevocationDocumentParser::from_pest_pair(doc_type_v10_pair),
+            )),
+            Rule::tx_v10 => V10Document::Transaction(Box::new(
+                transaction::TransactionDocumentParser::from_pest_pair(doc_type_v10_pair),
+            )),
+            _ => panic!("unexpected rule: {:?}", doc_type_v10_pair.as_rule()), // Grammar ensures that we never reach this line
+        }
+    }
 }
 
 /// Trait for a compact V10 document.
@@ -176,23 +210,6 @@ pub trait TextDocumentBuilder: DocumentBuilder {
     }
 }
 
-/// List of possible errors while parsing.
-#[derive(Debug, Clone)]
-pub enum V10DocumentParsingError {
-    /// The given source don't have a valid document format.
-    InvalidWrapperFormat(),
-    /// The given source don't have a valid specific document format (document type).
-    InvalidInnerFormat(&'static str),
-    /// Type fields contains an unknown document type.
-    UnknownDocumentType(String),
-    /// Error with pest parser
-    PestError(),
-    /// Invalid currency
-    InvalidCurrency(),
-    /// UnexpectedVersion
-    UnexpectedVersion(),
-}
-
 /// V10 Documents in separated parts
 #[derive(Debug, Clone)]
 pub struct V10DocumentParts {
@@ -206,16 +223,12 @@ pub struct V10DocumentParts {
     pub signatures: Vec<Sig>,
 }
 
-trait TextDocumentParser {
-    fn parse(doc: &str, currency: &str) -> Result<V10Document, V10DocumentParsingError>;
-}
-
 /*/// A V10 document parser.
 #[derive(Debug, Clone, Copy)]
 pub struct V10DocumentParser;
 
-impl<'a> DocumentParser<&'a str, V10Document, V10DocumentParsingError> for V10DocumentParser {
-    fn parse(source: &'a str) -> Result<V10Document, V10DocumentParsingError> {
+impl<'a> DocumentParser<&'a str, V10Document, TextDocumentParseError> for V10DocumentParser {
+    fn parse(source: &'a str) -> Result<V10Document, TextDocumentParseError> {
         /*match DocumentsParser::parse(Rule::document_v10, source) {
             Ok(mut source_ast) => {
                 let doc_v10_ast = source_ast.next().unwrap(); // get and unwrap the `document_v10` rule; never fails
@@ -229,7 +242,7 @@ impl<'a> DocumentParser<&'a str, V10Document, V10DocumentParsingError> for V10Do
                     Rule::tx_v10 => TransactionDocumentParser::parse_standard(doc_type_v10_ast.as_str(), "", currency, vec![]),
                 }
             }
-            Err(_) => Err(V10DocumentParsingError::InvalidWrapperFormat()),
+            Err(_) => Err(TextDocumentParseError::InvalidWrapperFormat()),
         }*/
 if let Some(caps) = DOCUMENT_REGEX.captures(source) {
 let doctype = &caps["type"];
@@ -243,12 +256,12 @@ match doctype {
 "Certification" => CertificationDocumentParser::parse_standard(source, currency),
 "Revocation" => RevocationDocumentParser::parse_standard(source, currency),
 "Transaction" => TransactionDocumentParser::parse_standard(source, currency),
-_ => Err(V10DocumentParsingError::UnknownDocumentType(
+_ => Err(TextDocumentParseError::UnknownDocumentType(
 doctype.to_string(),
 )),
 }
 } else {
-Err(V10DocumentParsingError::InvalidWrapperFormat())
+Err(TextDocumentParseError::InvalidWrapperFormat())
 }
 }
 }*/
@@ -398,13 +411,9 @@ UniqueID: elois
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 Ydnclvw76/JHcKSmU9kl9Ie0ne5/X8NYOqPqbGnufIK3eEPRYYdEYaQh+zffuFhbtIRjv6m/DkVLH5cLy/IyAg==";
 
-        let doc = IdentityDocumentParser::parse(text, "g1").unwrap();
-        if let V10Document::Identity(doc) = doc {
-            println!("Doc : {:?}", doc);
-            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
-        } else {
-            panic!("Wrong document type");
-        }
+        let doc = IdentityDocumentParser::parse(text).unwrap();
+        println!("Doc : {:?}", doc);
+        assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
     }
 
     #[test]
@@ -419,13 +428,9 @@ UserID: elois
 CertTS: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 FFeyrvYio9uYwY5aMcDGswZPNjGLrl8THn9l3EPKSNySD3SDSHjCljSfFEwb87sroyzJQoVzPwER0sW/cbZMDg==";
 
-        let doc = MembershipDocumentParser::parse(text, "g1").unwrap();
-        if let V10Document::Membership(doc) = doc {
-            println!("Doc : {:?}", doc);
-            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
-        } else {
-            panic!("Wrong document type");
-        }
+        let doc = MembershipDocumentParser::parse(text).unwrap();
+        println!("Doc : {:?}", doc);
+        assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
     }
 
     #[test]
@@ -441,13 +446,9 @@ IdtySignature: DjeipIeb/RF0tpVCnVnuw6mH1iLJHIsDfPGLR90Twy3PeoaDz6Yzhc/UjLWqHCi5Y
 CertTimestamp: 99956-00000472758331FDA8388E30E50CA04736CBFD3B7C21F34E74707107794B56DD
 Hkps1QU4HxIcNXKT8YmprYTVByBhPP1U2tIM7Z8wENzLKIWAvQClkAvBE7pW9dnVa18sJIJhVZUcRrPAZfmjBA==";
 
-        let doc = CertificationDocumentParser::parse(text, "g1").unwrap();
-        if let V10Document::Certification(doc) = doc {
-            println!("Doc : {:?}", doc);
-            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
-        } else {
-            panic!("Wrong document type");
-        }
+        let doc = CertificationDocumentParser::parse(text).unwrap();
+        println!("Doc : {:?}", doc);
+        assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
     }
 
     #[test]
@@ -461,13 +462,9 @@ IdtyTimestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B85
 IdtySignature: 1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==
 XXOgI++6qpY9O31ml/FcfbXCE6aixIrgkT5jL7kBle3YOMr+8wrp7Rt+z9hDVjrNfYX2gpeJsuMNfG4T/fzVDQ==";
 
-        let doc = RevocationDocumentParser::parse(text, "g1").unwrap();
-        if let V10Document::Revocation(doc) = doc {
-            println!("Doc : {:?}", doc);
-            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
-        } else {
-            panic!("Wrong document type");
-        }
+        let doc = RevocationDocumentParser::parse(text).unwrap();
+        println!("Doc : {:?}", doc);
+        assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
     }
 
     #[test]
@@ -490,12 +487,8 @@ Outputs:
 Comment: c est pour 2 mois d adhesion ressourcerie
 lnpuFsIymgz7qhKF/GsZ3n3W8ZauAAfWmT4W0iJQBLKJK2GFkesLWeMj/+GBfjD6kdkjreg9M6VfkwIZH+hCCQ==";
 
-        let doc = TransactionDocumentParser::parse(text, "g1").unwrap();
-        if let V10Document::Transaction(doc) = doc {
-            println!("Doc : {:?}", doc);
-            assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
-        } else {
-            panic!("Wrong document type");
-        }
+        let doc = TransactionDocumentParser::parse(text).unwrap();
+        println!("Doc : {:?}", doc);
+        assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
     }
 }

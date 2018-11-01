@@ -501,9 +501,9 @@ impl TextDocument for BlockDocument {
     }
 }
 
-impl IntoSpecializedDocument<BlockchainProtocol> for BlockDocument {
-    fn into_specialized(self) -> BlockchainProtocol {
-        BlockchainProtocol::V10(Box::new(V10Document::Block(Box::new(self))))
+impl IntoSpecializedDocument<DUBPDocument> for BlockDocument {
+    fn into_specialized(self) -> DUBPDocument {
+        DUBPDocument::V10(Box::new(V10Document::Block(Box::new(self))))
     }
 }
 
@@ -512,7 +512,6 @@ mod tests {
     use super::certification::CertificationDocumentParser;
     use super::transaction::TransactionDocumentParser;
     use super::*;
-    use std::ops::Deref;
     use {Document, VerificationResult};
 
     #[test]
@@ -584,11 +583,7 @@ IdtyUniqueID: PascaleM
 IdtyTimestamp: 97401-0000003821911909F98519CC773D2D3E5CFE3D5DBB39F4F4FF33B96B4D41800E
 IdtySignature: QncUVXxZ2NfARjdJOn6luILvDuG1NuK9qSoaU4CST2Ij8z7oeVtEgryHl+EXOjSe6XniALsCT0gU8wtadcA/Cw==
 CertTimestamp: 106669-000003682E6FE38C44433DCE92E8B2A26C69B6D7867A2BAED231E788DDEF4251
-UmseG2XKNwKcY8RFi6gUCT91udGnnNmSh7se10J1jeRVlwf+O2Tyb2Cccot9Dt7BO4+Kx2P6vFJB3oVGGHMxBA==", "g1").expect("Fail to parse cert1");
-        let cert1 = match cert1 {
-            V10Document::Certification(doc) => (*doc.deref()).clone(),
-            _ => panic!("Wrong document type"),
-        };
+UmseG2XKNwKcY8RFi6gUCT91udGnnNmSh7se10J1jeRVlwf+O2Tyb2Cccot9Dt7BO4+Kx2P6vFJB3oVGGHMxBA==").expect("Fail to parse cert1");
 
         let tx1 = TransactionDocumentParser::parse("Version: 10
 Type: Transaction
@@ -604,11 +599,7 @@ Unlocks:
 Outputs:
 1002:0:SIG(CitdnuQgZ45tNFCagay7Wh12gwwHM8VLej1sWmfHWnQX)
 Comment: DU symbolique pour demander le codage de nouvelles fonctionnalites cf. https://forum.monnaie-libre.fr/t/creer-de-nouvelles-fonctionnalites-dans-cesium-les-autres-applications/2025  Merci
-T0LlCcbIn7xDFws48H8LboN6NxxwNXXTovG4PROLf7tkUAueHFWjfwZFKQXeZEHxfaL1eYs3QspGtLWUHPRVCQ==", "g1").expect("Fail to parse tx1");
-        let tx1 = match tx1 {
-            V10Document::Transaction(doc) => (*doc.deref()).clone(),
-            _ => panic!("Wrong document type"),
-        };
+T0LlCcbIn7xDFws48H8LboN6NxxwNXXTovG4PROLf7tkUAueHFWjfwZFKQXeZEHxfaL1eYs3QspGtLWUHPRVCQ==").expect("Fail to parse tx1");
 
         let tx2 = TransactionDocumentParser::parse("Version: 10
 Type: Transaction
@@ -624,11 +615,7 @@ Unlocks:
 Outputs:
 1002:0:SIG(78ZwwgpgdH5uLZLbThUQH7LKwPgjMunYfLiCfUCySkM8)
 Comment: DU symbolique pour demander le codage de nouvelles fonctionnalites cf. https://forum.monnaie-libre.fr/t/creer-de-nouvelles-fonctionnalites-dans-cesium-les-autres-applications/2025  Merci
-a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8xrNcCg==", "g1").expect("Fail to parse tx2");
-        let tx2 = match tx2 {
-            V10Document::Transaction(doc) => (*doc.deref()).clone(),
-            _ => panic!("Wrong document type"),
-        };
+a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8xrNcCg==").expect("Fail to parse tx2");
 
         let mut block = BlockDocument {
             nonce: 0,
