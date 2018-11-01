@@ -28,33 +28,16 @@
     unused_qualifications
 )]
 
-#[macro_use]
-extern crate lazy_static;
-#[cfg(test)]
-#[macro_use]
-extern crate pretty_assertions;
-#[macro_use]
-extern crate serde_derive;
-
-extern crate base58;
-extern crate byteorder;
-extern crate crypto;
 extern crate duniter_crypto;
 extern crate duniter_documents;
 extern crate duniter_module;
+extern crate durs_network_documents;
+#[cfg(test)]
+#[macro_use]
+extern crate pretty_assertions;
 extern crate serde;
 extern crate serde_json;
 
-pub mod network_endpoint;
-pub mod network_head;
-pub mod network_head_v2;
-pub mod network_head_v3;
-pub mod network_peer;
-
-use crypto::digest::Digest;
-use crypto::sha2::Sha256;
-use duniter_crypto::hashs::*;
-use duniter_crypto::keys::*;
 use duniter_documents::v10::block::BlockDocument;
 use duniter_documents::v10::certification::CertificationDocument;
 use duniter_documents::v10::identity::IdentityDocument;
@@ -64,10 +47,11 @@ use duniter_documents::v10::transaction::TransactionDocument;
 use duniter_documents::Document;
 use duniter_documents::{blockstamp::Blockstamp, BlockHash, BlockId};
 use duniter_module::*;
-use network_endpoint::ApiFeatures;
-use network_head::NetworkHead;
-use network_peer::PeerCard;
-use std::fmt::{Debug, Display, Error, Formatter};
+use durs_network_documents::network_endpoint::ApiFeatures;
+use durs_network_documents::network_head::NetworkHead;
+use durs_network_documents::network_peer::PeerCard;
+use durs_network_documents::*;
+use std::fmt::Debug;
 use std::ops::Deref;
 use std::sync::mpsc;
 
@@ -113,65 +97,6 @@ pub struct SyncEndpoint {
     pub path: Option<String>,
     /// Use TLS
     pub tls: bool,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-/// Random identifier with which several Duniter nodes with the same network keypair can be differentiated
-pub struct NodeId(pub u32);
-
-impl Default for NodeId {
-    fn default() -> NodeId {
-        NodeId(0)
-    }
-}
-
-impl Display for NodeId {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "{:x}", self.0)
-    }
-}
-
-impl<'a> From<&'a str> for NodeId {
-    fn from(source: &'a str) -> NodeId {
-        NodeId(u32::from_str_radix(source, 16).expect("Fail to parse NodeId"))
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-/// Complete identifier of a duniter node.
-pub struct NodeFullId(pub NodeId, pub PubKey);
-
-impl Default for NodeFullId {
-    fn default() -> NodeFullId {
-        NodeFullId(
-            NodeId::default(),
-            PubKey::Ed25519(
-                ed25519::PublicKey::from_base58("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-                    .unwrap(),
-            ),
-        )
-    }
-}
-
-impl Display for NodeFullId {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "{}-{}", self.0, self.1)
-    }
-}
-
-impl NodeFullId {
-    /// Compute sha256 hash
-    pub fn sha256(&self) -> Hash {
-        let mut sha256 = Sha256::new();
-        sha256.input_str(&format!("{}", self));
-        Hash::from_hex(&sha256.result_str()).unwrap()
-    }
-    /// To human string
-    pub fn to_human_string(&self) -> String {
-        let mut pubkey_string = self.1.to_string();
-        pubkey_string.truncate(8);
-        format!("{:8x}-{:8}", (self.0).0, pubkey_string)
-    }
 }
 
 /// Trait to be implemented by the configuration object of the module managing the inter-node network.
@@ -235,7 +160,7 @@ impl NetworkBlock {
 
 #[derive(Debug, Clone)]
 /// Network Document
-pub enum NetworkDocument {
+pub enum BlockchainDocument {
     /// Network Block
     Block(NetworkBlock),
     /// Identity Document
@@ -318,7 +243,7 @@ pub enum NetworkResponse {
     /// Chunk
     Chunk(ModuleReqFullId, NodeFullId, Vec<Box<NetworkBlock>>),
     /// PendingDocuments
-    PendingDocuments(ModuleReqFullId, Vec<NetworkDocument>),
+    PendingDocuments(ModuleReqFullId, Vec<BlockchainDocument>),
     /// Consensus
     Consensus(ModuleReqFullId, Result<Blockstamp, NetworkConsensusError>),
     /// HeadsCache
@@ -349,75 +274,9 @@ pub enum NetworkEvent {
     /// A connection has changed state(`u32` is the new state, `Option<String>` est l'uid du noeud)
     ConnectionStateChange(NodeFullId, u32, Option<String>, String),
     /// Receiving Pending Documents
-    ReceiveDocuments(Vec<NetworkDocument>),
+    ReceiveDocuments(Vec<BlockchainDocument>),
     /// Receipt of peer cards
     ReceivePeers(Vec<PeerCard>),
     /// Receiving heads
     ReceiveHeads(Vec<NetworkHead>),
-}
-
-#[cfg(test)]
-mod tests {
-    pub extern crate bincode;
-    use super::network_endpoint::*;
-    use super::*;
-
-    pub fn keypair1() -> ed25519::KeyPair {
-        ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(
-            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV".as_bytes(),
-            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV_".as_bytes(),
-        )
-    }
-
-    #[test]
-    fn parse_endpoint() {
-        let issuer = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx")
-                .unwrap(),
-        );
-        let node_id = NodeId(u32::from_str_radix("c1c39a0a", 16).unwrap());
-        let full_id = NodeFullId(node_id, issuer);
-        assert_eq!(
-            EndpointEnum::parse_from_raw("WS2P c1c39a0a i3.ifee.fr 80 /ws2p", issuer, 0, 0, 1),
-            Ok(EndpointEnum::V1(EndpointEnumV1 {
-                version: 1,
-                issuer,
-                api: NetworkEndpointApi(String::from("WS2P")),
-                node_id: Some(node_id),
-                hash_full_id: Some(full_id.sha256()),
-                host: String::from("i3.ifee.fr"),
-                port: 80,
-                path: Some(String::from("ws2p")),
-                raw_endpoint: String::from("WS2P c1c39a0a i3.ifee.fr 80 /ws2p"),
-                last_check: 0,
-                status: 0,
-            },))
-        );
-    }
-
-    #[test]
-    fn parse_endpoint2() {
-        let issuer = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("5gJYnQp8v7bWwk7EWRoL8vCLof1r3y9c6VDdnGSM1GLv")
-                .unwrap(),
-        );
-        let node_id = NodeId(u32::from_str_radix("cb06a19b", 16).unwrap());
-        let full_id = NodeFullId(node_id, issuer);
-        assert_eq!(
-            EndpointEnum::parse_from_raw("WS2P cb06a19b g1.imirhil.fr 53012 /", issuer, 0, 0, 1),
-            Ok(EndpointEnum::V1(EndpointEnumV1 {
-                version: 1,
-                issuer,
-                api: NetworkEndpointApi(String::from("WS2P")),
-                node_id: Some(node_id),
-                hash_full_id: Some(full_id.sha256()),
-                host: String::from("g1.imirhil.fr"),
-                port: 53012,
-                path: None,
-                raw_endpoint: String::from("WS2P cb06a19b g1.imirhil.fr 53012 /"),
-                last_check: 0,
-                status: 0,
-            },))
-        );
-    }
 }

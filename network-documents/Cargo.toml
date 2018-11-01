@@ -1,27 +1,26 @@
 [package]
-name = "durs-ws2p-messages"
+name = "durs-network-documents"
 version = "0.1.0-a0.1"
-authors = ["librelois <elois@ifee.fr>"]
-description = "Handles WebSocketToPeer API Messages."
+authors = ["librelois <elois@duniter.org>"]
+description = "Network documents for DUNP (DUniter Network Protocol)"
 license = "AGPL-3.0"
 
 [lib]
-path = "lib.rs"
+path = "src/lib.rs"
 
 [dependencies]
-bincode = "1.0.*"
-byteorder = "1.2.3"
+base58 = "0.1.*"
 duniter-crypto = { path = "../crypto" }
 duniter-documents = { path = "../documents" }
-durs-network-documents = { path = "../network-documents" }
-log = "0.4.*"
-rust-crypto = "0.2.*"
+pest = "2.0"
+pest_derive = "2.0"
 serde = "1.0.*"
 serde_derive = "1.0.*"
 serde_json = "1.0.*"
 
 [dev-dependencies]
 pretty_assertions = "0.5.1"
+bincode = "1.0.1"
 
 [features]
 # Treat warnings as a build error.

@@ -1,13 +1,3 @@
-extern crate regex;
-
-use self::regex::Regex;
-
-lazy_static! {
-    #[derive(Debug)]
-    pub static ref WS2P_V1_ENDPOINT_REGEX: Regex = Regex::new(
-        "^WS2P (?P<version>[1-9][0-9]* )?(?P<uuid>[a-f0-9]{6,8}) (?P<host>[a-z_][a-z0-9-_.]*|[0-9.]+|[0-9a-f:]+) (?P<port>[0-9]+)(?: /?(?P<path>.+)?)? *$"
-    ).unwrap();
-}
 pub static WS2P_OUTCOMING_INTERVAL_AT_STARTUP: &'static u64 = &75;
 pub static WS2P_OUTCOMING_INTERVAL: &'static u64 = &300;
 pub static WS2P_DEFAULT_OUTCOMING_QUOTA: &'static usize = &10;

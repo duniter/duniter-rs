@@ -15,10 +15,8 @@
 
 //! Module defining the format of network peer cards and how to handle them.
 
-extern crate crypto;
 extern crate duniter_crypto;
 extern crate duniter_documents;
-extern crate duniter_module;
 extern crate serde;
 
 use base58::ToBase58;

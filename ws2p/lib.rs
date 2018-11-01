@@ -39,6 +39,7 @@ extern crate duniter_crypto;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
+extern crate durs_network_documents;
 extern crate durs_ws2p_messages;
 
 mod constants;
@@ -48,8 +49,8 @@ use duniter_conf::DuRsConf;
 use duniter_crypto::keys::*;
 use duniter_message::DursMsg;
 use duniter_module::*;
-use duniter_network::network_endpoint::*;
 use duniter_network::*;
+use durs_network_documents::network_endpoint::*;
 use std::sync::mpsc;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

@@ -14,14 +14,13 @@ duniter-conf = { path = "../conf" }
 duniter-crypto = { path = "../crypto" }
 duniter-dal = { path = "../dal" }
 duniter-documents = { path = "../documents" }
+durs-network-documents = { path = "../network-documents" }
 duniter-message =  { path = "../message" }
 duniter-module = { path = "../module" }
 duniter-network = { path = "../network" }
 durs-wot = { path = "../wot" }
-lazy_static = "1.0.*"
 log = "0.4.*"
 rand = "0.4.*"
-regex = "0.2.*"
 rust-crypto = "0.2.*"
 sqlite = "0.23.*"
 serde = "1.0.*"

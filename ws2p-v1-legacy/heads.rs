@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use duniter_documents::Blockstamp;
-use duniter_network::network_head_v2::*;
+use durs_network_documents::network_head_v2::*;
 use *;
 
 pub fn generate_my_head(

@@ -38,7 +38,7 @@ extern crate bincode;
 extern crate byteorder;
 extern crate duniter_crypto;
 extern crate duniter_documents;
-extern crate duniter_network;
+extern crate durs_network_documents;
 
 /// WS2Pv2 Messages
 pub mod v2;
@@ -60,9 +60,9 @@ mod tests {
     use duniter_crypto::keys::*;
     use duniter_documents::v10::certification::*;
     use duniter_documents::{Blockstamp, CurrencyName};
-    use duniter_network::network_endpoint::*;
-    use duniter_network::network_peer::*;
-    use duniter_network::*;
+    use durs_network_documents::network_endpoint::*;
+    use durs_network_documents::network_peer::*;
+    use durs_network_documents::*;
     use std::net::Ipv4Addr;
     use std::str::FromStr;
     use v2::payload_container::WS2Pv0MessagePayload;

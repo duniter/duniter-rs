@@ -15,20 +15,17 @@
 
 //! Module defining the format of network endpoints and how to handle them.
 
-extern crate crypto;
 extern crate duniter_crypto;
 extern crate duniter_documents;
-extern crate duniter_module;
-extern crate regex;
 extern crate serde;
 
-use self::regex::Regex;
 use duniter_crypto::hashs::Hash;
 use duniter_crypto::keys::PubKey;
+use pest::Parser;
 use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr};
 use std::num::ParseIntError;
 use std::str::FromStr;
-use {NodeFullId, NodeId};
+use *;
 
 /// Total size of all fixed size fields of an EndpointV2
 pub static ENDPOINTV2_FIXED_SIZE: &'static usize = &9;
@@ -71,21 +68,13 @@ impl ApiFeatures {
     }
 }
 
-lazy_static! {
-    #[derive(Debug)]
-    /// Regex match all endpoint in V1 format (works for all api)
-    pub static ref ENDPOINT_V1_REGEX: Regex = Regex::new(
-        r"^(?P<api>[A-Z0-9_]+) (?P<version>[1-9][0-9]*)? ?(?P<uuid>[a-f0-9]{6,8})? ?(?P<host>[a-z_][a-z0-9-_.]*|[0-9.]+|[0-9a-f:]+) (?P<port>[0-9]+)(?: /?(?P<path>.+)?)? *$"
-    ).unwrap();
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// ParseEndpointError
 pub enum ParseEndpointError {
     /// VersionNotSupported
     VersionNotSupported(),
     /// WrongV1Format
-    WrongV1Format(),
+    WrongV1Format(String),
     /// WrongV2Format (human-readable explanation)
     WrongV2Format(&'static str),
     /// ApiNameTooLong
@@ -735,7 +724,57 @@ impl EndpointEnum {
         endpoint_version: u16,
     ) -> Result<EndpointEnum, ParseEndpointError> {
         match endpoint_version {
-            1 => match ENDPOINT_V1_REGEX.captures(raw_endpoint) {
+            1 => match NetworkDocsParser::parse(Rule::endpoint_v1, raw_endpoint) {
+                Ok(mut ep_ast) => {
+                    let ep_pairs = ep_ast.next().unwrap().into_inner(); // get and unwrap the `envpoint_v1` rule; never fails
+
+                    let mut api_name = "";
+                    let mut node_id = None;
+                    let mut hash_full_id = None;
+                    let mut host_str = "";
+                    let mut port = 0;
+                    let mut path = None;
+
+                    for ep_pair in ep_pairs {
+                        match ep_pair.as_rule() {
+                            Rule::api_name => api_name = ep_pair.as_str(),
+                            Rule::node_id => {
+                                node_id = match u32::from_str_radix(ep_pair.as_str(), 16) {
+                                    Ok(node_id) => Some(NodeId(node_id)),
+                                    Err(_) => {
+                                        return Err(ParseEndpointError::WrongV1Format(
+                                            "NodeId must be an hexadecimal string !".to_owned(),
+                                        ))
+                                    }
+                                };
+                                hash_full_id = match node_id {
+                                    Some(node_id_) => Some(NodeFullId(node_id_, issuer).sha256()),
+                                    None => None,
+                                };
+                            }
+                            Rule::host => host_str = ep_pair.as_str(),
+                            Rule::port => port = ep_pair.as_str().parse().unwrap(),
+                            Rule::path_inner => path = Some(String::from(ep_pair.as_str())),
+                            _ => panic!("unexpected rule: {:?}", ep_pair.as_rule()), // Grammar ensures that we never reach this line
+                        }
+                    }
+                    Ok(EndpointEnum::V1(EndpointEnumV1 {
+                        version: 1,
+                        issuer,
+                        api: NetworkEndpointApi(String::from(api_name)),
+                        node_id,
+                        hash_full_id,
+                        host: String::from(host_str),
+                        port,
+                        path,
+                        raw_endpoint: String::from(raw_endpoint),
+                        status,
+                        last_check,
+                    }))
+                }
+                Err(e) => Err(ParseEndpointError::WrongV1Format(format!("{}", e))),
+            },
+            /*match ENDPOINT_V1_REGEX.captures(raw_endpoint) {
                 Some(caps) => {
                     let node_id = match caps.name("uuid") {
                         Some(caps_node_id) => {
@@ -768,7 +807,7 @@ impl EndpointEnum {
                     }))
                 }
                 None => Err(ParseEndpointError::WrongV1Format()),
-            },
+            },*/
             2 => EndpointV2::parse_from_raw(raw_endpoint, status, last_check),
             _ => Err(ParseEndpointError::VersionNotSupported()),
         }
