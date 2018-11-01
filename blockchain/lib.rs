@@ -43,7 +43,6 @@ extern crate duniter_network;
 extern crate durs_network_documents;
 extern crate durs_wot;
 extern crate serde;
-extern crate serde_json;
 extern crate sqlite;
 
 mod apply_valid_block;

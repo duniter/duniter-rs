@@ -13,13 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-extern crate serde;
-extern crate serde_json;
-
 use duniter_crypto::keys::*;
 use duniter_documents::v10::certification::{CertificationDocument, CompactCertificationDocument};
 use duniter_documents::v10::TextDocumentFormat;
 use duniter_documents::BlockId;
+use serde_json;
 
 /// Parse array of certification json documents into vector of `CompactCertificationDocument`
 pub fn parse_certifications_into_compact(

@@ -13,18 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-extern crate serde_json;
-
 use duniter_crypto::keys::*;
 use duniter_documents::v10::revocation::{CompactRevocationDocument, RevocationDocument};
 use duniter_documents::v10::TextDocumentFormat;
+use serde_json;
 
 /// Parse array of revocations json documents into vector of `CompactRevocationDocument`
 pub fn parse_revocations_into_compact(
-    json_recocations: &[serde_json::Value],
+    json_revocations: &[serde_json::Value],
 ) -> Vec<TextDocumentFormat<RevocationDocument>> {
     let mut revocations: Vec<TextDocumentFormat<RevocationDocument>> = Vec::new();
-    for revocation in json_recocations.iter() {
+    for revocation in json_revocations.iter() {
         let revocations_datas: Vec<&str> = revocation
             .as_str()
             .expect("Receive block in wrong format !")

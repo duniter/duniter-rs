@@ -31,7 +31,6 @@ extern crate base64;
 extern crate byteorder;
 extern crate crypto;
 extern crate duniter_crypto;
-extern crate linked_hash_map;
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;

@@ -32,7 +32,6 @@
 
 #[macro_use]
 extern crate log;
-#[macro_use]
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
@@ -439,10 +438,6 @@ pub struct WotStats {
     pub average_centrality: usize,
     pub centralities: Vec<u64>,
 }*/
-
-fn _use_json_macro() -> serde_json::Value {
-    json!({})
-}
 
 /// Open Rustbreak memory database
 pub fn open_memory_db<D: Serialize + DeserializeOwned + Debug + Default + Clone + Send>(

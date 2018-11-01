@@ -16,8 +16,6 @@ base58 = "0.1.*"
 base64 = "0.9.*"
 byteorder = "1.2.3"
 duniter-crypto = { path = "../crypto" }
-lazy_static = "1.0.*"
-linked-hash-map = "0.5.*"
 pest = "2.0"
 pest_derive = "2.0"
 rust-crypto = "0.2.*"
