@@ -11,7 +11,7 @@ path = "lib.rs"
 [dependencies]
 byteorder = "1.2.3"
 duniter-conf = { path = "../conf" }
-dup-crypto = "0.3.0-b2"
+dup-crypto = { path = "../crypto" }
 duniter-dal = { path = "../dal" }
 duniter-documents = { path = "../documents" }
 durs-network-documents = { path = "../network-documents" }

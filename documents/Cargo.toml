@@ -15,7 +15,7 @@ path = "src/lib.rs"
 base58 = "0.1.*"
 base64 = "0.9.*"
 byteorder = "1.2.3"
-dup-crypto = "0.3.0-b2"
+dup-crypto = { path = "../crypto" }
 pest = "2.0"
 pest_derive = "2.0"
 rust-crypto = "0.2.*"
