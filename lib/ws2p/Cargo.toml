@@ -6,7 +6,7 @@ description = "WebSocketToPeer API for DURS Project."
 license = "AGPL-3.0"
 
 [lib]
-path = "lib.rs"
+path = "src/lib.rs"
 
 [dependencies]
 bincode = "1.0.*"

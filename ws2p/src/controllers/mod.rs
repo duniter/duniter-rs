@@ -21,17 +21,27 @@ extern crate ws;
 use self::ws::Sender;
 use duniter_documents::Blockstamp;
 use dup_crypto::hashs::Hash;
-use dup_crypto::keys::*;
+//use dup_crypto::keys::*;
 use durs_network_documents::network_peer::PeerCardV11;
 use durs_network_documents::*;
 use durs_ws2p_messages::v2::api_features::WS2PFeatures;
 use durs_ws2p_messages::v2::connect::WS2Pv2ConnectType;
+use durs_ws2p_messages::*;
 //use std::sync::mpsc;
 use std::time::SystemTime;
 
 pub mod handler;
 pub mod incoming_connections;
 pub mod outgoing_connections;
+
+/// Order transmitted to the controller
+#[derive(Debug, Clone)]
+pub enum Ws2pControllerOrder {
+    /// Give a message to be transmitted
+    SendMsg(Box<WS2PMessage>),
+    /// Close the connection
+    Close,
+}
 
 /// Store a websocket sender
 pub struct WsSender(pub Sender);
@@ -40,14 +50,6 @@ impl ::std::fmt::Debug for WsSender {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         write!(f, "WsSender {{ }}")
     }
-}
-
-/// Store self WS2P properties
-#[derive(Debug, Clone, PartialEq)]
-pub struct MySelfWs2pNode {
-    my_node_id: NodeId,
-    my_key_pair: KeyPairEnum,
-    my_features: WS2PFeatures,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]

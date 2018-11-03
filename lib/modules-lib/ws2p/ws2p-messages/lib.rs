@@ -45,7 +45,7 @@ pub mod v2;
 
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::bin_signable::BinSignable;
-use dup_crypto::keys::SigError;
+use dup_crypto::keys::*;
 use v2::WS2Pv2Message;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -85,17 +85,67 @@ impl WS2PMessage {
             WS2PMessage::V2(ref msg_v2) => msg_v2.message_hash,
         }
     }
+
     /// Parse and check bin message
     pub fn parse_and_check_bin_message(bin_msg: &[u8]) -> Result<WS2PMessage, WS2PMessageError> {
         let msg: WS2PMessage = bincode::deserialize(&bin_msg)?;
         let hash = msg.hash();
-        if hash.is_some() && Hash::compute(&bin_msg) == hash.expect("safe unwrap") {
+        //println!("DEBUG: parse_and_check_bin_message: hash={:?}", hash);
+        // Compute hash len
+        let hash_len = 33;
+        // Compute signature len
+        let sig_len = if let Some(sig) = msg.signature() {
+            match sig {
+                Sig::Ed25519(_) => 69,
+                Sig::Schnorr() => panic!("Schnorr algo not yet implemented !"),
+            }
+        } else {
+            1
+        };
+
+        if hash.is_none()
+            || Hash::compute(&bin_msg[0..(bin_msg.len() - hash_len - sig_len)])
+                == hash.expect("safe unwrap")
+        {
             match msg.verify() {
                 Ok(()) => Ok(msg),
                 Err(e) => Err(WS2PMessageError::SigError(e)),
             }
         } else {
             Err(WS2PMessageError::InvalidHash)
+        }
+    }
+}
+
+impl<'de> BinSignable<'de> for WS2PMessage {
+    fn issuer_pubkey(&self) -> PubKey {
+        match *self {
+            WS2PMessage::V2(ref msg_v2) => msg_v2.issuer_pubkey(),
+        }
+    }
+    fn store_hash(&self) -> bool {
+        match *self {
+            WS2PMessage::V2(ref msg_v2) => msg_v2.store_hash(),
+        }
+    }
+    fn hash(&self) -> Option<Hash> {
+        match *self {
+            WS2PMessage::V2(ref msg_v2) => msg_v2.hash(),
+        }
+    }
+    fn set_hash(&mut self, hash: Hash) {
+        match *self {
+            WS2PMessage::V2(ref mut msg_v2) => msg_v2.set_hash(hash),
+        }
+    }
+    fn signature(&self) -> Option<Sig> {
+        match *self {
+            WS2PMessage::V2(ref msg_v2) => msg_v2.signature(),
+        }
+    }
+    fn set_signature(&mut self, signature: Sig) {
+        match *self {
+            WS2PMessage::V2(ref mut msg_v2) => msg_v2.set_signature(signature),
         }
     }
 }

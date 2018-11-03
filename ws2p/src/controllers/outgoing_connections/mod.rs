@@ -23,7 +23,7 @@ use controllers::ws::deflate::DeflateBuilder;
 use controllers::*;
 use durs_network_documents::network_endpoint::EndpointEnum;
 use durs_network_documents::NodeFullId;
-use services::Ws2pServiceSender;
+use services::*;
 //use duniter_network::*;
 use durs_ws2p_messages::v2::connect::WS2Pv2ConnectType;
 use std::sync::mpsc;
@@ -31,8 +31,9 @@ use std::sync::mpsc;
 /// Connect to WSPv2 Endpoint
 pub fn connect_to_ws2p_v2_endpoint(
     currency: &CurrencyName,
-    service_sender: mpsc::Sender<Ws2pServiceSender>,
-    self_node: MySelfWs2pNode,
+    service_sender: &mpsc::Sender<Ws2pServiceSender>,
+    self_node: &MySelfWs2pNode,
+    expected_remote_full_id: Option<NodeFullId>,
     endpoint: &EndpointEnum,
 ) -> ws::Result<()> {
     // Get endpoint url
@@ -42,24 +43,23 @@ pub fn connect_to_ws2p_v2_endpoint(
     let mut conn_meta_datas = Ws2pConnectionDatas::new(WS2Pv2ConnectType::Classic);
 
     // Indicate expected remote_full_id
-    conn_meta_datas.remote_full_id = Some(NodeFullId(
-        endpoint
-            .node_uuid()
-            .expect("WS2P: Fail to get ep.node_id() !"),
-        endpoint.pubkey(),
-    ));
+    conn_meta_datas.remote_full_id = expected_remote_full_id;
 
     // Log
     info!("Try connection to {} ...", ws_url);
+    println!("DEBUG: Try connection to {} ...", ws_url);
 
     // Connect to websocket
     connect(ws_url, move |ws| {
-        DeflateBuilder::new().build(Ws2pConnectionHandler::new(
-            WsSender(ws),
-            service_sender.clone(),
-            currency.clone(),
-            self_node.clone(),
-            conn_meta_datas.clone(),
-        ))
+        DeflateBuilder::new().build(
+            Ws2pConnectionHandler::new(
+                WsSender(ws),
+                service_sender.clone(),
+                currency.clone(),
+                self_node.clone(),
+                conn_meta_datas.clone(),
+            )
+            .expect("WS2P Service unrechable"),
+        )
     })
 }

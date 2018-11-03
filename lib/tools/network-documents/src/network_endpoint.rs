@@ -312,7 +312,11 @@ impl ToString for EndpointV2 {
 impl EndpointV2 {
     /// Generate endpoint url
     pub fn get_url(&self, get_protocol: bool, supported_ip_v6: bool) -> Option<String> {
-        let protocol = self.api.0.clone();
+        let protocol = match &self.api.0[..] {
+            "WS2P" | "WS2PTOR" => "ws",
+            _ => "http",
+        };
+
         let tls = match self.port {
             443 => "s",
             _ => "",

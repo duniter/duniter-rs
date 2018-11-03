@@ -34,6 +34,7 @@ use dup_crypto::keys::bin_signable::BinSignable;
 use dup_crypto::keys::*;
 use durs_network_documents::NodeId;
 use v2::payload_container::*;
+use WS2PMessage;
 
 /// WS2P v2 message metadata size
 pub static WS2P_V2_MESSAGE_METADATA_SIZE: &'static usize = &144;
@@ -65,15 +66,15 @@ impl WS2Pv2Message {
         issuer_node_id: NodeId,
         issuer_keypair: KeyPairEnum,
         payload: WS2Pv2MessagePayload,
-    ) -> Result<(WS2Pv2Message, Vec<u8>), SignError> {
-        let mut msg = WS2Pv2Message {
+    ) -> Result<(WS2PMessage, Vec<u8>), SignError> {
+        let mut msg = WS2PMessage::V2(WS2Pv2Message {
             currency_name,
             issuer_node_id,
             issuer_pubkey: issuer_keypair.public_key(),
             payload,
             message_hash: None,
             signature: None,
-        };
+        });
         match msg.sign(issuer_keypair.private_key()) {
             Ok(bin_msg) => Ok((msg, bin_msg)),
             Err(e) => Err(e),

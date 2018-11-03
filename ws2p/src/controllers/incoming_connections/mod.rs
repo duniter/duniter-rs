@@ -21,7 +21,7 @@ use controllers::handler::Ws2pConnectionHandler;
 use controllers::ws::deflate::DeflateBuilder;
 use controllers::ws::listen;
 use controllers::*;
-use services::Ws2pServiceSender;
+use services::*;
 //use duniter_network::*;
 use durs_ws2p_messages::v2::connect::WS2Pv2ConnectType;
 use std::sync::mpsc;
@@ -39,22 +39,28 @@ pub fn listen_on_ws2p_v2_endpoint(
 
     // Log
     info!("Listen on {} ...", ws_url);
+    println!("DEBUG: call function listen({}) ...", ws_url);
 
     // Connect to websocket
     listen(ws_url, move |ws| {
-        DeflateBuilder::new().build(Ws2pConnectionHandler::new(
-            WsSender(ws),
-            service_sender.clone(),
-            currency.clone(),
-            self_node.clone(),
-            Ws2pConnectionDatas::new(WS2Pv2ConnectType::Incoming),
-        ))
+        println!("DEBUG: Listen on host:port...");
+        DeflateBuilder::new().build(
+            Ws2pConnectionHandler::new(
+                WsSender(ws),
+                service_sender.clone(),
+                currency.clone(),
+                self_node.clone(),
+                Ws2pConnectionDatas::new(WS2Pv2ConnectType::Incoming),
+            )
+            .expect("WS2P Service unrechable"),
+        )
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dup_crypto::keys::*;
     use std::thread;
     use std::time::Duration;
 
@@ -75,7 +81,6 @@ mod tests {
         ) = mpsc::channel();
 
         thread::spawn(move || {
-            println!("TESTS: Listen on ws://localhost:10899...");
             let result = listen_on_ws2p_v2_endpoint(
                 &CurrencyName(String::from("default")),
                 service_sender,

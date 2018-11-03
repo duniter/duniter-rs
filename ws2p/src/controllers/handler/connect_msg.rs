@@ -29,6 +29,8 @@ pub fn process_ws2p_v2_connect_msg(
     remote_full_id: NodeFullId,
     connect_msg: &WS2Pv2ConnectMsg,
 ) {
+    println!("DEBUG: Receive CONNECT message !");
+
     // Get remote node datas
     let remote_challenge = connect_msg.challenge;
     let remote_node_datas = Ws2pRemoteNodeDatas {
@@ -89,6 +91,11 @@ pub fn process_ws2p_v2_connect_msg(
                 .close_with_reason(CloseCode::Unsupported, "Unsupported features !");
         }
     }
+
+    // Update Status to ConnectMessOk
+    handler.conn_datas.state = WS2PConnectionState::ConnectMessOk;
+    handler.send_new_conn_state_to_service();
+
     // Encapsulate and binarize ACK message
     let (_, bin_ack_msg) = WS2Pv2Message::encapsulate_payload(
         handler.currency.clone(),

@@ -22,6 +22,7 @@ extern crate serde_json;
 use constants::*;
 use controllers::ws::{util::Token, CloseCode, /*Frame,*/ Handler, Handshake, Message};
 use controllers::*;
+use services::*;
 //use dup_crypto::keys::KeyPairEnum;
 use duniter_documents::CurrencyName;
 use durs_network_documents::NodeFullId;
@@ -46,6 +47,8 @@ const RECV_SERVICE: Token = Token(3);
 /// whereas a closure captures the Sender for us automatically.
 #[derive(Debug)]
 pub struct Ws2pConnectionHandler {
+    /// Controller receiver
+    pub receiver: mpsc::Receiver<Ws2pControllerOrder>,
     /// Websocket sender
     pub ws: WsSender,
     /// Service Sender
@@ -68,15 +71,39 @@ impl Ws2pConnectionHandler {
         currency: CurrencyName,
         local_node: MySelfWs2pNode,
         conn_datas: Ws2pConnectionDatas,
-    ) -> Self {
-        Ws2pConnectionHandler {
+    ) -> Result<Ws2pConnectionHandler, mpsc::SendError<Ws2pServiceSender>> {
+        // Create controller channel
+        let (sender, receiver): (
+            mpsc::Sender<Ws2pControllerOrder>,
+            mpsc::Receiver<Ws2pControllerOrder>,
+        ) = mpsc::channel();
+
+        // Send controller sender to service
+        println!("DEBUG: Send controller sender to service");
+        service_sender.send(Ws2pServiceSender::ControllerSender(sender))?;
+
+        Ok(Ws2pConnectionHandler {
+            receiver,
             ws,
             service_sender,
             currency,
             local_node,
             conn_datas,
             count_invalid_msgs: 0,
-        }
+        })
+    }
+    fn send_new_conn_state_to_service(&self) {
+        let remote_full_id = if let Some(remote_full_id) = self.conn_datas.remote_full_id {
+            remote_full_id
+        } else {
+            NodeFullId::default()
+        };
+        self.service_sender
+            .send(Ws2pServiceSender::ChangeConnectionState(
+                remote_full_id,
+                self.conn_datas.state,
+            ))
+            .expect("WS2p Service unreacheable !");
     }
 }
 
@@ -104,6 +131,7 @@ impl Handler for Ws2pConnectionHandler {
 
         // Update connection state
         self.conn_datas.state = WS2PConnectionState::TryToSendConnectMess;
+        self.send_new_conn_state_to_service();
 
         // Generate connect message
         let connect_msg = generate_connect_message(
@@ -122,7 +150,7 @@ impl Handler for Ws2pConnectionHandler {
         )
         .expect("WS2P : Fail to sign own connect message !");
 
-        // TESTS ONLY : Send CONNECT Message in JSON (for debug)
+        /*// TESTS ONLY : Send CONNECT Message in JSON (for debug)
         #[cfg(test)]
         match self.ws.0.send(Message::text(
             serde_json::to_string_pretty(&_ws2p_full_msg)
@@ -150,7 +178,7 @@ impl Handler for Ws2pConnectionHandler {
                     .0
                     .close_with_reason(CloseCode::Error, "Fail to send CONNECT JSON message !");
             }
-        }
+        }*/
 
         // Start negociation timeouts
         self.ws.0.timeout(*WS2P_NEGOTIATION_TIMEOUT, CONNECT)?;
@@ -165,6 +193,7 @@ impl Handler for Ws2pConnectionHandler {
                 // Update state
                 if let WS2PConnectionState::TryToSendConnectMess = self.conn_datas.state {
                     self.conn_datas.state = WS2PConnectionState::WaitingConnectMess;
+                    self.send_new_conn_state_to_service();
                 }
                 // Log
                 info!(
@@ -246,8 +275,9 @@ impl Handler for Ws2pConnectionHandler {
         self.conn_datas.last_mess_time = SystemTime::now();
 
         if msg.is_binary() {
-            if let Ok(valid_msg) = WS2PMessage::parse_and_check_bin_message(&msg.into_data()) {
-                match valid_msg {
+            println!("DEBUG: Receive new message there is not a spam !");
+            match WS2PMessage::parse_and_check_bin_message(&msg.into_data()) {
+                Ok(valid_msg) => match valid_msg {
                     WS2PMessage::V2(msg_v2) => {
                         match msg_v2.payload {
                             WS2Pv2MessagePayload::Connect(ref box_connect_msg) => {
@@ -278,14 +308,16 @@ impl Handler for Ws2pConnectionHandler {
                             }
                         }
                     }
-                }
-            } else {
-                self.count_invalid_msgs += 1;
-                if self.count_invalid_msgs >= *WS2P_INVALID_MSGS_LIMIT {
-                    let _ = self.ws.0.close_with_reason(
-                        CloseCode::Invalid,
-                        "Receive several invalid messages !",
-                    );
+                },
+                Err(ws2p_msg_err) => {
+                    println!("DEBUG: Message is invalid : {:?}", ws2p_msg_err);
+                    self.count_invalid_msgs += 1;
+                    if self.count_invalid_msgs >= *WS2P_INVALID_MSGS_LIMIT {
+                        let _ = self.ws.0.close_with_reason(
+                            CloseCode::Invalid,
+                            "Receive several invalid messages !",
+                        );
+                    }
                 }
             }
         } else if msg.is_text() {

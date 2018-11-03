@@ -82,7 +82,7 @@ impl WS2Pv2ConnectType {
         flags: &WS2PConnectFlags,
         blockstamp: Option<Blockstamp>,
     ) -> WS2Pv2ConnectType {
-        if flags.sync() {
+        if !flags.is_empty() && flags.sync() {
             if flags.ask_sync_chunk() && blockstamp.is_some() {
                 WS2Pv2ConnectType::AskChunk(blockstamp.expect("safe unwrap"))
             } else if flags.res_sync_chunk() {
