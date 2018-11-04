@@ -112,6 +112,7 @@ mod tests {
             )
             .unwrap(),
             endpoints: vec![create_endpoint_v11(), create_second_endpoint_v11()],
+            endpoints_str: vec![],
             sig: None,
         }
     }

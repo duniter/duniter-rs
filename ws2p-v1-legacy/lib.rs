@@ -94,7 +94,7 @@ pub struct WS2PConf {
     /// Limit of outcoming connections
     pub outcoming_quota: usize,
     /// Default WS2P endpoints provides by configuration file
-    pub sync_endpoints: Vec<EndpointEnum>,
+    pub sync_endpoints: Vec<EndpointV1>,
 }
 
 impl Default for WS2PConf {
@@ -102,7 +102,7 @@ impl Default for WS2PConf {
         WS2PConf {
             outcoming_quota: *WS2P_DEFAULT_OUTCOMING_QUOTA,
             sync_endpoints: vec![
-                EndpointEnum::parse_from_raw(
+                EndpointV1::parse_from_raw(
                     "WS2P c1c39a0a g1-monit.librelois.fr 443 /ws2p",
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(
@@ -112,10 +112,9 @@ impl Default for WS2PConf {
                     ),
                     0,
                     0,
-                    1u16,
                 )
                 .unwrap(),
-                EndpointEnum::parse_from_raw(
+                EndpointV1::parse_from_raw(
                     "WS2P b48824f0 g1.monnaielibreoccitanie.org 443 /ws2p",
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(
@@ -125,7 +124,6 @@ impl Default for WS2PConf {
                     ),
                     0,
                     0,
-                    1u16,
                 )
                 .unwrap(),
             ],
@@ -143,7 +141,7 @@ pub enum WS2PSignal {
     NegociationTimeout(NodeFullId),
     Timeout(NodeFullId),
     DalRequest(NodeFullId, ModuleReqId, serde_json::Value),
-    PeerCard(NodeFullId, serde_json::Value, Vec<EndpointEnum>),
+    PeerCard(NodeFullId, serde_json::Value, Vec<EndpointV1>),
     Heads(NodeFullId, Vec<NetworkHead>),
     Document(NodeFullId, BlockchainDocument),
     ReqResponse(
@@ -307,7 +305,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                     .expect("Fail to get endpoint node_full_id"),
                 (ep.clone(), WS2PConnectionState::Close),
             );
-            info!("Load sync endpoint {}", ep.raw());
+            info!("Load sync endpoint {}", ep.raw_endpoint);
         }
         ws2p_module.key_pair = Some(key_pair);
         ws2p_module.currency = Some(soft_meta_datas.conf.currency().to_string());
@@ -327,7 +325,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
         thread::spawn(move || {
             // Send proxy sender to main
             rooter_sender
-                .send(RooterThreadMessage::ModuleSender(
+                .send(RooterThreadMessage::ModuleRegistration(
                     WS2PModule::name(),
                     proxy_sender_clone,
                     vec![ModuleRole::InterNodesNetwork],
@@ -336,6 +334,8 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                         ModuleEvent::NewWotDocInPool,
                         ModuleEvent::NewTxinPool,
                     ],
+                    vec![],
+                    vec![],
                 ))
                 .expect("Fatal error : ws2p module fail to send is sender channel !");
             debug!("Send ws2p sender to main thread.");
@@ -372,14 +372,14 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
         let dal_enpoints =
             ws2p_db::get_endpoints_for_api(&db, &NetworkEndpointApi(String::from("WS2P")));
         for ep in dal_enpoints {
-            if ep.api() == NetworkEndpointApi(String::from("WS2P"))
-                && (cfg!(feature = "ssl") || ep.port() != 443)
+            if ep.api == NetworkEndpointApi(String::from("WS2P"))
+                && (cfg!(feature = "ssl") || ep.port != 443)
             {
                 count += 1;
                 ws2p_module.ws2p_endpoints.insert(
                     ep.node_full_id()
                         .expect("WS2P: Fail to get ep.node_full_id() !"),
-                    (ep.clone(), WS2PConnectionState::from(ep.status())),
+                    (ep.clone(), WS2PConnectionState::from(ep.status)),
                 );
             }
         }
@@ -675,7 +675,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                     Some(_) => {}
                                     None => {
                                         if let Some(_api) =
-                                            ws2p_db::string_to_api(&ep.api().0.clone())
+                                            ws2p_db::string_to_api(&ep.api.0.clone())
                                         {
                                             endpoints_to_update_status.insert(
                                                 ep.node_full_id().expect(
@@ -684,7 +684,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                                 SystemTime::now(),
                                             );
                                         }
-                                        if cfg!(feature = "ssl") || ep.port() != 443 {
+                                        if cfg!(feature = "ssl") || ep.port != 443 {
                                             ws2p_module.connect_to(&ep);
                                         }
                                     }
@@ -1117,7 +1117,7 @@ mod tests {
 
         let current_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-        let mut endpoint = EndpointEnum::parse_from_raw(
+        let mut endpoint = EndpointV1::parse_from_raw(
             "WS2P cb06a19b g1.imirhil.fr 53012 /",
             PubKey::Ed25519(
                 ed25519::PublicKey::from_base58("5gJYnQp8v7bWwk7EWRoL8vCLof1r3y9c6VDdnGSM1GLv")
@@ -1125,7 +1125,6 @@ mod tests {
             ),
             1,
             current_time.as_secs(),
-            1,
         )
         .expect("Failt to parse test endpoint !");
 
@@ -1135,7 +1134,7 @@ mod tests {
         assert_eq!(endpoint, written_endpoints.pop().unwrap());
 
         // Test status update
-        endpoint.set_status(3);
+        endpoint.status = 3;
         ws2p_db::write_endpoint(&db, &endpoint, 3, current_time.as_secs());
         let mut written_endpoints =
             ws2p_db::get_endpoints_for_api(&db, &NetworkEndpointApi(String::from("WS2P")));

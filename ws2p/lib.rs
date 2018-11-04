@@ -34,7 +34,9 @@ extern crate serde_derive;
 #[macro_use]
 extern crate structopt;
 
+extern crate bincode;
 extern crate duniter_conf;
+extern crate duniter_documents;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
@@ -43,13 +45,13 @@ extern crate durs_network_documents;
 extern crate durs_ws2p_messages;
 
 mod constants;
+mod generate_peer;
 
 use constants::*;
 use duniter_conf::DuRsConf;
 use duniter_message::DursMsg;
 use duniter_module::*;
 use duniter_network::*;
-use dup_crypto::keys::*;
 use durs_network_documents::network_endpoint::*;
 use std::sync::mpsc;
 
@@ -67,32 +69,8 @@ impl Default for WS2PConf {
         WS2PConf {
             outcoming_quota: *WS2P_DEFAULT_OUTCOMING_QUOTA,
             sync_endpoints: vec![
-                EndpointEnum::parse_from_raw(
-                    "WS2P c1c39a0a g1-monit.librelois.fr 443 /ws2p",
-                    PubKey::Ed25519(
-                        ed25519::PublicKey::from_base58(
-                            "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx",
-                        )
-                        .unwrap(),
-                    ),
-                    0,
-                    0,
-                    1u16,
-                )
-                .unwrap(),
-                EndpointEnum::parse_from_raw(
-                    "WS2P b48824f0 g1.monnaielibreoccitanie.org 443 /ws2p",
-                    PubKey::Ed25519(
-                        ed25519::PublicKey::from_base58(
-                            "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef",
-                        )
-                        .unwrap(),
-                    ),
-                    0,
-                    0,
-                    1u16,
-                )
-                .unwrap(),
+                EndpointV2::parse_from_raw("WS2P g1-monit.librelois.fr 443 ws2p").unwrap(),
+                EndpointV2::parse_from_raw("WS2P g1.monnaielibreoccitanie.org 443 ws2p").unwrap(),
             ],
         }
     }

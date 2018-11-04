@@ -21,6 +21,8 @@ extern crate serde;
 
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::PubKey;
+use hex;
+use pest::iterators::Pair;
 use pest::Parser;
 use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr};
 use std::num::ParseIntError;
@@ -39,31 +41,25 @@ pub static MAX_API_FEATURES_COUNT: &'static usize = &2040;
 pub struct ApiFeatures(pub Vec<u8>);
 
 impl ApiFeatures {
-    fn to_string_for_api(&self, api: &NetworkEndpointApi) -> String {
-        match api.0.as_str() {
-            "WS2P" => {
-                let mut af_count = 0;
-                let def = if self.0[0] | 0b_1111_1110 == 255u8 {
-                    af_count += 1;
-                    " DEF"
-                } else {
-                    ""
-                };
-                let low = if self.0[0] | 0b_1111_1101 == 255u8 {
-                    af_count += 1;
-                    " LOW"
-                } else {
-                    ""
-                };
-                let abf = if self.0[0] | 0b_1111_1011 == 255u8 {
-                    af_count += 1;
-                    " ABF"
-                } else {
-                    ""
-                };
-                format!("{}{}{}{}", af_count, def, low, abf)
+    fn is_empty(&self) -> bool {
+        for byte in &self.0 {
+            if *byte > 0u8 {
+                return false;
             }
-            _ => String::from(""),
+        }
+        true
+    }
+
+    fn to_string(&self) -> String {
+        if self.is_empty() {
+            String::from("")
+        } else {
+            let hex_str = hex::encode(self.0.clone());
+            if hex_str.len() == 2 {
+                format!("{} ", &hex_str[1..])
+            } else {
+                format!("{} ", hex_str)
+            }
         }
     }
 }
@@ -93,6 +89,8 @@ pub enum ParseEndpointError {
     TooHighApiFeature(),
     /// IP Parse error
     AddrParseError(AddrParseError),
+    /// Pest grammar error
+    PestError(String),
 }
 
 impl From<ParseIntError> for ParseEndpointError {
@@ -107,44 +105,13 @@ impl From<AddrParseError> for ParseEndpointError {
     }
 }
 
-#[derive(Debug)]
-/// Error when converting a byte vector to Endpoint
-pub enum EndpointReadBytesError {
-    /// Bytes vector is too short
-    TooShort(),
-    /// Bytes vector is too long
-    TooLong(),
-    /// Wrong api datas Length
-    WrongApiDatasLen(),
-    /// Unknow api name
-    UnknowApiName(),
-    /// IoError
-    IoError(::std::io::Error),
-    /// FromUtf8Error
-    FromUtf8Error(::std::string::FromUtf8Error),
-}
-
-impl From<::std::io::Error> for EndpointReadBytesError {
-    fn from(e: ::std::io::Error) -> Self {
-        EndpointReadBytesError::IoError(e)
-    }
-}
-
-impl From<::std::string::FromUtf8Error> for EndpointReadBytesError {
-    fn from(e: ::std::string::FromUtf8Error) -> Self {
-        EndpointReadBytesError::FromUtf8Error(e)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Identifies the API of an endpoint
 pub struct NetworkEndpointApi(pub String);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Endpoint v1
-pub struct EndpointEnumV1 {
-    /// API version
-    pub version: usize,
+pub struct EndpointV1 {
     /// API Name
     pub api: NetworkEndpointApi,
     /// Node unique identifier
@@ -167,23 +134,130 @@ pub struct EndpointEnumV1 {
     pub last_check: u64,
 }
 
+impl EndpointV1 {
+    /// Accessors providing node full identifier
+    pub fn node_full_id(&self) -> Option<NodeFullId> {
+        match self.node_id {
+            Some(node_id) => Some(NodeFullId(node_id, self.issuer)),
+            None => None,
+        }
+    }
+    /// Generate endpoint url
+    pub fn get_url(&self, get_protocol: bool, _supported_ip_v6: bool) -> Option<String> {
+        let protocol = match &self.api.0[..] {
+            "WS2P" | "WS2PTOR" => "ws",
+            _ => "http",
+        };
+        let tls = match self.port {
+            443 => "s",
+            _ => "",
+        };
+        let path = match self.path {
+            Some(ref path_string) => path_string.clone(),
+            None => String::new(),
+        };
+        if get_protocol {
+            Some(format!(
+                "{}{}://{}:{}/{}",
+                protocol, tls, self.host, self.port, path
+            ))
+        } else {
+            Some(format!("{}:{}/{}", self.host, self.port, path))
+        }
+    }
+    /// Generate from pest pair
+    fn from_pest_pair(
+        pair: Pair<Rule>,
+        issuer: PubKey,
+        status: u32,
+        last_check: u64,
+    ) -> EndpointV1 {
+        let raw_endpoint = String::from(pair.as_str());
+        let mut api_name = "";
+        let mut node_id = None;
+        let mut hash_full_id = None;
+        let mut host_str = "";
+        let mut port = 0;
+        let mut path = None;
+
+        for ep_pair in pair.into_inner() {
+            match ep_pair.as_rule() {
+                Rule::api_name => api_name = ep_pair.as_str(),
+                Rule::node_id => {
+                    node_id = Some(NodeId(u32::from_str_radix(ep_pair.as_str(), 16).unwrap()));
+                    hash_full_id = match node_id {
+                        Some(node_id_) => Some(NodeFullId(node_id_, issuer).sha256()),
+                        None => None,
+                    };
+                }
+                Rule::host => host_str = ep_pair.as_str(),
+                Rule::port => port = ep_pair.as_str().parse().unwrap(),
+                Rule::path_inner => path = Some(String::from(ep_pair.as_str())),
+                _ => panic!("unexpected rule: {:?}", ep_pair.as_rule()), // Grammar ensures that we never reach this line
+            }
+        }
+        EndpointV1 {
+            issuer,
+            api: NetworkEndpointApi(String::from(api_name)),
+            node_id,
+            hash_full_id,
+            host: String::from(host_str),
+            port,
+            path,
+            raw_endpoint,
+            status,
+            last_check,
+        }
+    }
+
+    /// parse from ut8 format
+    pub fn parse_from_raw(
+        raw_endpoint: &str,
+        issuer: PubKey,
+        status: u32,
+        last_check: u64,
+    ) -> Result<EndpointV1, ParseEndpointError> {
+        match NetworkDocsParser::parse(Rule::endpoint_v1, raw_endpoint) {
+            Ok(mut ep_v1_pairs) => Ok(EndpointV1::from_pest_pair(
+                ep_v1_pairs.next().unwrap(),
+                issuer,
+                status,
+                last_check,
+            )),
+            Err(pest_error) => Err(ParseEndpointError::PestError(format!("{}", pest_error))),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Network features
 pub struct EndpointV2NetworkFeatures(pub Vec<u8>);
 
 impl ToString for EndpointV2NetworkFeatures {
     fn to_string(&self) -> String {
-        if self.tls() {
-            String::from("1 TLS")
-        } else if self.tor() {
-            String::from("1 TOR")
-        } else {
-            String::from("")
+        if self.is_empty() {
+            return format!("");
         }
+        let mut features_str = Vec::with_capacity(2);
+        if self.tls() {
+            features_str.push("S");
+        }
+        if self.tor() {
+            features_str.push("TOR");
+        }
+        format!("{} ", features_str.join(" "))
     }
 }
 
 impl EndpointV2NetworkFeatures {
+    fn is_empty(&self) -> bool {
+        for byte in &self.0 {
+            if *byte > 0u8 {
+                return false;
+            }
+        }
+        true
+    }
     /// Parse network features from utf8 string's array
     pub fn from_str_array(
         str_array: &[&str],
@@ -281,64 +355,27 @@ impl ToString for EndpointV2 {
         } else {
             String::from("")
         };
-        let path: &str = if let Some(ref path) = self.path {
-            path
+        let path = if let Some(ref path) = self.path {
+            format!(" {}", path)
         } else {
-            ""
+            format!("")
         };
         format!(
-            "{api} {version} {nf} {af} {port} {host}{ip4}{ip6}{path}",
+            "{api} {version}{nf}{af}{host}{ip4}{ip6}{port}{path}",
             api = self.api.0,
-            version = self.api_version,
+            version = if self.api_version > 0 {
+                format!("V{} ", self.api_version)
+            } else {
+                format!("")
+            },
             nf = self.network_features.to_string(),
-            af = self.api_features.to_string_for_api(&self.api),
+            af = self.api_features.to_string(),
             port = self.port,
             host = host,
             ip4 = ip4,
             ip6 = ip6,
             path = path,
         )
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-/// Size informations of Endpoint v2
-pub struct EndpointV2Size {
-    /// Api nalme size
-    pub api_size: u8,
-    /// Hostname size
-    pub host_size: u8,
-    /// Optional path size
-    pub path_size: u8,
-    /// Network features size
-    pub nf_size: u8,
-    /// Network feature ip_v4
-    pub ip_v4: bool,
-    /// Network feature ip_v6
-    pub ip_v6: bool,
-    /// Api features size
-    pub af_size: u8,
-}
-
-impl EndpointV2Size {
-    /// Compute total size of endpoint in binary format
-    pub fn total_size(self) -> usize {
-        let mut total_size = self.api_size as usize
-            + self.host_size as usize
-            + self.path_size as usize
-            + self.nf_size as usize
-            + self.af_size as usize
-            + ENDPOINTV2_FIXED_SIZE;
-        if self.api_size == 0u8 {
-            total_size += 1;
-        }
-        if self.ip_v4 {
-            total_size += 4;
-        }
-        if self.ip_v6 {
-            total_size += 16;
-        }
-        total_size
     }
 }
 
@@ -375,13 +412,63 @@ impl EndpointV2 {
             Some(format!("{}:{}/{}", host, self.port, path))
         }
     }
+    /// Generate from pest pair
+    fn from_pest_pair(pair: Pair<Rule>) -> EndpointV2 {
+        let mut api_str = "";
+        let mut api_version = 0;
+        let mut network_features = EndpointV2NetworkFeatures(vec![0u8]);
+        let mut api_features = ApiFeatures(vec![]);
+        let mut ip_v4 = None;
+        let mut ip_v6 = None;
+        let mut host = None;
+        let mut port = 0;
+        let mut path = None;
+        for field in pair.into_inner() {
+            match field.as_rule() {
+                Rule::api_name => api_str = field.as_str(),
+                Rule::api_version_inner => api_version = field.as_str().parse().unwrap(),
+                Rule::tls => network_features.0[0] |= 0b_0000_0100,
+                Rule::tor => network_features.0[0] |= 0b_0000_1000,
+                Rule::api_features_inner => {
+                    api_features = if field.as_str().len() == 1 {
+                        ApiFeatures(hex::decode(&format!("0{}", field.as_str())).unwrap())
+                    } else {
+                        ApiFeatures(hex::decode(field.as_str()).unwrap())
+                    };
+                }
+                Rule::port => port = field.as_str().parse().unwrap(),
+                Rule::host_v2_inner => host = Some(String::from(field.as_str())),
+                Rule::ip4_inner => ip_v4 = Some(Ipv4Addr::from_str(field.as_str()).unwrap()),
+                Rule::ip6_inner => ip_v6 = Some(Ipv6Addr::from_str(field.as_str()).unwrap()),
+                Rule::path_inner => path = Some(String::from(field.as_str())),
+                _ => panic!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
+            }
+        }
+        if network_features.is_empty() {
+            network_features = EndpointV2NetworkFeatures(vec![]);
+        }
+        EndpointV2 {
+            api: NetworkEndpointApi(String::from(api_str)),
+            api_version,
+            network_features,
+            api_features,
+            ip_v4,
+            ip_v6,
+            host,
+            port,
+            path,
+        }
+    }
     /// parse from ut8 format
-    pub fn parse_from_raw(
-        raw_endpoint: &str,
-        _status: u32,
-        _last_check: u64,
-    ) -> Result<EndpointEnum, ParseEndpointError> {
-        let raw_ep_elements: Vec<&str> = raw_endpoint.split(' ').collect();
+    pub fn parse_from_raw(raw_endpoint: &str) -> Result<EndpointEnum, ParseEndpointError> {
+        match NetworkDocsParser::parse(Rule::endpoint_v2, raw_endpoint) {
+            Ok(mut ep_v2_pairs) => Ok(EndpointEnum::V2(EndpointV2::from_pest_pair(
+                ep_v2_pairs.next().unwrap(),
+            ))),
+            Err(pest_error) => Err(ParseEndpointError::PestError(format!("{}", pest_error))),
+        }
+
+        /*let raw_ep_elements: Vec<&str> = raw_endpoint.split(' ').collect();
         if raw_ep_elements.len() >= 6 {
             let api = NetworkEndpointApi(String::from(raw_ep_elements[0]));
             let api_version: u16 = raw_ep_elements[1].parse()?;
@@ -601,7 +688,7 @@ impl EndpointV2 {
             Err(ParseEndpointError::WrongV2Format(
                 "An endpoint must contain at least 6 elements",
             ))
-        }
+        }*/
     }
 }
 
@@ -609,7 +696,7 @@ impl EndpointV2 {
 /// Endpoint
 pub enum EndpointEnum {
     /// Endpoint v1
-    V1(EndpointEnumV1),
+    V1(EndpointV1),
     /// Endpoint v2
     V2(EndpointV2),
 }
@@ -643,13 +730,6 @@ impl EndpointEnum {
         match *self {
             EndpointEnum::V1(ref ep) => ep.issuer,
             EndpointEnum::V2(ref _ep) => unreachable!(),
-        }
-    }
-    /// Accessors providing node full identifier
-    pub fn node_full_id(&self) -> Option<NodeFullId> {
-        match self.node_uuid() {
-            Some(node_id) => Some(NodeFullId(node_id, self.pubkey())),
-            None => None,
         }
     }
     /// Accessors providing port number
@@ -715,103 +795,6 @@ impl EndpointEnum {
             EndpointEnum::V2(ref ep_v2) => ep_v2.get_url(get_protocol, supported_ip_v6),
         }
     }
-    /// Parse Endpoint from raw format
-    pub fn parse_from_raw(
-        raw_endpoint: &str,
-        issuer: PubKey,
-        status: u32,
-        last_check: u64,
-        endpoint_version: u16,
-    ) -> Result<EndpointEnum, ParseEndpointError> {
-        match endpoint_version {
-            1 => match NetworkDocsParser::parse(Rule::endpoint_v1, raw_endpoint) {
-                Ok(mut ep_ast) => {
-                    let ep_pairs = ep_ast.next().unwrap().into_inner(); // get and unwrap the `envpoint_v1` rule; never fails
-
-                    let mut api_name = "";
-                    let mut node_id = None;
-                    let mut hash_full_id = None;
-                    let mut host_str = "";
-                    let mut port = 0;
-                    let mut path = None;
-
-                    for ep_pair in ep_pairs {
-                        match ep_pair.as_rule() {
-                            Rule::api_name => api_name = ep_pair.as_str(),
-                            Rule::node_id => {
-                                node_id = match u32::from_str_radix(ep_pair.as_str(), 16) {
-                                    Ok(node_id) => Some(NodeId(node_id)),
-                                    Err(_) => {
-                                        return Err(ParseEndpointError::WrongV1Format(
-                                            "NodeId must be an hexadecimal string !".to_owned(),
-                                        ))
-                                    }
-                                };
-                                hash_full_id = match node_id {
-                                    Some(node_id_) => Some(NodeFullId(node_id_, issuer).sha256()),
-                                    None => None,
-                                };
-                            }
-                            Rule::host => host_str = ep_pair.as_str(),
-                            Rule::port => port = ep_pair.as_str().parse().unwrap(),
-                            Rule::path_inner => path = Some(String::from(ep_pair.as_str())),
-                            _ => panic!("unexpected rule: {:?}", ep_pair.as_rule()), // Grammar ensures that we never reach this line
-                        }
-                    }
-                    Ok(EndpointEnum::V1(EndpointEnumV1 {
-                        version: 1,
-                        issuer,
-                        api: NetworkEndpointApi(String::from(api_name)),
-                        node_id,
-                        hash_full_id,
-                        host: String::from(host_str),
-                        port,
-                        path,
-                        raw_endpoint: String::from(raw_endpoint),
-                        status,
-                        last_check,
-                    }))
-                }
-                Err(e) => Err(ParseEndpointError::WrongV1Format(format!("{}", e))),
-            },
-            /*match ENDPOINT_V1_REGEX.captures(raw_endpoint) {
-                Some(caps) => {
-                    let node_id = match caps.name("uuid") {
-                        Some(caps_node_id) => {
-                            match u32::from_str_radix(caps_node_id.as_str(), 16) {
-                                Ok(node_id) => Some(NodeId(node_id)),
-                                Err(_) => None,
-                            }
-                        }
-                        None => None,
-                    };
-                    let hash_full_id = match node_id {
-                        Some(node_id_) => Some(NodeFullId(node_id_, issuer).sha256()),
-                        None => None,
-                    };
-                    Ok(EndpointEnum::V1(EndpointEnumV1 {
-                        version: 1,
-                        issuer,
-                        api: NetworkEndpointApi(String::from(&caps["api"])),
-                        node_id,
-                        hash_full_id,
-                        host: String::from(&caps["host"]),
-                        port: caps["port"].parse().unwrap_or(80),
-                        path: match caps.name("path") {
-                            Some(m) => Some(m.as_str().to_string()),
-                            None => None,
-                        },
-                        raw_endpoint: String::from(raw_endpoint),
-                        status,
-                        last_check,
-                    }))
-                }
-                None => Err(ParseEndpointError::WrongV1Format()),
-            },*/
-            2 => EndpointV2::parse_from_raw(raw_endpoint, status, last_check),
-            _ => Err(ParseEndpointError::VersionNotSupported()),
-        }
-    }
 }
 
 #[cfg(test)]
@@ -821,7 +804,7 @@ mod tests {
 
     fn test_parse_and_read_endpoint(str_endpoint: &str, endpoint: EndpointV2) {
         assert_eq!(
-            EndpointV2::parse_from_raw(str_endpoint, 0, 0),
+            EndpointV2::parse_from_raw(str_endpoint),
             Ok(EndpointEnum::V2(endpoint.clone())),
         );
         let binary_endpoint = serialize(&endpoint).expect("Fail to serialize endpoint !");
@@ -832,8 +815,42 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_and_read_minimal_endpoint() {
+        let str_endpoint = "UNKNOWN_API 8080";
+        let endpoint = EndpointV2 {
+            api: NetworkEndpointApi(String::from("UNKNOWN_API")),
+            api_version: 0,
+            network_features: EndpointV2NetworkFeatures(vec![]),
+            api_features: ApiFeatures(vec![]),
+            ip_v4: None,
+            ip_v6: None,
+            host: None,
+            port: 8080u16,
+            path: None,
+        };
+        test_parse_and_read_endpoint(str_endpoint, endpoint);
+    }
+
+    #[test]
+    fn test_parse_and_read_classic_v1_endpoint() {
+        let str_endpoint = "ES_CORE_API g1.data.duniter.fr 443";
+        let endpoint = EndpointV2 {
+            api: NetworkEndpointApi(String::from("ES_CORE_API")),
+            api_version: 0,
+            network_features: EndpointV2NetworkFeatures(vec![]),
+            api_features: ApiFeatures(vec![]),
+            ip_v4: None,
+            ip_v6: None,
+            host: Some(String::from("g1.data.duniter.fr")),
+            port: 443u16,
+            path: None,
+        };
+        test_parse_and_read_endpoint(str_endpoint, endpoint);
+    }
+
+    #[test]
     fn test_parse_and_read_endpoint_with_host() {
-        let str_endpoint = "WS2P 2 1 TLS 3 DEF LOW ABF 443 g1.durs.ifee.fr ws2p";
+        let str_endpoint = "WS2P V2 S 7 g1.durs.ifee.fr 443 ws2p";
         let endpoint = EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
@@ -850,7 +867,7 @@ mod tests {
 
     #[test]
     fn test_parse_and_read_endpoint_with_ipv4() {
-        let str_endpoint = "WS2P 2 1 TLS 3 DEF LOW ABF 443 84.16.72.210 ws2p";
+        let str_endpoint = "WS2P V2 S 7 84.16.72.210 443 ws2p";
         let endpoint = EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
@@ -867,7 +884,7 @@ mod tests {
 
     #[test]
     fn test_parse_and_read_endpoint_with_ipv6() {
-        let str_endpoint = "WS2P 2 1 TLS 3 DEF LOW ABF 443 [2001:41d0:8:c5aa::1] ws2p";
+        let str_endpoint = "WS2P V2 S 7 [2001:41d0:8:c5aa::1] 443 ws2p";
         let endpoint = EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
@@ -884,8 +901,7 @@ mod tests {
 
     #[test]
     fn test_parse_and_read_endpoint_with_ipv4_and_ip_v6() {
-        let str_endpoint =
-            "WS2P 2 1 TLS 3 DEF LOW ABF 443 5.135.188.170 [2001:41d0:8:c5aa::1] ws2p";
+        let str_endpoint = "WS2P V2 S 7 5.135.188.170 [2001:41d0:8:c5aa::1] 443 ws2p";
         let endpoint = EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
@@ -894,6 +910,23 @@ mod tests {
             ip_v4: Some(Ipv4Addr::from_str("5.135.188.170").unwrap()),
             ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
             host: None,
+            port: 443u16,
+            path: Some(String::from("ws2p")),
+        };
+        test_parse_and_read_endpoint(str_endpoint, endpoint);
+    }
+
+    #[test]
+    fn test_parse_and_read_endpoint_with_all_fields() {
+        let str_endpoint = "WS2P V2 S 7 g1.durs.info 5.135.188.170 [2001:41d0:8:c5aa::1] 443 ws2p";
+        let endpoint = EndpointV2 {
+            api: NetworkEndpointApi(String::from("WS2P")),
+            api_version: 2,
+            network_features: EndpointV2NetworkFeatures(vec![4u8]),
+            api_features: ApiFeatures(vec![7u8]),
+            ip_v4: Some(Ipv4Addr::from_str("5.135.188.170").unwrap()),
+            ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
+            host: Some(String::from("g1.durs.info")),
             port: 443u16,
             path: Some(String::from("ws2p")),
         };

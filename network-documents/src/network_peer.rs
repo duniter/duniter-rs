@@ -21,7 +21,7 @@ extern crate serde;
 
 use base58::ToBase58;
 use duniter_documents::{blockstamp::Blockstamp, CurrencyName};
-use dup_crypto::keys::bin_signable::BinSignable;
+use dup_crypto::keys::text_signable::TextSignable;
 use dup_crypto::keys::*;
 use network_endpoint::*;
 use *;
@@ -48,10 +48,40 @@ pub struct PeerCardV11 {
     pub node_id: NodeId,
     /// Peer card Blockstamp
     pub blockstamp: Blockstamp,
-    /// Peer card endpoints list
-    pub endpoints: Vec<EndpointEnum>,
+    /// Peer card binary endpoints
+    pub endpoints: Vec<EndpointV2>,
+    /// Peer card string endpoints
+    pub endpoints_str: Vec<String>,
     /// Signature
     pub sig: Option<Sig>,
+}
+
+impl TextSignable for PeerCardV11 {
+    fn as_signable_text(&self) -> String {
+        format!(
+            "11:{currency}:{node_id}:{pubkey}:{blockstamp}\n{endpoinds}\n{endpoints_str}\n",
+            currency = self.currency_name.0,
+            node_id = format!("{}", self.node_id),
+            pubkey = self.issuer.to_base58(),
+            blockstamp = self.blockstamp.to_string(),
+            endpoinds = self
+                .endpoints
+                .iter()
+                .map(EndpointV2::to_string)
+                .collect::<Vec<String>>()
+                .join("\n"),
+            endpoints_str = self.endpoints_str.join("\n"),
+        )
+    }
+    fn issuer_pubkey(&self) -> PubKey {
+        self.issuer
+    }
+    fn signature(&self) -> Option<Sig> {
+        self.sig
+    }
+    fn set_signature(&mut self, signature: Sig) {
+        self.sig = Some(signature);
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -95,7 +125,7 @@ impl PeerCardV11 {
     }
 }
 
-impl<'de> BinSignable<'de> for PeerCardV11 {
+/*impl<'de> BinSignable<'de> for PeerCardV11 {
     fn issuer_pubkey(&self) -> PubKey {
         self.issuer
     }
@@ -105,7 +135,7 @@ impl<'de> BinSignable<'de> for PeerCardV11 {
     fn set_signature(&mut self, signature: Sig) {
         self.sig = Some(signature)
     }
-}
+}*/
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// Peer card
@@ -153,7 +183,6 @@ mod tests {
     use super::*;
     use std::net::Ipv4Addr;
     use std::str::FromStr;
-    use tests::bincode::deserialize;
     use tests::keypair1;
 
     fn create_endpoint_v2() -> EndpointV2 {
@@ -194,18 +223,14 @@ mod tests {
                 "50-000005B1CEB4EC5245EF7E33101A330A1C9A358EC45A25FC13F78BB58C9E7370",
             )
             .unwrap(),
-            endpoints: vec![
-                EndpointEnum::V2(create_endpoint_v2()),
-                EndpointEnum::V2(create_second_endpoint_v2()),
-            ],
+            endpoints: vec![create_endpoint_v2(), create_second_endpoint_v2()],
+            endpoints_str: vec![],
             sig: None,
         };
         // Sign
         let sign_result = peer_card_v11.sign(PrivKey::Ed25519(keypair1.private_key()));
-        if let Ok(peer_card_v11_bytes) = sign_result {
-            let deser_peer_card_v11: PeerCardV11 =
-                deserialize(&peer_card_v11_bytes).expect("Fail to deserialize PeerCardV11 !");
-            assert_eq!(peer_card_v11, deser_peer_card_v11,)
+        if let Ok(_peer_card_v11_raw) = sign_result {
+            //assert_eq!(peer_card_v11, PeerCardV11::parse(peer_card_v11_raw))
         } else {
             panic!("failt to sign peer card : {:?}", sign_result.err().unwrap())
         }

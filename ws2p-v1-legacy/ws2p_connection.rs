@@ -2,7 +2,7 @@ use constants::*;
 use duniter_module::ModuleReqId;
 use duniter_network::BlockchainDocument;
 use dup_crypto::keys::*;
-use durs_network_documents::network_endpoint::{EndpointEnum, NetworkEndpointApi};
+use durs_network_documents::network_endpoint::{EndpointV1, NetworkEndpointApi};
 use durs_network_documents::NodeId;
 use parsers::blocks::parse_json_block;
 use rand::Rng;
@@ -271,7 +271,7 @@ pub enum WS2PConnectionMessagePayload {
     ValidAckMessage(String, WS2PConnectionState),
     ValidOk(WS2PConnectionState),
     DalRequest(ModuleReqId, serde_json::Value),
-    PeerCard(serde_json::Value, Vec<EndpointEnum>),
+    PeerCard(serde_json::Value, Vec<EndpointV1>),
     Heads(Vec<serde_json::Value>),
     Document(BlockchainDocument),
     ReqResponse(ModuleReqId, serde_json::Value),
@@ -544,19 +544,18 @@ impl WS2PConnectionMetaDatas {
                 Some(raw_pubkey) => {
                     match ed25519::PublicKey::from_base58(raw_pubkey.as_str().unwrap_or("")) {
                         Ok(pubkey) => {
-                            let mut ws2p_endpoints: Vec<EndpointEnum> = Vec::new();
+                            let mut ws2p_endpoints: Vec<EndpointV1> = Vec::new();
                             match peer.get("endpoints") {
                                 Some(endpoints) => match endpoints.as_array() {
                                     Some(array_endpoints) => {
                                         for endpoint in array_endpoints {
-                                            if let Ok(ep) = EndpointEnum::parse_from_raw(
+                                            if let Ok(ep) = EndpointV1::parse_from_raw(
                                                 endpoint.as_str().unwrap_or(""),
                                                 PubKey::Ed25519(pubkey),
                                                 0,
                                                 0,
-                                                1u16,
                                             ) {
-                                                if ep.api()
+                                                if ep.api
                                                     == NetworkEndpointApi(String::from("WS2P"))
                                                 {
                                                     ws2p_endpoints.push(ep);
@@ -584,7 +583,7 @@ impl WS2PConnectionMetaDatas {
 }
 
 pub fn get_random_connection<S: ::std::hash::BuildHasher>(
-    connections: &HashMap<NodeFullId, (EndpointEnum, WS2PConnectionState), S>,
+    connections: &HashMap<NodeFullId, (EndpointV1, WS2PConnectionState), S>,
 ) -> NodeFullId {
     let mut rng = rand::thread_rng();
     let mut loop_count = 0;
@@ -604,7 +603,7 @@ pub fn get_random_connection<S: ::std::hash::BuildHasher>(
 }
 
 pub fn connect_to_ws2p_endpoint(
-    endpoint: &EndpointEnum,
+    endpoint: &EndpointV1,
     conductor_sender: &mpsc::Sender<WS2PThreadSignal>,
     currency: &str,
     key_pair: KeyPairEnum,
@@ -616,10 +615,10 @@ pub fn connect_to_ws2p_endpoint(
     let mut conn_meta_datas = WS2PConnectionMetaDatas::new(
         "b60a14fd-0826-4ae0-83eb-1a92cd59fd5308535fd3-78f2-4678-9315-cd6e3b7871b1".to_string(),
     );
-    conn_meta_datas.remote_pubkey = Some(endpoint.pubkey());
+    conn_meta_datas.remote_pubkey = Some(endpoint.issuer);
     conn_meta_datas.remote_uuid = Some(
         endpoint
-            .node_uuid()
+            .node_id
             .expect("WS2P: Fail to get ep.node_uuid() !"),
     );
 

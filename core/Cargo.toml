@@ -16,6 +16,7 @@ dup-crypto = { path = "../crypto" }
 duniter-message =  { path = "../message" }
 duniter-module = { path = "../module" }
 duniter-network = { path = "../network" }
+durs-network-documents = { path = "../network-documents" }
 log = "0.4.*"
 log-panics = "2.0.*"
 serde = "1.0.*"

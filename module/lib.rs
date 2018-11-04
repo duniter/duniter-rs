@@ -34,12 +34,14 @@ extern crate serde_derive;
 
 extern crate duniter_documents;
 extern crate dup_crypto;
+extern crate durs_network_documents;
 extern crate serde;
 extern crate serde_json;
 extern crate structopt;
 
 use duniter_documents::CurrencyName;
 use dup_crypto::keys::{KeyPair, KeyPairEnum};
+use durs_network_documents::network_endpoint::EndpointEnum;
 use serde::de::DeserializeOwned;
 use serde::ser::{Serialize, Serializer};
 use std::collections::HashSet;
@@ -213,12 +215,16 @@ pub enum ModuleInitError {
 #[derive(Debug, Clone)]
 /// Type sent by each module to the rooter during initialization
 pub enum RooterThreadMessage<M: ModuleMessage> {
-    /// Channel on which the module listens
-    ModuleSender(
+    /// Number of expected modules
+    ModulesCount(usize),
+    /// Registration of the module at the rooter
+    ModuleRegistration(
         ModuleStaticName,
         mpsc::Sender<M>,
         Vec<ModuleRole>,
         Vec<ModuleEvent>,
+        Vec<String>,
+        Vec<EndpointEnum>,
     ),
     /// Module message
     ModuleMessage(M),
