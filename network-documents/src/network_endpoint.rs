@@ -24,8 +24,7 @@ use dup_crypto::keys::PubKey;
 use hex;
 use pest::iterators::Pair;
 use pest::Parser;
-use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr};
-use std::num::ParseIntError;
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 use *;
 
@@ -61,47 +60,6 @@ impl ApiFeatures {
                 format!("{} ", hex_str)
             }
         }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-/// ParseEndpointError
-pub enum ParseEndpointError {
-    /// VersionNotSupported
-    VersionNotSupported(),
-    /// WrongV1Format
-    WrongV1Format(String),
-    /// WrongV2Format (human-readable explanation)
-    WrongV2Format(&'static str),
-    /// ApiNameTooLong
-    ApiNameTooLong(),
-    /// ParseIntError
-    ParseIntError(ParseIntError),
-    /// UnknowNetworkFeature (feature name)
-    UnknowNetworkFeature(String),
-    /// Maximum number of network features exceeded
-    MaxNetworkFeatures(),
-    /// Maximum number of api features exceeded
-    MaxApiFeatures(),
-    /// UnknowApiFeature (feature name)
-    UnknowApiFeature(String),
-    /// TooHighApiFeature
-    TooHighApiFeature(),
-    /// IP Parse error
-    AddrParseError(AddrParseError),
-    /// Pest grammar error
-    PestError(String),
-}
-
-impl From<ParseIntError> for ParseEndpointError {
-    fn from(e: ParseIntError) -> Self {
-        ParseEndpointError::ParseIntError(e)
-    }
-}
-
-impl From<AddrParseError> for ParseEndpointError {
-    fn from(e: AddrParseError) -> Self {
-        ParseEndpointError::AddrParseError(e)
     }
 }
 
@@ -216,7 +174,7 @@ impl EndpointV1 {
         issuer: PubKey,
         status: u32,
         last_check: u64,
-    ) -> Result<EndpointV1, ParseEndpointError> {
+    ) -> Result<EndpointV1, ParseError> {
         match NetworkDocsParser::parse(Rule::endpoint_v1, raw_endpoint) {
             Ok(mut ep_v1_pairs) => Ok(EndpointV1::from_pest_pair(
                 ep_v1_pairs.next().unwrap(),
@@ -224,7 +182,7 @@ impl EndpointV1 {
                 status,
                 last_check,
             )),
-            Err(pest_error) => Err(ParseEndpointError::PestError(format!("{}", pest_error))),
+            Err(pest_error) => Err(ParseError::PestError(format!("{}", pest_error))),
         }
     }
 }
@@ -258,26 +216,6 @@ impl EndpointV2NetworkFeatures {
         }
         true
     }
-    /// Parse network features from utf8 string's array
-    pub fn from_str_array(
-        str_array: &[&str],
-    ) -> Result<EndpointV2NetworkFeatures, ParseEndpointError> {
-        let mut network_features = 0u8;
-        for nf_str in str_array {
-            match *nf_str {
-                "IP4" => network_features += 1u8,
-                "IP6" => network_features += 2u8,
-                "TLS" => network_features += 4u8,
-                "TOR" => network_features += 8u8,
-                &_ => {
-                    return Err(ParseEndpointError::UnknowNetworkFeature(String::from(
-                        *nf_str,
-                    )))
-                }
-            }
-        }
-        Ok(EndpointV2NetworkFeatures(vec![network_features]))
-    }
     /// Network features size
     pub fn size(&self) -> u8 {
         self.0.len() as u8
@@ -286,21 +224,13 @@ impl EndpointV2NetworkFeatures {
     pub fn to_bytes_slice(&self) -> &[u8] {
         &self.0
     }
-    /// network feature ip_v4 is enable ?
-    pub fn ip_v4(&self) -> bool {
-        self.0[0] & 0b0000_0001 == 1u8
-    }
-    /// network feature ip_v6 is enable ?
-    pub fn ip_v6(&self) -> bool {
-        self.0[0] & 0b0000_0010 == 2u8
-    }
     /// TLS feature is enable ?
     pub fn tls(&self) -> bool {
-        self.0[0] & 0b0000_0100 == 4u8
+        self.0[0] & 0b0000_0001 == 1u8
     }
     /// TOR feature is enable ?
     pub fn tor(&self) -> bool {
-        self.0[0] & 0b0000_1000 == 8u8
+        self.0[0] & 0b0000_0010 == 2u8
     }
 }
 
@@ -413,7 +343,7 @@ impl EndpointV2 {
         }
     }
     /// Generate from pest pair
-    fn from_pest_pair(pair: Pair<Rule>) -> EndpointV2 {
+    pub fn from_pest_pair(pair: Pair<Rule>) -> EndpointV2 {
         let mut api_str = "";
         let mut api_version = 0;
         let mut network_features = EndpointV2NetworkFeatures(vec![0u8]);
@@ -427,8 +357,8 @@ impl EndpointV2 {
             match field.as_rule() {
                 Rule::api_name => api_str = field.as_str(),
                 Rule::api_version_inner => api_version = field.as_str().parse().unwrap(),
-                Rule::tls => network_features.0[0] |= 0b_0000_0100,
-                Rule::tor => network_features.0[0] |= 0b_0000_1000,
+                Rule::tls => network_features.0[0] |= 0b_0000_0001,
+                Rule::tor => network_features.0[0] |= 0b_0000_0010,
                 Rule::api_features_inner => {
                     api_features = if field.as_str().len() == 1 {
                         ApiFeatures(hex::decode(&format!("0{}", field.as_str())).unwrap())
@@ -459,236 +389,14 @@ impl EndpointV2 {
             path,
         }
     }
-    /// parse from ut8 format
-    pub fn parse_from_raw(raw_endpoint: &str) -> Result<EndpointEnum, ParseEndpointError> {
+    /// parse from raw ascii format
+    pub fn parse_from_raw(raw_endpoint: &str) -> Result<EndpointEnum, ParseError> {
         match NetworkDocsParser::parse(Rule::endpoint_v2, raw_endpoint) {
             Ok(mut ep_v2_pairs) => Ok(EndpointEnum::V2(EndpointV2::from_pest_pair(
                 ep_v2_pairs.next().unwrap(),
             ))),
-            Err(pest_error) => Err(ParseEndpointError::PestError(format!("{}", pest_error))),
+            Err(pest_error) => Err(ParseError::PestError(format!("{}", pest_error))),
         }
-
-        /*let raw_ep_elements: Vec<&str> = raw_endpoint.split(' ').collect();
-        if raw_ep_elements.len() >= 6 {
-            let api = NetworkEndpointApi(String::from(raw_ep_elements[0]));
-            let api_version: u16 = raw_ep_elements[1].parse()?;
-            let network_features_count: usize = raw_ep_elements[2].parse()?;
-            if network_features_count > *MAX_NETWORK_FEATURES_COUNT {
-                Err(ParseEndpointError::MaxNetworkFeatures())
-            } else if raw_ep_elements.len() >= 6 + network_features_count {
-                let network_features = EndpointV2NetworkFeatures::from_str_array(
-                    &raw_ep_elements[3..(3 + network_features_count)],
-                )?;
-                let api_features_count: usize =
-                    raw_ep_elements[3 + network_features_count].parse()?;
-                if network_features_count > *MAX_API_FEATURES_COUNT {
-                    Err(ParseEndpointError::MaxApiFeatures())
-                } else {
-                    let mut af_bytes_count = network_features_count / 8;
-                    if network_features_count % 8 != 0 {
-                        af_bytes_count += 1;
-                    }
-                    let mut api_features = vec![0u8; af_bytes_count];
-                    if raw_ep_elements.len() < 4 + network_features_count + api_features_count {
-                        return Err(ParseEndpointError::WrongV2Format(
-                            "All api features must be declared !",
-                        ));
-                    }
-                    for str_feature in raw_ep_elements
-                        .iter()
-                        .take(4 + network_features_count + api_features_count)
-                        .skip(4 + network_features_count)
-                    {
-                        if let Ok(feature) = str_feature.parse::<usize>() {
-                            if feature > *MAX_API_FEATURES_COUNT {
-                                return Err(ParseEndpointError::TooHighApiFeature());
-                            }
-                            let byte_index = feature / 8;
-                            let feature = (feature % 8) as u8;
-                            api_features[byte_index] += feature.pow(2);
-                        } else if &api.0 == "WS2P" {
-                            match *str_feature {
-                                "DEF" => api_features[0] += 1u8,
-                                "LOW" => api_features[0] += 2u8,
-                                "ABF" => api_features[0] += 4u8,
-                                _ => {
-                                    return Err(ParseEndpointError::UnknowApiFeature(String::from(
-                                        *str_feature,
-                                    )))
-                                }
-                            }
-                        } else {
-                            return Err(ParseEndpointError::UnknowApiFeature(String::from(
-                                *str_feature,
-                            )));
-                        }
-                    }
-                    let mut index = 4 + network_features_count + api_features_count;
-                    let port = if let Ok(port) = raw_ep_elements[index].parse::<u16>() {
-                        index += 1;
-                        port
-                    } else {
-                        return Err(ParseEndpointError::WrongV2Format(
-                            "Missing port or is not integer !",
-                        ));
-                    };
-                    // HOST IP4 [IP6] PATH
-                    let (host, ip_v4, ip_v6, path) = if raw_ep_elements.len() == index + 4 {
-                        // HOST IP4 [IP6] PATH
-                        let len2 = raw_ep_elements[index + 2].len();
-                        (
-                            Some(String::from(raw_ep_elements[index])),
-                            Some(Ipv4Addr::from_str(raw_ep_elements[index + 1])?),
-                            Some(Ipv6Addr::from_str(
-                                &raw_ep_elements[index + 2][1..len2 - 1],
-                            )?),
-                            Some(String::from(raw_ep_elements[index + 3])),
-                        )
-                    } else if raw_ep_elements.len() == index + 3 {
-                        // IP4 [IP6] PATH
-                        if let Ok(ip_v4) = Ipv4Addr::from_str(raw_ep_elements[index]) {
-                            let len1 = raw_ep_elements[index + 1].len();
-                            (
-                                None,
-                                Some(ip_v4),
-                                Some(Ipv6Addr::from_str(
-                                    &raw_ep_elements[index + 1][1..len1 - 1],
-                                )?),
-                                Some(String::from(raw_ep_elements[index + 2])),
-                            )
-                        } else {
-                            let len1 = raw_ep_elements[index + 1].len();
-                            let len2 = raw_ep_elements[index + 2].len();
-                            if let Some('[') = raw_ep_elements[index + 1].chars().next() {
-                                // HOST [IP6] PATH
-                                (
-                                    Some(String::from(raw_ep_elements[index])),
-                                    None,
-                                    Some(Ipv6Addr::from_str(
-                                        &raw_ep_elements[index + 1][1..len1 - 1],
-                                    )?),
-                                    Some(String::from(raw_ep_elements[index + 2])),
-                                )
-                            } else if let Some('[') = raw_ep_elements[index + 2].chars().next() {
-                                // HOST IP4 [IP6]
-                                (
-                                    Some(String::from(raw_ep_elements[index])),
-                                    Some(Ipv4Addr::from_str(raw_ep_elements[index + 1])?),
-                                    Some(Ipv6Addr::from_str(
-                                        &raw_ep_elements[index + 2][1..len2 - 1],
-                                    )?),
-                                    None,
-                                )
-                            } else {
-                                // HOST IP4 PATH
-                                (
-                                    Some(String::from(raw_ep_elements[index])),
-                                    Some(Ipv4Addr::from_str(raw_ep_elements[index + 1])?),
-                                    None,
-                                    Some(String::from(raw_ep_elements[index + 2])),
-                                )
-                            }
-                        }
-                    } else if raw_ep_elements.len() == index + 2 {
-                        let len0 = raw_ep_elements[index].len();
-                        let len1 = raw_ep_elements[index + 1].len();
-                        if let Ok(ip_v4) = Ipv4Addr::from_str(raw_ep_elements[index]) {
-                            if let Some('[') = raw_ep_elements[index + 1].chars().next() {
-                                // IP4 [IP6]
-                                (
-                                    None,
-                                    Some(ip_v4),
-                                    Some(Ipv6Addr::from_str(
-                                        &raw_ep_elements[index + 1][1..len1 - 1],
-                                    )?),
-                                    None,
-                                )
-                            } else {
-                                // IP4 PATH
-                                (
-                                    None,
-                                    Some(ip_v4),
-                                    None,
-                                    Some(String::from(raw_ep_elements[index + 1])),
-                                )
-                            }
-                        } else if let Some('[') = raw_ep_elements[index].chars().next() {
-                            // [IP6] PATH
-                            (
-                                None,
-                                None,
-                                Some(Ipv6Addr::from_str(&raw_ep_elements[index][1..len0 - 1])?),
-                                Some(String::from(raw_ep_elements[index + 1])),
-                            )
-                        } else if let Ok(ip_v4) = Ipv4Addr::from_str(raw_ep_elements[index + 1]) {
-                            // HOST IP4
-                            (
-                                Some(String::from(raw_ep_elements[index])),
-                                Some(ip_v4),
-                                None,
-                                None,
-                            )
-                        } else if let Some('[') = raw_ep_elements[index + 1].chars().next() {
-                            // HOST [IP6]
-                            (
-                                Some(String::from(raw_ep_elements[index])),
-                                None,
-                                Some(Ipv6Addr::from_str(
-                                    &raw_ep_elements[index + 1][1..len1 - 1],
-                                )?),
-                                None,
-                            )
-                        } else {
-                            // HOST PATH
-                            (
-                                Some(String::from(raw_ep_elements[index])),
-                                None,
-                                None,
-                                Some(String::from(raw_ep_elements[index + 1])),
-                            )
-                        }
-                    } else if raw_ep_elements.len() == index + 1 {
-                        let len0 = raw_ep_elements[index].len();
-                        if let Some('[') = raw_ep_elements[index].chars().next() {
-                            // IP6
-                            (
-                                None,
-                                None,
-                                Some(Ipv6Addr::from_str(&raw_ep_elements[index][1..len0])?),
-                                None,
-                            )
-                        } else if let Ok(ip_v4) = Ipv4Addr::from_str(raw_ep_elements[index]) {
-                            // IP4
-                            (None, Some(ip_v4), None, None)
-                        } else {
-                            // HOST
-                            (Some(String::from(raw_ep_elements[index])), None, None, None)
-                        }
-                    } else {
-                        return Err(ParseEndpointError::WrongV2Format("Invalid fields count !"));
-                    };
-                    Ok(EndpointEnum::V2(EndpointV2 {
-                        api,
-                        api_version,
-                        network_features,
-                        api_features: ApiFeatures(api_features.to_vec()),
-                        ip_v4,
-                        ip_v6,
-                        host,
-                        port,
-                        path,
-                    }))
-                }
-            } else {
-                Err(ParseEndpointError::WrongV2Format(
-                    "All network features must be declared !",
-                ))
-            }
-        } else {
-            Err(ParseEndpointError::WrongV2Format(
-                "An endpoint must contain at least 6 elements",
-            ))
-        }*/
     }
 }
 
@@ -802,6 +510,28 @@ mod tests {
     use super::*;
     use tests::bincode::{deserialize, serialize};
 
+    #[test]
+    fn test_network_features() {
+        assert_eq!(EndpointV2NetworkFeatures(vec![1u8]).tls(), true);
+        assert_eq!(EndpointV2NetworkFeatures(vec![1u8]).tor(), false);
+        assert_eq!(EndpointV2NetworkFeatures(vec![2u8]).tls(), false);
+        assert_eq!(EndpointV2NetworkFeatures(vec![2u8]).tor(), true);
+        assert_eq!(EndpointV2NetworkFeatures(vec![3u8]).tls(), true);
+        assert_eq!(EndpointV2NetworkFeatures(vec![3u8]).tor(), true);
+
+        assert_eq!(
+            EndpointV2NetworkFeatures(vec![1u8]).to_string().as_str(),
+            "S "
+        );
+        assert_eq!(
+            EndpointV2NetworkFeatures(vec![2u8]).to_string().as_str(),
+            "TOR "
+        );
+        assert_eq!(
+            EndpointV2NetworkFeatures(vec![3u8]).to_string().as_str(),
+            "S TOR "
+        );
+    }
     fn test_parse_and_read_endpoint(str_endpoint: &str, endpoint: EndpointV2) {
         assert_eq!(
             EndpointV2::parse_from_raw(str_endpoint),
@@ -854,7 +584,7 @@ mod tests {
         let endpoint = EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV2NetworkFeatures(vec![4u8]),
+            network_features: EndpointV2NetworkFeatures(vec![1u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: None,
@@ -871,7 +601,7 @@ mod tests {
         let endpoint = EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV2NetworkFeatures(vec![4u8]),
+            network_features: EndpointV2NetworkFeatures(vec![1u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("84.16.72.210").unwrap()),
             ip_v6: None,
@@ -888,7 +618,7 @@ mod tests {
         let endpoint = EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV2NetworkFeatures(vec![4u8]),
+            network_features: EndpointV2NetworkFeatures(vec![1u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
@@ -905,7 +635,7 @@ mod tests {
         let endpoint = EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV2NetworkFeatures(vec![4u8]),
+            network_features: EndpointV2NetworkFeatures(vec![1u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("5.135.188.170").unwrap()),
             ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
@@ -922,7 +652,7 @@ mod tests {
         let endpoint = EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV2NetworkFeatures(vec![4u8]),
+            network_features: EndpointV2NetworkFeatures(vec![1u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("5.135.188.170").unwrap()),
             ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),

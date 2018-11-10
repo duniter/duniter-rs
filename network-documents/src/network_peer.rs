@@ -21,9 +21,12 @@ extern crate serde;
 
 use base58::ToBase58;
 use duniter_documents::{blockstamp::Blockstamp, CurrencyName};
+use duniter_documents::{BlockHash, BlockId};
 use dup_crypto::keys::text_signable::TextSignable;
 use dup_crypto::keys::*;
 use network_endpoint::*;
+use pest::iterators::Pair;
+use pest::Parser;
 use *;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -59,7 +62,7 @@ pub struct PeerCardV11 {
 impl TextSignable for PeerCardV11 {
     fn as_signable_text(&self) -> String {
         format!(
-            "11:{currency}:{node_id}:{pubkey}:{blockstamp}\n{endpoinds}\n{endpoints_str}\n",
+            "11:{currency}:{node_id}:{pubkey}:{blockstamp}\n{endpoinds}\n{endpoints_str}{nl}",
             currency = self.currency_name.0,
             node_id = format!("{}", self.node_id),
             pubkey = self.issuer.to_base58(),
@@ -71,6 +74,11 @@ impl TextSignable for PeerCardV11 {
                 .collect::<Vec<String>>()
                 .join("\n"),
             endpoints_str = self.endpoints_str.join("\n"),
+            nl = if self.endpoints_str.is_empty() {
+                ""
+            } else {
+                "\n"
+            },
         )
     }
     fn issuer_pubkey(&self) -> PubKey {
@@ -81,6 +89,83 @@ impl TextSignable for PeerCardV11 {
     }
     fn set_signature(&mut self, signature: Sig) {
         self.sig = Some(signature);
+    }
+}
+
+impl PeerCardV11 {
+    /// parse from raw ascii format
+    pub fn parse_from_raw(raw_peer: &str) -> Result<PeerCardV11, ParseError> {
+        match NetworkDocsParser::parse(Rule::peer_v11, raw_peer) {
+            Ok(mut peer_v11_pairs) => {
+                Ok(PeerCardV11::from_pest_pair(peer_v11_pairs.next().unwrap()))
+            }
+            Err(pest_error) => Err(ParseError::PestError(format!("{}", pest_error))),
+        }
+    }
+    /// Generate from pest pair
+    fn from_pest_pair(pair: Pair<Rule>) -> PeerCardV11 {
+        let mut currency_str = "";
+        let mut node_id = NodeId(0);
+        let mut issuer = None;
+        let mut blockstamp = None;
+        let mut endpoints = Vec::new();
+        let mut sig = None;
+        for field in pair.into_inner() {
+            match field.as_rule() {
+                Rule::currency => currency_str = field.as_str(),
+                Rule::node_id => node_id = NodeId(field.as_str().parse().unwrap()),
+                Rule::pubkey => {
+                    issuer = Some(PubKey::Ed25519(
+                        ed25519::PublicKey::from_base58(field.as_str()).unwrap(),
+                    ))
+                }
+                Rule::blockstamp => {
+                    let mut inner_rules = field.into_inner(); // { block_id ~ "-" ~ hash }
+
+                    let block_id: &str = inner_rules.next().unwrap().as_str();
+                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                    blockstamp = Some(Blockstamp {
+                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
+                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                    });
+                }
+                Rule::endpoint_v2 => endpoints.push(EndpointV2::from_pest_pair(field)),
+                Rule::ed25519_sig => {
+                    sig = Some(Sig::Ed25519(
+                        ed25519::Signature::from_base64(field.as_str()).unwrap(),
+                    ))
+                }
+                _ => panic!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
+            }
+        }
+        let endpoints_len = endpoints.len();
+        PeerCardV11 {
+            currency_name: CurrencyName(currency_str.to_owned()),
+            issuer: issuer.expect("Grammar must ensure that peer v11 have valid issuer pubkey !"),
+            node_id,
+            blockstamp: blockstamp
+                .expect("Grammar must ensure that peer v11 have valid blockstamp!"),
+            endpoints,
+            endpoints_str: Vec::with_capacity(endpoints_len),
+            sig,
+        }
+    }
+    /// Convert to JSON String
+    pub fn to_json_peer(&self) -> Result<String, serde_json::Error> {
+        Ok(serde_json::to_string_pretty(&JsonPeerCardV11 {
+            version: 11,
+            currency_name: &self.currency_name.0,
+            node_id: self.node_id,
+            algorithm: self.issuer.algo(),
+            pubkey: self.issuer.to_base58(),
+            blockstamp: self.blockstamp.to_string(),
+            endpoints: self.endpoints.iter().map(|ep| ep.to_string()).collect(),
+            signature: if let Some(sig) = self.sig {
+                Some(sig.to_base64())
+            } else {
+                None
+            },
+        })?)
     }
 }
 
@@ -105,38 +190,6 @@ pub struct JsonPeerCardV11<'a> {
     pub signature: Option<String>,
 }
 
-impl PeerCardV11 {
-    /// Convert to JSON String
-    pub fn to_json_peer(&self) -> Result<String, serde_json::Error> {
-        Ok(serde_json::to_string_pretty(&JsonPeerCardV11 {
-            version: 11,
-            currency_name: &self.currency_name.0,
-            node_id: self.node_id,
-            algorithm: self.issuer.algo(),
-            pubkey: self.issuer.to_base58(),
-            blockstamp: self.blockstamp.to_string(),
-            endpoints: self.endpoints.iter().map(|ep| ep.to_string()).collect(),
-            signature: if let Some(sig) = self.sig {
-                Some(sig.to_base64())
-            } else {
-                None
-            },
-        })?)
-    }
-}
-
-/*impl<'de> BinSignable<'de> for PeerCardV11 {
-    fn issuer_pubkey(&self) -> PubKey {
-        self.issuer
-    }
-    fn signature(&self) -> Option<Sig> {
-        self.sig
-    }
-    fn set_signature(&mut self, signature: Sig) {
-        self.sig = Some(signature)
-    }
-}*/
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// Peer card
 pub enum PeerCard {
@@ -158,23 +211,17 @@ impl PeerCard {
     pub fn blockstamp(&self) -> Blockstamp {
         match *self {
             PeerCard::V10(ref peer_v10) => peer_v10.blockstamp,
-            _ => panic!("Peer version is not supported !"),
+            PeerCard::V11(ref peer_v11) => peer_v11.blockstamp,
+            //_ => panic!("Peer version is not supported !"),
         }
     }
     /// Get peer card issuer
     pub fn issuer(&self) -> PubKey {
         match *self {
             PeerCard::V10(ref peer_v10) => peer_v10.issuer,
-            _ => panic!("Peer version is not supported !"),
+            PeerCard::V11(ref peer_v11) => peer_v11.issuer,
+            //_ => panic!("Peer version is not supported !"),
         }
-    }
-    /// Verify validity of peer card signature
-    pub fn verify(&self) -> bool {
-        false
-    }
-    /// Get peer card endpoint
-    pub fn get_endpoints(&self) -> Vec<EndpointEnum> {
-        Vec::with_capacity(0)
     }
 }
 
@@ -189,7 +236,7 @@ mod tests {
         EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV2NetworkFeatures(vec![4u8]),
+            network_features: EndpointV2NetworkFeatures(vec![1u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: None,
@@ -202,7 +249,7 @@ mod tests {
         EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV2NetworkFeatures(vec![5u8]),
+            network_features: EndpointV2NetworkFeatures(vec![1u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("84.16.72.210").unwrap()),
             ip_v6: None,
@@ -229,10 +276,15 @@ mod tests {
         };
         // Sign
         let sign_result = peer_card_v11.sign(PrivKey::Ed25519(keypair1.private_key()));
-        if let Ok(_peer_card_v11_raw) = sign_result {
-            //assert_eq!(peer_card_v11, PeerCardV11::parse(peer_card_v11_raw))
+        if let Ok(peer_card_v11_raw) = sign_result {
+            println!("{}", peer_card_v11_raw);
+            assert_eq!(
+                peer_card_v11,
+                PeerCardV11::parse_from_raw(&peer_card_v11_raw)
+                    .expect("Fail to parse peer card v11 !")
+            )
         } else {
-            panic!("failt to sign peer card : {:?}", sign_result.err().unwrap())
+            panic!("fail to sign peer card : {:?}", sign_result.err().unwrap())
         }
         // Verify signature
         peer_card_v11

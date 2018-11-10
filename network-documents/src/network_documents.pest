@@ -2,7 +2,7 @@
 WHITESPACE = _{ "" }
 
 // Single character rules
-nl = { "\n" }
+nl = _{ "\n" }
 no_zero_hexa_lower = @{ '1'..'9' | 'a'..'f' }
 hexa_lower = @{ ASCII_DIGIT | 'a'..'f' }
 hexa_upper = @{ ASCII_DIGIT | 'A'..'F' }
@@ -22,6 +22,7 @@ block_id = @{ u_int }
 hash = @{ hexa_upper{64} }
 pubkey = @{ base58{43,44} }
 blockstamp =  ${ block_id ~ "-" ~ hash }
+ed25519_sig = @{ base64{88} | (base64{87} ~ "=") | (base64{86} ~ "==") }
 
 // Endpoint v1 rules
 api_name = @{ (ASCII_ALPHA_UPPER | ASCII_DIGIT | "_")+ }
@@ -71,7 +72,7 @@ path = _{ " " ~ path_inner }
 endpoint_v2 = ${ api_name ~ " " ~ (api_version)? ~ (network_features)? ~ (api_features)? ~ host_v2? ~ ip4? ~ ip6? ~ port ~ path? }
 
 // Peer v11 rules
-peer_v11 = ${ "11:" ~ currency ~ ":" ~ node_id ~ ":" ~ pubkey ~ ":" ~ blockstamp ~ nl ~ (endpoint_v2 ~ nl)+ }
+peer_v11 = ${ "11:" ~ currency ~ ":" ~ node_id ~ ":" ~ pubkey ~ ":" ~ blockstamp ~ nl ~ (endpoint_v2 ~ nl)+ ~ ed25519_sig? }
 
 // HEADv3 rules
 api_outgoing_conf = @{ u8 }

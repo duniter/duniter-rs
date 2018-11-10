@@ -33,9 +33,9 @@ extern crate hex;
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;
-//#[cfg(test)]
-//#[macro_use]
-//extern crate pretty_assertions;
+#[cfg(test)]
+#[macro_use]
+extern crate pretty_assertions;
 extern crate serde;
 extern crate serde_json;
 #[macro_use]
@@ -56,6 +56,12 @@ use std::fmt::{Display, Error, Formatter};
 /// Parser for network documents
 struct NetworkDocsParser;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// ParseError
+pub enum ParseError {
+    /// Pest grammar error
+    PestError(String),
+}
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Random identifier with which several Duniter nodes with the same network keypair can be differentiated
 pub struct NodeId(pub u32);
