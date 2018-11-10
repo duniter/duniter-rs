@@ -150,36 +150,6 @@ impl Handler for Ws2pConnectionHandler {
         )
         .expect("WS2P : Fail to sign own connect message !");
 
-        /*// TESTS ONLY : Send CONNECT Message in JSON (for debug)
-        #[cfg(test)]
-        match self.ws.0.send(Message::text(
-            serde_json::to_string_pretty(&_ws2p_full_msg)
-                .expect("Fail to serialize CONNECT Message in JSON !"),
-        )) {
-            Ok(()) => {
-                // Update state
-                if let WS2PConnectionState::TryToSendConnectMess = self.conn_datas.state {
-                    self.conn_datas.state = WS2PConnectionState::WaitingConnectMess;
-                }
-                // Log
-                println!(
-                    "TESTS: Succesfully send CONNECT JSON message to {}",
-                    print_opt_addr(handshake.peer_addr)
-                );
-            }
-            Err(_) => {
-                self.conn_datas.state = WS2PConnectionState::Unreachable;
-                println!(
-                    "TESTS: Fail send CONNECT JSON message to {}",
-                    print_opt_addr(handshake.peer_addr)
-                );
-                let _ = self
-                    .ws
-                    .0
-                    .close_with_reason(CloseCode::Error, "Fail to send CONNECT JSON message !");
-            }
-        }*/
-
         // Start negociation timeouts
         self.ws.0.timeout(*WS2P_NEGOTIATION_TIMEOUT, CONNECT)?;
         // Start expire timeout
