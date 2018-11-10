@@ -711,4 +711,144 @@ Nonce: "
             "000004F8B84A3590243BA562E5F2BA379F55A0B387C5D6FAC1022DFF7FFE6014"
         );
     }
+
+    #[test]
+    fn generate_and_verify_block_2() {
+        let ms1 = MembershipDocumentParser::parse(
+            "Version: 10
+Type: Membership
+Currency: g1
+Issuer: 4VZkro3N7VonygybESHngKUABA6gSrbW77Ktb94zE969
+Block: 165645-000002D30130881939961A38D51CA233B3C696AA604439036DB1AAA4ED5046D2
+Membership: IN
+UserID: piaaf31
+CertTS: 74077-0000022816648B2F7801E059F67CCD0C023FF0ED84459D52C70494D74DDCC6F6
+gvaZ1QnJf8FjjRDJ0cYusgpBgQ8r0NqEz39BooH6DtIrgX+WTeXuLSnjZDl35VCBjokvyjry+v0OkTT8FKpABA==",
+        )
+        .expect("Fail to parse ms1");
+
+        let tx1 = TransactionDocumentParser::parse(
+            "Version: 10
+Type: Transaction
+Currency: g1
+Blockstamp: 165645-000002D30130881939961A38D51CA233B3C696AA604439036DB1AAA4ED5046D2
+Locktime: 0
+Issuers:
+51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2
+Inputs:
+1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:163766
+1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:164040
+1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:164320
+1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:164584
+1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:164849
+1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:165118
+1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:165389
+Unlocks:
+0:SIG(0)
+1:SIG(0)
+2:SIG(0)
+3:SIG(0)
+4:SIG(0)
+5:SIG(0)
+6:SIG(0)
+Outputs:
+7000:0:SIG(98wxzS683Tc1WWm1YxpL5WpxS7wBa1mZBccKSsYpaant)
+28:0:SIG(51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2)
+Comment: Panier mixte plus 40 pommes merci
+7o/yIh0BNSAv5pNmHz04uUBl8TuP2s4HRFMtKeGFQfXNYJPUyJTP/dj6hdrgKtJkm5dCfbxT4KRy6wJf+dj1Cw==",
+        )
+        .expect("Fail to parse tx1");
+
+        let tx2 = TransactionDocumentParser::parse(
+            "Version: 10
+Type: Transaction
+Currency: g1
+Blockstamp: 165645-000002D30130881939961A38D51CA233B3C696AA604439036DB1AAA4ED5046D2
+Locktime: 0
+Issuers:
+3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX
+Inputs:
+1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:148827
+1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:149100
+1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:149370
+1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:149664
+1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:149943
+1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:150222
+Unlocks:
+0:SIG(0)
+1:SIG(0)
+2:SIG(0)
+3:SIG(0)
+4:SIG(0)
+5:SIG(0)
+Outputs:
+6000:0:SIG(AopwTfXhj8VqZReFJYGGWnoWnXNj3RgaqFcGGywXpZrD)
+12:0:SIG(3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX)
+Comment: En reglement de tes bons bocaux de fruits et legumes
+nxr4exGrt16jteN9ZX3XZPP9l+X0OUbZ1o/QjE1hbWQNtVU3HhH9SJoEvNj2iVl3gCRr9u2OA9uj9vCyUDyjAg==
+",
+        )
+        .expect("Fail to parse tx2");
+
+        let mut block = BlockDocument {
+            nonce: 0,
+            number: BlockId(165_647),
+            pow_min: 90,
+            time: 1_540_633_175,
+            median_time: 1_540_627_811,
+            members_count: 1402,
+            monetary_mass: 386_008_811,
+            unit_base: 0,
+            issuers_count: 37,
+            issuers_frame: 186,
+            issuers_frame_var: 0,
+            currency: CurrencyName(String::from("g1")),
+            issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58("A4pc9Uuk4NXkWG8CibicjjPpEPdiup1mhjMoRWUZsonq").unwrap())],
+            signatures: vec![Sig::Ed25519(ed25519::Signature::from_base64("2Z/+9ADdZvHXs19YR8+qDzgfl8WJlBG5PcbFvBG9TOuUJbjAdxhcgxrFrSRIABGWcCrIgLkB805fZVLP8jOjBA==").unwrap())],
+            hash: None,
+            parameters: None,
+            previous_hash: Hash::from_hex("000003E78FA4133F2C13B416F330C8DFB5A41EB87E37190615DB334F2C914A51").expect("fail to parse previous_hash"),
+            previous_issuer: Some(PubKey::Ed25519(ed25519::PublicKey::from_base58("8NmGZmGjL1LUgJQRg282yQF7KTdQuRNAg8QfSa2qvd65").unwrap())),
+            inner_hash: None,//Some(Hash::from_hex("3B49ECC1475549CFD94CA7B399311548A0FD0EC93C8EDD5670DAA5A958A41846").expect("fail to parse inner_hash")),
+            dividend: None,
+            identities: vec![],
+            joiners: vec![],
+            actives: vec![ms1],
+            leavers: vec![],
+            revoked: vec![],
+            excluded: vec![],
+            certifications: vec![],
+            transactions: vec![TxDocOrTxHash::TxDoc(Box::new(tx1)), TxDocOrTxHash::TxDoc(Box::new(tx2))],
+            inner_hash_and_nonce_str: String::new(),
+        };
+        // test inner_hash computation
+        block.compute_inner_hash();
+        println!("{}", block.generate_compact_text());
+        assert_eq!(
+            block
+                .inner_hash
+                .expect("Try to get inner_hash of an uncompleted or reduce block !")
+                .to_hex(),
+            "3B49ECC1475549CFD94CA7B399311548A0FD0EC93C8EDD5670DAA5A958A41846"
+        );
+        // test generate_compact_text()
+        let block_compact_text = block.generate_compact_text();
+        assert_eq!(
+            block_compact_text,
+            "Version: 10\nType: Block\nCurrency: g1\nNumber: 165647\nPoWMin: 90\nTime: 1540633175\nMedianTime: 1540627811\nUnitBase: 0\nIssuer: A4pc9Uuk4NXkWG8CibicjjPpEPdiup1mhjMoRWUZsonq\nIssuersFrame: 186\nIssuersFrameVar: 0\nDifferentIssuersCount: 37\nPreviousHash: 000003E78FA4133F2C13B416F330C8DFB5A41EB87E37190615DB334F2C914A51\nPreviousIssuer: 8NmGZmGjL1LUgJQRg282yQF7KTdQuRNAg8QfSa2qvd65\nMembersCount: 1402\nIdentities:\nJoiners:\nActives:\n4VZkro3N7VonygybESHngKUABA6gSrbW77Ktb94zE969:gvaZ1QnJf8FjjRDJ0cYusgpBgQ8r0NqEz39BooH6DtIrgX+WTeXuLSnjZDl35VCBjokvyjry+v0OkTT8FKpABA==:165645-000002D30130881939961A38D51CA233B3C696AA604439036DB1AAA4ED5046D2:74077-0000022816648B2F7801E059F67CCD0C023FF0ED84459D52C70494D74DDCC6F6:piaaf31\nLeavers:\nRevoked:\nExcluded:\nCertifications:\nTransactions:\nTX:10:1:7:7:2:1:0\n165645-000002D30130881939961A38D51CA233B3C696AA604439036DB1AAA4ED5046D2\n51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2\n1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:163766\n1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:164040\n1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:164320\n1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:164584\n1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:164849\n1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:165118\n1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:165389\n0:SIG(0)\n1:SIG(0)\n2:SIG(0)\n3:SIG(0)\n4:SIG(0)\n5:SIG(0)\n6:SIG(0)\n7000:0:SIG(98wxzS683Tc1WWm1YxpL5WpxS7wBa1mZBccKSsYpaant)\n28:0:SIG(51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2)\nPanier mixte plus 40 pommes merci\n7o/yIh0BNSAv5pNmHz04uUBl8TuP2s4HRFMtKeGFQfXNYJPUyJTP/dj6hdrgKtJkm5dCfbxT4KRy6wJf+dj1Cw==\nTX:10:1:6:6:2:1:0\n165645-000002D30130881939961A38D51CA233B3C696AA604439036DB1AAA4ED5046D2\n3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX\n1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:148827\n1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:149100\n1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:149370\n1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:149664\n1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:149943\n1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:150222\n0:SIG(0)\n1:SIG(0)\n2:SIG(0)\n3:SIG(0)\n4:SIG(0)\n5:SIG(0)\n6000:0:SIG(AopwTfXhj8VqZReFJYGGWnoWnXNj3RgaqFcGGywXpZrD)\n12:0:SIG(3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX)\nEn reglement de tes bons bocaux de fruits et legumes\nnxr4exGrt16jteN9ZX3XZPP9l+X0OUbZ1o/QjE1hbWQNtVU3HhH9SJoEvNj2iVl3gCRr9u2OA9uj9vCyUDyjAg==\nInnerHash: 3B49ECC1475549CFD94CA7B399311548A0FD0EC93C8EDD5670DAA5A958A41846\nNonce: "
+        );
+        // Test signature validity
+        block.fill_inner_hash_and_nonce_str(Some(10_300_000_090_296));
+        assert_eq!(block.verify_signatures(), VerificationResult::Valid());
+        // Test hash computation
+        block.compute_hash();
+        assert_eq!(
+            block
+                .hash
+                .expect("Try to get hash of an uncompleted or reduce block !")
+                .0
+                .to_hex(),
+            "000002026E32A3D649B34968AAF9D03C4F19A5954229C54A801BBB1CD216B230"
+        );
+    }
 }

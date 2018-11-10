@@ -33,6 +33,9 @@ extern crate dup_crypto;
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;
+#[cfg(test)]
+#[macro_use]
+extern crate pretty_assertions;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
