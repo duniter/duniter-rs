@@ -194,7 +194,7 @@ pub struct EndpointV2NetworkFeatures(pub Vec<u8>);
 impl ToString for EndpointV2NetworkFeatures {
     fn to_string(&self) -> String {
         if self.is_empty() {
-            return format!("");
+            return "".to_owned();
         }
         let mut features_str = Vec::with_capacity(2);
         if self.tls() {
@@ -288,7 +288,7 @@ impl ToString for EndpointV2 {
         let path = if let Some(ref path) = self.path {
             format!(" {}", path)
         } else {
-            format!("")
+            "".to_owned()
         };
         format!(
             "{api} {version}{nf}{af}{host}{ip4}{ip6}{port}{path}",
@@ -296,7 +296,7 @@ impl ToString for EndpointV2 {
             version = if self.api_version > 0 {
                 format!("V{} ", self.api_version)
             } else {
-                format!("")
+                "".to_owned()
             },
             nf = self.network_features.to_string(),
             af = self.api_features.to_string(),

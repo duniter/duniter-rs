@@ -48,7 +48,7 @@ pub fn _self_peer_update_endpoints(
     }
     for ep in self_peer.endpoints_str {
         let ep_clone = ep.clone();
-        let ep_fields: Vec<&str> = ep_clone.split(" ").collect();
+        let ep_fields: Vec<&str> = ep_clone.split(' ').collect();
         if !apis.contains(&NetworkEndpointApi(ep_fields[0].to_owned())) {
             new_endpoints_str.push(ep);
         }
@@ -56,10 +56,12 @@ pub fn _self_peer_update_endpoints(
     for ep in new_endpoints {
         if let EndpointEnum::V2(ep_v2) = ep {
             let bin_len = bincode::serialize(&ep_v2)
-                .expect(&format!(
-                    "Fail to update self peer : invalid endpoint : {:?} !",
-                    ep_v2,
-                ))
+                .unwrap_or_else(|_| {
+                    panic!(
+                        "Fail to update self peer : invalid endpoint : {:?} !",
+                        ep_v2
+                    )
+                })
                 .len();
             let str_ep = ep_v2.to_string();
             if str_ep.len() < bin_len {
@@ -94,10 +96,12 @@ pub fn _generate_self_peer(
     for ep in endpoints {
         if let EndpointEnum::V2(ep_v2) = ep {
             let bin_len = bincode::serialize(&ep_v2)
-                .expect(&format!(
-                    "Fail to generate self peer : invalid endpoint : {:?} !",
-                    ep_v2,
-                ))
+                .unwrap_or_else(|_| {
+                    panic!(
+                        "Fail to generate self peer : invalid endpoint : {:?} !",
+                        ep_v2
+                    )
+                })
                 .len();
             let str_ep = ep_v2.to_string();
             if str_ep.len() < bin_len {

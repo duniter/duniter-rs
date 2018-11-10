@@ -444,7 +444,7 @@ impl BlockchainModule {
         wot: &BinDB<W>,
     ) -> Blockstamp {
         debug!("BlockchainModule : receive_blocks()");
-        let blocks: Vec<&NetworkBlock> = blocks_in_box.into_iter().map(|b| b.deref()).collect();
+        let blocks: Vec<&NetworkBlock> = blocks_in_box.iter().map(|b| b.deref()).collect();
         let mut current_blockstamp = *current_blockstamp;
         let mut save_blocks_dbs = false;
         let mut save_wots_dbs = false;
