@@ -207,7 +207,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             keypairs: None,
             run_duration_in_secs,
             rooter_sender: None,
-            modules_count: 0,
+            modules_count: 1, // Count blockchain module
             network_modules_count: 0,
             thread_pool: ThreadPool::new(*THREAD_POOL_SIZE),
         }
