@@ -12,7 +12,7 @@ u_int = @{ "0" | no_zero_u_int }
 hash = @{ hexa_upper{64} }
 currency = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_")* }
 pubkey = @{ base58{43,44} }
-uid = @{ ASCII_ALPHA+ }
+uid = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_")* }
 block_id = @{ u_int }
 blockstamp =  ${ block_id ~ "-" ~ hash }
 ed25519_sig = @{ base64{88} | (base64{87} ~ "=") | (base64{86} ~ "==") }
