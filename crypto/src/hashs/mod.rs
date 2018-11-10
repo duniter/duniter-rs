@@ -70,6 +70,13 @@ impl Hash {
         Hash(hash_buffer)
     }
 
+    /// Compute hash of a string
+    pub fn compute_str(str_datas: &str) -> Hash {
+        let mut sha256 = Sha256::new();
+        sha256.input_str(&str_datas);
+        Hash::from_hex(&sha256.result_str()).expect("Sha256 result must be an hexa string !")
+    }
+
     /// Convert Hash into bytes vector
     pub fn to_bytes_vector(&self) -> Vec<u8> {
         self.0.to_vec()

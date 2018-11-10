@@ -84,6 +84,7 @@ impl<'de> BinSignable<'de> for WS2Pv0Message {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dup_crypto::keys::text_signable::TextSignable;
     use tests::*;
 
     #[test]

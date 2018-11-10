@@ -15,8 +15,6 @@
 
 //! Wrappers around Block document.
 
-use crypto::digest::Digest;
-use crypto::sha2::Sha256;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use std::ops::Deref;
@@ -277,10 +275,7 @@ impl BlockDocument {
     }
     /// Compute inner hash
     pub fn compute_inner_hash(&mut self) {
-        let mut sha256 = Sha256::new();
-        let inner_text = self.generate_compact_inner_text();
-        sha256.input_str(&inner_text);
-        self.inner_hash = Some(Hash::from_hex(&sha256.result_str()).unwrap());
+        self.inner_hash = Some(Hash::compute_str(&self.generate_compact_inner_text()));
     }
     /// Fill inner_hash_and_nonce_str
     pub fn fill_inner_hash_and_nonce_str(&mut self, new_nonce: Option<u64>) {
@@ -302,16 +297,14 @@ impl BlockDocument {
     }
     /// Compute hash
     pub fn compute_hash(&mut self) {
-        let mut sha256 = Sha256::new();
-        sha256.input_str(&format!(
+        self.hash = Some(BlockHash(Hash::compute_str(&format!(
             "InnerHash: {}\nNonce: {}\n{}\n",
             self.inner_hash
                 .expect("Try to get inner_hash of an uncompleted or reduce block !")
                 .to_hex(),
             self.nonce,
             self.signatures[0]
-        ));
-        self.hash = Some(BlockHash(Hash::from_hex(&sha256.result_str()).unwrap()));
+        ))));
     }
     /// Lightens the block (for example to store it while minimizing the space required)
     pub fn reduce(&mut self) {

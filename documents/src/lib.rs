@@ -29,7 +29,6 @@
 extern crate base58;
 extern crate base64;
 extern crate byteorder;
-extern crate crypto;
 extern crate dup_crypto;
 extern crate pest;
 #[macro_use]

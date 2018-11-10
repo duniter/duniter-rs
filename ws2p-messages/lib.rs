@@ -75,31 +75,31 @@ mod tests {
         )
     }
 
-    pub fn create_endpoint_v11() -> EndpointEnum {
-        EndpointEnum::V2(EndpointV2 {
+    pub fn create_endpoint_v11() -> EndpointV2 {
+        EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV2NetworkFeatures(vec![4u8]),
+            network_features: EndpointV2NetworkFeatures(vec![1u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: None,
             host: Some(String::from("g1.durs.ifee.fr")),
             port: 443u16,
             path: Some(String::from("ws2p")),
-        })
+        }
     }
-    pub fn create_second_endpoint_v11() -> EndpointEnum {
-        EndpointEnum::V2(EndpointV2 {
+    pub fn create_second_endpoint_v11() -> EndpointV2 {
+        EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV2NetworkFeatures(vec![5u8]),
+            network_features: EndpointV2NetworkFeatures(vec![1u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("84.16.72.210").unwrap()),
             ip_v6: None,
             host: None,
             port: 443u16,
             path: Some(String::from("ws2p")),
-        })
+        }
     }
 
     pub fn create_peer_card_v11() -> PeerCardV11 {
