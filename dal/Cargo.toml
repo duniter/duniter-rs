@@ -15,7 +15,7 @@ duniter-module = { path = "../module" }
 duniter-network = { path = "../network" }
 durs-wot = { path = "../wot" }
 log = "0.4.*"
-rustbreak = {version = "2.0.0-rc2", features = ["bin_enc"]}
+rustbreak = {version = "2.0.0-rc3", features = ["bin_enc"]}
 serde = "1.0.*"
 serde_derive = "1.0.*"
 serde_json = "1.0.*"
