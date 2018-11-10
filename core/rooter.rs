@@ -232,7 +232,7 @@ fn start_broadcasting_thread(
                 > *MAX_REGISTRATION_DELAY
         {
             panic!(
-                "Only {} modules have registered, {} expected !",
+                "{} modules have registered, but expected {} !",
                 registrations_count,
                 expected_registrations_count.unwrap_or(0)
             );
@@ -241,11 +241,7 @@ fn start_broadcasting_thread(
 }
 
 /// Start conf thread
-fn start_conf_thread(
-    profile: &str,
-    conf: &mut DuRsConf,
-    receiver: &mpsc::Receiver<DursMsgContent>,
-) {
+fn start_conf_thread(profile: &str, conf: &mut DuRsConf, receiver: mpsc::Receiver<DursMsgContent>) {
     loop {
         match receiver.recv() {
             Ok(msg) => {
@@ -353,7 +349,7 @@ pub fn start_rooter(
 
         // Create conf thread
         thread::spawn(move || {
-            start_conf_thread(&profile, &mut conf.clone(), &conf_receiver);
+            start_conf_thread(&profile, &mut conf.clone(), conf_receiver);
         });
 
         // Define variables
@@ -365,7 +361,16 @@ pub fn start_rooter(
             match rooter_receiver.recv_timeout(Duration::from_secs(1)) {
                 Ok(mess) => {
                     match mess {
-                        RooterThreadMessage::ModulesCount(_) => {}
+                        RooterThreadMessage::ModulesCount(expected_registrations_count) => {
+                            // Relay to broadcasting thread
+                            broadcasting_sender
+                                .send(RooterThreadMessage::ModulesCount(
+                                    expected_registrations_count,
+                                ))
+                                .expect(
+                                    "Fail to relay ModulesCount message to broadcasting thread !",
+                                );
+                        }
                         RooterThreadMessage::ModuleRegistration(
                             module_static_name,
                             module_sender,
@@ -402,7 +407,9 @@ pub fn start_rooter(
                                     vec![],
                                     vec![],
                                 ))
-                                .expect("Fail to relay message to broadcasting thread !");
+                                .expect(
+                                    "Fail to relay module registration to broadcasting thread !",
+                                );
                             // Log the number of modules_senders received
                             info!(
                                 "Rooter thread receive {} module senders",
@@ -436,13 +443,13 @@ pub fn start_rooter(
                                         broadcasting_sender
                                             .send(RooterThreadMessage::ModuleMessage(msg))
                                             .expect(
-                                                "Fail to relay message to broadcasting thread !",
+                                                "Fail to relay specific role message to broadcasting thread !",
                                             );
                                     }
                                 }
                                 DursMsgReceiver::Event(_module_event) => broadcasting_sender
                                     .send(RooterThreadMessage::ModuleMessage(msg))
-                                    .expect("Fail to relay message to broadcasting thread !"),
+                                    .expect("Fail to relay specific event message to broadcasting thread !"),
                                 DursMsgReceiver::One(module_static_name) => {
                                     if let Some(module_sender) =
                                         modules_senders.get(&module_static_name)
