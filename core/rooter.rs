@@ -241,7 +241,11 @@ fn start_broadcasting_thread(
 }
 
 /// Start conf thread
-fn start_conf_thread(profile: &str, conf: &mut DuRsConf, receiver: mpsc::Receiver<DursMsgContent>) {
+fn start_conf_thread(
+    profile: &str,
+    conf: &mut DuRsConf,
+    receiver: &mpsc::Receiver<DursMsgContent>,
+) {
     loop {
         match receiver.recv() {
             Ok(msg) => {
@@ -349,7 +353,7 @@ pub fn start_rooter(
 
         // Create conf thread
         thread::spawn(move || {
-            start_conf_thread(&profile, &mut conf.clone(), conf_receiver);
+            start_conf_thread(&profile, &mut conf.clone(), &conf_receiver);
         });
 
         // Define variables
