@@ -32,7 +32,7 @@ pub enum NetworkHead {
     /// Head V2
     V2(Box<NetworkHeadV2>),
     /// head V3
-    V3(Box<NetworkHeadV3Container>),
+    V3(Box<NetworkHeadV3>),
 }
 
 impl ToString for NetworkHead {

@@ -26,7 +26,7 @@ use duniter_documents::v10::revocation::RevocationDocument;
 use duniter_documents::v10::transaction::TransactionDocument;
 use dup_crypto::hashs::Hash;
 use durs_network_documents::network_head_v2::NetworkHeadV2;
-use durs_network_documents::network_head_v3::NetworkHeadV3Container;
+use durs_network_documents::network_head_v3::NetworkHeadV3;
 use durs_network_documents::network_peer::PeerCardV11;
 
 /// WS2P v2 message payload metadata size
@@ -54,7 +54,7 @@ pub enum WS2Pv0MessagePayload {
     /// HEADS_V2 Message
     Headsv2(Vec<NetworkHeadV2>),
     /// HEADS_V3 Message
-    Heads3(Vec<NetworkHeadV3Container>),
+    Heads3(Vec<NetworkHeadV3>),
     /// BLOCKS Message
     Blocks(Vec<BlockDocument>),
     /// PENDING_IDENTITIES Message

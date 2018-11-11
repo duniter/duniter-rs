@@ -78,19 +78,22 @@ peer_v11 = ${ "11:" ~ currency ~ ":" ~ node_id ~ ":" ~ pubkey ~ ":" ~ blockstamp
 api_outgoing_conf = @{ u8 }
 api_incoming_conf = @{ u8 }
 free_member_rooms = @{ u8 }
-low_priority_rooms = @{ u8 }
+free_mirror_rooms = @{ u8 }
 software = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
-soft_version = @{ ASCII_DIGIT ~ "." ~ ASCII_DIGIT ~ "." ~ ASCII_DIGIT ~ ("-" ~ ("a" | "b" | "rc") ~ ASCII_DIGIT ~ (ASCII_DIGIT ~ "."){0,2})? }
+soft_version = @{ ASCII_DIGIT ~ "." ~ ASCII_DIGIT ~ "." ~ ASCII_DIGIT ~ ("-" ~ ("a" | "b" | "rc") ~ ASCII_DIGIT ~ ("." ~ ASCII_DIGIT){0,2})? }
+step = @{ u_int }
 
-head_v3_body = ${
+head_v3 = ${
+    "3:" ~ currency ~ ":" ~
     api_outgoing_conf ~ ":" ~
     api_incoming_conf ~ ":" ~
     free_member_rooms ~ ":" ~
-    low_priority_rooms ~ ":" ~
+    free_mirror_rooms ~ ":" ~
     node_id ~ ":" ~
     pubkey ~ ":" ~
     blockstamp ~ ":" ~
     software ~ ":" ~
-    soft_version
+    soft_version ~ nl ~
+    ed25519_sig? ~
+    (nl ~ step)?
 }
-
