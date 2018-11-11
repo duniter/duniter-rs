@@ -13,11 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use duniter_documents::v10::block::BlockDocument;
-use duniter_documents::v10::certification::CompactCertificationDocument;
-use duniter_documents::v10::identity::CompactIdentityDocument;
-use duniter_documents::v10::membership::CompactPoolMembershipDoc;
-use duniter_documents::Blockstamp;
+use dubp_documents::v10::block::BlockDocument;
+use dubp_documents::v10::certification::CompactCertificationDocument;
+use dubp_documents::v10::identity::CompactIdentityDocument;
+use dubp_documents::v10::membership::CompactPoolMembershipDoc;
+use dubp_documents::Blockstamp;
 use dup_crypto::hashs::Hash;
 use std::str;
 
@@ -62,7 +62,7 @@ pub struct WotPoolFolder {
 mod tests {
     use super::super::*;
     use super::*;
-    use duniter_documents::Blockstamp;
+    use dubp_documents::Blockstamp;
     use tests::*;
 
     #[test]

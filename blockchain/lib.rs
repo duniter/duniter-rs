@@ -33,9 +33,9 @@
 extern crate log;
 
 extern crate dirs;
+extern crate dubp_documents;
 extern crate duniter_conf;
 extern crate duniter_dal;
-extern crate duniter_documents;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
@@ -62,6 +62,9 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use apply_valid_block::*;
 use check_and_apply_block::*;
 pub use dbex::{DBExQuery, DBExTxQuery, DBExWotQuery};
+use dubp_documents::v10::{BlockDocument, V10Document};
+use dubp_documents::*;
+use dubp_documents::{DUBPDocument, Document};
 use duniter_dal::block::DALBlock;
 use duniter_dal::currency_params::CurrencyParameters;
 use duniter_dal::dal_event::DALEvent;
@@ -69,9 +72,6 @@ use duniter_dal::dal_requests::{DALReqBlockchain, DALRequest, DALResBlockchain, 
 use duniter_dal::identity::DALIdentity;
 use duniter_dal::writers::requests::BlocksDBsWriteQuery;
 use duniter_dal::*;
-use duniter_documents::v10::{BlockDocument, V10Document};
-use duniter_documents::*;
-use duniter_documents::{DUBPDocument, Document};
 use duniter_message::*;
 use duniter_module::*;
 use duniter_network::{

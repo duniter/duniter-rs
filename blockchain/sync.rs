@@ -20,10 +20,10 @@ extern crate threadpool;
 
 use self::pbr::ProgressBar;
 use self::threadpool::ThreadPool;
+use dubp_documents::{BlockHash, BlockId};
 use duniter_dal::currency_params::CurrencyParameters;
 use duniter_dal::writers::requests::*;
 use duniter_dal::ForkId;
-use duniter_documents::{BlockHash, BlockId};
 use duniter_network::NetworkBlock;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;

@@ -15,7 +15,7 @@
 
 //use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use super::api_features::WS2PFeatures;
-use duniter_documents::Blockstamp;
+use dubp_documents::Blockstamp;
 use dup_crypto::hashs::Hash;
 use durs_network_documents::network_peer::PeerCardV11;
 
@@ -86,7 +86,7 @@ impl Default for WS2Pv2ConnectMsg {
 mod tests {
     use super::super::*;
     use super::*;
-    use duniter_documents::Blockstamp;
+    use dubp_documents::Blockstamp;
     use dup_crypto::keys::text_signable::TextSignable;
     use tests::*;
 

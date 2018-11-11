@@ -13,14 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use dubp_documents::v10::transaction::{TxAmount, TxBase};
+use dubp_documents::v10::BlockDocument;
+use dubp_documents::BlockId;
+use dubp_documents::Document;
 use duniter_dal::block::DALBlock;
 use duniter_dal::sources::SourceAmount;
 use duniter_dal::writers::requests::*;
 use duniter_dal::{BinDB, ForkId};
-use duniter_documents::v10::transaction::{TxAmount, TxBase};
-use duniter_documents::v10::BlockDocument;
-use duniter_documents::BlockId;
-use duniter_documents::Document;
 use dup_crypto::keys::*;
 use durs_wot::data::{NewLinkResult, RemLinkResult};
 use durs_wot::{NodeId, WebOfTrust};

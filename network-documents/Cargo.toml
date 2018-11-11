@@ -11,7 +11,7 @@ path = "src/lib.rs"
 [dependencies]
 base58 = "0.1.*"
 dup-crypto = "0.4.0-b1"
-duniter-documents = { path = "../documents" }
+dubp-documents = { path = "../documents" }
 hex = "0.3.*"
 pest = "2.0"
 pest_derive = "2.0"

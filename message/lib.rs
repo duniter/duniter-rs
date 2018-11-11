@@ -29,8 +29,8 @@
     unused_qualifications
 )]
 
+extern crate dubp_documents;
 extern crate duniter_dal;
-extern crate duniter_documents;
 extern crate duniter_module;
 extern crate duniter_network;
 extern crate dup_crypto;
@@ -38,10 +38,10 @@ extern crate durs_network_documents;
 extern crate serde;
 extern crate serde_json;
 
+use dubp_documents::BlockId;
+use dubp_documents::DUBPDocument;
 use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALRequest, DALResponse};
-use duniter_documents::BlockId;
-use duniter_documents::DUBPDocument;
 use duniter_module::*;
 use duniter_network::{NetworkEvent, NetworkResponse, OldNetworkRequest};
 use dup_crypto::hashs::Hash;

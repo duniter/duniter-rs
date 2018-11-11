@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use duniter_documents::v10::block::BlockDocument;
-use duniter_documents::*;
+use dubp_documents::v10::block::BlockDocument;
+use dubp_documents::*;
 
 #[derive(Debug, Clone)]
 /// Event to be transmitted to the other modules

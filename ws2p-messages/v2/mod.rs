@@ -28,7 +28,7 @@ pub mod requests;
 /// WS2P v2 SECRET_FLAGS Message
 pub mod secret_flags;
 
-use duniter_documents::CurrencyName;
+use dubp_documents::CurrencyName;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::bin_signable::BinSignable;
 use dup_crypto::keys::*;

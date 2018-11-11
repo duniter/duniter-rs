@@ -1,5 +1,5 @@
 [package]
-name = "duniter-documents"
+name = "dubp-documents"
 version = "0.10.0-b1"
 authors = ["nanocryk <nanocryk@duniter.org>", "elois <elois@ifee.fr>"]
 description = "Handles DUBP documents (DUBP: DUniter Blockhain Protocol)"

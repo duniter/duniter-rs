@@ -36,9 +36,9 @@ extern crate serde_derive;
 #[macro_use]
 extern crate structopt;
 
+extern crate dubp_documents;
 extern crate duniter_conf;
 extern crate duniter_dal;
-extern crate duniter_documents;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;

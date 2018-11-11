@@ -27,7 +27,7 @@
 )]
 
 extern crate base58;
-extern crate duniter_documents;
+extern crate dubp_documents;
 extern crate dup_crypto;
 extern crate hex;
 extern crate pest;
