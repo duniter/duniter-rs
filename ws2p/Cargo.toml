@@ -11,7 +11,7 @@ path = "lib.rs"
 [dependencies]
 bincode = "1.0.*"
 duniter-conf= { path = "../conf" }
-dup-crypto = { path = "../crypto" }
+dup-crypto = "0.4.0-b1"
 duniter-documents = { path = "../documents" }
 durs-network-documents = { path = "../network-documents" }
 durs-ws2p-messages = { path = "../ws2p-messages" }

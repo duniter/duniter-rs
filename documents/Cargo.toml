@@ -1,6 +1,6 @@
 [package]
 name = "duniter-documents"
-version = "0.9.0-b1"
+version = "0.10.0-b1"
 authors = ["nanocryk <nanocryk@duniter.org>", "elois <elois@ifee.fr>"]
 description = "Handles DUBP documents (DUBP: DUniter Blockhain Protocol)"
 repository = "https://git.duniter.org/nodes/rust/duniter-rs"
@@ -15,7 +15,7 @@ path = "src/lib.rs"
 base58 = "0.1.*"
 base64 = "0.9.*"
 byteorder = "1.2.3"
-dup-crypto = { path = "../crypto" }
+dup-crypto = "0.4.0-b1"
 pest = "2.0"
 pest_derive = "2.0"
 serde = "1.0.*"
