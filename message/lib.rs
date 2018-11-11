@@ -34,6 +34,7 @@ extern crate duniter_documents;
 extern crate duniter_module;
 extern crate duniter_network;
 extern crate dup_crypto;
+extern crate durs_network_documents;
 extern crate serde;
 extern crate serde_json;
 
@@ -45,6 +46,7 @@ use duniter_module::*;
 use duniter_network::{NetworkEvent, NetworkResponse, OldNetworkRequest};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::Sig;
+use durs_network_documents::network_endpoint::EndpointEnum;
 
 #[derive(Debug, Clone)]
 /// Message exchanged between Durs modules
@@ -76,6 +78,8 @@ pub enum DursMsgContent {
     Binary(Vec<u8>),
     /// New configuration of a module to save
     SaveNewModuleConf(ModuleStaticName, serde_json::Value),
+    /// List of local node endpoints
+    Endpoints(Vec<EndpointEnum>),
     /// Response of DALRequest
     DALResponse(Box<DALResponse>),
     /// Blockchain event

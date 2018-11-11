@@ -29,14 +29,17 @@
 extern crate base58;
 extern crate base64;
 extern crate byteorder;
-extern crate crypto;
 extern crate dup_crypto;
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;
+#[cfg(test)]
+#[macro_use]
+extern crate pretty_assertions;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate serde_json;
 
 pub mod blockstamp;
 mod currencies_codes;
@@ -48,6 +51,7 @@ use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use pest::iterators::Pair;
 use pest::Parser;
+use serde::Serialize;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::io::Cursor;
@@ -312,4 +316,20 @@ pub trait DocumentBuilder {
 pub trait DocumentParser<S, D, E> {
     /// Parse a source and return a document or an error.
     fn parse(source: S) -> Result<D, E>;
+}
+
+/// Jsonify a document
+pub trait ToJsonObject {
+    type JsonObject: Serialize;
+    /// Transforms an object into a json object
+    fn to_json_object(&self) -> Self::JsonObject;
+
+    /// Convert to JSON String
+    fn to_json_string(&self) -> Result<String, serde_json::Error> {
+        Ok(serde_json::to_string(&self.to_json_object())?)
+    }
+    /// Convert to JSON String pretty
+    fn to_json_string_pretty(&self) -> Result<String, serde_json::Error> {
+        Ok(serde_json::to_string_pretty(&self.to_json_object())?)
+    }
 }

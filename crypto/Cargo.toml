@@ -1,6 +1,6 @@
 [package]
 name = "dup-crypto"
-version = "0.3.0-b2"
+version = "0.3.0-b3"
 authors = ["nanocryk <nanocryk@duniter.org>", "elois <elois@duniter.org>"]
 description = "Manage cryptographic operations for the DUP (DUniter Protocol)."
 repository = "https://git.duniter.org/nodes/rust/duniter-rs"
@@ -16,9 +16,11 @@ base58 = "0.1.*"
 base64 = "0.10.*"
 bincode = "1.0.*"
 rand = "0.5.*"
-rust-crypto = "0.2.*"
+rust-crypto-wasm = "0.3.1"
 serde = "1.0.*"
 serde_derive = "1.0.*"
+
+
 
 [features]
 # Treat warnings as a build error.

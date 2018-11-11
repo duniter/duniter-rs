@@ -9,8 +9,10 @@ license = "AGPL-3.0"
 path = "lib.rs"
 
 [dependencies]
-duniter-conf = { path = "../conf" }
+bincode = "1.0.*"
+duniter-conf= { path = "../conf" }
 dup-crypto = { path = "../crypto" }
+duniter-documents = { path = "../documents" }
 durs-network-documents = { path = "../network-documents" }
 durs-ws2p-messages = { path = "../ws2p-messages" }
 duniter-message= { path = "../message" }

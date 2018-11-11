@@ -87,6 +87,7 @@ mod tests {
     use super::super::*;
     use super::*;
     use duniter_documents::Blockstamp;
+    use dup_crypto::keys::text_signable::TextSignable;
     use tests::*;
 
     #[test]

@@ -21,7 +21,6 @@ duniter-network = { path = "../network" }
 durs-wot = { path = "../wot" }
 log = "0.4.*"
 rand = "0.4.*"
-rust-crypto = "0.2.*"
 sqlite = "0.23.*"
 serde = "1.0.*"
 serde_derive = "1.0.*"

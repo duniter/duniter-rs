@@ -58,6 +58,7 @@ use std::hash::Hash;
 
 pub mod bin_signable;
 pub mod ed25519;
+pub mod text_signable;
 
 /// Cryptographic keys algorithms list
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]

@@ -1,16 +1,99 @@
 //r"^(?P<api>[A-Z0-9_]+) (?P<version>[1-9][0-9]*)? ?(?P<uuid>[a-f0-9]{6,8})? ?(?P<host>[a-z_][a-z0-9-_.]*|[0-9.]+|[0-9a-f:]+) (?P<port>[0-9]+)(?: /?(?P<path>.+)?)? *$"
+WHITESPACE = _{ "" }
 
+// Single character rules
+nl = _{ "\n" }
+no_zero_hexa_lower = @{ '1'..'9' | 'a'..'f' }
+hexa_lower = @{ ASCII_DIGIT | 'a'..'f' }
+hexa_upper = @{ ASCII_DIGIT | 'A'..'F' }
+base58 = { !("O" | "I" | "l") ~ ASCII_ALPHANUMERIC }
+base64 = { ASCII_ALPHANUMERIC | "+" | "/" }
+
+// Numbers rules
+tens = @{ '1'..'9' ~ ASCII_DIGIT }
+u8_hundreds = @{ ("2" ~ ('0'..'4' ~ ASCII_DIGIT | ('0'..'5'){2})) | ("1" ~ ASCII_DIGIT{2}) }
+u8 = @{ u8_hundreds | tens | ASCII_DIGIT }
 no_zero_u_int = @{ '1'..'9' ~ ASCII_DIGIT* }
 u_int = @{ "0" | no_zero_u_int }
 
-api_name = @{ (ASCII_ALPHA_UPPER | ASCII_DIGIT)+ }
-version = @{ u_int }
-node_id = @{ ASCII_HEX_DIGIT{6,8} }
+// Usefull types rules
+currency = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_"){,255} }
+block_id = @{ u_int }
+hash = @{ hexa_upper{64} }
+pubkey = @{ base58{43,44} }
+blockstamp =  ${ block_id ~ "-" ~ hash }
+ed25519_sig = @{ base64{88} | (base64{87} ~ "=") | (base64{86} ~ "==") }
+
+// Endpoint v1 rules
+api_name = @{ (ASCII_ALPHA_UPPER | ASCII_DIGIT | "_")+ }
+node_id = @{ hexa_lower{1,8} }
 host = @{ ASCII_ALPHA_LOWER ~ (ASCII_ALPHA_LOWER | ASCII_DIGIT | "-" | "_" | ".")* }
 port = @{ u_int }
 path_inner = @{ (ASCII_ALPHANUMERIC | "-" | "_" | ".")+ }
-path = _{ "/"? ~ path_inner }
 
-endpoint_v1 = { api_name ~ version? ~ node_id? ~ host ~ port ~ path? }
+endpoint_v1 = ${ api_name ~ (" " ~ node_id)? ~ " " ~ host ~ " " ~ port ~ (" " ~ "/"? ~ path_inner)? ~ " "? }
 
-WHITESPACE = _{ " " }
+// IP v6 rules 
+ip6_seg  = _{ hexa_lower{1,4} }
+ip6_full = _{ (ip6_seg ~ ":"){7} ~ ip6_seg }
+ip6_no_full = @{
+    ip6_seg? ~
+    (":" ~ ip6_seg){0,6} ~
+    "::" ~
+    (ip6_seg ~ ":"){0,6} ~
+    ip6_seg?
+    //       (IPV6SEG:){7,7}IPV6SEG|                # 1:2:3:4:5:6:7:8
+    //       (IPV6SEG:){1,7}:|                      # 1::                                 1:2:3:4:5:6:7::
+    //       (IPV6SEG:){1,6}:IPV6SEG|               # 1::8               1:2:3:4:5:6::8   1:2:3:4:5:6::8
+    //       (IPV6SEG:){1,5}(:IPV6SEG){1,2}|        # 1::7:8             1:2:3:4:5::7:8   1:2:3:4:5::8
+    //       (IPV6SEG:){1,4}(:IPV6SEG){1,3}|        # 1::6:7:8           1:2:3:4::6:7:8   1:2:3:4::8
+    //       (IPV6SEG:){1,3}(:IPV6SEG){1,4}|        # 1::5:6:7:8         1:2:3::5:6:7:8   1:2:3::8
+    //       (IPV6SEG:){1,2}(:IPV6SEG){1,5}|        # 1::4:5:6:7:8       1:2::4:5:6:7:8   1:2::8
+    //       IPV6SEG:((:IPV6SEG){1,6})|             # 1::3:4:5:6:7:8     1::3:4:5:6:7:8   1::8
+    //       :((:IPV6SEG){1,7}|:)|                  # ::2:3:4:5:6:7:8    ::2:3:4:5:6:7:8  ::8       ::       
+
+}
+ip6_inner = @{ ip6_full | ip6_no_full }
+ip6 = _{ "[" ~ ip6_inner ~ "] " }
+
+// Endpoint v2 rules
+api_version_inner = @{ no_zero_u_int }
+api_version = _{ "V" ~ api_version_inner ~ " " }
+tls = @{ "S " }
+tor = @{ "TOR " }
+network_features = _{ tls? ~ tor? }
+api_features_inner = @{ (hexa_lower{2})+ | no_zero_hexa_lower }
+api_features = _{ api_features_inner ~ " " }
+host_v2_inner = @{ ASCII_ALPHA_LOWER ~ (ASCII_ALPHA_LOWER | ASCII_DIGIT | "-" | "_" | ".")* }
+host_v2 = _{ host_v2_inner ~ " " }
+ip4_inner = { u8 ~ "." ~ u8 ~ "." ~ u8 ~ "." ~ u8 }
+ip4 = _{ ip4_inner ~ " " }
+path = _{ " " ~ path_inner }
+endpoint_v2 = ${ api_name ~ " " ~ (api_version)? ~ (network_features)? ~ (api_features)? ~ host_v2? ~ ip4? ~ ip6? ~ port ~ path? }
+
+// Peer v11 rules
+peer_v11 = ${ "11:" ~ currency ~ ":" ~ node_id ~ ":" ~ pubkey ~ ":" ~ blockstamp ~ nl ~ (endpoint_v2 ~ nl)+ ~ ed25519_sig? }
+
+// HEADv3 rules
+api_outgoing_conf = @{ u8 }
+api_incoming_conf = @{ u8 }
+free_member_rooms = @{ u8 }
+free_mirror_rooms = @{ u8 }
+software = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
+soft_version = @{ ASCII_DIGIT ~ "." ~ ASCII_DIGIT ~ "." ~ ASCII_DIGIT ~ ("-" ~ ("a" | "b" | "rc") ~ ASCII_DIGIT ~ ("." ~ ASCII_DIGIT){0,2})? }
+step = @{ u_int }
+
+head_v3 = ${
+    "3:" ~ currency ~ ":" ~
+    api_outgoing_conf ~ ":" ~
+    api_incoming_conf ~ ":" ~
+    free_member_rooms ~ ":" ~
+    free_mirror_rooms ~ ":" ~
+    node_id ~ ":" ~
+    pubkey ~ ":" ~
+    blockstamp ~ ":" ~
+    software ~ ":" ~
+    soft_version ~ nl ~
+    ed25519_sig? ~
+    (nl ~ step)?
+}

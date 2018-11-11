@@ -6,15 +6,17 @@ nl = _{ "\n" } // Only one way to break a line is accepted
 hexa_upper = { ASCII_DIGIT | 'A'..'F' }
 base58 = { !("O" | "I" | "l") ~ ASCII_ALPHANUMERIC }
 base64 = { ASCII_ALPHANUMERIC | "+" | "/" }
-integer = @{ "0" | ('1'..'9' ~ ASCII_DIGIT*) }
+no_zero_u_int = @{ '1'..'9' ~ ASCII_DIGIT* }
+u_int = @{ "0" | no_zero_u_int }
 
 hash = @{ hexa_upper{64} }
 currency = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_")* }
 pubkey = @{ base58{43,44} }
-uid = @{ ASCII_ALPHA+ }
-block_id = @{ integer }
+uid = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "-" | "_")* }
+block_id = @{ u_int }
 blockstamp =  ${ block_id ~ "-" ~ hash }
-ed25519_sig = @{ base64{86,88} ~ "="{0,2} }
+ed25519_sig = @{ base64{88} | (base64{87} ~ "=") | (base64{86} ~ "==") }
+//^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$
 
 v10 = _{ "Version: 10" }
 
@@ -87,16 +89,16 @@ revoc = ${
     (&(SOI ~ v10 ~ nl) ~ revoc_v10)
 }
 
-tx_locktime = @{ integer }
-tx_amount =  @{ integer }
-tx_amount_base =  @{ integer }
-du_block_id = @{ integer }
-tx_index =  @{ integer }
-input_index = @{ integer }
-issuer_index = @{ integer }
+tx_locktime = @{ u_int }
+tx_amount =  @{ u_int }
+tx_amount_base =  @{ u_int }
+du_block_id = @{ u_int }
+tx_index =  @{ u_int }
+input_index = @{ u_int }
+issuer_index = @{ u_int }
 xhx_secret = @ { ASCII_ALPHANUMERIC+ }
-csv_duration = @{ integer }
-cltv_timestamp = @{ integer }
+csv_duration = @{ u_int }
+cltv_timestamp = @{ u_int }
 
 tx_input = ${ tx_input_du | tx_input_tx }
 tx_input_du = ${ tx_amount ~ ":" ~ tx_amount_base ~ ":D:" ~ pubkey ~ ":" ~ du_block_id }

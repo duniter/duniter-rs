@@ -467,7 +467,7 @@ impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
         thread::spawn(move || {
             // Send proxy sender to main
             main_sender
-                .send(RooterThreadMessage::ModuleSender(
+                .send(RooterThreadMessage::ModuleRegistration(
                     TuiModule::name(),
                     proxy_sender,
                     vec![ModuleRole::UserInterface],
@@ -477,6 +477,8 @@ impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
                         ModuleEvent::NewValidHeadFromNetwork,
                         ModuleEvent::NewValidPeerFromNodeNetwork,
                     ],
+                    vec![],
+                    vec![],
                 ))
                 .expect("Fatal error : tui module fail to send is sender channel !");
             debug!("Send tui sender to main thread.");

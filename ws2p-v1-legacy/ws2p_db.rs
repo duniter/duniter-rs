@@ -1,5 +1,5 @@
 use dup_crypto::keys::*;
-use durs_network_documents::network_endpoint::{EndpointEnum, NetworkEndpointApi};
+use durs_network_documents::network_endpoint::{EndpointV1, NetworkEndpointApi};
 use sqlite::*;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -44,7 +44,7 @@ pub fn api_to_integer(api: &NetworkEndpointApi) -> i64 {
     }
 }
 
-pub fn get_endpoints_for_api(db: &Connection, api: &NetworkEndpointApi) -> Vec<EndpointEnum> {
+pub fn get_endpoints_for_api(db: &Connection, api: &NetworkEndpointApi) -> Vec<EndpointV1> {
     let mut cursor: Cursor = db
         .prepare("SELECT hash_full_id, status, node_id, pubkey, api, version, endpoint, last_check FROM endpoints WHERE api=? ORDER BY status DESC;")
         .expect("get_endpoints_for_api() : Error in SQL request !")
@@ -61,12 +61,11 @@ pub fn get_endpoints_for_api(db: &Connection, api: &NetworkEndpointApi) -> Vec<E
         let raw_ep = row[6].as_string().unwrap().to_string();
         let ep_issuer =
             PubKey::Ed25519(ed25519::PublicKey::from_base58(row[3].as_string().unwrap()).unwrap());
-        let mut ep = match EndpointEnum::parse_from_raw(
+        let mut ep = match EndpointV1::parse_from_raw(
             &raw_ep,
             ep_issuer,
             row[1].as_integer().unwrap() as u32,
             row[7].as_integer().unwrap() as u64,
-            1u16,
         ) {
             Ok(ep) => ep,
             Err(e) => panic!(format!(
@@ -74,8 +73,8 @@ pub fn get_endpoints_for_api(db: &Connection, api: &NetworkEndpointApi) -> Vec<E
                 raw_ep, e
             )),
         };
-        ep.set_status(row[1].as_integer().unwrap() as u32);
-        ep.set_last_check(row[7].as_integer().unwrap() as u64);
+        ep.status = row[1].as_integer().unwrap() as u32;
+        ep.last_check = row[7].as_integer().unwrap() as u64;
 
         endpoints.push(ep);
     }
@@ -84,7 +83,7 @@ pub fn get_endpoints_for_api(db: &Connection, api: &NetworkEndpointApi) -> Vec<E
 
 pub fn write_endpoint(
     db: &Connection,
-    endpoint: &EndpointEnum,
+    endpoint: &EndpointV1,
     new_status: u32,
     new_last_check: u64,
 ) {
@@ -106,26 +105,24 @@ pub fn write_endpoint(
         .next()
         .expect("write_endpoint() : Error in cursor.next()")
     {
-        if row[0].as_integer().expect("fail to read ep status !") as u32 != endpoint.status() {
+        if row[0].as_integer().expect("fail to read ep status !") as u32 != endpoint.status {
             db.execute(format!(
                 "UPDATE endpoints SET status={} WHERE hash_full_id='{}'",
-                endpoint.status(),
-                hash_full_id
+                endpoint.status, hash_full_id
             ))
             .expect("Fail to parse SQL request update endpoint  status !");
         }
-    } else if let EndpointEnum::V1(ref ep_v10) = *endpoint {
+    } else {
+        let ep_v10 = endpoint;
         db
                     .execute(
                         format!(
                             "INSERT INTO endpoints (hash_full_id, status, node_id, pubkey, api, version, endpoint, last_check) VALUES ('{}', {}, {}, '{}', {}, {}, '{}', {});",
                             ep_v10.hash_full_id.expect("ep_v10.hash_full_id = None"), new_status, ep_v10.node_id.expect("ep_v10.node_id = None").0,
                             ep_v10.issuer.to_string(), api_to_integer(&ep_v10.api),
-                            ep_v10.version, ep_v10.raw_endpoint, new_last_check
+                            1, ep_v10.raw_endpoint, new_last_check
                         )
                     )
                     .expect("Fail to parse SQL request INSERT endpoint !");
-    } else {
-        panic!("write_endpoint() : Endpoint version is not supported !")
     }
 }

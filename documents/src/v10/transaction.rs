@@ -15,8 +15,7 @@
 
 //! Wrappers around Transaction documents.
 
-use crypto::digest::Digest;
-use crypto::sha2::Sha256;
+use dup_crypto::hashs::*;
 use pest::iterators::Pair;
 use pest::iterators::Pairs;
 use pest::Parser;
@@ -513,7 +512,6 @@ pub struct TransactionDocument {
 impl TransactionDocument {
     /// Compute transaction hash
     pub fn compute_hash(&mut self) -> Hash {
-        let mut sha256 = Sha256::new();
         let mut hashing_text = if let Some(ref text) = self.text {
             text.clone()
         } else {
@@ -522,8 +520,7 @@ impl TransactionDocument {
         hashing_text.push_str(&self.signatures[0].to_string());
         hashing_text.push_str("\n");
         //println!("tx_text_hasing={}", hashing_text);
-        sha256.input_str(&hashing_text);
-        self.hash = Some(Hash::from_hex(&sha256.result_str()).unwrap());
+        self.hash = Some(Hash::compute_str(&hashing_text));
         self.hash.expect("Try to get hash of a reduce tx !")
     }
     /// get transaction hash option

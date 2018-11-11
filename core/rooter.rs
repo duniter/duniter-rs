@@ -19,12 +19,15 @@ use duniter_conf;
 use duniter_conf::DuRsConf;
 use duniter_message::*;
 use duniter_module::*;
+use durs_network_documents::network_endpoint::EndpointEnum;
 use std::collections::HashMap;
 use std::sync::mpsc;
 use std::sync::mpsc::RecvTimeoutError;
 use std::thread;
 use std::time::Duration;
 use std::time::SystemTime;
+
+static MAX_REGISTRATION_DELAY: &'static u64 = &20;
 
 /// Start broadcasting thread
 fn start_broadcasting_thread(
@@ -38,17 +41,27 @@ fn start_broadcasting_thread(
     let mut pool_msgs: HashMap<DursMsgReceiver, Vec<DursMsgContent>> = HashMap::new();
     let mut events_subscriptions: HashMap<ModuleEvent, Vec<ModuleStaticName>> = HashMap::new();
     let mut roles: HashMap<ModuleRole, Vec<ModuleStaticName>> = HashMap::new();
+    let mut registrations_count = 0;
+    let mut expected_registrations_count = None;
+    let mut local_node_endpoints: Vec<EndpointEnum> = Vec::new();
+    let mut reserved_apis_name: HashMap<ModuleStaticName, Vec<String>> = HashMap::new();
 
     loop {
         match receiver.recv_timeout(Duration::from_secs(1)) {
             Ok(mess) => {
                 match mess {
-                    RooterThreadMessage::ModuleSender(
+                    RooterThreadMessage::ModulesCount(modules_count) => {
+                        expected_registrations_count = Some(modules_count)
+                    }
+                    RooterThreadMessage::ModuleRegistration(
                         module_static_name,
                         module_sender,
                         sender_roles,
                         events_subscription,
+                        module_reserved_apis_name,
+                        mut module_endpoints,
                     ) => {
+                        registrations_count += 1;
                         // For all events
                         for event in events_subscription {
                             // Send pending message of this event
@@ -92,6 +105,41 @@ fn start_broadcasting_thread(
                                 .entry(role)
                                 .or_insert_with(Vec::new)
                                 .push(module_static_name);
+                        }
+                        // For all endpoints
+                        for ep in &module_endpoints {
+                            let ep_api = ep.api();
+                            if !module_reserved_apis_name.contains(&ep_api.0) {
+                                panic!("Fatal error : Module {} try to declare endpoint with undeclared api name: {} !", module_static_name.0, ep_api.0);
+                            }
+                            for other_module_ep in &local_node_endpoints {
+                                if ep_api == other_module_ep.api() {
+                                    panic!("Fatal error : two modules try to declare endpoint of same api : {} !", ep_api.0);
+                                }
+                            }
+                        }
+                        // Store reserved APIs name
+                        reserved_apis_name.insert(module_static_name, module_reserved_apis_name);
+                        // Add module endpoints to local node endpoints
+                        local_node_endpoints.append(&mut module_endpoints);
+                        // Send endpoints to network module
+                        if expected_registrations_count.is_some()
+                            && registrations_count == expected_registrations_count.unwrap()
+                        {
+                            // Get list of InterNodesNetwork modules
+                            let receivers = roles
+                                .get(&ModuleRole::InterNodesNetwork)
+                                .expect("Fatal error : no module with role InterNodesNetwork !")
+                                .to_vec();
+                            // Send endpoints to receivers
+                            send_msg_to_several_receivers(
+                                DursMsg(
+                                    DursMsgReceiver::Role(ModuleRole::InterNodesNetwork),
+                                    DursMsgContent::Endpoints(local_node_endpoints.clone()),
+                                ),
+                                &receivers,
+                                &modules_senders,
+                            );
                         }
                         // Add this sender to modules_senders
                         modules_senders.insert(module_static_name, module_sender);
@@ -174,6 +222,20 @@ fn start_broadcasting_thread(
                     panic!("Fatal error : rooter thread disconnnected !")
                 }
             },
+        }
+        if (expected_registrations_count.is_none()
+            || registrations_count < expected_registrations_count.unwrap())
+            && SystemTime::now()
+                .duration_since(start_time)
+                .expect("Duration error !")
+                .as_secs()
+                > *MAX_REGISTRATION_DELAY
+        {
+            panic!(
+                "{} modules have registered, but expected {} !",
+                registrations_count,
+                expected_registrations_count.unwrap_or(0)
+            );
         }
     }
 }
@@ -303,11 +365,23 @@ pub fn start_rooter(
             match rooter_receiver.recv_timeout(Duration::from_secs(1)) {
                 Ok(mess) => {
                     match mess {
-                        RooterThreadMessage::ModuleSender(
+                        RooterThreadMessage::ModulesCount(expected_registrations_count) => {
+                            // Relay to broadcasting thread
+                            broadcasting_sender
+                                .send(RooterThreadMessage::ModulesCount(
+                                    expected_registrations_count,
+                                ))
+                                .expect(
+                                    "Fail to relay ModulesCount message to broadcasting thread !",
+                                );
+                        }
+                        RooterThreadMessage::ModuleRegistration(
                             module_static_name,
                             module_sender,
                             events_subscription,
                             sender_roles,
+                            _module_reserved_apis_name,
+                            _module_endpoints,
                         ) => {
                             // Send pending messages destined specifically to this module
                             if let Some(msgs) = pool_msgs.remove(&module_static_name) {
@@ -329,13 +403,17 @@ pub fn start_rooter(
                             modules_senders.insert(module_static_name, module_sender.clone());
                             // Relay to broadcasting thread
                             broadcasting_sender
-                                .send(RooterThreadMessage::ModuleSender(
+                                .send(RooterThreadMessage::ModuleRegistration(
                                     module_static_name,
                                     module_sender,
                                     events_subscription,
                                     sender_roles,
+                                    vec![],
+                                    vec![],
                                 ))
-                                .expect("Fail to relay message to broadcasting thread !");
+                                .expect(
+                                    "Fail to relay module registration to broadcasting thread !",
+                                );
                             // Log the number of modules_senders received
                             info!(
                                 "Rooter thread receive {} module senders",
@@ -369,13 +447,13 @@ pub fn start_rooter(
                                         broadcasting_sender
                                             .send(RooterThreadMessage::ModuleMessage(msg))
                                             .expect(
-                                                "Fail to relay message to broadcasting thread !",
+                                                "Fail to relay specific role message to broadcasting thread !",
                                             );
                                     }
                                 }
                                 DursMsgReceiver::Event(_module_event) => broadcasting_sender
                                     .send(RooterThreadMessage::ModuleMessage(msg))
-                                    .expect("Fail to relay message to broadcasting thread !"),
+                                    .expect("Fail to relay specific event message to broadcasting thread !"),
                                 DursMsgReceiver::One(module_static_name) => {
                                     if let Some(module_sender) =
                                         modules_senders.get(&module_static_name)

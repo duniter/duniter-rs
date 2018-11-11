@@ -40,6 +40,7 @@ extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
 extern crate dup_crypto;
+extern crate durs_network_documents;
 extern crate log_panics;
 extern crate serde_json;
 extern crate simplelog;
@@ -206,7 +207,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             keypairs: None,
             run_duration_in_secs,
             rooter_sender: None,
-            modules_count: 0,
+            modules_count: 1, // Count blockchain module
             network_modules_count: 0,
             thread_pool: ThreadPool::new(*THREAD_POOL_SIZE),
         }
@@ -441,15 +442,22 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                 panic!("Try to start core without rooter_sender !");
             };
 
-            // Send blockchain sender to rooter thread
+            // Send expected modules count to rooter thread
             rooter_sender
-                .send(RooterThreadMessage::ModuleSender(
+                .send(RooterThreadMessage::ModulesCount(self.modules_count))
+                .expect("Fatal error: fail to send expected modules count to rooter thread !");
+
+            // Send blockchain module registration to rooter thread
+            rooter_sender
+                .send(RooterThreadMessage::ModuleRegistration(
                     BlockchainModule::name(),
                     blockchain_sender,
                     vec![ModuleRole::BlockchainDatas, ModuleRole::BlockValidation],
                     vec![ModuleEvent::NewBlockFromNetwork],
+                    vec![],
+                    vec![],
                 ))
-                .expect("Fatal error: fail to send blockchain sender to rooter thread !");
+                .expect("Fatal error: fail to send blockchain registration to rooter thread !");
 
             // Instantiate blockchain module and load is conf
             let mut blockchain_module = BlockchainModule::load_blockchain_conf(

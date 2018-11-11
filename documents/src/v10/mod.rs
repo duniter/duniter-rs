@@ -22,7 +22,6 @@ pub mod membership;
 pub mod revocation;
 pub mod transaction;
 
-use crypto::digest::Digest;
 use dup_crypto::keys::PrivateKey;
 use pest::Parser;
 
@@ -147,12 +146,6 @@ pub trait TextDocument: Document<PublicKey = PubKey, CurrencyType = str> {
             sigs_str_len += lines.pop().unwrap_or("").len();
         }
         &text[0..(text.len() - sigs_str_len)]
-    }
-
-    /// Return sha256 hash of text document
-    fn hash<H: Digest>(&self, digest: &mut H) -> String {
-        digest.input_str(self.as_text());
-        digest.result_str()
     }
 
     /*/// Return document as text with leading signatures.

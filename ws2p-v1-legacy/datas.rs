@@ -37,7 +37,7 @@ pub struct WS2PModuleDatas {
         mpsc::Sender<WS2PThreadSignal>,
         mpsc::Receiver<WS2PThreadSignal>,
     ),
-    pub ws2p_endpoints: HashMap<NodeFullId, (EndpointEnum, WS2PConnectionState)>,
+    pub ws2p_endpoints: HashMap<NodeFullId, (EndpointV1, WS2PConnectionState)>,
     pub websockets: HashMap<NodeFullId, WsSender>,
     pub requests_awaiting_response:
         HashMap<ModuleReqId, (OldNetworkRequest, NodeFullId, SystemTime)>,
@@ -169,18 +169,17 @@ impl WS2PModuleDatas {
         let mut reachable_endpoints = Vec::new();
         let mut unreachable_endpoints = Vec::new();
         for (_ws2p_full_id, (ep, state)) in self.ws2p_endpoints.clone() {
-            if ep.pubkey() == self.key_pair.unwrap().public_key() || !pubkeys.contains(&ep.pubkey())
-            {
+            if ep.issuer == self.key_pair.unwrap().public_key() || !pubkeys.contains(&ep.issuer) {
                 match state {
                     WS2PConnectionState::Established => count_established_connections += 1,
                     WS2PConnectionState::NeverTry
                     | WS2PConnectionState::Close
                     | WS2PConnectionState::Denial => {
-                        pubkeys.insert(ep.pubkey());
+                        pubkeys.insert(ep.issuer);
                         reachable_endpoints.push(ep);
                     }
                     _ => {
-                        pubkeys.insert(ep.pubkey());
+                        pubkeys.insert(ep.issuer);
                         unreachable_endpoints.push(ep);
                     }
                 }
@@ -200,13 +199,13 @@ impl WS2PModuleDatas {
             } else {
                 break;
             };
-            if cfg!(feature = "ssl") || ep.port() != 443 {
+            if cfg!(feature = "ssl") || ep.port != 443 {
                 self.connect_to_without_checking_quotas(&ep);
                 free_outcoming_rooms -= 1;
             }
         }
     }
-    pub fn connect_to(&mut self, endpoint: &EndpointEnum) {
+    pub fn connect_to(&mut self, endpoint: &EndpointV1) {
         // Add endpoint to endpoints list (if there isn't already)
         match self.ws2p_endpoints.get(
             &endpoint
@@ -529,7 +528,7 @@ impl WS2PModuleDatas {
         Ok(())
     }
 
-    fn connect_to_without_checking_quotas(&mut self, endpoint: &EndpointEnum) {
+    fn connect_to_without_checking_quotas(&mut self, endpoint: &EndpointV1) {
         let endpoint_copy = endpoint.clone();
         let conductor_sender_copy = self.main_thread_channel.0.clone();
         let currency_copy = self.currency.clone();

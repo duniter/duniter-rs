@@ -29,6 +29,7 @@
 extern crate base58;
 extern crate duniter_documents;
 extern crate dup_crypto;
+extern crate hex;
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;
@@ -55,6 +56,12 @@ use std::fmt::{Display, Error, Formatter};
 /// Parser for network documents
 struct NetworkDocsParser;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// ParseError
+pub enum ParseError {
+    /// Pest grammar error
+    PestError(String),
+}
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Random identifier with which several Duniter nodes with the same network keypair can be differentiated
 pub struct NodeId(pub u32);
@@ -134,9 +141,8 @@ mod tests {
         let node_id = NodeId(u32::from_str_radix("c1c39a0a", 16).unwrap());
         let full_id = NodeFullId(node_id, issuer);
         assert_eq!(
-            EndpointEnum::parse_from_raw("WS2P c1c39a0a i3.ifee.fr 80 /ws2p", issuer, 0, 0, 1),
-            Ok(EndpointEnum::V1(EndpointEnumV1 {
-                version: 1,
+            EndpointV1::parse_from_raw("WS2P c1c39a0a i3.ifee.fr 80 /ws2p", issuer, 0, 0),
+            Ok(EndpointV1 {
                 issuer,
                 api: NetworkEndpointApi(String::from("WS2P")),
                 node_id: Some(node_id),
@@ -147,7 +153,7 @@ mod tests {
                 raw_endpoint: String::from("WS2P c1c39a0a i3.ifee.fr 80 /ws2p"),
                 last_check: 0,
                 status: 0,
-            },))
+            })
         );
     }
 
@@ -160,9 +166,8 @@ mod tests {
         let node_id = NodeId(u32::from_str_radix("cb06a19b", 16).unwrap());
         let full_id = NodeFullId(node_id, issuer);
         assert_eq!(
-            EndpointEnum::parse_from_raw("WS2P cb06a19b g1.imirhil.fr 53012 /", issuer, 0, 0, 1),
-            Ok(EndpointEnum::V1(EndpointEnumV1 {
-                version: 1,
+            EndpointV1::parse_from_raw("WS2P cb06a19b g1.imirhil.fr 53012", issuer, 0, 0),
+            Ok(EndpointV1 {
                 issuer,
                 api: NetworkEndpointApi(String::from("WS2P")),
                 node_id: Some(node_id),
@@ -170,10 +175,10 @@ mod tests {
                 host: String::from("g1.imirhil.fr"),
                 port: 53012,
                 path: None,
-                raw_endpoint: String::from("WS2P cb06a19b g1.imirhil.fr 53012 /"),
+                raw_endpoint: String::from("WS2P cb06a19b g1.imirhil.fr 53012"),
                 last_check: 0,
                 status: 0,
-            },))
+            })
         );
     }
 }
