@@ -15,7 +15,7 @@
 
 //! Module defining the format of network heads v2 and how to handle them.
 
-use duniter_documents::blockstamp::*;
+use dubp_documents::blockstamp::*;
 use dup_crypto::keys::*;
 use std::cmp::Ordering;
 use std::num::ParseIntError;

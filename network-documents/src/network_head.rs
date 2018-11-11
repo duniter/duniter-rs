@@ -15,7 +15,7 @@
 
 //! Module defining the format of network heads and how to handle them.
 
-use duniter_documents::blockstamp::*;
+use dubp_documents::blockstamp::*;
 use dup_crypto::keys::*;
 use network_head_v2::*;
 use network_head_v3::*;

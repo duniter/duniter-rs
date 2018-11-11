@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use duniter_documents::Blockstamp;
+use dubp_documents::Blockstamp;
 use dup_crypto::hashs::Hash;
 use std::num::NonZeroU16;
 
@@ -48,7 +48,7 @@ pub struct WS2Pv2SyncTarget {
 mod tests {
     use super::super::*;
     use super::*;
-    use duniter_documents::Blockstamp;
+    use dubp_documents::Blockstamp;
     use std::num::NonZeroU16;
     use tests::*;
 

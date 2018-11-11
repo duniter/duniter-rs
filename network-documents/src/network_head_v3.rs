@@ -16,8 +16,8 @@
 //! Module defining the format of network heads v3 and how to handle them.
 
 use base58::ToBase58;
-use duniter_documents::blockstamp::Blockstamp;
-use duniter_documents::{BlockHash, BlockId, CurrencyName, ToJsonObject};
+use dubp_documents::blockstamp::Blockstamp;
+use dubp_documents::{BlockHash, BlockId, CurrencyName, ToJsonObject};
 use dup_crypto::keys::text_signable::TextSignable;
 use dup_crypto::keys::*;
 use pest::iterators::Pair;

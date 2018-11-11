@@ -22,9 +22,9 @@ pub mod transactions;
 #[cfg(test)]
 mod tests {
     use super::transactions::*;
-    use duniter_documents::v10::transaction::*;
-    use duniter_documents::Blockstamp;
-    use duniter_documents::DocumentBuilder;
+    use dubp_documents::v10::transaction::*;
+    use dubp_documents::Blockstamp;
+    use dubp_documents::DocumentBuilder;
     use dup_crypto::keys::*;
     use std::str::FromStr;
 

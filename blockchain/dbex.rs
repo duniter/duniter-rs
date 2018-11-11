@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use dubp_documents::v10::transaction::*;
 use duniter_dal::identity::DALIdentity;
-use duniter_documents::v10::transaction::*;
 use duniter_module::DuniterConf;
 use dup_crypto::keys::*;
 use durs_wot::data::rusty::RustyWebOfTrust;

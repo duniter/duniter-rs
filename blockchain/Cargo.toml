@@ -13,7 +13,7 @@ dirs = "1.0.2"
 duniter-conf = { path = "../conf" }
 dup-crypto = { path = "../crypto" }
 duniter-dal = { path = "../dal" }
-duniter-documents = { path = "../documents" }
+dubp-documents= { path = "../documents" }
 durs-network-documents = { path = "../network-documents" }
 duniter-message =  { path = "../message" }
 duniter-module = { path = "../module" }

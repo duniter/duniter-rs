@@ -32,14 +32,14 @@
 #[macro_use]
 extern crate serde_derive;
 
-extern crate duniter_documents;
+extern crate dubp_documents;
 extern crate dup_crypto;
 extern crate durs_network_documents;
 extern crate serde;
 extern crate serde_json;
 extern crate structopt;
 
-use duniter_documents::CurrencyName;
+use dubp_documents::CurrencyName;
 use dup_crypto::keys::{KeyPair, KeyPairEnum};
 use durs_network_documents::network_endpoint::EndpointEnum;
 use serde::de::DeserializeOwned;

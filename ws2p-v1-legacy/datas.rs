@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use constants::*;
+use dubp_documents::Blockstamp;
 use duniter_dal::dal_requests::DALRequest;
-use duniter_documents::Blockstamp;
 use duniter_message::*;
 use duniter_network::*;
 use dup_crypto::keys::*;

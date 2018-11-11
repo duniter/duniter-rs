@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use duniter_documents::v10::transaction::*;
+use dubp_documents::v10::transaction::*;
 
 use sources::{SourceAmount, SourceIndexV10, UTXOIndexV10, UTXOV10};
 use *;
@@ -414,7 +414,7 @@ pub fn apply_and_write_tx(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use duniter_documents::{Document, DocumentBuilder, VerificationResult};
+    use dubp_documents::{Document, DocumentBuilder, VerificationResult};
     use std::str::FromStr;
 
     fn build_first_tx_of_g1() -> TransactionDocument {

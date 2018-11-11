@@ -36,7 +36,7 @@ extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 
-extern crate duniter_documents;
+extern crate dubp_documents;
 extern crate dup_crypto;
 extern crate durs_wot;
 extern crate rustbreak;
@@ -78,10 +78,10 @@ pub mod tools;
 /// Contains all write databases functions
 pub mod writers;
 
-use duniter_documents::v10::block::BlockV10Parameters;
-use duniter_documents::v10::transaction::*;
-use duniter_documents::CurrencyName;
-use duniter_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
+use dubp_documents::v10::block::BlockV10Parameters;
+use dubp_documents::v10::transaction::*;
+use dubp_documents::CurrencyName;
+use dubp_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_wot::{NodeId, WebOfTrust};

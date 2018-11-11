@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use block::DALBlock;
-use duniter_documents::Document;
-use duniter_documents::{BlockHash, BlockId, PreviousBlockstamp};
+use dubp_documents::Document;
+use dubp_documents::{BlockHash, BlockId, PreviousBlockstamp};
 use std::collections::HashMap;
 use ForkId;
 use {BinDB, DALError, ForksBlocksV10Datas, ForksV10Datas, LocalBlockchainV10Datas};

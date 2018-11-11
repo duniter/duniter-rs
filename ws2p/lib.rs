@@ -35,8 +35,8 @@ extern crate serde_derive;
 extern crate structopt;
 
 extern crate bincode;
+extern crate dubp_documents;
 extern crate duniter_conf;
-extern crate duniter_documents;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;

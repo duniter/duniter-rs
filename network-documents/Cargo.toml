@@ -1,6 +1,6 @@
 [package]
 name = "durs-network-documents"
-version = "0.1.0-a0.1"
+version = "0.2.0-b1"
 authors = ["librelois <elois@duniter.org>"]
 description = "Network documents for DUNP (DUniter Network Protocol)"
 license = "AGPL-3.0"
@@ -11,7 +11,7 @@ path = "src/lib.rs"
 [dependencies]
 base58 = "0.1.*"
 dup-crypto = { path = "../crypto" }
-duniter-documents = { path = "../documents" }
+dubp-documents= { path = "../documents" }
 hex = "0.3.*"
 pest = "2.0"
 pest_derive = "2.0"

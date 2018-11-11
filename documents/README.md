@@ -7,4 +7,4 @@
 
 ## How to use it
 
-You can add `duniter-documents` as a `cargo` dependency in your Rust project.
+You can add `dubp-documents` as a `cargo` dependency in your Rust project.

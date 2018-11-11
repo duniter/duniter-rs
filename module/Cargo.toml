@@ -10,7 +10,7 @@ path = "lib.rs"
 
 [dependencies]
 dup-crypto = { path = "../crypto" }
-duniter-documents = { path = "../documents" }
+dubp-documents= { path = "../documents" }
 durs-network-documents = { path = "../network-documents" }
 serde = "1.0.*"
 serde_derive = "1.0.*"
