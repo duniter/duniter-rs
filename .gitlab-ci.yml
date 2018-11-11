@@ -215,7 +215,6 @@ package:prod:linux64:
     expire_in: 2 weeks
   only:
     - tags
-    - dev
   when: manual
   allow_failure: false
 
@@ -230,7 +229,6 @@ package:prod:armv7:
     expire_in: 2 weeks
   only:
     - tags
-    - dev
   when: manual
   allow_failure: false
 
@@ -245,7 +243,6 @@ package:prod:win64:
     expire_in: 2 weeks
   only:
     - tags
-    - dev
   when: manual
   allow_failure: false
 
@@ -257,7 +254,6 @@ package:prod:win64:
     - python3 .gitlab/releaser
   only:
     - tags
-    - dev
 
 prerelease:
   <<: *release_jobs
