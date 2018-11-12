@@ -90,7 +90,7 @@ pub enum TextDocumentParseError {
 }
 
 /// Document of DUBP (DUniter Blockhain Protocol)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DUBPDocument {
     /// Version 10.
     V10(Box<v10::V10Document>),

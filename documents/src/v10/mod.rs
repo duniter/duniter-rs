@@ -53,7 +53,7 @@ impl<D: TextDocument> TextDocumentFormat<D> {
 }
 
 /// List of wrapped document types.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum V10Document {
     /// Block document.
     Block(Box<BlockDocument>),
