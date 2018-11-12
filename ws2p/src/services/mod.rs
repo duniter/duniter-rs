@@ -56,7 +56,7 @@ pub enum Ws2pServiceSender {
     /// A valid head has been received
     ReceiveValidHead(NetworkHead),
     /// A valid peer has been received
-    ReceiveValidPeer(PeerCard),
+    ReceiveValidPeer(Box<PeerCard>),
     /// A valid blockchain document has been received
     ReceiveValidDocument(BlockchainDocument),
 }
