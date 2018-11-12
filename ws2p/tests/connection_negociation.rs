@@ -1,10 +1,10 @@
-extern crate duniter_documents;
+extern crate dubp_documents;
 extern crate dup_crypto;
 extern crate durs_network_documents;
 extern crate durs_ws2p;
 extern crate durs_ws2p_messages;
 
-use duniter_documents::CurrencyName;
+use dubp_documents::CurrencyName;
 use dup_crypto::keys::KeyPair;
 use dup_crypto::keys::*;
 use durs_network_documents::network_endpoint::*;
@@ -103,7 +103,7 @@ fn test_connection_negociation() {
                 server_node_clone.my_node_id,
                 server_node_clone.my_key_pair.public_key(),
             )),
-            &EndpointV2::parse_from_raw(&format!("WS2P 2 0 0 {} localhost", *PORT), 0, 0)
+            &EndpointV2::parse_from_raw(&format!("WS2P 2 localhost {}", *PORT))
                 .expect("Fail to parse endpoint"),
         )
     });

@@ -15,7 +15,7 @@
 
 //! WS2P outgoing Services
 
-use duniter_documents::CurrencyName;
+use dubp_documents::CurrencyName;
 use durs_network_documents::NodeFullId;
 use services::*;
 use std::collections::HashMap;
@@ -87,12 +87,21 @@ impl WS2POutgoingService {
     }
 
     /// Connect to WSPv2 Endpoint
-    pub fn connect_to_ws2p_v2_endpoint(&self, endpoint: &EndpointEnum) -> Result<(), WsError> {
+    pub fn connect_to_ws2p_v2_endpoint(
+        &self,
+        endpoint: &EndpointEnum,
+        remote_node_id: Option<NodeId>,
+    ) -> Result<(), WsError> {
+        let expected_remote_full_id = if let Some(remote_node_id) = remote_node_id {
+            Some(NodeFullId(remote_node_id, endpoint.pubkey()))
+        } else {
+            None
+        };
         match controllers::outgoing_connections::connect_to_ws2p_v2_endpoint(
             &self.currency,
             &self.sender,
             &self.self_node,
-            endpoint.node_full_id(),
+            expected_remote_full_id,
             endpoint,
         ) {
             Ok(_) => Ok(()),

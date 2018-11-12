@@ -16,6 +16,7 @@
 //! Defined network requests.
 
 use documents::*;
+use dubp_documents::Blockstamp;
 use duniter_module::*;
 use *;
 

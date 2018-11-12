@@ -24,7 +24,7 @@ use controllers::ws::{util::Token, CloseCode, /*Frame,*/ Handler, Handshake, Mes
 use controllers::*;
 use services::*;
 //use dup_crypto::keys::KeyPairEnum;
-use duniter_documents::CurrencyName;
+use dubp_documents::CurrencyName;
 use durs_network_documents::NodeFullId;
 //use durs_ws2p_messages::v2::api_features::WS2PFeatures;
 use durs_ws2p_messages::v2::connect::generate_connect_message;

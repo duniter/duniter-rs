@@ -19,7 +19,7 @@ extern crate ws;
 
 //use constants::*;
 use self::ws::Sender;
-use duniter_documents::Blockstamp;
+use dubp_documents::Blockstamp;
 use dup_crypto::hashs::Hash;
 //use dup_crypto::keys::*;
 use durs_network_documents::network_peer::PeerCardV11;

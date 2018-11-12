@@ -935,7 +935,7 @@ mod tests {
     use duniter_module::DuniterModule;
     use duniter_network::documents::NetworkBlock;
     use dup_crypto::keys::PublicKey;
-    use durs_network_documents::network_endpoint::{EndpointEnum, NetworkEndpointApi};
+    use durs_network_documents::network_endpoint::NetworkEndpointApi;
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};

@@ -15,7 +15,7 @@
 
 //! WS2P outgoing connections controllers.
 
-use duniter_documents::CurrencyName;
+use dubp_documents::CurrencyName;
 //use duniter_module::ModuleReqId;
 use controllers::handler::Ws2pConnectionHandler;
 use controllers::ws::connect;

@@ -15,7 +15,6 @@ dup-crypto = { path = "../crypto" }
 dubp-documents= { path = "../documents" }
 durs-network-documents = { path = "../network-documents" }
 durs-ws2p-messages = { path = "../ws2p-messages" }
-duniter-documents = { path = "../documents" }
 duniter-message= { path = "../message" }
 duniter-module = { path = "../module" }
 duniter-network = { path = "../network" }

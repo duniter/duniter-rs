@@ -15,14 +15,14 @@
 
 //! Defined all network documents
 
-use duniter_documents::v10::block::BlockDocument;
-use duniter_documents::v10::certification::CertificationDocument;
-use duniter_documents::v10::identity::IdentityDocument;
-use duniter_documents::v10::membership::MembershipDocument;
-use duniter_documents::v10::revocation::RevocationDocument;
-use duniter_documents::v10::transaction::TransactionDocument;
-use duniter_documents::Document;
-use duniter_documents::{BlockHash, BlockId, Blockstamp};
+use dubp_documents::v10::block::BlockDocument;
+use dubp_documents::v10::certification::CertificationDocument;
+use dubp_documents::v10::identity::IdentityDocument;
+use dubp_documents::v10::membership::MembershipDocument;
+use dubp_documents::v10::revocation::RevocationDocument;
+use dubp_documents::v10::transaction::TransactionDocument;
+use dubp_documents::Document;
+use dubp_documents::{BlockHash, BlockId, Blockstamp};
 use serde_json;
 use std::ops::Deref;
 

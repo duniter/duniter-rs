@@ -330,6 +330,7 @@ impl EndpointV2 {
             let ip_v4 = self.ip_v4.unwrap();
             format!("{}", ip_v4)
         } else {
+            println!("DEBUG: endpoint_v2={:?}", self);
             // Unreacheable endpoint
             return None;
         };
@@ -566,6 +567,28 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_and_read_localhost_endpoint() {
+        let str_endpoint = "WS2P localhost 10900";
+        let endpoint = EndpointV2 {
+            api: NetworkEndpointApi(String::from("WS2P")),
+            api_version: 0,
+            network_features: EndpointV2NetworkFeatures(vec![]),
+            api_features: ApiFeatures(vec![]),
+            ip_v4: None,
+            ip_v6: None,
+            host: Some(String::from("localhost")),
+            port: 10900u16,
+            path: None,
+        };
+        test_parse_and_read_endpoint(str_endpoint, endpoint.clone());
+        // test get_url()
+        assert_eq!(
+            endpoint.get_url(true, false),
+            Some("ws://localhost:10900/".to_owned())
+        );
+    }
+
+    #[test]
     fn test_parse_and_read_classic_v1_endpoint() {
         let str_endpoint = "ES_CORE_API g1.data.duniter.fr 443";
         let endpoint = EndpointV2 {
@@ -596,7 +619,12 @@ mod tests {
             port: 443u16,
             path: Some(String::from("ws2p")),
         };
-        test_parse_and_read_endpoint(str_endpoint, endpoint);
+        test_parse_and_read_endpoint(str_endpoint, endpoint.clone());
+        // test get_url()
+        assert_eq!(
+            endpoint.get_url(true, false),
+            Some("wss://g1.durs.ifee.fr:443/ws2p".to_owned()),
+        );
     }
 
     #[test]

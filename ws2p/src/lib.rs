@@ -45,8 +45,8 @@ extern crate durs_network_documents;
 extern crate durs_ws2p_messages;
 
 mod constants;
-mod generate_peer;
 pub mod controllers;
+mod generate_peer;
 pub mod services;
 
 use constants::*;
