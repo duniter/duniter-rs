@@ -37,9 +37,9 @@ extern crate serde_json;
 extern crate structopt;
 
 extern crate byteorder;
+extern crate dubp_documents;
 extern crate duniter_conf;
 extern crate duniter_dal;
-extern crate duniter_documents;
 extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
@@ -65,10 +65,10 @@ use ack_message::WS2PAckMessageV1;
 use connect_message::WS2PConnectMessageV1;
 use constants::*;
 use datas::*;
+use dubp_documents::Blockstamp;
 use duniter_conf::DuRsConf;
 use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALReqBlockchain, DALRequest, DALResBlockchain, DALResponse};
-use duniter_documents::Blockstamp;
 use duniter_message::*;
 use duniter_module::*;
 use duniter_network::*;
@@ -918,9 +918,9 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
 
 #[cfg(test)]
 mod tests {
+    extern crate dubp_documents;
     extern crate duniter_conf;
     extern crate duniter_dal;
-    extern crate duniter_documents;
     extern crate duniter_message;
     extern crate duniter_module;
     extern crate duniter_network;
@@ -928,7 +928,7 @@ mod tests {
 
     use super::parsers::blocks::parse_json_block;
     use super::*;
-    use duniter_documents::v10::BlockDocument;
+    use dubp_documents::v10::BlockDocument;
     use duniter_module::DuniterModule;
     use duniter_network::NetworkBlock;
     use dup_crypto::keys::PublicKey;

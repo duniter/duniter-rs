@@ -1,8 +1,8 @@
 extern crate serde_json;
 
-use duniter_documents::v10::identity::*;
-use duniter_documents::Blockstamp;
-use duniter_documents::DocumentBuilder;
+use dubp_documents::v10::identity::*;
+use dubp_documents::Blockstamp;
+use dubp_documents::DocumentBuilder;
 use dup_crypto::keys::*;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

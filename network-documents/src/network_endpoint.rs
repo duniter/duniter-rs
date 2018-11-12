@@ -15,7 +15,7 @@
 
 //! Module defining the format of network endpoints and how to handle them.
 
-extern crate duniter_documents;
+extern crate dubp_documents;
 extern crate dup_crypto;
 extern crate serde;
 

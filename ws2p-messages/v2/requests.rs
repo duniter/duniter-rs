@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use duniter_documents::{BlockId, Blockstamp};
+use dubp_documents::{BlockId, Blockstamp};
 
 /// WS2Pv2Request
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -74,7 +74,7 @@ impl WS2Pv2RequestBody {
 mod tests {
     use super::super::*;
     use super::*;
-    use duniter_documents::Blockstamp;
+    use dubp_documents::Blockstamp;
     use tests::*;
 
     #[test]

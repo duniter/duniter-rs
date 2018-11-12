@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use constants::*;
-use duniter_documents::v10::block::BlockV10Parameters;
-use duniter_documents::CurrencyName;
+use dubp_documents::v10::block::BlockV10Parameters;
+use dubp_documents::CurrencyName;
 use *;
 
 #[derive(Debug, Copy, Clone)]

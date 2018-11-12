@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use duniter_documents::Blockstamp;
+use dubp_documents::Blockstamp;
 use durs_network_documents::network_head_v2::*;
 use *;
 

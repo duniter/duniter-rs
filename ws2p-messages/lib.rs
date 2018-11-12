@@ -36,7 +36,7 @@ extern crate serde_derive;
 
 extern crate bincode;
 extern crate byteorder;
-extern crate duniter_documents;
+extern crate dubp_documents;
 extern crate dup_crypto;
 extern crate durs_network_documents;
 
@@ -56,8 +56,8 @@ pub enum WS2PMessage {
 mod tests {
     use bincode;
     use bincode::{deserialize, serialize};
-    use duniter_documents::v10::certification::*;
-    use duniter_documents::{Blockstamp, CurrencyName};
+    use dubp_documents::v10::certification::*;
+    use dubp_documents::{Blockstamp, CurrencyName};
     use dup_crypto::keys::bin_signable::BinSignable;
     use dup_crypto::keys::*;
     use durs_network_documents::network_endpoint::*;

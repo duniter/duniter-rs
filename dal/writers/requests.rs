@@ -15,9 +15,9 @@
 
 use block::DALBlock;
 use currency_params::CurrencyParameters;
-use duniter_documents::v10::certification::CompactCertificationDocument;
-use duniter_documents::v10::identity::IdentityDocument;
-use duniter_documents::Blockstamp;
+use dubp_documents::v10::certification::CompactCertificationDocument;
+use dubp_documents::v10::identity::IdentityDocument;
+use dubp_documents::Blockstamp;
 use dup_crypto::keys::PubKey;
 use durs_wot::NodeId;
 use identity::DALIdentity;
