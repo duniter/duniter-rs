@@ -43,7 +43,10 @@ use dubp_documents::DUBPDocument;
 use duniter_dal::dal_event::DALEvent;
 use duniter_dal::dal_requests::{DALRequest, DALResponse};
 use duniter_module::*;
-use duniter_network::{NetworkEvent, NetworkResponse, OldNetworkRequest};
+use duniter_network::{
+    events::NetworkEvent,
+    requests::{NetworkResponse, OldNetworkRequest},
+};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::Sig;
 use durs_network_documents::network_endpoint::EndpointEnum;

@@ -75,7 +75,9 @@ use duniter_dal::*;
 use duniter_message::*;
 use duniter_module::*;
 use duniter_network::{
-    BlockchainDocument, NetworkBlock, NetworkEvent, NetworkResponse, OldNetworkRequest,
+    documents::{BlockchainDocument, NetworkBlock},
+    events::NetworkEvent,
+    requests::{NetworkResponse, OldNetworkRequest},
 };
 use dup_crypto::keys::*;
 use durs_network_documents::NodeFullId;

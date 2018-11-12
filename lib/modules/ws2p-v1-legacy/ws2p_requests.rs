@@ -3,7 +3,7 @@ extern crate dup_crypto;
 extern crate serde;
 extern crate serde_json;
 
-use duniter_network::OldNetworkRequest;
+use duniter_network::requests::OldNetworkRequest;
 
 pub fn network_request_to_json(request: &OldNetworkRequest) -> serde_json::Value {
     let (request_id, request_type, request_params) = match *request {

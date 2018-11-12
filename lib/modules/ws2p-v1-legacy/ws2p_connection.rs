@@ -1,6 +1,6 @@
 use constants::*;
 use duniter_module::ModuleReqId;
-use duniter_network::BlockchainDocument;
+use duniter_network::documents::BlockchainDocument;
 use dup_crypto::keys::*;
 use durs_network_documents::network_endpoint::{EndpointV1, NetworkEndpointApi};
 use durs_network_documents::NodeId;

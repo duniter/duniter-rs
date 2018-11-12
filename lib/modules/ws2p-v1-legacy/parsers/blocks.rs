@@ -8,7 +8,7 @@ use dubp_documents::v10::membership::*;
 use dubp_documents::v10::BlockDocument;
 use dubp_documents::CurrencyName;
 use dubp_documents::{BlockHash, BlockId};
-use duniter_network::{NetworkBlock, NetworkBlockV10};
+use duniter_network::documents::{NetworkBlock, NetworkBlockV10};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use std::str::FromStr;

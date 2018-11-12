@@ -52,7 +52,7 @@ use duniter_conf::DuRsConf;
 use duniter_dal::dal_event::DALEvent;
 use duniter_message::*;
 use duniter_module::*;
-use duniter_network::NetworkEvent;
+use duniter_network::events::NetworkEvent;
 use durs_network_documents::network_head::NetworkHead;
 use durs_network_documents::NodeFullId;
 use std::collections::HashMap;

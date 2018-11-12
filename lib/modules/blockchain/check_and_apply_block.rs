@@ -20,7 +20,7 @@ use dubp_documents::Document;
 use dubp_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
 use duniter_dal::block::DALBlock;
 use duniter_dal::*;
-use duniter_network::NetworkBlock;
+use duniter_network::documents::NetworkBlock;
 use dup_crypto::keys::*;
 use *;
 
