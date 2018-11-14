@@ -29,7 +29,7 @@ use pest::iterators::Pair;
 use pest::Parser;
 use *;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Peer card V10
 pub struct PeerCardV10 {
     /// Peer card Blockstamp
@@ -103,7 +103,7 @@ impl PeerCardV11 {
         }
     }
     /// Generate from pest pair
-    fn from_pest_pair(pair: Pair<Rule>) -> PeerCardV11 {
+    pub fn from_pest_pair(pair: Pair<Rule>) -> PeerCardV11 {
         let mut currency_str = "";
         let mut node_id = NodeId(0);
         let mut issuer = None;
@@ -190,7 +190,7 @@ pub struct JsonPeerCardV11<'a> {
     pub signature: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Peer card
 pub enum PeerCard {
     /// Peer card V10
