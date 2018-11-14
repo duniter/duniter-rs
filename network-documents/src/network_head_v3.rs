@@ -116,7 +116,7 @@ impl NetworkHeadV3 {
         }
     }
     /// Generate from pest pair
-    fn from_pest_pair(pair: Pair<Rule>) -> NetworkHeadV3 {
+    pub fn from_pest_pair(pair: Pair<Rule>) -> NetworkHeadV3 {
         let mut currency_str = "";
         let mut api_outgoing_conf = 0;
         let mut api_incoming_conf = 0;
