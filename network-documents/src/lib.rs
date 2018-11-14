@@ -47,14 +47,52 @@ pub mod network_head_v2;
 pub mod network_head_v3;
 pub mod network_peer;
 
+use dubp_documents::{TextDocumentParseError, TextDocumentParser};
 use dup_crypto::hashs::*;
 use dup_crypto::keys::*;
+use network_head::NetworkHead;
+use network_head_v3::NetworkHeadV3;
+use network_peer::PeerCard;
+use network_peer::PeerCardV11;
+use pest::iterators::Pair;
+use pest::Parser;
 use std::fmt::{Display, Error, Formatter};
 
 #[derive(Parser)]
 #[grammar = "network_documents.pest"]
 /// Parser for network documents
 struct NetworkDocsParser;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Network document
+pub enum NetworkDocument {
+    /// Peer
+    Peer(PeerCard),
+    /// Head
+    Head(NetworkHead),
+}
+
+impl TextDocumentParser<Rule> for NetworkDocument {
+    type DocumentType = NetworkDocument;
+
+    fn parse(doc: &str) -> Result<NetworkDocument, TextDocumentParseError> {
+        match NetworkDocsParser::parse(Rule::network_document, doc) {
+            Ok(mut root_ast) => Ok(NetworkDocument::from_pest_pair(root_ast.next().unwrap())), // get and unwrap the `network_document` rule; never fails
+            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
+        }
+    }
+    fn from_pest_pair(pair: Pair<Rule>) -> NetworkDocument {
+        match pair.as_rule() {
+            Rule::peer_v11 => {
+                NetworkDocument::Peer(PeerCard::V11(PeerCardV11::from_pest_pair(pair)))
+            }
+            Rule::head_v3 => NetworkDocument::Head(NetworkHead::V3(Box::new(
+                NetworkHeadV3::from_pest_pair(pair),
+            ))),
+            _ => panic!("unexpected rule: {:?}", pair.as_rule()), // Grammar ensures that we never reach this line
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// ParseError

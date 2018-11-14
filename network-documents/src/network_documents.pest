@@ -97,3 +97,7 @@ head_v3 = ${
     ed25519_sig? ~
     (nl ~ step)?
 }
+
+// Network document rule
+network_document_inner =  ${ head_v3 | peer_v11 }
+network_document = ${ SOI ~ network_document_inner ~ EOI }
