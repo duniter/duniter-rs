@@ -31,6 +31,7 @@ use v10::identity::*;
 use v10::membership::*;
 use v10::revocation::*;
 use v10::transaction::*;
+use ToStringObject;
 use *;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -74,7 +75,52 @@ pub enum V10Document {
     Revocation(Box<RevocationDocument>),
 }
 
-impl TextDocumentParser for V10Document {
+/// List of stringified document types.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum V10DocumentString {
+    /// Block document (not yet implemented)
+    Block(),
+
+    /// Transaction document.
+    Transaction(Box<TransactionDocumentStringified>),
+
+    /// Identity document.
+    Identity(IdentityStringDocument),
+
+    /// Membership document.
+    Membership(MembershipStringDocument),
+
+    /// Certification document.
+    Certification(Box<CertificationStringDocument>),
+
+    /// Revocation document.
+    Revocation(Box<RevocationStringDocument>),
+}
+
+impl ToStringObject for V10Document {
+    type StringObject = V10DocumentString;
+    /// Transforms an object into a json object
+    fn to_string_object(&self) -> Self::StringObject {
+        match *self {
+            V10Document::Block(_) => unimplemented!(),
+            V10Document::Identity(ref doc) => V10DocumentString::Identity(doc.to_string_object()),
+            V10Document::Membership(ref doc) => {
+                V10DocumentString::Membership(doc.to_string_object())
+            }
+            V10Document::Certification(ref doc) => {
+                V10DocumentString::Certification(Box::new(doc.to_string_object()))
+            }
+            V10Document::Revocation(ref doc) => {
+                V10DocumentString::Revocation(Box::new(doc.to_string_object()))
+            }
+            V10Document::Transaction(ref doc) => {
+                V10DocumentString::Transaction(Box::new(doc.to_string_object()))
+            }
+        }
+    }
+}
+
+impl TextDocumentParser<Rule> for V10Document {
     type DocumentType = V10Document;
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
@@ -215,49 +261,6 @@ pub struct V10DocumentParts {
     /// Signatures
     pub signatures: Vec<Sig>,
 }
-
-/*/// A V10 document parser.
-#[derive(Debug, Clone, Copy)]
-pub struct V10DocumentParser;
-
-impl<'a> DocumentParser<&'a str, V10Document, TextDocumentParseError> for V10DocumentParser {
-    fn parse(source: &'a str) -> Result<V10Document, TextDocumentParseError> {
-        /*match DocumentsParser::parse(Rule::document_v10, source) {
-            Ok(mut source_ast) => {
-                let doc_v10_ast = source_ast.next().unwrap(); // get and unwrap the `document_v10` rule; never fails
-                let doc_type_v10_ast = doc_v10_ast.into_inner().next().unwrap(); // get and unwrap the `{DOC_TYPE}_v10` rule; never fails
-        
-                match doc_type_v10_ast.as_rule() {
-                    Rule::idty_v10 => IdentityDocumentParser::parse_standard(doc_type_v10_ast.as_str(), "", currency, vec![]),
-                    Rule::membership_v10 => MembershipDocumentParser::parse_standard(doc_type_v10_ast.as_str(), "", currency, vec![]),
-                    Rule::cert_v10 => CertificationDocumentParser::parse_standard(doc_type_v10_ast.as_str(), "", currency, vec![]),
-                    Rule::revoc_v10 => RevocationDocumentParser::parse_standard(doc_type_v10_ast.as_str(), "", currency, vec![]),
-                    Rule::tx_v10 => TransactionDocumentParser::parse_standard(doc_type_v10_ast.as_str(), "", currency, vec![]),
-                }
-            }
-            Err(_) => Err(TextDocumentParseError::InvalidWrapperFormat()),
-        }*/
-if let Some(caps) = DOCUMENT_REGEX.captures(source) {
-let doctype = &caps["type"];
-let currency = &caps["currency"];
-
-// TODO : Improve error handling of Signature::from_base64 failure
-
-match doctype {
-"Identity" => IdentityDocumentParser::parse_standard(source, currency),
-"Membership" => MembershipDocumentParser::parse_standard(source, currency),
-"Certification" => CertificationDocumentParser::parse_standard(source, currency),
-"Revocation" => RevocationDocumentParser::parse_standard(source, currency),
-"Transaction" => TransactionDocumentParser::parse_standard(source, currency),
-_ => Err(TextDocumentParseError::UnknownDocumentType(
-doctype.to_string(),
-)),
-}
-} else {
-Err(TextDocumentParseError::InvalidWrapperFormat())
-}
-}
-}*/
 
 #[cfg(test)]
 mod tests {

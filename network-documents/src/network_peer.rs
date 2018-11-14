@@ -20,6 +20,7 @@ extern crate dup_crypto;
 extern crate serde;
 
 use base58::ToBase58;
+use dubp_documents::ToStringObject;
 use dubp_documents::{blockstamp::Blockstamp, CurrencyName};
 use dubp_documents::{BlockHash, BlockId};
 use dup_crypto::keys::text_signable::TextSignable;
@@ -57,6 +58,45 @@ pub struct PeerCardV11 {
     pub endpoints_str: Vec<String>,
     /// Signature
     pub sig: Option<Sig>,
+}
+
+#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
+/// identity document for jsonification
+pub struct PeerCardV11Stringified {
+    /// Currency name
+    pub currency_name: String,
+    /// Peer card issuer
+    pub issuer: String,
+    /// Issuer node id
+    pub node_id: String,
+    /// Peer card Blockstamp
+    pub blockstamp: String,
+    /// Peer card string endpoints
+    pub endpoints: Vec<String>,
+    /// Signature
+    pub sig: String,
+}
+
+impl ToStringObject for PeerCardV11 {
+    type StringObject = PeerCardV11Stringified;
+    /// Transforms an object into a json object
+    fn to_string_object(&self) -> PeerCardV11Stringified {
+        let mut endpoints: Vec<String> = self.endpoints.iter().map(EndpointV2::to_string).collect();
+        endpoints.extend_from_slice(&self.endpoints_str);
+
+        PeerCardV11Stringified {
+            currency_name: self.currency_name.0.clone(),
+            issuer: format!("{}", self.issuer),
+            node_id: format!("{}", self.node_id),
+            blockstamp: format!("{}", self.blockstamp),
+            endpoints,
+            sig: if let Some(sig) = self.sig {
+                format!("{}", sig)
+            } else {
+                "".to_owned()
+            },
+        }
+    }
 }
 
 impl TextSignable for PeerCardV11 {

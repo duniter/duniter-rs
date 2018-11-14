@@ -44,6 +44,35 @@ pub struct IdentityDocument {
     signatures: Vec<Sig>,
 }
 
+#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
+/// identity document for jsonification
+pub struct IdentityStringDocument {
+    /// Currency.
+    currency: String,
+    /// Unique ID
+    username: String,
+    /// Blockstamp
+    blockstamp: String,
+    /// Document issuer
+    issuer: String,
+    /// Document signature
+    signature: String,
+}
+
+impl ToStringObject for IdentityDocument {
+    type StringObject = IdentityStringDocument;
+    /// Transforms an object into a json object
+    fn to_string_object(&self) -> IdentityStringDocument {
+        IdentityStringDocument {
+            currency: self.currency.clone(),
+            username: self.username.clone(),
+            blockstamp: format!("{}", self.blockstamp),
+            issuer: format!("{}", self.issuers[0]),
+            signature: format!("{}", self.signatures[0]),
+        }
+    }
+}
+
 impl IdentityDocument {
     /// Unique ID
     pub fn username(&self) -> &str {
@@ -199,7 +228,7 @@ Timestamp: {blockstamp}
 #[derive(Debug, Clone, Copy)]
 pub struct IdentityDocumentParser;
 
-impl TextDocumentParser for IdentityDocumentParser {
+impl TextDocumentParser<Rule> for IdentityDocumentParser {
     type DocumentType = IdentityDocument;
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {

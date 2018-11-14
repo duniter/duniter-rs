@@ -75,6 +75,44 @@ pub struct CertificationDocument {
     signatures: Vec<Sig>,
 }
 
+#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
+/// identity document for jsonification
+pub struct CertificationStringDocument {
+    /// Name of the currency.
+    currency: String,
+    /// Document issuer
+    issuer: String,
+    /// issuer of target identity.
+    target: String,
+    /// Username of target identity
+    identity_username: String,
+    /// Target Identity document blockstamp.
+    identity_blockstamp: String,
+    /// Target Identity document signature.
+    identity_sig: String,
+    /// Blockstamp
+    blockstamp: String,
+    /// Document signature
+    signature: String,
+}
+
+impl ToStringObject for CertificationDocument {
+    type StringObject = CertificationStringDocument;
+    /// Transforms an object into a json object
+    fn to_string_object(&self) -> CertificationStringDocument {
+        CertificationStringDocument {
+            currency: self.currency.clone(),
+            issuer: format!("{}", self.issuers[0]),
+            target: format!("{}", self.target),
+            identity_username: self.identity_username.clone(),
+            identity_blockstamp: format!("{}", self.identity_blockstamp),
+            blockstamp: format!("{}", self.blockstamp),
+            identity_sig: format!("{}", self.identity_sig),
+            signature: format!("{}", self.signatures[0]),
+        }
+    }
+}
+
 impl CertificationDocument {
     /// Username of target identity
     pub fn identity_username(&self) -> &str {
@@ -221,7 +259,7 @@ CertTimestamp: {blockstamp}
 #[derive(Debug, Clone, Copy)]
 pub struct CertificationDocumentParser;
 
-impl TextDocumentParser for CertificationDocumentParser {
+impl TextDocumentParser<Rule> for CertificationDocumentParser {
     type DocumentType = CertificationDocument;
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {

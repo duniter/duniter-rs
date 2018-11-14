@@ -17,7 +17,7 @@
 
 use base58::ToBase58;
 use dubp_documents::blockstamp::Blockstamp;
-use dubp_documents::{BlockHash, BlockId, CurrencyName, ToJsonObject};
+use dubp_documents::{BlockHash, BlockId, CurrencyName, ToStringObject};
 use dup_crypto::keys::text_signable::TextSignable;
 use dup_crypto::keys::*;
 use pest::iterators::Pair;
@@ -183,48 +183,23 @@ impl NetworkHeadV3 {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Head V3 for json serializer
-pub struct JsonHeadV3 {
-    /// WS2P Private configuration
-    pub api_outgoing_conf: u8,
-    /// WS2P Public configuration
-    pub api_incoming_conf: u8,
-    /// Issuer node free member rooms
-    pub free_member_rooms: u8,
-    /// Issuer node free mirror rooms
-    pub free_mirror_rooms: u8,
-    /// Issuer node id
-    pub node_id: NodeId,
-    /// Issuer key algorithm
-    pub algorithm: KeysAlgo,
-    /// Issuer pubkey
-    pub pubkey: String,
-    /// Head blockstamp
-    pub blockstamp: String,
-    /// Issuer node software
-    pub software: String,
-    /// Issuer node soft version
-    pub soft_version: String,
+pub struct HeadV3Stringified {
+    /// Head body
+    pub body: String,
     /// Issuer signature
     pub signature: Option<String>,
     /// Head step
     pub step: u8,
 }
 
-impl<'a> ToJsonObject for NetworkHeadV3 {
-    type JsonObject = JsonHeadV3;
+impl<'a> ToStringObject for NetworkHeadV3 {
+    type StringObject = HeadV3Stringified;
 
-    fn to_json_object(&self) -> Self::JsonObject {
-        JsonHeadV3 {
-            api_outgoing_conf: self.api_outgoing_conf,
-            api_incoming_conf: self.api_incoming_conf,
-            free_member_rooms: self.free_member_rooms,
-            free_mirror_rooms: self.free_mirror_rooms,
-            node_id: self.node_id,
-            algorithm: self.pubkey.algo(),
-            pubkey: self.pubkey.to_base58(),
-            blockstamp: self.blockstamp.to_string(),
-            software: self.software.clone(),
-            soft_version: self.soft_version.clone(),
+    fn to_string_object(&self) -> Self::StringObject {
+        let body = self.as_signable_text();
+        let body_len = body.len();
+        HeadV3Stringified {
+            body: body.chars().skip(body_len - 1).collect(),
             signature: if let Some(sig) = self.signature {
                 Some(sig.to_base64())
             } else {

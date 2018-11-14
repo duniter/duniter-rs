@@ -57,6 +57,44 @@ pub struct MembershipDocument {
     signatures: Vec<Sig>,
 }
 
+#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
+/// identity document for jsonification
+pub struct MembershipStringDocument {
+    /// Currency.
+    currency: String,
+    /// Document issuer
+    issuer: String,
+    /// Blockstamp
+    blockstamp: String,
+    /// Membership message.
+    membership: String,
+    /// Unique ID
+    username: String,
+    /// Identity document blockstamp.
+    identity_blockstamp: String,
+    /// Document signature
+    signature: String,
+}
+
+impl ToStringObject for MembershipDocument {
+    type StringObject = MembershipStringDocument;
+    /// Transforms an object into a json object
+    fn to_string_object(&self) -> MembershipStringDocument {
+        MembershipStringDocument {
+            currency: self.currency.clone(),
+            issuer: format!("{}", self.issuers[0]),
+            blockstamp: format!("{}", self.blockstamp),
+            membership: match self.membership {
+                MembershipType::In() => "IN".to_owned(),
+                MembershipType::Out() => "OUT".to_owned(),
+            },
+            username: self.identity_username.clone(),
+            identity_blockstamp: format!("{}", self.identity_blockstamp),
+            signature: format!("{}", self.signatures[0]),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Hash, Deserialize, Serialize)]
 /// Membership event type (blockchain event)
 pub enum MembershipEventType {
@@ -248,7 +286,7 @@ CertTS: {ity_blockstamp}
 #[derive(Debug, Clone, Copy)]
 pub struct MembershipDocumentParser;
 
-impl TextDocumentParser for MembershipDocumentParser {
+impl TextDocumentParser<Rule> for MembershipDocumentParser {
     type DocumentType = MembershipDocument;
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {

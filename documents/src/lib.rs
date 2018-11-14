@@ -314,18 +314,23 @@ pub trait DocumentParser<S, D, E> {
     fn parse(source: S) -> Result<D, E>;
 }
 
-/// Jsonify a document
-pub trait ToJsonObject {
-    type JsonObject: Serialize;
-    /// Transforms an object into a json object
-    fn to_json_object(&self) -> Self::JsonObject;
+/// Stringify a document
+pub trait ToStringObject {
+    type StringObject: Serialize;
+    /// Transforms object fields into string
+    fn to_string_object(&self) -> Self::StringObject;
+}
 
+/// Jsonify a document
+pub trait ToJsonObject: ToStringObject {
     /// Convert to JSON String
     fn to_json_string(&self) -> Result<String, serde_json::Error> {
-        Ok(serde_json::to_string(&self.to_json_object())?)
+        Ok(serde_json::to_string(&self.to_string_object())?)
     }
     /// Convert to JSON String pretty
     fn to_json_string_pretty(&self) -> Result<String, serde_json::Error> {
-        Ok(serde_json::to_string_pretty(&self.to_json_object())?)
+        Ok(serde_json::to_string_pretty(&self.to_string_object())?)
     }
 }
+
+impl<T: ToStringObject> ToJsonObject for T {}
