@@ -77,7 +77,9 @@ impl TextDocumentParser<Rule> for NetworkDocument {
 
     fn parse(doc: &str) -> Result<NetworkDocument, TextDocumentParseError> {
         match NetworkDocsParser::parse(Rule::network_document, doc) {
-            Ok(mut root_ast) => Ok(NetworkDocument::from_pest_pair(root_ast.next().unwrap())), // get and unwrap the `network_document` rule; never fails
+            Ok(mut net_doc_pairs) => Ok(NetworkDocument::from_pest_pair(
+                net_doc_pairs.next().unwrap().into_inner().next().unwrap(),
+            )), // get and unwrap the `network_document` rule; never fails
             Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
         }
     }
