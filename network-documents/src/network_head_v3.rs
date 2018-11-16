@@ -201,7 +201,7 @@ impl<'a> ToStringObject for NetworkHeadV3 {
         let body = self.as_signable_text();
         let body_len = body.len();
         HeadV3Stringified {
-            body: body.chars().skip(body_len - 1).collect(),
+            body: body.chars().take(body_len - 1).collect(),
             signature: if let Some(sig) = self.signature {
                 Some(sig.to_base64())
             } else {
