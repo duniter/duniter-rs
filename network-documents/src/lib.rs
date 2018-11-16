@@ -67,7 +67,7 @@ struct NetworkDocsParser;
 /// Network document
 pub enum NetworkDocument {
     /// Peer
-    Peer(PeerCard),
+    Peer(Box<PeerCard>),
     /// Head
     Head(NetworkHead),
 }
@@ -86,7 +86,7 @@ impl TextDocumentParser<Rule> for NetworkDocument {
     fn from_pest_pair(pair: Pair<Rule>) -> NetworkDocument {
         match pair.as_rule() {
             Rule::peer_v11 => {
-                NetworkDocument::Peer(PeerCard::V11(PeerCardV11::from_pest_pair(pair)))
+                NetworkDocument::Peer(Box::new(PeerCard::V11(PeerCardV11::from_pest_pair(pair))))
             }
             Rule::head_v3 => NetworkDocument::Head(NetworkHead::V3(Box::new(
                 NetworkHeadV3::from_pest_pair(pair),
