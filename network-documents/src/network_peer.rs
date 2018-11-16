@@ -132,18 +132,19 @@ impl TextSignable for PeerCardV11 {
     }
 }
 
-impl PeerCardV11 {
-    /// parse from raw ascii format
-    pub fn parse_from_raw(raw_peer: &str) -> Result<PeerCardV11, ParseError> {
-        match NetworkDocsParser::parse(Rule::peer_v11, raw_peer) {
+impl TextDocumentParser<Rule> for PeerCardV11 {
+    type DocumentType = PeerCardV11;
+
+    fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
+        match NetworkDocsParser::parse(Rule::peer_v11, doc) {
             Ok(mut peer_v11_pairs) => {
                 Ok(PeerCardV11::from_pest_pair(peer_v11_pairs.next().unwrap()))
             }
-            Err(pest_error) => Err(ParseError::PestError(format!("{}", pest_error))),
+            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
         }
     }
-    /// Generate from pest pair
-    pub fn from_pest_pair(pair: Pair<Rule>) -> PeerCardV11 {
+
+    fn from_pest_pair(pair: Pair<Rule>) -> PeerCardV11 {
         let mut currency_str = "";
         let mut node_id = NodeId(0);
         let mut issuer = None;
@@ -190,6 +191,9 @@ impl PeerCardV11 {
             sig,
         }
     }
+}
+
+impl PeerCardV11 {
     /// Convert to JSON String
     pub fn to_json_peer(&self) -> Result<String, serde_json::Error> {
         Ok(serde_json::to_string_pretty(&JsonPeerCardV11 {
@@ -320,8 +324,7 @@ mod tests {
             println!("{}", peer_card_v11_raw);
             assert_eq!(
                 peer_card_v11,
-                PeerCardV11::parse_from_raw(&peer_card_v11_raw)
-                    .expect("Fail to parse peer card v11 !")
+                PeerCardV11::parse(&peer_card_v11_raw).expect("Fail to parse peer card v11 !")
             )
         } else {
             panic!("fail to sign peer card : {:?}", sign_result.err().unwrap())
