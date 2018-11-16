@@ -83,6 +83,8 @@ pub enum TextDocumentParseError {
     PestError(String),
     /// UnexpectedVersion
     UnexpectedVersion(String),
+    /// Unknown type
+    UnknownType,
 }
 
 /// Document of DUBP (DUniter Blockhain Protocol)
@@ -99,7 +101,7 @@ impl TextDocumentParser<Rule> for DUBPDocument {
 
     fn parse(doc: &str) -> Result<DUBPDocument, TextDocumentParseError> {
         match DocumentsParser::parse(Rule::document, doc) {
-            Ok(mut root_ast) => Ok(DUBPDocument::from_pest_pair(root_ast.next().unwrap())), // get and unwrap the `document` rule; never fails
+            Ok(mut doc_pairs) => Ok(DUBPDocument::from_pest_pair(doc_pairs.next().unwrap())), // get and unwrap the `document` rule; never fails
             Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
         }
     }
@@ -334,3 +336,23 @@ pub trait ToJsonObject: ToStringObject {
 }
 
 impl<T: ToStringObject> ToJsonObject for T {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    //use dup_crypto::keys::*;
+
+    #[test]
+    fn parse_dubp_document() {
+        let text = "Version: 10
+Type: Identity
+Currency: g1
+Issuer: D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx
+UniqueID: elois
+Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+Ydnclvw76/JHcKSmU9kl9Ie0ne5/X8NYOqPqbGnufIK3eEPRYYdEYaQh+zffuFhbtIRjv6m/DkVLH5cLy/IyAg==";
+
+        let doc = DUBPDocument::parse(text).expect("Fail to parse DUBPDocument !");
+        println!("Doc : {:?}", doc);
+    }
+}
