@@ -36,6 +36,7 @@ pub enum KeysSubCommand {
     /// modify durs keys
     #[structopt(
         name = "modify",
+        author = "inso <inso@tuta.io>",
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
     Modify(ModifyOpt),
@@ -43,6 +44,7 @@ pub enum KeysSubCommand {
     /// clear durs keys
     #[structopt(
         name = "clear",
+        author = "inso <inso@tuta.io>",
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
     Clear(ClearOpt),
@@ -50,12 +52,14 @@ pub enum KeysSubCommand {
     /// show durs keys
     #[structopt(
         name = "show",
+        author = "inso <inso@tuta.io>",
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
     Show(ShowOpt),
 
     #[structopt(
         name = "wizard",
+        author = "inso <inso@tuta.io>",
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
     /// wizard to help user generate durs keys
@@ -91,15 +95,15 @@ pub enum ModifySubCommand {
 #[derive(StructOpt, Debug, Copy, Clone)]
 /// ClearOpt
 pub struct ClearOpt {
-    #[structopt(long = "member")]
+    #[structopt(short = "m", long = "member")]
     /// True if we change member key
     pub member: bool,
 
-    #[structopt(long = "network")]
+    #[structopt(short = "n", long = "network")]
     /// True if we change network key
     pub network: bool,
 
-    #[structopt(long = "all")]
+    #[structopt(short = "a", long = "all")]
     /// True if we change member and network key
     pub all: bool,
 }
