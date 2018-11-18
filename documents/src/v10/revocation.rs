@@ -65,6 +65,38 @@ pub struct RevocationDocument {
     signatures: Vec<Sig>,
 }
 
+#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
+/// Revocation document for jsonification
+pub struct RevocationStringDocument {
+    /// Name of the currency.
+    currency: String,
+    /// Document issuer
+    issuer: String,
+    /// Username of target identity
+    identity_username: String,
+    /// Target Identity document blockstamp.
+    identity_blockstamp: String,
+    /// Target Identity document signature.
+    identity_sig: String,
+    /// Document signature
+    signature: String,
+}
+
+impl ToStringObject for RevocationDocument {
+    type StringObject = RevocationStringDocument;
+    /// Transforms an object into a json object
+    fn to_string_object(&self) -> RevocationStringDocument {
+        RevocationStringDocument {
+            currency: self.currency.clone(),
+            issuer: format!("{}", self.issuers[0]),
+            identity_username: self.identity_username.clone(),
+            identity_blockstamp: format!("{}", self.identity_blockstamp),
+            identity_sig: format!("{}", self.identity_sig),
+            signature: format!("{}", self.signatures[0]),
+        }
+    }
+}
+
 impl RevocationDocument {
     /// Username of target identity
     pub fn identity_username(&self) -> &str {
@@ -189,7 +221,7 @@ IdtySignature: {idty_sig}
 #[derive(Debug, Clone, Copy)]
 pub struct RevocationDocumentParser;
 
-impl TextDocumentParser for RevocationDocumentParser {
+impl TextDocumentParser<Rule> for RevocationDocumentParser {
     type DocumentType = RevocationDocument;
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {

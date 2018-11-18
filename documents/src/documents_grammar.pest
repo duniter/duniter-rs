@@ -147,11 +147,11 @@ tx = ${
 
 document_v10 = ${
     &(SOI ~ v10 ~ nl) ~
-    (&"Type: Identity" ~ idty_v10) | 
-    (&"Type: Membership" ~ membership_v10) | 
-    (&"Type: Certification" ~ cert_v10) | 
-    (&"Type: Revocation" ~ revoc_v10) |
-    (&"Type: Transaction" ~ tx_v10)
+    idty_v10 | 
+    membership_v10 | 
+    cert_v10 | 
+    revoc_v10 |
+    tx_v10
 }
 
 document = ${

@@ -509,6 +509,66 @@ pub struct TransactionDocument {
     hash: Option<Hash>,
 }
 
+#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
+/// Transaction document stringifed
+pub struct TransactionDocumentStringified {
+    /// Currency.
+    currency: String,
+    /// Blockstamp
+    blockstamp: String,
+    /// Locktime
+    locktime: u64,
+    /// Document issuer (there should be only one).
+    issuers: Vec<String>,
+    /// Transaction inputs.
+    inputs: Vec<String>,
+    /// Inputs unlocks.
+    unlocks: Vec<String>,
+    /// Transaction outputs.
+    outputs: Vec<String>,
+    /// Transaction comment
+    comment: String,
+    /// Document signature (there should be only one).
+    signatures: Vec<String>,
+    /// Transaction hash
+    hash: Option<String>,
+}
+
+impl ToStringObject for TransactionDocument {
+    type StringObject = TransactionDocumentStringified;
+    /// Transforms an object into a json object
+    fn to_string_object(&self) -> TransactionDocumentStringified {
+        TransactionDocumentStringified {
+            currency: self.currency.clone(),
+            blockstamp: format!("{}", self.blockstamp),
+            locktime: self.locktime,
+            issuers: self.issuers.iter().map(|p| format!("{}", p)).collect(),
+            inputs: self
+                .inputs
+                .iter()
+                .map(TransactionInput::to_string)
+                .collect(),
+            unlocks: self
+                .unlocks
+                .iter()
+                .map(TransactionInputUnlocks::to_string)
+                .collect(),
+            outputs: self
+                .outputs
+                .iter()
+                .map(TransactionOutput::to_string)
+                .collect(),
+            comment: self.comment.clone(),
+            signatures: self.signatures.iter().map(|s| format!("{}", s)).collect(),
+            hash: if let Some(hash) = self.hash {
+                Some(hash.to_string())
+            } else {
+                None
+            },
+        }
+    }
+}
+
 impl TransactionDocument {
     /// Compute transaction hash
     pub fn compute_hash(&mut self) -> Hash {
@@ -758,7 +818,7 @@ Issuers:
 #[derive(Debug, Clone, Copy)]
 pub struct TransactionDocumentParser;
 
-impl TextDocumentParser for TransactionDocumentParser {
+impl TextDocumentParser<Rule> for TransactionDocumentParser {
     type DocumentType = TransactionDocument;
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {

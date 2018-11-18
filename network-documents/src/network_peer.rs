@@ -20,6 +20,7 @@ extern crate dup_crypto;
 extern crate serde;
 
 use base58::ToBase58;
+use dubp_documents::ToStringObject;
 use dubp_documents::{blockstamp::Blockstamp, CurrencyName};
 use dubp_documents::{BlockHash, BlockId};
 use dup_crypto::keys::text_signable::TextSignable;
@@ -29,7 +30,7 @@ use pest::iterators::Pair;
 use pest::Parser;
 use *;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Peer card V10
 pub struct PeerCardV10 {
     /// Peer card Blockstamp
@@ -57,6 +58,45 @@ pub struct PeerCardV11 {
     pub endpoints_str: Vec<String>,
     /// Signature
     pub sig: Option<Sig>,
+}
+
+#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
+/// identity document for jsonification
+pub struct PeerCardV11Stringified {
+    /// Currency name
+    pub currency_name: String,
+    /// Peer card issuer
+    pub issuer: String,
+    /// Issuer node id
+    pub node_id: String,
+    /// Peer card Blockstamp
+    pub blockstamp: String,
+    /// Peer card string endpoints
+    pub endpoints: Vec<String>,
+    /// Signature
+    pub sig: String,
+}
+
+impl ToStringObject for PeerCardV11 {
+    type StringObject = PeerCardV11Stringified;
+    /// Transforms an object into a json object
+    fn to_string_object(&self) -> PeerCardV11Stringified {
+        let mut endpoints: Vec<String> = self.endpoints.iter().map(EndpointV2::to_string).collect();
+        endpoints.extend_from_slice(&self.endpoints_str);
+
+        PeerCardV11Stringified {
+            currency_name: self.currency_name.0.clone(),
+            issuer: format!("{}", self.issuer),
+            node_id: format!("{}", self.node_id),
+            blockstamp: format!("{}", self.blockstamp),
+            endpoints,
+            sig: if let Some(sig) = self.sig {
+                format!("{}", sig)
+            } else {
+                "".to_owned()
+            },
+        }
+    }
 }
 
 impl TextSignable for PeerCardV11 {
@@ -92,17 +132,18 @@ impl TextSignable for PeerCardV11 {
     }
 }
 
-impl PeerCardV11 {
-    /// parse from raw ascii format
-    pub fn parse_from_raw(raw_peer: &str) -> Result<PeerCardV11, ParseError> {
-        match NetworkDocsParser::parse(Rule::peer_v11, raw_peer) {
+impl TextDocumentParser<Rule> for PeerCardV11 {
+    type DocumentType = PeerCardV11;
+
+    fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
+        match NetworkDocsParser::parse(Rule::peer_v11, doc) {
             Ok(mut peer_v11_pairs) => {
                 Ok(PeerCardV11::from_pest_pair(peer_v11_pairs.next().unwrap()))
             }
-            Err(pest_error) => Err(ParseError::PestError(format!("{}", pest_error))),
+            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
         }
     }
-    /// Generate from pest pair
+
     fn from_pest_pair(pair: Pair<Rule>) -> PeerCardV11 {
         let mut currency_str = "";
         let mut node_id = NodeId(0);
@@ -150,6 +191,9 @@ impl PeerCardV11 {
             sig,
         }
     }
+}
+
+impl PeerCardV11 {
     /// Convert to JSON String
     pub fn to_json_peer(&self) -> Result<String, serde_json::Error> {
         Ok(serde_json::to_string_pretty(&JsonPeerCardV11 {
@@ -190,7 +234,7 @@ pub struct JsonPeerCardV11<'a> {
     pub signature: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Peer card
 pub enum PeerCard {
     /// Peer card V10
@@ -280,8 +324,7 @@ mod tests {
             println!("{}", peer_card_v11_raw);
             assert_eq!(
                 peer_card_v11,
-                PeerCardV11::parse_from_raw(&peer_card_v11_raw)
-                    .expect("Fail to parse peer card v11 !")
+                PeerCardV11::parse(&peer_card_v11_raw).expect("Fail to parse peer card v11 !")
             )
         } else {
             panic!("fail to sign peer card : {:?}", sign_result.err().unwrap())
