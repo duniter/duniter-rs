@@ -51,7 +51,7 @@ pub mod cli;
 pub mod router;
 
 use duniter_blockchain::{BlockchainModule, DBExQuery, DBExTxQuery, DBExWotQuery};
-pub use duniter_conf::{ChangeGlobalConf, DuRsConf, DuniterKeyPairs};
+pub use duniter_conf::{ChangeGlobalConf, DuRsConf, DuniterKeyPairs, KEYPAIRS_FILENAME};
 use duniter_message::*;
 use duniter_module::*;
 use duniter_network::{NetworkModule, SyncEndpoint, SyncParams};
@@ -59,7 +59,9 @@ use log::Level;
 use simplelog::*;
 //use std::error::Error;
 //use std::fmt::{Debug, Formatter};
+use cli::keys::*;
 use cli::*;
+use duniter_conf::keys;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::sync::mpsc;
@@ -396,13 +398,45 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                     conf_file_path.push("conf.json");
                     fs::remove_file(conf_file_path.as_path()).expect("Fail to remove conf file !");
                     let mut conf_keys_path = profile_path.clone();
-                    conf_keys_path.push("keypairs.json");
+                    conf_keys_path.push(KEYPAIRS_FILENAME);
                     fs::remove_file(conf_keys_path.as_path())
                         .expect("Fail to remove keypairs file !");
                 }
                 ResetType::All => {
                     fs::remove_dir_all(profile_path.as_path())
                         .expect("Fail to remove all profile datas !");
+                }
+            }
+            false
+        } else if let Some(matches) = cli_args.subcommand_matches("keys") {
+            let opts = KeysOpt::from_clap(matches);
+            match opts.subcommand {
+                KeysSubCommand::Wizard(_wizardopt) => {
+                    let new_keypairs = key_wizard(keypairs).unwrap();
+                    save_keypairs(profile.as_str(), new_keypairs);
+                }
+                KeysSubCommand::Modify(modifyopt) => match modifyopt.subcommand {
+                    ModifySubCommand::NetworkSaltPassword(networkopt) => {
+                        let new_keypairs =
+                            modify_network_keys(&networkopt.salt, &networkopt.password, keypairs);
+                        save_keypairs(profile.as_str(), new_keypairs);
+                    }
+                    ModifySubCommand::MemberSaltPassword(memberopt) => {
+                        let new_keypairs =
+                            modify_member_keys(&memberopt.salt, &memberopt.password, keypairs);
+                        save_keypairs(profile.as_str(), new_keypairs);
+                    }
+                },
+                KeysSubCommand::Clear(clearopt) => {
+                    let new_keypairs = clear_keys(
+                        clearopt.network || clearopt.all,
+                        clearopt.member || clearopt.all,
+                        keypairs,
+                    );
+                    save_keypairs(profile.as_str(), new_keypairs);
+                }
+                KeysSubCommand::Show(_showopt) => {
+                    show_keys(keypairs);
                 }
             }
             false

@@ -13,8 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Defined the few global types used by all modules,
-//! as well as the DuniterModule trait that all modules must implement.
+//! Durs configuration files properties module
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
@@ -40,6 +39,9 @@ extern crate duniter_module;
 extern crate dup_crypto;
 extern crate rand;
 extern crate serde;
+
+pub mod keys;
+
 use dubp_documents::CurrencyName;
 use duniter_module::{DuniterConf, ModuleName, RequiredKeys, RequiredKeysContent};
 use dup_crypto::keys::*;
@@ -55,6 +57,9 @@ static USER_DATAS_FOLDER: &'static str = "durs-dev";
 
 /// If no currency is specified by the user, is the currency will be chosen by default
 pub static DEFAULT_CURRRENCY: &'static str = "g1";
+
+/// Keypairs filename
+pub static KEYPAIRS_FILENAME: &'static str = "keypairs.json";
 
 #[derive(Debug, Clone)]
 /// User request on global conf
@@ -315,6 +320,14 @@ pub fn get_profile_path(profile: &str) -> PathBuf {
     profile_path
 }
 
+/// Get keypairs file path
+pub fn keypairs_filepath(profile: &str) -> PathBuf {
+    let profile_path = get_profile_path(profile);
+    let mut conf_keys_path = profile_path.clone();
+    conf_keys_path.push(KEYPAIRS_FILENAME);
+    conf_keys_path
+}
+
 /// Load configuration.
 pub fn load_conf(profile: &str) -> (DuRsConf, DuniterKeyPairs) {
     let mut profile_path = get_profile_path(profile);
@@ -336,13 +349,14 @@ pub fn load_conf(profile: &str) -> (DuRsConf, DuniterKeyPairs) {
 pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuRsConf, DuniterKeyPairs) {
     // Get KeyPairs
     let mut keypairs_path = profile_path.clone();
-    keypairs_path.push("keypairs.json");
+    keypairs_path.push(KEYPAIRS_FILENAME);
     let keypairs = if keypairs_path.as_path().exists() {
         if let Ok(mut f) = File::open(keypairs_path.as_path()) {
             let mut contents = String::new();
             if f.read_to_string(&mut contents).is_ok() {
                 let json_conf: serde_json::Value =
                     serde_json::from_str(&contents).expect("Conf: Fail to parse keypairs file !");
+
                 if let Some(network_sec) = json_conf.get("network_sec") {
                     if let Some(network_pub) = json_conf.get("network_pub") {
                         let network_sec = network_sec
@@ -351,14 +365,45 @@ pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuRsConf, Du
                         let network_pub = network_pub
                             .as_str()
                             .expect("Conf: Fail to parse keypairs file !");
+                        let network_keypair = KeyPairEnum::Ed25519(ed25519::KeyPair {
+                            privkey: ed25519::PrivateKey::from_base58(network_sec)
+                                .expect("conf : keypairs file : fail to parse network_sec !"),
+                            pubkey: ed25519::PublicKey::from_base58(network_pub)
+                                .expect("conf : keypairs file : fail to parse network_pub !"),
+                        });
+
+                        let member_keypair = if let Some(member_sec) = json_conf.get("member_sec") {
+                            if let Some(member_pub) = json_conf.get("member_pub") {
+                                let member_sec = member_sec
+                                    .as_str()
+                                    .expect("Conf: Fail to parse keypairs file !");
+                                let member_pub = member_pub
+                                    .as_str()
+                                    .expect("Conf: Fail to parse keypairs file !");
+                                if member_sec.is_empty() || member_pub.is_empty() {
+                                    None
+                                } else {
+                                    Some(KeyPairEnum::Ed25519(ed25519::KeyPair {
+                                        privkey: ed25519::PrivateKey::from_base58(member_sec)
+                                            .expect(
+                                                "conf : keypairs file : fail to parse member_sec !",
+                                            ),
+                                        pubkey: ed25519::PublicKey::from_base58(member_pub).expect(
+                                            "conf : keypairs file : fail to parse member_pub !",
+                                        ),
+                                    }))
+                                }
+                            } else {
+                                panic!("Fatal error : keypairs file wrong format : no field salt !")
+                            }
+                        } else {
+                            panic!("Fatal error : keypairs file wrong format : no field password !")
+                        };
+
+                        // Create keypairs file with random keypair
                         DuniterKeyPairs {
-                            network_keypair: KeyPairEnum::Ed25519(ed25519::KeyPair {
-                                privkey: ed25519::PrivateKey::from_base58(network_sec)
-                                    .expect("conf : keypairs file : fail to parse network_sec !"),
-                                pubkey: ed25519::PublicKey::from_base58(network_pub)
-                                    .expect("conf : keypairs file : fail to parse network_pub !"),
-                            }),
-                            member_keypair: None,
+                            network_keypair,
+                            member_keypair,
                         }
                     } else {
                         panic!("Fatal error : keypairs file wrong format : no field salt !")
@@ -410,13 +455,13 @@ pub fn write_keypairs_file(
     file_path: &PathBuf,
     keypairs: &DuniterKeyPairs,
 ) -> Result<(), std::io::Error> {
-    let mut f = try!(File::create(file_path.as_path()));
-    try!(f.write_all(
+    let mut f = File::create(file_path.as_path())?;
+    f.write_all(
         serde_json::to_string_pretty(keypairs)
             .expect("Fatal error : fail to write default keypairs file !")
-            .as_bytes()
-    ));
-    try!(f.sync_all());
+            .as_bytes(),
+    )?;
+    f.sync_all()?;
     Ok(())
 }
 
@@ -424,7 +469,7 @@ pub fn write_keypairs_file(
 pub fn write_conf_file<DC: DuniterConf>(profile: &str, conf: &DC) -> Result<(), std::io::Error> {
     let mut conf_path = get_profile_path(profile);
     conf_path.push("conf.json");
-    let mut f = try!(File::create(conf_path.as_path()));
+    let mut f = File::create(conf_path.as_path())?;
     f.write_all(
         serde_json::to_string_pretty(conf)
             .expect("Fatal error : fail to write default conf file !")
