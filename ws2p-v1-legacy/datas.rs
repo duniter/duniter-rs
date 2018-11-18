@@ -28,7 +28,7 @@ use *;
 
 #[derive(Debug)]
 pub struct WS2PModuleDatas {
-    pub rooter_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
+    pub router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
     pub currency: Option<String>,
     pub key_pair: Option<KeyPairEnum>,
     pub conf: WS2PConf,
@@ -66,8 +66,8 @@ impl WS2PModuleDatas {
         if self.count_dal_requests == std::u32::MAX {
             self.count_dal_requests = 0;
         }
-        self.rooter_sender
-            .send(RooterThreadMessage::ModuleMessage(DursMsg(
+        self.router_sender
+            .send(RouterThreadMessage::ModuleMessage(DursMsg(
                 DursMsgReceiver::Role(ModuleRole::BlockchainDatas),
                 DursMsgContent::Request(DursReq {
                     requester: WS2PModule::name(),
@@ -75,19 +75,19 @@ impl WS2PModuleDatas {
                     content: DursReqContent::DALRequest(req.clone()),
                 }),
             )))
-            .expect("Fail to send message to rooter !");
+            .expect("Fail to send message to router !");
     }
     pub fn send_network_req_response(
         &self,
         requester: ModuleStaticName,
         response: NetworkResponse,
     ) {
-        self.rooter_sender
-            .send(RooterThreadMessage::ModuleMessage(DursMsg(
+        self.router_sender
+            .send(RouterThreadMessage::ModuleMessage(DursMsg(
                 DursMsgReceiver::One(requester),
                 DursMsgContent::NetworkResponse(response),
             )))
-            .expect("Fail to send message to rooter !");
+            .expect("Fail to send message to router !");
     }
     pub fn send_network_event(&self, event: &NetworkEvent) {
         let module_event = match event {
@@ -108,12 +108,12 @@ impl WS2PModuleDatas {
             NetworkEvent::ReceiveHeads(_) => ModuleEvent::NewValidHeadFromNetwork,
             NetworkEvent::ReceivePeers(_) => ModuleEvent::NewValidPeerFromNodeNetwork,
         };
-        self.rooter_sender
-            .send(RooterThreadMessage::ModuleMessage(DursMsg(
+        self.router_sender
+            .send(RouterThreadMessage::ModuleMessage(DursMsg(
                 DursMsgReceiver::Event(module_event),
                 DursMsgContent::NetworkEvent(event.clone()),
             )))
-            .expect("Fail to send network event to rooter !");
+            .expect("Fail to send network event to router !");
     }
     pub fn get_network_consensus(&self) -> Result<Blockstamp, NetworkConsensusError> {
         let mut count_known_blockstamps = 0;

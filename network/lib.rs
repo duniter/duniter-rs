@@ -67,7 +67,7 @@ pub trait NetworkModule<DC: DuniterConf, M: ModuleMessage>: ApiModule<DC, M> {
         soft_meta_datas: &SoftwareMetaDatas<DC>,
         keys: RequiredKeysContent,
         module_conf: <Self as DuniterModule<DC, M>>::ModuleConf,
-        main_sender: mpsc::Sender<RooterThreadMessage<M>>,
+        main_sender: mpsc::Sender<RouterThreadMessage<M>>,
         sync_params: SyncParams,
     ) -> Result<(), ModuleInitError>;
 }

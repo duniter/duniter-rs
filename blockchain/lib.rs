@@ -95,8 +95,8 @@ pub static DISTANCE_CALCULATOR: &'static RustyDistanceCalculator = &RustyDistanc
 /// Blockchain Module
 #[derive(Debug)]
 pub struct BlockchainModule {
-    /// Rooter sender
-    pub rooter_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
+    /// Router sender
+    pub router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
     /// Name of the user datas profile
     pub profile: String,
     /// Currency
@@ -152,7 +152,7 @@ impl BlockchainModule {
     }
     /// Loading blockchain configuration
     pub fn load_blockchain_conf<DC: DuniterConf>(
-        rooter_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
+        router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
         profile: &str,
         conf: &DC,
         _keys: RequiredKeysContent,
@@ -185,7 +185,7 @@ impl BlockchainModule {
 
         // Instanciate BlockchainModule
         BlockchainModule {
-            rooter_sender,
+            router_sender,
             profile: profile.to_string(),
             currency: conf.currency(),
             currency_params,
@@ -271,12 +271,12 @@ impl BlockchainModule {
     }
     /// Send network request
     fn request_network(&self, _req_id: ModuleReqId, request: &OldNetworkRequest) -> ModuleReqId {
-        self.rooter_sender
-            .send(RooterThreadMessage::ModuleMessage(DursMsg(
+        self.router_sender
+            .send(RouterThreadMessage::ModuleMessage(DursMsg(
                 DursMsgReceiver::Role(ModuleRole::InterNodesNetwork),
                 DursMsgContent::OldNetworkRequest(*request),
             )))
-            .unwrap_or_else(|_| panic!("Fail to send OldNetworkRequest to rooter"));
+            .unwrap_or_else(|_| panic!("Fail to send OldNetworkRequest to router"));
         request.get_req_id()
     }
     /// Send blockchain event
@@ -286,20 +286,20 @@ impl BlockchainModule {
             DALEvent::RevertBlocks(_) => ModuleEvent::RevertBlocks,
             _ => return,
         };
-        self.rooter_sender
-            .send(RooterThreadMessage::ModuleMessage(DursMsg(
+        self.router_sender
+            .send(RouterThreadMessage::ModuleMessage(DursMsg(
                 DursMsgReceiver::Event(module_event),
                 DursMsgContent::DALEvent(event.clone()),
             )))
-            .unwrap_or_else(|_| panic!("Fail to send DalEvent to rooter"));
+            .unwrap_or_else(|_| panic!("Fail to send DalEvent to router"));
     }
     fn send_req_response(&self, requester: DursMsgReceiver, response: &DALResponse) {
-        self.rooter_sender
-            .send(RooterThreadMessage::ModuleMessage(DursMsg(
+        self.router_sender
+            .send(RouterThreadMessage::ModuleMessage(DursMsg(
                 requester,
                 DursMsgContent::DALResponse(Box::new(response.clone())),
             )))
-            .unwrap_or_else(|_| panic!("Fail to send ReqRes to rooter"));
+            .unwrap_or_else(|_| panic!("Fail to send ReqRes to router"));
     }
     fn receive_network_documents<W: WebOfTrust>(
         &mut self,

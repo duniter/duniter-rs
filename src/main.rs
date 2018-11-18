@@ -33,6 +33,7 @@ extern crate duniter_core;
 
 #[cfg(unix)]
 extern crate duniter_tui;
+//extern crate durs_skeleton_module;
 extern crate durs_ws2p_v1_legacy;
 //extern crate durs_ws2p;
 extern crate structopt;
@@ -40,6 +41,7 @@ extern crate structopt;
 pub use duniter_core::{cli::DursOpt, DuRsConf, DuniterCore, UserCommand};
 #[cfg(unix)]
 pub use duniter_tui::TuiModule;
+//pub use durs_skeleton_module::SkeletonModule;
 pub use durs_ws2p_v1_legacy::WS2PModule;
 //pub use durs_ws2p::WS2Pv2Module;
 use structopt::StructOpt;
@@ -49,8 +51,8 @@ use structopt::StructOpt;
 #[cfg(not(target_arch = "arm"))]
 fn main() {
     durs_core_server!(
-        durs_inject_cli![WS2PModule, TuiModule /*,DasaModule*/],
-        durs_plug!([WS2PModule], [TuiModule /*,DasaModule*/])
+        durs_inject_cli![WS2PModule /*, SkeletonModule ,DasaModule*/],
+        durs_plug!([WS2PModule], [TuiModule /*, SkeletonModule ,DasaModule*/])
     );
 }
 #[cfg(unix)]

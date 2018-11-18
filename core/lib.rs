@@ -48,7 +48,7 @@ extern crate threadpool;
 
 pub mod change_conf;
 pub mod cli;
-pub mod rooter;
+pub mod router;
 
 use duniter_blockchain::{BlockchainModule, DBExQuery, DBExTxQuery, DBExWotQuery};
 pub use duniter_conf::{ChangeGlobalConf, DuRsConf, DuniterKeyPairs};
@@ -172,8 +172,8 @@ pub struct DuniterCore<'a, 'b: 'a, DC: DuniterConf> {
     pub keypairs: Option<DuniterKeyPairs>,
     /// Run duration. Zero = infinite duration.
     pub run_duration_in_secs: u64,
-    /// Sender channel of rooter thread
-    pub rooter_sender: Option<mpsc::Sender<RooterThreadMessage<DursMsg>>>,
+    /// Sender channel of router thread
+    pub router_sender: Option<mpsc::Sender<RouterThreadMessage<DursMsg>>>,
     ///  Count the number of plugged modules
     pub modules_count: usize,
     ///  Count the number of plugged network modules
@@ -206,7 +206,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             },
             keypairs: None,
             run_duration_in_secs,
-            rooter_sender: None,
+            router_sender: None,
             modules_count: 1, // Count blockchain module
             network_modules_count: 0,
             thread_pool: ThreadPool::new(*THREAD_POOL_SIZE),
@@ -214,8 +214,9 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
     }
     /// Inject cli subcommand
     pub fn inject_cli_subcommand<M: DuniterModule<DuRsConf, DursMsg>>(&mut self) {
-        //self.cli_conf = TupleApp(&self.cli_conf.0.clone().subcommand(M::ModuleOpt::clap()));
-        self.plugins_cli_conf.push(M::ModuleOpt::clap());
+        if M::have_subcommand() {
+            self.plugins_cli_conf.push(M::ModuleOpt::clap());
+        }
     }
     /// Execute user command
     pub fn match_user_command(&mut self) -> bool {
@@ -287,15 +288,15 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             // Store user command
             self.user_command = Some(UserCommand::ListModules(ListModulesOpt::from_clap(matches)));
 
-            // Start rooter thread
-            self.rooter_sender = Some(rooter::start_rooter(0, profile.clone(), conf, vec![]));
+            // Start router thread
+            self.router_sender = Some(router::start_router(0, profile.clone(), conf, vec![]));
             true
         } else if let Some(_matches) = cli_args.subcommand_matches("start") {
             // Store user command
             self.user_command = Some(UserCommand::Start());
 
-            // Start rooter thread
-            self.rooter_sender = Some(rooter::start_rooter(
+            // Start router thread
+            self.router_sender = Some(router::start_router(
                 self.run_duration_in_secs,
                 profile.clone(),
                 conf,
@@ -316,8 +317,8 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                 cautious: opts.cautious_mode,
                 verif_hashs: opts.unsafe_mode,
             }));
-            // Start rooter thread
-            self.rooter_sender = Some(rooter::start_rooter(0, profile.clone(), conf, vec![]));
+            // Start router thread
+            self.router_sender = Some(router::start_router(0, profile.clone(), conf, vec![]));
             true
         } else if let Some(matches) = cli_args.subcommand_matches("sync_ts") {
             let opts = SyncTsOpt::from_clap(matches);
@@ -436,20 +437,20 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                 mpsc::Receiver<DursMsg>,
             ) = mpsc::channel();
 
-            let rooter_sender = if let Some(ref rooter_sender) = self.rooter_sender {
-                rooter_sender
+            let router_sender = if let Some(ref router_sender) = self.router_sender {
+                router_sender
             } else {
-                panic!("Try to start core without rooter_sender !");
+                panic!("Try to start core without router_sender !");
             };
 
-            // Send expected modules count to rooter thread
-            rooter_sender
-                .send(RooterThreadMessage::ModulesCount(self.modules_count))
-                .expect("Fatal error: fail to send expected modules count to rooter thread !");
+            // Send expected modules count to router thread
+            router_sender
+                .send(RouterThreadMessage::ModulesCount(self.modules_count))
+                .expect("Fatal error: fail to send expected modules count to router thread !");
 
-            // Send blockchain module registration to rooter thread
-            rooter_sender
-                .send(RooterThreadMessage::ModuleRegistration(
+            // Send blockchain module registration to router thread
+            router_sender
+                .send(RouterThreadMessage::ModuleRegistration(
                     BlockchainModule::name(),
                     blockchain_sender,
                     vec![ModuleRole::BlockchainDatas, ModuleRole::BlockValidation],
@@ -457,11 +458,11 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                     vec![],
                     vec![],
                 ))
-                .expect("Fatal error: fail to send blockchain registration to rooter thread !");
+                .expect("Fatal error: fail to send blockchain registration to router thread !");
 
             // Instantiate blockchain module and load is conf
             let mut blockchain_module = BlockchainModule::load_blockchain_conf(
-                rooter_sender.clone(),
+                router_sender.clone(),
                 &self.soft_meta_datas.profile,
                 &self.soft_meta_datas.conf,
                 RequiredKeysContent::MemberKeyPair(None),
@@ -479,10 +480,10 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             self.network_modules_count += 1;
             if let Some(UserCommand::Sync(ref network_sync)) = self.user_command {
                 // Start module in a new thread
-                let rooter_sender = self
-                    .rooter_sender
+                let router_sender = self
+                    .router_sender
                     .clone()
-                    .expect("Try to start a core without rooter_sender !");
+                    .expect("Try to start a core without router_sender !");
                 let soft_meta_datas = self.soft_meta_datas.clone();
                 let module_conf_json = self
                     .soft_meta_datas
@@ -503,7 +504,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                         &soft_meta_datas,
                         required_keys,
                         module_conf,
-                        rooter_sender,
+                        router_sender,
                         sync_params,
                     )
                     .unwrap_or_else(|_| {
@@ -534,10 +535,10 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
         if enabled {
             if let Some(UserCommand::Start()) = self.user_command {
                 // Start module in a new thread
-                let rooter_sender_clone = self
-                    .rooter_sender
+                let router_sender_clone = self
+                    .router_sender
                     .clone()
-                    .expect("Try to start a core without rooter_sender !");
+                    .expect("Try to start a core without router_sender !");
                 let soft_meta_datas = self.soft_meta_datas.clone();
                 let module_conf_json = self
                     .soft_meta_datas
@@ -557,7 +558,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                         &soft_meta_datas,
                         required_keys,
                         module_conf,
-                        rooter_sender_clone,
+                        router_sender_clone,
                         false,
                     )
                     .unwrap_or_else(|_| {

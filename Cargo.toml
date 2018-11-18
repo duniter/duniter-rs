@@ -7,6 +7,7 @@ license = "AGPL-3.0"
 
 [dependencies]
 duniter-core = { path = "./core" }
+# durs-skeleton-module = { path = "./skeleton-module" }
 durs-ws2p = { path = "./ws2p" }
 durs-ws2p-v1-legacy = { path = "./ws2p-v1-legacy" }
 structopt= "0.2.*"
@@ -32,6 +33,7 @@ members = [
     "module",
     "network",
     "network-documents",
+    # "skeleton-module",
     "tui",
     "wot",
     "ws2p",
