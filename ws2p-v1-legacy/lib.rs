@@ -225,7 +225,7 @@ impl NetworkModule<DuRsConf, DursMsg> for WS2PModule {
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
         _conf: WS2PConf,
-        _main_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
+        _main_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
         _sync_params: SyncParams,
     ) -> Result<(), ModuleInitError> {
         println!("Downlaod blockchain from network...");
@@ -270,7 +270,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
         soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         keys: RequiredKeysContent,
         conf: WS2PConf,
-        rooter_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
+        router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
         load_conf_only: bool,
     ) -> Result<(), ModuleInitError> {
         // Get start time
@@ -278,7 +278,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
 
         // Define WS2PModuleDatas
         let mut ws2p_module = WS2PModuleDatas {
-            rooter_sender: rooter_sender.clone(),
+            router_sender: router_sender.clone(),
             key_pair: None,
             currency: None,
             conf,
@@ -324,8 +324,8 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
         // Launch a proxy thread that transform DursMsg to WS2PThreadSignal(DursMsg)
         thread::spawn(move || {
             // Send proxy sender to main
-            rooter_sender
-                .send(RooterThreadMessage::ModuleRegistration(
+            router_sender
+                .send(RouterThreadMessage::ModuleRegistration(
                     WS2PModule::name(),
                     proxy_sender_clone,
                     vec![ModuleRole::InterNodesNetwork],

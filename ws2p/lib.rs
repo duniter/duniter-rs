@@ -124,7 +124,7 @@ impl NetworkModule<DuRsConf, DursMsg> for WS2Pv2Module {
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
         _conf: WS2PConf,
-        _main_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
+        _main_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
         _sync_params: SyncParams,
     ) -> Result<(), ModuleInitError> {
         unimplemented!()
@@ -167,7 +167,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2Pv2Module {
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
         _conf: WS2PConf,
-        _rooter_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
+        _router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
         _load_conf_only: bool,
     ) -> Result<(), ModuleInitError> {
         unimplemented!()

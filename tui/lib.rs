@@ -93,16 +93,13 @@ pub enum TuiMess {
 /// Tui module
 pub struct TuiModule {}
 
-#[derive(StructOpt, Debug, Clone)]
+#[derive(StructOpt, Debug, Copy, Clone)]
 #[structopt(
     name = "tui",
     raw(setting = "structopt::clap::AppSettings::ColoredHelp")
 )]
 /// Tui subcommand options
-pub struct TuiOpt {
-    /// Change test conf fake field
-    pub new_conf_field: String,
-}
+pub struct TuiOpt {}
 
 #[derive(Debug, Clone)]
 /// Network connexion (data to display)
@@ -405,35 +402,11 @@ impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
     fn ask_required_keys() -> RequiredKeys {
         RequiredKeys::None()
     }
-    fn have_subcommand() -> bool {
-        true
-    }
-    fn exec_subcommand(
-        soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
-        _keys: RequiredKeysContent,
-        module_conf: Self::ModuleConf,
-        subcommand_args: TuiOpt,
-    ) {
-        let mut conf = soft_meta_datas.conf.clone();
-        let new_tui_conf = TuiConf {
-            test_fake_conf_field: subcommand_args.new_conf_field.clone(),
-        };
-        conf.set_module_conf(
-            Self::name().to_string(),
-            serde_json::value::to_value(new_tui_conf).expect("Fail to jsonifie TuiConf !"),
-        );
-        duniter_conf::write_conf_file(&soft_meta_datas.profile, &conf)
-            .expect("Fail to write new Tui conf file ! ");
-        println!(
-            "Succesfully exec tui subcommand whit terminal name : {} and conf={:?}!",
-            subcommand_args.new_conf_field, module_conf
-        )
-    }
     fn start(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
         _conf: Self::ModuleConf,
-        main_sender: mpsc::Sender<RooterThreadMessage<DursMsg>>,
+        main_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
         load_conf_only: bool,
     ) -> Result<(), ModuleInitError> {
         let start_time = SystemTime::now(); //: DateTime<Utc> = Utc::now();
@@ -467,7 +440,7 @@ impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
         thread::spawn(move || {
             // Send proxy sender to main
             main_sender
-                .send(RooterThreadMessage::ModuleRegistration(
+                .send(RouterThreadMessage::ModuleRegistration(
                     TuiModule::name(),
                     proxy_sender,
                     vec![ModuleRole::UserInterface],

@@ -33,7 +33,7 @@ static MAX_REGISTRATION_DELAY: &'static u64 = &20;
 fn start_broadcasting_thread(
     start_time: SystemTime,
     run_duration_in_secs: u64,
-    receiver: &mpsc::Receiver<RooterThreadMessage<DursMsg>>,
+    receiver: &mpsc::Receiver<RouterThreadMessage<DursMsg>>,
     external_followers: &[mpsc::Sender<DursMsgContent>],
 ) {
     // Define variables
@@ -50,10 +50,10 @@ fn start_broadcasting_thread(
         match receiver.recv_timeout(Duration::from_secs(1)) {
             Ok(mess) => {
                 match mess {
-                    RooterThreadMessage::ModulesCount(modules_count) => {
+                    RouterThreadMessage::ModulesCount(modules_count) => {
                         expected_registrations_count = Some(modules_count)
                     }
-                    RooterThreadMessage::ModuleRegistration(
+                    RouterThreadMessage::ModuleRegistration(
                         module_static_name,
                         module_sender,
                         sender_roles,
@@ -144,7 +144,7 @@ fn start_broadcasting_thread(
                         // Add this sender to modules_senders
                         modules_senders.insert(module_static_name, module_sender);
                     }
-                    RooterThreadMessage::ModuleMessage(msg) => match msg.0 {
+                    RouterThreadMessage::ModuleMessage(msg) => match msg.0 {
                         DursMsgReceiver::One(_) => {}
                         DursMsgReceiver::All => {
                             for (module_static_name, module_sender) in &modules_senders {
@@ -219,7 +219,7 @@ fn start_broadcasting_thread(
             Err(e) => match e {
                 RecvTimeoutError::Timeout => continue,
                 RecvTimeoutError::Disconnected => {
-                    panic!("Fatal error : rooter thread disconnnected !")
+                    panic!("Fatal error : router thread disconnnected !")
                 }
             },
         }
@@ -241,17 +241,13 @@ fn start_broadcasting_thread(
 }
 
 /// Start conf thread
-fn start_conf_thread(
-    profile: &str,
-    conf: &mut DuRsConf,
-    receiver: &mpsc::Receiver<DursMsgContent>,
-) {
+fn start_conf_thread(profile: &str, mut conf: DuRsConf, receiver: &mpsc::Receiver<DursMsgContent>) {
     loop {
         match receiver.recv() {
             Ok(msg) => {
                 if let DursMsgContent::SaveNewModuleConf(module_static_name, new_json_conf) = msg {
                     conf.set_module_conf(module_static_name.to_string(), new_json_conf);
-                    duniter_conf::write_conf_file(&profile, conf)
+                    duniter_conf::write_conf_file(&profile, &conf)
                         .expect("Fail to write new module conf in conf file ! ");
                 }
             }
@@ -312,27 +308,27 @@ fn store_msg_in_pool(
     }
 }
 
-/// Start rooter thread
-pub fn start_rooter(
+/// Start router thread
+pub fn start_router(
     run_duration_in_secs: u64,
     profile: String,
     conf: DuRsConf,
     external_followers: Vec<mpsc::Sender<DursMsgContent>>,
-) -> mpsc::Sender<RooterThreadMessage<DursMsg>> {
+) -> mpsc::Sender<RouterThreadMessage<DursMsg>> {
     let start_time = SystemTime::now();
 
-    // Create rooter channel
-    let (rooter_sender, rooter_receiver): (
-        mpsc::Sender<RooterThreadMessage<DursMsg>>,
-        mpsc::Receiver<RooterThreadMessage<DursMsg>>,
+    // Create router channel
+    let (router_sender, router_receiver): (
+        mpsc::Sender<RouterThreadMessage<DursMsg>>,
+        mpsc::Receiver<RouterThreadMessage<DursMsg>>,
     ) = mpsc::channel();
 
-    // Create rooter thread
+    // Create router thread
     thread::spawn(move || {
         // Create broadcasting thread channel
         let (broadcasting_sender, broadcasting_receiver): (
-            mpsc::Sender<RooterThreadMessage<DursMsg>>,
-            mpsc::Receiver<RooterThreadMessage<DursMsg>>,
+            mpsc::Sender<RouterThreadMessage<DursMsg>>,
+            mpsc::Receiver<RouterThreadMessage<DursMsg>>,
         ) = mpsc::channel();
 
         // Create broadcasting thread
@@ -353,7 +349,7 @@ pub fn start_rooter(
 
         // Create conf thread
         thread::spawn(move || {
-            start_conf_thread(&profile, &mut conf.clone(), &conf_receiver);
+            start_conf_thread(&profile, conf, &conf_receiver);
         });
 
         // Define variables
@@ -362,20 +358,20 @@ pub fn start_rooter(
 
         // Wait to receiver modules senders
         loop {
-            match rooter_receiver.recv_timeout(Duration::from_secs(1)) {
+            match router_receiver.recv_timeout(Duration::from_secs(1)) {
                 Ok(mess) => {
                     match mess {
-                        RooterThreadMessage::ModulesCount(expected_registrations_count) => {
+                        RouterThreadMessage::ModulesCount(expected_registrations_count) => {
                             // Relay to broadcasting thread
                             broadcasting_sender
-                                .send(RooterThreadMessage::ModulesCount(
+                                .send(RouterThreadMessage::ModulesCount(
                                     expected_registrations_count,
                                 ))
                                 .expect(
                                     "Fail to relay ModulesCount message to broadcasting thread !",
                                 );
                         }
-                        RooterThreadMessage::ModuleRegistration(
+                        RouterThreadMessage::ModuleRegistration(
                             module_static_name,
                             module_sender,
                             events_subscription,
@@ -403,7 +399,7 @@ pub fn start_rooter(
                             modules_senders.insert(module_static_name, module_sender.clone());
                             // Relay to broadcasting thread
                             broadcasting_sender
-                                .send(RooterThreadMessage::ModuleRegistration(
+                                .send(RouterThreadMessage::ModuleRegistration(
                                     module_static_name,
                                     module_sender,
                                     events_subscription,
@@ -416,12 +412,12 @@ pub fn start_rooter(
                                 );
                             // Log the number of modules_senders received
                             info!(
-                                "Rooter thread receive {} module senders",
+                                "Router thread receive {} module senders",
                                 modules_senders.len()
                             );
                         }
-                        RooterThreadMessage::ModuleMessage(msg) => {
-                            trace!("Rooter thread receive ModuleMessage({:?})", msg);
+                        RouterThreadMessage::ModuleMessage(msg) => {
+                            trace!("Router thread receive ModuleMessage({:?})", msg);
                             match msg.0 {
                                 DursMsgReceiver::All => {
                                     let stop = if let DursMsgContent::Stop() = msg.1 {
@@ -430,7 +426,7 @@ pub fn start_rooter(
                                         false
                                     };
                                     broadcasting_sender
-                                        .send(RooterThreadMessage::ModuleMessage(msg))
+                                        .send(RouterThreadMessage::ModuleMessage(msg))
                                         .expect("Fail to relay message to broadcasting thread !");
                                     if stop {
                                         break;
@@ -445,14 +441,14 @@ pub fn start_rooter(
                                             .expect("Fail to reach conf thread !");
                                     } else {
                                         broadcasting_sender
-                                            .send(RooterThreadMessage::ModuleMessage(msg))
+                                            .send(RouterThreadMessage::ModuleMessage(msg))
                                             .expect(
                                                 "Fail to relay specific role message to broadcasting thread !",
                                             );
                                     }
                                 }
                                 DursMsgReceiver::Event(_module_event) => broadcasting_sender
-                                    .send(RooterThreadMessage::ModuleMessage(msg))
+                                    .send(RouterThreadMessage::ModuleMessage(msg))
                                     .expect("Fail to relay specific event message to broadcasting thread !"),
                                 DursMsgReceiver::One(module_static_name) => {
                                     if let Some(module_sender) =
@@ -491,7 +487,8 @@ pub fn start_rooter(
                 Err(e) => match e {
                     RecvTimeoutError::Timeout => continue,
                     RecvTimeoutError::Disconnected => {
-                        panic!("Fatal error : rooter thread disconnnected !")
+                        warn!("Router thread disconnnected... break main loop.");
+                        break;
                     }
                 },
             }
@@ -503,7 +500,7 @@ pub fn start_rooter(
                     > run_duration_in_secs
             {
                 broadcasting_sender
-                    .send(RooterThreadMessage::ModuleMessage(DursMsg(
+                    .send(RouterThreadMessage::ModuleMessage(DursMsg(
                         DursMsgReceiver::All,
                         DursMsgContent::Stop(),
                     )))
@@ -511,8 +508,8 @@ pub fn start_rooter(
                 break;
             }
         }
-        info!("Rooter thread stop.")
+        info!("Router thread stop.")
     });
 
-    rooter_sender
+    router_sender
 }

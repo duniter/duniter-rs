@@ -207,17 +207,17 @@ pub enum ModuleEvent {
 /// Type returned by module initialization function
 pub enum ModuleInitError {
     /// Fail to load configuration
-    FailToLoadConf(),
+    FailToLoadConf(&'static str),
     /// Unknow error
     UnknowError(),
 }
 
 #[derive(Debug, Clone)]
-/// Type sent by each module to the rooter during initialization
-pub enum RooterThreadMessage<M: ModuleMessage> {
+/// Type sent by each module to the router during initialization
+pub enum RouterThreadMessage<M: ModuleMessage> {
     /// Number of expected modules
     ModulesCount(usize),
-    /// Registration of the module at the rooter
+    /// Registration of the module at the router
     ModuleRegistration(
         ModuleStaticName,
         mpsc::Sender<M>,
@@ -343,17 +343,18 @@ pub trait DuniterModule<DC: DuniterConf, M: ModuleMessage> {
     }
     /// Execute injected subcommand
     fn exec_subcommand(
-        soft_meta_datas: &SoftwareMetaDatas<DC>,
-        keys: RequiredKeysContent,
-        module_conf: Self::ModuleConf,
-        subcommand_args: Self::ModuleOpt,
-    );
+        _soft_meta_datas: &SoftwareMetaDatas<DC>,
+        _keys: RequiredKeysContent,
+        _module_conf: Self::ModuleConf,
+        _subcommand_args: Self::ModuleOpt,
+    ) {
+    }
     /// Launch the module
     fn start(
         soft_meta_datas: &SoftwareMetaDatas<DC>,
         keys: RequiredKeysContent,
         module_conf: Self::ModuleConf,
-        main_sender: mpsc::Sender<RooterThreadMessage<M>>,
+        main_sender: mpsc::Sender<RouterThreadMessage<M>>,
         load_conf_only: bool,
     ) -> Result<(), ModuleInitError>;
 }
