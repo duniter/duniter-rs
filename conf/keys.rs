@@ -76,6 +76,9 @@ pub fn clear_keys(network: bool, member: bool, mut key_pairs: DuniterKeyPairs) -
     if member {
         key_pairs.member_keypair = None;
     }
+    if !network && !member {
+        println!("No key was cleared. Please specify a key to clear.")
+    }
     key_pairs
 }
 
