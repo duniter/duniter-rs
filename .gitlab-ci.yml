@@ -92,7 +92,20 @@ tests:win64:stable:
   <<: *rust_stable_win64
   stage: tests
   script: 
-    - cargo test --all --exclude duniter-tui --no-default-features --target=x86_64-pc-windows-gnu
+    - cd bin/durs-server
+    - cargo build --no-default-features --target=x86_64-pc-windows-gnu
+    - cargo test --package dup-crypto --target=x86_64-pc-windows-gnu
+    - cargo test --package durs-wot --target=x86_64-pc-windows-gnu
+    - cargo test --package dubp-documents --target=x86_64-pc-windows-gnu
+    - cargo test --package durs-network-documents --target=x86_64-pc-windows-gnu
+    - cargo test --package duniter-module --target=x86_64-pc-windows-gnu
+    - cargo test --package duniter-network --target=x86_64-pc-windows-gnu
+    - cargo test --package duniter-conf --target=x86_64-pc-windows-gnu
+    - cargo test --package duniter-dal --target=x86_64-pc-windows-gnu
+    - cargo test --package duniter-message --target=x86_64-pc-windows-gnu
+    - cargo test --package duniter-blockchain --target=x86_64-pc-windows-gnu
+    - cargo test --package duniter-core --target=x86_64-pc-windows-gnu
+    #- cargo test --package durs-skeleton-module --target=x86_64-pc-windows-gnu
     
 tests:linux64:beta:
   <<: *rust_beta_lin64
