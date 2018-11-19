@@ -1,0 +1,23 @@
+[package]
+name = "durs"
+version = "0.1.0-a1"
+authors = ["librelois <elois@duniter.org>","nanocryk <nanocryk@duniter.org>","inso <inso@tuta.io>"]
+description = "DURS (Dividende Universel RuSt) is a new implementation of Duniter protocol and software in Rust, a safe, concurrent, practical language"
+license = "AGPL-3.0"
+
+[dependencies]
+duniter-core = { path = "../../lib/core" }
+# durs-skeleton-module = { path = "../../lib/skeleton-module" }
+durs-ws2p = { path = "../../lib/ws2p" }
+durs-ws2p-v1-legacy = { path = "../../lib/ws2p-v1-legacy" }
+structopt= "0.2.*"
+
+[target.'cfg(unix)'.dependencies]
+duniter-tui = { path = "../../lib/tui" }
+
+[features]
+default = ["ssl"]
+ssl = ["durs-ws2p-v1-legacy/ssl"]
+# Treat warnings as a build error.
+strict = []
+

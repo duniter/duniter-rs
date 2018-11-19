@@ -1,42 +1,20 @@
-[package]
-name = "durs"
-version = "0.1.0-a0.1"
-authors = ["librelois <elois@duniter.org>","nanocryk <nanocryk@duniter.org>"]
-description = "DUniter-RS (durs) is a new implementation of Duniter protocol and software in Rust, a safe, concurrent, practical language"
-license = "AGPL-3.0"
-
-[dependencies]
-duniter-core = { path = "./core" }
-# durs-skeleton-module = { path = "./skeleton-module" }
-durs-ws2p = { path = "./ws2p" }
-durs-ws2p-v1-legacy = { path = "./ws2p-v1-legacy" }
-structopt= "0.2.*"
-
-[target.'cfg(unix)'.dependencies]
-duniter-tui = { path = "./tui" }
-
-[features]
-default = ["ssl"]
-ssl = ["durs-ws2p-v1-legacy/ssl"]
-# Treat warnings as a build error.
-strict = []
-
 [workspace]
 members = [
-    "blockchain",
-    "conf",
-    "core",
-    "crypto",
-    "dal",
-    "documents",
-    "message",
-    "module",
-    "network",
-    "network-documents",
-    # "skeleton-module",
-    "tui",
-    "wot",
-    "ws2p",
-    "ws2p-messages",
-    "ws2p-v1-legacy"
+    "bin/durs-server",
+    "lib/blockchain",
+    "lib/conf",
+    "lib/core",
+    "lib/crypto",
+    "lib/dal",
+    "lib/documents",
+    "lib/message",
+    "lib/module",
+    "lib/network",
+    "lib/network-documents",
+    # "lib/skeleton-module",
+    "lib/tui",
+    "lib/wot",
+    "lib/ws2p",
+    "lib/ws2p-messages",
+    "lib/ws2p-v1-legacy"
 ]
