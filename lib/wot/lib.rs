@@ -196,14 +196,6 @@ mod tests {
         // should be able to add some links, cert count is returned
         assert_eq!(wot.add_link(NodeId(2), NodeId(0)), NewLinkResult::Ok(1));
         assert_eq!(wot.add_link(NodeId(4), NodeId(0)), NewLinkResult::Ok(2));
-        assert_eq!(
-            wot.add_link(NodeId(4), NodeId(0)),
-            NewLinkResult::AlreadyCertified(2)
-        );
-        assert_eq!(
-            wot.add_link(NodeId(4), NodeId(0)),
-            NewLinkResult::AlreadyCertified(2)
-        );
         assert_eq!(wot.add_link(NodeId(5), NodeId(0)), NewLinkResult::Ok(3));
 
         // should exist new links

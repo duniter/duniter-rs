@@ -134,8 +134,6 @@ impl WebOfTrust for RustyWebOfTrust {
             NewLinkResult::UnknownTarget()
         } else if self.nodes[source.0].issued_count >= self.max_links {
             NewLinkResult::AllCertificationsUsed(self.nodes[target.0].links_source.len())
-        } else if self.nodes[target.0].links_source.contains(&source) {
-            NewLinkResult::AlreadyCertified(self.nodes[target.0].links_source.len())
         } else {
             self.nodes[source.0].issued_count += 1;
             self.nodes[target.0].links_source.insert(source);

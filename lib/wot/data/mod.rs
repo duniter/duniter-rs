@@ -87,8 +87,6 @@ impl<'de> Deserialize<'de> for NodeId {
 pub enum NewLinkResult {
     /// Certification worked.
     Ok(usize),
-    /// This certification already exist.
-    AlreadyCertified(usize),
     /// All available certifications has been used.
     AllCertificationsUsed(usize),
     /// Unknown source.
