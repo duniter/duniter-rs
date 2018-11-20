@@ -32,9 +32,9 @@ use durs_network_documents::network_peer::PeerCardV11;
 /// WS2P v2 message payload metadata size
 pub static WS2P_V2_MESSAGE_PAYLOAD_METADATA_SIZE: &'static usize = &8;
 
-/// WS2Pv0MessagePayload
+/// WS2Pv2MessagePayload
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum WS2Pv0MessagePayload {
+pub enum WS2Pv2MessagePayload {
     /// CONNECT message
     Connect(Box<WS2Pv2ConnectMsg>),
     /// ACK message

@@ -43,13 +43,61 @@ extern crate durs_network_documents;
 /// WS2Pv2 Messages
 pub mod v2;
 
-use v2::WS2Pv0Message;
+use dup_crypto::hashs::Hash;
+use dup_crypto::keys::bin_signable::BinSignable;
+use dup_crypto::keys::SigError;
+use v2::WS2Pv2Message;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-/// WS2Pv0Message
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+/// WS2Pv2Message
 pub enum WS2PMessage {
     /// Version 2
-    V0(WS2Pv0Message),
+    V2(WS2Pv2Message),
+}
+
+/// Enumerate errors can happen when parsing and checking messages
+#[derive(Debug)]
+pub enum WS2PMessageError {
+    /// Error at deserialization
+    DeserError(bincode::Error),
+    /// Invalid hash
+    InvalidHash,
+    /// Invalid signature
+    SigError(SigError),
+}
+
+impl From<bincode::Error> for WS2PMessageError {
+    fn from(e: bincode::Error) -> Self {
+        WS2PMessageError::DeserError(e)
+    }
+}
+
+impl WS2PMessage {
+    /// Verify signature validity
+    pub fn verify(&self) -> Result<(), SigError> {
+        match *self {
+            WS2PMessage::V2(ref msg_v2) => msg_v2.verify(),
+        }
+    }
+    /// Get message hash
+    pub fn hash(&self) -> Option<Hash> {
+        match *self {
+            WS2PMessage::V2(ref msg_v2) => msg_v2.message_hash,
+        }
+    }
+    /// Parse and check bin message
+    pub fn parse_and_check_bin_message(bin_msg: &[u8]) -> Result<WS2PMessage, WS2PMessageError> {
+        let msg: WS2PMessage = bincode::deserialize(&bin_msg)?;
+        let hash = msg.hash();
+        if hash.is_some() && Hash::compute(&bin_msg) == hash.expect("safe unwrap") {
+            match msg.verify() {
+                Ok(()) => Ok(msg),
+                Err(e) => Err(WS2PMessageError::SigError(e)),
+            }
+        } else {
+            Err(WS2PMessageError::InvalidHash)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -65,8 +113,8 @@ mod tests {
     use durs_network_documents::*;
     use std::net::Ipv4Addr;
     use std::str::FromStr;
-    use v2::payload_container::WS2Pv0MessagePayload;
-    use v2::WS2Pv0Message;
+    use v2::payload_container::WS2Pv2MessagePayload;
+    use v2::WS2Pv2Message;
 
     pub fn keypair1() -> ed25519::KeyPair {
         ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(
@@ -117,10 +165,10 @@ mod tests {
         }
     }
 
-    pub fn test_ws2p_message(payload: WS2Pv0MessagePayload) {
+    pub fn test_ws2p_message(payload: WS2Pv2MessagePayload) {
         let keypair1 = keypair1();
-        let mut ws2p_message = WS2Pv0Message {
-            currency_code: CurrencyName(String::from("g1")),
+        let mut ws2p_message = WS2Pv2Message {
+            currency_name: CurrencyName(String::from("g1")),
             issuer_node_id: NodeId(0),
             issuer_pubkey: PubKey::Ed25519(keypair1.public_key()),
             payload,
@@ -132,15 +180,15 @@ mod tests {
         if let Ok(bin_msg) = sign_result {
             // Test binarization
             assert_eq!(
-                serialize(&ws2p_message).expect("Fail to serialize WS2Pv0Message !"),
+                serialize(&ws2p_message).expect("Fail to serialize WS2Pv2Message !"),
                 bin_msg
             );
             // Test sign
             ws2p_message
                 .verify()
-                .expect("WS2Pv0Message : Invalid signature !");
+                .expect("WS2Pv2Message : Invalid signature !");
             // Test debinarization
-            let debinarization_result: Result<WS2Pv0Message, bincode::Error> =
+            let debinarization_result: Result<WS2Pv2Message, bincode::Error> =
                 deserialize(&bin_msg);
             if let Ok(ws2p_message2) = debinarization_result {
                 assert_eq!(ws2p_message, ws2p_message2);

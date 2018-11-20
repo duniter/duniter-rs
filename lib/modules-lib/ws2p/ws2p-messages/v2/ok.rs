@@ -73,6 +73,6 @@ mod tests {
                 ],
             }),
         };
-        test_ws2p_message(WS2Pv0MessagePayload::Ok(ok_msg));
+        test_ws2p_message(WS2Pv2MessagePayload::Ok(ok_msg));
     }
 }

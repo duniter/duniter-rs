@@ -28,15 +28,38 @@ impl WS2PFeatures {
         true
     }
     /// Check flag DEF
-    pub fn _def(&self) -> bool {
+    pub fn def(&self) -> bool {
         self.0[0] | 0b1111_1110 == 255u8
     }
     /// Check flag LOW
-    pub fn _low(&self) -> bool {
+    pub fn low(&self) -> bool {
         self.0[0] | 0b1111_1101 == 255u8
     }
     /// Check flag ABF
-    pub fn _abf(&self) -> bool {
+    pub fn abf(&self) -> bool {
         self.0[0] | 0b1111_1011 == 255u8
+    }
+    /// Check features compatibility
+    pub fn check_features_compatibility(
+        &self,
+        remote_features: &WS2PFeatures,
+    ) -> Result<WS2PFeatures, ()> {
+        let mut merged_features = self.clone();
+        // Remove features unsuported by remote node
+        if self.def() && !remote_features.def() {
+            merged_features.0[0] &= 0b1111_1110;
+        }
+        if self.low() && !remote_features.low() {
+            merged_features.0[0] &= 0b1111_1101;
+        }
+        if self.abf() && !remote_features.abf() {
+            merged_features.0[0] &= 0b1111_1011;
+        }
+        // Check incompatiblities
+        if remote_features.low() && !self.low() {
+            Err(())
+        } else {
+            Ok(merged_features)
+        }
     }
 }

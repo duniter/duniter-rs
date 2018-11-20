@@ -38,29 +38,50 @@ use v2::payload_container::*;
 /// WS2P v2 message metadata size
 pub static WS2P_V2_MESSAGE_METADATA_SIZE: &'static usize = &144;
 
-/// WS2Pv0Message
+/// WS2Pv2Message
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct WS2Pv0Message {
+pub struct WS2Pv2Message {
     /// Currency name
-    pub currency_code: CurrencyName,
+    pub currency_name: CurrencyName,
     /// Issuer NodeId
     pub issuer_node_id: NodeId,
     /// Issuer plublic key
     pub issuer_pubkey: PubKey,
     /// Message payload
-    pub payload: WS2Pv0MessagePayload,
+    pub payload: WS2Pv2MessagePayload,
     /// Message hash
     pub message_hash: Option<Hash>,
     /// Signature
     pub signature: Option<Sig>,
 }
 
-impl WS2Pv0Message {
+impl WS2Pv2Message {
     /// WS2P Version number
     pub const WS2P_VERSION: u16 = 0;
+
+    /// Encapsulate message payload
+    pub fn encapsulate_payload(
+        currency_name: CurrencyName,
+        issuer_node_id: NodeId,
+        issuer_keypair: KeyPairEnum,
+        payload: WS2Pv2MessagePayload,
+    ) -> Result<(WS2Pv2Message, Vec<u8>), SignError> {
+        let mut msg = WS2Pv2Message {
+            currency_name,
+            issuer_node_id,
+            issuer_pubkey: issuer_keypair.public_key(),
+            payload,
+            message_hash: None,
+            signature: None,
+        };
+        match msg.sign(issuer_keypair.private_key()) {
+            Ok(bin_msg) => Ok((msg, bin_msg)),
+            Err(e) => Err(e),
+        }
+    }
 }
 
-impl<'de> BinSignable<'de> for WS2Pv0Message {
+impl<'de> BinSignable<'de> for WS2Pv2Message {
     fn issuer_pubkey(&self) -> PubKey {
         self.issuer_pubkey
     }
@@ -89,7 +110,7 @@ mod tests {
 
     #[test]
     fn test_ws2p_message_ack() {
-        test_ws2p_message(WS2Pv0MessagePayload::Ack(Hash::random()));
+        test_ws2p_message(WS2Pv2MessagePayload::Ack(Hash::random()));
     }
 
     #[test]
@@ -98,6 +119,6 @@ mod tests {
         let mut peer = create_peer_card_v11();
         peer.sign(PrivKey::Ed25519(keypair1.private_key()))
             .expect("Fail to sign peer card !");
-        test_ws2p_message(WS2Pv0MessagePayload::Peers(vec![peer]));
+        test_ws2p_message(WS2Pv2MessagePayload::Peers(vec![peer]));
     }
 }

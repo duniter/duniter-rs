@@ -71,7 +71,7 @@ mod tests {
             id: 27,
             body: WS2Pv2ReqResBody::None,
         };
-        test_ws2p_message(WS2Pv0MessagePayload::ReqRes(response));
+        test_ws2p_message(WS2Pv2MessagePayload::ReqRes(response));
     }
 
     #[test]
@@ -81,7 +81,7 @@ mod tests {
             id: 28,
             body: WS2Pv2ReqResBody::BadRequest(reason),
         };
-        test_ws2p_message(WS2Pv0MessagePayload::ReqRes(response));
+        test_ws2p_message(WS2Pv2MessagePayload::ReqRes(response));
     }
 
     #[test]
@@ -94,7 +94,7 @@ mod tests {
             id: 28,
             body: WS2Pv2ReqResBody::Current(blockstamp),
         };
-        test_ws2p_message(WS2Pv0MessagePayload::ReqRes(response));
+        test_ws2p_message(WS2Pv2MessagePayload::ReqRes(response));
     }
 
     #[test]
@@ -109,7 +109,7 @@ mod tests {
             id: 29,
             body: WS2Pv2ReqResBody::BlocksHashs(hashs),
         };
-        test_ws2p_message(WS2Pv0MessagePayload::ReqRes(response));
+        test_ws2p_message(WS2Pv2MessagePayload::ReqRes(response));
     }
 
     #[test]
@@ -119,6 +119,6 @@ mod tests {
             id: 29,
             body: WS2Pv2ReqResBody::WotPool(vec![cert_doc.clone(), cert_doc.clone()], vec![]),
         };
-        test_ws2p_message(WS2Pv0MessagePayload::ReqRes(response));
+        test_ws2p_message(WS2Pv2MessagePayload::ReqRes(response));
     }
 }

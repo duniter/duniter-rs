@@ -87,6 +87,6 @@ mod tests {
             id: 27,
             body: WS2Pv2RequestBody::ChunkByHash(chunkstamp),
         };
-        test_ws2p_message(WS2Pv0MessagePayload::Request(request));
+        test_ws2p_message(WS2Pv2MessagePayload::Request(request));
     }
 }

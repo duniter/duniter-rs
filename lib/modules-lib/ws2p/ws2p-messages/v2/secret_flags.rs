@@ -79,6 +79,6 @@ mod tests {
             member_pubkey: Some(PubKey::Ed25519(keypair1.public_key())),
             member_proof: Some(Sig::Ed25519(keypair1.private_key().sign(&challenge.0))),
         };
-        test_ws2p_message(WS2Pv0MessagePayload::SecretFlags(msg));
+        test_ws2p_message(WS2Pv2MessagePayload::SecretFlags(msg));
     }
 }

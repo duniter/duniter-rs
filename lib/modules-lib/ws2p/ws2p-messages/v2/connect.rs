@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Durs Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -37,16 +37,62 @@ impl WS2PConnectFlags {
         true
     }
     /// Check flag SYNC
-    pub fn _sync(&self) -> bool {
-        self.0[0] & 0b0000_0001 == 1u8
+    pub fn sync(&self) -> bool {
+        0b1111_1110 | self.0[0] == 255u8
     }
     /// Check flag ASK_SYNC_CHUNK
-    pub fn _ask_sync_chunk(&self) -> bool {
-        self.0[0] & 0b0000_0010 == 2u8
+    pub fn ask_sync_chunk(&self) -> bool {
+        0b1111_1101 | self.0[0] == 255u8
     }
     /// Check flag RES_SYNC_CHUNK
-    pub fn _res_sync_chunk(&self) -> bool {
-        self.0[0] & 0b0000_0100 == 4u8
+    pub fn res_sync_chunk(&self) -> bool {
+        0b1111_1011 | self.0[0] == 255u8
+    }
+}
+
+impl From<WS2Pv2ConnectType> for WS2PConnectFlags {
+    fn from(connect_type: WS2Pv2ConnectType) -> Self {
+        match connect_type {
+            WS2Pv2ConnectType::Classic | WS2Pv2ConnectType::Incoming => WS2PConnectFlags(vec![]),
+            WS2Pv2ConnectType::Sync(_) => WS2PConnectFlags(vec![1u8]),
+            WS2Pv2ConnectType::AskChunk(_) => WS2PConnectFlags(vec![3u8]),
+            WS2Pv2ConnectType::SendChunks => WS2PConnectFlags(vec![5u8]),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+/// WS2Pv2ConnectType
+pub enum WS2Pv2ConnectType {
+    /// Classic outgoing connection
+    Classic,
+    /// Incoming connection
+    Incoming,
+    /// Sync outgoing connection (from blockstamp, or from genesis block if blockstamp is none)
+    Sync(Option<Blockstamp>),
+    /// Sync outgoing connection to request chunk
+    AskChunk(Blockstamp),
+    /// Sync outgoing connection to send chunk
+    SendChunks,
+}
+
+impl WS2Pv2ConnectType {
+    /// Create WS2Pv2ConnectType from WS2PConnectFlags
+    pub fn from_flags(
+        flags: &WS2PConnectFlags,
+        blockstamp: Option<Blockstamp>,
+    ) -> WS2Pv2ConnectType {
+        if flags.sync() {
+            if flags.ask_sync_chunk() && blockstamp.is_some() {
+                WS2Pv2ConnectType::AskChunk(blockstamp.expect("safe unwrap"))
+            } else if flags.res_sync_chunk() {
+                WS2Pv2ConnectType::SendChunks
+            } else {
+                WS2Pv2ConnectType::Sync(blockstamp)
+            }
+        } else {
+            WS2Pv2ConnectType::Classic
+        }
     }
 }
 
@@ -82,6 +128,27 @@ impl Default for WS2Pv2ConnectMsg {
     }
 }
 
+/// Generate connect message
+pub fn generate_connect_message(
+    connect_type: WS2Pv2ConnectType,
+    api_features: WS2PFeatures,
+    challenge: Hash,
+    peer_card: Option<PeerCardV11>,
+) -> WS2Pv2ConnectMsg {
+    let chunkstamp = if let WS2Pv2ConnectType::AskChunk(chunkstamp) = connect_type {
+        Some(chunkstamp)
+    } else {
+        None
+    };
+    WS2Pv2ConnectMsg {
+        challenge,
+        api_features,
+        flags_queries: WS2PConnectFlags::from(connect_type),
+        peer_card,
+        chunkstamp,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::*;
@@ -89,6 +156,24 @@ mod tests {
     use dubp_documents::Blockstamp;
     use dup_crypto::keys::text_signable::TextSignable;
     use tests::*;
+
+    #[test]
+    fn test_ws2p_connect_flags() {
+        // test sync()
+        assert!(WS2PConnectFlags(vec![1u8]).sync());
+        assert!(WS2PConnectFlags(vec![3u8]).sync());
+        assert!(WS2PConnectFlags(vec![5u8]).sync());
+
+        // test ask_sync_chunk()
+        assert_eq!(WS2PConnectFlags(vec![1u8]).ask_sync_chunk(), false);
+        assert!(WS2PConnectFlags(vec![3u8]).ask_sync_chunk());
+        assert_eq!(WS2PConnectFlags(vec![5u8]).ask_sync_chunk(), false);
+
+        // test res_sync_chunk()
+        assert_eq!(WS2PConnectFlags(vec![1u8]).res_sync_chunk(), false);
+        assert_eq!(WS2PConnectFlags(vec![3u8]).res_sync_chunk(), false);
+        assert!(WS2PConnectFlags(vec![5u8]).res_sync_chunk());
+    }
 
     #[test]
     fn test_ws2p_message_connect() {
@@ -111,6 +196,6 @@ mod tests {
                 .unwrap(),
             ),
         };
-        test_ws2p_message(WS2Pv0MessagePayload::Connect(Box::new(connect_msg)));
+        test_ws2p_message(WS2Pv2MessagePayload::Connect(Box::new(connect_msg)));
     }
 }

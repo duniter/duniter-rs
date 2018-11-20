@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Durs Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -46,6 +46,8 @@ extern crate durs_ws2p_messages;
 
 mod constants;
 mod generate_peer;
+pub mod controllers;
+pub mod services;
 
 use constants::*;
 use duniter_conf::DuRsConf;
