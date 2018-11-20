@@ -10,15 +10,15 @@ path = "lib.rs"
 
 [dependencies]
 byteorder = "1.2.3"
-duniter-conf = { path = "../conf" }
-dup-crypto = { path = "../crypto" }
-duniter-dal = { path = "../dal" }
-dubp-documents= { path = "../documents" }
-durs-network-documents = { path = "../network-documents" }
-duniter-message =  { path = "../message" }
-duniter-module = { path = "../module" }
-duniter-network = { path = "../network" }
-durs-wot = { path = "../wot" }
+duniter-conf = { path = "../../core/conf" }
+dup-crypto = { path = "../../tools/crypto" }
+duniter-dal = { path = "../../tools/dal" }
+dubp-documents= { path = "../../tools/documents" }
+durs-network-documents = { path = "../../tools/network-documents" }
+duniter-message =  { path = "../../core/message" }
+duniter-module = { path = "../../core/module" }
+duniter-network = { path = "../../core/network" }
+durs-wot = { path = "../../tools/wot" }
 log = "0.4.*"
 rand = "0.4.*"
 sqlite = "0.23.*"

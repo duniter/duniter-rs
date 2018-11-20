@@ -1,0 +1,24 @@
+[package]
+name = "duniter-message"
+version = "0.1.0-a0.1"
+authors = ["librelois <elois@duniter.org>"]
+description = "message model for the Duniter project."
+license = "AGPL-3.0"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+dup-crypto = { path = "../../tools/crypto" }
+duniter-dal = { path = "../../tools/dal" }
+dubp-documents= { path = "../../tools/documents" }
+duniter-module = { path = "../module" }
+duniter-network = { path = "../network" }
+durs-network-documents = { path = "../../tools/network-documents" }
+serde = "1.0.*"
+serde_derive = "1.0.*"
+serde_json = "1.0.*"
+
+[features]
+# Treat warnings as a build error.
+strict = []

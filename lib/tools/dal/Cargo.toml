@@ -11,8 +11,7 @@ path = "lib.rs"
 [dependencies]
 dup-crypto = { path = "../crypto" }
 dubp-documents= { path = "../documents" }
-duniter-module = { path = "../module" }
-duniter-network = { path = "../network" }
+duniter-module = { path = "../../core/module" }
 durs-wot = { path = "../wot" }
 log = "0.4.*"
 rustbreak = {version = "2.0.0-rc3", features = ["bin_enc"]}

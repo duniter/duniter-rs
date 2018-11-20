@@ -6,14 +6,14 @@ description = "DURS (Dividende Universel RuSt) is a new implementation of Dunite
 license = "AGPL-3.0"
 
 [dependencies]
-duniter-core = { path = "../../lib/core" }
-# durs-skeleton-module = { path = "../../lib/skeleton-module" }
-durs-ws2p = { path = "../../lib/ws2p" }
-durs-ws2p-v1-legacy = { path = "../../lib/ws2p-v1-legacy" }
+duniter-core = { path = "../../lib/core/core" }
+# durs-skeleton-module = { path = "../../lib/modules/skeleton-module" }
+durs-ws2p = { path = "../../lib/modules/ws2p" }
+durs-ws2p-v1-legacy = { path = "../../lib/modules/ws2p-v1-legacy" }
 structopt= "0.2.*"
 
 [target.'cfg(unix)'.dependencies]
-duniter-tui = { path = "../../lib/tui" }
+duniter-tui = { path = "../../lib/modules/tui" }
 
 [features]
 default = ["ssl"]

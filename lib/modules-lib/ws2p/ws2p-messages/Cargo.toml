@@ -11,9 +11,9 @@ path = "lib.rs"
 [dependencies]
 bincode = "1.0.*"
 byteorder = "1.2.3"
-dup-crypto = { path = "../crypto" }
-dubp-documents= { path = "../documents" }
-durs-network-documents = { path = "../network-documents" }
+dup-crypto = { path = "../../../tools/crypto" }
+dubp-documents= { path = "../../../tools/documents" }
+durs-network-documents = { path = "../../../tools/network-documents" }
 log = "0.4.*"
 serde = "1.0.*"
 serde_derive = "1.0.*"
