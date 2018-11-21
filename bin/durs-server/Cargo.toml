@@ -7,8 +7,8 @@ license = "AGPL-3.0"
 
 [dependencies]
 duniter-core = { path = "../../lib/core/core" }
-# durs-skeleton-module = { path = "../../lib/modules/skeleton-module" }
-durs-ws2p = { path = "../../lib/modules/ws2p" }
+# durs-skeleton = { path = "../../lib/modules/skeleton" }
+durs-ws2p = { path = "../../lib/modules/ws2p/ws2p" }
 durs-ws2p-v1-legacy = { path = "../../lib/modules/ws2p-v1-legacy" }
 structopt= "0.2.*"
 
