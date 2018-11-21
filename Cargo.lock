@@ -422,6 +422,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "durs-skeleton"
+version = "0.1.0"
+dependencies = [
+ "duniter-conf 0.1.0-a0.1",
+ "duniter-dal 0.1.0-a0.1",
+ "duniter-message 0.1.0-a0.1",
+ "duniter-module 0.1.0-a0.1",
+ "duniter-network 0.1.0-a0.1",
+ "dup-crypto 0.5.0",
+ "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.78 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.21 (registry+https://github.com/rust-lang/crates.io-index)",
+ "structopt 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "durs-wot"
 version = "0.8.0-a0.9"
 dependencies = [

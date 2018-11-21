@@ -1,5 +1,5 @@
 [package]
-name = "durs-skeleton-module"
+name = "durs-skeleton"
 version = "0.1.0"
 authors = ["name <mail@domain.tld>"]
 description = "Module template to copy to create a new Durs module."

@@ -7,7 +7,7 @@ members = [
     "lib/core/module",
     "lib/core/network",
     "lib/modules/blockchain",
-    # "lib/modules/skeleton",
+    "lib/modules/skeleton",
     "lib/modules/tui",
     "lib/modules/ws2p-v1-legacy",
     "lib/modules/ws2p/ws2p",
