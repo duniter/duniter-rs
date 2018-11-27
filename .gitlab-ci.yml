@@ -67,7 +67,7 @@ tests:linux64:stable:
   tags:
     - redshift-rs-stable
   script: 
-    - cargo build --features strict
+    - cargo build --features strict ssl
     - cargo test --all
 
 tests:arm-v7-:stable:
@@ -93,25 +93,14 @@ tests:win64:stable:
   stage: tests
   script: 
     - cd bin/durs-server
-    - cargo build --no-default-features --target=x86_64-pc-windows-gnu
-    - cargo test --package dup-crypto --target=x86_64-pc-windows-gnu
-    - cargo test --package durs-wot --target=x86_64-pc-windows-gnu
-    - cargo test --package dubp-documents --target=x86_64-pc-windows-gnu
-    - cargo test --package durs-network-documents --target=x86_64-pc-windows-gnu
-    - cargo test --package duniter-module --target=x86_64-pc-windows-gnu
-    - cargo test --package duniter-network --target=x86_64-pc-windows-gnu
-    - cargo test --package duniter-conf --target=x86_64-pc-windows-gnu
-    - cargo test --package duniter-dal --target=x86_64-pc-windows-gnu
-    - cargo test --package duniter-message --target=x86_64-pc-windows-gnu
-    - cargo test --package duniter-blockchain --target=x86_64-pc-windows-gnu
-    - cargo test --package duniter-core --target=x86_64-pc-windows-gnu
-    #- cargo test --package durs-skeleton-module --target=x86_64-pc-windows-gnu
+    - cargo build --target=x86_64-pc-windows-gnu
+    - cargo test --all --exclude duniter-tui
     
 tests:linux64:beta:
   <<: *rust_beta_lin64
   stage: tests
   script:
-    - cargo build --features strict
+    - cargo build --features strict ssl
     - cargo test --all
   when: manual
   allow_failure: true
@@ -120,7 +109,7 @@ tests:linux64:nightly:
   <<: *rust_nightly_lin64
   stage: tests
   script:
-    - cargo build --features strict
+    - cargo build --features strict ssl
     - cargo test --all
   when: manual
   allow_failure: true
