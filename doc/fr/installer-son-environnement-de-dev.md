@@ -44,19 +44,16 @@ Si vous contribuez à l'implémentation Rust de Duniter vous devrez également u
 
 Il y a deux façons d'installer clippy :
 
-1. Le compiler en local : c'est long mais il s'éxécutera plus vite, ça pose cependant un problème majeur : il faut le recompiler en nightly a chaque mise a jours de la toolchain rust et il arrive fréquemment que clippy ne compile plus après une mise à jours. Je déconseilel donc fortemetn cette méthode.
+1. L'installer en local : il faut le réinstaller a chaque mise a jours de clippy.
 2. Éxécuter Clippy dans docker : c'est la méthode que je préconise et que j'utilise, cela rend l'éxécution de clippy un peu plus lente mais permet d'avoir toujours un clippy fonctionnel et de ne pas a voir besoin de le recompiler a chaque mise à jours.
 
 ### Clippy : méthode 1
 
 Éxécutez la commande suivante :
 
-    cargo +nightly install clippy
+    rustup component add rustfmt-preview --toolchain nightly
 
-Attention c'est long, et vous devez impérativement attendre que la compilation soit terminée avant de lancer Clippy.
 Pour lancer clippy, rendez-vous a la racine de votre projet puis éxécutez la commande suivante :
-
-    cargo +nightly clippy --all
 
 Clippy vas alors vous signaler de façopn très pédagogique tout ce qu'il conviens de modifier dans votre code pour être plus dans "l'esprit rust".
 
