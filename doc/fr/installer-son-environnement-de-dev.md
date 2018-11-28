@@ -51,7 +51,7 @@ Il y a deux façons d'installer clippy :
 
 Éxécutez la commande suivante :
 
-    rustup component add rustfmt-preview --toolchain nightly
+    rustup component add clippy-preview --toolchain nightly
 
 Pour lancer clippy, rendez-vous a la racine de votre projet puis éxécutez la commande suivante :
 
