@@ -18,7 +18,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
-pub static TIMEOUT_IN_MS: &'static u64 = &5_000;
+pub static TIMEOUT_IN_MS: &'static u64 = &20_000;
 pub static PORT: &'static u16 = &10899;
 
 pub fn currency() -> CurrencyName {
