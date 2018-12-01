@@ -70,7 +70,7 @@ Il vous faut installer docker sur votre poste de développement. Ensuite, rendez
 Rust étant un langage très récent, il n'a pas d'Environnement de Développement Intégré (IDE) dédié.  
 Heureusement, plusieurs IDE existants intègrent Rust via des plugins, nous vous recommandons vscode.
 
-https://code.visualstudio.com/docs/setup/linux#_debian-and-ubuntu-based-distributions
+[Installation de vscode pour debian/ubuntu](https://code.visualstudio.com/docs/setup/linux#_debian-and-ubuntu-based-distributions).
 
 Une fois vscode installé nous aurons besoin des 3 plugins suivants :
 BetterTOML
@@ -106,7 +106,7 @@ Un exemple de fichier `launch.conf` pour VSCode :
 
 Il reste encore a installer RLS (Rust Language Server) et LLDB (debugger), le 1er permet de compiler votre code à la volée pour souligner en rouge les erreurs directement dans l’éditeur de vscode, le second est un débogueur.
 
-Instructions d'installation de LLDB : https://github.com/vadimcn/vscode-lldb/wiki/Installing-on-Linux
+[Instructions d'installation de LLDB](https://github.com/vadimcn/vscode-lldb/wiki/Installing-on-Linux)
 
 Ensuite relancez vscode (après avoir installer les plugins indiquez si dessus), il devrait vous proposer spontanément d'installer RLS, dites oui.  
 Si cela échoue pour RLS, vous devrez l'installer manuellement avec la commande suivante :
