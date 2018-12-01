@@ -110,6 +110,7 @@ Exemple de structure vide :
 /// YourModule subcommand options
 pub struct YourModuleOpt {}
 ```
+
 Le module skeleton donne un exemple de `ModuleOpt` avec un champ, cela afin de montrer comment fonctionne l'éxécution d'une sous-commande injectée par un module.
 
 ### Les fonctions du trait `DursModule`
@@ -155,7 +156,7 @@ Toutefois, vous aurez probablement besoin du nom de votre module a plusieurs end
 static MODULE_NAME: &'static str = "toto";
 ```
 
-Puis a remplacer dans l'implémentation de la fonction `name` : 
+Puis a remplacer dans l'implémentation de la fonction `name` :
 
 ```rust
     fn name() -> ModuleStaticName {
@@ -172,7 +173,15 @@ Déclaration :
     fn priority() -> ModulePriority;
 ```
 
-Tutoriel en cours de rédaction...
+Les différents niveaux de priorité possibles sont présentés dans la [documentation auto-générée](https://nodes.duniter.io/rust/duniter-rs/duniter_module/enum.ModulePriority.html).
+
+Il suffit de choisir la variante de l'énumération qui vous conviens puis de la retournée. Par exemple si votre module est optionel et désactivé par défaut :
+
+```rust
+    fn priority() -> ModulePriority {
+        ModulePriority::Optional()
+    }
+```
 
 #### La fonction `ask_required_keys`
 
@@ -183,12 +192,19 @@ Déclaration :
     fn ask_required_keys() -> RequiredKeys;
 ```
 
-Tutoriel en cours de rédaction...
+Toutes les variantes de l'énumération `RequiredKeys` sont présentés dans la [documentation auto-générée](https://nodes.duniter.io/rust/duniter-rs/duniter_module/enum.RequiredKeys.html).
+
+Il suffit de choisir la variante de l'énumération qui vous conviens puis de la retournée. PAr exemple si vous n'avez besoin d'aucune clé :
+
+```rust
+    fn ask_required_keys() -> RequiredKeys {
+        RequiredKeys::None()
+    }
+```
 
 #### La fonction `have_subcommand`
 
 Déclaration :
-
 
 ```rust
     /// Define if module have a cli subcommand
@@ -197,20 +213,19 @@ Déclaration :
     }
 ```
 
-Tutoriel en cours de rédaction...
+L'implémentation par défaut retourne `false`. Si vous avez une sous commande il vous suffit de réimplémenter la fonction en retournant true.
 
 #### La fonction `exec_subcommand`
 
 Déclaration :
 
-
 ```rust
     /// Execute injected subcommand
     fn exec_subcommand(
-        _soft_meta_datas: &SoftwareMetaDatas<DC>,
-        _keys: RequiredKeysContent,
-        _module_conf: Self::ModuleConf,
-        _subcommand_args: Self::ModuleOpt,
+        soft_meta_datas: &SoftwareMetaDatas<DC>,
+        keys: RequiredKeysContent,
+        module_conf: Self::ModuleConf,
+        subcommand_args: Self::ModuleOpt,
     ) {
     }
 ```
@@ -232,16 +247,65 @@ Déclaration :
     ) -> Result<(), ModuleInitError>;
 ```
 
-Tutoriel en cours de rédaction...
+Dans le cas d'un module qui ne servirait qu'a ajouter une sous-commande a la ligne de commande Durs, l'implémentation de la fonction start reste oblogatoire et le module doit absolument s'enregistrer auprès du router quand même et garder son thread actif jusqu'a la fin du programme. J'ai ouvert [un ticket](https://git.duniter.org/nodes/rust/duniter-rs/issues/112) pour améliorer cela.
+
+La 1ère chose a faire dans votre fonction start est de vérifier l'intégrité et la cohérence de la configuration de votre module.  
+Si vous détectez la moindre erreur dans la configuration de votrre module, vous devez interrompre le programme avec un message d'erreur indiquand clairement le nom de votre module et le fait que la configuration est incorrecte.
+
+Ensuite si `load_conf_only` vaut `true` vous n'avez plus rien a faire, retournez `Ok(())`.
+En revanche, si `load_conf_only` vaut `false` c'est qu'il vous faut réellement lancer votre module, cela se fera en plusieurs étapes détaillées plus bas :
+
+1. Créez votre channel
+
+2. Créer vos endpoint s'il y a lieu
+
+3. Enregistrez votre module auprès du router
+
+4. Faites les traitements que vous devez faire avant votre main loop (ça peut être rien si votre module est petit).
+
+5. Lancez votre main loop au sein de laquelle vous écouterez les messages arrivant dans votre channel.
+
+Si jamais le router n'a pas reçu l'enregistrement de tout les modules au bout de 20 secondes, il interromp de programme.  
+Le plus important est donc d'enregistrer votre module auprès du router AVANT tout traitement lourd ou couteux.
+20 secondes peut vous sembler énorme, mais garder en tête que Durs peut être amené a s'éxcuter dans n'importequel contexte, y compris sur un micro-pc aux performances très très réduites. De plus, Durs n'est pas seul sur la machine de l'utilisateur final, le délai de 20 secondes doit être respecté même dans le pire des scénarios (micro-pc déjà très occupé a d'autres taches).
+
+Si vous prévoyez de réaliser des traitements lours ou/et couteux dans votre module, il peut être pertinent de ne pas l'inclure dans la release pour micro-pc (architecture arm), n'hésitez pas a poser la question aux développeurs principaux du projet en cas de doute.  
+En gros, lorsque votre poste de développement ne fait rien de couteux en même temps, votre module doit s'être enregistré en moins de 3 secondes, si ça dépasse c'est que vous faites trop de choses a l'initialisation.
 
 ## Injecter votre module dans les crates binaires
 
-Tout d'abord, il faut ajouter votre module a dépendances des crates binaires. Les dépendances d'une cratge sont déclarées dans son fichier `Cargo.toml`.
+Tout d'abord, il faut ajouter votre module aux dépendances des crates binaires. Les dépendances d'une crate sont déclarées dans son fichier `Cargo.toml`.
 
 Par exemple, pour ajouter le module `toto` a la crate binaire `durs-server` il faut ajouter la ligne suivante dans la section `[dependencies]` du fichier `bin/durs-server/Cargo.toml` :
 
     durs-toto = { path = "../../lib/modules/toto" }
 
 Vous pouvez modifier une copie de la ligne du module skeleton pour être sûr de ne pas vous tromper.
+
+### Injecter votre module dans `durs-server`
+
+Une fois que vous avez ajouter votre module en dépendance dans le Carego.toml de `durs-server`, il vas falloir utiliser votre module dans le main.rs :
+
+1. Importez la crate principale de votre module, repéréz ou se trouve les autres lignes extern crate puis ajoutez la votre :
+
+    extern crate durs_toto;
+
+2. Utilisez la structure implémentant le trait DursModule :
+
+    pub use durs_toto::TotoModule;
+
+3. Ajouter votre module en paramètre de la macro `durs_plug!` :
+
+    durs_plug!([WS2PModule], [TuiModule, .., TotoModule])
+
+    Notez que `durs_plug!` prend en paramètre 2 tableaux de modules, le 1er correspond aux modules de type réseau inter-noeuds, tout les autres modules doivent se trouver dans le 2ème tableau.
+
+4. Si votre module doit injecter une sous-commande dans la ligne de commande `durs`, ajoutez le également a la macro `durs_inject_cli!` :
+
+    durs_inject_cli![WS2PModule, .., TotoModule],
+
+    La macro `durs_inject_cli!` n'accepte qu'un seul tableau qui doit comporter tout les modules injectant une sous-commande, pas de distinction ici.
+
+    Notez que votre module doit DANS TOUT LES CAS être ajouté a la macro `durs_plug!` sinon sa sous-commande ne fonctionnera pas.
 
 Tutoriel en cours de rédaction...
