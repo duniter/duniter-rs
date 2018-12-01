@@ -10,10 +10,10 @@ path = "lib.rs"
 
 [dependencies]
 dirs = "1.0.2"
-duniter-blockchain = { path = "../../modules/blockchain" }
+durs-blockchain = { path = "../../modules/blockchain/blockchain" }
 duniter-conf = { path = "../conf" }
 dup-crypto = { path = "../../tools/crypto" }
-duniter-message =  { path = "../message" }
+durs-message =  { path = "../message" }
 duniter-module = { path = "../module" }
 duniter-network = { path = "../network" }
 durs-network-documents = { path = "../../tools/network-documents" }

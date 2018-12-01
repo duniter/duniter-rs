@@ -57,12 +57,6 @@ pub mod constants;
 /// Currency parameters operations
 pub mod currency_params;
 
-/// Define DAL events to be transmitted to other modules
-pub mod dal_event;
-
-/// Defined module requests for DAL
-pub mod dal_requests;
-
 /// Identity operations
 pub mod identity;
 

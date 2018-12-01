@@ -1,5 +1,5 @@
 [package]
-name = "duniter-tui"
+name = "durs-tui"
 version = "0.1.0-a0.1"
 authors = ["librelois <elois@ifee.fr>"]
 description = "Terminal user interface for Duniter-Rs."
@@ -11,9 +11,8 @@ path = "lib.rs"
 [dependencies]
 duniter-conf = { path = "../../core/conf" }
 dup-crypto = { path = "../../tools/crypto" }
-duniter-dal = { path = "../../tools/dal" }
 dubp-documents= { path = "../../tools/documents" }
-duniter-message =  { path = "../../core/message" }
+durs-message =  { path = "../../core/message" }
 duniter-module = { path = "../../core/module" }
 duniter-network = { path = "../../core/network" }
 durs-network-documents = { path = "../../tools/network-documents" }

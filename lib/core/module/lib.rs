@@ -199,6 +199,8 @@ pub enum ModuleEvent {
     NewValidHeadFromNetwork,
     /// Change in connections with other nodes (disconnection of a connection or establishment of a new connection)
     ConnectionsChangeNodeNetwork,
+    /// A new self peer card is generated
+    NewSelfPeer,
     /// A new valid peer record has been received from the network
     NewValidPeerFromNodeNetwork,
 }

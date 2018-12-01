@@ -17,11 +17,11 @@ use dubp_documents::v10::transaction::{TxAmount, TxBase};
 use dubp_documents::v10::BlockDocument;
 use dubp_documents::BlockId;
 use dubp_documents::Document;
-use duniter_dal::block::DALBlock;
-use duniter_dal::sources::SourceAmount;
-use duniter_dal::writers::requests::*;
-use duniter_dal::{BinDB, ForkId};
 use dup_crypto::keys::*;
+use durs_blockchain_dal::block::DALBlock;
+use durs_blockchain_dal::sources::SourceAmount;
+use durs_blockchain_dal::writers::requests::*;
+use durs_blockchain_dal::{BinDB, ForkId};
 use durs_wot::data::{NewLinkResult, RemLinkResult};
 use durs_wot::{NodeId, WebOfTrust};
 use std::collections::{HashMap, HashSet};
@@ -237,7 +237,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
             (centralities.iter().sum::<u64>() as f64 / centralities.len() as f64) as usize;
         // Register the state of the wot
         let max_connectivity = currency_params.max_connectivity();
-        duniter_dal::register_wot_state(
+        durs_blockchain_dal::register_wot_state(
             db,
             &WotState {
                 block_number: block.number.0,

@@ -38,21 +38,20 @@ extern crate structopt;
 
 extern crate dubp_documents;
 extern crate duniter_conf;
-extern crate duniter_dal;
-extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
 extern crate dup_crypto;
+extern crate durs_message;
 extern crate durs_network_documents;
 extern crate serde;
 extern crate serde_json;
 extern crate termion;
 
 use duniter_conf::DuRsConf;
-use duniter_dal::dal_event::DALEvent;
-use duniter_message::*;
 use duniter_module::*;
 use duniter_network::events::NetworkEvent;
+use durs_message::events::*;
+use durs_message::*;
 use durs_network_documents::network_head::NetworkHead;
 use durs_network_documents::NodeFullId;
 use std::collections::HashMap;
@@ -116,7 +115,7 @@ pub struct Connection {
 /// Data that the Tui module needs to cache
 pub struct TuiModuleDatas {
     /// Sender of all other modules
-    pub followers: Vec<mpsc::Sender<DursMsgContent>>,
+    pub followers: Vec<mpsc::Sender<DursMsg>>,
     /// HEADs cache content
     pub heads_cache: HashMap<NodeFullId, NetworkHead>,
     /// Position of the 1st head displayed on the screen
@@ -433,7 +432,7 @@ impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
         let (proxy_sender, proxy_receiver): (mpsc::Sender<DursMsg>, mpsc::Receiver<DursMsg>) =
             mpsc::channel();
 
-        // Launch a proxy thread that transform DursMsgContent() to TuiMess::DursMsgContent(DursMsgContent())
+        // Launch a proxy thread that transform DursMsg() to TuiMess::DursMsg(DursMsg())
         let tui_sender_clone = tui_sender.clone();
         thread::spawn(move || {
             // Send proxy sender to main
@@ -456,7 +455,7 @@ impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
             loop {
                 match proxy_receiver.recv() {
                     Ok(message) => {
-                        let stop = if let DursMsg(_, DursMsgContent::Stop()) = message {
+                        let stop = if let DursMsg::Stop = message {
                             true
                         } else {
                             false
@@ -516,8 +515,8 @@ impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
             // Get messages
             match tui_receiver.recv_timeout(Duration::from_millis(250)) {
                 Ok(ref message) => match *message {
-                    TuiMess::DursMsg(ref duniter_message) => match (*duniter_message.deref()).1 {
-                        DursMsgContent::Stop() => {
+                    TuiMess::DursMsg(ref durs_message) => match durs_message.deref() {
+                        DursMsg::Stop => {
                             writeln!(
                                 stdout,
                                 "{}{}{}{}{}",
@@ -528,53 +527,59 @@ impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
                                 clear::All,
                             )
                             .unwrap();
-                            let _result_stop_propagation: Result<
-                                (),
-                                mpsc::SendError<DursMsgContent>,
-                            > = tui
-                                .followers
-                                .iter()
-                                .map(|f| f.send(DursMsgContent::Stop()))
-                                .collect();
+                            let _result_stop_propagation: Result<(), mpsc::SendError<DursMsg>> =
+                                tui.followers
+                                    .iter()
+                                    .map(|f| f.send(DursMsg::Stop))
+                                    .collect();
                             break;
                         }
-                        DursMsgContent::DALEvent(ref dal_event) => match *dal_event {
-                            DALEvent::StackUpValidBlock(ref _block, ref _blockstamp) => {}
-                            DALEvent::RevertBlocks(ref _blocks) => {}
-                            _ => {}
-                        },
-                        DursMsgContent::NetworkEvent(ref network_event) => match *network_event {
-                            NetworkEvent::ConnectionStateChange(
-                                ref node_full_id,
-                                ref status,
-                                ref uid,
-                                ref url,
-                            ) => {
-                                if let Some(conn) = tui.connections_status.get(&node_full_id) {
-                                    if *status == 12 && (*conn).status != 12 {
-                                        tui.established_conns_count += 1;
-                                    } else if *status != 12
-                                        && (*conn).status == 12
-                                        && tui.established_conns_count > 0
-                                    {
-                                        tui.established_conns_count -= 1;
-                                    }
-                                };
-                                tui.connections_status.insert(
-                                    *node_full_id,
-                                    Connection {
-                                        status: *status,
-                                        url: url.clone(),
-                                        uid: uid.clone(),
-                                    },
-                                );
-                            }
-                            NetworkEvent::ReceiveHeads(ref heads) => {
-                                heads
-                                    .iter()
-                                    .map(|h| tui.heads_cache.insert(h.node_full_id(), h.clone()))
-                                    .for_each(drop);
-                            }
+                        DursMsg::Event {
+                            event_type: _,
+                            ref event_content,
+                        } => match *event_content {
+                            DursEvent::BlockchainEvent(ref dal_event) => match *dal_event {
+                                BlockchainEvent::StackUpValidBlock(ref _block, ref _blockstamp) => {
+                                }
+                                BlockchainEvent::RevertBlocks(ref _blocks) => {}
+                                _ => {}
+                            },
+                            DursEvent::NetworkEvent(ref network_event) => match *network_event {
+                                NetworkEvent::ConnectionStateChange(
+                                    ref node_full_id,
+                                    ref status,
+                                    ref uid,
+                                    ref url,
+                                ) => {
+                                    if let Some(conn) = tui.connections_status.get(&node_full_id) {
+                                        if *status == 12 && (*conn).status != 12 {
+                                            tui.established_conns_count += 1;
+                                        } else if *status != 12
+                                            && (*conn).status == 12
+                                            && tui.established_conns_count > 0
+                                        {
+                                            tui.established_conns_count -= 1;
+                                        }
+                                    };
+                                    tui.connections_status.insert(
+                                        *node_full_id,
+                                        Connection {
+                                            status: *status,
+                                            url: url.clone(),
+                                            uid: uid.clone(),
+                                        },
+                                    );
+                                }
+                                NetworkEvent::ReceiveHeads(ref heads) => {
+                                    heads
+                                        .iter()
+                                        .map(|h| {
+                                            tui.heads_cache.insert(h.node_full_id(), h.clone())
+                                        })
+                                        .for_each(drop);
+                                }
+                                _ => {}
+                            },
                             _ => {}
                         },
                         _ => {}
@@ -592,14 +597,11 @@ impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
                                 clear::All,
                             )
                             .unwrap();
-                            let _result_stop_propagation: Result<
-                                (),
-                                mpsc::SendError<DursMsgContent>,
-                            > = tui
-                                .followers
-                                .iter()
-                                .map(|f| f.send(DursMsgContent::Stop()))
-                                .collect();
+                            let _result_stop_propagation: Result<(), mpsc::SendError<DursMsg>> =
+                                tui.followers
+                                    .iter()
+                                    .map(|f| f.send(DursMsg::Stop))
+                                    .collect();
                             break;
                         }
                         Event::Mouse(ref me) => match *me {

@@ -18,10 +18,10 @@ use std::collections::HashMap;
 use apply_valid_block::*;
 use dubp_documents::Document;
 use dubp_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
-use duniter_dal::block::DALBlock;
-use duniter_dal::*;
 use duniter_network::documents::NetworkBlock;
 use dup_crypto::keys::*;
+use durs_blockchain_dal::block::DALBlock;
+use durs_blockchain_dal::*;
 use *;
 
 #[derive(Debug, Copy, Clone)]
@@ -86,13 +86,14 @@ pub fn check_and_apply_block<W: WebOfTrust>(
         );
         // Detect expire_certs
         let blocks_expiring = Vec::with_capacity(0);
-        let expire_certs = duniter_dal::certs::find_expire_certs(certs_db, blocks_expiring)?;
+        let expire_certs =
+            durs_blockchain_dal::certs::find_expire_certs(certs_db, blocks_expiring)?;
         // Try stack up block
         let mut old_fork_id = None;
         let block_doc = match *block {
             Block::NetworkBlock(network_block) => complete_network_block(network_block, true)?,
             Block::LocalBlock(block_doc) => {
-                old_fork_id = duniter_dal::block::get_fork_id_of_blockstamp(
+                old_fork_id = durs_blockchain_dal::block::get_fork_id_of_blockstamp(
                     &blocks_databases.forks_blocks_db,
                     &block_doc.blockstamp(),
                 )?;
@@ -147,7 +148,7 @@ pub fn check_and_apply_block<W: WebOfTrust>(
                         block: block_doc,
                         expire_certs: None,
                     };
-                    duniter_dal::writers::block::write(
+                    durs_blockchain_dal::writers::block::write(
                         &blocks_databases.blockchain_db,
                         &blocks_databases.forks_db,
                         &blocks_databases.forks_blocks_db,
@@ -156,7 +157,7 @@ pub fn check_and_apply_block<W: WebOfTrust>(
                         false,
                         false,
                     )
-                    .expect("duniter_dal::writers::block::write() : DALError")
+                    .expect("durs_blockchain_dal::writers::block::write() : DALError")
                 }
                 Block::LocalBlock(block_doc) => {
                     let old_fork_id = None;
@@ -166,7 +167,7 @@ pub fn check_and_apply_block<W: WebOfTrust>(
                         block: block_doc.clone(),
                         expire_certs: None,
                     };
-                    duniter_dal::writers::block::write(
+                    durs_blockchain_dal::writers::block::write(
                         &blocks_databases.blockchain_db,
                         &blocks_databases.forks_db,
                         &blocks_databases.forks_blocks_db,
@@ -175,7 +176,7 @@ pub fn check_and_apply_block<W: WebOfTrust>(
                         false,
                         false,
                     )
-                    .expect("duniter_dal::writers::block::write() : DALError")
+                    .expect("durs_blockchain_dal::writers::block::write() : DALError")
                 }
             };
         } else {

@@ -15,10 +15,10 @@
 
 use constants::*;
 use dubp_documents::Blockstamp;
-use duniter_dal::dal_requests::DALRequest;
-use duniter_message::*;
 use duniter_network::*;
 use dup_crypto::keys::*;
+use durs_message::requests::BlockchainRequest;
+use durs_message::*;
 use durs_network_documents::network_endpoint::*;
 use durs_network_documents::network_head::*;
 use durs_network_documents::*;
@@ -61,32 +61,33 @@ impl WS2PModuleDatas {
         }
         Ok(conn)
     }
-    pub fn send_dal_request(&mut self, req: &DALRequest) {
+    pub fn send_dal_request(&mut self, req: &BlockchainRequest) {
         self.count_dal_requests += 1;
         if self.count_dal_requests == std::u32::MAX {
             self.count_dal_requests = 0;
         }
         self.router_sender
-            .send(RouterThreadMessage::ModuleMessage(DursMsg(
-                DursMsgReceiver::Role(ModuleRole::BlockchainDatas),
-                DursMsgContent::Request(DursReq {
-                    requester: WS2PModule::name(),
-                    id: ModuleReqId(self.count_dal_requests),
-                    content: DursReqContent::DALRequest(req.clone()),
-                }),
-            )))
+            .send(RouterThreadMessage::ModuleMessage(DursMsg::Request {
+                req_from: WS2PModule::name(),
+                req_to: ModuleRole::BlockchainDatas,
+                req_id: ModuleReqId(self.count_dal_requests),
+                req_content: DursReqContent::BlockchainRequest(req.clone()),
+            }))
             .expect("Fail to send message to router !");
     }
     pub fn send_network_req_response(
         &self,
         requester: ModuleStaticName,
+        req_id: ModuleReqId,
         response: NetworkResponse,
     ) {
         self.router_sender
-            .send(RouterThreadMessage::ModuleMessage(DursMsg(
-                DursMsgReceiver::One(requester),
-                DursMsgContent::NetworkResponse(response),
-            )))
+            .send(RouterThreadMessage::ModuleMessage(DursMsg::Response {
+                res_from: WS2PModule::name(),
+                res_to: requester,
+                req_id,
+                res_content: DursResContent::NetworkResponse(response),
+            }))
             .expect("Fail to send message to router !");
     }
     pub fn send_network_event(&self, event: &NetworkEvent) {
@@ -107,12 +108,13 @@ impl WS2PModuleDatas {
             }
             NetworkEvent::ReceiveHeads(_) => ModuleEvent::NewValidHeadFromNetwork,
             NetworkEvent::ReceivePeers(_) => ModuleEvent::NewValidPeerFromNodeNetwork,
+            NetworkEvent::NewSelfPeer(_) => ModuleEvent::NewSelfPeer,
         };
         self.router_sender
-            .send(RouterThreadMessage::ModuleMessage(DursMsg(
-                DursMsgReceiver::Event(module_event),
-                DursMsgContent::NetworkEvent(event.clone()),
-            )))
+            .send(RouterThreadMessage::ModuleMessage(DursMsg::Event {
+                event_type: module_event,
+                event_content: DursEvent::NetworkEvent(event.clone()),
+            }))
             .expect("Fail to send network event to router !");
     }
     pub fn get_network_consensus(&self) -> Result<Blockstamp, NetworkConsensusError> {

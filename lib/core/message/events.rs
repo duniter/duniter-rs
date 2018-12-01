@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Durs Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -15,10 +15,25 @@
 
 use dubp_documents::v10::block::BlockDocument;
 use dubp_documents::*;
+use duniter_network::events::NetworkEvent;
+use *;
+
+/// The DURS event message.
+#[derive(Debug, Clone)]
+pub enum DursEvent {
+    /// Arbitrary datas.
+    ArbitraryDatas(ArbitraryDatas),
+    /// Blockchain event
+    BlockchainEvent(BlockchainEvent),
+    /// Network event
+    NetworkEvent(NetworkEvent),
+    /// Client API event
+    ReceiveValidDocsFromClient(Vec<DUBPDocument>),
+}
 
 #[derive(Debug, Clone)]
 /// Event to be transmitted to the other modules
-pub enum DALEvent {
+pub enum BlockchainEvent {
     /// Stack up new valid block in local blockchain
     StackUpValidBlock(Box<BlockDocument>, Blockstamp),
     /// Revert blocks in local blockchain

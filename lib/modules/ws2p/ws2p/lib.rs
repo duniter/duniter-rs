@@ -37,7 +37,7 @@ extern crate structopt;
 extern crate bincode;
 extern crate dubp_documents;
 extern crate duniter_conf;
-extern crate duniter_message;
+extern crate durs_message;
 extern crate duniter_module;
 extern crate duniter_network;
 extern crate dup_crypto;
@@ -51,7 +51,7 @@ pub mod services;
 
 use constants::*;
 use duniter_conf::DuRsConf;
-use duniter_message::DursMsg;
+use durs_message::*;
 use duniter_module::*;
 use duniter_network::*;
 use durs_network_documents::network_endpoint::*;

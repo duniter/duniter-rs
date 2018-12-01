@@ -25,6 +25,8 @@ use NodeFullId;
 pub enum NetworkEvent {
     /// A connection has changed state(`u32` is the new state, `Option<String>` est l'uid du noeud)
     ConnectionStateChange(NodeFullId, u32, Option<String>, String),
+    /// Generate new self peer card
+    NewSelfPeer(PeerCard),
     /// Receiving Pending Documents
     ReceiveDocuments(Vec<BlockchainDocument>),
     /// Receipt of peer cards

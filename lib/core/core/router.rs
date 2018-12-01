@@ -17,8 +17,8 @@
 
 use duniter_conf;
 use duniter_conf::DuRsConf;
-use duniter_message::*;
 use duniter_module::*;
+use durs_message::*;
 use durs_network_documents::network_endpoint::EndpointEnum;
 use std::collections::HashMap;
 use std::sync::mpsc;
@@ -29,16 +29,23 @@ use std::time::SystemTime;
 
 static MAX_REGISTRATION_DELAY: &'static u64 = &20;
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+enum DursMsgReceiver {
+    Role(ModuleRole),
+    Event(ModuleEvent),
+    One(ModuleStaticName),
+}
+
 /// Start broadcasting thread
 fn start_broadcasting_thread(
     start_time: SystemTime,
     run_duration_in_secs: u64,
     receiver: &mpsc::Receiver<RouterThreadMessage<DursMsg>>,
-    external_followers: &[mpsc::Sender<DursMsgContent>],
+    _external_followers: &[mpsc::Sender<DursMsg>],
 ) {
     // Define variables
     let mut modules_senders: HashMap<ModuleStaticName, mpsc::Sender<DursMsg>> = HashMap::new();
-    let mut pool_msgs: HashMap<DursMsgReceiver, Vec<DursMsgContent>> = HashMap::new();
+    let mut pool_msgs: HashMap<DursMsgReceiver, Vec<DursMsg>> = HashMap::new();
     let mut events_subscriptions: HashMap<ModuleEvent, Vec<ModuleStaticName>> = HashMap::new();
     let mut roles: HashMap<ModuleRole, Vec<ModuleStaticName>> = HashMap::new();
     let mut registrations_count = 0;
@@ -69,14 +76,12 @@ fn start_broadcasting_thread(
                                 .get(&DursMsgReceiver::Event(event))
                                 .unwrap_or(&Vec::with_capacity(0))
                             {
-                                module_sender
-                                    .send(DursMsg(DursMsgReceiver::Event(event), msg.clone()))
-                                    .unwrap_or_else(|_| {
-                                        panic!(
-                                            "Fatal error: fail to relay DursMsg to {:?} !",
-                                            module_static_name
-                                        )
-                                    });
+                                module_sender.send(msg.clone()).unwrap_or_else(|_| {
+                                    panic!(
+                                        "Fatal error: fail to relay DursMsg to {:?} !",
+                                        module_static_name
+                                    )
+                                });
                             }
                             // Store event subscription
                             events_subscriptions
@@ -91,14 +96,12 @@ fn start_broadcasting_thread(
                                 .get(&DursMsgReceiver::Role(role))
                                 .unwrap_or(&Vec::with_capacity(0))
                             {
-                                module_sender
-                                    .send(DursMsg(DursMsgReceiver::Role(role), msg.clone()))
-                                    .unwrap_or_else(|_| {
-                                        panic!(
-                                            "Fatal error: fail to relay DursMsg to {:?} !",
-                                            module_static_name
-                                        )
-                                    });
+                                module_sender.send(msg.clone()).unwrap_or_else(|_| {
+                                    panic!(
+                                        "Fatal error: fail to relay DursMsg to {:?} !",
+                                        module_static_name
+                                    )
+                                });
                             }
                             // Store sender roles
                             roles
@@ -133,10 +136,7 @@ fn start_broadcasting_thread(
                                 .to_vec();
                             // Send endpoints to receivers
                             send_msg_to_several_receivers(
-                                DursMsg(
-                                    DursMsgReceiver::Role(ModuleRole::InterNodesNetwork),
-                                    DursMsgContent::Endpoints(local_node_endpoints.clone()),
-                                ),
+                                DursMsg::ModulesEndpoints(local_node_endpoints.clone()),
                                 &receivers,
                                 &modules_senders,
                             );
@@ -144,45 +144,10 @@ fn start_broadcasting_thread(
                         // Add this sender to modules_senders
                         modules_senders.insert(module_static_name, module_sender);
                     }
-                    RouterThreadMessage::ModuleMessage(msg) => match msg.0 {
-                        DursMsgReceiver::One(_) => {}
-                        DursMsgReceiver::All => {
-                            for (module_static_name, module_sender) in &modules_senders {
-                                module_sender.send(msg.clone()).unwrap_or_else(|_| {
-                                    panic!(
-                                        "Fatal error: fail to relay DursMsg to {:?} !",
-                                        module_static_name
-                                    )
-                                });
-                            }
-                            // Detect stop message
-                            let stop = if let DursMsgContent::Stop() = msg.1 {
-                                true
-                            } else {
-                                false
-                            };
-                            // Send message to external followers
-                            for external_follower in external_followers {
-                                external_follower.send(msg.1.clone()).expect(
-                                    "Fatal error: fail to relay DursMsg to external followers !",
-                                );
-                            }
-                            // Send message to all modules
-                            send_msg_to_several_receivers(
-                                msg,
-                                &modules_senders
-                                    .keys()
-                                    .cloned()
-                                    .collect::<Vec<ModuleStaticName>>(),
-                                &modules_senders,
-                            );
-                            // Stop thread if its requested
-                            if stop {
-                                break;
-                            }
-                        }
-                        DursMsgReceiver::Event(event) => {
-                            // the node to be started less than 20 seconds ago,
+                    RouterThreadMessage::ModuleMessage(msg) => match msg {
+                        DursMsg::Stop => break,
+                        DursMsg::Event { event_type, .. } => {
+                            // the node to be started less than MAX_REGISTRATION_DELAY seconds ago,
                             // keep the message in memory to be able to send it back to modules not yet plugged
                             store_msg_in_pool(
                                 start_time,
@@ -192,14 +157,14 @@ fn start_broadcasting_thread(
                             );
                             // Get list of receivers
                             let receivers = events_subscriptions
-                                .get(&event)
+                                .get(&event_type)
                                 .unwrap_or(&Vec::with_capacity(0))
                                 .to_vec();
                             // Send msg to receivers
                             send_msg_to_several_receivers(msg, &receivers, &modules_senders)
                         }
-                        DursMsgReceiver::Role(role) => {
-                            // If the node to be started less than 20 seconds ago,
+                        DursMsg::Request { req_to: role, .. } => {
+                            // If the node to be started less than MAX_REGISTRATION_DELAY seconds ago,
                             // keep the message in memory to be able to send it back to modules not yet plugged
                             store_msg_in_pool(
                                 start_time,
@@ -213,6 +178,7 @@ fn start_broadcasting_thread(
                             // Send msg to receivers
                             send_msg_to_several_receivers(msg, &receivers, &modules_senders)
                         }
+                        _ => {} // Others DursMsg variants
                     },
                 }
             }
@@ -241,11 +207,11 @@ fn start_broadcasting_thread(
 }
 
 /// Start conf thread
-fn start_conf_thread(profile: &str, mut conf: DuRsConf, receiver: &mpsc::Receiver<DursMsgContent>) {
+fn start_conf_thread(profile: &str, mut conf: DuRsConf, receiver: &mpsc::Receiver<DursMsg>) {
     loop {
         match receiver.recv() {
             Ok(msg) => {
-                if let DursMsgContent::SaveNewModuleConf(module_static_name, new_json_conf) = msg {
+                if let DursMsg::SaveNewModuleConf(module_static_name, new_json_conf) = msg {
                     conf.set_module_conf(module_static_name.to_string(), new_json_conf);
                     duniter_conf::write_conf_file(&profile, &conf)
                         .expect("Fail to write new module conf in conf file ! ");
@@ -276,7 +242,7 @@ fn send_msg_to_several_receivers(
             });
         }
     }
-    // Send message by move to the last module to be revceive
+    // Send message by move to the last module to be receive
     if !receivers.is_empty() {
         if let Some(module_sender) = modules_senders.get(&receivers[0]) {
             module_sender.send(msg).unwrap_or_else(|_| {
@@ -286,22 +252,30 @@ fn send_msg_to_several_receivers(
     }
 }
 
-/// If the node to be started less than 20 seconds ago,
+/// If the node to be started less than MAX_REGISTRATION_DELAY seconds ago,
 /// keep the message in memory to be able to send it back to modules not yet plugged
 fn store_msg_in_pool(
     start_time: SystemTime,
     run_duration_in_secs: u64,
     msg: DursMsg,
-    pool_msgs: &mut HashMap<DursMsgReceiver, Vec<DursMsgContent>>,
+    pool_msgs: &mut HashMap<DursMsgReceiver, Vec<DursMsg>>,
 ) {
     if run_duration_in_secs > 0
         && SystemTime::now()
             .duration_since(start_time)
             .expect("Duration error !")
             .as_secs()
-            < 20
+            < *MAX_REGISTRATION_DELAY
     {
-        pool_msgs.entry(msg.0).or_insert_with(Vec::new).push(msg.1);
+        let msg_recv = match msg {
+            DursMsg::Event { event_type, .. } => Some(DursMsgReceiver::Event(event_type)),
+            DursMsg::Request { req_to, .. } => Some(DursMsgReceiver::Role(req_to)),
+            DursMsg::Response { res_to, .. } => Some(DursMsgReceiver::One(res_to)),
+            _ => None,
+        };
+        if let Some(msg_recv) = msg_recv {
+            pool_msgs.entry(msg_recv).or_insert_with(Vec::new).push(msg);
+        }
     } else if !pool_msgs.is_empty() {
         // Clear pool_msgs
         pool_msgs.clear();
@@ -313,7 +287,7 @@ pub fn start_router(
     run_duration_in_secs: u64,
     profile: String,
     conf: DuRsConf,
-    external_followers: Vec<mpsc::Sender<DursMsgContent>>,
+    external_followers: Vec<mpsc::Sender<DursMsg>>,
 ) -> mpsc::Sender<RouterThreadMessage<DursMsg>> {
     let start_time = SystemTime::now();
 
@@ -342,10 +316,8 @@ pub fn start_router(
         });
 
         // Create conf thread channel
-        let (conf_sender, conf_receiver): (
-            mpsc::Sender<DursMsgContent>,
-            mpsc::Receiver<DursMsgContent>,
-        ) = mpsc::channel();
+        let (conf_sender, conf_receiver): (mpsc::Sender<DursMsg>, mpsc::Receiver<DursMsg>) =
+            mpsc::channel();
 
         // Create conf thread
         thread::spawn(move || {
@@ -354,7 +326,7 @@ pub fn start_router(
 
         // Define variables
         let mut modules_senders: HashMap<ModuleStaticName, mpsc::Sender<DursMsg>> = HashMap::new();
-        let mut pool_msgs: HashMap<ModuleStaticName, Vec<DursMsgContent>> = HashMap::new();
+        let mut pool_msgs: HashMap<ModuleStaticName, Vec<DursMsg>> = HashMap::new();
 
         // Wait to receiver modules senders
         loop {
@@ -382,17 +354,12 @@ pub fn start_router(
                             // Send pending messages destined specifically to this module
                             if let Some(msgs) = pool_msgs.remove(&module_static_name) {
                                 for msg in msgs {
-                                    module_sender
-                                        .send(DursMsg(
-                                            DursMsgReceiver::One(module_static_name),
-                                            msg,
-                                        ))
-                                        .unwrap_or_else(|_| {
-                                            panic!(
-                                                "Fatal error: fail to relay DursMsg to {:?} !",
-                                                module_static_name
-                                            )
-                                        });
+                                    module_sender.send(msg).unwrap_or_else(|_| {
+                                        panic!(
+                                            "Fatal error: fail to relay DursMsg to {:?} !",
+                                            module_static_name
+                                        )
+                                    });
                                 }
                             }
                             // Add this sender to modules_senders
@@ -418,39 +385,40 @@ pub fn start_router(
                         }
                         RouterThreadMessage::ModuleMessage(msg) => {
                             trace!("Router thread receive ModuleMessage({:?})", msg);
-                            match msg.0 {
-                                DursMsgReceiver::All => {
-                                    let stop = if let DursMsgContent::Stop() = msg.1 {
-                                        true
-                                    } else {
-                                        false
-                                    };
+                            match msg {
+                                DursMsg::Stop => {
+                                    // Relay stop signal to broadcasting thread
                                     broadcasting_sender
                                         .send(RouterThreadMessage::ModuleMessage(msg))
                                         .expect("Fail to relay message to broadcasting thread !");
-                                    if stop {
-                                        break;
+                                    // Relay stop message to all modules
+                                    for module_sender in modules_senders.values() {
+                                        if module_sender.send(DursMsg::Stop).is_err() {
+                                            warn!("Fail to relay stop to modules !");
+                                        }
                                     }
+                                    break;
                                 }
-                                DursMsgReceiver::Role(role) =>
-                                // If the message is intended for role "ChangeConf", forward it to the conf thread
-                                {
-                                    if let ModuleRole::ChangeConf = role {
-                                        conf_sender
-                                            .send(msg.1)
-                                            .expect("Fail to reach conf thread !");
-                                    } else {
-                                        broadcasting_sender
-                                            .send(RouterThreadMessage::ModuleMessage(msg))
-                                            .expect(
-                                                "Fail to relay specific role message to broadcasting thread !",
-                                            );
-                                    }
+                                DursMsg::SaveNewModuleConf(_, _) => {
+                                    // Forward it to the conf thread
+                                    conf_sender
+                                        .send(msg)
+                                        .expect("Fail to reach conf thread !");
                                 }
-                                DursMsgReceiver::Event(_module_event) => broadcasting_sender
+                                DursMsg::Request{ .. } => {
+                                    broadcasting_sender
+                                        .send(RouterThreadMessage::ModuleMessage(msg))
+                                        .expect(
+                                            "Fail to relay specific role message to broadcasting thread !",
+                                        );
+                                }
+                                DursMsg::Event{ .. } => broadcasting_sender
                                     .send(RouterThreadMessage::ModuleMessage(msg))
                                     .expect("Fail to relay specific event message to broadcasting thread !"),
-                                DursMsgReceiver::One(module_static_name) => {
+                                DursMsg::Response {
+                                    res_to: module_static_name,
+                                    ..
+                                } => {
                                     if let Some(module_sender) =
                                         modules_senders.get(&module_static_name)
                                     {
@@ -464,12 +432,12 @@ pub fn start_router(
                                         .duration_since(start_time)
                                         .expect("Duration error !")
                                         .as_secs()
-                                        < 20
+                                        < *MAX_REGISTRATION_DELAY
                                     {
                                         pool_msgs
                                             .entry(module_static_name)
                                             .or_insert_with(Vec::new)
-                                            .push(msg.1);
+                                            .push(msg);
                                     } else {
                                         if !pool_msgs.is_empty() {
                                             pool_msgs = HashMap::with_capacity(0);
@@ -479,6 +447,9 @@ pub fn start_router(
                                             module_static_name
                                         );
                                     }
+                                }
+                                DursMsg::ModulesEndpoints(_) => {
+                                    warn!("A module try to send reserved router message: ModulesEndpoints.");
                                 }
                             }
                         }
@@ -500,10 +471,7 @@ pub fn start_router(
                     > run_duration_in_secs
             {
                 broadcasting_sender
-                    .send(RouterThreadMessage::ModuleMessage(DursMsg(
-                        DursMsgReceiver::All,
-                        DursMsgContent::Stop(),
-                    )))
+                    .send(RouterThreadMessage::ModuleMessage(DursMsg::Stop))
                     .expect("Fail to relay stop message to broadcasting thread !");
                 break;
             }

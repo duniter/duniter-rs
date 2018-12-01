@@ -36,17 +36,16 @@ extern crate serde_derive;
 extern crate structopt;
 
 extern crate duniter_conf;
-extern crate duniter_dal;
-extern crate duniter_message;
 extern crate duniter_module;
 extern crate dup_crypto;
+extern crate durs_message;
 extern crate serde;
 extern crate serde_json;
 
 use duniter_conf::DuRsConf;
-use duniter_dal::dal_event::DALEvent;
-use duniter_message::*;
 use duniter_module::*;
+use durs_message::events::*;
+use durs_message::*;
 use std::ops::Deref;
 use std::sync::mpsc;
 use std::thread;
@@ -218,7 +217,7 @@ impl DuniterModule<DuRsConf, DursMsg> for SkeletonModule {
             loop {
                 match proxy_receiver.recv() {
                     Ok(message) => {
-                        let stop = if let DursMsg(_, DursMsgContent::Stop()) = message {
+                        let stop = if let DursMsg::Stop = message {
                             true
                         } else {
                             false
@@ -252,10 +251,9 @@ impl DuniterModule<DuRsConf, DursMsg> for SkeletonModule {
             // Get messages
             match skeleton_receiver.recv_timeout(Duration::from_millis(250)) {
                 Ok(ref message) => match *message {
-                    SkeletonMsg::DursMsg(ref duniter_message) => {
-                        match (*duniter_message.deref()).1 // Match Durs message content
-                        {
-                            DursMsgContent::Stop() => {
+                    SkeletonMsg::DursMsg(ref durs_message) => {
+                        match durs_message.deref() {
+                            DursMsg::Stop => {
                                 // Relay stop signal to all child threads
                                 let _result_stop_propagation: Result<
                                     (),
@@ -263,21 +261,33 @@ impl DuniterModule<DuRsConf, DursMsg> for SkeletonModule {
                                 > = datas
                                     .child_threads
                                     .iter()
-                                    .map(|t| t.send(SkeletonMsg::DursMsg(Box::new(DursMsg(DursMsgReceiver::All, DursMsgContent::Stop())))))
+                                    .map(|t| t.send(SkeletonMsg::DursMsg(Box::new(DursMsg::Stop))))
                                     .collect();
                                 // Relay stop signal to router
-                                let _result = router_sender.send(RouterThreadMessage::ModuleMessage(DursMsg(DursMsgReceiver::All, DursMsgContent::Stop())));
+                                let _result = router_sender
+                                    .send(RouterThreadMessage::ModuleMessage(DursMsg::Stop));
                                 // Break main loop
                                 break;
                             }
-                            DursMsgContent::DALEvent(ref dal_event) => match *dal_event {
-                                DALEvent::StackUpValidBlock(ref _block, ref _blockstamp) => {
-                                    // Do something when the node has stacked a new block at its local blockchain
+                            DursMsg::Event {
+                                event_type: _,
+                                ref event_content,
+                            } => match *event_content {
+                                DursEvent::BlockchainEvent(ref blockchain_event) => {
+                                    match *blockchain_event {
+                                        BlockchainEvent::StackUpValidBlock(
+                                            ref _block,
+                                            ref _blockstamp,
+                                        ) => {
+                                            // Do something when the node has stacked a new block at its local blockchain
+                                        }
+                                        BlockchainEvent::RevertBlocks(ref _blocks) => {
+                                            // Do something when the node has destacked blocks from its local blockchain (roll back)
+                                        }
+                                        _ => {} // Do nothing for events that don't concern your module.
+                                    }
                                 }
-                                DALEvent::RevertBlocks(ref _blocks) => {
-                                    // Do something when the node has destacked blocks from its local blockchain (roll back)
-                                }
-                                _ => {} // Do nothing for events that don't concern your module.
+                                _ => {} // Do nothing for DursEvent variants that don't concern your module.
                             },
                             _ => {} // Do nothing for DursMsgContent variants that don't concern your module.
                         }

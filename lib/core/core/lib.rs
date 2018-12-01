@@ -34,12 +34,12 @@ extern crate log;
 extern crate structopt;
 
 extern crate dirs;
-extern crate duniter_blockchain;
 extern crate duniter_conf;
-extern crate duniter_message;
 extern crate duniter_module;
 extern crate duniter_network;
 extern crate dup_crypto;
+extern crate durs_blockchain;
+extern crate durs_message;
 extern crate durs_network_documents;
 extern crate log_panics;
 extern crate serde_json;
@@ -50,11 +50,11 @@ pub mod change_conf;
 pub mod cli;
 pub mod router;
 
-use duniter_blockchain::{BlockchainModule, DBExQuery, DBExTxQuery, DBExWotQuery};
 pub use duniter_conf::{ChangeGlobalConf, DuRsConf, DuniterKeyPairs, KEYPAIRS_FILENAME};
-use duniter_message::*;
 use duniter_module::*;
 use duniter_network::{NetworkModule, SyncEndpoint, SyncParams};
+use durs_blockchain::{BlockchainModule, DBExQuery, DBExTxQuery, DBExWotQuery};
+use durs_message::*;
 use log::Level;
 use simplelog::*;
 //use std::error::Error;
@@ -229,7 +229,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
         &mut self,
         sup_apps: Vec<App<'a, 'b>>,
         sup_apps_fn: Option<&Fn(&str, &ArgMatches) -> bool>,
-        external_followers: Vec<mpsc::Sender<DursMsgContent>>,
+        external_followers: Vec<mpsc::Sender<DursMsg>>,
     ) -> bool {
         // Inject core subcommands
         //let core_cli_conf = inject_core_subcommands(self.cli_conf.0.clone());

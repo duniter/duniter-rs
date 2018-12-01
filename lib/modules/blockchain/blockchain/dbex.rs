@@ -14,9 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use dubp_documents::v10::transaction::*;
-use duniter_dal::identity::DALIdentity;
 use duniter_module::DuniterConf;
 use dup_crypto::keys::*;
+use durs_blockchain_dal::identity::DALIdentity;
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::operations::distance::{DistanceCalculator, WotDistance, WotDistanceParameters};
 use std::time::*;
@@ -80,7 +80,7 @@ pub fn dbex_tx<DC: DuniterConf>(profile: &str, conf: &DC, _csv: bool, query: &DB
         DBExTxQuery::Balance(ref address_str) => {
             let pubkey = if let Ok(ed25519_pubkey) = ed25519::PublicKey::from_base58(address_str) {
                 PubKey::Ed25519(ed25519_pubkey)
-            } else if let Some(pubkey) = duniter_dal::identity::get_pubkey_from_uid(
+            } else if let Some(pubkey) = durs_blockchain_dal::identity::get_pubkey_from_uid(
                 &wot_databases.identities_db,
                 address_str,
             )
@@ -92,7 +92,7 @@ pub fn dbex_tx<DC: DuniterConf>(profile: &str, conf: &DC, _csv: bool, query: &DB
                 return;
             };
             let address = UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(pubkey));
-            let address_balance = duniter_dal::balance::get_address_balance(
+            let address_balance = durs_blockchain_dal::balance::get_address_balance(
                 &currency_databases.balances_db,
                 &address,
             )
@@ -270,9 +270,11 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
         }
         DBExWotQuery::MemberDatas(ref uid) => {
             println!(" Members count = {}.", members_count);
-            if let Some(pubkey) =
-                duniter_dal::identity::get_pubkey_from_uid(&wot_databases.identities_db, uid)
-                    .expect("get_pubkey_from_uid() : DALError !")
+            if let Some(pubkey) = durs_blockchain_dal::identity::get_pubkey_from_uid(
+                &wot_databases.identities_db,
+                uid,
+            )
+            .expect("get_pubkey_from_uid() : DALError !")
             {
                 let wot_id = wot_index[&pubkey];
                 println!(
@@ -307,7 +309,7 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
                     .expect("Fail to get links source !");
                 println!("Certifiers : {}", sources.len());
                 for (i, source) in sources.iter().enumerate() {
-                    let source_uid = duniter_dal::identity::get_uid(
+                    let source_uid = durs_blockchain_dal::identity::get_uid(
                         &wot_databases.identities_db,
                         *(wot_reverse_index[&source]),
                     )

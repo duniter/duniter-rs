@@ -10,8 +10,7 @@ path = "lib.rs"
 
 [dependencies]
 duniter-conf = { path = "../../core/conf" }
-duniter-dal = { path = "../../tools/dal" }
-duniter-message =  { path = "../../core/message" }
+durs-message =  { path = "../../core/message" }
 duniter-module = { path = "../../core/module" }
 duniter-network = { path = "../../core/network" }
 dup-crypto = { path = "../../tools/crypto" }

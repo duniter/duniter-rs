@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Durs Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,51 +13,30 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-extern crate duniter_module;
-extern crate serde;
-
-use self::duniter_module::ModuleReqId;
 use dubp_documents::v10::block::BlockDocument;
 use dubp_documents::v10::certification::CertificationDocument;
 use dubp_documents::v10::identity::IdentityDocument;
 use dubp_documents::v10::membership::MembershipDocument;
 use dubp_documents::v10::revocation::RevocationDocument;
+use dubp_documents::BlockId;
 use dubp_documents::Blockstamp;
+use duniter_module::ModuleReqId;
+use duniter_network::requests::NetworkResponse;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use std::collections::HashMap;
 
-#[derive(Debug, Copy, Clone)]
-/// Inter-module DAL request for pool data
-pub enum DALReqPendings {
-    /// All pending identities with their pending certifications
-    AllPendingIdentities(usize),
-    /// All pending identities without their pending certifications
-    AllPendingIdentitiesWithoutCerts(usize),
-    /// All pending datas for given pubkey
-    PendingWotDatasForPubkey(PubKey),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-/// Inter-module DAL request for blockchain data
-pub enum DALReqBlockchain {
-    /// Current block
-    CurrentBlock(),
-    /// Block by number
-    BlockByNumber(u64),
-    /// Chunk (block pack)
-    Chunk(u64, usize),
-    /// Usernames corresponding to the public keys in parameter
-    UIDs(Vec<PubKey>),
-}
-
+/// Durs request response message
 #[derive(Debug, Clone)]
-/// Inter-module DAL request
-pub enum DALRequest {
-    /// Inter-module DAL request for blockchain data
-    BlockchainRequest(DALReqBlockchain),
-    /// Inter-module DAL request for pool data
-    PendingsRequest(DALReqPendings),
+pub enum DursResContent {
+    /// BlockchainResponse
+    BlockchainResponse(BlockchainResponse),
+    /// MemPoolResponse
+    MemPoolResponse(MemPoolResponse),
+    /// Response of OldNetworkRequest
+    NetworkResponse(NetworkResponse),
+    /// Pow module response
+    ProverResponse(BlockId, Sig, u64),
 }
 
 #[derive(Debug, Clone)]
@@ -76,19 +55,8 @@ pub struct PendingIdtyDatas {
 }
 
 #[derive(Debug, Clone)]
-/// Response to a DALReqPendings request
-pub enum DALResPendings {
-    /// All pending identities with their pending certifications
-    AllPendingIdentities(ModuleReqId, HashMap<Hash, PendingIdtyDatas>),
-    /// All pending identities without their pending certifications
-    AllPendingIdentitiesWithoutCerts(ModuleReqId, HashMap<Hash, PendingIdtyDatas>),
-    /// All pending datas for given pubkey
-    PendingWotDatasForPubkey(ModuleReqId, Box<PendingIdtyDatas>),
-}
-
-#[derive(Debug, Clone)]
-/// Response to a DALReqBlockchain request
-pub enum DALResBlockchain {
+/// Response to a BlockchainReqBlockchain request
+pub enum BlockchainResponse {
     /// Current block
     CurrentBlock(ModuleReqId, Box<BlockDocument>, Blockstamp),
     /// Block by number
@@ -100,10 +68,12 @@ pub enum DALResBlockchain {
 }
 
 #[derive(Debug, Clone)]
-/// Response to a DAL request
-pub enum DALResponse {
-    /// Response to a DALReqBlockchain request
-    Blockchain(Box<DALResBlockchain>),
-    /// Response to a DALReqPendings request
-    Pendings(Box<DALResPendings>),
+/// Response to a MemPoolRequest request
+pub enum MemPoolResponse {
+    /// All pending identities with their pending certifications
+    AllPendingIdentities(ModuleReqId, HashMap<Hash, PendingIdtyDatas>),
+    /// All pending identities without their pending certifications
+    AllPendingIdentitiesWithoutCerts(ModuleReqId, HashMap<Hash, PendingIdtyDatas>),
+    /// All pending datas for given pubkey
+    PendingWotDatasForPubkey(ModuleReqId, Box<PendingIdtyDatas>),
 }

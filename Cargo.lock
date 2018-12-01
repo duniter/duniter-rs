@@ -244,30 +244,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "duniter-blockchain"
-version = "0.1.0-a0.1"
-dependencies = [
- "dirs 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "dubp-documents 0.11.0",
- "duniter-conf 0.1.0-a0.1",
- "duniter-dal 0.1.0-a0.1",
- "duniter-message 0.1.0-a0.1",
- "duniter-module 0.1.0-a0.1",
- "duniter-network 0.1.0-a0.1",
- "dup-crypto 0.5.0",
- "durs-network-documents 0.3.0",
- "durs-wot 0.8.0-a0.9",
- "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "num_cpus 1.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "pbr 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustbreak 2.0.0-rc3 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.78 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.21 (registry+https://github.com/rust-lang/crates.io-index)",
- "sqlite 0.23.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "threadpool 1.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "duniter-conf"
 version = "0.1.0-a0.1"
 dependencies = [
@@ -287,12 +263,12 @@ name = "duniter-core"
 version = "0.1.0-a0.1"
 dependencies = [
  "dirs 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "duniter-blockchain 0.1.0-a0.1",
  "duniter-conf 0.1.0-a0.1",
- "duniter-message 0.1.0-a0.1",
  "duniter-module 0.1.0-a0.1",
  "duniter-network 0.1.0-a0.1",
  "dup-crypto 0.5.0",
+ "durs-blockchain 0.1.0-a0.1",
+ "durs-message 0.1.0-a0.1",
  "durs-network-documents 0.3.0",
  "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log-panics 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -302,36 +278,6 @@ dependencies = [
  "simplelog 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "structopt 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "threadpool 1.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "duniter-dal"
-version = "0.1.0-a0.1"
-dependencies = [
- "dubp-documents 0.11.0",
- "duniter-module 0.1.0-a0.1",
- "dup-crypto 0.5.0",
- "durs-wot 0.8.0-a0.9",
- "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustbreak 2.0.0-rc3 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.78 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.21 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "duniter-message"
-version = "0.1.0-a0.1"
-dependencies = [
- "dubp-documents 0.11.0",
- "duniter-dal 0.1.0-a0.1",
- "duniter-module 0.1.0-a0.1",
- "duniter-network 0.1.0-a0.1",
- "dup-crypto 0.5.0",
- "durs-network-documents 0.3.0",
- "serde 1.0.78 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.21 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -361,26 +307,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "duniter-tui"
-version = "0.1.0-a0.1"
-dependencies = [
- "dubp-documents 0.11.0",
- "duniter-conf 0.1.0-a0.1",
- "duniter-dal 0.1.0-a0.1",
- "duniter-message 0.1.0-a0.1",
- "duniter-module 0.1.0-a0.1",
- "duniter-network 0.1.0-a0.1",
- "dup-crypto 0.5.0",
- "durs-network-documents 0.3.0",
- "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.78 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.21 (registry+https://github.com/rust-lang/crates.io-index)",
- "structopt 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "termion 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "dup-crypto"
 version = "0.5.0"
 dependencies = [
@@ -398,10 +324,63 @@ name = "durs"
 version = "0.1.0-a1"
 dependencies = [
  "duniter-core 0.1.0-a0.1",
- "duniter-tui 0.1.0-a0.1",
+ "durs-tui 0.1.0-a0.1",
  "durs-ws2p 0.1.0-a0.1",
  "durs-ws2p-v1-legacy 0.1.0-a0.1",
  "structopt 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "durs-blockchain"
+version = "0.1.0-a0.1"
+dependencies = [
+ "dirs 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dubp-documents 0.11.0",
+ "duniter-conf 0.1.0-a0.1",
+ "duniter-module 0.1.0-a0.1",
+ "duniter-network 0.1.0-a0.1",
+ "dup-crypto 0.5.0",
+ "durs-blockchain-dal 0.1.0-a0.1",
+ "durs-message 0.1.0-a0.1",
+ "durs-network-documents 0.3.0",
+ "durs-wot 0.8.0-a0.9",
+ "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num_cpus 1.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pbr 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustbreak 2.0.0-rc3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.78 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.21 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sqlite 0.23.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "threadpool 1.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "durs-blockchain-dal"
+version = "0.1.0-a0.1"
+dependencies = [
+ "dubp-documents 0.11.0",
+ "duniter-module 0.1.0-a0.1",
+ "dup-crypto 0.5.0",
+ "durs-wot 0.8.0-a0.9",
+ "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustbreak 2.0.0-rc3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.78 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.21 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "durs-message"
+version = "0.1.0-a0.1"
+dependencies = [
+ "dubp-documents 0.11.0",
+ "duniter-module 0.1.0-a0.1",
+ "duniter-network 0.1.0-a0.1",
+ "dup-crypto 0.5.0",
+ "durs-network-documents 0.3.0",
+ "serde 1.0.78 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.21 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -426,16 +405,34 @@ name = "durs-skeleton"
 version = "0.1.0"
 dependencies = [
  "duniter-conf 0.1.0-a0.1",
- "duniter-dal 0.1.0-a0.1",
- "duniter-message 0.1.0-a0.1",
  "duniter-module 0.1.0-a0.1",
  "duniter-network 0.1.0-a0.1",
  "dup-crypto 0.5.0",
+ "durs-message 0.1.0-a0.1",
  "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.78 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "structopt 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "durs-tui"
+version = "0.1.0-a0.1"
+dependencies = [
+ "dubp-documents 0.11.0",
+ "duniter-conf 0.1.0-a0.1",
+ "duniter-module 0.1.0-a0.1",
+ "duniter-network 0.1.0-a0.1",
+ "dup-crypto 0.5.0",
+ "durs-message 0.1.0-a0.1",
+ "durs-network-documents 0.3.0",
+ "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.78 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.21 (registry+https://github.com/rust-lang/crates.io-index)",
+ "structopt 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "termion 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -456,10 +453,10 @@ dependencies = [
  "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "dubp-documents 0.11.0",
  "duniter-conf 0.1.0-a0.1",
- "duniter-message 0.1.0-a0.1",
  "duniter-module 0.1.0-a0.1",
  "duniter-network 0.1.0-a0.1",
  "dup-crypto 0.5.0",
+ "durs-message 0.1.0-a0.1",
  "durs-network-documents 0.3.0",
  "durs-ws2p-messages 0.1.0-a0.1",
  "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -493,11 +490,10 @@ dependencies = [
  "byteorder 1.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "dubp-documents 0.11.0",
  "duniter-conf 0.1.0-a0.1",
- "duniter-dal 0.1.0-a0.1",
- "duniter-message 0.1.0-a0.1",
  "duniter-module 0.1.0-a0.1",
  "duniter-network 0.1.0-a0.1",
  "dup-crypto 0.5.0",
+ "durs-message 0.1.0-a0.1",
  "durs-network-documents 0.3.0",
  "durs-wot 0.8.0-a0.9",
  "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",

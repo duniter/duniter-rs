@@ -21,12 +21,12 @@ extern crate threadpool;
 use self::pbr::ProgressBar;
 use self::threadpool::ThreadPool;
 use dubp_documents::{BlockHash, BlockId};
-use duniter_dal::currency_params::CurrencyParameters;
-use duniter_dal::writers::requests::*;
-use duniter_dal::ForkId;
 use duniter_network::documents::NetworkBlock;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
+use durs_blockchain_dal::currency_params::CurrencyParameters;
+use durs_blockchain_dal::writers::requests::*;
+use durs_blockchain_dal::ForkId;
 use durs_wot::NodeId;
 use std::collections::{HashMap, VecDeque};
 use std::fs;
@@ -158,7 +158,7 @@ pub fn sync_ts<DC: DuniterConf>(
         debug!("Get local current blockstamp...");
         let db_path = duniter_conf::get_blockchain_db_path(&profile_copy, &currency);
         let blocks_databases = BlocksV10DBs::open(Some(&db_path));
-        let current_blockstamp: Blockstamp = duniter_dal::block::get_current_blockstamp(
+        let current_blockstamp: Blockstamp = durs_blockchain_dal::block::get_current_blockstamp(
             &blocks_databases,
         ).expect("ForksV10DB : RustBreakError !")
             .unwrap_or_default();
@@ -268,9 +268,10 @@ pub fn sync_ts<DC: DuniterConf>(
 
     // Get local current blockstamp
     debug!("Get local current blockstamp...");
-    let mut current_blockstamp: Blockstamp = duniter_dal::block::get_current_blockstamp(&databases)
-        .expect("ForksV10DB : RustBreakError !")
-        .unwrap_or_default();
+    let mut current_blockstamp: Blockstamp =
+        durs_blockchain_dal::block::get_current_blockstamp(&databases)
+            .expect("ForksV10DB : RustBreakError !")
+            .unwrap_or_default();
     debug!("Success to get local current blockstamp.");
 
     // Node is already synchronized ?
@@ -528,8 +529,9 @@ pub fn sync_ts<DC: DuniterConf>(
             blocks_not_expiring.pop_front();
         }
         // Find expire_certs
-        let expire_certs = duniter_dal::certs::find_expire_certs(&certs_db, blocks_expiring)
-            .expect("find_expire_certs() : DALError");
+        let expire_certs =
+            durs_blockchain_dal::certs::find_expire_certs(&certs_db, blocks_expiring)
+                .expect("find_expire_certs() : DALError");
         // Apply block
         let apply_valid_block_begin = SystemTime::now();
         if let Ok(ValidBlockApplyReqs(block_req, wot_db_reqs, currency_db_reqs)) =

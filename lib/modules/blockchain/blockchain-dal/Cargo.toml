@@ -1,18 +1,18 @@
 [package]
-name = "duniter-dal"
+name = "durs-blockchain-dal"
 version = "0.1.0-a0.1"
 authors = ["librelois <elois@ifee.fr>"]
-description = "Data Access Layer for the Duniter project."
+description = "Data Access Layer for Durs Blockchain module."
 license = "AGPL-3.0"
 
 [lib]
 path = "lib.rs"
 
 [dependencies]
-dup-crypto = { path = "../crypto" }
-dubp-documents= { path = "../documents" }
-duniter-module = { path = "../../core/module" }
-durs-wot = { path = "../wot" }
+dup-crypto = { path = "../../../tools/crypto" }
+dubp-documents= { path = "../../../tools/documents" }
+duniter-module = { path = "../../../core/module" }
+durs-wot = { path = "../../../tools/wot" }
 log = "0.4.*"
 rustbreak = {version = "2.0.0-rc3", features = ["bin_enc"]}
 serde = "1.0.*"

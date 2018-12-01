@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Durs Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,8 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Defined the few global types used by all modules,
-//! as well as the DuniterModule trait that all modules must implement.
+//! Define the format of the messages exchanged between the DURS modules.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
@@ -30,7 +29,6 @@
 )]
 
 extern crate dubp_documents;
-extern crate duniter_dal;
 extern crate duniter_module;
 extern crate duniter_network;
 extern crate dup_crypto;
@@ -38,91 +36,71 @@ extern crate durs_network_documents;
 extern crate serde;
 extern crate serde_json;
 
-use dubp_documents::BlockId;
-use dubp_documents::DUBPDocument;
-use duniter_dal::dal_event::DALEvent;
-use duniter_dal::dal_requests::{DALRequest, DALResponse};
 use duniter_module::*;
-use duniter_network::{
-    events::NetworkEvent,
-    requests::{NetworkResponse, OldNetworkRequest},
-};
-use dup_crypto::hashs::Hash;
-use dup_crypto::keys::Sig;
 use durs_network_documents::network_endpoint::EndpointEnum;
 
-#[derive(Debug, Clone)]
+/// Define modules events
+pub mod events;
+
+/// Define modules requests
+pub mod requests;
+
+/// Define requests responses
+pub mod responses;
+
+use events::*;
+use requests::*;
+use responses::*;
+
 /// Message exchanged between Durs modules
-pub struct DursMsg(pub DursMsgReceiver, pub DursMsgContent);
+#[derive(Debug, Clone)]
+pub enum DursMsg {
+    /// Durs module event
+    Event {
+        /// Event type
+        event_type: ModuleEvent,
+        /// Event content
+        event_content: DursEvent,
+    },
+    /// Durs modules requests
+    Request {
+        /// The requester
+        req_from: ModuleStaticName,
+        /// Recipient
+        req_to: ModuleRole,
+        /// Request id (Must be unique for a given requester)
+        req_id: ModuleReqId,
+        /// Request content
+        req_content: DursReqContent,
+    },
+    /// Durs modules request response
+    Response {
+        /// The module that answers the request
+        res_from: ModuleStaticName,
+        /// The requester
+        res_to: ModuleStaticName,
+        /// Request id (Must be unique for a given requester)
+        req_id: ModuleReqId,
+        /// Response content
+        res_content: DursResContent,
+    },
+    /// Stop signal
+    Stop,
+    /// New configuration of a module to save
+    SaveNewModuleConf(ModuleStaticName, serde_json::Value),
+    /// List of all endpoints declared by the modules
+    ModulesEndpoints(Vec<EndpointEnum>),
+}
 
 impl ModuleMessage for DursMsg {}
 
-/// The recipient of a message
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum DursMsgReceiver {
-    /// Message for all modules
-    All,
-    /// Message for one specific module
-    One(ModuleStaticName),
-    /// Message for all modules who play a specific role
-    Role(ModuleRole),
-    /// Message for all modules that are subscribed to a specific type of event
-    Event(ModuleEvent),
-}
-
+/// Arbitrary datas
 #[derive(Debug, Clone)]
-/// Content of message exchanged between Durs modules
-pub enum DursMsgContent {
-    /// Request
-    Request(DursReq),
-    /// Brut text message
+pub enum ArbitraryDatas {
+    /// Arbitrary text message
     Text(String),
-    /// Brut binary message
-    Binary(Vec<u8>),
-    /// New configuration of a module to save
-    SaveNewModuleConf(ModuleStaticName, serde_json::Value),
-    /// List of local node endpoints
-    Endpoints(Vec<EndpointEnum>),
-    /// Response of DALRequest
-    DALResponse(Box<DALResponse>),
-    /// Blockchain event
-    DALEvent(DALEvent),
-    /// Request to the network module
-    OldNetworkRequest(OldNetworkRequest),
-    /// Network event
-    NetworkEvent(NetworkEvent),
-    /// Response of OldNetworkRequest
-    NetworkResponse(NetworkResponse),
-    /// Pow module response
-    ProverResponse(BlockId, Sig, u64),
-    /// Client API event
-    ReceiveDocsFromClient(Vec<DUBPDocument>),
-    /// Stop signal
-    Stop(),
-}
-
-#[derive(Debug, Clone)]
-/// Durs modules requests
-pub struct DursReq {
-    /// Requester
-    pub requester: ModuleStaticName,
-    /// Request unique id
-    pub id: ModuleReqId,
-    /// Request content
-    pub content: DursReqContent,
-}
-
-#[derive(Debug, Clone)]
-/// Modules request content
-pub enum DursReqContent {
-    /// Network request (Not yet implemented)
-    NetworkRequest(),
-    /// Blockchain datas request
-    DALRequest(DALRequest),
-    /// Request to the pow module
-    ProverRequest(BlockId, Hash),
-    /// Brut text request
-    Text(String),
-    /// Brut binary request
+    /// Arbitrary json message
+    Json(serde_json::Value),
+    /// Arbitrary binary message
     Binary(Vec<u8>),
 }
