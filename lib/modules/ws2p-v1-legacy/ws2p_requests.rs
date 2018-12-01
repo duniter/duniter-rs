@@ -14,9 +14,9 @@ pub fn network_request_to_json(request: &OldNetworkRequest) -> serde_json::Value
             req_full_id.1,
             "BLOCKS_CHUNK",
             json!({
-                    "count": count,
-                    "fromNumber": from_mumber
-                }),
+                "count": count,
+                "fromNumber": from_mumber
+            }),
         ),
         OldNetworkRequest::GetRequirementsPending(ref req_full_id, _receiver, min_cert) => (
             req_full_id.1,
@@ -35,10 +35,10 @@ pub fn network_request_to_json(request: &OldNetworkRequest) -> serde_json::Value
     };
 
     json!({
-            "reqId": request_id,
-            "body" : {
-                "name": request_type,
-                "params": request_params
-            }
-        })
+        "reqId": request_id,
+        "body" : {
+            "name": request_type,
+            "params": request_params
+        }
+    })
 }

@@ -318,10 +318,8 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
         let ws2p_sender_clone = ws2p_module.main_thread_channel.0.clone();
 
         // Create proxy channel
-        let (proxy_sender, proxy_receiver): (
-            mpsc::Sender<DursMsg>,
-            mpsc::Receiver<DursMsg>,
-        ) = mpsc::channel();
+        let (proxy_sender, proxy_receiver): (mpsc::Sender<DursMsg>, mpsc::Receiver<DursMsg>) =
+            mpsc::channel();
         let proxy_sender_clone = proxy_sender.clone();
 
         // Launch a proxy thread that transform DursMsg to WS2PThreadSignal(DursMsg)
@@ -492,20 +490,17 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                         ws2p_module.my_head.clone().unwrap(),
                                     );
                                     trace!("Send my HEAD: {:#?}", my_json_head);
-                                    let _results: Result<
-                                        (),
-                                        ws::Error,
-                                    > = ws2p_module
+                                    let _results: Result<(), ws::Error> = ws2p_module
                                         .websockets
                                         .iter_mut()
                                         .map(|ws| {
                                             (ws.1).0.send(Message::text(
                                                 json!({
-                                                "name": "HEAD",
-                                                "body": {
-                                                    "heads": [my_json_head]
-                                                }
-                                            })
+                                                    "name": "HEAD",
+                                                    "body": {
+                                                        "heads": [my_json_head]
+                                                    }
+                                                })
                                                 .to_string(),
                                             ))
                                         })
@@ -1157,15 +1152,15 @@ mod tests {
         assert_eq!(
             network_request_to_json(&request),
             json!({
-            "reqId": format!("{:x}", 58),
-            "body": {
-                "name": "BLOCKS_CHUNK",
-                "params": {
-                    "count": 50,
-                    "fromNumber": 0
+                "reqId": format!("{:x}", 58),
+                "body": {
+                    "name": "BLOCKS_CHUNK",
+                    "params": {
+                        "count": 50,
+                        "fromNumber": 0
+                    }
                 }
-            }
-        })
+            })
         );
         assert_eq!(
             network_request_to_json(&request).to_string(),

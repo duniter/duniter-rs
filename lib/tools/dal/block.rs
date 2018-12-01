@@ -392,7 +392,7 @@ impl DALBlock {
                 median_index = self.block.issuers_count - 1;
             }
             self.median_frame = current_frame_vec[median_index];
-            
+
             // Calculate second tiercile index
             let mut second_tiercile_index = match self.block.issuers_count % 3 {
                 1 | 2 => (self.block.issuers_count as f64 * (2.0 / 3.0)) as usize + 1,

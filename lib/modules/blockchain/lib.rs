@@ -461,7 +461,8 @@ impl BlockchainModule {
                     wot_index,
                     wot,
                     &self.forks_states,
-                ) {
+                )
+            {
                 current_blockstamp = block.blockstamp();
                 // Update forks states
                 self.forks_states = duniter_dal::block::get_forks(

@@ -430,10 +430,8 @@ impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
             mpsc::channel();
 
         // Create proxy channel
-        let (proxy_sender, proxy_receiver): (
-            mpsc::Sender<DursMsg>,
-            mpsc::Receiver<DursMsg>,
-        ) = mpsc::channel();
+        let (proxy_sender, proxy_receiver): (mpsc::Sender<DursMsg>, mpsc::Receiver<DursMsg>) =
+            mpsc::channel();
 
         // Launch a proxy thread that transform DursMsgContent() to TuiMess::DursMsgContent(DursMsgContent())
         let tui_sender_clone = tui_sender.clone();

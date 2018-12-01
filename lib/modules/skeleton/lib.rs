@@ -190,10 +190,8 @@ impl DuniterModule<DuRsConf, DursMsg> for SkeletonModule {
         ) = mpsc::channel();
 
         // Create proxy channel
-        let (proxy_sender, proxy_receiver): (
-            mpsc::Sender<DursMsg>,
-            mpsc::Receiver<DursMsg>,
-        ) = mpsc::channel();
+        let (proxy_sender, proxy_receiver): (mpsc::Sender<DursMsg>, mpsc::Receiver<DursMsg>) =
+            mpsc::channel();
 
         // Launch a proxy thread that transform DursMsgContent() to SkeleonMsg::DursMsgContent(DursMsgContent())
         let router_sender_clone = router_sender.clone();

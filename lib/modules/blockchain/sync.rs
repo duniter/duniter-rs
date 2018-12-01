@@ -539,7 +539,8 @@ pub fn sync_ts<DC: DuniterConf>(
                 &wot_db,
                 &expire_certs,
                 None,
-            ) {
+            )
+        {
             all_apply_valid_block_duration += SystemTime::now()
                 .duration_since(apply_valid_block_begin)
                 .unwrap();

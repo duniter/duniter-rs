@@ -110,13 +110,11 @@ pub fn revert_tx(dbs: &CurrencyV10DBs, dal_tx: &DALTxV10) -> Result<(), DALError
                         .tx_doc
                         .get_outputs()[(s_index.1).0]
                         .clone();
-                    let mut sources_destroyed_for_same_address: Vec<(
-                        UTXOIndexV10,
-                        SourceAmount,
-                    )> = sources_destroyed_completed
-                        .get(&tx_output.conditions.conditions)
-                        .cloned()
-                        .unwrap_or_default();
+                    let mut sources_destroyed_for_same_address: Vec<(UTXOIndexV10, SourceAmount)> =
+                        sources_destroyed_completed
+                            .get(&tx_output.conditions.conditions)
+                            .cloned()
+                            .unwrap_or_default();
                     sources_destroyed_for_same_address
                         .push((*s_index, SourceAmount(tx_output.amount, tx_output.base)));
                     sources_destroyed_completed.insert(
