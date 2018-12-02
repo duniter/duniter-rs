@@ -474,8 +474,8 @@ pub fn sync_ts<DC: DuniterConf>(
 
     // Open currency_params_db
     let dbs_path = duniter_conf::get_blockchain_db_path(profile, &conf.currency());
-    let currency_params_db =
-        open_db::<CurrencyParamsV10Datas>(&dbs_path, "params.db").expect("Fail to open params db");
+    let currency_params_db = open_file_db::<CurrencyParamsV10Datas>(&dbs_path, "params.db")
+        .expect("Fail to open params db");
 
     // Apply blocks
     let mut blocks_not_expiring = VecDeque::with_capacity(200_000);

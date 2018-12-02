@@ -122,8 +122,8 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
 
     // Open databases
     let load_dbs_begin = SystemTime::now();
-    let currency_params_db =
-        open_db::<CurrencyParamsV10Datas>(&db_path, "params.db").expect("Fail to open params db");
+    let currency_params_db = open_file_db::<CurrencyParamsV10Datas>(&db_path, "params.db")
+        .expect("Fail to open params db");
     let wot_databases = WotsV10DBs::open(Some(&db_path));
     let load_dbs_duration = SystemTime::now()
         .duration_since(load_dbs_begin)
@@ -226,7 +226,7 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
         }
         DBExWotQuery::ExpireMembers(ref reverse) => {
             // Open blockchain database
-            let blockchain_db = open_db::<LocalBlockchainV10Datas>(&db_path, "blockchain.db")
+            let blockchain_db = open_file_db::<LocalBlockchainV10Datas>(&db_path, "blockchain.db")
                 .expect("Fail to open blockchain db");
             // Get blocks_times
             let (current_bc_time, blocks_times): (u64, HashMap<BlockId, u64>) = blockchain_db
