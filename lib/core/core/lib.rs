@@ -254,7 +254,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
         init_logger(profile.as_str(), self.soft_meta_datas.soft_name, &cli_args);
 
         // Print panic! in logs
-        //log_panics::init();
+        log_panics::init();
 
         // Load global conf
         let (conf, keypairs) = duniter_conf::load_conf(profile.as_str());

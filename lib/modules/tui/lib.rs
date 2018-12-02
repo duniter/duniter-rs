@@ -535,8 +535,8 @@ impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
                             break;
                         }
                         DursMsg::Event {
-                            event_type: _,
                             ref event_content,
+                            ..
                         } => match *event_content {
                             DursEvent::BlockchainEvent(ref dal_event) => match *dal_event {
                                 BlockchainEvent::StackUpValidBlock(ref _block, ref _blockstamp) => {
@@ -544,7 +544,7 @@ impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
                                 BlockchainEvent::RevertBlocks(ref _blocks) => {}
                                 _ => {}
                             },
-                            DursEvent::NetworkEvent(ref network_event) => match *network_event {
+                            DursEvent::NetworkEvent(ref network_event_box) => match *network_event_box.deref() {
                                 NetworkEvent::ConnectionStateChange(
                                     ref node_full_id,
                                     ref status,

@@ -590,9 +590,8 @@ impl BlockchainModule {
                     match *durs_message {
                         DursMsg::Request {
                             req_from,
-                            req_to: _,
-                            req_id,
                             ref req_content,
+                            ..
                         } => {
                             if let DursReqContent::BlockchainRequest(ref blockchain_req) =
                                 req_content
@@ -642,10 +641,10 @@ impl BlockchainModule {
                             }
                         }
                         DursMsg::Event {
-                            event_type: _,
                             ref event_content,
+                            ..
                         } => match *event_content {
-                            DursEvent::NetworkEvent(ref network_event) => match *network_event {
+                            DursEvent::NetworkEvent(ref network_event_box) => match *network_event_box.deref() {
                                 NetworkEvent::ReceiveDocuments(ref network_docs) => {
                                     let new_current_blockstamp = self.receive_network_documents(
                                         network_docs,
@@ -664,12 +663,10 @@ impl BlockchainModule {
                             _ => {} // Others modules events
                         },
                         DursMsg::Response {
-                            res_from: _,
-                            res_to: _,
                             ref req_id,
                             ref res_content,
-                        } => match *res_content {
-                            DursResContent::NetworkResponse(ref network_response) => {
+                            ..
+                        } => if let DursResContent::NetworkResponse(ref network_response) = *res_content {
                                 debug!("BlockchainModule : receive NetworkResponse() !");
                                 if let Some(request) = pending_network_requests.remove(req_id) {
                                     match request {
@@ -736,8 +733,6 @@ impl BlockchainModule {
                                     }
                                 }
                             }
-                            _ => {} // Others DursResContent variants
-                        },
                         DursMsg::Stop => break,
                         _ => {} // Others DursMsg variants
                     }

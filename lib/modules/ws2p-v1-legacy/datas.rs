@@ -113,7 +113,7 @@ impl WS2PModuleDatas {
         self.router_sender
             .send(RouterThreadMessage::ModuleMessage(DursMsg::Event {
                 event_type: module_event,
-                event_content: DursEvent::NetworkEvent(event.clone()),
+                event_content: DursEvent::NetworkEvent(Box::new(event.clone())),
             }))
             .expect("Fail to send network event to router !");
     }

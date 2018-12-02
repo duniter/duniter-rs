@@ -412,12 +412,10 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                         match *durs_mesage.deref() {
                             DursMsg::Stop => break,
                             DursMsg::Request {
-                                req_from: _,
-                                req_to: _,
-                                req_id: _,
                                 ref req_content,
-                            } => match *req_content {
-                                DursReqContent::OldNetworkRequest(ref request) => match *request {
+                                ..
+                            } => if let DursReqContent::OldNetworkRequest(ref old_net_request) = *req_content {
+                                match *old_net_request {
                                     OldNetworkRequest::GetBlocks(
                                         ref req_id,
                                         ref receiver,
@@ -473,14 +471,13 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                     }
                                     OldNetworkRequest::GetEndpoints(ref _request) => {}
                                     _ => {}
-                                },
-                                _ => {} // Others DursReqContent variants
+                                }
                             },
                             DursMsg::Event {
-                                event_type: _,
                                 ref event_content,
-                            } => match *event_content {
-                                DursEvent::BlockchainEvent(ref dal_event) => match *dal_event {
+                                ..
+                            } => if let DursEvent::BlockchainEvent(ref bc_event) = *event_content {
+                                match *bc_event {
                                     BlockchainEvent::StackUpValidBlock(
                                         ref _block,
                                         ref blockstamp,
@@ -527,16 +524,13 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                     }
                                     BlockchainEvent::RevertBlocks(ref _blocks) => {}
                                     _ => {}
-                                },
-                                _ => {} // Others DursEvent variants
+                                }
                             },
                             DursMsg::Response {
-                                res_from: _,
-                                res_to: _,
-                                req_id: _,
                                 ref res_content,
-                            } => match *res_content {
-                                DursResContent::BlockchainResponse(ref bc_res) => match *bc_res
+                                ..
+                            } => if let DursResContent::BlockchainResponse(ref bc_res) = *res_content {
+                                match *bc_res
                                     .deref()
                                 {
                                     BlockchainResponse::CurrentBlock(
@@ -605,8 +599,7 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                         }
                                     }
                                     _ => {} // Others BlockchainResponse variants
-                                },
-                                _ => {} // Others DursResContent variants
+                                }
                             },
                             _ => {} // Others DursMsg variants
                         }

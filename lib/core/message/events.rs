@@ -26,7 +26,7 @@ pub enum DursEvent {
     /// Blockchain event
     BlockchainEvent(BlockchainEvent),
     /// Network event
-    NetworkEvent(NetworkEvent),
+    NetworkEvent(Box<NetworkEvent>),
     /// Client API event
     ReceiveValidDocsFromClient(Vec<DUBPDocument>),
 }
