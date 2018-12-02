@@ -270,8 +270,8 @@ impl DuniterModule<DuRsConf, DursMsg> for SkeletonModule {
                                 break;
                             }
                             DursMsg::Event {
-                                event_type: _,
                                 ref event_content,
+                                ..
                             } => match *event_content {
                                 DursEvent::BlockchainEvent(ref blockchain_event) => {
                                     match *blockchain_event {
