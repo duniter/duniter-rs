@@ -69,8 +69,8 @@ rm -Rf .gitignore .git || exit 1 # Remove git files
 
 # Build binary
 echo ">> Building binary..."
-cd "${ROOT}"
-cargo build --target=${TARGET} --release --no-default-features || exit 1
+cd "${ROOT}/bin/durs-server"
+cargo build --release --target=${TARGET} || exit 1
 
 mkdir -p "${RELEASES}/server_" || exit 1
 cp "${ROOT}/target/${TARGET}/release/durs.exe" "${RELEASES}/server_/" || exit 1

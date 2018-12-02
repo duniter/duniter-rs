@@ -103,8 +103,8 @@ rm -Rf .gitignore .git || exit 1 # Remove git files
 
 # Build binary
 echo ">> Building binary..."
-cd "${ROOT}"
-cargo build --release || exit 1
+cd "${ROOT}/bin/durs-server"
+cargo build --release --features=ssl || exit 1
 
 mkdir -p "${RELEASES}/server_" || exit 1
 cp "${ROOT}/target/release/durs" "${RELEASES}/server_/" || exit 1
