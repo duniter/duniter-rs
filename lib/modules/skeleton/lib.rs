@@ -37,6 +37,7 @@ extern crate structopt;
 
 extern crate duniter_conf;
 extern crate duniter_module;
+extern crate duniter_network;
 extern crate dup_crypto;
 extern crate durs_message;
 extern crate serde;
@@ -44,6 +45,7 @@ extern crate serde_json;
 
 use duniter_conf::DuRsConf;
 use duniter_module::*;
+use duniter_network::events::NetworkEvent;
 use durs_message::events::*;
 use durs_message::*;
 use std::ops::Deref;
@@ -270,8 +272,7 @@ impl DuniterModule<DuRsConf, DursMsg> for SkeletonModule {
                                 break;
                             }
                             DursMsg::Event {
-                                ref event_content,
-                                ..
+                                ref event_content, ..
                             } => match *event_content {
                                 DursEvent::BlockchainEvent(ref blockchain_event) => {
                                     match *blockchain_event {
@@ -283,6 +284,17 @@ impl DuniterModule<DuRsConf, DursMsg> for SkeletonModule {
                                         }
                                         BlockchainEvent::RevertBlocks(ref _blocks) => {
                                             // Do something when the node has destacked blocks from its local blockchain (roll back)
+                                        }
+                                        _ => {} // Do nothing for events that don't concern your module.
+                                    }
+                                }
+                                DursEvent::NetworkEvent(ref network_event_box) => {
+                                    match *network_event_box.deref() {
+                                        NetworkEvent::ReceivePeers(ref _peers) => {
+                                            // Do something when the node receive peers cards from network
+                                        }
+                                        NetworkEvent::ReceiveDocuments(ref _bc_documents) => {
+                                            // Do something when the node receive blockchain documents from network
                                         }
                                         _ => {} // Do nothing for events that don't concern your module.
                                     }
