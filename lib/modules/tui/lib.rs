@@ -535,8 +535,7 @@ impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
                             break;
                         }
                         DursMsg::Event {
-                            ref event_content,
-                            ..
+                            ref event_content, ..
                         } => match *event_content {
                             DursEvent::BlockchainEvent(ref dal_event) => match *dal_event {
                                 BlockchainEvent::StackUpValidBlock(ref _block, ref _blockstamp) => {
@@ -544,42 +543,46 @@ impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
                                 BlockchainEvent::RevertBlocks(ref _blocks) => {}
                                 _ => {}
                             },
-                            DursEvent::NetworkEvent(ref network_event_box) => match *network_event_box.deref() {
-                                NetworkEvent::ConnectionStateChange(
-                                    ref node_full_id,
-                                    ref status,
-                                    ref uid,
-                                    ref url,
-                                ) => {
-                                    if let Some(conn) = tui.connections_status.get(&node_full_id) {
-                                        if *status == 12 && (*conn).status != 12 {
-                                            tui.established_conns_count += 1;
-                                        } else if *status != 12
-                                            && (*conn).status == 12
-                                            && tui.established_conns_count > 0
+                            DursEvent::NetworkEvent(ref network_event_box) => {
+                                match *network_event_box.deref() {
+                                    NetworkEvent::ConnectionStateChange(
+                                        ref node_full_id,
+                                        ref status,
+                                        ref uid,
+                                        ref url,
+                                    ) => {
+                                        if let Some(conn) =
+                                            tui.connections_status.get(&node_full_id)
                                         {
-                                            tui.established_conns_count -= 1;
-                                        }
-                                    };
-                                    tui.connections_status.insert(
-                                        *node_full_id,
-                                        Connection {
-                                            status: *status,
-                                            url: url.clone(),
-                                            uid: uid.clone(),
-                                        },
-                                    );
+                                            if *status == 12 && (*conn).status != 12 {
+                                                tui.established_conns_count += 1;
+                                            } else if *status != 12
+                                                && (*conn).status == 12
+                                                && tui.established_conns_count > 0
+                                            {
+                                                tui.established_conns_count -= 1;
+                                            }
+                                        };
+                                        tui.connections_status.insert(
+                                            *node_full_id,
+                                            Connection {
+                                                status: *status,
+                                                url: url.clone(),
+                                                uid: uid.clone(),
+                                            },
+                                        );
+                                    }
+                                    NetworkEvent::ReceiveHeads(ref heads) => {
+                                        heads
+                                            .iter()
+                                            .map(|h| {
+                                                tui.heads_cache.insert(h.node_full_id(), h.clone())
+                                            })
+                                            .for_each(drop);
+                                    }
+                                    _ => {}
                                 }
-                                NetworkEvent::ReceiveHeads(ref heads) => {
-                                    heads
-                                        .iter()
-                                        .map(|h| {
-                                            tui.heads_cache.insert(h.node_full_id(), h.clone())
-                                        })
-                                        .for_each(drop);
-                                }
-                                _ => {}
-                            },
+                            }
                             _ => {}
                         },
                         _ => {}

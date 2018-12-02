@@ -412,139 +412,86 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                         match *durs_mesage.deref() {
                             DursMsg::Stop => break,
                             DursMsg::Request {
-                                ref req_content,
-                                ..
-                            } => if let DursReqContent::OldNetworkRequest(ref old_net_request) = *req_content {
-                                match *old_net_request {
-                                    OldNetworkRequest::GetBlocks(
-                                        ref req_id,
-                                        ref receiver,
-                                        ref count,
-                                        ref from,
-                                    ) => {
-                                        if *receiver == NodeFullId::default() {
-                                            let mut receiver_index = 0;
-                                            let mut real_receiver = NodeFullId::default();
-                                            for (ws2p_full_id, (_ep, state)) in
-                                                ws2p_module.ws2p_endpoints.clone()
-                                            {
-                                                if let WS2PConnectionState::Established = state {
-                                                    if receiver_index == next_receiver {
-                                                        real_receiver = ws2p_full_id;
-                                                        break;
-                                                    }
-                                                    receiver_index += 1;
-                                                }
-                                            }
-                                            if real_receiver == NodeFullId::default() {
-                                                next_receiver = 0;
+                                ref req_content, ..
+                            } => {
+                                if let DursReqContent::OldNetworkRequest(ref old_net_request) =
+                                    *req_content
+                                {
+                                    match *old_net_request {
+                                        OldNetworkRequest::GetBlocks(
+                                            ref req_id,
+                                            ref receiver,
+                                            ref count,
+                                            ref from,
+                                        ) => {
+                                            if *receiver == NodeFullId::default() {
+                                                let mut receiver_index = 0;
+                                                let mut real_receiver = NodeFullId::default();
                                                 for (ws2p_full_id, (_ep, state)) in
                                                     ws2p_module.ws2p_endpoints.clone()
                                                 {
                                                     if let WS2PConnectionState::Established = state
                                                     {
-                                                        real_receiver = ws2p_full_id;
-                                                        break;
+                                                        if receiver_index == next_receiver {
+                                                            real_receiver = ws2p_full_id;
+                                                            break;
+                                                        }
+                                                        receiver_index += 1;
                                                     }
                                                 }
+                                                if real_receiver == NodeFullId::default() {
+                                                    next_receiver = 0;
+                                                    for (ws2p_full_id, (_ep, state)) in
+                                                        ws2p_module.ws2p_endpoints.clone()
+                                                    {
+                                                        if let WS2PConnectionState::Established =
+                                                            state
+                                                        {
+                                                            real_receiver = ws2p_full_id;
+                                                            break;
+                                                        }
+                                                    }
+                                                } else {
+                                                    next_receiver += 1;
+                                                }
+                                                if real_receiver != NodeFullId::default() {
+                                                    let _blocks_request_result = ws2p_module
+                                                        .send_request_to_specific_node(
+                                                            &real_receiver,
+                                                            &OldNetworkRequest::GetBlocks(
+                                                                *req_id, *receiver, *count, *from,
+                                                            ),
+                                                        );
+                                                }
                                             } else {
-                                                next_receiver += 1;
-                                            }
-                                            if real_receiver != NodeFullId::default() {
                                                 let _blocks_request_result = ws2p_module
                                                     .send_request_to_specific_node(
-                                                        &real_receiver,
+                                                        &receiver,
                                                         &OldNetworkRequest::GetBlocks(
                                                             *req_id, *receiver, *count, *from,
                                                         ),
                                                     );
                                             }
-                                        } else {
-                                            let _blocks_request_result = ws2p_module
-                                                .send_request_to_specific_node(
-                                                    &receiver,
-                                                    &OldNetworkRequest::GetBlocks(
-                                                        *req_id, *receiver, *count, *from,
-                                                    ),
-                                                );
                                         }
+                                        OldNetworkRequest::GetEndpoints(ref _request) => {}
+                                        _ => {}
                                     }
-                                    OldNetworkRequest::GetEndpoints(ref _request) => {}
-                                    _ => {}
                                 }
-                            },
+                            }
                             DursMsg::Event {
-                                ref event_content,
-                                ..
-                            } => if let DursEvent::BlockchainEvent(ref bc_event) = *event_content {
-                                match *bc_event {
-                                    BlockchainEvent::StackUpValidBlock(
-                                        ref _block,
-                                        ref blockstamp,
-                                    ) => {
-                                        current_blockstamp = *blockstamp;
-                                        debug!(
-                                            "WS2PModule : current_blockstamp = {}",
-                                            current_blockstamp
-                                        );
-                                        ws2p_module.my_head = Some(heads::generate_my_head(
-                                            &key_pair,
-                                            NodeId(soft_meta_datas.conf.my_node_id()),
-                                            soft_meta_datas.soft_name,
-                                            soft_meta_datas.soft_version,
-                                            &current_blockstamp,
-                                            None,
-                                        ));
-                                        ws2p_module.send_network_event(
-                                            &NetworkEvent::ReceiveHeads(vec![ws2p_module
-                                                .my_head
-                                                .clone()
-                                                .unwrap()]),
-                                        );
-                                        // Send my head to all connections
-                                        let my_json_head = serializer::serialize_head(
-                                            ws2p_module.my_head.clone().unwrap(),
-                                        );
-                                        trace!("Send my HEAD: {:#?}", my_json_head);
-                                        let _results: Result<(), ws::Error> = ws2p_module
-                                            .websockets
-                                            .iter_mut()
-                                            .map(|ws| {
-                                                (ws.1).0.send(Message::text(
-                                                    json!({
-                                                        "name": "HEAD",
-                                                        "body": {
-                                                            "heads": [my_json_head]
-                                                        }
-                                                    })
-                                                    .to_string(),
-                                                ))
-                                            })
-                                            .collect();
-                                    }
-                                    BlockchainEvent::RevertBlocks(ref _blocks) => {}
-                                    _ => {}
-                                }
-                            },
-                            DursMsg::Response {
-                                ref res_content,
-                                ..
-                            } => if let DursResContent::BlockchainResponse(ref bc_res) = *res_content {
-                                match *bc_res
-                                    .deref()
-                                {
-                                    BlockchainResponse::CurrentBlock(
-                                        ref _requester_full_id,
-                                        ref current_block,
-                                        ref current_blockstamp_,
-                                    ) => {
-                                        let _current_block = current_block.deref();
-                                        debug!(
-                                            "WS2PModule : receive DALResBc::CurrentBlock({})",
-                                            current_blockstamp
-                                        );
-                                        current_blockstamp = *current_blockstamp_;
-                                        if ws2p_module.my_head.is_none() {
+                                ref event_content, ..
+                            } => {
+                                if let DursEvent::BlockchainEvent(ref bc_event) = *event_content {
+                                    match *bc_event {
+                                        BlockchainEvent::StackUpValidBlock(
+                                            ref _block,
+                                            ref blockstamp,
+                                        ) => {
+                                            current_blockstamp = *blockstamp;
+                                            debug!(
+                                                "WS2PModule : current_blockstamp = {}",
+                                                current_blockstamp
+                                            );
                                             ws2p_module.my_head = Some(heads::generate_my_head(
                                                 &key_pair,
                                                 NodeId(soft_meta_datas.conf.my_node_id()),
@@ -553,54 +500,121 @@ impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
                                                 &current_blockstamp,
                                                 None,
                                             ));
+                                            ws2p_module.send_network_event(
+                                                &NetworkEvent::ReceiveHeads(vec![ws2p_module
+                                                    .my_head
+                                                    .clone()
+                                                    .unwrap()]),
+                                            );
+                                            // Send my head to all connections
+                                            let my_json_head = serializer::serialize_head(
+                                                ws2p_module.my_head.clone().unwrap(),
+                                            );
+                                            trace!("Send my HEAD: {:#?}", my_json_head);
+                                            let _results: Result<(), ws::Error> = ws2p_module
+                                                .websockets
+                                                .iter_mut()
+                                                .map(|ws| {
+                                                    (ws.1).0.send(Message::text(
+                                                        json!({
+                                                            "name": "HEAD",
+                                                            "body": {
+                                                                "heads": [my_json_head]
+                                                            }
+                                                        })
+                                                        .to_string(),
+                                                    ))
+                                                })
+                                                .collect();
                                         }
-                                        ws2p_module.send_network_event(
-                                            &NetworkEvent::ReceiveHeads(vec![ws2p_module
-                                                .my_head
-                                                .clone()
-                                                .unwrap()]),
-                                        );
+                                        BlockchainEvent::RevertBlocks(ref _blocks) => {}
+                                        _ => {}
                                     }
-                                    BlockchainResponse::UIDs(ref _req_id, ref uids) => {
-                                        // Add uids to heads
-                                        for head in ws2p_module.heads_cache.values_mut() {
-                                            if let Some(uid_option) = uids.get(&head.pubkey()) {
-                                                if let Some(ref uid) = *uid_option {
-                                                    head.set_uid(uid);
+                                }
+                            }
+                            DursMsg::Response {
+                                ref res_content, ..
+                            } => {
+                                if let DursResContent::BlockchainResponse(ref bc_res) = *res_content
+                                {
+                                    match *bc_res.deref() {
+                                        BlockchainResponse::CurrentBlock(
+                                            ref _requester_full_id,
+                                            ref current_block,
+                                            ref current_blockstamp_,
+                                        ) => {
+                                            let _current_block = current_block.deref();
+                                            debug!(
+                                                "WS2PModule : receive DALResBc::CurrentBlock({})",
+                                                current_blockstamp
+                                            );
+                                            current_blockstamp = *current_blockstamp_;
+                                            if ws2p_module.my_head.is_none() {
+                                                ws2p_module.my_head =
+                                                    Some(heads::generate_my_head(
+                                                        &key_pair,
+                                                        NodeId(soft_meta_datas.conf.my_node_id()),
+                                                        soft_meta_datas.soft_name,
+                                                        soft_meta_datas.soft_version,
+                                                        &current_blockstamp,
+                                                        None,
+                                                    ));
+                                            }
+                                            ws2p_module.send_network_event(
+                                                &NetworkEvent::ReceiveHeads(vec![ws2p_module
+                                                    .my_head
+                                                    .clone()
+                                                    .unwrap()]),
+                                            );
+                                        }
+                                        BlockchainResponse::UIDs(ref _req_id, ref uids) => {
+                                            // Add uids to heads
+                                            for head in ws2p_module.heads_cache.values_mut() {
+                                                if let Some(uid_option) = uids.get(&head.pubkey()) {
+                                                    if let Some(ref uid) = *uid_option {
+                                                        head.set_uid(uid);
+                                                        ws2p_module
+                                                            .uids_cache
+                                                            .insert(head.pubkey(), uid.to_string());
+                                                    } else {
+                                                        ws2p_module
+                                                            .uids_cache
+                                                            .remove(&head.pubkey());
+                                                    }
+                                                }
+                                            }
+                                            // Resent heads to other modules
+                                            ws2p_module.send_network_event(
+                                                &NetworkEvent::ReceiveHeads(
                                                     ws2p_module
-                                                        .uids_cache
-                                                        .insert(head.pubkey(), uid.to_string());
-                                                } else {
-                                                    ws2p_module.uids_cache.remove(&head.pubkey());
+                                                        .heads_cache
+                                                        .values()
+                                                        .cloned()
+                                                        .collect(),
+                                                ),
+                                            );
+                                            // Resent to other modules connections that match receive uids
+                                            for (node_full_id, (ep, conn_state)) in
+                                                &ws2p_module.ws2p_endpoints
+                                            {
+                                                if let Some(uid_option) = uids.get(&node_full_id.1)
+                                                {
+                                                    ws2p_module.send_network_event(
+                                                        &NetworkEvent::ConnectionStateChange(
+                                                            *node_full_id,
+                                                            *conn_state as u32,
+                                                            uid_option.clone(),
+                                                            ep.get_url(false, false)
+                                                                .expect("Endpoint unreachable !"),
+                                                        ),
+                                                    );
                                                 }
                                             }
                                         }
-                                        // Resent heads to other modules
-                                        ws2p_module.send_network_event(
-                                            &NetworkEvent::ReceiveHeads(
-                                                ws2p_module.heads_cache.values().cloned().collect(),
-                                            ),
-                                        );
-                                        // Resent to other modules connections that match receive uids
-                                        for (node_full_id, (ep, conn_state)) in
-                                            &ws2p_module.ws2p_endpoints
-                                        {
-                                            if let Some(uid_option) = uids.get(&node_full_id.1) {
-                                                ws2p_module.send_network_event(
-                                                    &NetworkEvent::ConnectionStateChange(
-                                                        *node_full_id,
-                                                        *conn_state as u32,
-                                                        uid_option.clone(),
-                                                        ep.get_url(false, false)
-                                                            .expect("Endpoint unreachable !"),
-                                                    ),
-                                                );
-                                            }
-                                        }
+                                        _ => {} // Others BlockchainResponse variants
                                     }
-                                    _ => {} // Others BlockchainResponse variants
                                 }
-                            },
+                            }
                             _ => {} // Others DursMsg variants
                         }
                     }

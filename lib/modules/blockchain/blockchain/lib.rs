@@ -641,22 +641,24 @@ impl BlockchainModule {
                             }
                         }
                         DursMsg::Event {
-                            ref event_content,
-                            ..
+                            ref event_content, ..
                         } => match *event_content {
-                            DursEvent::NetworkEvent(ref network_event_box) => match *network_event_box.deref() {
-                                NetworkEvent::ReceiveDocuments(ref network_docs) => {
-                                    let new_current_blockstamp = self.receive_network_documents(
-                                        network_docs,
-                                        &current_blockstamp,
-                                        &mut wot_index,
-                                        &wot_db,
-                                    );
-                                    current_blockstamp = new_current_blockstamp;
+                            DursEvent::NetworkEvent(ref network_event_box) => {
+                                match *network_event_box.deref() {
+                                    NetworkEvent::ReceiveDocuments(ref network_docs) => {
+                                        let new_current_blockstamp = self
+                                            .receive_network_documents(
+                                                network_docs,
+                                                &current_blockstamp,
+                                                &mut wot_index,
+                                                &wot_db,
+                                            );
+                                        current_blockstamp = new_current_blockstamp;
+                                    }
+                                    NetworkEvent::ReceiveHeads(_) => {}
+                                    _ => {}
                                 }
-                                NetworkEvent::ReceiveHeads(_) => {}
-                                _ => {}
-                            },
+                            }
                             DursEvent::ReceiveValidDocsFromClient(ref docs) => {
                                 self.receive_documents(docs);
                             }
@@ -666,7 +668,10 @@ impl BlockchainModule {
                             ref req_id,
                             ref res_content,
                             ..
-                        } => if let DursResContent::NetworkResponse(ref network_response) = *res_content {
+                        } => {
+                            if let DursResContent::NetworkResponse(ref network_response) =
+                                *res_content
+                            {
                                 debug!("BlockchainModule : receive NetworkResponse() !");
                                 if let Some(request) = pending_network_requests.remove(req_id) {
                                     match request {
@@ -733,6 +738,7 @@ impl BlockchainModule {
                                     }
                                 }
                             }
+                        }
                         DursMsg::Stop => break,
                         _ => {} // Others DursMsg variants
                     }
