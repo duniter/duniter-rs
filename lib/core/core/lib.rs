@@ -50,9 +50,10 @@ pub mod change_conf;
 pub mod cli;
 pub mod router;
 
-pub use duniter_conf::{ChangeGlobalConf, DuRsConf, DuniterKeyPairs, KEYPAIRS_FILENAME};
+pub use duniter_conf::{keys::*, ChangeGlobalConf, DuRsConf, DuniterKeyPairs, KEYPAIRS_FILENAME};
 use duniter_module::*;
-use duniter_network::{NetworkModule, SyncEndpoint, SyncParams};
+use duniter_network::cli::sync::*;
+use duniter_network::NetworkModule;
 use durs_blockchain::{BlockchainModule, DBExQuery, DBExTxQuery, DBExWotQuery};
 use durs_message::*;
 use log::Level;
@@ -61,7 +62,6 @@ use simplelog::*;
 //use std::fmt::{Debug, Formatter};
 use cli::keys::*;
 use cli::*;
-use duniter_conf::keys;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::sync::mpsc;
@@ -140,7 +140,7 @@ pub enum UserCommand {
     /// Start
     Start(),
     /// Sync (SyncEndpoint)
-    Sync(SyncParams),
+    Sync(SyncOpt),
     /// List modules
     ListModules(ListModulesOpt),
     /// Unknow command
@@ -307,33 +307,18 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             true
         } else if let Some(matches) = cli_args.subcommand_matches("sync") {
             let opts = SyncOpt::from_clap(matches);
-            let sync_endpoint = SyncEndpoint {
-                domain_or_ip: opts.host,
-                port: opts.port,
-                path: opts.path,
-                tls: false,
-            };
-            // Store sync command parameters
-            self.user_command = Some(UserCommand::Sync(SyncParams {
-                sync_endpoint,
-                cautious: opts.cautious_mode,
-                verif_hashs: opts.unsafe_mode,
-            }));
-            // Start router thread
-            self.router_sender = Some(router::start_router(0, profile.clone(), conf, vec![]));
-            true
-        } else if let Some(matches) = cli_args.subcommand_matches("sync_ts") {
-            let opts = SyncTsOpt::from_clap(matches);
-            let ts_profile = opts
-                .ts_profile
-                .unwrap_or_else(|| String::from("duniter_default"));
-            sync_ts(
-                profile.as_str(),
-                &conf,
-                &ts_profile,
-                opts.cautious_mode,
-                opts.unsafe_mode,
-            );
+            match opts.source_type {
+                SyncSourceType::Network => unimplemented!(),
+                SyncSourceType::TsSqlDb => {
+                    sync_ts(
+                        profile.as_str(),
+                        &conf,
+                        &opts
+                    );
+                }
+                SyncSourceType::JsonFiles => unimplemented!(),
+            }
+
             false
         } else if let Some(matches) = cli_args.subcommand_matches("dbex") {
             let opts = DbExOpt::from_clap(matches);
@@ -684,12 +669,10 @@ pub fn match_profile(cli_args: &ArgMatches) -> String {
 pub fn sync_ts<DC: DuniterConf>(
     profile: &str,
     conf: &DC,
-    ts_profile: &str,
-    cautious: bool,
-    verif_inner_hash: bool,
+    sync_opts: &SyncOpt,
 ) {
     // Launch sync-ts
-    BlockchainModule::sync_ts(profile, conf, ts_profile, cautious, verif_inner_hash);
+    BlockchainModule::sync_ts(profile, conf, sync_opts);
 }
 
 /// Launch databases explorer

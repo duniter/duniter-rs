@@ -71,6 +71,7 @@ pub fn sync_ts<DC: DuniterConf>(
     profile: &str,
     conf: &DC,
     db_ts_path: PathBuf,
+    end: Option<u32>,
     cautious: bool,
     verif_inner_hash: bool,
 ) {
@@ -114,15 +115,24 @@ pub fn sync_ts<DC: DuniterConf>(
             .expect("Fatal error : fail to open copy of duniter-ts database !");
         info!("sync_ts : Success to open duniter-ts database.");
 
-        // Get ts current blockstamp
+        // Get ts target blockstamp
         debug!("Get ts-db current blockstamp...");
-        let mut cursor: sqlite::Cursor = ts_db
+        let mut cursor: sqlite::Cursor = if let Some(end) = end {
+            let mut cursor = ts_db
+            .prepare("SELECT hash, number, currency FROM block WHERE fork=? AND number=? LIMIT 1;")
+            .expect("Request SQL get_ts_current_block is wrong !")
+            .cursor();
+            cursor.bind(&[sqlite::Value::Integer(0), sqlite::Value::Integer(i64::from(end))]).expect("Fail to get ts target block !");
+            cursor
+        } else {
+            let mut cursor = ts_db
             .prepare("SELECT hash, number, currency FROM block WHERE fork=? ORDER BY number DESC LIMIT 1;")
             .expect("Request SQL get_ts_current_block is wrong !")
             .cursor();
-        cursor
-            .bind(&[sqlite::Value::Integer(0)])
-            .expect("Fail to get ts current block !");
+            cursor.bind(&[sqlite::Value::Integer(0)]).expect("Fail to get ts current block !");
+            cursor
+        };
+
         let (currency, current_ts_blockstamp) =
             if let Some(row) = cursor.next().expect("cursor error") {
                 let block_id = BlockId(
@@ -201,7 +211,7 @@ pub fn sync_ts<DC: DuniterConf>(
                         previousIssuer, version, membersCount, monetaryMass, medianTime, dividend, unitbase,
                         time, powMin, number, nonce, transactions, certifications, identities, joiners,
                         actives, leavers, revoked, excluded, issuersFrame, issuersFrameVar, issuersCount
-                        FROM block WHERE fork=? AND number > ? ORDER BY number ASC;",
+                        FROM block WHERE fork=? AND number > ? AND number <= ? ORDER BY number ASC;",
                 )
                 .expect("Request SQL get_ts_blocks is wrong !")
                 .cursor();
@@ -209,6 +219,7 @@ pub fn sync_ts<DC: DuniterConf>(
             .bind(&[
                 sqlite::Value::Integer(0),
                 sqlite::Value::Integer(i64::from(current_blockstamp.id.0)),
+                sqlite::Value::Integer(i64::from(current_ts_blockstamp.id.0)),
             ])
             .expect("0");
 
@@ -376,6 +387,8 @@ pub fn sync_ts<DC: DuniterConf>(
         // Increment progress bar (last chunk)
         apply_pb.inc();
         // Save blockchain, and fork databases
+        println!();
+        println!("Write indexs in files...");
         info!("Save blockchain and forks databases in files...");
         databases.save_dbs();
 
@@ -650,16 +663,16 @@ pub fn sync_ts<DC: DuniterConf>(
     // Wait recv two finish signals
     let mut wait_jobs = *NB_SYNC_JOBS - 1;
     while wait_jobs > 0 {
-        if let Ok(MessForSyncThread::ApplyFinish()) = recv_sync_thread.recv() {
-            wait_jobs -= 1;
-        } else {
-            thread::sleep(Duration::from_millis(50));
+        match recv_sync_thread.recv() {
+            Ok(MessForSyncThread::ApplyFinish()) =>  wait_jobs -= 1,
+            Ok(_) => thread::sleep(Duration::from_millis(50)),
+            Err(_) => wait_jobs -= 1,
         }
     }
     info!("All sync jobs finish.");
 
     // Log sync duration
-    println!("certs_count={}", certs_count);
+    debug!("certs_count={}", certs_count);
     let sync_duration = SystemTime::now().duration_since(sync_start_time).unwrap();
     println!(
         "Sync {} blocks in {}.{:03} seconds.",

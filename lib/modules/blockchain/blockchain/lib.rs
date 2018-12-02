@@ -67,6 +67,7 @@ use dubp_documents::*;
 use dubp_documents::{DUBPDocument, Document};
 use duniter_module::*;
 use duniter_network::{
+    cli::sync::SyncOpt,
     documents::{BlockchainDocument, NetworkBlock},
     events::NetworkEvent,
     requests::{NetworkResponse, OldNetworkRequest},
@@ -209,22 +210,25 @@ impl BlockchainModule {
     pub fn sync_ts<DC: DuniterConf>(
         profile: &str,
         conf: &DC,
-        ts_profile: &str,
-        cautious: bool,
-        verif_inner_hash: bool,
+        sync_opts: &SyncOpt,
     ) {
         // get db_ts_path
-        let mut db_ts_path = match dirs::config_dir() {
-            Some(path) => path,
-            None => panic!("Impossible to get user config directory !"),
+        let db_ts_path = if let Some(ref ts_path) = sync_opts.source {
+            PathBuf::from(ts_path)
+        } else {
+            let mut db_ts_path = match dirs::config_dir() {
+                Some(path) => path,
+                None => panic!("Impossible to get user config directory !"),
+            };
+            db_ts_path.push("duniter/");
+            db_ts_path.push("duniter_default");
+            db_ts_path.push("duniter.db");
+            db_ts_path
         };
-        db_ts_path.push("duniter/");
-        db_ts_path.push(ts_profile);
-        db_ts_path.push("duniter.db");
         if !db_ts_path.as_path().exists() {
             panic!("Fatal error : duniter-ts database don't exist !");
         }
-        sync::sync_ts(profile, conf, db_ts_path, cautious, verif_inner_hash);
+        sync::sync_ts(profile, conf, db_ts_path, sync_opts.end, sync_opts.cautious_mode, !sync_opts.unsafe_mode);
     }
     /// Request chunk from network (chunk = group of blocks)
     fn request_chunk(&self, req_id: ModuleReqId, from: u32) -> (ModuleReqId, OldNetworkRequest) {

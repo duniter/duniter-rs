@@ -127,7 +127,7 @@ impl NetworkModule<DuRsConf, DursMsg> for WS2Pv2Module {
         _keys: RequiredKeysContent,
         _conf: WS2PConf,
         _main_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
-        _sync_params: SyncParams,
+        _sync_params: SyncOpt,
     ) -> Result<(), ModuleInitError> {
         unimplemented!()
     }

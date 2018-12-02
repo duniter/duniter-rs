@@ -34,7 +34,10 @@ extern crate dup_crypto;
 extern crate durs_network_documents;
 extern crate serde;
 extern crate serde_json;
+#[macro_use]
+extern crate structopt;
 
+use cli::sync::SyncOpt;
 use duniter_module::*;
 use durs_network_documents::network_endpoint::ApiFeatures;
 use durs_network_documents::network_head::NetworkHead;
@@ -42,6 +45,7 @@ use durs_network_documents::*;
 use std::fmt::Debug;
 use std::sync::mpsc;
 
+pub mod cli;
 pub mod documents;
 pub mod events;
 pub mod requests;
@@ -62,32 +66,8 @@ pub trait NetworkModule<DC: DuniterConf, M: ModuleMessage>: ApiModule<DC, M> {
         keys: RequiredKeysContent,
         module_conf: <Self as DuniterModule<DC, M>>::ModuleConf,
         main_sender: mpsc::Sender<RouterThreadMessage<M>>,
-        sync_params: SyncParams,
+        sync_params: SyncOpt,
     ) -> Result<(), ModuleInitError>;
-}
-
-/// SyncParams
-#[derive(Debug, Clone)]
-pub struct SyncParams {
-    /// Synchronisation endpoint
-    pub sync_endpoint: SyncEndpoint,
-    /// Cautious flag
-    pub cautious: bool,
-    /// VERIF_HASHS flag
-    pub verif_hashs: bool,
-}
-
-#[derive(Debug, Clone)]
-/// Synchronisation endpoint
-pub struct SyncEndpoint {
-    /// Domaine name or IP
-    pub domain_or_ip: String,
-    /// Port number
-    pub port: u16,
-    /// Optionnal path
-    pub path: Option<String>,
-    /// Use TLS
-    pub tls: bool,
 }
 
 /// Trait to be implemented by the configuration object of the module managing the inter-node network.

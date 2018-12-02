@@ -22,16 +22,14 @@ pub mod keys;
 pub mod modules;
 pub mod reset;
 pub mod start;
-pub mod sync;
 
-use cli::keys::KeysOpt;
+pub use cli::keys::KeysOpt;
 pub use dbex::*;
-pub use keys::*;
+pub use duniter_network::cli::sync::SyncOpt;
 use log::Level;
 pub use modules::*;
 pub use reset::*;
 pub use start::*;
-pub use sync::*;
 
 #[derive(StructOpt, Debug)]
 #[structopt(
@@ -68,11 +66,8 @@ pub enum CoreSubCommand {
     /// start durs server
     StartOpt(StartOpt),
     #[structopt(name = "sync")]
-    /// synchronization from network
+    /// synchronization
     SyncOpt(SyncOpt),
-    #[structopt(name = "sync_ts")]
-    /// synchronization via a duniter-ts database
-    SyncTsOpt(SyncTsOpt),
     /// reset data or conf or all
     #[structopt(
         name = "reset",

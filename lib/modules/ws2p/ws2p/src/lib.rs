@@ -52,6 +52,7 @@ pub mod services;
 use constants::*;
 use duniter_conf::DuRsConf;
 use duniter_module::*;
+use duniter_network::cli::sync::SyncOpt;
 use duniter_network::*;
 use durs_message::DursMsg;
 use durs_network_documents::network_endpoint::*;
@@ -127,7 +128,7 @@ impl NetworkModule<DuRsConf, DursMsg> for WS2Pv2Module {
         _keys: RequiredKeysContent,
         _conf: WS2PConf,
         _main_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
-        _sync_params: SyncParams,
+        _sync_params: SyncOpt,
     ) -> Result<(), ModuleInitError> {
         unimplemented!()
     }

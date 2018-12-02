@@ -67,6 +67,7 @@ use datas::*;
 use dubp_documents::Blockstamp;
 use duniter_conf::DuRsConf;
 use duniter_module::*;
+use duniter_network::cli::sync::SyncOpt;
 use duniter_network::documents::*;
 use duniter_network::events::*;
 use duniter_network::requests::*;
@@ -229,7 +230,7 @@ impl NetworkModule<DuRsConf, DursMsg> for WS2PModule {
         _keys: RequiredKeysContent,
         _conf: WS2PConf,
         _main_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
-        _sync_params: SyncParams,
+        _sync_params: SyncOpt,
     ) -> Result<(), ModuleInitError> {
         println!("Downlaod blockchain from network...");
         println!("Error : not yet implemented !");
