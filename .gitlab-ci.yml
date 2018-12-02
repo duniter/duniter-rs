@@ -67,13 +67,16 @@ tests:linux64:stable:
   tags:
     - redshift-rs-stable
   script: 
-    - cargo build --features strict,ssl
+    - cd bin/durs-server
+    - cargo build --features=strict,ssl
     - cargo test --all
 
 tests:arm-v7-:stable:
   <<: *rust_stable_armv7
   stage: tests
   script: 
+    - cd bin/durs-server
+    - cargo build --target=armv7-unknown-linux-gnueabihf --features=ssl
     - cargo test --all --target=armv7-unknown-linux-gnueabihf
   allow_failure: true
   when: manual
@@ -84,6 +87,8 @@ tests:arm-v7:stable:
   <<: *rust_stable_armv7
   stage: tests
   script: 
+    - cd bin/durs-server
+    - cargo build --target=armv7-unknown-linux-gnueabihf --features=ssl
     - cargo test --all --target=armv7-unknown-linux-gnueabihf
   only:
     - dev
@@ -110,8 +115,9 @@ tests:win64:stable:
 tests:linux64:beta:
   <<: *rust_beta_lin64
   stage: tests
-  script:
-    - cargo build --features strict,ssl
+  script: 
+    - cd bin/durs-server
+    - cargo build --features=strict,ssl
     - cargo test --all
   when: manual
   allow_failure: true
@@ -119,8 +125,9 @@ tests:linux64:beta:
 tests:linux64:nightly:
   <<: *rust_nightly_lin64
   stage: tests
-  script:
-    - cargo build --features strict,ssl
+  script: 
+    - cd bin/durs-server
+    - cargo build --features=strict,ssl
     - cargo test --all
   when: manual
   allow_failure: true
