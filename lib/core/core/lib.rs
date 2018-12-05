@@ -215,7 +215,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
         }
     }
     /// Inject cli subcommand
-    pub fn inject_cli_subcommand<M: DuniterModule<DuRsConf, DursMsg>>(&mut self) {
+    pub fn inject_cli_subcommand<M: DursModule<DuRsConf, DursMsg>>(&mut self) {
         if M::have_subcommand() {
             self.plugins_cli_conf.push(M::ModuleOpt::clap());
         }
@@ -310,11 +310,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             match opts.source_type {
                 SyncSourceType::Network => unimplemented!(),
                 SyncSourceType::TsSqlDb => {
-                    sync_ts(
-                        profile.as_str(),
-                        &conf,
-                        &opts
-                    );
+                    sync_ts(profile.as_str(), &conf, &opts);
                 }
                 SyncSourceType::JsonFiles => unimplemented!(),
             }
@@ -544,12 +540,12 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
     }
 
     /// Plug a module
-    pub fn plug<M: DuniterModule<DuRsConf, DursMsg>>(&mut self) {
+    pub fn plug<M: DursModule<DuRsConf, DursMsg>>(&mut self) {
         self.plug_::<M>(false);
     }
 
     /// Plug a module
-    pub fn plug_<M: DuniterModule<DuRsConf, DursMsg>>(&mut self, is_network_module: bool) {
+    pub fn plug_<M: DursModule<DuRsConf, DursMsg>>(&mut self, is_network_module: bool) {
         let enabled = enabled::<DuRsConf, DursMsg, M>(&self.soft_meta_datas.conf);
         if enabled {
             if let Some(UserCommand::Start()) = self.user_command {
@@ -638,7 +634,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
 }
 
 /// Get module conf and keys
-pub fn get_module_conf_and_keys<M: DuniterModule<DuRsConf, DursMsg>>(
+pub fn get_module_conf_and_keys<M: DursModule<DuRsConf, DursMsg>>(
     module_conf_json: Option<serde_json::Value>,
     keypairs: DuniterKeyPairs,
 ) -> (M::ModuleConf, RequiredKeysContent) {
@@ -649,7 +645,7 @@ pub fn get_module_conf_and_keys<M: DuniterModule<DuRsConf, DursMsg>>(
 }
 
 /// get module conf
-pub fn get_module_conf<M: DuniterModule<DuRsConf, DursMsg>>(
+pub fn get_module_conf<M: DursModule<DuRsConf, DursMsg>>(
     module_conf_json: Option<serde_json::Value>,
 ) -> M::ModuleConf {
     if let Some(module_conf_json) = module_conf_json {
@@ -666,11 +662,7 @@ pub fn match_profile(cli_args: &ArgMatches) -> String {
 }
 
 /// Launch synchronisation from a duniter-ts database
-pub fn sync_ts<DC: DuniterConf>(
-    profile: &str,
-    conf: &DC,
-    sync_opts: &SyncOpt,
-) {
+pub fn sync_ts<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: &SyncOpt) {
     // Launch sync-ts
     BlockchainModule::sync_ts(profile, conf, sync_opts);
 }

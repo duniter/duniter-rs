@@ -246,7 +246,7 @@ impl NetworkModule<DuRsConf, DursMsg> for WS2PModule {
 /// WS2Pv1 subcommand options
 pub struct WS2POpt {}
 
-impl DuniterModule<DuRsConf, DursMsg> for WS2PModule {
+impl DursModule<DuRsConf, DursMsg> for WS2PModule {
     type ModuleConf = WS2PConf;
     type ModuleOpt = WS2POpt;
 
@@ -953,7 +953,7 @@ mod tests {
     use super::parsers::blocks::parse_json_block;
     use super::*;
     use dubp_documents::v10::BlockDocument;
-    use duniter_module::DuniterModule;
+    use duniter_module::DursModule;
     use duniter_network::documents::NetworkBlock;
     use dup_crypto::keys::PublicKey;
     use durs_network_documents::network_endpoint::NetworkEndpointApi;

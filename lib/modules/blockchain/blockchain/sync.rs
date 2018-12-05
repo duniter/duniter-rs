@@ -664,7 +664,7 @@ pub fn sync_ts<DC: DuniterConf>(
     let mut wait_jobs = *NB_SYNC_JOBS - 1;
     while wait_jobs > 0 {
         match recv_sync_thread.recv() {
-            Ok(MessForSyncThread::ApplyFinish()) =>  wait_jobs -= 1,
+            Ok(MessForSyncThread::ApplyFinish()) => wait_jobs -= 1,
             Ok(_) => thread::sleep(Duration::from_millis(50)),
             Err(_) => wait_jobs -= 1,
         }

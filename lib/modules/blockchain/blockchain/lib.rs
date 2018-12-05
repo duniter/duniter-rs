@@ -207,11 +207,7 @@ impl BlockchainModule {
         dbex::dbex(profile, conf, csv, req);
     }
     /// Synchronize blockchain from a duniter-ts database
-    pub fn sync_ts<DC: DuniterConf>(
-        profile: &str,
-        conf: &DC,
-        sync_opts: &SyncOpt,
-    ) {
+    pub fn sync_ts<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: &SyncOpt) {
         // get db_ts_path
         let db_ts_path = if let Some(ref ts_path) = sync_opts.source {
             PathBuf::from(ts_path)
@@ -228,7 +224,14 @@ impl BlockchainModule {
         if !db_ts_path.as_path().exists() {
             panic!("Fatal error : duniter-ts database don't exist !");
         }
-        sync::sync_ts(profile, conf, db_ts_path, sync_opts.end, sync_opts.cautious_mode, !sync_opts.unsafe_mode);
+        sync::sync_ts(
+            profile,
+            conf,
+            db_ts_path,
+            sync_opts.end,
+            sync_opts.cautious_mode,
+            !sync_opts.unsafe_mode,
+        );
     }
     /// Request chunk from network (chunk = group of blocks)
     fn request_chunk(&self, req_id: ModuleReqId, from: u32) -> (ModuleReqId, OldNetworkRequest) {

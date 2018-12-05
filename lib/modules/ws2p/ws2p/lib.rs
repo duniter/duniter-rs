@@ -141,7 +141,7 @@ impl NetworkModule<DuRsConf, DursMsg> for WS2Pv2Module {
 /// WS2P subcommand options
 pub struct WS2POpt {}
 
-impl DuniterModule<DuRsConf, DursMsg> for WS2Pv2Module {
+impl DursModule<DuRsConf, DursMsg> for WS2Pv2Module {
     type ModuleConf = WS2PConf;
     type ModuleOpt = WS2POpt;
 

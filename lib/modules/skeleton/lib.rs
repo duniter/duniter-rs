@@ -113,7 +113,7 @@ impl Default for SkeletonModule {
     }
 }
 
-impl DuniterModule<DuRsConf, DursMsg> for SkeletonModule {
+impl DursModule<DuRsConf, DursMsg> for SkeletonModule {
     type ModuleConf = SkeletonConf;
     type ModuleOpt = SkeletonOpt;
 

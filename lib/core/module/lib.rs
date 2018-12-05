@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Defined the few global types used by all modules,
-//! as well as the DuniterModule trait that all modules must implement.
+//! as well as the DursModule trait that all modules must implement.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
@@ -274,9 +274,7 @@ pub enum ModulePriority {
 }
 
 /// Determines if a module is activated or not
-pub fn enabled<DC: DuniterConf, Mess: ModuleMessage, M: DuniterModule<DC, Mess>>(
-    conf: &DC,
-) -> bool {
+pub fn enabled<DC: DuniterConf, Mess: ModuleMessage, M: DursModule<DC, Mess>>(conf: &DC) -> bool {
     let disabled_modules = conf.disabled_modules();
     let enabled_modules = conf.enabled_modules();
     match M::priority() {
@@ -302,7 +300,7 @@ pub enum ModulesFilter {
 pub fn module_valid_filters<
     DC: DuniterConf,
     Mess: ModuleMessage,
-    M: DuniterModule<DC, Mess>,
+    M: DursModule<DC, Mess>,
     S: ::std::hash::BuildHasher,
 >(
     conf: &DC,
@@ -327,7 +325,7 @@ pub fn module_valid_filters<
 }
 
 /// All Duniter-rs modules must implement this trait.
-pub trait DuniterModule<DC: DuniterConf, M: ModuleMessage> {
+pub trait DursModule<DC: DuniterConf, M: ModuleMessage> {
     /// Module configuration
     type ModuleConf: Clone + Debug + Default + DeserializeOwned + Send + Serialize + Sync;
     /// Module subcommand options

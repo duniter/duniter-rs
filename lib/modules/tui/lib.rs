@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Defined the few global types used by all modules,
-//! as well as the DuniterModule trait that all modules must implement.
+//! as well as the DursModule trait that all modules must implement.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
@@ -388,7 +388,7 @@ impl Default for TuiModule {
     }
 }
 
-impl DuniterModule<DuRsConf, DursMsg> for TuiModule {
+impl DursModule<DuRsConf, DursMsg> for TuiModule {
     type ModuleConf = TuiConf;
     type ModuleOpt = TuiOpt;
 

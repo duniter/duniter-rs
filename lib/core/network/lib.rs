@@ -51,7 +51,7 @@ pub mod events;
 pub mod requests;
 
 /// ApiModule
-pub trait ApiModule<DC: DuniterConf, M: ModuleMessage>: DuniterModule<DC, M> {
+pub trait ApiModule<DC: DuniterConf, M: ModuleMessage>: DursModule<DC, M> {
     /// Parsing error
     type ParseErr;
     /// Parse raw api features
@@ -64,7 +64,7 @@ pub trait NetworkModule<DC: DuniterConf, M: ModuleMessage>: ApiModule<DC, M> {
     fn sync(
         soft_meta_datas: &SoftwareMetaDatas<DC>,
         keys: RequiredKeysContent,
-        module_conf: <Self as DuniterModule<DC, M>>::ModuleConf,
+        module_conf: <Self as DursModule<DC, M>>::ModuleConf,
         main_sender: mpsc::Sender<RouterThreadMessage<M>>,
         sync_params: SyncOpt,
     ) -> Result<(), ModuleInitError>;
