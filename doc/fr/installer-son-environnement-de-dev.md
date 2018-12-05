@@ -42,28 +42,15 @@ Je vous recommande fortement de créer un alias dans la configuration de votre s
 
 Si vous contribuez à l'implémentation Rust de Duniter vous devrez également utiliser le linteur Clippy. Et dans tout les cas il est vivement recommandé aux débutants en Rust de l'utiliser, en effet clippy est très pédagogique et vas beaucoup vous aider a apprendre comment il conviens de coder en Rust.
 
-Il y a deux façons d'installer clippy :
-
-1. L'installer en local : il faut le réinstaller a chaque mise a jours de clippy.
-2. Éxécuter Clippy dans docker : c'est la méthode que je préconise et que j'utilise, cela rend l'éxécution de clippy un peu plus lente mais permet d'avoir toujours un clippy fonctionnel et de ne pas a voir besoin de le recompiler a chaque mise à jours.
-
-### Clippy : méthode 1
-
-Éxécutez la commande suivante :
+Éxécutez la commande suivante pour installer clippy :
 
     rustup component add clippy-preview --toolchain nightly
 
 Pour lancer clippy, rendez-vous a la racine de votre projet puis éxécutez la commande suivante :
 
+    cargo +nightly clippy --all
+
 Clippy vas alors vous signaler de façopn très pédagogique tout ce qu'il conviens de modifier dans votre code pour être plus dans "l'esprit rust".
-
-### Clippy méthode 2
-
-Il vous faut installer docker sur votre poste de développement. Ensuite, rendez-vous a la racine de votre projet puis éxécutez la commande suivante :
-
-    docker run --rm -v "$(pwd)":/app -w /app instrumentisto/clippy
-
-`instrumentisto/clippy` est une image docker qui est automatiquement rebuiltée et republiée à chaque mise a jours de Clippy, le gros avantage c'est que l'image n'est republiée que si Clippy s'est compilé avec succès, vous avez donc la garantie de toujours pouvoir éxécuter la dernière version fonctionnelle de clippy.
 
 ## Vscode
 

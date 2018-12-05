@@ -53,31 +53,15 @@ I strongly recommend that you create an alias in your shell configuration (~/.ba
 
 If you contribute to Duniter's Rust implementation you will also need to use the Clippy linter. And in any case it's strongly recommended to beginners in Rust to use it, indeed clippy is very educational and will help you learn a lot how to code in Rust.
 
-There are two ways to install clippy :
+Run the following command to install Clippy :
 
-1. Compile it locally : it's long but it will run faster, it poses a major problem: you have to recompile it in nightly each time you update the toolchain rust and it often happens that clippy no longer compiles after an update. I therefore strongly advise against this method.
-2. Running Clippy in docker: this is the method I recommend and use, it makes the execution of clippy a little slower but still allows to have a functional clippy and not to have to recompile it with each update.
+    rustup component add clippy-preview --toolchain nightly
 
-### Clippy : method 1
-
-Run the following command :
-
-    cargo +nightly install clippy
-
-Warning it's taking a long time, and you must wait until the compilation is finished before launching Clippy.  
 To launch clippy, go to the root of your project and execute the following command :
 
     cargo +nightly clippy --all
 
 Clippy will then inform you in a very educational way about everything that needs to be modified in your code to be more in the "rust spirit" (We say then that your code is more "rusty").
-
-### Clippy method 2
-
-You need to install docker on your development workstation. Then, go to the root of your project and execute the following command :
-
-    docker run --rm -v "$(pwd)":/app -w /app instrumentisto/clippy
-
-`instrumentisto/clippy` is a docker image that is automatically discarded and republished each time Clippy is updated, the big advantage is that the image is republished only if Clippy has been successfully compiled, so you are always guaranteed to be able to run the latest functional version of Clippy.
 
 ## Vscode
 
