@@ -14,13 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use super::constants::MAX_FORKS;
+use crate::*;
 use dubp_documents::v10::BlockDocument;
 use dubp_documents::Document;
 use dubp_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
 use dup_crypto::keys::*;
 use durs_wot::NodeId;
 use std::collections::HashMap;
-use *;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// A block as it is saved in a database

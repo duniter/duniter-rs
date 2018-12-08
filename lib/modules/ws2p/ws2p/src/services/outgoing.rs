@@ -15,12 +15,12 @@
 
 //! WS2P outgoing Services
 
+use crate::services::*;
+use crate::*;
 use dubp_documents::CurrencyName;
 use durs_network_documents::NodeFullId;
-use services::*;
 use std::collections::HashMap;
 use std::sync::mpsc;
-use *;
 
 #[derive(Debug, Clone)]
 /// Data allowing the service to manage an outgoing connection

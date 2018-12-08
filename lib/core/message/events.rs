@@ -13,10 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::*;
 use dubp_documents::v10::block::BlockDocument;
 use dubp_documents::*;
 use duniter_network::events::NetworkEvent;
-use *;
 
 /// The DURS event message.
 #[derive(Debug, Clone)]

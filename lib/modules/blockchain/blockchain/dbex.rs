@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::*;
 use dubp_documents::v10::transaction::*;
 use duniter_module::DuniterConf;
 use dup_crypto::keys::*;
@@ -20,7 +21,6 @@ use durs_blockchain_dal::identity::DALIdentity;
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::operations::distance::{DistanceCalculator, WotDistance, WotDistanceParameters};
 use std::time::*;
-use *;
 
 #[derive(Debug, Clone)]
 /// Query for wot databases explorer

@@ -7,6 +7,7 @@ repository = "https://git.duniter.org/nodes/rust/duniter-rs"
 readme = "README.md"
 keywords = ["duniter", "keys", "cryptography"]
 license = "AGPL-3.0"
+edition = "2018"
 
 [lib]
 path = "src/lib.rs"

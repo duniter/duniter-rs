@@ -74,8 +74,8 @@ impl WS2Pv2RequestBody {
 mod tests {
     use super::super::*;
     use super::*;
+    use crate::tests::*;
     use dubp_documents::Blockstamp;
-    use tests::*;
 
     #[test]
     fn test_ws2p_message_request() {

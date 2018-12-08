@@ -13,12 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use block::DALBlock;
+use crate::block::DALBlock;
+use crate::ForkId;
+use crate::{BinDB, DALError, ForksBlocksV10Datas, ForksV10Datas, LocalBlockchainV10Datas};
 use dubp_documents::Document;
 use dubp_documents::{BlockHash, BlockId, PreviousBlockstamp};
 use std::collections::HashMap;
-use ForkId;
-use {BinDB, DALError, ForksBlocksV10Datas, ForksV10Datas, LocalBlockchainV10Datas};
 
 /// Write DALBlock in databases
 pub fn write(

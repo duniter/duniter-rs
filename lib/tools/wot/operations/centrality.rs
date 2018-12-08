@@ -15,8 +15,8 @@
 
 //! Provide a trait and implementations to find paths between nodes.
 
-use data::NodeId;
-use data::WebOfTrust;
+use crate::data::NodeId;
+use crate::data::WebOfTrust;
 use std::collections::{HashMap, VecDeque};
 
 /// Find paths between 2 nodes of a `WebOfTrust`.

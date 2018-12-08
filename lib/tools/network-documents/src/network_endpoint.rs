@@ -19,6 +19,7 @@ extern crate dubp_documents;
 extern crate dup_crypto;
 extern crate serde;
 
+use crate::*;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::PubKey;
 use hex;
@@ -26,7 +27,6 @@ use pest::iterators::Pair;
 use pest::Parser;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
-use *;
 
 /// Total size of all fixed size fields of an EndpointV2
 pub static ENDPOINTV2_FIXED_SIZE: &'static usize = &9;
@@ -513,7 +513,7 @@ impl EndpointEnum {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tests::bincode::{deserialize, serialize};
+    use crate::tests::bincode::{deserialize, serialize};
 
     #[test]
     fn test_network_features() {

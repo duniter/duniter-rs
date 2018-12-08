@@ -384,7 +384,7 @@ impl KeyPairFromSaltedPasswordGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use keys::{KeyPair, Signature};
+    use crate::keys::{KeyPair, Signature};
 
     #[test]
     fn base58_private_key() {

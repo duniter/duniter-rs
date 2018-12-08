@@ -13,13 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use currency_params::CurrencyParameters;
+use crate::currency_params::CurrencyParameters;
+use crate::{BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
 use dubp_documents::v10::identity::IdentityDocument;
 use dubp_documents::{BlockId, Blockstamp};
 use dup_crypto::keys::*;
 use durs_wot::NodeId;
 use std::collections::HashMap;
-use {BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// Identity state

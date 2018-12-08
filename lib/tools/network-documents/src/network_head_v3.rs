@@ -15,6 +15,7 @@
 
 //! Module defining the format of network heads v3 and how to handle them.
 
+use crate::*;
 use base58::ToBase58;
 use dubp_documents::blockstamp::Blockstamp;
 use dubp_documents::{BlockHash, BlockId, CurrencyName, ToStringObject};
@@ -23,7 +24,6 @@ use dup_crypto::keys::*;
 use pest::iterators::Pair;
 use pest::Parser;
 use std::cmp::Ordering;
-use *;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Head V3
@@ -215,7 +215,7 @@ impl<'a> ToStringObject for NetworkHeadV3 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tests::keypair1;
+    use crate::tests::keypair1;
 
     #[test]
     fn head_v3_sign_and_verify() {

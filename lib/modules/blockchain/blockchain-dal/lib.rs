@@ -91,10 +91,10 @@ use std::fs;
 use std::panic::UnwindSafe;
 use std::path::PathBuf;
 
-use block::DALBlock;
-use identity::DALIdentity;
-use sources::{SourceAmount, UTXOContentV10, UTXOIndexV10};
-use writers::transaction::DALTxV10;
+use crate::block::DALBlock;
+use crate::identity::DALIdentity;
+use crate::sources::{SourceAmount, UTXOContentV10, UTXOIndexV10};
+use crate::writers::transaction::DALTxV10;
 
 #[derive(Debug, Deserialize, Copy, Clone, Ord, PartialEq, PartialOrd, Eq, Hash, Serialize)]
 /// Each fork has a unique identifier. The local blockchain (also called local branch) has ForkId equal to zero.

@@ -15,13 +15,13 @@
 
 //! Module defining the format of network heads v2 and how to handle them.
 
+use crate::NodeId;
 use dubp_documents::blockstamp::*;
 use dup_crypto::keys::*;
 use std::cmp::Ordering;
 use std::num::ParseIntError;
 use std::ops::Deref;
 use std::str::FromStr;
-use NodeId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Head Message V2

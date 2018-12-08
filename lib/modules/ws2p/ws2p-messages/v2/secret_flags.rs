@@ -68,7 +68,7 @@ impl Default for WS2Pv2SecretFlagsMsg {
 mod tests {
     use super::super::*;
     use super::*;
-    use tests::*;
+    use crate::tests::*;
 
     #[test]
     fn test_ws2p_message_secret_flags() {

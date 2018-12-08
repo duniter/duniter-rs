@@ -17,7 +17,7 @@
 
 extern crate structopt;
 
-use cli::InvalidInput;
+use crate::cli::InvalidInput;
 use std::str::FromStr;
 
 #[derive(StructOpt, Debug, Copy, Clone)]

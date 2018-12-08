@@ -13,11 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::*;
 use dubp_documents::BlockId;
 use duniter_network::requests::OldNetworkRequest;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
-use *;
 
 #[derive(Debug, Clone)]
 /// Modules request content

@@ -28,13 +28,13 @@ pub mod requests;
 /// WS2P v2 SECRET_FLAGS Message
 pub mod secret_flags;
 
+use crate::v2::payload_container::*;
+use crate::WS2PMessage;
 use dubp_documents::CurrencyName;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::bin_signable::BinSignable;
 use dup_crypto::keys::*;
 use durs_network_documents::NodeId;
-use v2::payload_container::*;
-use WS2PMessage;
 
 /// WS2P v2 message metadata size
 pub static WS2P_V2_MESSAGE_METADATA_SIZE: &'static usize = &144;
@@ -106,8 +106,8 @@ impl<'de> BinSignable<'de> for WS2Pv2Message {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tests::*;
     use dup_crypto::keys::text_signable::TextSignable;
-    use tests::*;
 
     #[test]
     fn test_ws2p_message_ack() {

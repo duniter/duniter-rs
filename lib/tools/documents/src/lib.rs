@@ -45,8 +45,8 @@ pub mod blockstamp;
 mod currencies_codes;
 pub mod v10;
 
+use crate::currencies_codes::*;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use currencies_codes::*;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use pest::iterators::Pair;
@@ -57,7 +57,7 @@ use std::fmt::{Debug, Display, Error, Formatter};
 use std::io::Cursor;
 use std::mem;
 
-pub use blockstamp::{Blockstamp, PreviousBlockstamp};
+pub use crate::blockstamp::{Blockstamp, PreviousBlockstamp};
 
 #[derive(Parser)]
 #[grammar = "documents_grammar.pest"]

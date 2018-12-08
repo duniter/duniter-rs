@@ -19,19 +19,19 @@ pub mod connect_msg;
 
 extern crate serde_json;
 
-use constants::*;
-use controllers::ws::{util::Token, CloseCode, /*Frame,*/ Handler, Handshake, Message};
-use controllers::*;
-use services::*;
+use crate::constants::*;
+use crate::controllers::ws::{util::Token, CloseCode, /*Frame,*/ Handler, Handshake, Message};
+use crate::controllers::*;
+use crate::services::*;
 //use dup_crypto::keys::KeyPairEnum;
 use dubp_documents::CurrencyName;
 use durs_network_documents::NodeFullId;
 //use durs_ws2p_messages::v2::api_features::WS2PFeatures;
+use crate::services::Ws2pServiceSender;
 use durs_ws2p_messages::v2::connect::generate_connect_message;
 use durs_ws2p_messages::v2::payload_container::WS2Pv2MessagePayload;
 use durs_ws2p_messages::v2::WS2Pv2Message;
 use durs_ws2p_messages::WS2PMessage;
-use services::Ws2pServiceSender;
 use std::net::SocketAddr;
 use std::ops::Deref;
 use std::sync::mpsc;

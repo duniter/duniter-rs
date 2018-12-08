@@ -1,17 +1,17 @@
-use constants::*;
+use crate::constants::*;
+use crate::parsers::blocks::parse_json_block;
+use crate::*;
 use duniter_module::ModuleReqId;
 use duniter_network::documents::BlockchainDocument;
 use dup_crypto::keys::*;
 use durs_network_documents::network_endpoint::{EndpointV1, NetworkEndpointApi};
 use durs_network_documents::NodeId;
-use parsers::blocks::parse_json_block;
 use rand::Rng;
 use std::sync::mpsc;
 use ws::deflate::DeflateBuilder;
 #[allow(deprecated)]
 use ws::util::{Timeout, Token};
 use ws::{connect, CloseCode, Frame, Handler, Handshake, Message, Sender};
-use *;
 
 const CONNECT: Token = Token(1);
 const EXPIRE: Token = Token(2);

@@ -13,14 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use currency_params::CurrencyParameters;
+use crate::currency_params::CurrencyParameters;
+use crate::identity::{DALIdentity, DALIdentityState};
+use crate::{BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
 use dubp_documents::v10::identity::IdentityDocument;
 use dubp_documents::Document;
 use dubp_documents::{BlockId, Blockstamp};
 use dup_crypto::keys::PubKey;
 use durs_wot::NodeId;
-use identity::{DALIdentity, DALIdentityState};
-use {BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
 
 /// Remove identity from databases
 pub fn revert_create_identity(

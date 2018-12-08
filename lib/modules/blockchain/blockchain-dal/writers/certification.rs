@@ -13,12 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use currency_params::CurrencyParameters;
+use crate::currency_params::CurrencyParameters;
+use crate::{BinDB, CertsExpirV10Datas, DALError, IdentitiesV10Datas};
 use dubp_documents::v10::certification::CompactCertificationDocument;
 use dubp_documents::BlockId;
 use dup_crypto::keys::*;
 use durs_wot::NodeId;
-use {BinDB, CertsExpirV10Datas, DALError, IdentitiesV10Datas};
 
 /// Apply "certification" event in databases
 pub fn write_certification(

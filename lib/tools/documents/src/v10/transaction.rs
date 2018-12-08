@@ -22,9 +22,9 @@ use pest::Parser;
 use std::ops::{Add, Deref, Sub};
 use std::str::FromStr;
 
-use blockstamp::Blockstamp;
-use v10::*;
-use *;
+use crate::blockstamp::Blockstamp;
+use crate::v10::*;
+use crate::*;
 
 /// Wrap a transaction amount
 #[derive(Debug, Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Deserialize, Hash, Serialize)]
@@ -352,7 +352,7 @@ impl UTXOConditionsGroup {
     pub fn wrap_utxo_conds(pair: Pair<Rule>) -> UTXOConditionsGroup {
         match pair.as_rule() {
             Rule::output_and_group => {
-                let mut and_pairs = pair.into_inner();
+                let and_pairs = pair.into_inner();
                 let mut conds_subgroups: Vec<UTXOConditionsGroup> = and_pairs
                     .map(UTXOConditionsGroup::wrap_utxo_conds)
                     .collect();
@@ -361,7 +361,7 @@ impl UTXOConditionsGroup {
                 )))
             }
             Rule::output_or_group => {
-                let mut or_pairs = pair.into_inner();
+                let or_pairs = pair.into_inner();
                 let mut conds_subgroups: Vec<UTXOConditionsGroup> =
                     or_pairs.map(UTXOConditionsGroup::wrap_utxo_conds).collect();
                 UTXOConditionsGroup::Brackets(Box::new(UTXOConditionsGroup::new_or_chain(
@@ -903,7 +903,7 @@ impl TextDocumentParser<Rule> for TransactionDocumentParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use {Document, VerificationResult};
+    use crate::{Document, VerificationResult};
 
     #[test]
     fn generate_real_document() {

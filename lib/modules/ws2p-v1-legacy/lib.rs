@@ -60,10 +60,14 @@ pub mod ws2p_connection;
 pub mod ws2p_db;
 pub mod ws2p_requests;
 
-use ack_message::WS2PAckMessageV1;
-use connect_message::WS2PConnectMessageV1;
-use constants::*;
-use datas::*;
+use crate::ack_message::WS2PAckMessageV1;
+use crate::connect_message::WS2PConnectMessageV1;
+use crate::constants::*;
+use crate::datas::*;
+use crate::ok_message::WS2POkMessageV1;
+use crate::parsers::blocks::parse_json_block;
+use crate::ws2p_connection::*;
+use crate::ws2p_requests::network_request_to_json;
 use dubp_documents::Blockstamp;
 use duniter_conf::DuRsConf;
 use duniter_module::*;
@@ -80,8 +84,6 @@ use durs_message::*;
 use durs_network_documents::network_endpoint::*;
 use durs_network_documents::network_head::*;
 use durs_network_documents::*;
-use ok_message::WS2POkMessageV1;
-use parsers::blocks::parse_json_block;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::path::PathBuf;
@@ -89,8 +91,6 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use ws::Message;
-use ws2p_connection::*;
-use ws2p_requests::network_request_to_json;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// WS2P Configuration

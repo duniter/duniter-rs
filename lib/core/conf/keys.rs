@@ -24,8 +24,8 @@
 
 extern crate rpassword;
 
+use crate::*;
 use std::io;
-use *;
 
 #[derive(Debug, Copy, Clone)]
 /// Errors encountered by the wizard

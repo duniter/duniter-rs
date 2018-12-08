@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::*;
 use dubp_documents::Blockstamp;
 use durs_network_documents::network_head_v2::*;
-use *;
 
 pub fn generate_my_head(
     network_keypair: &KeyPairEnum,

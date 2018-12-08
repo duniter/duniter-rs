@@ -49,7 +49,7 @@ pub mod controllers;
 mod generate_peer;
 pub mod services;
 
-use constants::*;
+use crate::constants::*;
 use duniter_conf::DuRsConf;
 use duniter_module::*;
 use duniter_network::cli::sync::SyncOpt;

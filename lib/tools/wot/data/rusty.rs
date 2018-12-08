@@ -16,10 +16,10 @@
 //! Experimental implementation of the Web of Trust in a more "rusty" style.
 
 use super::{HasLinkResult, NewLinkResult, RemLinkResult};
+use crate::NodeId;
+use crate::WebOfTrust;
 use rayon::prelude::*;
 use std::collections::HashSet;
-use NodeId;
-use WebOfTrust;
 
 /// A node in the `WoT` graph.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -219,7 +219,7 @@ impl WebOfTrust for RustyWebOfTrust {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tests::generic_wot_test;
+    use crate::tests::generic_wot_test;
 
     #[test]
     fn wot_tests() {

@@ -19,16 +19,16 @@ extern crate dubp_documents;
 extern crate dup_crypto;
 extern crate serde;
 
+use crate::network_endpoint::*;
+use crate::*;
 use base58::ToBase58;
 use dubp_documents::ToStringObject;
 use dubp_documents::{blockstamp::Blockstamp, CurrencyName};
 use dubp_documents::{BlockHash, BlockId};
 use dup_crypto::keys::text_signable::TextSignable;
 use dup_crypto::keys::*;
-use network_endpoint::*;
 use pest::iterators::Pair;
 use pest::Parser;
-use *;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Peer card V10
@@ -272,9 +272,9 @@ impl PeerCard {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tests::keypair1;
     use std::net::Ipv4Addr;
     use std::str::FromStr;
-    use tests::keypair1;
 
     fn create_endpoint_v2() -> EndpointV2 {
         EndpointV2 {

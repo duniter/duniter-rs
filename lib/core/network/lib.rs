@@ -37,7 +37,7 @@ extern crate serde_json;
 #[macro_use]
 extern crate structopt;
 
-use cli::sync::SyncOpt;
+use crate::cli::sync::SyncOpt;
 use duniter_module::*;
 use durs_network_documents::network_endpoint::ApiFeatures;
 use durs_network_documents::network_head::NetworkHead;

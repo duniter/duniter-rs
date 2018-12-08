@@ -16,8 +16,8 @@
 //! Generic code for signing data in binary format
 
 use super::*;
+use crate::hashs::Hash;
 use bincode;
-use hashs::Hash;
 use serde::{Deserialize, Serialize};
 
 /// Signatureable in binary format

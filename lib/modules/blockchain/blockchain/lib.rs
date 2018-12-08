@@ -59,9 +59,9 @@ use std::str;
 use std::sync::mpsc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use apply_valid_block::*;
-use check_and_apply_block::*;
-pub use dbex::{DBExQuery, DBExTxQuery, DBExWotQuery};
+use crate::apply_valid_block::*;
+use crate::check_and_apply_block::*;
+pub use crate::dbex::{DBExQuery, DBExTxQuery, DBExWotQuery};
 use dubp_documents::v10::{BlockDocument, V10Document};
 use dubp_documents::*;
 use dubp_documents::{DUBPDocument, Document};

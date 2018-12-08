@@ -19,14 +19,14 @@ use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use std::ops::Deref;
 
-use blockstamp::Blockstamp;
-use v10::certification::CertificationDocument;
-use v10::identity::IdentityDocument;
-use v10::membership::MembershipDocument;
-use v10::revocation::RevocationDocument;
-use v10::transaction::TransactionDocument;
-use v10::*;
-use *;
+use crate::blockstamp::Blockstamp;
+use crate::v10::certification::CertificationDocument;
+use crate::v10::identity::IdentityDocument;
+use crate::v10::membership::MembershipDocument;
+use crate::v10::revocation::RevocationDocument;
+use crate::v10::transaction::TransactionDocument;
+use crate::v10::*;
+use crate::*;
 
 #[derive(Debug, Clone)]
 /// Store error in block parameters parsing
@@ -505,7 +505,7 @@ mod tests {
     use super::certification::CertificationDocumentParser;
     use super::transaction::TransactionDocumentParser;
     use super::*;
-    use {Document, VerificationResult};
+    use crate::{Document, VerificationResult};
 
     #[test]
     fn generate_and_verify_empty_block() {

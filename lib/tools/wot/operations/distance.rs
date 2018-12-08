@@ -15,8 +15,8 @@
 
 //! Provide a trait and implementations to compute distances.
 
-use data::NodeId;
-use data::WebOfTrust;
+use crate::data::NodeId;
+use crate::data::WebOfTrust;
 use rayon::prelude::*;
 use std::collections::HashSet;
 

@@ -15,9 +15,9 @@
 
 //! Provide wrappers for cryptographic hashs
 
+use crate::keys::BaseConvertionError;
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
-use keys::BaseConvertionError;
 use rand::{thread_rng, Rng};
 use std::fmt::{Debug, Display, Error, Formatter};
 

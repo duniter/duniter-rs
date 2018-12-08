@@ -15,8 +15,8 @@
 
 use dubp_documents::v10::transaction::*;
 
-use sources::{SourceAmount, SourceIndexV10, UTXOIndexV10, UTXOV10};
-use *;
+use crate::sources::{SourceAmount, SourceIndexV10, UTXOIndexV10, UTXOV10};
+use crate::*;
 
 #[derive(Debug, Copy, Clone)]
 /// Transaction error

@@ -18,9 +18,9 @@
 use dup_crypto::keys::*;
 use pest::Parser;
 
-use blockstamp::Blockstamp;
-use v10::*;
-use *;
+use crate::blockstamp::Blockstamp;
+use crate::v10::*;
+use crate::*;
 
 #[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq)]
 /// Wrap an Compact Revocation document (in block content)
@@ -291,8 +291,8 @@ impl TextDocumentParser<Rule> for RevocationDocumentParser {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::VerificationResult;
     use dup_crypto::keys::{PrivateKey, PublicKey, Signature};
-    use VerificationResult;
 
     #[test]
     fn generate_real_document() {

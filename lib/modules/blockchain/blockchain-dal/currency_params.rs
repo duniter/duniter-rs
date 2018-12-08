@@ -13,10 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use constants::*;
+use crate::constants::*;
+use crate::*;
 use dubp_documents::v10::block::BlockV10Parameters;
 use dubp_documents::CurrencyName;
-use *;
 
 #[derive(Debug, Copy, Clone)]
 /// Curerncy parameters

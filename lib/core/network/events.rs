@@ -15,10 +15,10 @@
 
 //! Defined network events.
 
-use documents::*;
-use network_head::NetworkHead;
-use network_peer::PeerCard;
-use NodeFullId;
+use crate::documents::*;
+use crate::network_head::NetworkHead;
+use crate::network_peer::PeerCard;
+use crate::NodeFullId;
 
 #[derive(Debug, Clone)]
 /// Type containing a network event, each time a network event occurs it's relayed to all modules

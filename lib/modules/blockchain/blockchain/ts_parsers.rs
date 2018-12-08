@@ -16,6 +16,7 @@
 extern crate serde_json;
 extern crate sqlite;
 
+use crate::sync::BlockHeader;
 use dubp_documents::v10::block::{BlockV10Parameters, TxDocOrTxHash};
 use dubp_documents::v10::identity::*;
 use dubp_documents::v10::membership::*;
@@ -28,7 +29,6 @@ use duniter_network::documents::{NetworkBlock, NetworkBlockV10};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use std::str::FromStr;
-use sync::BlockHeader;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// MembershipParseError

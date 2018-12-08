@@ -13,18 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use block::DALBlock;
-use currency_params::CurrencyParameters;
+use crate::block::DALBlock;
+use crate::currency_params::CurrencyParameters;
+use crate::identity::DALIdentity;
+use crate::sources::SourceAmount;
+use crate::writers::transaction::DALTxV10;
+use crate::*;
 use dubp_documents::v10::certification::CompactCertificationDocument;
 use dubp_documents::v10::identity::IdentityDocument;
 use dubp_documents::Blockstamp;
 use dup_crypto::keys::PubKey;
 use durs_wot::NodeId;
-use identity::DALIdentity;
-use sources::SourceAmount;
 use std::ops::Deref;
-use writers::transaction::DALTxV10;
-use *;
 
 #[derive(Debug, Clone)]
 /// Contain a pending write request for databases

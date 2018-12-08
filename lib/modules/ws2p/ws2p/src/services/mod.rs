@@ -15,7 +15,7 @@
 
 //! WS2P Services
 
-use controllers::*;
+use crate::controllers::*;
 use duniter_network::documents::BlockchainDocument;
 use dup_crypto::keys::KeyPairEnum;
 use durs_network_documents::network_head::NetworkHead;

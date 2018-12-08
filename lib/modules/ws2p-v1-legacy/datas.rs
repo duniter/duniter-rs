@@ -13,7 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use constants::*;
+use crate::constants::*;
+use crate::*;
 use dubp_documents::Blockstamp;
 use duniter_network::*;
 use dup_crypto::keys::*;
@@ -24,7 +25,6 @@ use durs_network_documents::network_head::*;
 use durs_network_documents::*;
 use std::collections::HashSet;
 use std::sync::mpsc;
-use *;
 
 #[derive(Debug)]
 pub struct WS2PModuleDatas {
@@ -129,7 +129,7 @@ impl WS2PModuleDatas {
             let blockstamps_occurences_copy = blockstamps_occurences.clone();
             match blockstamps_occurences_copy.get(&head.blockstamp()) {
                 Some(occurences) => {
-                    let mut occurences_mut = blockstamps_occurences
+                    let occurences_mut = blockstamps_occurences
                         .get_mut(&head.blockstamp())
                         .expect("WS2P: Fail to get_mut blockstamps_occurences !");
                     *occurences_mut += 1;

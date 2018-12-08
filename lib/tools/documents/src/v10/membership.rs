@@ -18,9 +18,9 @@
 use dup_crypto::keys::*;
 use pest::Parser;
 
-use blockstamp::Blockstamp;
-use v10::*;
-use *;
+use crate::blockstamp::Blockstamp;
+use crate::v10::*;
+use crate::*;
 
 /// Type of a Membership.
 #[derive(Debug, Deserialize, Clone, Copy, Hash, Serialize, PartialEq, Eq)]
@@ -358,8 +358,8 @@ impl TextDocumentParser<Rule> for MembershipDocumentParser {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::VerificationResult;
     use dup_crypto::keys::{PrivateKey, PublicKey, Signature};
-    use VerificationResult;
 
     #[test]
     fn generate_real_document() {

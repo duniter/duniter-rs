@@ -47,13 +47,13 @@ pub mod network_head_v2;
 pub mod network_head_v3;
 pub mod network_peer;
 
+use crate::network_head::NetworkHead;
+use crate::network_head_v3::NetworkHeadV3;
+use crate::network_peer::PeerCard;
+use crate::network_peer::PeerCardV11;
 use dubp_documents::{TextDocumentParseError, TextDocumentParser};
 use dup_crypto::hashs::*;
 use dup_crypto::keys::*;
-use network_head::NetworkHead;
-use network_head_v3::NetworkHeadV3;
-use network_peer::PeerCard;
-use network_peer::PeerCardV11;
 use pest::iterators::Pair;
 use pest::Parser;
 use std::fmt::{Display, Error, Formatter};

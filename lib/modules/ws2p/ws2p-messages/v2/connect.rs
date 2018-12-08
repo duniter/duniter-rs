@@ -153,9 +153,9 @@ pub fn generate_connect_message(
 mod tests {
     use super::super::*;
     use super::*;
+    use crate::tests::*;
     use dubp_documents::Blockstamp;
     use dup_crypto::keys::text_signable::TextSignable;
-    use tests::*;
 
     #[test]
     fn test_ws2p_connect_flags() {

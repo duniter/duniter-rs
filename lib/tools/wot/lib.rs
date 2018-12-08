@@ -49,16 +49,16 @@ extern crate serde_derive;
 pub mod data;
 pub mod operations;
 
-pub use data::{NodeId, WebOfTrust};
+pub use crate::data::{NodeId, WebOfTrust};
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use data::*;
-    use operations::centrality::*;
-    use operations::distance::*;
-    use operations::file::*;
-    use operations::path::*;
+    use crate::data::*;
+    use crate::operations::centrality::*;
+    use crate::operations::distance::*;
+    use crate::operations::file::*;
+    use crate::operations::path::*;
 
     /// Test translated from https://github.com/duniter/wot/blob/master/tests/test.js
     ///

@@ -15,16 +15,16 @@
 
 //! Module defining the format of network heads and how to handle them.
 
+use crate::network_head_v2::*;
+use crate::network_head_v3::*;
+use crate::{NodeFullId, NodeId};
 use dubp_documents::blockstamp::*;
 use dup_crypto::keys::*;
-use network_head_v2::*;
-use network_head_v3::*;
 use serde_json;
 use std::collections::HashMap;
 use std::num::ParseIntError;
 use std::ops::Deref;
 use std::str::FromStr;
-use {NodeFullId, NodeId};
 
 #[derive(Debug, Clone, Eq, Ord, PartialOrd, PartialEq, Serialize, Deserialize)]
 /// Network Head : Set of information on the current state of a node, the central information being the blockstamp of its current block (= the head of its blockchain).

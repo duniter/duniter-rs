@@ -13,12 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::sources::SourceAmount;
+use crate::*;
 use dubp_documents::v10::transaction::*;
 use dubp_documents::BlockId;
 use dup_crypto::keys::PubKey;
-use sources::SourceAmount;
 use std::collections::{HashMap, HashSet};
-use *;
 
 /// Apply UD creation in databases
 pub fn create_du(

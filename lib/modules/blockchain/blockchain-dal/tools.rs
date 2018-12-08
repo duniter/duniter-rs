@@ -113,15 +113,14 @@ pub fn compute_distances<T: WebOfTrust + Sync>(
                 },
             )
             .expect("Fatal Error: compute_distance return None !");
-        let mut distance = ((f64::from(distance_datas.success)
+        let distance = ((f64::from(distance_datas.success)
             / (x_percent * f64::from(distance_datas.sentries)))
             * 100.0) as usize;
         distances.push(distance);
         average_distance += distance;
-        let mut connectivity =
-            ((f64::from(distance_datas.success - distance_datas.success_at_border)
-                / (x_percent * f64::from(distance_datas.sentries)))
-                * 100.0) as usize;
+        let connectivity = ((f64::from(distance_datas.success - distance_datas.success_at_border)
+            / (x_percent * f64::from(distance_datas.sentries)))
+            * 100.0) as usize;
         connectivities.push(connectivity);
         average_connectivity += connectivity;
     }

@@ -15,7 +15,7 @@
 
 //! Wrapper for blockstamp
 
-use *;
+use crate::*;
 
 /// Type of errors for [`BlockUId`] parsing.
 ///

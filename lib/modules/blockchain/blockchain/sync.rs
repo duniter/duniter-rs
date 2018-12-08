@@ -20,6 +20,8 @@ extern crate threadpool;
 
 use self::pbr::ProgressBar;
 use self::threadpool::ThreadPool;
+use crate::ts_parsers::*;
+use crate::*;
 use dubp_documents::{BlockHash, BlockId};
 use duniter_network::documents::NetworkBlock;
 use dup_crypto::hashs::Hash;
@@ -34,8 +36,6 @@ use std::ops::Deref;
 use std::sync::mpsc;
 use std::thread;
 use std::time::SystemTime;
-use ts_parsers::*;
-use *;
 
 /// Number of sync jobs
 pub static NB_SYNC_JOBS: &'static usize = &4;

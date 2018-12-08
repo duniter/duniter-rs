@@ -23,13 +23,13 @@ pub mod modules;
 pub mod reset;
 pub mod start;
 
-pub use cli::keys::KeysOpt;
-pub use dbex::*;
+pub use crate::cli::keys::KeysOpt;
+pub use crate::dbex::*;
+pub use crate::modules::*;
+pub use crate::reset::*;
+pub use crate::start::*;
 pub use duniter_network::cli::sync::SyncOpt;
 use log::Level;
-pub use modules::*;
-pub use reset::*;
-pub use start::*;
 
 #[derive(StructOpt, Debug)]
 #[structopt(

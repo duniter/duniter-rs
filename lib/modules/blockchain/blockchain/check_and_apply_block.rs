@@ -15,14 +15,14 @@
 
 use std::collections::HashMap;
 
-use apply_valid_block::*;
+use crate::apply_valid_block::*;
+use crate::*;
 use dubp_documents::Document;
 use dubp_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
 use duniter_network::documents::NetworkBlock;
 use dup_crypto::keys::*;
 use durs_blockchain_dal::block::DALBlock;
 use durs_blockchain_dal::*;
-use *;
 
 #[derive(Debug, Copy, Clone)]
 pub enum BlockError {

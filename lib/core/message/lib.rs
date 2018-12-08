@@ -48,9 +48,9 @@ pub mod requests;
 /// Define requests responses
 pub mod responses;
 
-use events::*;
-use requests::*;
-use responses::*;
+use crate::events::*;
+use crate::requests::*;
+use crate::responses::*;
 
 /// Message exchanged between Durs modules
 #[derive(Debug, Clone)]

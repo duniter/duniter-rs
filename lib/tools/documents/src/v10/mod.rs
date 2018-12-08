@@ -25,14 +25,14 @@ pub mod transaction;
 use dup_crypto::keys::PrivateKey;
 use pest::Parser;
 
-pub use v10::block::BlockDocument;
-use v10::certification::*;
-use v10::identity::*;
-use v10::membership::*;
-use v10::revocation::*;
-use v10::transaction::*;
-use ToStringObject;
-use *;
+pub use crate::v10::block::BlockDocument;
+use crate::v10::certification::*;
+use crate::v10::identity::*;
+use crate::v10::membership::*;
+use crate::v10::revocation::*;
+use crate::v10::transaction::*;
+use crate::ToStringObject;
+use crate::*;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// Contains a document in full or compact format

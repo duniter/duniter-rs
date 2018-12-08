@@ -16,10 +16,10 @@
 extern crate dubp_documents;
 extern crate durs_wot;
 
+use crate::{BinDB, CertsExpirV10Datas, DALError};
 use dubp_documents::BlockId;
 use durs_wot::NodeId;
 use std::collections::HashMap;
-use {BinDB, CertsExpirV10Datas, DALError};
 
 /// Find certifications that emitted in indicated blocks expiring
 pub fn find_expire_certs(

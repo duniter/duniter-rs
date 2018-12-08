@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use sources::*;
-use *;
+use crate::sources::*;
+use crate::*;
 
 /// Get address balance
 pub fn get_address_balance(

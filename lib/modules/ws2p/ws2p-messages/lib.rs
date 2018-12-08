@@ -43,10 +43,10 @@ extern crate durs_network_documents;
 /// WS2Pv2 Messages
 pub mod v2;
 
+use crate::v2::WS2Pv2Message;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::bin_signable::BinSignable;
 use dup_crypto::keys::*;
-use v2::WS2Pv2Message;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 /// WS2Pv2Message
@@ -152,6 +152,8 @@ impl<'de> BinSignable<'de> for WS2PMessage {
 
 #[cfg(test)]
 mod tests {
+    use crate::v2::payload_container::WS2Pv2MessagePayload;
+    use crate::v2::WS2Pv2Message;
     use bincode;
     use bincode::{deserialize, serialize};
     use dubp_documents::v10::certification::*;
@@ -163,8 +165,6 @@ mod tests {
     use durs_network_documents::*;
     use std::net::Ipv4Addr;
     use std::str::FromStr;
-    use v2::payload_container::WS2Pv2MessagePayload;
-    use v2::WS2Pv2Message;
 
     pub fn keypair1() -> ed25519::KeyPair {
         ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(

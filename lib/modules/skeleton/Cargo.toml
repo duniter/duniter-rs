@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["name <mail@domain.tld>"]
 description = "Module template to copy to create a new Durs module."
 license = "AGPL-3.0"
+edition = "2018"
 
 [lib]
 path = "lib.rs"

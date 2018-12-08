@@ -15,10 +15,9 @@
 
 //! Defined network requests.
 
-use documents::*;
+use crate::documents::*;
+use crate::*;
 use dubp_documents::Blockstamp;
-use duniter_module::*;
-use *;
 
 #[derive(Debug, Copy, Clone)]
 /// Type containing a request addressed to the network module

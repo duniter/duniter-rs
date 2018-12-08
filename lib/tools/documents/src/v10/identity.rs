@@ -17,9 +17,9 @@
 
 use pest::Parser;
 
-use v10::*;
-use Blockstamp;
-use *;
+use crate::v10::*;
+use crate::Blockstamp;
+use crate::*;
 
 /// Wrap an Identity document.
 ///
@@ -234,8 +234,8 @@ impl TextDocumentParser<Rule> for IdentityDocumentParser {
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
         match DocumentsParser::parse(Rule::idty, doc) {
             Ok(mut doc_pairs) => {
-                let mut idty_pair = doc_pairs.next().unwrap(); // get and unwrap the `idty` rule; never fails
-                let mut idty_vx_pair = idty_pair.into_inner().next().unwrap(); // get and unwrap the `idty_vx` rule; never fails
+                let idty_pair = doc_pairs.next().unwrap(); // get and unwrap the `idty` rule; never fails
+                let idty_vx_pair = idty_pair.into_inner().next().unwrap(); // get and unwrap the `idty_vx` rule; never fails
 
                 match idty_vx_pair.as_rule() {
                     Rule::idty_v10 => Ok(IdentityDocumentParser::from_pest_pair(idty_vx_pair)),
@@ -293,8 +293,8 @@ impl TextDocumentParser<Rule> for IdentityDocumentParser {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{Document, VerificationResult};
     use dup_crypto::keys::{PrivateKey, PublicKey, Signature};
-    use {Document, VerificationResult};
 
     #[test]
     fn generate_real_document() {

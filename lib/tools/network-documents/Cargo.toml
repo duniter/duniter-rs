@@ -4,6 +4,7 @@ version = "0.3.0"
 authors = ["librelois <elois@duniter.org>"]
 description = "Network documents for DUNP (DUniter Network Protocol)"
 license = "AGPL-3.0"
+edition = "2018"
 
 [lib]
 path = "src/lib.rs"
