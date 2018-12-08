@@ -18,23 +18,31 @@ Ajoutez ~/.cargo/bin a votre variable d'environnement PATH :
 
 Je vous recommande vivement d'ajouter cette ligne dans le fichier de configuration de votre terminal pour ne pas avoir a la recopier a chaque fois, si vous ne savez pas de quoi je parle alors vous utilisez très probablement le shell par défaut (bash) et le fichier auquel vous devez ajouter cette ligne est `~/.bashrc`
 
-Vous aurez aussi besoin d'un environnement de développement intégré, je vous recommande vscode car il supporte a la fois NodeJs et Rust :)
+Vous aurez aussi besoin d'un environnement de développement intégré, je vous recommande VScode car il supporte a la fois NodeJs et Rust :)
 Vous trouverez les instructions d'installation de vscode pour votre système sur internet.
+
+Vous pouvez également développer en Rust avec les IDE/Editeurs suivants :
+
+* IntelliJ Rust
+* Eclipse/Corrosion
+* Emacs
+* VIM/Rust.vim
+* Geany
+* Neovim
+
+Et bien d'autres..
 
 ## Fmt : le formateur de code
 
 Je vous recommande vivement d'installer l'indispensable formateur automatique de code, d'autant qu'il est maintenue par l'équipe officielle du langage Rust donc vous avez la garantie que votre code compilera toujours (et aura toujours le même comportement) après le passage du formateur.
-Pour l'installer vous aurez besoin de la toolchain nightly:
 
-    rustup install nightly
+Pour installer `fmt` :
 
-Enfin installez `fmt` :
-
-    rustup component add rustfmt-preview --toolchain nightly
+    rustup component add rustfmt-preview
 
 Pour formater automatiquement votre code, placez vous a la racine de votre projet et éxécutez la commande suivante :
 
-    cargo +nightly fmt
+    cargo fmt
 
 Je vous recommande fortement de créer un alias dans la configuration de votre shell (~/.bashrc si vous utilisez bash). a titre d'exemple j'ai créer l'alias `fmt="cargo +nightly fmt"`.
 
@@ -44,11 +52,11 @@ Si vous contribuez à l'implémentation Rust de Duniter vous devrez également u
 
 Éxécutez la commande suivante pour installer clippy :
 
-    rustup component add clippy-preview --toolchain nightly
+    rustup component add clippy-preview
 
 Pour lancer clippy, rendez-vous a la racine de votre projet puis éxécutez la commande suivante :
 
-    cargo +nightly clippy --all
+    cargo clippy --all
 
 Clippy vas alors vous signaler de façopn très pédagogique tout ce qu'il conviens de modifier dans votre code pour être plus dans "l'esprit rust".
 

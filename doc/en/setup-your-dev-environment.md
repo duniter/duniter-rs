@@ -23,29 +23,26 @@ You can find instructions on how to install vscode for your system on the Intern
 
 You can also develop in Rust with the following IDE/editors :
 
- * IntelliJ Rust
- * Eclipse/Corrosion
- * Emacs
- * VIM/Rust.vim
- * Geany
- * Neovim
+* IntelliJ Rust
+* Eclipse/Corrosion
+* Emacs
+* VIM/Rust.vim
+* Geany
+* Neovim
 
  And many others..
 
 ## Fmt : le formateur de code
 
-I strongly recommend that you install the essential automatic code formatter, especially since it is maintained by the official Rust language team so you have the guarantee that your code will always compile (and will always have the same behavior) after the formatter's pass.  
-To install it you will need the toolchain nightly :
+I strongly recommend that you install the essential automatic code formatter, especially since it is maintained by the official Rust language team so you have the guarantee that your code will always compile (and will always have the same behavior) after the formatter's pass.
 
-    rustup install nightly
+Install `fmt` :
 
-Finally install `fmt` :
-
-    rustup component add rustfmt-preview --toolchain nightly
+    rustup component add rustfmt-preview
 
 To automatically format your code, go to the root of your project and execute the following command :
 
-    cargo +nightly fmt
+    cargo fmt
 
 I strongly recommend that you create an alias in your shell configuration (~/.bashrc if you use bash). As an example I created the alias `fmt="cargo +nightly fmt"`.
 
@@ -55,17 +52,17 @@ If you contribute to Duniter's Rust implementation you will also need to use the
 
 Run the following command to install Clippy :
 
-    rustup component add clippy-preview --toolchain nightly
+    rustup component add clippy-preview
 
 To launch clippy, go to the root of your project and execute the following command :
 
-    cargo +nightly clippy --all
+    cargo clippy --all
 
 Clippy will then inform you in a very educational way about everything that needs to be modified in your code to be more in the "rust spirit" (We say then that your code is more "rusty").
 
 ## Vscode
 
-https://code.visualstudio.com/docs/setup/linux#_debian-and-ubuntu-based-distributions
+[https://code.visualstudio.com/docs/setup/linux#_debian-and-ubuntu-based-distributions](https://code.visualstudio.com/docs/setup/linux#_debian-and-ubuntu-based-distributions)
 
 Once vscode is installed we will need the following 3 plugins :
 
@@ -99,7 +96,7 @@ An example of a `launch.conf` file for VSCode :
 
 There is still to install RLS (Rust Language Server) and LLDB (debugger), the first one allows you to compile your code on the fly to highlight errors in red directly in your IDE/Editor, the second one is a debugger.
 
-LLDB Installation Instructions : https://github.com/vadimcn/vscode-lldb/wiki/Installing-on-Linux
+LLDB Installation Instructions : [https://github.com/vadimcn/vscode-lldb/wiki/Installing-on-Linux](https://github.com/vadimcn/vscode-lldb/wiki/Installing-on-Linux)
 
 Then restart vscode (after installing the plugins indicate if above), it should spontaneously offer you to install RLS, say yes.  
 If this fails for RLS, you will need to install it manually with the following command:
@@ -116,7 +113,7 @@ In the case of Durs you will need the openssl library for developers :
 
     sudo apt-get install libssl-dev
 
-This dependency on the ssl lib is optional, you can still compile Durs without it provided you disable the default features : 
+This dependency on the ssl lib is optional, you can still compile Durs without it provided you disable the default features :
 
     cargo build --no-default-features
 

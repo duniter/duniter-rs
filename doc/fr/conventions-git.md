@@ -56,7 +56,7 @@ Si vous avez besoin d'effectuer une action qui ne rentre dans aucun de ses types
 
 On met à jour uniquement avec des rebase, les merge sont strictement interdits !
 
-Chaque fois que la branche `dev` est mise a jours, vous devez rebaser chacun de vos branche de travail sur dev. Pour chaque branche : 
+Chaque fois que la branche `dev` est mise a jours, vous devez rebaser chacun de vos branche de travail sur dev. Pour chaque branche :
 
 1. Placez vous sur votre branche
 2. Lancez un rebase sur dev
