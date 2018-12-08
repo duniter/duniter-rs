@@ -12,11 +12,12 @@ variables:
   CARGO_HOME: $CI_PROJECT_DIR/cargo
 
 .rust_stable_lin64: &rust_stable_lin64
-  image: registry.duniter.org/docker/duniter-rs-ci:0.0.7
+  image: registry.duniter.org/docker/duniter-rs-ci:v0.1.0
   tags:
     - redshift-rs-stable
   before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustup show
     - rustc --version && cargo --version
 
 .rust_beta_lin64: &rust_beta_lin64
@@ -51,11 +52,10 @@ variables:
     - rustc --version && cargo --version
 
 fmt:
-  <<: *rust_nightly_lin64
+  <<: *rust_stable_lin64
   stage: fmt
   before_script:
     - rustup show
-    - rustup component add rustfmt-preview --toolchain nightly
     - cargo fmt -- --version
   script:
     - cargo fmt -- --check
@@ -132,17 +132,22 @@ tests:linux64:nightly:
   when: manual
   allow_failure: true
 
-clippy:
-  image: guangie88/rustfmt-clippy:nightly
-  tags:
-    - redshift-rs-nightly
+
+fmt:
+  <<: *rust_stable_lin64
+  stage: fmt
   before_script:
-    - export PATH="$HOME/.cargo/bin:$PATH"
-    - rustc --version && cargo --version
+    - cargo fmt -- --version
+  script:
+    - cargo fmt -- --check
+
+clippy:
+  <<: *rust_stable_lin64
+  before_script:
+    - cargo clippy -- -V
   stage: clippy
   script:
     - cargo clippy --all -- -D warnings --verbose
-  allow_failure: true
 
 publish:crate:
   <<: *rust_stable_lin64
