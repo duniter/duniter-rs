@@ -18,10 +18,10 @@
 use dubp_documents::CurrencyName;
 //use duniter_module::ModuleReqId;
 use crate::controllers::handler::Ws2pConnectionHandler;
-use crate::controllers::ws::deflate::DeflateBuilder;
-use crate::controllers::ws::listen;
 use crate::controllers::*;
 use crate::services::*;
+use ws::deflate::DeflateBuilder;
+use ws::listen;
 //use duniter_network::*;
 use durs_ws2p_messages::v2::connect::WS2Pv2ConnectType;
 use std::sync::mpsc;

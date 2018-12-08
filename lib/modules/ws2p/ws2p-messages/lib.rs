@@ -34,12 +34,6 @@ extern crate pretty_assertions;*/
 #[macro_use]
 extern crate serde_derive;
 
-extern crate bincode;
-extern crate byteorder;
-extern crate dubp_documents;
-extern crate dup_crypto;
-extern crate durs_network_documents;
-
 /// WS2Pv2 Messages
 pub mod v2;
 

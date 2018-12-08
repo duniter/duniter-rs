@@ -34,16 +34,6 @@ extern crate serde_derive;
 #[macro_use]
 extern crate structopt;
 
-extern crate bincode;
-extern crate dubp_documents;
-extern crate duniter_conf;
-extern crate duniter_module;
-extern crate duniter_network;
-extern crate dup_crypto;
-extern crate durs_message;
-extern crate durs_network_documents;
-extern crate durs_ws2p_messages;
-
 mod constants;
 pub mod controllers;
 mod generate_peer;

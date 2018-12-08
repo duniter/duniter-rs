@@ -46,8 +46,6 @@
 //! `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/`
 //! with `=` as padding character.
 
-extern crate serde;
-
 use base58::ToBase58;
 use bincode;
 use std::fmt::Debug;

@@ -1,6 +1,3 @@
-extern crate serde;
-extern crate serde_json;
-
 use dup_crypto::keys::ed25519;
 use dup_crypto::keys::*;
 

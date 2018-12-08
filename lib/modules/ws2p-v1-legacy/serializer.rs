@@ -1,5 +1,3 @@
-extern crate serde_json;
-
 use durs_network_documents::network_head::*;
 
 use std::ops::Deref;

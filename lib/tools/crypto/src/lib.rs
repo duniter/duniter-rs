@@ -32,12 +32,5 @@
 #[macro_use]
 extern crate serde_derive;
 
-extern crate base58;
-extern crate base64;
-extern crate bincode;
-extern crate crypto;
-extern crate rand;
-extern crate serde;
-
 pub mod hashs;
 pub mod keys;

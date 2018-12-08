@@ -16,10 +16,10 @@
 //! Process WS2P CONNECT mesage.
 
 use crate::controllers::handler::*;
-use crate::controllers::ws::CloseCode;
 use crate::controllers::*;
 use durs_network_documents::NodeFullId;
 use durs_ws2p_messages::v2::connect::WS2Pv2ConnectMsg;
+use ws::CloseCode;
 //use services::Ws2pServiceSender;
 //use std::sync::mpsc;
 

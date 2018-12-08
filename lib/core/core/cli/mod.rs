@@ -15,8 +15,6 @@
 
 //! Define durs-core cli subcommands options.
 
-extern crate structopt;
-
 pub mod dbex;
 pub mod keys;
 pub mod modules;

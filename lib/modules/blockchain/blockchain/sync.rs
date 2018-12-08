@@ -13,13 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-extern crate num_cpus;
-extern crate pbr;
-extern crate sqlite;
-extern crate threadpool;
-
-use self::pbr::ProgressBar;
-use self::threadpool::ThreadPool;
 use crate::ts_parsers::*;
 use crate::*;
 use dubp_documents::{BlockHash, BlockId};
@@ -30,12 +23,14 @@ use durs_blockchain_dal::currency_params::CurrencyParameters;
 use durs_blockchain_dal::writers::requests::*;
 use durs_blockchain_dal::ForkId;
 use durs_wot::NodeId;
+use pbr::ProgressBar;
 use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::ops::Deref;
 use std::sync::mpsc;
 use std::thread;
 use std::time::SystemTime;
+use threadpool::ThreadPool;
 
 /// Number of sync jobs
 pub static NB_SYNC_JOBS: &'static usize = &4;

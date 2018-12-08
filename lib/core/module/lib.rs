@@ -32,13 +32,6 @@
 #[macro_use]
 extern crate serde_derive;
 
-extern crate dubp_documents;
-extern crate dup_crypto;
-extern crate durs_network_documents;
-extern crate serde;
-extern crate serde_json;
-extern crate structopt;
-
 use dubp_documents::CurrencyName;
 use dup_crypto::keys::{KeyPair, KeyPairEnum};
 use durs_network_documents::network_endpoint::EndpointEnum;

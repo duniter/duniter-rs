@@ -39,10 +39,6 @@
     unused_qualifications
 )]
 
-extern crate bincode;
-extern crate byteorder;
-extern crate rayon;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 

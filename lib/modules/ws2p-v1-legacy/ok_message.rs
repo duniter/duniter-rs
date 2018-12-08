@@ -1,10 +1,6 @@
-extern crate dup_crypto;
-extern crate serde;
-extern crate serde_json;
-
-use self::serde::ser::{Serialize, SerializeStruct, Serializer};
 use super::WS2PMessage;
 use dup_crypto::keys::*;
+use serde::ser::{Serialize, SerializeStruct, Serializer};
 
 #[derive(Debug, Clone)]
 pub struct WS2POkMessageV1 {

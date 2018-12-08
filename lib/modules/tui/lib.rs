@@ -36,17 +36,6 @@ extern crate serde_derive;
 #[macro_use]
 extern crate structopt;
 
-extern crate dubp_documents;
-extern crate duniter_conf;
-extern crate duniter_module;
-extern crate duniter_network;
-extern crate dup_crypto;
-extern crate durs_message;
-extern crate durs_network_documents;
-extern crate serde;
-extern crate serde_json;
-extern crate termion;
-
 use duniter_conf::DuRsConf;
 use duniter_module::*;
 use duniter_network::events::NetworkEvent;

@@ -33,13 +33,6 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
-extern crate dirs;
-extern crate dubp_documents;
-extern crate duniter_module;
-extern crate dup_crypto;
-extern crate rand;
-extern crate serde;
-
 pub mod keys;
 
 use dubp_documents::CurrencyName;

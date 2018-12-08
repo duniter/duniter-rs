@@ -17,12 +17,10 @@
 
 pub mod connect_msg;
 
-extern crate serde_json;
-
 use crate::constants::*;
-use crate::controllers::ws::{util::Token, CloseCode, /*Frame,*/ Handler, Handshake, Message};
 use crate::controllers::*;
 use crate::services::*;
+use ws::{util::Token, CloseCode, /*Frame,*/ Handler, Handshake, Message};
 //use dup_crypto::keys::KeyPairEnum;
 use dubp_documents::CurrencyName;
 use durs_network_documents::NodeFullId;

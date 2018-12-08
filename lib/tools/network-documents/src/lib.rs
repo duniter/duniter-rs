@@ -26,18 +26,11 @@
     unused_import_braces
 )]
 
-extern crate base58;
-extern crate dubp_documents;
-extern crate dup_crypto;
-extern crate hex;
-extern crate pest;
 #[macro_use]
 extern crate pest_derive;
 #[cfg(test)]
 #[macro_use]
 extern crate pretty_assertions;
-extern crate serde;
-extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 
@@ -161,7 +154,6 @@ impl NodeFullId {
 
 #[cfg(test)]
 mod tests {
-    pub extern crate bincode;
     use super::network_endpoint::*;
     use super::*;
 

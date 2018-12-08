@@ -15,8 +15,6 @@
 
 //! Durs-core cli : dbex subcommands.
 
-extern crate structopt;
-
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(
     name = "dbex",

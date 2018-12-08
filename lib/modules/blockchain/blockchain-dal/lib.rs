@@ -32,15 +32,8 @@
 
 #[macro_use]
 extern crate log;
-extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
-
-extern crate dubp_documents;
-extern crate dup_crypto;
-extern crate durs_wot;
-extern crate rustbreak;
-extern crate serde;
 
 /// Define balance operations
 pub mod balance;

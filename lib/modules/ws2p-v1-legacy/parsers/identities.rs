@@ -1,5 +1,3 @@
-extern crate serde_json;
-
 use dubp_documents::v10::identity::*;
 use dubp_documents::Blockstamp;
 use dubp_documents::DocumentBuilder;

@@ -15,10 +15,6 @@
 
 //! Module defining the format of network endpoints and how to handle them.
 
-extern crate dubp_documents;
-extern crate dup_crypto;
-extern crate serde;
-
 use crate::*;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::PubKey;
@@ -513,7 +509,7 @@ impl EndpointEnum {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tests::bincode::{deserialize, serialize};
+    use bincode::{deserialize, serialize};
 
     #[test]
     fn test_network_features() {

@@ -15,8 +15,6 @@
 
 //! Durs-core cli : modules manager subcommands.
 
-extern crate structopt;
-
 use duniter_module::*;
 use std::collections::HashSet;
 

@@ -15,12 +15,10 @@
 
 //! WS2P connections controllers.
 
-extern crate ws;
-
 //use constants::*;
-use self::ws::Sender;
 use dubp_documents::Blockstamp;
 use dup_crypto::hashs::Hash;
+use ws::Sender;
 //use dup_crypto::keys::*;
 use durs_network_documents::network_peer::PeerCardV11;
 use durs_network_documents::*;

@@ -28,17 +28,8 @@
     unused_qualifications
 )]
 
-#[macro_use]
-extern crate duniter_core;
-
-#[cfg(unix)]
-extern crate durs_tui;
-//extern crate durs_skeleton;
-extern crate durs_ws2p_v1_legacy;
-//extern crate durs_ws2p;
-extern crate structopt;
-
-pub use duniter_core::{cli::DursOpt, DuRsConf, DuniterCore, UserCommand};
+pub use duniter_core::cli::DursOpt;
+pub use duniter_core::*;
 #[cfg(unix)]
 pub use durs_tui::TuiModule;
 //pub use durs_skeleton::SkeletonModule;

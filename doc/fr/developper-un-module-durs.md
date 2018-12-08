@@ -286,21 +286,17 @@ Vous pouvez modifier une copie de la ligne du module skeleton pour être sûr de
 
 Une fois que vous avez ajouter votre module en dépendance dans le Carego.toml de `durs-server`, il vas falloir utiliser votre module dans le main.rs :
 
-1. Importez la crate principale de votre module, repéréz ou se trouve les autres lignes extern crate puis ajoutez la votre :
-
-    extern crate durs_toto;
-
-2. Utilisez la structure implémentant le trait DursModule :
+1. Utilisez votre structure implémentant le trait DursModule :
 
     pub use durs_toto::TotoModule;
 
-3. Ajouter votre module en paramètre de la macro `durs_plug!` :
+2. Ajouter votre module en paramètre de la macro `durs_plug!` :
 
     durs_plug!([WS2PModule], [TuiModule, .., TotoModule])
 
     Notez que `durs_plug!` prend en paramètre 2 tableaux de modules, le 1er correspond aux modules de type réseau inter-noeuds, tout les autres modules doivent se trouver dans le 2ème tableau.
 
-4. Si votre module doit injecter une sous-commande dans la ligne de commande `durs`, ajoutez le également a la macro `durs_inject_cli!` :
+3. Si votre module doit injecter une sous-commande dans la ligne de commande `durs`, ajoutez le également a la macro `durs_inject_cli!` :
 
     durs_inject_cli![WS2PModule, .., TotoModule],
 

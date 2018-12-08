@@ -15,10 +15,6 @@
 
 //! Module defining the format of network peer cards and how to handle them.
 
-extern crate dubp_documents;
-extern crate dup_crypto;
-extern crate serde;
-
 use crate::network_endpoint::*;
 use crate::*;
 use base58::ToBase58;

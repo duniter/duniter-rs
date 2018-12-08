@@ -28,12 +28,6 @@
     unused_qualifications
 )]
 
-extern crate dubp_documents;
-extern crate duniter_module;
-extern crate dup_crypto;
-extern crate durs_network_documents;
-extern crate serde;
-extern crate serde_json;
 #[macro_use]
 extern crate structopt;
 

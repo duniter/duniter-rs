@@ -1,6 +1,3 @@
-extern crate serde;
-extern crate serde_json;
-
 use dubp_documents::v10::transaction::{
     TransactionDocument, TransactionDocumentBuilder, TransactionInput, TransactionInputUnlocks,
     TransactionOutput,

@@ -32,19 +32,6 @@
 #[macro_use]
 extern crate log;
 
-extern crate dirs;
-extern crate dubp_documents;
-extern crate duniter_conf;
-extern crate duniter_module;
-extern crate duniter_network;
-extern crate dup_crypto;
-extern crate durs_blockchain_dal;
-extern crate durs_message;
-extern crate durs_network_documents;
-extern crate durs_wot;
-extern crate serde;
-extern crate sqlite;
-
 mod apply_valid_block;
 mod check_and_apply_block;
 mod dbex;

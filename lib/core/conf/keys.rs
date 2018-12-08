@@ -22,8 +22,6 @@
     unused_qualifications
 )]
 
-extern crate rpassword;
-
 use crate::*;
 use std::io;
 

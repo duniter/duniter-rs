@@ -28,14 +28,6 @@
     unused_qualifications
 )]
 
-extern crate dubp_documents;
-extern crate duniter_module;
-extern crate duniter_network;
-extern crate dup_crypto;
-extern crate durs_network_documents;
-extern crate serde;
-extern crate serde_json;
-
 use duniter_module::*;
 use durs_network_documents::network_endpoint::EndpointEnum;
 

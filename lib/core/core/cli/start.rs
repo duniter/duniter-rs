@@ -15,8 +15,6 @@
 
 //! Durs-core cli : start subcommands.
 
-extern crate structopt;
-
 #[derive(StructOpt, Debug, Copy, Clone)]
 #[structopt(
     name = "start",

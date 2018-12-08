@@ -1,5 +1,3 @@
-extern crate serde_json;
-
 use super::excluded::parse_exclusions_from_json_value;
 use super::identities::parse_compact_identity;
 use super::transactions::parse_transaction;

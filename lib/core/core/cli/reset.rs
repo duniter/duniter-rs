@@ -15,8 +15,6 @@
 
 //! Durs-core cli : reset subcommand.
 
-extern crate structopt;
-
 use crate::cli::InvalidInput;
 use std::str::FromStr;
 

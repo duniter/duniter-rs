@@ -15,8 +15,6 @@
 
 //! Durs network cli : sync subcommands.
 
-extern crate structopt;
-
 use std::str::FromStr;
 
 #[derive(StructOpt, Debug, Clone)]

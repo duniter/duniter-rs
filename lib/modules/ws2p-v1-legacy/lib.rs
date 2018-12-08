@@ -36,18 +36,6 @@ extern crate serde_json;
 #[macro_use]
 extern crate structopt;
 
-extern crate byteorder;
-extern crate dubp_documents;
-extern crate duniter_conf;
-extern crate duniter_module;
-extern crate duniter_network;
-extern crate dup_crypto;
-extern crate durs_message;
-extern crate durs_network_documents;
-extern crate rand;
-extern crate sqlite;
-extern crate ws;
-
 mod ack_message;
 mod connect_message;
 pub mod constants;
@@ -943,13 +931,6 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
 
 #[cfg(test)]
 mod tests {
-    extern crate dubp_documents;
-    extern crate duniter_conf;
-    extern crate duniter_module;
-    extern crate duniter_network;
-    extern crate dup_crypto;
-    extern crate durs_message;
-
     use super::parsers::blocks::parse_json_block;
     use super::*;
     use dubp_documents::v10::BlockDocument;

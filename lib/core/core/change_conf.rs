@@ -32,7 +32,7 @@ pub fn change_global_conf<DC: DuniterConf>(
     }
 
     // Write new conf
-    super::duniter_conf::write_conf_file(profile, &conf).expect("IOError : Fail to update conf  ");
+    ::duniter_conf::write_conf_file(profile, &conf).expect("IOError : Fail to update conf  ");
 
     println!("Configuration successfully updated.");
 }

@@ -33,19 +33,6 @@ extern crate log;
 #[macro_use]
 extern crate structopt;
 
-extern crate dirs;
-extern crate duniter_conf;
-extern crate duniter_module;
-extern crate duniter_network;
-extern crate dup_crypto;
-extern crate durs_blockchain;
-extern crate durs_message;
-extern crate durs_network_documents;
-extern crate log_panics;
-extern crate serde_json;
-extern crate simplelog;
-extern crate threadpool;
-
 pub mod change_conf;
 pub mod cli;
 pub mod router;

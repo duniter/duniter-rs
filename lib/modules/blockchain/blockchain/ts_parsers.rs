@@ -13,9 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-extern crate serde_json;
-extern crate sqlite;
-
 use crate::sync::BlockHeader;
 use dubp_documents::v10::block::{BlockV10Parameters, TxDocOrTxHash};
 use dubp_documents::v10::identity::*;
