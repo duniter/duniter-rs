@@ -65,7 +65,7 @@ pub struct Ws2pConnectionHandler {
 
 impl Ws2pConnectionHandler {
     /// Instantiate new Ws2pConnectionHandler
-    pub fn new(
+    pub fn try_new(
         ws: WsSender,
         service_sender: mpsc::Sender<Ws2pServiceSender>,
         currency: CurrencyName,

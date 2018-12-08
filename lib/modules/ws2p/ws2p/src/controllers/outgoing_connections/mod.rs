@@ -52,7 +52,7 @@ pub fn connect_to_ws2p_v2_endpoint(
     // Connect to websocket
     connect(ws_url, move |ws| {
         DeflateBuilder::new().build(
-            Ws2pConnectionHandler::new(
+            Ws2pConnectionHandler::try_new(
                 WsSender(ws),
                 service_sender.clone(),
                 currency.clone(),

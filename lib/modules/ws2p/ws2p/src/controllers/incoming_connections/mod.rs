@@ -45,7 +45,7 @@ pub fn listen_on_ws2p_v2_endpoint(
     listen(ws_url, move |ws| {
         println!("DEBUG: Listen on host:port...");
         DeflateBuilder::new().build(
-            Ws2pConnectionHandler::new(
+            Ws2pConnectionHandler::try_new(
                 WsSender(ws),
                 service_sender.clone(),
                 currency.clone(),
