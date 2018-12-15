@@ -114,14 +114,6 @@ Bien que cela soit de plus en plus rare, certaines crates rust dépendent encore
 
     sudo apt-get install pkg-config
 
-Dans le cas de Duniter-rs vous aurez besoin de la bibliothèque openssl pour développeurs :
-
-    sudo apt-get install libssl-dev
-
-En réalité openssl est facultatif, vous pouvez compielr Durs sans en désactivant les features optionnelles :
-
-    cargo build  --no-default-features
-
 ## Tester son environnement avec un "Hello, World !"
 
     mkdir hello-world

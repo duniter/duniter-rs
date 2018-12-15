@@ -109,14 +109,6 @@ Although this is becoming increasingly rare, some rust crates still depend on C/
 
     sudo apt-get install pkg-config
 
-In the case of Durs you will need the openssl library for developers :
-
-    sudo apt-get install libssl-dev
-
-This dependency on the ssl lib is optional, you can still compile Durs without it provided you disable the default features :
-
-    cargo build --no-default-features
-
 ## Test your environment with a traditional "Hello, World!"
 
     mkdir hello-world
