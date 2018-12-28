@@ -55,11 +55,9 @@ fmt:
   <<: *rust_stable_lin64
   stage: fmt
   before_script:
-    - rustup show
     - cargo fmt -- --version
   script:
     - cargo fmt -- --check
-  allow_failure: true
     
 tests:linux64:stable:
   <<: *rust_stable_lin64
@@ -131,15 +129,6 @@ tests:linux64:nightly:
     - cargo test --all
   when: manual
   allow_failure: true
-
-
-fmt:
-  <<: *rust_stable_lin64
-  stage: fmt
-  before_script:
-    - cargo fmt -- --version
-  script:
-    - cargo fmt -- --check
 
 clippy:
   <<: *rust_stable_lin64
