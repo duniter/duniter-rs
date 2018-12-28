@@ -18,20 +18,6 @@ Ajoutez ~/.cargo/bin a votre variable d'environnement PATH :
 
 Je vous recommande vivement d'ajouter cette ligne dans le fichier de configuration de votre terminal pour ne pas avoir a la recopier a chaque fois, si vous ne savez pas de quoi je parle alors vous utilisez très probablement le shell par défaut (bash) et le fichier auquel vous devez ajouter cette ligne est `~/.bashrc`
 
-Vous aurez aussi besoin d'un environnement de développement intégré, je vous recommande VScode car il supporte a la fois NodeJs et Rust :)
-Vous trouverez les instructions d'installation de vscode pour votre système sur internet.
-
-Vous pouvez également développer en Rust avec les IDE/Editeurs suivants :
-
-* IntelliJ Rust
-* Eclipse/Corrosion
-* Emacs
-* VIM/Rust.vim
-* Geany
-* Neovim
-
-Et bien d'autres..
-
 ## Fmt : le formateur de code
 
 Je vous recommande vivement d'installer l'indispensable formateur automatique de code, d'autant qu'il est maintenue par l'équipe officielle du langage Rust donc vous avez la garantie que votre code compilera toujours (et aura toujours le même comportement) après le passage du formateur.
@@ -60,10 +46,43 @@ Pour lancer clippy, rendez-vous a la racine de votre projet puis éxécutez la c
 
 Clippy vas alors vous signaler de façopn très pédagogique tout ce qu'il conviens de modifier dans votre code pour être plus dans "l'esprit rust".
 
-## Vscode
+## IDE/Editeur
+
+Vous aurez aussi besoin d'un environnement de développement intégré.
 
 Rust étant un langage très récent, il n'a pas d'Environnement de Développement Intégré (IDE) dédié.  
-Heureusement, plusieurs IDE existants intègrent Rust via des plugins, nous vous recommandons vscode.
+Heureusement, plusieurs IDE existants intègrent Rust via des plugins, nous vous recommandons VSCode ou IntelliJ.
+
+Vous pouvez également développer en Rust avec les IDE/Editeurs suivants :
+
+* VSCode
+* IntelliJ Rust
+* Eclipse/Corrosion
+* Emacs
+* VIM/Rust.vim
+* Geany
+* Neovim
+
+Et bien d'autres..
+
+## Intellij
+
+Intellij est un excellent IDE pour Rust, si vous n'avez pas de licence vous pouvez télécharger la version communautaire gratuite : [IntelliJ IDEA Community Edition].
+
+Ensuite extrayez l'archive dans le dossier contenant vos programmes (/opt pour les linuxiens).
+
+    sudo tar xf idea*.tar.gz -C /opt/
+
+Puis éxécutez le script `idea.sh` dans le dossier `/bin` :
+
+    cd /opt/idea*/bin/
+    ./idea.sh
+    
+Enfin installez le plugin pour rust en tapant "Rust" dans le moteur de recherche des plugins dans file -> settings -> plugins.
+
+[IntelliJ IDEA Community Edition]: https://www.jetbrains.com/idea/
+
+## Vscode
 
 [Installation de vscode pour debian/ubuntu](https://code.visualstudio.com/docs/setup/linux#_debian-and-ubuntu-based-distributions).
 
@@ -71,6 +90,17 @@ Une fois vscode installé nous aurons besoin des 3 plugins suivants :
 BetterTOML
 CodeLLDB
 Rust (rls)
+
+Après avoir installé les plugins, relancez votre IDE, il devrait vous proposer spontanément d'installer RLS, dites oui.  
+Si cela échoue pour RLS, vous devrez l'installer manuellement avec la commande suivante :
+
+    rustup component add rls-preview rust-analysis rust-src
+
+### Débugger LLDB pour VSCode
+
+[Instructions d'installation de LLDB pour vscode](https://github.com/vadimcn/vscode-lldb/wiki/Installing-on-Linux)
+
+Ensuite relancez votre IDE.
 
 Un exemple de fichier `launch.conf` pour VSCode :
 
@@ -96,17 +126,6 @@ Un exemple de fichier `launch.conf` pour VSCode :
     ]
 }
 ```
-
-## RLS et LLDB
-
-Il reste encore a installer RLS (Rust Language Server) et LLDB (debugger), le 1er permet de compiler votre code à la volée pour souligner en rouge les erreurs directement dans l’éditeur de vscode, le second est un débogueur.
-
-[Instructions d'installation de LLDB](https://github.com/vadimcn/vscode-lldb/wiki/Installing-on-Linux)
-
-Ensuite relancez vscode (après avoir installer les plugins indiquez si dessus), il devrait vous proposer spontanément d'installer RLS, dites oui.  
-Si cela échoue pour RLS, vous devrez l'installer manuellement avec la commande suivante :
-
-    rustup component add rls-preview rust-analysis rust-src
 
 ## Paquets supplémentaires pour compiler duniter-rs
 
