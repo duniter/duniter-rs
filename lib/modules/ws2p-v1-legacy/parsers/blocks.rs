@@ -1,9 +1,9 @@
 use super::excluded::parse_exclusions_from_json_value;
 use super::identities::parse_compact_identity;
 use super::transactions::parse_transaction;
-use dubp_documents::v10::block::{BlockV10Parameters, TxDocOrTxHash};
-use dubp_documents::v10::membership::*;
-use dubp_documents::v10::BlockDocument;
+use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::block::{BlockV10Parameters, TxDocOrTxHash};
+use dubp_documents::documents::membership::*;
 use dubp_documents::CurrencyName;
 use dubp_documents::{BlockHash, BlockId};
 use duniter_network::documents::{NetworkBlock, NetworkBlockV10};
@@ -106,6 +106,7 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
     }
     let block_doc = BlockDocument {
         nonce: source.get("nonce")?.as_i64()? as u64,
+        version: source.get("version")?.as_u64()? as u32,
         number: BlockId(source.get("number")?.as_u64()? as u32),
         pow_min: source.get("powMin")?.as_u64()? as usize,
         time: source.get("time")?.as_u64()?,

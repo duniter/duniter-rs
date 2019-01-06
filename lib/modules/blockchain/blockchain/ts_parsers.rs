@@ -14,11 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::sync::BlockHeader;
-use dubp_documents::v10::block::{BlockV10Parameters, TxDocOrTxHash};
-use dubp_documents::v10::identity::*;
-use dubp_documents::v10::membership::*;
-use dubp_documents::v10::transaction::*;
-use dubp_documents::v10::*;
+use dubp_documents::documents::block::{BlockDocument, BlockV10Parameters, TxDocOrTxHash};
+use dubp_documents::documents::identity::*;
+use dubp_documents::documents::membership::*;
+use dubp_documents::documents::transaction::*;
 use dubp_documents::CurrencyName;
 use dubp_documents::DocumentBuilder;
 use dubp_documents::{BlockHash, BlockId, Blockstamp};
@@ -118,6 +117,7 @@ pub fn parse_ts_block(row: &[sqlite::Value]) -> NetworkBlock {
             .expect("Fail to parse excluded (2)");
     let uncompleted_block_doc = BlockDocument {
         nonce: row[17].as_integer().expect("Fail to parse nonce") as u64,
+        version: row[8].as_integer().expect("Fail to parse version") as u32,
         number: current_header.number,
         pow_min: row[15].as_integer().expect("Fail to parse pow_min") as usize,
         time: row[14].as_integer().expect("Fail to parse time") as u64,

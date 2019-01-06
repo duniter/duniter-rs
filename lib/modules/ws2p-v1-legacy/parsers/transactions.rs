@@ -1,4 +1,4 @@
-use dubp_documents::v10::transaction::{
+use dubp_documents::documents::transaction::{
     TransactionDocument, TransactionDocumentBuilder, TransactionInput, TransactionInputUnlocks,
     TransactionOutput,
 };

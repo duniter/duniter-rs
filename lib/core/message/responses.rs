@@ -13,11 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use dubp_documents::v10::block::BlockDocument;
-use dubp_documents::v10::certification::CertificationDocument;
-use dubp_documents::v10::identity::IdentityDocument;
-use dubp_documents::v10::membership::MembershipDocument;
-use dubp_documents::v10::revocation::RevocationDocument;
+use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::certification::CertificationDocument;
+use dubp_documents::documents::identity::IdentityDocument;
+use dubp_documents::documents::membership::MembershipDocument;
+use dubp_documents::documents::revocation::RevocationDocument;
 use dubp_documents::BlockId;
 use dubp_documents::Blockstamp;
 use duniter_module::ModuleReqId;

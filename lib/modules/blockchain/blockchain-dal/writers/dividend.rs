@@ -15,7 +15,7 @@
 
 use crate::sources::SourceAmount;
 use crate::*;
-use dubp_documents::v10::transaction::*;
+use dubp_documents::documents::transaction::*;
 use dubp_documents::BlockId;
 use dup_crypto::keys::PubKey;
 use std::collections::{HashMap, HashSet};

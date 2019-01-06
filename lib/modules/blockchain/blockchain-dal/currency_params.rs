@@ -15,7 +15,7 @@
 
 use crate::constants::*;
 use crate::*;
-use dubp_documents::v10::block::BlockV10Parameters;
+use dubp_documents::documents::block::BlockV10Parameters;
 use dubp_documents::CurrencyName;
 
 #[derive(Debug, Copy, Clone)]

@@ -22,7 +22,7 @@ pub mod transactions;
 #[cfg(test)]
 mod tests {
     use super::transactions::*;
-    use dubp_documents::v10::transaction::*;
+    use dubp_documents::documents::transaction::*;
     use dubp_documents::Blockstamp;
     use dubp_documents::DocumentBuilder;
     use dup_crypto::keys::*;

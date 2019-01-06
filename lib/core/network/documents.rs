@@ -15,12 +15,12 @@
 
 //! Defined all network documents
 
-use dubp_documents::v10::block::BlockDocument;
-use dubp_documents::v10::certification::CertificationDocument;
-use dubp_documents::v10::identity::IdentityDocument;
-use dubp_documents::v10::membership::MembershipDocument;
-use dubp_documents::v10::revocation::RevocationDocument;
-use dubp_documents::v10::transaction::TransactionDocument;
+use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::certification::CertificationDocument;
+use dubp_documents::documents::identity::IdentityDocument;
+use dubp_documents::documents::membership::MembershipDocument;
+use dubp_documents::documents::revocation::RevocationDocument;
+use dubp_documents::documents::transaction::TransactionDocument;
 use dubp_documents::Document;
 use dubp_documents::{BlockHash, BlockId, Blockstamp};
 use serde_json;

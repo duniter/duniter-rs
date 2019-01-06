@@ -1,4 +1,4 @@
-use dubp_documents::v10::membership::*;
+use dubp_documents::documents::membership::*;
 use dubp_documents::Blockstamp;
 use dubp_documents::DocumentBuilder;
 use dup_crypto::keys::*;

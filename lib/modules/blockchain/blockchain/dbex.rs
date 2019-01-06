@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
-use dubp_documents::v10::transaction::*;
+use dubp_documents::documents::transaction::*;
 use duniter_module::DuniterConf;
 use dup_crypto::keys::*;
 use durs_blockchain_dal::identity::DALIdentity;

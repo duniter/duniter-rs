@@ -13,10 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use dubp_documents::v10::block::BlockDocument;
-use dubp_documents::v10::certification::CompactCertificationDocument;
-use dubp_documents::v10::identity::CompactIdentityDocument;
-use dubp_documents::v10::membership::CompactPoolMembershipDoc;
+use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::certification::CompactCertificationDocument;
+use dubp_documents::documents::identity::CompactIdentityDocument;
+use dubp_documents::documents::membership::CompactPoolMembershipDoc;
 use dubp_documents::Blockstamp;
 use dup_crypto::hashs::Hash;
 use std::str;

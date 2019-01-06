@@ -16,6 +16,7 @@
 use std::collections::HashMap;
 
 use crate::apply_valid_block::*;
+use crate::verify_block::*;
 use crate::*;
 use dubp_documents::Document;
 use dubp_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
@@ -29,7 +30,7 @@ pub enum BlockError {
     BlockVersionNotSupported(),
     CompletedBlockError(CompletedBlockError),
     DALError(DALError),
-    //CheckBlockError(),
+    InvalidBlock(InvalidBlockError),
     ApplyValidBlockError(ApplyValidBlockError),
     NoForkAvailable(),
     UnknowError(),
@@ -62,6 +63,7 @@ pub fn check_and_apply_block<W: WebOfTrust>(
     wot_db: &BinDB<W>,
     forks_states: &[ForkStatus],
 ) -> Result<ValidBlockApplyReqs, BlockError> {
+    // Get BlockDocument && check if already have block
     let (block_doc, already_have_block) = match *block {
         Block::NetworkBlock(network_block) => match *network_block {
             NetworkBlock::V10(ref network_block_v10) => {
@@ -76,6 +78,8 @@ pub fn check_and_apply_block<W: WebOfTrust>(
         },
         Block::LocalBlock(block_doc) => (block_doc, true),
     };
+
+    // Check block chainability
     if (block_doc.number.0 == current_blockstamp.id.0 + 1
         && block_doc.previous_hash.to_string() == current_blockstamp.hash.0.to_string())
         || (block_doc.number.0 == 0 && *current_blockstamp == Blockstamp::default())
@@ -88,6 +92,7 @@ pub fn check_and_apply_block<W: WebOfTrust>(
         let blocks_expiring = Vec::with_capacity(0);
         let expire_certs =
             durs_blockchain_dal::certs::find_expire_certs(certs_db, blocks_expiring)?;
+
         // Try stack up block
         let mut old_fork_id = None;
         let block_doc = match *block {
@@ -100,6 +105,16 @@ pub fn check_and_apply_block<W: WebOfTrust>(
                 block_doc.clone()
             }
         };
+
+        // Verify block validity (check all protocol rule, very long !)
+        verify_block_validity(
+            &block_doc,
+            &blocks_databases.blockchain_db,
+            certs_db,
+            wot_index,
+            wot_db,
+        )?;
+
         return Ok(apply_valid_block(
             &block_doc,
             wot_index,
@@ -184,7 +199,7 @@ pub fn check_and_apply_block<W: WebOfTrust>(
         }
     } else {
         debug!(
-            "stackable_block : block {} not chainable and already stored !",
+            "stackable_block : block {} not chainable and already stored or out of forkWindowSize !",
             block_doc.blockstamp()
         );
     }

@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use dubp_documents::v10::transaction::*;
+use dubp_documents::documents::transaction::*;
 
 use crate::sources::{SourceAmount, SourceIndexV10, UTXOIndexV10, UTXOV10};
 use crate::*;

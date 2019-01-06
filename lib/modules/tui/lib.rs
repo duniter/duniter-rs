@@ -526,7 +526,7 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
                         DursMsg::Event {
                             ref event_content, ..
                         } => match *event_content {
-                            DursEvent::BlockchainEvent(ref dal_event) => match *dal_event {
+                            DursEvent::BlockchainEvent(ref dal_event) => match *dal_event.deref() {
                                 BlockchainEvent::StackUpValidBlock(ref _block, ref _blockstamp) => {
                                 }
                                 BlockchainEvent::RevertBlocks(ref _blocks) => {}

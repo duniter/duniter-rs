@@ -471,7 +471,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                                 ref event_content, ..
                             } => {
                                 if let DursEvent::BlockchainEvent(ref bc_event) = *event_content {
-                                    match *bc_event {
+                                    match *bc_event.deref() {
                                         BlockchainEvent::StackUpValidBlock(
                                             ref _block,
                                             ref blockstamp,
@@ -933,7 +933,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
 mod tests {
     use super::parsers::blocks::parse_json_block;
     use super::*;
-    use dubp_documents::v10::BlockDocument;
+    use dubp_documents::documents::block::BlockDocument;
     use duniter_module::DursModule;
     use duniter_network::documents::NetworkBlock;
     use dup_crypto::keys::PublicKey;

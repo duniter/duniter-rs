@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Durs Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Implements the Duniter Documents Protocol.
+//! Implements the Durs Documents Protocol.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
@@ -36,14 +36,15 @@ extern crate serde_derive;
 
 pub mod blockstamp;
 mod currencies_codes;
-pub mod v10;
+pub mod documents;
+pub mod text_document_traits;
 
 use crate::currencies_codes::*;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use pest::iterators::Pair;
-use pest::{Parser, RuleType};
+use pest::RuleType;
 use serde::Serialize;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Error, Formatter};
@@ -78,36 +79,6 @@ pub enum TextDocumentParseError {
     UnexpectedVersion(String),
     /// Unknown type
     UnknownType,
-}
-
-/// Document of DUBP (DUniter Blockhain Protocol)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum DUBPDocument {
-    /// Version 10.
-    V10(Box<v10::V10Document>),
-    /// Version 11. (not done yet, but defined for tests)
-    V11(),
-}
-
-impl TextDocumentParser<Rule> for DUBPDocument {
-    type DocumentType = DUBPDocument;
-
-    fn parse(doc: &str) -> Result<DUBPDocument, TextDocumentParseError> {
-        match DocumentsParser::parse(Rule::document, doc) {
-            Ok(mut doc_pairs) => Ok(DUBPDocument::from_pest_pair(doc_pairs.next().unwrap())), // get and unwrap the `document` rule; never fails
-            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
-        }
-    }
-    fn from_pest_pair(pair: Pair<Rule>) -> DUBPDocument {
-        let doc_vx_pair = pair.into_inner().next().unwrap(); // get and unwrap the `document_vX` rule; never fails
-
-        match doc_vx_pair.as_rule() {
-            Rule::document_v10 => {
-                DUBPDocument::V10(Box::new(v10::V10Document::from_pest_pair(doc_vx_pair)))
-            }
-            _ => panic!("unexpected rule: {:?}", doc_vx_pair.as_rule()), // Grammar ensures that we never reach this line
-        }
-    }
 }
 
 /// Currency name
@@ -333,7 +304,7 @@ impl<T: ToStringObject> ToJsonObject for T {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    //use dup_crypto::keys::*;
+    use crate::documents::DUBPDocument;
 
     #[test]
     fn parse_dubp_document() {

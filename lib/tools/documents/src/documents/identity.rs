@@ -17,9 +17,9 @@
 
 use pest::Parser;
 
-use crate::v10::*;
+use crate::documents::*;
+use crate::text_document_traits::*;
 use crate::Blockstamp;
-use crate::*;
 
 /// Wrap an Identity document.
 ///
@@ -162,7 +162,7 @@ impl TextDocument for IdentityDocument {
 
 impl IntoSpecializedDocument<DUBPDocument> for IdentityDocument {
     fn into_specialized(self) -> DUBPDocument {
-        DUBPDocument::V10(Box::new(V10Document::Identity(self)))
+        DUBPDocument::Identity(self)
     }
 }
 

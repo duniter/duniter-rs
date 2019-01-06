@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use dubp_documents::v10::revocation::{CompactRevocationDocument, RevocationDocument};
-use dubp_documents::v10::TextDocumentFormat;
+use dubp_documents::documents::revocation::{CompactRevocationDocument, RevocationDocument};
+use dubp_documents::text_document_traits::TextDocumentFormat;
 use dup_crypto::keys::*;
 use serde_json;
 

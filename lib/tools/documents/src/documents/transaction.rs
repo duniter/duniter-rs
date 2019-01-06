@@ -23,8 +23,8 @@ use std::ops::{Add, Deref, Sub};
 use std::str::FromStr;
 
 use crate::blockstamp::Blockstamp;
-use crate::v10::*;
-use crate::*;
+use crate::documents::*;
+use crate::text_document_traits::*;
 
 /// Wrap a transaction amount
 #[derive(Debug, Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Deserialize, Hash, Serialize)]
@@ -713,7 +713,7 @@ impl TextDocument for TransactionDocument {
 
 impl IntoSpecializedDocument<DUBPDocument> for TransactionDocument {
     fn into_specialized(self) -> DUBPDocument {
-        DUBPDocument::V10(Box::new(V10Document::Transaction(Box::new(self))))
+        DUBPDocument::Transaction(Box::new(self))
     }
 }
 

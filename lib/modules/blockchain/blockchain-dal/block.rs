@@ -15,7 +15,7 @@
 
 use super::constants::MAX_FORKS;
 use crate::*;
-use dubp_documents::v10::BlockDocument;
+use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::Document;
 use dubp_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
 use dup_crypto::keys::*;

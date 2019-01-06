@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use dubp_documents::v10::transaction::{TxAmount, TxBase};
-use dubp_documents::v10::BlockDocument;
+use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::transaction::{TxAmount, TxBase};
 use dubp_documents::BlockId;
 use dubp_documents::Document;
 use dup_crypto::keys::*;

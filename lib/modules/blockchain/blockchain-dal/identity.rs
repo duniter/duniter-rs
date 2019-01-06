@@ -15,7 +15,7 @@
 
 use crate::currency_params::CurrencyParameters;
 use crate::{BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
-use dubp_documents::v10::identity::IdentityDocument;
+use dubp_documents::documents::identity::IdentityDocument;
 use dubp_documents::{BlockId, Blockstamp};
 use dup_crypto::keys::*;
 use durs_wot::NodeId;

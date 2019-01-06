@@ -19,8 +19,8 @@ use dup_crypto::keys::*;
 use pest::Parser;
 
 use crate::blockstamp::Blockstamp;
-use crate::v10::*;
-use crate::*;
+use crate::documents::*;
+use crate::text_document_traits::*;
 
 /// Type of a Membership.
 #[derive(Debug, Deserialize, Clone, Copy, Hash, Serialize, PartialEq, Eq)]
@@ -207,7 +207,7 @@ impl TextDocument for MembershipDocument {
 
 impl IntoSpecializedDocument<DUBPDocument> for MembershipDocument {
     fn into_specialized(self) -> DUBPDocument {
-        DUBPDocument::V10(Box::new(V10Document::Membership(self)))
+        DUBPDocument::Membership(self)
     }
 }
 

@@ -150,7 +150,7 @@ mod tests {
     use crate::v2::WS2Pv2Message;
     use bincode;
     use bincode::{deserialize, serialize};
-    use dubp_documents::v10::certification::*;
+    use dubp_documents::documents::certification::*;
     use dubp_documents::{Blockstamp, CurrencyName};
     use dup_crypto::keys::bin_signable::BinSignable;
     use dup_crypto::keys::*;

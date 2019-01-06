@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use dubp_documents::v10::transaction::*;
+use dubp_documents::documents::transaction::*;
 use dubp_documents::BlockId;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::PubKey;

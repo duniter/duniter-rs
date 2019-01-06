@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Durs Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,7 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Provide wrappers around Duniter blockchain documents for protocol version 10.
+//! Implements the Durs blockchain Documents.
+
+use crate::documents::block::*;
+use crate::documents::certification::*;
+use crate::documents::identity::*;
+use crate::documents::membership::*;
+use crate::documents::revocation::*;
+use crate::documents::transaction::*;
+use crate::Rule;
+use crate::*;
+
+use pest::iterators::Pair;
+use pest::Parser;
 
 pub mod block;
 pub mod certification;
@@ -22,40 +34,9 @@ pub mod membership;
 pub mod revocation;
 pub mod transaction;
 
-use dup_crypto::keys::PrivateKey;
-use pest::Parser;
-
-pub use crate::v10::block::BlockDocument;
-use crate::v10::certification::*;
-use crate::v10::identity::*;
-use crate::v10::membership::*;
-use crate::v10::revocation::*;
-use crate::v10::transaction::*;
-use crate::ToStringObject;
-use crate::*;
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-/// Contains a document in full or compact format
-pub enum TextDocumentFormat<D: TextDocument> {
-    /// Complete format (Allows to check the validity of the signature)
-    Complete(D),
-    /// Format present in the blocks (does not always allow to verify the signature)
-    Compact(D::CompactTextDocument_),
-}
-
-impl<D: TextDocument> TextDocumentFormat<D> {
-    /// To compact document
-    pub fn to_compact_document(&self) -> D::CompactTextDocument_ {
-        match *self {
-            TextDocumentFormat::Complete(ref doc) => doc.to_compact_document(),
-            TextDocumentFormat::Compact(ref compact_doc) => (*compact_doc).clone(),
-        }
-    }
-}
-
-/// List of wrapped document types.
+/// Document of DUBP (DUniter Blockhain Protocol)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum V10Document {
+pub enum DUBPDocument {
     /// Block document.
     Block(Box<BlockDocument>),
 
@@ -77,7 +58,7 @@ pub enum V10Document {
 
 /// List of stringified document types.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum V10DocumentString {
+pub enum DUBPDocumentStr {
     /// Block document (not yet implemented)
     Block(),
 
@@ -97,57 +78,66 @@ pub enum V10DocumentString {
     Revocation(Box<RevocationStringDocument>),
 }
 
-impl ToStringObject for V10Document {
-    type StringObject = V10DocumentString;
+impl ToStringObject for DUBPDocument {
+    type StringObject = DUBPDocumentStr;
     /// Transforms an object into a json object
     fn to_string_object(&self) -> Self::StringObject {
         match *self {
-            V10Document::Block(_) => unimplemented!(),
-            V10Document::Identity(ref doc) => V10DocumentString::Identity(doc.to_string_object()),
-            V10Document::Membership(ref doc) => {
-                V10DocumentString::Membership(doc.to_string_object())
+            DUBPDocument::Block(_) => unimplemented!(),
+            DUBPDocument::Identity(ref doc) => DUBPDocumentStr::Identity(doc.to_string_object()),
+            DUBPDocument::Membership(ref doc) => {
+                DUBPDocumentStr::Membership(doc.to_string_object())
             }
-            V10Document::Certification(ref doc) => {
-                V10DocumentString::Certification(Box::new(doc.to_string_object()))
+            DUBPDocument::Certification(ref doc) => {
+                DUBPDocumentStr::Certification(Box::new(doc.to_string_object()))
             }
-            V10Document::Revocation(ref doc) => {
-                V10DocumentString::Revocation(Box::new(doc.to_string_object()))
+            DUBPDocument::Revocation(ref doc) => {
+                DUBPDocumentStr::Revocation(Box::new(doc.to_string_object()))
             }
-            V10Document::Transaction(ref doc) => {
-                V10DocumentString::Transaction(Box::new(doc.to_string_object()))
+            DUBPDocument::Transaction(ref doc) => {
+                DUBPDocumentStr::Transaction(Box::new(doc.to_string_object()))
             }
         }
     }
 }
 
-impl TextDocumentParser<Rule> for V10Document {
-    type DocumentType = V10Document;
+impl TextDocumentParser<Rule> for DUBPDocument {
+    type DocumentType = DUBPDocument;
 
-    fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
-        match DocumentsParser::parse(Rule::document_v10, doc) {
-            Ok(mut document_v10_pairs) => Ok(V10Document::from_pest_pair(
-                document_v10_pairs.next().unwrap(),
-            )), // get and unwrap the `document_v10` rule; never fails
+    fn parse(doc: &str) -> Result<DUBPDocument, TextDocumentParseError> {
+        match DocumentsParser::parse(Rule::document, doc) {
+            Ok(mut doc_pairs) => Ok(DUBPDocument::from_pest_pair(doc_pairs.next().unwrap())), // get and unwrap the `document` rule; never fails
             Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
         }
     }
     fn from_pest_pair(pair: Pair<Rule>) -> Self::DocumentType {
+        let doc_vx_pair = pair.into_inner().next().unwrap(); // get and unwrap the `document_vX` rule; never fails
+
+        match doc_vx_pair.as_rule() {
+            Rule::document_v10 => DUBPDocument::from_pest_pair_v10(doc_vx_pair),
+            _ => panic!("unexpected rule: {:?}", doc_vx_pair.as_rule()), // Grammar ensures that we never reach this line
+        }
+    }
+}
+
+impl DUBPDocument {
+    pub fn from_pest_pair_v10(pair: Pair<Rule>) -> DUBPDocument {
         let doc_type_v10_pair = pair.into_inner().next().unwrap(); // get and unwrap the `{DOC_TYPE}_v10` rule; never fails
 
         match doc_type_v10_pair.as_rule() {
-            Rule::idty_v10 => V10Document::Identity(
+            Rule::idty_v10 => DUBPDocument::Identity(
                 identity::IdentityDocumentParser::from_pest_pair(doc_type_v10_pair),
             ),
-            Rule::membership_v10 => V10Document::Membership(
+            Rule::membership_v10 => DUBPDocument::Membership(
                 membership::MembershipDocumentParser::from_pest_pair(doc_type_v10_pair),
             ),
-            Rule::cert_v10 => V10Document::Certification(Box::new(
+            Rule::cert_v10 => DUBPDocument::Certification(Box::new(
                 certification::CertificationDocumentParser::from_pest_pair(doc_type_v10_pair),
             )),
-            Rule::revoc_v10 => V10Document::Revocation(Box::new(
+            Rule::revoc_v10 => DUBPDocument::Revocation(Box::new(
                 revocation::RevocationDocumentParser::from_pest_pair(doc_type_v10_pair),
             )),
-            Rule::tx_v10 => V10Document::Transaction(Box::new(
+            Rule::tx_v10 => DUBPDocument::Transaction(Box::new(
                 transaction::TransactionDocumentParser::from_pest_pair(doc_type_v10_pair),
             )),
             _ => panic!("unexpected rule: {:?}", doc_type_v10_pair.as_rule()), // Grammar ensures that we never reach this line
@@ -155,121 +145,18 @@ impl TextDocumentParser<Rule> for V10Document {
     }
 }
 
-/// Trait for a compact V10 document.
-pub trait CompactTextDocument: Sized + Clone {
-    /// Generate document compact text.
-    /// the compact format is the one used in the blocks.
-    ///
-    /// - Don't contains leading signatures
-    /// - Contains line breaks on all line.
-    fn as_compact_text(&self) -> String;
-}
-
-impl<D: TextDocument> CompactTextDocument for TextDocumentFormat<D> {
-    fn as_compact_text(&self) -> String {
-        match *self {
-            TextDocumentFormat::Complete(ref doc) => doc.generate_compact_text(),
-            TextDocumentFormat::Compact(ref doc) => doc.as_compact_text(),
-        }
-    }
-}
-
-/// Trait for a V10 document.
-pub trait TextDocument: Document<PublicKey = PubKey, CurrencyType = str> {
-    /// Type of associated compact document.
-    type CompactTextDocument_: CompactTextDocument;
-
-    /// Return document as text.
-    fn as_text(&self) -> &str;
-
-    /// Return document as text without signature.
-    fn as_text_without_signature(&self) -> &str {
-        let text = self.as_text();
-        let mut lines: Vec<&str> = self.as_text().split('\n').collect();
-        let sigs = self.signatures();
-        let mut sigs_str_len = sigs.len() - 1;
-        for _ in sigs {
-            sigs_str_len += lines.pop().unwrap_or("").len();
-        }
-        &text[0..(text.len() - sigs_str_len)]
-    }
-
-    /*/// Return document as text with leading signatures.
-    fn as_text_with_signatures(&self) -> String {
-        let mut text = self.as_text().to_string();
-
-        for sig in self.signatures() {
-            text = format!("{}{}\n", text, sig.to_base64());
-        }
-
-        text
-    }*/
-
-    /// Generate compact document.
-    /// the compact format is the one used in the blocks.
-    /// - Don't contains leading signatures
-    fn to_compact_document(&self) -> Self::CompactTextDocument_;
-
-    /// Generate document compact text.
-    /// the compact format is the one used in the blocks.
-    ///
-    /// - Don't contains leading signatures
-    /// - Contains line breaks on all line.
-    fn generate_compact_text(&self) -> String {
-        self.to_compact_document().as_compact_text()
-    }
-}
-
-/// Trait for a V10 document builder.
-pub trait TextDocumentBuilder: DocumentBuilder {
-    /// Generate document text.
-    ///
-    /// - Don't contains leading signatures
-    /// - Contains line breaks on all line.
-    fn generate_text(&self) -> String;
-
-    /// Generate final document with signatures, and also return them in an array.
-    ///
-    /// Returns :
-    ///
-    /// - Text without signatures
-    /// - Signatures
-    fn build_signed_text(&self, private_keys: Vec<PrivKey>) -> (String, Vec<Sig>) {
-        let text = self.generate_text();
-
-        let signatures: Vec<_> = {
-            let text_bytes = text.as_bytes();
-            private_keys
-                .iter()
-                .map(|key| key.sign(text_bytes))
-                .collect()
-        };
-
-        (text, signatures)
-    }
-}
-
-/// V10 Documents in separated parts
-#[derive(Debug, Clone)]
-pub struct V10DocumentParts {
-    /// Whole document in text
-    pub doc: String,
-    /// Payload
-    pub body: String,
-    /// Currency
-    pub currency: String,
-    /// Signatures
-    pub signatures: Vec<Sig>,
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::blockstamp::Blockstamp;
+    use crate::*;
+
     use super::certification::CertificationDocumentParser;
     use super::identity::IdentityDocumentParser;
     use super::membership::MembershipDocumentParser;
     use super::revocation::RevocationDocumentParser;
     use super::transaction::TransactionDocumentParser;
     use super::*;
+
     use dup_crypto::keys::*;
 
     // simple text document for signature testing

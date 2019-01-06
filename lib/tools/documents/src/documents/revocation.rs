@@ -19,8 +19,8 @@ use dup_crypto::keys::*;
 use pest::Parser;
 
 use crate::blockstamp::Blockstamp;
-use crate::v10::*;
-use crate::*;
+use crate::documents::*;
+use crate::text_document_traits::*;
 
 #[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq)]
 /// Wrap an Compact Revocation document (in block content)
@@ -150,7 +150,7 @@ impl TextDocument for RevocationDocument {
 
 impl IntoSpecializedDocument<DUBPDocument> for RevocationDocument {
     fn into_specialized(self) -> DUBPDocument {
-        DUBPDocument::V10(Box::new(V10Document::Revocation(Box::new(self))))
+        DUBPDocument::Revocation(Box::new(self))
     }
 }
 

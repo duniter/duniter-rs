@@ -267,7 +267,7 @@ impl DursModule<DuRsConf, DursMsg> for SkeletonModule {
                                 ref event_content, ..
                             } => match *event_content {
                                 DursEvent::BlockchainEvent(ref blockchain_event) => {
-                                    match *blockchain_event {
+                                    match *blockchain_event.deref() {
                                         BlockchainEvent::StackUpValidBlock(
                                             ref _block,
                                             ref _blockstamp,

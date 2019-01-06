@@ -38,6 +38,7 @@ mod dbex;
 mod revert_block;
 mod sync;
 mod ts_parsers;
+mod verify_block;
 
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -49,9 +50,9 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use crate::apply_valid_block::*;
 use crate::check_and_apply_block::*;
 pub use crate::dbex::{DBExQuery, DBExTxQuery, DBExWotQuery};
-use dubp_documents::v10::{BlockDocument, V10Document};
+use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::DUBPDocument;
 use dubp_documents::*;
-use dubp_documents::{DUBPDocument, Document};
 use duniter_module::*;
 use duniter_network::{
     cli::sync::SyncOpt,
@@ -113,6 +114,16 @@ pub enum Block<'a> {
     NetworkBlock(&'a NetworkBlock),
     /// Block coming from local database
     LocalBlock(&'a BlockDocument),
+}
+
+impl<'a> Block<'a> {
+    /// Return blockstamp
+    pub fn blockstamp(&self) -> Blockstamp {
+        match *self {
+            Block::NetworkBlock(ref network_block) => network_block.blockstamp(),
+            Block::LocalBlock(ref block) => block.blockstamp(),
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -290,7 +301,7 @@ impl BlockchainModule {
         self.router_sender
             .send(RouterThreadMessage::ModuleMessage(DursMsg::Event {
                 event_type: module_event,
-                event_content: DursEvent::BlockchainEvent(event.clone()),
+                event_content: DursEvent::BlockchainEvent(Box::new(event.clone())),
             }))
             .unwrap_or_else(|_| panic!("Fail to send BlockchainEvent to router"));
     }
@@ -316,143 +327,103 @@ impl BlockchainModule {
         wot_index: &mut HashMap<PubKey, NodeId>,
         wot_db: &BinDB<W>,
     ) -> Blockstamp {
-        let mut blockchain_documents = Vec::new();
         let mut current_blockstamp = *current_blockstamp;
-        let mut save_blocks_dbs = false;
-        let mut save_wots_dbs = false;
-        let mut save_currency_dbs = false;
+
         for network_document in network_documents {
-            match *network_document {
-                BlockchainDocument::Block(ref network_block) => {
-                    match check_and_apply_block::<W>(
-                        &self.blocks_databases,
-                        &self.wot_databases.certs_db,
-                        &Block::NetworkBlock(network_block),
-                        &current_blockstamp,
-                        wot_index,
-                        wot_db,
-                        &self.forks_states,
-                    ) {
-                        Ok(ValidBlockApplyReqs(block_req, wot_dbs_reqs, currency_dbs_reqs)) => {
-                            let block_doc = network_block.uncompleted_block_doc().clone();
-                            // Apply wot dbs requests
-                            for req in &wot_dbs_reqs {
-                                req.apply(&self.wot_databases, &self.currency_params)
-                                    .expect(
+            if let BlockchainDocument::Block(ref network_block) = network_document {
+                match check_and_apply_block::<W>(
+                    &self.blocks_databases,
+                    &self.wot_databases.certs_db,
+                    &Block::NetworkBlock(network_block),
+                    &current_blockstamp,
+                    wot_index,
+                    wot_db,
+                    &self.forks_states,
+                ) {
+                    Ok(ValidBlockApplyReqs(block_req, wot_dbs_reqs, currency_dbs_reqs)) => {
+                        let block_doc = network_block.uncompleted_block_doc().clone();
+                        let mut save_wots_dbs = false;
+                        let mut save_currency_dbs = false;
+
+                        // Apply wot dbs requests
+                        for req in &wot_dbs_reqs {
+                            req.apply(&self.wot_databases, &self.currency_params)
+                                .expect(
                                     "Fatal error : fail to apply WotsDBsWriteQuery : DALError !",
                                 );
-                            }
-                            // Apply currency dbs requests
-                            for req in currency_dbs_reqs {
-                                req.apply(&self.currency_databases).expect(
-                                    "Fatal error : fail to apply CurrencyDBsWriteQuery : DALError !",
-                                );
-                            }
-                            // Write block
-                            block_req.apply(&self.blocks_databases, false).expect(
-                                "Fatal error : fail to write block in BlocksDBs : DALError !",
-                            );
-                            if let BlocksDBsWriteQuery::WriteBlock(_, _, _, block_hash) = block_req
-                            {
-                                info!("StackUpValidBlock({})", block_doc.number.0);
-                                self.send_event(&BlockchainEvent::StackUpValidBlock(
-                                    Box::new(block_doc.clone()),
-                                    Blockstamp {
-                                        id: block_doc.number,
-                                        hash: block_hash,
-                                    },
-                                ));
-                            }
-                            current_blockstamp = network_block.blockstamp();
-                            // Update forks states
-                            self.forks_states = durs_blockchain_dal::block::get_forks(
-                                &self.blocks_databases.forks_db,
-                                current_blockstamp,
-                            )
-                            .expect("get_forks() : DALError");
-                            save_blocks_dbs = true;
-                            if !wot_dbs_reqs.is_empty() {
-                                save_wots_dbs = true;
-                            }
-                            if !block_doc.transactions.is_empty()
-                                || (block_doc.dividend.is_some()
-                                    && block_doc.dividend.expect("safe unwrap") > 0)
-                            {
-                                save_currency_dbs = true;
-                            }
                         }
-                        Err(_) => {
-                            warn!(
-                                "RefusedBlock({})",
-                                network_block.uncompleted_block_doc().number.0
+                        // Apply currency dbs requests
+                        for req in currency_dbs_reqs {
+                            req.apply(&self.currency_databases).expect(
+                                "Fatal error : fail to apply CurrencyDBsWriteQuery : DALError !",
                             );
-                            self.send_event(&BlockchainEvent::RefusedPendingDoc(
-                                DUBPDocument::V10(Box::new(V10Document::Block(Box::new(
-                                    network_block.uncompleted_block_doc().clone(),
-                                )))),
+                        }
+                        // Write block
+                        block_req
+                            .apply(&self.blocks_databases, false)
+                            .expect("Fatal error : fail to write block in BlocksDBs : DALError !");
+                        if let BlocksDBsWriteQuery::WriteBlock(_, _, _, block_hash) = block_req {
+                            info!("StackUpValidBlock({})", block_doc.number.0);
+                            self.send_event(&BlockchainEvent::StackUpValidBlock(
+                                Box::new(block_doc.clone()),
+                                Blockstamp {
+                                    id: block_doc.number,
+                                    hash: block_hash,
+                                },
                             ));
                         }
+                        current_blockstamp = network_block.blockstamp();
+                        // Update forks states
+                        self.forks_states = durs_blockchain_dal::block::get_forks(
+                            &self.blocks_databases.forks_db,
+                            current_blockstamp,
+                        )
+                        .expect("get_forks() : DALError");
+
+                        if !wot_dbs_reqs.is_empty() {
+                            save_wots_dbs = true;
+                        }
+                        if !block_doc.transactions.is_empty()
+                            || (block_doc.dividend.is_some()
+                                && block_doc.dividend.expect("safe unwrap") > 0)
+                        {
+                            save_currency_dbs = true;
+                        }
+
+                        // Save databases
+                        self.blocks_databases.save_dbs();
+                        if save_wots_dbs {
+                            self.wot_databases.save_dbs();
+                        }
+                        if save_currency_dbs {
+                            self.currency_databases.save_dbs(true, true);
+                        }
+                    }
+                    Err(_) => {
+                        warn!(
+                            "RefusedBlock({})",
+                            network_block.uncompleted_block_doc().number.0
+                        );
+                        self.send_event(&BlockchainEvent::RefusedPendingDoc(DUBPDocument::Block(
+                            Box::new(network_block.uncompleted_block_doc().clone()),
+                        )));
                     }
                 }
-                BlockchainDocument::Identity(ref doc) => blockchain_documents.push(
-                    DUBPDocument::V10(Box::new(V10Document::Identity(doc.deref().clone()))),
-                ),
-                BlockchainDocument::Membership(ref doc) => blockchain_documents.push(
-                    DUBPDocument::V10(Box::new(V10Document::Membership(doc.deref().clone()))),
-                ),
-                BlockchainDocument::Certification(ref doc) => {
-                    blockchain_documents.push(DUBPDocument::V10(Box::new(
-                        V10Document::Certification(Box::new(doc.deref().clone())),
-                    )))
-                }
-                BlockchainDocument::Revocation(ref doc) => {
-                    blockchain_documents.push(DUBPDocument::V10(Box::new(V10Document::Revocation(
-                        Box::new(doc.deref().clone()),
-                    ))))
-                }
-                BlockchainDocument::Transaction(ref doc) => {
-                    blockchain_documents.push(DUBPDocument::V10(Box::new(
-                        V10Document::Transaction(Box::new(doc.deref().clone())),
-                    )))
-                }
             }
         }
-        if !blockchain_documents.is_empty() {
-            self.receive_documents(&blockchain_documents);
-        }
-        // Save databases
-        if save_blocks_dbs {
-            self.blocks_databases.save_dbs();
-        }
-        if save_wots_dbs {
-            self.wot_databases.save_dbs();
-        }
-        if save_currency_dbs {
-            self.currency_databases.save_dbs(true, true);
-        }
+
         current_blockstamp
     }
-    fn receive_documents(&self, documents: &[DUBPDocument]) {
-        debug!("BlockchainModule : receive_documents()");
-        for document in documents {
-            trace!("BlockchainModule : Treat one document.");
-            match *document {
-                DUBPDocument::V10(ref doc_v10) => match doc_v10.deref() {
-                    _ => {}
-                },
-                _ => self.send_event(&BlockchainEvent::RefusedPendingDoc(document.clone())),
-            }
-        }
-    }
+
     fn receive_blocks<W: WebOfTrust>(
         &mut self,
-        blocks_in_box: &[Box<NetworkBlock>],
+        blocks_in_box: &[Box<Block>],
         current_blockstamp: &Blockstamp,
         wot_index: &mut HashMap<PubKey, NodeId>,
         wot: &BinDB<W>,
     ) -> Blockstamp {
         debug!("BlockchainModule : receive_blocks()");
-        let blocks: Vec<&NetworkBlock> = blocks_in_box.iter().map(|b| b.deref()).collect();
+        let blocks: Vec<&Block> = blocks_in_box.iter().map(|b| b.deref()).collect();
         let mut current_blockstamp = *current_blockstamp;
         let mut save_blocks_dbs = false;
         let mut save_wots_dbs = false;
@@ -462,7 +433,7 @@ impl BlockchainModule {
                 check_and_apply_block::<W>(
                     &self.blocks_databases,
                     &self.wot_databases.certs_db,
-                    &Block::NetworkBlock(block),
+                    &block,
                     &current_blockstamp,
                     wot_index,
                     wot,
@@ -653,8 +624,16 @@ impl BlockchainModule {
                                     _ => {}
                                 }
                             }
-                            DursEvent::ReceiveValidDocsFromClient(ref docs) => {
-                                self.receive_documents(docs);
+                            DursEvent::MemPoolEvent(ref mempool_event) => {
+                                if let MemPoolEvent::FindNextBlock(next_block_box) = mempool_event {
+                                    let new_current_blockstamp = self.receive_blocks(
+                                        &[Box::new(Block::LocalBlock(next_block_box.deref()))],
+                                        &current_blockstamp,
+                                        &mut wot_index,
+                                        &wot_db,
+                                    );
+                                    current_blockstamp = new_current_blockstamp;
+                                }
                             }
                             _ => {} // Others modules events
                         },
@@ -710,8 +689,13 @@ impl BlockchainModule {
                                             if let NetworkResponse::Chunk(_, _, ref blocks) =
                                                 *network_response.deref()
                                             {
+                                                let blocks: Vec<Box<Block>> = blocks
+                                                    .iter()
+                                                    .map(|b| Box::new(Block::NetworkBlock(b)))
+                                                    .collect();
+
                                                 let new_current_blockstamp = self.receive_blocks(
-                                                    blocks,
+                                                    &blocks,
                                                     &current_blockstamp,
                                                     &mut wot_index,
                                                     &wot_db,

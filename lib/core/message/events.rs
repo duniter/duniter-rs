@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
-use dubp_documents::v10::block::BlockDocument;
+use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::DUBPDocument;
 use dubp_documents::*;
 use duniter_network::events::NetworkEvent;
 
@@ -24,7 +25,9 @@ pub enum DursEvent {
     /// Arbitrary datas.
     ArbitraryDatas(ArbitraryDatas),
     /// Blockchain event
-    BlockchainEvent(BlockchainEvent),
+    BlockchainEvent(Box<BlockchainEvent>),
+    /// MemPool Event (local node find next block)
+    MemPoolEvent(MemPoolEvent),
     /// Network event
     NetworkEvent(Box<NetworkEvent>),
     /// Client API event
@@ -32,7 +35,16 @@ pub enum DursEvent {
 }
 
 #[derive(Debug, Clone)]
-/// Event to be transmitted to the other modules
+/// MemPool module events
+pub enum MemPoolEvent {
+    /// FindNextBlock (local node find next block)
+    FindNextBlock(Box<BlockDocument>),
+    /// Store new Blockhain Document in Pool
+    StoreNewDocInPool(Box<DUBPDocument>),
+}
+
+#[derive(Debug, Clone)]
+/// Blockchain module events
 pub enum BlockchainEvent {
     /// Stack up new valid block in local blockchain
     StackUpValidBlock(Box<BlockDocument>, Blockstamp),

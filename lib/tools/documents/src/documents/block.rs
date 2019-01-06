@@ -20,13 +20,13 @@ use dup_crypto::keys::*;
 use std::ops::Deref;
 
 use crate::blockstamp::Blockstamp;
-use crate::v10::certification::CertificationDocument;
-use crate::v10::identity::IdentityDocument;
-use crate::v10::membership::MembershipDocument;
-use crate::v10::revocation::RevocationDocument;
-use crate::v10::transaction::TransactionDocument;
-use crate::v10::*;
-use crate::*;
+use crate::documents::certification::CertificationDocument;
+use crate::documents::identity::IdentityDocument;
+use crate::documents::membership::MembershipDocument;
+use crate::documents::revocation::RevocationDocument;
+use crate::documents::transaction::TransactionDocument;
+use crate::documents::*;
+use crate::text_document_traits::*;
 
 #[derive(Debug, Clone)]
 /// Store error in block parameters parsing
@@ -192,6 +192,8 @@ impl TxDocOrTxHash {
 /// Must be created by parsing a text document or using a builder.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct BlockDocument {
+    /// Version
+    pub version: u32,
     /// Nonce
     pub nonce: u64,
     /// number
@@ -496,7 +498,7 @@ impl TextDocument for BlockDocument {
 
 impl IntoSpecializedDocument<DUBPDocument> for BlockDocument {
     fn into_specialized(self) -> DUBPDocument {
-        DUBPDocument::V10(Box::new(V10Document::Block(Box::new(self))))
+        DUBPDocument::Block(Box::new(self))
     }
 }
 
@@ -511,6 +513,7 @@ mod tests {
     fn generate_and_verify_empty_block() {
         let mut block = BlockDocument {
             nonce: 100_010_200_000_006_940,
+            version: 10,
             number: BlockId(174_260),
             pow_min: 68,
             time: 1_525_296_873,
@@ -612,6 +615,7 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
 
         let mut block = BlockDocument {
             nonce: 0,
+            version: 10,
             number: BlockId(107_984),
             pow_min: 88,
             time: 1_522_685_861,
@@ -792,6 +796,7 @@ nxr4exGrt16jteN9ZX3XZPP9l+X0OUbZ1o/QjE1hbWQNtVU3HhH9SJoEvNj2iVl3gCRr9u2OA9uj9vCy
 
         let mut block = BlockDocument {
             nonce: 0,
+            version: 10,
             number: BlockId(165_647),
             pow_min: 90,
             time: 1_540_633_175,
