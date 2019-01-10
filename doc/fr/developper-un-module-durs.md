@@ -49,8 +49,8 @@ Le dossier `tools/` ne doit contenir que des bibliothèques utilisées (aussi) p
 Pour résumer :
 
 * Une bibliothèque est utilisée par le coeur et éventuellement par des modules : dossier `tools`.
-* Une bibliopthèque est utilisée exclusivement par des modules : dossier `modules-common`.
-* Une bibliopthèque est utilisée exclusivement par un seul module : dossier `modules-lib/{MODULE_NAME}`.
+* Une bibliothèque est utilisée exclusivement par des modules : dossier `modules-common`.
+* Une bibliothèque est utilisée exclusivement par un seul module : dossier `modules-lib/{MODULE_NAME}`.
 
 ## Le module skeleton
 
