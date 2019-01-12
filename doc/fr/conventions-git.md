@@ -43,6 +43,7 @@ Exemple, renomage d'un trait `Toto` en `Titi` dans la crate `durs-bidule` :
 
 * `build` : Modification des script de build, de packaging ou/et de publication des livrables.
 * `ci` : Modification de la chaine d'intégration continue.
+* `deps` : Modification des dépendances sans modification du code : ce peut-être pour mettre à jours des dépendances tierces ou pour supprimer des dépendances tierces qui ne sont plus utilisées.
 * `docs` : Modification de la documentation (y compris traduction et création de nouveau contenu).
 * `feat` : Développement d'une nouvelle fonctionnalitée.
 * `fix` : Correction d'un bug
