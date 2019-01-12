@@ -1,0 +1,33 @@
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+
+null = { "null" }
+boolean = { "true" | "false" }
+number = @{
+    "-"?
+    ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*)
+    ~ ("." ~ ASCII_DIGIT*)?
+    ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)?
+}
+
+string = ${ "\"" ~ inner_string ~ "\"" }
+inner_string = @{ char* }
+char = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+
+object = {
+    "{" ~ "}" |
+    "{" ~ pair ~ ("," ~ pair)* ~ "}"
+}
+pair = { string ~ ":" ~ value }
+
+array = {
+    "[" ~ "]" |
+    "[" ~ value ~ ("," ~ value)* ~ "]"
+}
+
+value = _{ object | array | string | number | boolean | null }
+
+json = _{ SOI ~ (object | array) ~ EOI }
