@@ -29,6 +29,9 @@ pub struct SyncOpt {
     /// The source type
     #[structopt(short = "t", long = "type", default_value = "ts")]
     pub source_type: SyncSourceType,
+    /// Currency
+    #[structopt(short = "c", long = "currency")]
+    pub currency: Option<String>,
     /// End block
     #[structopt(short = "e", long = "end")]
     pub end: Option<u32>,
