@@ -1,0 +1,19 @@
+[package]
+name = "durs-common-tools"
+version = "0.1.0"
+authors = ["elois <elois@duniter.org>"]
+description = "Common rust tools for DURS project."
+repository = "https://git.duniter.org/nodes/rust/duniter-rs"
+readme = "README.md"
+keywords = ["durs", "tools"]
+license = "AGPL-3.0"
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+log = "0.4.*"
+
+[dev-dependencies]
+pretty_assertions = "0.5.1"
