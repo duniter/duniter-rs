@@ -74,12 +74,15 @@ pub trait GetKeysAlgo: Clone + Debug + PartialEq + Eq {
 }
 
 /// Errors enumeration for Base58/64 strings convertion.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Fail)]
 pub enum BaseConvertionError {
+    #[fail(display = "Data have invalid key length.")]
     /// Data have invalid key length (found, expected).
     InvalidKeyLendth(usize, usize),
+    #[fail(display = "Invalid character.")]
     /// Base58 have an invalid character.
     InvalidCharacter(char, usize),
+    #[fail(display = "Invalid base converter length.")]
     /// Base58 have invalid lendth
     InvalidBaseConverterLength(),
 }
