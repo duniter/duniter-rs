@@ -279,18 +279,44 @@ impl BlockDocument {
     pub fn compute_inner_hash(&mut self) {
         self.inner_hash = Some(Hash::compute_str(&self.generate_compact_inner_text()));
     }
-    /// Fill inner_hash_and_nonce_str
-    pub fn fill_inner_hash_and_nonce_str(&mut self, new_nonce: Option<u64>) {
-        if let Some(new_nonce) = new_nonce {
-            self.nonce = new_nonce;
+    /// Compute inner hash
+    pub fn verify_inner_hash(&self) -> bool {
+        match self.inner_hash {
+            Some(inner_hash) => {
+                inner_hash == Hash::compute_str(&self.generate_compact_inner_text())
+            }
+            None => false,
         }
-        self.inner_hash_and_nonce_str = format!(
+    }
+    // Generate the character string that will be hashed
+    fn generate_will_hashed_string(&self) -> String {
+        format!(
             "InnerHash: {}\nNonce: {}\n",
             self.inner_hash
                 .expect("Try to get inner_hash of an uncompleted or reduce block !")
                 .to_hex(),
             self.nonce
-        );
+        )
+    }
+    /// Verify block hash
+    pub fn verify_hash(&self) -> bool {
+        match self.hash {
+            Some(hash) => {
+                hash == BlockHash(Hash::compute_str(&format!(
+                    "{}{}\n",
+                    self.generate_will_hashed_string(),
+                    self.signatures[0]
+                )))
+            }
+            None => false,
+        }
+    }
+    /// Fill inner_hash_and_nonce_str
+    pub fn fill_inner_hash_and_nonce_str(&mut self, new_nonce: Option<u64>) {
+        if let Some(new_nonce) = new_nonce {
+            self.nonce = new_nonce;
+        }
+        self.inner_hash_and_nonce_str = self.generate_will_hashed_string();
     }
     /// Sign block
     pub fn sign(&mut self, privkey: PrivKey) {
@@ -300,11 +326,8 @@ impl BlockDocument {
     /// Compute hash
     pub fn compute_hash(&mut self) {
         self.hash = Some(BlockHash(Hash::compute_str(&format!(
-            "InnerHash: {}\nNonce: {}\n{}\n",
-            self.inner_hash
-                .expect("Try to get inner_hash of an uncompleted or reduce block !")
-                .to_hex(),
-            self.nonce,
+            "{}{}\n",
+            self.generate_will_hashed_string(),
             self.signatures[0]
         ))));
     }
