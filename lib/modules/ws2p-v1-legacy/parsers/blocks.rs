@@ -4,9 +4,10 @@ use super::transactions::parse_transaction;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::documents::block::{BlockV10Parameters, TxDocOrTxHash};
 use dubp_documents::documents::membership::*;
+use dubp_documents::parsers::certifications::*;
+use dubp_documents::parsers::revoked::*;
 use dubp_documents::CurrencyName;
 use dubp_documents::{BlockHash, BlockId};
-use duniter_network::documents::{NetworkBlock, NetworkBlockV10};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use std::str::FromStr;
@@ -57,7 +58,7 @@ fn parse_memberships(
     Some(memberships)
 }
 
-pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
+pub fn parse_json_block(source: &serde_json::Value) -> Option<BlockDocument> {
     let number = BlockId(source.get("number")?.as_u64()? as u32);
     let currency = source.get("currency")?.as_str()?.to_string();
     let issuer = match ed25519::PublicKey::from_base58(source.get("issuer")?.as_str()?) {
@@ -98,13 +99,25 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
     let joiners = parse_memberships(&currency, MembershipType::In(), source.get("joiners")?)?;
     let actives = parse_memberships(&currency, MembershipType::In(), source.get("actives")?)?;
     let leavers = parse_memberships(&currency, MembershipType::Out(), source.get("actives")?)?;
+    let revoked: Vec<&str> = source
+        .get("revoked")?
+        .as_array()?
+        .iter()
+        .map(|v| v.as_str().unwrap_or(""))
+        .collect();
+    let certifications: Vec<&str> = source
+        .get("certifications")?
+        .as_array()?
+        .iter()
+        .map(|v| v.as_str().unwrap_or(""))
+        .collect();
     let mut transactions = Vec::new();
     for json_tx in source.get("transactions")?.as_array()? {
         transactions.push(TxDocOrTxHash::TxDoc(Box::new(parse_transaction(
             "g1", &json_tx,
         )?)));
     }
-    let block_doc = BlockDocument {
+    Some(BlockDocument {
         nonce: source.get("nonce")?.as_i64()? as u64,
         version: source.get("version")?.as_u64()? as u32,
         number: BlockId(source.get("number")?.as_u64()? as u32),
@@ -130,9 +143,9 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
         joiners,
         actives,
         leavers,
-        revoked: Vec::with_capacity(0),
+        revoked: parse_revocations_into_compact(&revoked),
         excluded: parse_exclusions_from_json_value(&source.get("excluded")?.as_array()?),
-        certifications: Vec::with_capacity(0),
+        certifications: parse_certifications_into_compact(&certifications),
         transactions,
         inner_hash_and_nonce_str: format!(
             "InnerHash: {}\nNonce: {}\n",
@@ -141,10 +154,5 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<NetworkBlock> {
                 .to_hex(),
             source.get("nonce")?.as_u64()?
         ),
-    };
-    Some(NetworkBlock::V10(Box::new(NetworkBlockV10 {
-        uncompleted_block_doc: block_doc,
-        revoked: source.get("revoked")?.as_array()?.clone(),
-        certifications: source.get("certifications")?.as_array()?.clone(),
-    })))
+    })
 }

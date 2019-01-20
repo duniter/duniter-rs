@@ -485,9 +485,9 @@ impl WS2PConnectionMetaDatas {
                         match s.as_str().unwrap() {
                             "BLOCK" => match body.get("block") {
                                 Some(block) => {
-                                    if let Some(network_block) = parse_json_block(&block) {
+                                    if let Some(block_doc) = parse_json_block(&block) {
                                         return WS2PConnectionMessagePayload::Document(
-                                            BlockchainDocument::Block(network_block),
+                                            BlockchainDocument::Block(Box::new(block_doc)),
                                         );
                                     } else {
                                         info!("WS2PSignal: receive invalid block (wrong format).");

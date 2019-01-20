@@ -759,7 +759,9 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                                         let mut chunk = Vec::new();
                                         for json_block in response.as_array().unwrap() {
                                             if let Some(block) = parse_json_block(json_block) {
-                                                chunk.push(BlockchainDocument::Block(block));
+                                                chunk.push(BlockchainDocument::Block(Box::new(
+                                                    block,
+                                                )));
                                             } else {
                                                 warn!("WS2PModule: Error : fail to parse one json block !");
                                             }
@@ -935,7 +937,6 @@ mod tests {
     use super::*;
     use dubp_documents::documents::block::BlockDocument;
     use duniter_module::DursModule;
-    use duniter_network::documents::NetworkBlock;
     use dup_crypto::keys::PublicKey;
     use durs_network_documents::network_endpoint::NetworkEndpointApi;
     use std::fs;
@@ -1089,12 +1090,7 @@ mod tests {
             ],
         });
         let mut block: BlockDocument =
-            match parse_json_block(&json_block).expect("Fail to parse test json block !") {
-                NetworkBlock::V10(network_block_v10) => network_block_v10.uncompleted_block_doc,
-                _ => {
-                    panic!("Test block must be a v10 block !");
-                }
-            };
+            parse_json_block(&json_block).expect("Fail to parse test json block !");
         assert_eq!(
             block
                 .inner_hash

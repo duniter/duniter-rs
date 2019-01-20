@@ -20,15 +20,13 @@ use crate::verify_block::*;
 use crate::*;
 use dubp_documents::Document;
 use dubp_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
-use duniter_network::documents::NetworkBlock;
 use dup_crypto::keys::*;
 use durs_blockchain_dal::block::DALBlock;
 use durs_blockchain_dal::*;
 
 #[derive(Debug, Copy, Clone)]
 pub enum BlockError {
-    BlockVersionNotSupported(),
-    CompletedBlockError(CompletedBlockError),
+    VerifyBlockHashsError(VerifyBlockHashsError),
     DALError(DALError),
     InvalidBlock(InvalidBlockError),
     ApplyValidBlockError(ApplyValidBlockError),
@@ -36,9 +34,9 @@ pub enum BlockError {
     UnknowError(),
 }
 
-impl From<CompletedBlockError> for BlockError {
-    fn from(err: CompletedBlockError) -> Self {
-        BlockError::CompletedBlockError(err)
+impl From<VerifyBlockHashsError> for BlockError {
+    fn from(err: VerifyBlockHashsError) -> Self {
+        BlockError::VerifyBlockHashsError(err)
     }
 }
 
@@ -65,19 +63,19 @@ pub fn check_and_apply_block<W: WebOfTrust>(
 ) -> Result<ValidBlockApplyReqs, BlockError> {
     // Get BlockDocument && check if already have block
     let (block_doc, already_have_block) = match *block {
-        Block::NetworkBlock(network_block) => match *network_block {
-            NetworkBlock::V10(ref network_block_v10) => {
-                let already_have_block = DALBlock::already_have_block(
-                    &blocks_databases.blockchain_db,
-                    &blocks_databases.forks_blocks_db,
-                    network_block_v10.uncompleted_block_doc.blockstamp(),
-                )?;
-                (&network_block_v10.uncompleted_block_doc, already_have_block)
-            }
-            _ => return Err(BlockError::BlockVersionNotSupported()),
-        },
+        Block::NetworkBlock(block_doc) => {
+            let already_have_block = DALBlock::already_have_block(
+                &blocks_databases.blockchain_db,
+                &blocks_databases.forks_blocks_db,
+                block_doc.blockstamp(),
+            )?;
+            (block_doc, already_have_block)
+        }
         Block::LocalBlock(block_doc) => (block_doc, true),
     };
+
+    // Verify block hashs
+    verify_block_hashs(block_doc)?;
 
     // Check block chainability
     if (block_doc.number.0 == current_blockstamp.id.0 + 1
@@ -95,14 +93,14 @@ pub fn check_and_apply_block<W: WebOfTrust>(
 
         // Try stack up block
         let mut old_fork_id = None;
-        let block_doc = match *block {
-            Block::NetworkBlock(network_block) => complete_network_block(network_block, true)?,
+        let block_doc: &BlockDocument = match *block {
+            Block::NetworkBlock(block_doc) => block_doc,
             Block::LocalBlock(block_doc) => {
                 old_fork_id = durs_blockchain_dal::block::get_fork_id_of_blockstamp(
                     &blocks_databases.forks_blocks_db,
                     &block_doc.blockstamp(),
                 )?;
-                block_doc.clone()
+                block_doc
             }
         };
 
@@ -154,13 +152,11 @@ pub fn check_and_apply_block<W: WebOfTrust>(
                 _ => {}
             }
             match *block {
-                Block::NetworkBlock(network_block) => {
-                    // Completed network block
-                    let block_doc = complete_network_block(network_block, true)?;
+                Block::NetworkBlock(block_doc) => {
                     let dal_block = DALBlock {
                         fork_id,
                         isolate,
-                        block: block_doc,
+                        block: block_doc.clone(),
                         expire_certs: None,
                     };
                     durs_blockchain_dal::writers::block::write(

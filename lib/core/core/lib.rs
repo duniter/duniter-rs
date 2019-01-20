@@ -241,7 +241,9 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
         init_logger(profile.as_str(), self.soft_meta_datas.soft_name, &cli_args);
 
         // Print panic! in logs
-        log_panics::init();
+        if cfg!(feature = "log_panics") {
+            log_panics::init();
+        }
 
         // Load global conf
         let (conf, keypairs) = duniter_conf::load_conf(profile.as_str());
@@ -296,10 +298,9 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             let opts = SyncOpt::from_clap(matches);
             match opts.source_type {
                 SyncSourceType::Network => unimplemented!(),
-                SyncSourceType::TsSqlDb => {
+                SyncSourceType::LocalDuniter => {
                     sync_ts(profile.as_str(), &conf, &opts);
                 }
-                SyncSourceType::JsonFiles => unimplemented!(),
             }
 
             false

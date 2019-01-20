@@ -15,11 +15,14 @@ duniter-conf = { path = "../../../core/conf" }
 dup-crypto = { path = "../../../tools/crypto" }
 durs-blockchain-dal = { path = "../blockchain-dal" }
 dubp-documents= { path = "../../../tools/documents" }
+durs-common-tools = { path = "../../../tools/common-tools" }
 durs-network-documents = { path = "../../../tools/network-documents" }
 durs-message =  { path = "../../../core/message" }
 duniter-module = { path = "../../../core/module" }
 duniter-network = { path = "../../../core/network" }
 durs-wot = { path = "../../../tools/wot" }
+failure = "0.1.5"
+json-pest-parser = { path = "../../../tools/json-pest-parser" }
 log = "0.4.*"
 num_cpus = "1.8.*"
 pbr = "1.0.*"

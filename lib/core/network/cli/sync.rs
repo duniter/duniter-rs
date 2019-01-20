@@ -24,7 +24,7 @@ use std::str::FromStr;
 )]
 /// Synchronization from network
 pub struct SyncOpt {
-    /// The source of datas (url of the node from which to synchronize OR path to local file)
+    /// The source of datas (url of the node from which to synchronize OR path to local folder)
     pub source: Option<String>,
     /// The source type
     #[structopt(short = "t", long = "type", default_value = "ts")]
@@ -48,10 +48,8 @@ pub struct SyncOpt {
 pub enum SyncSourceType {
     /// Sync from network
     Network,
-    /// Sync from Duniter-ts sqlite bdd
-    TsSqlDb,
-    /// Sync from json blocks in files
-    JsonFiles,
+    /// Sync from local Duniter json blocks in files
+    LocalDuniter,
 }
 
 impl FromStr for SyncSourceType {
@@ -60,8 +58,7 @@ impl FromStr for SyncSourceType {
     fn from_str(source: &str) -> Result<Self, Self::Err> {
         match source {
             "n" | "network" => Ok(SyncSourceType::Network),
-            "ts" | "ts-sql" => Ok(SyncSourceType::TsSqlDb),
-            "json" => Ok(SyncSourceType::JsonFiles),
+            "ts" | "duniter" => Ok(SyncSourceType::LocalDuniter),
             &_ => Err("Unknown source type".to_owned()),
         }
     }

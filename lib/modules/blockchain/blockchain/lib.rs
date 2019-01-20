@@ -29,15 +29,17 @@
     unused_qualifications
 )]
 
+//#[macro_use]
+//extern crate failure;
 #[macro_use]
 extern crate log;
 
 mod apply_valid_block;
 mod check_and_apply_block;
+mod constants;
 mod dbex;
 mod revert_block;
 mod sync;
-mod ts_parsers;
 mod verify_block;
 
 use std::collections::HashMap;
@@ -49,6 +51,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::apply_valid_block::*;
 use crate::check_and_apply_block::*;
+use crate::constants::*;
 pub use crate::dbex::{DBExQuery, DBExTxQuery, DBExWotQuery};
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::documents::DUBPDocument;
@@ -56,7 +59,7 @@ use dubp_documents::*;
 use duniter_module::*;
 use duniter_network::{
     cli::sync::SyncOpt,
-    documents::{BlockchainDocument, NetworkBlock},
+    documents::BlockchainDocument,
     events::NetworkEvent,
     requests::{NetworkResponse, OldNetworkRequest},
 };
@@ -66,6 +69,7 @@ use durs_blockchain_dal::currency_params::CurrencyParameters;
 use durs_blockchain_dal::identity::DALIdentity;
 use durs_blockchain_dal::writers::requests::BlocksDBsWriteQuery;
 use durs_blockchain_dal::*;
+use durs_common_tools::fatal_error;
 use durs_message::events::*;
 use durs_message::requests::*;
 use durs_message::responses::*;
@@ -111,7 +115,7 @@ pub struct BlockchainModule {
 /// Block
 pub enum Block<'a> {
     /// Block coming from Network
-    NetworkBlock(&'a NetworkBlock),
+    NetworkBlock(&'a BlockDocument),
     /// Block coming from local database
     LocalBlock(&'a BlockDocument),
 }
@@ -120,7 +124,7 @@ impl<'a> Block<'a> {
     /// Return blockstamp
     pub fn blockstamp(&self) -> Blockstamp {
         match *self {
-            Block::NetworkBlock(ref network_block) => network_block.blockstamp(),
+            Block::NetworkBlock(ref block) => block.blockstamp(),
             Block::LocalBlock(ref block) => block.blockstamp(),
         }
     }
@@ -137,12 +141,12 @@ pub enum SyncVerificationLevel {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-/// Error returned by function complete_network_block()
-pub enum CompletedBlockError {
+/// Error returned by function verify_block_hashs()
+pub enum VerifyBlockHashsError {
     /// Invalid block inner hash
     InvalidInnerHash(),
     /// Invalid block hash
-    InvalidHash(BlockId, Option<BlockHash>, Option<BlockHash>),
+    InvalidHash(BlockId, Option<BlockHash>),
     /// Invalid block version
     InvalidVersion(),
 }
@@ -204,28 +208,35 @@ impl BlockchainModule {
     pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, req: &DBExQuery) {
         dbex::dbex(profile, conf, csv, req);
     }
-    /// Synchronize blockchain from a duniter-ts database
+    /// Synchronize blockchain from local duniter json files
     pub fn sync_ts<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: &SyncOpt) {
-        // get db_ts_path
-        let db_ts_path = if let Some(ref ts_path) = sync_opts.source {
-            PathBuf::from(ts_path)
+        // get json_chunks_path
+        let json_chunks_path = if let Some(ref path) = sync_opts.source {
+            PathBuf::from(path)
         } else {
-            let mut db_ts_path = match dirs::config_dir() {
+            let mut json_chunks_path = match dirs::config_dir() {
                 Some(path) => path,
                 None => panic!("Impossible to get user config directory !"),
             };
-            db_ts_path.push("duniter/");
-            db_ts_path.push("duniter_default");
-            db_ts_path.push("duniter.db");
-            db_ts_path
+            json_chunks_path.push("duniter/");
+            json_chunks_path.push("duniter_default");
+
+            let currency = if let Some(currency) = &sync_opts.currency {
+                currency
+            } else {
+                DEFAULT_CURRENCY
+            };
+
+            json_chunks_path.push(currency);
+            json_chunks_path
         };
-        if !db_ts_path.as_path().exists() {
-            panic!("Fatal error : duniter-ts database don't exist !");
+        if !json_chunks_path.as_path().exists() {
+            panic!("Fatal error : duniter json chunks folder don't exist !");
         }
-        sync::sync_ts(
+        sync::sync(
             profile,
             conf,
-            db_ts_path,
+            json_chunks_path,
             sync_opts.end,
             sync_opts.cautious_mode,
             !sync_opts.unsafe_mode,
@@ -330,18 +341,19 @@ impl BlockchainModule {
         let mut current_blockstamp = *current_blockstamp;
 
         for network_document in network_documents {
-            if let BlockchainDocument::Block(ref network_block) = network_document {
+            if let BlockchainDocument::Block(ref block_doc) = network_document {
+                let block_doc = block_doc.deref();
                 match check_and_apply_block::<W>(
                     &self.blocks_databases,
                     &self.wot_databases.certs_db,
-                    &Block::NetworkBlock(network_block),
+                    &Block::NetworkBlock(block_doc),
                     &current_blockstamp,
                     wot_index,
                     wot_db,
                     &self.forks_states,
                 ) {
                     Ok(ValidBlockApplyReqs(block_req, wot_dbs_reqs, currency_dbs_reqs)) => {
-                        let block_doc = network_block.uncompleted_block_doc().clone();
+                        let block_doc = block_doc.clone();
                         let mut save_wots_dbs = false;
                         let mut save_currency_dbs = false;
 
@@ -372,7 +384,7 @@ impl BlockchainModule {
                                 },
                             ));
                         }
-                        current_blockstamp = network_block.blockstamp();
+                        current_blockstamp = block_doc.blockstamp();
                         // Update forks states
                         self.forks_states = durs_blockchain_dal::block::get_forks(
                             &self.blocks_databases.forks_db,
@@ -400,12 +412,9 @@ impl BlockchainModule {
                         }
                     }
                     Err(_) => {
-                        warn!(
-                            "RefusedBlock({})",
-                            network_block.uncompleted_block_doc().number.0
-                        );
+                        warn!("RefusedBlock({})", block_doc.number.0);
                         self.send_event(&BlockchainEvent::RefusedPendingDoc(DUBPDocument::Block(
-                            Box::new(network_block.uncompleted_block_doc().clone()),
+                            Box::new(block_doc.clone()),
                         )));
                     }
                 }
@@ -691,7 +700,9 @@ impl BlockchainModule {
                                             {
                                                 let blocks: Vec<Box<Block>> = blocks
                                                     .iter()
-                                                    .map(|b| Box::new(Block::NetworkBlock(b)))
+                                                    .map(|b| {
+                                                        Box::new(Block::NetworkBlock(b.deref()))
+                                                    })
                                                     .collect();
 
                                                 let new_current_blockstamp = self.receive_blocks(
@@ -823,56 +834,33 @@ impl BlockchainModule {
     }
 }
 
-/// Complete Network Block
-pub fn complete_network_block(
-    network_block: &NetworkBlock,
-    verif_inner_hash: bool,
-) -> Result<BlockDocument, CompletedBlockError> {
-    if let NetworkBlock::V10(ref network_block_v10) = *network_block {
-        let mut block_doc = network_block_v10.uncompleted_block_doc.clone();
-        trace!("complete_network_block #{}...", block_doc.number);
-        block_doc.certifications =
-            durs_blockchain_dal::parsers::certifications::parse_certifications_into_compact(
-                &network_block_v10.certifications,
-            );
-        trace!("Success to complete certs.");
-        block_doc.revoked = durs_blockchain_dal::parsers::revoked::parse_revocations_into_compact(
-            &network_block_v10.revoked,
+/// Verify block hashs
+pub fn verify_block_hashs(block_doc: &BlockDocument) -> Result<(), VerifyBlockHashsError> {
+    trace!("complete_block #{}...", block_doc.number);
+
+    if block_doc.inner_hash.is_none() {
+        fatal_error(
+            "BlockchainModule : verify_block_hashs() : fatal error : block.inner_hash = None",
         );
-        trace!("Success to complete certs & revocations.");
-        let inner_hash = block_doc.inner_hash.expect(
-            "BlockchainModule : complete_network_block() : fatal error : block.inner_hash = None",
-        );
-        if verif_inner_hash && block_doc.number.0 > 0 {
-            block_doc.compute_inner_hash();
-        }
-        let hash = block_doc.hash;
-        block_doc.compute_hash();
-        if block_doc.inner_hash.expect(
-            "BlockchainModule : complete_network_block() : fatal error : block.inner_hash = None",
-        ) == inner_hash
-        {
-            block_doc.fill_inner_hash_and_nonce_str(None);
-            if !verif_inner_hash || block_doc.hash == hash {
-                trace!("Succes to complete_network_block #{}", block_doc.number.0);
-                Ok(block_doc)
-            } else {
-                warn!("BlockchainModule : Refuse Bloc : invalid hash !");
-                Err(CompletedBlockError::InvalidHash(
-                    block_doc.number,
-                    block_doc.hash,
-                    hash,
-                ))
-            }
+    }
+
+    if block_doc.verify_inner_hash() {
+        if block_doc.verify_hash() {
+            trace!("Succes to verify_block_hashs #{}", block_doc.number.0);
+            Ok(())
         } else {
-            warn!("BlockchainModule : Refuse Bloc : invalid inner hash !");
-            debug!(
-                "BlockInnerFormat={}",
-                block_doc.generate_compact_inner_text()
-            );
-            Err(CompletedBlockError::InvalidInnerHash())
+            warn!("BlockchainModule : Refuse Bloc : invalid hash !");
+            Err(VerifyBlockHashsError::InvalidHash(
+                block_doc.number,
+                block_doc.hash,
+            ))
         }
     } else {
-        Err(CompletedBlockError::InvalidVersion())
+        warn!("BlockchainModule : Refuse Bloc : invalid inner hash !");
+        debug!(
+            "BlockInnerFormat={}",
+            block_doc.generate_compact_inner_text()
+        );
+        Err(VerifyBlockHashsError::InvalidInnerHash())
     }
 }

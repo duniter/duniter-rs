@@ -17,6 +17,7 @@
 
 use crate::documents::*;
 use crate::*;
+use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::Blockstamp;
 
 #[derive(Debug, Copy, Clone)]
@@ -72,11 +73,11 @@ pub enum OldNetworkRequestError {
 /// Type containing the response to a network request
 pub enum NetworkResponse {
     /// CurrentBlock
-    CurrentBlock(ModuleReqFullId, NodeFullId, Box<NetworkBlock>),
+    CurrentBlock(ModuleReqFullId, NodeFullId, Box<BlockDocument>),
     /// Block
-    Block(ModuleReqFullId, NodeFullId, Box<NetworkBlock>),
+    Block(ModuleReqFullId, NodeFullId, Box<BlockDocument>),
     /// Chunk
-    Chunk(ModuleReqFullId, NodeFullId, Vec<Box<NetworkBlock>>),
+    Chunk(ModuleReqFullId, NodeFullId, Vec<Box<BlockDocument>>),
     /// PendingDocuments
     PendingDocuments(ModuleReqFullId, Vec<BlockchainDocument>),
     /// Consensus
