@@ -11,7 +11,15 @@ stages:
 variables:
   CARGO_HOME: $CI_PROJECT_DIR/cargo
 
+.rust_changes: &rust_changes
+  only:
+    changes:
+      - Cargo.toml
+      - bin/**/*
+      - lib/**/*
+
 .rust_stable_lin64: &rust_stable_lin64
+  <<: *rust_changes
   image: registry.duniter.org/docker/duniter-rs-ci:v0.1.0
   tags:
     - redshift-rs-stable
@@ -21,6 +29,7 @@ variables:
     - rustc --version && cargo --version
 
 .rust_beta_lin64: &rust_beta_lin64
+  <<: *rust_changes
   image: parity/rust:gitlab-ci
   tags:
     - redshift-rs-stable
@@ -30,6 +39,7 @@ variables:
     - rustup show && rustc --version && cargo --version
 
 .rust_nightly_lin64: &rust_nightly_lin64
+  <<: *rust_changes
   image: rustlang/rust:nightly
   tags:
     - redshift-rs-nightly
@@ -38,6 +48,7 @@ variables:
     - rustc --version && cargo --version
 
 .rust_stable_armv7: &rust_stable_armv7
+  <<: *rust_changes
   image: registry.duniter.org/docker/rust/armv7-builder:v0.1
   tags:
     - redshift-rs-stable
@@ -45,6 +56,7 @@ variables:
     - rustc --version && cargo --version
 
 .rust_stable_win64: &rust_stable_win64
+  <<: *rust_changes
   image: registry.duniter.org/docker/rust/win64-builder:v0.1.0
   tags:
     - redshift-rs-stable
