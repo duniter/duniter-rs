@@ -91,7 +91,7 @@ tests:arm-v7-:stable:
   allow_failure: true
   when: manual
   except:
-    - dev
+    - tags
 
 tests:arm-v7:stable:
   <<: *rust_stable_armv7
@@ -101,7 +101,7 @@ tests:arm-v7:stable:
     - cargo build --target=armv7-unknown-linux-gnueabihf --features=ssl
     - cargo test --all --target=armv7-unknown-linux-gnueabihf
   only:
-    - dev
+    - tags
 
 tests:win64:stable:
   <<: *rust_stable_win64
@@ -176,8 +176,6 @@ pages:
       - public
   allow_failure: true
   when: manual
-  only:
-    - dev
 
 package:test:linux64:
   <<: *rust_stable_lin64
