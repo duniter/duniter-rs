@@ -26,6 +26,8 @@
 )]
 
 #[macro_use]
+extern crate failure;
+#[macro_use]
 extern crate pest_derive;
 
 #[cfg(test)]
@@ -36,7 +38,6 @@ extern crate maplit;
 #[macro_use]
 extern crate pretty_assertions;
 
-use pest::error::Error;
 use pest::iterators::Pair;
 use pest::Parser;
 use std::collections::HashMap;
@@ -167,10 +168,19 @@ impl<'a> ToString for JSONValue<'a> {
     }
 }
 
-pub fn parse_json_string(source: &str) -> Result<JSONValue, Error<Rule>> {
-    let json = JSONParser::parse(Rule::json, source)?.next().unwrap();
+#[derive(Debug, Fail)]
+#[fail(display = "Fail to parse JSON String : {:?}", cause)]
+pub struct ParseJsonError {
+    pub cause: String,
+}
 
-    Ok(parse_value(json))
+pub fn parse_json_string(source: &str) -> Result<JSONValue, ParseJsonError> {
+    match JSONParser::parse(Rule::json, source) {
+        Ok(mut pair) => Ok(parse_value(pair.next().unwrap())),
+        Err(pest_error) => Err(ParseJsonError {
+            cause: format!("{:?}", pest_error),
+        }),
+    }
 }
 
 fn parse_value(pair: Pair<Rule>) -> JSONValue {
