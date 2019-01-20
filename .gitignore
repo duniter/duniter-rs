@@ -1,8 +1,15 @@
-**/target/
-\.vscode/
-\.idea/
+# Ignore OS files
+.directory
 
+# Ignore IDEs files
+\.idea/
+.project
+\.vscode/
+
+# Ignore Rust binaries
+**/target/
 **/*.rs.bk
+
+# Ignore tests generated files
 *.db
 *.wot
-.project
