@@ -17,6 +17,7 @@ base58 = "0.1.*"
 base64 = "0.9.*"
 byteorder = "1.2.3"
 dup-crypto = { path = "../crypto" }
+failure = "0.1.5"
 pest = "2.1.0"
 pest_derive = "2.1.0"
 serde = "1.0.*"

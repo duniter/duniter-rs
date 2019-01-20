@@ -20,13 +20,16 @@ use crate::*;
 /// Type of errors for [`BlockUId`] parsing.
 ///
 /// [`BlockUId`]: struct.BlockUId.html
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Fail)]
 pub enum BlockstampParseError {
     /// Given string have invalid format
+    #[fail(display = "Given string have invalid format")]
     InvalidFormat(),
     /// [`BlockId`](struct.BlockHash.html) part is not a valid number.
+    #[fail(display = "BlockId part is not a valid number.")]
     InvalidBlockId(),
     /// [`BlockHash`](struct.BlockHash.html) part is not a valid hex number.
+    #[fail(display = "BlockHash part is not a valid hex number.")]
     InvalidBlockHash(),
 }
 
