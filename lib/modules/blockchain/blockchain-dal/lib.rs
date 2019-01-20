@@ -53,9 +53,6 @@ pub mod currency_params;
 /// Identity operations
 pub mod identity;
 
-/// Parsers
-pub mod parsers;
-
 /// Define currency sources types
 pub mod sources;
 

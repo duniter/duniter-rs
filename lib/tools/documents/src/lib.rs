@@ -39,6 +39,7 @@ extern crate serde_derive;
 pub mod blockstamp;
 mod currencies_codes;
 pub mod documents;
+pub mod parsers;
 pub mod text_document_traits;
 
 use crate::currencies_codes::*;

@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Durs Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,22 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use dubp_documents::documents::revocation::{CompactRevocationDocument, RevocationDocument};
-use dubp_documents::text_document_traits::TextDocumentFormat;
+use crate::documents::revocation::{CompactRevocationDocument, RevocationDocument};
+use crate::text_document_traits::TextDocumentFormat;
 use dup_crypto::keys::*;
-use serde_json;
 
 /// Parse array of revocations json documents into vector of `CompactRevocationDocument`
 pub fn parse_revocations_into_compact(
-    json_revocations: &[serde_json::Value],
+    str_revocations: &[&str],
 ) -> Vec<TextDocumentFormat<RevocationDocument>> {
     let mut revocations: Vec<TextDocumentFormat<RevocationDocument>> = Vec::new();
-    for revocation in json_revocations.iter() {
-        let revocations_datas: Vec<&str> = revocation
-            .as_str()
-            .expect("Receive block in wrong format !")
-            .split(':')
-            .collect();
+    for revocation in str_revocations {
+        let revocations_datas: Vec<&str> = revocation.split(':').collect();
         if revocations_datas.len() == 2 {
             revocations.push(TextDocumentFormat::Compact(CompactRevocationDocument {
                 issuer: PubKey::Ed25519(
