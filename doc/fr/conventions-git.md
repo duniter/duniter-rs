@@ -41,14 +41,16 @@ Exemple, renomage d'un trait `Toto` en `Titi` dans la crate `durs-bidule` :
 
 ### Liste des types de commit
 
-* `style` : Modification du style du code (fmt et clippy).
-* `feat` : Développement d'une nouvelle fonctionnalitée.
-* `ref` : Refactoring de code.
-* `fix` : Correction d'un bug
-* `doc` : Modification de la documentation (y compris traduction et création de nouveau contenu).
-* `ci` : Modification de la chaine d'intégration continue.
 * `build` : Modification des script de build, de packaging ou/et de publication des livrables.
+* `ci` : Modification de la chaine d'intégration continue.
+* `docs` : Modification de la documentation (y compris traduction et création de nouveau contenu).
+* `feat` : Développement d'une nouvelle fonctionnalitée.
+* `fix` : Correction d'un bug
+* `perf` :  amélioration des performances.
 * `pub` : commit lié a la publication d'une crate sur [crates.io](https://crates.io).
+* `ref` : Changement du code qui ne change rien au fonctionnement (refactoring en anglais).
+* `style` : Modification du style du code (fmt et clippy).
+* `tests` : Modification des tests existants ou/et création de nouveaux tests.
 
 Si vous avez besoin d'effectuer une action qui ne rentre dans aucun de ses types, contactez les principaux ndéveloppeurs du proejt pour discuter de l'ajout d'un nouveau type de commit dans cette liste.
 
