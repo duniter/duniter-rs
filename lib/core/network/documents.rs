@@ -21,7 +21,6 @@ use dubp_documents::documents::identity::IdentityDocument;
 use dubp_documents::documents::membership::MembershipDocument;
 use dubp_documents::documents::revocation::RevocationDocument;
 use dubp_documents::documents::transaction::TransactionDocument;
-use serde_json;
 
 #[derive(Debug, Clone)]
 /// Network Document
