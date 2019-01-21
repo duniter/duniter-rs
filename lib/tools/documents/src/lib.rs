@@ -72,14 +72,18 @@ pub trait TextDocumentParser<R: RuleType> {
 }
 
 /// List of possible errors while parsing.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Fail)]
 pub enum TextDocumentParseError {
     /// The given source don't have a valid specific document format (document type).
+    #[fail(display = "TextDocumentParseError: Invalid inner format.")]
     InvalidInnerFormat(&'static str),
     /// Error with pest parser
+    #[fail(display = "TextDocumentParseError: PestError.")]
     PestError(String),
+    #[fail(display = "TextDocumentParseError: UnexpectedVersion.")]
     /// UnexpectedVersion
     UnexpectedVersion(String),
+    #[fail(display = "TextDocumentParseError: UnknownType.")]
     /// Unknown type
     UnknownType,
 }

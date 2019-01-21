@@ -21,11 +21,10 @@ use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use failure::Error;
 use json_pest_parser::JSONValue;
-use std::collections::HashMap;
 
 pub fn parse_json_block(json_block: &JSONValue) -> Result<BlockDocument, Error> {
     if !json_block.is_object() {
-        return Err(ParseBlockError {
+        return Err(ParseJsonError {
             cause: "Json block must be an object !".to_owned(),
         }
         .into());
@@ -87,9 +86,11 @@ pub fn parse_json_block(json_block: &JSONValue) -> Result<BlockDocument, Error> 
         revoked: crate::parsers::revoked::parse_revocations_into_compact(&get_str_array(
             json_block, "revoked",
         )?),
-        excluded: crate::parsers::excluded::parse_excluded(&get_str_array(
-            json_block, "excluded",
-        )?)?,
+        excluded: get_str_array(json_block, "excluded")?
+            .iter()
+            .map(|p| ed25519::PublicKey::from_base58(p))
+            .map(|p| p.map(PubKey::Ed25519))
+            .collect::<Result<Vec<PubKey>, BaseConvertionError>>()?,
         certifications: crate::parsers::certifications::parse_certifications_into_compact(
             &get_str_array(json_block, "certifications")?,
         ),
@@ -98,74 +99,225 @@ pub fn parse_json_block(json_block: &JSONValue) -> Result<BlockDocument, Error> 
     })
 }
 
-fn get_optional_usize(
-    json_block: &HashMap<&str, JSONValue>,
-    field: &str,
-) -> Result<Option<usize>, ParseBlockError> {
-    Ok(match json_block.get(field) {
-        Some(value) => {
-            if !value.is_null() {
-                Some(
-                    value
-                        .to_number()
-                        .ok_or_else(|| ParseBlockError {
-                            cause: format!("Json block {} field must be a number !", field),
-                        })?
-                        .trunc() as usize,
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::documents::block::TxDocOrTxHash;
+
+    #[test]
+    fn parse_empty_json_block() {
+        let block_json_str = r#"{
+   "version": 10,
+   "nonce": 10200000037108,
+   "number": 7,
+   "powMin": 70,
+   "time": 1488987677,
+   "medianTime": 1488987394,
+   "membersCount": 59,
+   "monetaryMass": 59000,
+   "unitbase": 0,
+   "issuersCount": 1,
+   "issuersFrame": 6,
+   "issuersFrameVar": 0,
+   "currency": "g1",
+   "issuer": "2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ",
+   "signature": "xaWNjdFeE4yr9+AKckgR6QuAvMzmKUWfY+uIlC3HKjn2apJqG70Gf59A71W+Ucz6E9WPXRzDDF/xOrf6GCGHCA==",
+   "hash": "0000407900D981FC17B5A6FBCF8E8AFA4C00FAD7AFC5BEA9A96FF505E5D105EC",
+   "parameters": "",
+   "previousHash": "0000379BBE6ABC18DCFD6E4733F9F76CB06593D10FAEDF722BE190C277AC16EA",
+   "previousIssuer": "2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ",
+   "inner_hash": "CF2701092D5A34A55802E343B5F8D61D9B7E8089F1F13A19721234DF5B2F0F38",
+   "dividend": null,
+   "identities": [],
+   "joiners": [],
+   "actives": [],
+   "leavers": [],
+   "revoked": [],
+   "excluded": [],
+   "certifications": [],
+   "transactions": [],
+   "raw": "Version: 10\nType: Block\nCurrency: g1\nNumber: 7\nPoWMin: 70\nTime: 1488987677\nMedianTime: 1488987394\nUnitBase: 0\nIssuer: 2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ\nIssuersFrame: 6\nIssuersFrameVar: 0\nDifferentIssuersCount: 1\nPreviousHash: 0000379BBE6ABC18DCFD6E4733F9F76CB06593D10FAEDF722BE190C277AC16EA\nPreviousIssuer: 2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ\nMembersCount: 59\nIdentities:\nJoiners:\nActives:\nLeavers:\nRevoked:\nExcluded:\nCertifications:\nTransactions:\nInnerHash: CF2701092D5A34A55802E343B5F8D61D9B7E8089F1F13A19721234DF5B2F0F38\nNonce: 10200000037108\n"
+  }"#;
+
+        let block_json_value = json_pest_parser::parse_json_string(block_json_str)
+            .expect("Fail to parse json block !");
+        assert_eq!(
+            BlockDocument {
+                version: 10,
+                nonce: 10200000037108,
+                number: BlockId(7),
+                pow_min: 70,
+                time: 1488987677,
+                median_time: 1488987394,
+                members_count: 59,
+                monetary_mass: 59000,
+                unit_base: 0,
+                issuers_count: 1,
+                issuers_frame: 6,
+                issuers_frame_var: 0,
+                currency: CurrencyName("g1".to_owned()),
+                issuers: vec![PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58("2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ")
+                        .expect("Fail to parse issuer !")
+                )],
+                signatures: vec![Sig::Ed25519(
+                    ed25519::Signature::from_base64("xaWNjdFeE4yr9+AKckgR6QuAvMzmKUWfY+uIlC3HKjn2apJqG70Gf59A71W+Ucz6E9WPXRzDDF/xOrf6GCGHCA==").expect("Fail to parse sig !")
+                )],
+                hash: Some(BlockHash(
+                    Hash::from_hex(
+                        "0000407900D981FC17B5A6FBCF8E8AFA4C00FAD7AFC5BEA9A96FF505E5D105EC"
+                    )
+                    .expect("Fail to parse hash !")
+                )),
+                parameters: None,
+                previous_hash: Hash::from_hex(
+                    "0000379BBE6ABC18DCFD6E4733F9F76CB06593D10FAEDF722BE190C277AC16EA"
                 )
-            } else {
-                None
-            }
-        }
-        None => None,
-    })
-}
+                .expect("Fail to parse previous_hash !"),
+                previous_issuer: Some(PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58("2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ")
+                        .expect("Fail to parse previous issuer !")
+                )),
+                inner_hash: Some(
+                    Hash::from_hex(
+                        "CF2701092D5A34A55802E343B5F8D61D9B7E8089F1F13A19721234DF5B2F0F38"
+                    )
+                    .expect("Fail to parse inner hash !")
+                ),
+                dividend: None,
+                identities: vec![],
+                joiners: vec![],
+                actives: vec![],
+                leavers: vec![],
+                revoked: vec![],
+                excluded: vec![],
+                certifications: vec![],
+                transactions: vec![],
+                inner_hash_and_nonce_str: "".to_owned(),
+            },
+            parse_json_block(&block_json_value).expect("Fail to parse block_json_value !")
+        );
+    }
 
-fn get_number(json_block: &HashMap<&str, JSONValue>, field: &str) -> Result<f64, ParseBlockError> {
-    Ok(json_block
-        .get(field)
-        .ok_or_else(|| ParseBlockError {
-            cause: format!("Json block must have {} field !", field),
-        })?
-        .to_number()
-        .ok_or_else(|| ParseBlockError {
-            cause: format!("Json block {} field must be a number !", field),
-        })?)
-}
+    #[test]
+    fn parse_json_block_with_one_tx() {
+        let block_json_str = r#"{
+   "version": 10,
+   "nonce": 10100000033688,
+   "number": 52,
+   "powMin": 74,
+   "time": 1488990898,
+   "medianTime": 1488990117,
+   "membersCount": 59,
+   "monetaryMass": 59000,
+   "unitbase": 0,
+   "issuersCount": 1,
+   "issuersFrame": 6,
+   "issuersFrameVar": 0,
+   "currency": "g1",
+   "issuer": "2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ",
+   "signature": "4/UIwXzWQekbYw7fpD8ueMH4GnDEwCM+DvDaTfquBXOvFXLRYo/S+Vrk5u7so/98gYaZ2O7Myh20xgQvhh5FDQ==",
+   "hash": "000057D4B29AF6DADB16F841F19C54C00EB244CECA9C8F2D4839D54E5F91451C",
+   "parameters": "",
+   "previousHash": "00000FEDA61240DD125A26886FEB2E6995B52A94778C71224CAF8492FF257D47",
+   "previousIssuer": "2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ",
+   "inner_hash": "6B27ACDA51F416449E5A61FC69438F8974D11FC27EB7A992410C276FC0B9BA5F",
+   "dividend": null,
+   "identities": [],
+   "joiners": [],
+   "actives": [],
+   "leavers": [],
+   "revoked": [],
+   "excluded": [],
+   "certifications": [],
+   "transactions": [
+    {
+     "version": 10,
+     "currency": "g1",
+     "locktime": 0,
+     "blockstamp": "50-00001DAA4559FEDB8320D1040B0F22B631459F36F237A0D9BC1EB923C12A12E7",
+     "blockstampTime": 1488990016,
+     "issuers": [
+      "2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ"
+     ],
+     "inputs": [
+      "1000:0:D:2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ:1"
+     ],
+     "outputs": [
+      "1:0:SIG(Com8rJukCozHZyFao6AheSsfDQdPApxQRnz7QYFf64mm)",
+      "999:0:SIG(2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ)"
+     ],
+     "unlocks": [
+      "0:SIG(0)"
+     ],
+     "signatures": [
+      "fAH5Gor+8MtFzQZ++JaJO6U8JJ6+rkqKtPrRr/iufh3MYkoDGxmjzj6jCADQL+hkWBt8y8QzlgRkz0ixBcKHBw=="
+     ],
+     "comment": "TEST",
+     "block_number": 0,
+     "time": 0
+    }
+   ],
+   "raw": "Version: 10\nType: Block\nCurrency: g1\nNumber: 52\nPoWMin: 74\nTime: 1488990898\nMedianTime: 1488990117\nUnitBase: 0\nIssuer: 2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ\nIssuersFrame: 6\nIssuersFrameVar: 0\nDifferentIssuersCount: 1\nPreviousHash: 00000FEDA61240DD125A26886FEB2E6995B52A94778C71224CAF8492FF257D47\nPreviousIssuer: 2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ\nMembersCount: 59\nIdentities:\nJoiners:\nActives:\nLeavers:\nRevoked:\nExcluded:\nCertifications:\nTransactions:\nTX:10:1:1:1:2:1:0\n50-00001DAA4559FEDB8320D1040B0F22B631459F36F237A0D9BC1EB923C12A12E7\n2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ\n1000:0:D:2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ:1\n0:SIG(0)\n1:0:SIG(Com8rJukCozHZyFao6AheSsfDQdPApxQRnz7QYFf64mm)\n999:0:SIG(2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ)\nTEST\nfAH5Gor+8MtFzQZ++JaJO6U8JJ6+rkqKtPrRr/iufh3MYkoDGxmjzj6jCADQL+hkWBt8y8QzlgRkz0ixBcKHBw==\nInnerHash: 6B27ACDA51F416449E5A61FC69438F8974D11FC27EB7A992410C276FC0B9BA5F\nNonce: 10100000033688\n"
+  }"#;
 
-fn get_str<'a>(
-    json_block: &'a HashMap<&str, JSONValue>,
-    field: &str,
-) -> Result<&'a str, ParseBlockError> {
-    Ok(json_block
-        .get(field)
-        .ok_or_else(|| ParseBlockError {
-            cause: format!("Json block must have {} field !", field),
-        })?
-        .to_str()
-        .ok_or_else(|| ParseBlockError {
-            cause: format!("Json block {} field must be a string !", field),
-        })?)
-}
-
-fn get_str_array<'a>(
-    json_block: &'a HashMap<&str, JSONValue>,
-    field: &str,
-) -> Result<Vec<&'a str>, ParseBlockError> {
-    json_block
-        .get(field)
-        .ok_or_else(|| ParseBlockError {
-            cause: format!("Json block must have {} field !", field),
-        })?
-        .to_array()
-        .ok_or_else(|| ParseBlockError {
-            cause: format!("Json block {} field must be an array !", field),
-        })?
-        .iter()
-        .map(|v| {
-            v.to_str().ok_or_else(|| ParseBlockError {
-                cause: format!("Json block {} field must be an array of string !", field),
-            })
-        })
-        .collect()
+        let block_json_value = json_pest_parser::parse_json_string(block_json_str)
+            .expect("Fail to parse json block !");
+        assert_eq!(
+            BlockDocument {
+                version: 10,
+                nonce: 10100000033688,
+                number: BlockId(52),
+                pow_min: 74,
+                time: 1488990898,
+                median_time: 1488990117,
+                members_count: 59,
+                monetary_mass: 59000,
+                unit_base: 0,
+                issuers_count: 1,
+                issuers_frame: 6,
+                issuers_frame_var: 0,
+                currency: CurrencyName("g1".to_owned()),
+                issuers: vec![PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58("2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ")
+                        .expect("Fail to parse issuer !")
+                )],
+                signatures: vec![Sig::Ed25519(
+                    ed25519::Signature::from_base64("4/UIwXzWQekbYw7fpD8ueMH4GnDEwCM+DvDaTfquBXOvFXLRYo/S+Vrk5u7so/98gYaZ2O7Myh20xgQvhh5FDQ==").expect("Fail to parse sig !")
+                )],
+                hash: Some(BlockHash(
+                    Hash::from_hex(
+                        "000057D4B29AF6DADB16F841F19C54C00EB244CECA9C8F2D4839D54E5F91451C"
+                    )
+                    .expect("Fail to parse hash !")
+                )),
+                parameters: None,
+                previous_hash: Hash::from_hex(
+                    "00000FEDA61240DD125A26886FEB2E6995B52A94778C71224CAF8492FF257D47"
+                )
+                .expect("Fail to parse previous_hash !"),
+                previous_issuer: Some(PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58("2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ")
+                        .expect("Fail to parse previous issuer !")
+                )),
+                inner_hash: Some(
+                    Hash::from_hex(
+                        "6B27ACDA51F416449E5A61FC69438F8974D11FC27EB7A992410C276FC0B9BA5F"
+                    )
+                    .expect("Fail to parse inner hash !")
+                ),
+                dividend: None,
+                identities: vec![],
+                joiners: vec![],
+                actives: vec![],
+                leavers: vec![],
+                revoked: vec![],
+                excluded: vec![],
+                certifications: vec![],
+                transactions: vec![TxDocOrTxHash::TxDoc(Box::new(crate::parsers::tests::first_g1_tx_doc()))],
+                inner_hash_and_nonce_str: "".to_owned(),
+            },
+            parse_json_block(&block_json_value).expect("Fail to parse block_json_value !")
+        );
+    }
 }
