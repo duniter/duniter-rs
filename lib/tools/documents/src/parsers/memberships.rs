@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::documents::membership::*;
-use crate::parsers::*;
+use crate::Blockstamp;
 use crate::DocumentBuilder;
 use dup_crypto::keys::*;
 use failure::Error;

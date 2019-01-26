@@ -14,10 +14,12 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::documents::transaction::*;
-use crate::parsers::*;
-use crate::DocumentBuilder;
+use crate::TextDocumentParseError;
+use crate::*;
+use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use failure::Error;
+use json_pest_parser::*;
 use std::str::FromStr;
 
 #[derive(Debug, Fail, Copy, Clone)]

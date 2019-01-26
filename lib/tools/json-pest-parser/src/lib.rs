@@ -38,6 +38,7 @@ extern crate maplit;
 #[macro_use]
 extern crate pretty_assertions;
 
+use failure::Error;
 use pest::iterators::Pair;
 use pest::Parser;
 use std::collections::HashMap;
@@ -214,6 +215,105 @@ fn parse_value(pair: Pair<Rule>) -> JSONValue {
         | Rule::char
         | Rule::WHITESPACE => unreachable!(),
     }
+}
+
+pub fn get_optional_usize<S: std::hash::BuildHasher>(
+    json_block: &HashMap<&str, JSONValue, S>,
+    field: &str,
+) -> Result<Option<usize>, Error> {
+    Ok(match json_block.get(field) {
+        Some(value) => {
+            if !value.is_null() {
+                Some(
+                    value
+                        .to_number()
+                        .ok_or_else(|| ParseJsonError {
+                            cause: format!(
+                                "Fail to parse json : field '{}' must be a number !",
+                                field
+                            ),
+                        })?
+                        .trunc() as usize,
+                )
+            } else {
+                None
+            }
+        }
+        None => None,
+    })
+}
+
+pub fn get_optional_str<'a, S: std::hash::BuildHasher>(
+    json_block: &'a HashMap<&str, JSONValue, S>,
+    field: &str,
+) -> Result<Option<&'a str>, Error> {
+    Ok(match json_block.get(field) {
+        Some(value) => {
+            if !value.is_null() {
+                Some(value.to_str().ok_or_else(|| ParseJsonError {
+                    cause: format!("Fail to parse json : field '{}' must be a string !", field),
+                })?)
+            } else {
+                None
+            }
+        }
+        None => None,
+    })
+}
+
+pub fn get_number<S: std::hash::BuildHasher>(
+    json_block: &HashMap<&str, JSONValue, S>,
+    field: &str,
+) -> Result<f64, Error> {
+    Ok(json_block
+        .get(field)
+        .ok_or_else(|| ParseJsonError {
+            cause: format!("Fail to parse json : field '{}' must exist !", field),
+        })?
+        .to_number()
+        .ok_or_else(|| ParseJsonError {
+            cause: format!("Fail to parse json : field '{}' must be a number !", field),
+        })?)
+}
+
+pub fn get_str<'a, S: std::hash::BuildHasher>(
+    json_block: &'a HashMap<&str, JSONValue, S>,
+    field: &str,
+) -> Result<&'a str, Error> {
+    Ok(json_block
+        .get(field)
+        .ok_or_else(|| ParseJsonError {
+            cause: format!("Fail to parse json : field '{}' must exist !", field),
+        })?
+        .to_str()
+        .ok_or_else(|| ParseJsonError {
+            cause: format!("Fail to parse json : field '{}' must be a string !", field),
+        })?)
+}
+
+pub fn get_str_array<'a, S: std::hash::BuildHasher>(
+    json_block: &'a HashMap<&str, JSONValue, S>,
+    field: &str,
+) -> Result<Vec<&'a str>, ParseJsonError> {
+    json_block
+        .get(field)
+        .ok_or_else(|| ParseJsonError {
+            cause: format!("Fail to parse json : field '{}' must exist !", field),
+        })?
+        .to_array()
+        .ok_or_else(|| ParseJsonError {
+            cause: format!("Fail to parse json : field '{}' must be an array !", field),
+        })?
+        .iter()
+        .map(|v| {
+            v.to_str().ok_or_else(|| ParseJsonError {
+                cause: format!(
+                    "Fail to parse json : field '{}' must be an array of string !",
+                    field
+                ),
+            })
+        })
+        .collect()
 }
 
 #[cfg(test)]

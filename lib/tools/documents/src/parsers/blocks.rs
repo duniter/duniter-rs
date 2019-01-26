@@ -15,12 +15,11 @@
 
 use crate::documents::block::BlockDocument;
 use crate::documents::membership::MembershipType;
-use crate::parsers::*;
 use crate::*;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use failure::Error;
-use json_pest_parser::JSONValue;
+use json_pest_parser::*;
 
 pub fn parse_json_block(json_block: &JSONValue) -> Result<BlockDocument, Error> {
     if !json_block.is_object() {
