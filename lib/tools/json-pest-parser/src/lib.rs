@@ -32,10 +32,6 @@ extern crate pest_derive;
 
 #[cfg(test)]
 #[macro_use]
-extern crate maplit;
-
-#[cfg(test)]
-#[macro_use]
 extern crate pretty_assertions;
 
 use failure::Error;
@@ -48,16 +44,18 @@ use std::collections::HashMap;
 struct JSONParser;
 
 #[derive(Debug, PartialEq)]
-pub enum JSONValue<'a> {
-    Object(HashMap<&'a str, JSONValue<'a>>),
-    Array(Vec<JSONValue<'a>>),
+pub enum JSONValue<'a, S: std::hash::BuildHasher> {
+    Object(HashMap<&'a str, JSONValue<'a, S>, S>),
+    Array(Vec<JSONValue<'a, S>>),
     String(&'a str),
     Number(f64),
     Boolean(bool),
     Null,
 }
 
-impl<'a> JSONValue<'a> {
+type JsonObject<'a, S> = HashMap<&'a str, JSONValue<'a, S>, S>;
+
+impl<'a, S: std::hash::BuildHasher> JSONValue<'a, S> {
     pub fn is_object(&self) -> bool {
         if let JSONValue::Object(_) = self {
             true
@@ -66,7 +64,7 @@ impl<'a> JSONValue<'a> {
         }
     }
 
-    pub fn to_object(&self) -> Option<&HashMap<&'a str, JSONValue<'a>>> {
+    pub fn to_object(&self) -> Option<&HashMap<&'a str, JSONValue<'a, S>, S>> {
         if let JSONValue::Object(object) = self {
             Some(object)
         } else {
@@ -82,7 +80,7 @@ impl<'a> JSONValue<'a> {
         }
     }
 
-    pub fn to_array(&self) -> Option<&Vec<JSONValue<'a>>> {
+    pub fn to_array(&self) -> Option<&Vec<JSONValue<'a, S>>> {
         if let JSONValue::Array(array) = self {
             Some(array)
         } else {
@@ -147,7 +145,7 @@ impl<'a> JSONValue<'a> {
     }
 }
 
-impl<'a> ToString for JSONValue<'a> {
+impl<'a, S: std::hash::BuildHasher> ToString for JSONValue<'a, S> {
     fn to_string(&self) -> String {
         match self {
             JSONValue::Object(o) => {
@@ -175,7 +173,20 @@ pub struct ParseJsonError {
     pub cause: String,
 }
 
-pub fn parse_json_string(source: &str) -> Result<JSONValue, ParseJsonError> {
+pub fn parse_json_string<'a>(
+    source: &'a str,
+) -> Result<
+    JSONValue<'a, std::hash::BuildHasherDefault<std::collections::hash_map::DefaultHasher>>,
+    ParseJsonError,
+> {
+    parse_json_string_with_specific_hasher::<
+        std::hash::BuildHasherDefault<std::collections::hash_map::DefaultHasher>,
+    >(source)
+}
+
+pub fn parse_json_string_with_specific_hasher<S: std::hash::BuildHasher + Default>(
+    source: &str,
+) -> Result<JSONValue<S>, ParseJsonError> {
     match JSONParser::parse(Rule::json, source) {
         Ok(mut pair) => Ok(parse_value(pair.next().unwrap())),
         Err(pest_error) => Err(ParseJsonError {
@@ -184,7 +195,7 @@ pub fn parse_json_string(source: &str) -> Result<JSONValue, ParseJsonError> {
     }
 }
 
-fn parse_value(pair: Pair<Rule>) -> JSONValue {
+fn parse_value<S: std::hash::BuildHasher + Default>(pair: Pair<Rule>) -> JSONValue<S> {
     match pair.as_rule() {
         Rule::object => JSONValue::Object(
             pair.into_inner()
@@ -218,7 +229,7 @@ fn parse_value(pair: Pair<Rule>) -> JSONValue {
 }
 
 pub fn get_optional_usize<S: std::hash::BuildHasher>(
-    json_block: &HashMap<&str, JSONValue, S>,
+    json_block: &HashMap<&str, JSONValue<S>, S>,
     field: &str,
 ) -> Result<Option<usize>, Error> {
     Ok(match json_block.get(field) {
@@ -244,7 +255,7 @@ pub fn get_optional_usize<S: std::hash::BuildHasher>(
 }
 
 pub fn get_optional_str<'a, S: std::hash::BuildHasher>(
-    json_block: &'a HashMap<&str, JSONValue, S>,
+    json_block: &'a HashMap<&str, JSONValue<S>, S>,
     field: &str,
 ) -> Result<Option<&'a str>, Error> {
     Ok(match json_block.get(field) {
@@ -262,7 +273,7 @@ pub fn get_optional_str<'a, S: std::hash::BuildHasher>(
 }
 
 pub fn get_number<S: std::hash::BuildHasher>(
-    json_block: &HashMap<&str, JSONValue, S>,
+    json_block: &HashMap<&str, JSONValue<S>, S>,
     field: &str,
 ) -> Result<f64, Error> {
     Ok(json_block
@@ -277,7 +288,7 @@ pub fn get_number<S: std::hash::BuildHasher>(
 }
 
 pub fn get_str<'a, S: std::hash::BuildHasher>(
-    json_block: &'a HashMap<&str, JSONValue, S>,
+    json_block: &'a HashMap<&str, JSONValue<S>, S>,
     field: &str,
 ) -> Result<&'a str, Error> {
     Ok(json_block
@@ -292,7 +303,7 @@ pub fn get_str<'a, S: std::hash::BuildHasher>(
 }
 
 pub fn get_str_array<'a, S: std::hash::BuildHasher>(
-    json_block: &'a HashMap<&str, JSONValue, S>,
+    json_block: &'a HashMap<&str, JSONValue<S>, S>,
     field: &str,
 ) -> Result<Vec<&'a str>, ParseJsonError> {
     json_block
@@ -332,15 +343,6 @@ mod tests {
         }";
 
         let json_value = parse_json_string(json_string).expect("Fail to parse json string !");
-
-        assert_eq!(
-            JSONValue::Object(hashmap![
-                "name" => JSONValue::String("toto"),
-                "age" => JSONValue::Number(25f64),
-                "friends" => JSONValue::Array(vec![JSONValue::String("titi"), JSONValue::String("tata"),])
-            ]),
-            json_value
-        );
 
         assert!(json_value.is_object());
 
