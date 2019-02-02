@@ -254,6 +254,22 @@ pub fn get_optional_usize<S: std::hash::BuildHasher>(
     })
 }
 
+pub fn get_optional_str_not_empty<'a, S: std::hash::BuildHasher>(
+    json_block: &'a HashMap<&str, JSONValue<S>, S>,
+    field: &str,
+) -> Result<Option<&'a str>, Error> {
+    let result = get_optional_str(json_block, field);
+    if let Ok(Some(value)) = result {
+        if !value.is_empty() {
+            Ok(Some(value))
+        } else {
+            Ok(None)
+        }
+    } else {
+        result
+    }
+}
+
 pub fn get_optional_str<'a, S: std::hash::BuildHasher>(
     json_block: &'a HashMap<&str, JSONValue<S>, S>,
     field: &str,
@@ -322,6 +338,28 @@ pub fn get_str_array<'a, S: std::hash::BuildHasher>(
                     "Fail to parse json : field '{}' must be an array of string !",
                     field
                 ),
+            })
+        })
+        .collect()
+}
+
+pub fn get_object_array<'a, S: std::hash::BuildHasher>(
+    json_block: &'a JsonObject<'a, S>,
+    field: &str,
+) -> Result<Vec<&'a JsonObject<'a, S>>, ParseJsonError> {
+    json_block
+        .get(field)
+        .ok_or_else(|| ParseJsonError {
+            cause: format!("Fail to parse json : field '{}' must exist !", field),
+        })?
+        .to_array()
+        .ok_or_else(|| ParseJsonError {
+            cause: format!("Fail to parse json : field '{}' must be an array !", field),
+        })?
+        .iter()
+        .map(|v| {
+            v.to_object().ok_or_else(|| ParseJsonError {
+                cause: format!("Fail to parse json : field '{}' must be an object !", field),
             })
         })
         .collect()
