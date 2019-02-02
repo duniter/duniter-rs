@@ -36,10 +36,10 @@ pub struct SyncOpt {
     #[structopt(short = "e", long = "end")]
     pub end: Option<u32>,
     /// cautious mode (check all protocol rules, very slow)
-    #[structopt(short = "c", long = "cautious")]
+    #[structopt(long = "cautious")]
     pub cautious_mode: bool,
     /// unsafe mode (not check blocks inner hashs, very dangerous)
-    #[structopt(short = "u", long = "unsafe")]
+    #[structopt(short = "u", long = "unsafe", hidden = true)]
     pub unsafe_mode: bool,
 }
 
