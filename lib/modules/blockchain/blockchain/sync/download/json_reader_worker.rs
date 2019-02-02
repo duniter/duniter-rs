@@ -28,13 +28,12 @@ use threadpool::ThreadPool;
 /// Json reader worker
 pub fn json_reader_worker(
     pool: &ThreadPool,
-    profile: &str,
+    profile: String,
     sender_sync_thread: mpsc::Sender<MessForSyncThread>,
     json_chunks_path: PathBuf,
     end: Option<u32>,
 ) {
     // Lauch json reader thread
-    let profile_copy = String::from(profile);
     pool.execute(move || {
         let ts_job_begin = SystemTime::now();
 
@@ -96,13 +95,13 @@ pub fn json_reader_worker(
 
         // Get current local blockstamp
         debug!("Get local current blockstamp...");
-        let db_path = duniter_conf::get_blockchain_db_path(&profile_copy, &last_block.currency);
+        let db_path = duniter_conf::get_blockchain_db_path(&profile, &last_block.currency);
         let blocks_databases = BlocksV10DBs::open(Some(&db_path));
         let current_blockstamp: Blockstamp =
             durs_blockchain_dal::block::get_current_blockstamp(&blocks_databases)
                 .expect("ForksV10DB : RustBreakError !")
                 .unwrap_or_default();
-        debug!("Success to get local current blockstamp.");
+        info!("Local current blockstamp = {}", current_blockstamp);
 
         // Get first chunk number
         let first_chunk_number: usize =
@@ -141,7 +140,7 @@ pub fn json_reader_worker(
                     {
                         // Send block document
                         sender_sync_thread
-                            .send(MessForSyncThread::BlockDocument(Box::new(block)))
+                            .send(MessForSyncThread::BlockDocument(block))
                             .expect("Fatal error : sync_thread unrechable !");
                     }
                 }

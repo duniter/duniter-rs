@@ -42,7 +42,7 @@ pub enum ApplyValidBlockError {
 }
 
 pub fn apply_valid_block<W: WebOfTrust>(
-    block: &BlockDocument,
+    mut block: BlockDocument,
     wot_index: &mut HashMap<PubKey, NodeId>,
     wot_db: &BinDB<W>,
     expire_certs: &HashMap<(NodeId, NodeId), BlockId>,
@@ -50,17 +50,17 @@ pub fn apply_valid_block<W: WebOfTrust>(
 ) -> Result<ValidBlockApplyReqs, ApplyValidBlockError> {
     debug!(
         "BlockchainModule : apply_valid_block({})",
-        block.blockstamp()
+        block.blockstamp(),
     );
     let mut wot_dbs_requests = Vec::new();
     let mut currency_dbs_requests = Vec::new();
     let current_blockstamp = block.blockstamp();
     let mut identities = HashMap::with_capacity(block.identities.len());
-    for identity in block.identities.clone() {
+    for identity in &block.identities {
         identities.insert(identity.issuers()[0], identity);
     }
-    for joiner in block.joiners.clone() {
-        let pubkey = joiner.clone().issuers()[0];
+    for joiner in &block.joiners {
+        let pubkey = joiner.issuers()[0];
         if let Some(idty_doc) = identities.get(&pubkey) {
             // Newcomer
             let wot_id = NodeId(
@@ -78,7 +78,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
                 wot_id,
                 current_blockstamp,
                 block.median_time,
-                Box::new(idty_doc.clone()),
+                Box::new((*idty_doc).clone()),
                 joiner.blockstamp().id,
             ));
         } else {
@@ -97,7 +97,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
             ));
         }
     }
-    for active in block.actives.clone() {
+    for active in &block.actives {
         let pubkey = active.issuers()[0];
         if !identities.contains_key(&pubkey) {
             let wot_id = wot_index[&pubkey];
@@ -114,7 +114,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
             ));
         }
     }
-    for exclusion in block.excluded.clone() {
+    for exclusion in &block.excluded {
         let wot_id = if let Some(wot_id) = wot_index.get(&exclusion) {
             wot_id
         } else {
@@ -126,11 +126,11 @@ pub fn apply_valid_block<W: WebOfTrust>(
             })
             .expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::ExcludeIdentity(
-            exclusion,
+            *exclusion,
             block.blockstamp(),
         ));
     }
-    for revocation in block.revoked.clone() {
+    for revocation in &block.revoked {
         let compact_revoc = revocation.to_compact_document();
         let wot_id = if let Some(wot_id) = wot_index.get(&compact_revoc.issuer) {
             wot_id
@@ -148,7 +148,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
             true,
         ));
     }
-    for certification in block.certifications.clone() {
+    for certification in &block.certifications {
         trace!("stack_up_valid_block: apply cert...");
         let compact_cert = certification.to_compact_document();
         let wot_node_from = wot_index[&compact_cert.issuer];
@@ -210,7 +210,8 @@ pub fn apply_valid_block<W: WebOfTrust>(
             ));
         }
     }
-    for tx in block.transactions.clone() {
+
+    for tx in &block.transactions {
         currency_dbs_requests.push(CurrencyDBsWriteQuery::WriteTx(Box::new(tx.unwrap_doc())));
     }
 
@@ -263,7 +264,6 @@ pub fn apply_valid_block<W: WebOfTrust>(
         );
     }*/
     // Create DALBlock
-    let mut block = block.clone();
     let previous_blockcstamp = block.previous_blockstamp();
     let block_hash = block
         .hash

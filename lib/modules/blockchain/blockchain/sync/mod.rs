@@ -35,13 +35,6 @@ use threadpool::ThreadPool;
 /// Number of sync jobs
 pub static NB_SYNC_JOBS: &'static usize = &4;
 
-/*#[derive(Debug)]
-/// Sync source
-enum SyncSource {
-    Network(String),
-    LocalJsonFiles(PathBuf),
-}*/
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Block header
 pub struct BlockHeader {
@@ -54,7 +47,7 @@ pub struct BlockHeader {
 /// Message for main sync thread
 pub enum MessForSyncThread {
     Target(CurrencyName, Blockstamp),
-    BlockDocument(Box<BlockDocument>),
+    BlockDocument(BlockDocument),
     DownloadFinish(),
     ApplyFinish(),
 }
@@ -68,11 +61,10 @@ pub enum SyncJobsMess {
     End(),
 }
 
-/// Sync
-pub fn sync<DC: DuniterConf>(
+/// Sync from local json files
+pub fn local_sync<DC: DuniterConf>(
     profile: &str,
     conf: &DC,
-    //source: SyncSource,
     json_files_path: PathBuf,
     end: Option<u32>,
     cautious: bool,
@@ -109,17 +101,14 @@ pub fn sync<DC: DuniterConf>(
         panic!("json_files_path must be a directory");
     }
 
-    // Lauch json reader thread
+    // Lauch json reader worker
     download::json_reader_worker::json_reader_worker(
         &pool,
-        profile,
+        profile.to_owned(),
         sender_sync_thread.clone(),
         json_files_path,
         end,
     );
-    //}
-    //SyncSource::Network(url) => unimplemented!(),
-    //}
 
     // Get target blockstamp
     let (currency, target_blockstamp) =
@@ -154,13 +143,13 @@ pub fn sync<DC: DuniterConf>(
     debug!("Get local current blockstamp...");
     let mut current_blockstamp: Blockstamp =
         durs_blockchain_dal::block::get_current_blockstamp(&databases)
-            .expect("ForksV10DB : RustBreakError !")
+            .expect("DALError : fail to get current blockstamp !")
             .unwrap_or_default();
     debug!("Success to get local current blockstamp.");
 
     // Node is already synchronized ?
     if target_blockstamp.id.0 < current_blockstamp.id.0 {
-        println!("Your duniter-rs node is already synchronized.");
+        println!("Your durs node is already synchronized.");
         return;
     }
 
@@ -246,7 +235,7 @@ pub fn sync<DC: DuniterConf>(
     let mut all_apply_valid_block_duration = Duration::from_millis(0);
     while let Ok(MessForSyncThread::BlockDocument(block_doc)) = recv_sync_thread.recv() {
         all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
-        let block_doc = block_doc.deref();
+
         // Verify block hashs
         let verif_block_hashs_begin = SystemTime::now();
         if verif_inner_hash {
@@ -289,11 +278,13 @@ pub fn sync<DC: DuniterConf>(
         let expire_certs =
             durs_blockchain_dal::certs::find_expire_certs(&certs_db, blocks_expiring)
                 .expect("find_expire_certs() : DALError");
+        // Get block blockstamp
+        let blockstamp = block_doc.blockstamp();
         // Apply block
         let apply_valid_block_begin = SystemTime::now();
         if let Ok(ValidBlockApplyReqs(block_req, wot_db_reqs, currency_db_reqs)) =
             apply_valid_block::<RustyWebOfTrust>(
-                &block_doc,
+                block_doc,
                 &mut wot_index,
                 &wot_db,
                 &expire_certs,
@@ -303,7 +294,7 @@ pub fn sync<DC: DuniterConf>(
             all_apply_valid_block_duration += SystemTime::now()
                 .duration_since(apply_valid_block_begin)
                 .unwrap();
-            current_blockstamp = block_doc.blockstamp();
+            current_blockstamp = blockstamp;
             debug!("Apply db requests...");
             // Send block request to blocks worker thread
             sender_blocks_thread

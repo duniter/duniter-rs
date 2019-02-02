@@ -16,7 +16,7 @@
 //! Module managing the Duniter blockchain.
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-//#![cfg_attr(feature = "cargo-clippy", allow(duration_subsec))]
+#![allow(clippy::large_enum_variant)]
 #![deny(
     missing_docs,
     missing_debug_implementations,
@@ -113,19 +113,40 @@ pub struct BlockchainModule {
 
 #[derive(Debug, Clone)]
 /// Block
-pub enum Block<'a> {
+pub enum Block {
     /// Block coming from Network
-    NetworkBlock(&'a BlockDocument),
+    NetworkBlock(BlockDocument),
     /// Block coming from local database
-    LocalBlock(&'a BlockDocument),
+    LocalBlock(BlockDocument),
 }
 
-impl<'a> Block<'a> {
+impl Block {
+    /// Into block document
+    pub fn into_doc(self) -> BlockDocument {
+        match self {
+            Block::NetworkBlock(block) => block,
+            Block::LocalBlock(block) => block,
+        }
+    }
+    /// Get block document ref
+    pub fn get_doc_ref(&self) -> &BlockDocument {
+        match *self {
+            Block::NetworkBlock(ref block) => block,
+            Block::LocalBlock(ref block) => block,
+        }
+    }
     /// Return blockstamp
     pub fn blockstamp(&self) -> Blockstamp {
         match *self {
             Block::NetworkBlock(ref block) => block.blockstamp(),
             Block::LocalBlock(ref block) => block.blockstamp(),
+        }
+    }
+    /// Is from network ?
+    pub fn is_from_network(&self) -> bool {
+        match *self {
+            Block::NetworkBlock(_) => true,
+            _ => false,
         }
     }
 }
@@ -233,7 +254,7 @@ impl BlockchainModule {
         if !json_chunks_path.as_path().exists() {
             panic!("Fatal error : duniter json chunks folder don't exist !");
         }
-        sync::sync(
+        sync::local_sync(
             profile,
             conf,
             json_chunks_path,
@@ -346,7 +367,7 @@ impl BlockchainModule {
                 match check_and_apply_block::<W>(
                     &self.blocks_databases,
                     &self.wot_databases.certs_db,
-                    &Block::NetworkBlock(block_doc),
+                    Block::NetworkBlock(block_doc.clone()),
                     &current_blockstamp,
                     wot_index,
                     wot_db,
@@ -426,30 +447,30 @@ impl BlockchainModule {
 
     fn receive_blocks<W: WebOfTrust>(
         &mut self,
-        blocks_in_box: &[Box<Block>],
+        blocks: Vec<Block>,
         current_blockstamp: &Blockstamp,
         wot_index: &mut HashMap<PubKey, NodeId>,
         wot: &BinDB<W>,
     ) -> Blockstamp {
         debug!("BlockchainModule : receive_blocks()");
-        let blocks: Vec<&Block> = blocks_in_box.iter().map(|b| b.deref()).collect();
         let mut current_blockstamp = *current_blockstamp;
         let mut save_blocks_dbs = false;
         let mut save_wots_dbs = false;
         let mut save_currency_dbs = false;
-        for block in blocks {
+        for block in blocks.into_iter() {
+            let blockstamp = block.blockstamp();
             if let Ok(ValidBlockApplyReqs(bc_db_query, wot_dbs_queries, tx_dbs_queries)) =
                 check_and_apply_block::<W>(
                     &self.blocks_databases,
                     &self.wot_databases.certs_db,
-                    &block,
+                    block,
                     &current_blockstamp,
                     wot_index,
                     wot,
                     &self.forks_states,
                 )
             {
-                current_blockstamp = block.blockstamp();
+                current_blockstamp = blockstamp;
                 // Update forks states
                 self.forks_states = durs_blockchain_dal::block::get_forks(
                     &self.blocks_databases.forks_db,
@@ -636,7 +657,7 @@ impl BlockchainModule {
                             DursEvent::MemPoolEvent(ref mempool_event) => {
                                 if let MemPoolEvent::FindNextBlock(next_block_box) = mempool_event {
                                     let new_current_blockstamp = self.receive_blocks(
-                                        &[Box::new(Block::LocalBlock(next_block_box.deref()))],
+                                        vec![Block::LocalBlock(next_block_box.deref().clone())],
                                         &current_blockstamp,
                                         &mut wot_index,
                                         &wot_db,
@@ -698,15 +719,13 @@ impl BlockchainModule {
                                             if let NetworkResponse::Chunk(_, _, ref blocks) =
                                                 *network_response.deref()
                                             {
-                                                let blocks: Vec<Box<Block>> = blocks
+                                                let blocks: Vec<Block> = blocks
                                                     .iter()
-                                                    .map(|b| {
-                                                        Box::new(Block::NetworkBlock(b.deref()))
-                                                    })
+                                                    .map(|b| Block::NetworkBlock(b.deref().clone()))
                                                     .collect();
 
                                                 let new_current_blockstamp = self.receive_blocks(
-                                                    &blocks,
+                                                    blocks,
                                                     &current_blockstamp,
                                                     &mut wot_index,
                                                     &wot_db,
@@ -761,6 +780,10 @@ impl BlockchainModule {
                         let mut find_valid_block = false;
                         for stackable_block in stackable_blocks {
                             debug!("stackable_block({})", stackable_block.block.number);
+
+                            let stackable_block_number = stackable_block.block.number;
+                            let stackable_block_blockstamp = stackable_block.block.blockstamp();
+
                             if let Ok(ValidBlockApplyReqs(
                                 bc_db_query,
                                 wot_dbs_queries,
@@ -768,7 +791,7 @@ impl BlockchainModule {
                             )) = check_and_apply_block(
                                 &self.blocks_databases,
                                 &self.wot_databases.certs_db,
-                                &Block::LocalBlock(&stackable_block.block),
+                                Block::LocalBlock(stackable_block.block),
                                 &current_blockstamp,
                                 &mut wot_index,
                                 &wot_db,
@@ -798,16 +821,13 @@ impl BlockchainModule {
                                 if !tx_dbs_queries.is_empty() {
                                     self.currency_databases.save_dbs(true, true);
                                 }
-                                debug!(
-                                    "success to stackable_block({})",
-                                    stackable_block.block.number
-                                );
+                                debug!("success to stackable_block({})", stackable_block_number);
 
-                                current_blockstamp = stackable_block.block.blockstamp();
+                                current_blockstamp = stackable_block_blockstamp;
                                 find_valid_block = true;
                                 break;
                             } else {
-                                warn!("fail to stackable_block({})", stackable_block.block.number);
+                                warn!("fail to stackable_block({})", stackable_block_number);
                                 // Delete this fork
                                 DALBlock::delete_fork(
                                     &self.blocks_databases.forks_db,
@@ -857,8 +877,9 @@ pub fn verify_block_hashs(block_doc: &BlockDocument) -> Result<(), VerifyBlockHa
         }
     } else {
         warn!("BlockchainModule : Refuse Bloc : invalid inner hash !");
-        debug!(
-            "BlockInnerFormat={}",
+        warn!("BlockDocument=\"{:?}\"", block_doc);
+        warn!(
+            "BlockInnerFormat=\"{}\"",
             block_doc.generate_compact_inner_text()
         );
         Err(VerifyBlockHashsError::InvalidInnerHash())

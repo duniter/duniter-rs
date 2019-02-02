@@ -55,27 +55,28 @@ impl From<ApplyValidBlockError> for BlockError {
 pub fn check_and_apply_block<W: WebOfTrust>(
     blocks_databases: &BlocksV10DBs,
     certs_db: &BinDB<CertsExpirV10Datas>,
-    block: &Block,
+    block: Block,
     current_blockstamp: &Blockstamp,
     wot_index: &mut HashMap<PubKey, NodeId>,
     wot_db: &BinDB<W>,
     forks_states: &[ForkStatus],
 ) -> Result<ValidBlockApplyReqs, BlockError> {
+    let block_from_network = block.is_from_network();
+    let block_doc: BlockDocument = block.into_doc();
+
     // Get BlockDocument && check if already have block
-    let (block_doc, already_have_block) = match *block {
-        Block::NetworkBlock(block_doc) => {
-            let already_have_block = DALBlock::already_have_block(
-                &blocks_databases.blockchain_db,
-                &blocks_databases.forks_blocks_db,
-                block_doc.blockstamp(),
-            )?;
-            (block_doc, already_have_block)
-        }
-        Block::LocalBlock(block_doc) => (block_doc, true),
+    let already_have_block = if block_from_network {
+        DALBlock::already_have_block(
+            &blocks_databases.blockchain_db,
+            &blocks_databases.forks_blocks_db,
+            block_doc.blockstamp(),
+        )?
+    } else {
+        false
     };
 
     // Verify block hashs
-    verify_block_hashs(block_doc)?;
+    verify_block_hashs(&block_doc)?;
 
     // Check block chainability
     if (block_doc.number.0 == current_blockstamp.id.0 + 1
@@ -92,16 +93,13 @@ pub fn check_and_apply_block<W: WebOfTrust>(
             durs_blockchain_dal::certs::find_expire_certs(certs_db, blocks_expiring)?;
 
         // Try stack up block
-        let mut old_fork_id = None;
-        let block_doc: &BlockDocument = match *block {
-            Block::NetworkBlock(block_doc) => block_doc,
-            Block::LocalBlock(block_doc) => {
-                old_fork_id = durs_blockchain_dal::block::get_fork_id_of_blockstamp(
-                    &blocks_databases.forks_blocks_db,
-                    &block_doc.blockstamp(),
-                )?;
-                block_doc
-            }
+        let old_fork_id = if block_from_network {
+            durs_blockchain_dal::block::get_fork_id_of_blockstamp(
+                &blocks_databases.forks_blocks_db,
+                &block_doc.blockstamp(),
+            )?
+        } else {
+            None
         };
 
         // Verify block validity (check all protocol rule, very long !)
@@ -114,7 +112,7 @@ pub fn check_and_apply_block<W: WebOfTrust>(
         )?;
 
         return Ok(apply_valid_block(
-            &block_doc,
+            block_doc,
             wot_index,
             wot_db,
             &expire_certs,
@@ -151,45 +149,24 @@ pub fn check_and_apply_block<W: WebOfTrust>(
                 }
                 _ => {}
             }
-            match *block {
-                Block::NetworkBlock(block_doc) => {
-                    let dal_block = DALBlock {
-                        fork_id,
-                        isolate,
-                        block: block_doc.clone(),
-                        expire_certs: None,
-                    };
-                    durs_blockchain_dal::writers::block::write(
-                        &blocks_databases.blockchain_db,
-                        &blocks_databases.forks_db,
-                        &blocks_databases.forks_blocks_db,
-                        &dal_block,
-                        None,
-                        false,
-                        false,
-                    )
-                    .expect("durs_blockchain_dal::writers::block::write() : DALError")
-                }
-                Block::LocalBlock(block_doc) => {
-                    let old_fork_id = None;
-                    let dal_block = DALBlock {
-                        fork_id,
-                        isolate,
-                        block: block_doc.clone(),
-                        expire_certs: None,
-                    };
-                    durs_blockchain_dal::writers::block::write(
-                        &blocks_databases.blockchain_db,
-                        &blocks_databases.forks_db,
-                        &blocks_databases.forks_blocks_db,
-                        &dal_block,
-                        old_fork_id,
-                        false,
-                        false,
-                    )
-                    .expect("durs_blockchain_dal::writers::block::write() : DALError")
-                }
+
+            let dal_block = DALBlock {
+                fork_id,
+                isolate,
+                block: block_doc.clone(),
+                expire_certs: None,
             };
+
+            durs_blockchain_dal::writers::block::write(
+                &blocks_databases.blockchain_db,
+                &blocks_databases.forks_db,
+                &blocks_databases.forks_blocks_db,
+                &dal_block,
+                None,
+                false,
+                false,
+            )
+            .expect("durs_blockchain_dal::writers::block::write() : DALError")
         } else {
             return Err(BlockError::NoForkAvailable());
         }
