@@ -172,13 +172,23 @@ pub fn sync<DC: DuniterConf>(
     // Start sync
     let sync_start_time = SystemTime::now();
 
-    // Createprogess bar
+    // Count number of blocks and chunks
     let count_blocks = target_blockstamp.id.0 + 1 - current_blockstamp.id.0;
     let count_chunks = if count_blocks % 250 > 0 {
         (count_blocks / 250) + 1
     } else {
         count_blocks / 250
     };
+    println!(
+        "Sync from #{} to #{} :",
+        current_blockstamp.id.0, target_blockstamp.id.0
+    );
+    info!(
+        "Sync from #{} to #{} :",
+        current_blockstamp.id.0, target_blockstamp.id.0
+    );
+
+    // Createprogess bar
     let mut apply_pb = ProgressBar::new(count_chunks.into());
     apply_pb.format("╢▌▌░╟");
 
@@ -410,13 +420,13 @@ pub fn sync<DC: DuniterConf>(
     let sync_duration = SystemTime::now().duration_since(sync_start_time).unwrap();
     println!(
         "Sync {} blocks in {}.{:03} seconds.",
-        current_blockstamp.id.0 + 1,
+        count_blocks,
         sync_duration.as_secs(),
         sync_duration.subsec_millis(),
     );
     info!(
         "Sync {} blocks in {}.{:03} seconds.",
-        current_blockstamp.id.0 + 1,
+        count_blocks,
         sync_duration.as_secs(),
         sync_duration.subsec_millis(),
     );

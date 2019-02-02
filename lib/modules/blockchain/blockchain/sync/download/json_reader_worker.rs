@@ -82,7 +82,9 @@ pub fn json_reader_worker(
             fatal_error("Last chunk is empty !");
         }
 
-        let last_block = &last_chunk_blocks[last_chunk_blocks.len() - 1];
+        let last_block = last_chunk_blocks
+            .get(max_block_id as usize % *crate::constants::CHUNK_SIZE)
+            .expect("safe unwrap because not empty");
 
         // Send TargetBlockcstamp
         sender_sync_thread
@@ -134,7 +136,9 @@ pub fn json_reader_worker(
                 for block in blocks {
                     // Verify if the block number is within the expected interval
                     let block_id = block.blockstamp().id;
-                    if block_id > current_blockstamp.id && block_id.0 <= max_block_id {
+                    if (block_id > current_blockstamp.id && block_id.0 <= max_block_id)
+                        || (block_id.0 == 0 && current_blockstamp == Blockstamp::default())
+                    {
                         // Send block document
                         sender_sync_thread
                             .send(MessForSyncThread::BlockDocument(Box::new(block)))
