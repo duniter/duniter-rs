@@ -18,7 +18,7 @@
 use crate::*;
 use dup_crypto::keys::*;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 /// Contains a document in full or compact format
 pub enum TextDocumentFormat<D: TextDocument> {
     /// Complete format (Allows to check the validity of the signature)

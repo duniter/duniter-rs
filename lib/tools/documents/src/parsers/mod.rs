@@ -31,6 +31,8 @@ pub mod revoked;
 /// Parsers for transactions
 pub mod transactions;
 
+type DefaultHasher = std::hash::BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
+
 #[cfg(test)]
 mod tests {
     use crate::blockstamp::Blockstamp;

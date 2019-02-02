@@ -13,15 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::documents::block::BlockDocument;
+use crate::documents::block::{BlockDocument, BlockV10Parameters, TxDocOrTxHash};
 use crate::documents::membership::MembershipType;
+use crate::parsers::DefaultHasher;
 use crate::*;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use failure::Error;
 use json_pest_parser::*;
+use std::str::FromStr;
 
-pub fn parse_json_block(json_block: &JSONValue) -> Result<BlockDocument, Error> {
+pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDocument, Error> {
     if !json_block.is_object() {
         return Err(ParseJsonError {
             cause: "Json block must be an object !".to_owned(),
@@ -33,10 +35,12 @@ pub fn parse_json_block(json_block: &JSONValue) -> Result<BlockDocument, Error> 
 
     let currency = get_str(json_block, "currency")?;
 
+    let block_number = get_number(json_block, "number")?.trunc() as u32;
+
     Ok(BlockDocument {
         version: get_number(json_block, "version")?.trunc() as u32,
         nonce: get_number(json_block, "nonce")?.trunc() as u64,
-        number: BlockId(get_number(json_block, "number")?.trunc() as u32),
+        number: BlockId(block_number),
         pow_min: get_number(json_block, "powMin")?.trunc() as usize,
         time: get_number(json_block, "time")?.trunc() as u64,
         median_time: get_number(json_block, "medianTime")?.trunc() as u64,
@@ -55,12 +59,24 @@ pub fn parse_json_block(json_block: &JSONValue) -> Result<BlockDocument, Error> 
             "signature",
         )?)?)],
         hash: Some(BlockHash(Hash::from_hex(get_str(json_block, "hash")?)?)),
-        parameters: None,
-        previous_hash: Hash::from_hex(get_str(json_block, "previousHash")?)?,
-        previous_issuer: Some(PubKey::Ed25519(ed25519::PublicKey::from_base58(get_str(
-            json_block,
-            "previousIssuer",
-        )?)?)),
+        parameters: if let Some(params) = get_optional_str_not_empty(json_block, "parameters")? {
+            Some(BlockV10Parameters::from_str(params)?)
+        } else {
+            None
+        },
+        previous_hash: if block_number == 0 {
+            Hash::default()
+        } else {
+            Hash::from_hex(get_str(json_block, "previousHash")?)?
+        },
+        previous_issuer: if block_number == 0 {
+            None
+        } else {
+            Some(PubKey::Ed25519(ed25519::PublicKey::from_base58(get_str(
+                json_block,
+                "previousIssuer",
+            )?)?))
+        },
         inner_hash: Some(Hash::from_hex(get_str(json_block, "inner_hash")?)?),
         dividend: get_optional_usize(json_block, "dividend")?,
         identities: crate::parsers::identities::parse_compact_identities(
@@ -93,7 +109,20 @@ pub fn parse_json_block(json_block: &JSONValue) -> Result<BlockDocument, Error> 
         certifications: crate::parsers::certifications::parse_certifications_into_compact(
             &get_str_array(json_block, "certifications")?,
         ),
-        transactions: vec![],
+        transactions: json_block
+            .get("transactions")
+            .ok_or_else(|| ParseJsonError {
+                cause: "Fail to parse json block : field 'transactions' must exist !".to_owned(),
+            })?
+            .to_array()
+            .ok_or_else(|| ParseJsonError {
+                cause: "Fail to parse json block : field 'transactions' must be an array !"
+                    .to_owned(),
+            })?
+            .iter()
+            .map(|tx| crate::parsers::transactions::parse_json_transaction(tx))
+            .map(|tx_result| tx_result.map(|tx_doc| TxDocOrTxHash::TxDoc(Box::new(tx_doc))))
+            .collect::<Result<Vec<TxDocOrTxHash>, Error>>()?,
         inner_hash_and_nonce_str: "".to_owned(),
     })
 }
@@ -101,7 +130,6 @@ pub fn parse_json_block(json_block: &JSONValue) -> Result<BlockDocument, Error> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::documents::block::TxDocOrTxHash;
 
     #[test]
     fn parse_empty_json_block() {
@@ -262,8 +290,8 @@ mod tests {
 
         let block_json_value = json_pest_parser::parse_json_string(block_json_str)
             .expect("Fail to parse json block !");
-        assert_eq!(
-            BlockDocument {
+
+        let expected_block = BlockDocument {
                 version: 10,
                 nonce: 10100000033688,
                 number: BlockId(52),
@@ -315,8 +343,11 @@ mod tests {
                 certifications: vec![],
                 transactions: vec![TxDocOrTxHash::TxDoc(Box::new(crate::parsers::tests::first_g1_tx_doc()))],
                 inner_hash_and_nonce_str: "".to_owned(),
-            },
+            };
+        assert_eq!(
+            expected_block,
             parse_json_block(&block_json_value).expect("Fail to parse block_json_value !")
         );
+        assert!(expected_block.verify_inner_hash());
     }
 }

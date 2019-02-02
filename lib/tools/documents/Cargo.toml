@@ -16,6 +16,7 @@ path = "src/lib.rs"
 base58 = "0.1.*"
 base64 = "0.9.*"
 byteorder = "1.2.3"
+durs-common-tools = { path = "../common-tools" }
 dup-crypto = { path = "../crypto" }
 failure = "0.1.5"
 json-pest-parser = { path = "../json-pest-parser" }

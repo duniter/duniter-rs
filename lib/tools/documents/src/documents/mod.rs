@@ -160,7 +160,7 @@ mod tests {
     use dup_crypto::keys::*;
 
     // simple text document for signature testing
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     struct PlainTextDocument {
         pub text: &'static str,
         pub issuers: Vec<PubKey>,

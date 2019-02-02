@@ -185,7 +185,7 @@ impl Debug for BlockHash {
 ///
 /// Allow only ed25519 for protocol 10 and many differents
 /// schemes for protocol 11 through a proxy type.
-pub trait Document: Debug + Clone {
+pub trait Document: Debug + Clone + PartialEq + Eq {
     /// Type of the `PublicKey` used by the document.
     type PublicKey: PublicKey;
     /// Data type of the currency code used by the document.

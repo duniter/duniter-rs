@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::documents::transaction::*;
+use crate::parsers::DefaultHasher;
 use crate::TextDocumentParseError;
 use crate::*;
 use dup_crypto::hashs::Hash;
@@ -29,7 +30,9 @@ pub enum ParseTxError {
 }
 
 /// Parse transaction from json value
-pub fn parse_json_transaction(json_tx: &JSONValue) -> Result<TransactionDocument, Error> {
+pub fn parse_json_transaction(
+    json_tx: &JSONValue<DefaultHasher>,
+) -> Result<TransactionDocument, Error> {
     if !json_tx.is_object() {
         return Err(ParseJsonError {
             cause: "Json transaction must be an object !".to_owned(),
@@ -60,7 +63,7 @@ pub fn parse_json_transaction(json_tx: &JSONValue) -> Result<TransactionDocument
             .iter()
             .map(|i| TransactionOutput::from_str(i))
             .collect::<Result<Vec<TransactionOutput>, TextDocumentParseError>>()?,
-        comment: get_str(json_tx, "comment")?,
+        comment: &durs_common_tools::unescape_str(get_str(json_tx, "comment")?),
         hash: if let Some(hash_str) = get_optional_str(json_tx, "hash")? {
             Some(Hash::from_hex(hash_str)?)
         } else {
