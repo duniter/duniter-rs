@@ -29,6 +29,10 @@ pub fn create_du(
     members: &[PubKey],
     revert: bool,
 ) -> Result<(), DALError> {
+    debug!(
+        "create_du(amount, block_id, members, revert)=({:?}, {}, {:?}, {})",
+        du_amount, du_block_id.0, members, revert
+    );
     // Insert/Remove UD sources in UDsV10DB
     du_db.write(|db| {
         for pubkey in members {

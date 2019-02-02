@@ -269,6 +269,7 @@ pub fn apply_and_write_tx(
                 if let SourceIndexV10::UTXO(utxo_index) = source_index {
                     // Get utxo
                     let utxo = db.get(&utxo_index).unwrap_or_else(|| {
+                        debug!("apply_tx=\"{:#?}\"", tx_doc);
                         panic!(
                             "ApplyBLockError : unknow UTXO in inputs : {:?} !",
                             utxo_index
