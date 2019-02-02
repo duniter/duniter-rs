@@ -38,6 +38,7 @@ pub mod keys;
 use dubp_documents::CurrencyName;
 use duniter_module::{DuniterConf, ModuleName, RequiredKeys, RequiredKeysContent};
 use dup_crypto::keys::*;
+use durs_common_tools::fatal_error;
 use rand::Rng;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use std::collections::HashSet;
@@ -477,7 +478,11 @@ pub fn get_blockchain_db_path(profile: &str, currency: &CurrencyName) -> PathBuf
     let mut db_path = datas_path(profile, &currency);
     db_path.push("blockchain/");
     if !db_path.as_path().exists() {
-        fs::create_dir(db_path.as_path()).expect("Impossible to create blockchain dir !");
+        if let Err(io_error) = fs::create_dir(db_path.as_path()) {
+            if io_error.kind() != std::io::ErrorKind::AlreadyExists {
+                fatal_error("Impossible to create blockchain dir !");
+            }
+        }
     }
     db_path
 }

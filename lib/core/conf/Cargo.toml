@@ -17,8 +17,9 @@ serde_json = "1.0.*"
 dirs = "1.0.2"
 dup-crypto = { path = "../../tools/crypto" }
 dubp-documents= { path = "../../tools/documents" }
-rpassword = "1.0.0"
 duniter-module = { path = "../module" }
+durs-common-tools = { path = "../../tools/common-tools" }
+rpassword = "1.0.0"
 
 [features]
 # Treat warnings as a build error.
