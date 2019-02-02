@@ -466,7 +466,7 @@ impl WS2PConnectionMetaDatas {
                             return WS2PConnectionMessagePayload::ReqResponse(
                                 ModuleReqId(req_id),
                                 body.clone(),
-                            )
+                            );
                         }
                         Err(_) => return WS2PConnectionMessagePayload::WrongFormatMessage,
                     },
@@ -500,7 +500,7 @@ impl WS2PConnectionMetaDatas {
                                     Some(heads_array) => {
                                         return WS2PConnectionMessagePayload::Heads(
                                             heads_array.clone(),
-                                        )
+                                        );
                                     }
                                     None => return WS2PConnectionMessagePayload::WrongFormatMessage,
                                 },

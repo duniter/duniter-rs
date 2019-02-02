@@ -204,7 +204,7 @@ impl ApiModule<DuRsConf, DursMsg> for WS2PModule {
                 _ => {
                     return Err(WS2PFeaturesParseError::UnknowApiFeature(String::from(
                         str_feature,
-                    )))
+                    )));
                 }
             }
         }

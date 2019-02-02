@@ -323,7 +323,7 @@ impl WS2PModuleDatas {
                 match self.ws2p_endpoints[&ws2p_full_id].1 {
                     WS2PConnectionState::OkMessOkWaitingAckMess => {}
                     WS2PConnectionState::Established => {
-                        return WS2PSignal::ConnectionEstablished(ws2p_full_id)
+                        return WS2PSignal::ConnectionEstablished(ws2p_full_id);
                     }
                     _ => {
                         self.close_connection(&ws2p_full_id, WS2PCloseConnectionReason::Unknow);
