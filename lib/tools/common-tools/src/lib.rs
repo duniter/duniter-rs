@@ -38,3 +38,33 @@ pub fn fatal_error(msg: &str) {
         panic!(format!("Fatal Error : {}", msg));
     }
 }
+
+/// Unescape backslash
+pub fn unescape_str(source: &str) -> String {
+    let mut previous_char = None;
+    let mut str_result = String::with_capacity(source.len());
+
+    for current_char in source.chars() {
+        if previous_char.is_some() && previous_char.unwrap() == '\\' {
+            match current_char {
+                '\\' => {} // Do nothing
+                _ => str_result.push(current_char),
+            }
+        } else {
+            str_result.push(current_char);
+        }
+        previous_char = Some(current_char);
+    }
+
+    str_result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    pub fn test_unescape_str() {
+        assert_eq!("\\".to_owned(), unescape_str("\\\\"));
+    }
+}
