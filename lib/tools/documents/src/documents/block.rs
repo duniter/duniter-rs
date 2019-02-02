@@ -28,12 +28,14 @@ use crate::documents::transaction::TransactionDocument;
 use crate::documents::*;
 use crate::text_document_traits::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Fail)]
 /// Store error in block parameters parsing
 pub enum ParseParamsError {
     /// ParseIntError
+    #[fail(display = "Fail to parse params :ParseIntError !")]
     ParseIntError(::std::num::ParseIntError),
     /// ParseFloatError
+    #[fail(display = "Fail to parse params :ParseFloatError !")]
     ParseFloatError(::std::num::ParseFloatError),
 }
 
@@ -50,7 +52,7 @@ impl From<::std::num::ParseFloatError> for ParseParamsError {
 }
 
 /// Currency parameters
-#[derive(Debug, Copy, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq)]
 pub struct BlockV10Parameters {
     /// UD target growth rate (see Relative Theorie of Money)
     pub c: f64,
@@ -153,8 +155,38 @@ impl ::std::str::FromStr for BlockV10Parameters {
     }
 }
 
+impl ToString for BlockV10Parameters {
+    fn to_string(&self) -> String {
+        format!(
+            "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+            self.c,
+            self.dt,
+            self.ud0,
+            self.sig_period,
+            self.sig_stock,
+            self.sig_window,
+            self.sig_validity,
+            self.sig_qty,
+            self.idty_window,
+            self.ms_window,
+            self.x_percent,
+            self.ms_validity,
+            self.step_max,
+            self.median_time_blocks,
+            self.avg_gen_time,
+            self.dt_diff_eval,
+            self.percent_rot,
+            self.ud_time0,
+            self.ud_reeval_time0,
+            self.dt_reeval,
+        )
+    }
+}
+
+impl Eq for BlockV10Parameters {}
+
 /// Store a transaction document or just its hash.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum TxDocOrTxHash {
     /// Transaction document
     TxDoc(Box<TransactionDocument>),
@@ -190,7 +222,7 @@ impl TxDocOrTxHash {
 /// Wrap a Block document.
 ///
 /// Must be created by parsing a text document or using a builder.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct BlockDocument {
     /// Version
     pub version: u32,
@@ -254,14 +286,6 @@ pub struct BlockDocument {
     /// Part to sign
     pub inner_hash_and_nonce_str: String,
 }
-
-impl PartialEq for BlockDocument {
-    fn eq(&self, other: &BlockDocument) -> bool {
-        self.hash == other.hash
-    }
-}
-
-impl Eq for BlockDocument {}
 
 impl BlockDocument {
     /// Return previous blockstamp
@@ -409,8 +433,31 @@ impl BlockDocument {
                 dividend_str.push_str("\n");
             }
         }
+        let mut parameters_str = String::from("");
+        if let Some(params) = self.parameters {
+            parameters_str.push_str("Parameters: ");
+            parameters_str.push_str(&params.to_string());
+            parameters_str.push_str("\n");
+        }
+        let mut previous_hash_str = String::from("");
+        if self.number.0 > 0 {
+            previous_hash_str.push_str("PreviousHash: ");
+            previous_hash_str.push_str(&self.previous_hash.to_string());
+            previous_hash_str.push_str("\n");
+        }
+        let mut previous_issuer_str = String::from("");
+        if self.number.0 > 0 {
+            previous_issuer_str.push_str("PreviousIssuer: ");
+            previous_issuer_str.push_str(
+                &self
+                    .previous_issuer
+                    .expect("No genesis block must have previous issuer")
+                    .to_string(),
+            );
+            previous_issuer_str.push_str("\n");
+        }
         format!(
-            "Version: 10
+            "Version: {version}
 Type: Block
 Currency: {currency}
 Number: {block_number}
@@ -422,9 +469,7 @@ Issuer: {issuer}
 IssuersFrame: {issuers_frame}
 IssuersFrameVar: {issuers_frame_var}
 DifferentIssuersCount: {issuers_count}
-PreviousHash: {previous_hash}
-PreviousIssuer: {previous_issuer}
-MembersCount: {members_count}
+{parameters}{previous_hash}{previous_issuer}MembersCount: {members_count}
 Identities:{identities}
 Joiners:{joiners}
 Actives:{actives}
@@ -434,6 +479,7 @@ Excluded:{excluded}
 Certifications:{certifications}
 Transactions:{transactions}
 ",
+            version = self.version,
             currency = self.currency,
             block_number = self.number,
             pow_min = self.pow_min,
@@ -445,8 +491,9 @@ Transactions:{transactions}
             issuers_frame = self.issuers_frame,
             issuers_frame_var = self.issuers_frame_var,
             issuers_count = self.issuers_count,
-            previous_hash = self.previous_hash,
-            previous_issuer = self.previous_issuer.unwrap(),
+            parameters = parameters_str,
+            previous_hash = previous_hash_str,
+            previous_issuer = previous_issuer_str,
             members_count = self.members_count,
             identities = identities_str,
             joiners = joiners_str,
