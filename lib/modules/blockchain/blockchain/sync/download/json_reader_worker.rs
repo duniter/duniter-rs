@@ -98,7 +98,7 @@ pub fn json_reader_worker(
         let db_path = duniter_conf::get_blockchain_db_path(&profile, &last_block.currency);
         let blocks_databases = BlocksV10DBs::open(Some(&db_path));
         let current_blockstamp: Blockstamp =
-            durs_blockchain_dal::block::get_current_blockstamp(&blocks_databases)
+            durs_blockchain_dal::readers::block::get_current_blockstamp(&blocks_databases)
                 .expect("ForksV10DB : RustBreakError !")
                 .unwrap_or_default();
         info!("Local current blockstamp = {}", current_blockstamp);

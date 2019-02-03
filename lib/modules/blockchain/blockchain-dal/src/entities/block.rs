@@ -1,0 +1,43 @@
+//  Copyright (C) 2018  The Duniter Project Developers.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+use crate::*;
+use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::Document;
+use dubp_documents::{BlockId, Blockstamp};
+use durs_wot::NodeId;
+use std::collections::HashMap;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// A block as it is saved in a database
+pub struct DALBlock {
+    /// Fork id
+    pub fork_id: ForkId,
+    /// True only if the block is on an isolated fork
+    pub isolate: bool,
+    /// Block document
+    pub block: BlockDocument,
+    /// List of certifications that expire in this block.
+    /// Warning : BlockId contain the emission block, not the written block !
+    /// HashMap<(Source, Target), CreatedBlockId>
+    pub expire_certs: Option<HashMap<(NodeId, NodeId), BlockId>>,
+}
+
+impl DALBlock {
+    /// Get blockstamp
+    pub fn blockstamp(&self) -> Blockstamp {
+        self.block.blockstamp()
+    }
+}

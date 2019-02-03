@@ -138,23 +138,3 @@ impl CurrencyParameters {
         1.0 / self.x_percent
     }
 }
-
-/// Get currency parameters
-pub fn get_currency_params(
-    blockchain_db: &BinDB<LocalBlockchainV10Datas>,
-) -> Result<Option<CurrencyParameters>, DALError> {
-    Ok(blockchain_db.read(|db| {
-        if let Some(genesis_block) = db.get(&BlockId(0)) {
-            if genesis_block.block.parameters.is_some() {
-                Some(CurrencyParameters::from((
-                    genesis_block.block.currency.clone(),
-                    genesis_block.block.parameters.expect("safe unwrap"),
-                )))
-            } else {
-                panic!("The genesis block are None parameters !");
-            }
-        } else {
-            None
-        }
-    })?)
-}

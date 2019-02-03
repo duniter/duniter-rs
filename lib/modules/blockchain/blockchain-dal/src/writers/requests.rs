@@ -13,10 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::block::DALBlock;
-use crate::currency_params::CurrencyParameters;
-use crate::identity::DALIdentity;
-use crate::sources::SourceAmount;
+use crate::entities::block::DALBlock;
+use crate::entities::currency_params::CurrencyParameters;
+use crate::entities::sources::SourceAmount;
 use crate::writers::transaction::DALTxV10;
 use crate::*;
 use dubp_documents::documents::certification::CompactCertificationDocument;
@@ -152,9 +151,7 @@ impl WotsDBsWriteQuery {
                 ms_created_block_id,
             ) => {
                 trace!("WotsDBsWriteQuery::RenewalIdentity...");
-                let mut idty = DALIdentity::get_identity(&databases.identities_db, pubkey)?
-                    .expect("Fatal error : impossible to renewal an identidy that don't exist !");
-                idty.renewal_identity(
+                writers::identity::renewal_identity(
                     currency_params,
                     &databases.identities_db,
                     &databases.ms_db,
@@ -172,9 +169,7 @@ impl WotsDBsWriteQuery {
                 ref current_bc_time,
                 ms_created_block_id,
             ) => {
-                let mut idty = DALIdentity::get_identity(&databases.identities_db, pubkey)?
-                    .expect("Fatal error : impossible to renewal an identidy that don't exist !");
-                idty.renewal_identity(
+                writers::identity::renewal_identity(
                     currency_params,
                     &databases.identities_db,
                     &databases.ms_db,
@@ -186,13 +181,23 @@ impl WotsDBsWriteQuery {
                 )?;
             }
             WotsDBsWriteQuery::ExcludeIdentity(ref pubkey, ref blockstamp) => {
-                DALIdentity::exclude_identity(&databases.identities_db, pubkey, blockstamp, false)?;
+                writers::identity::exclude_identity(
+                    &databases.identities_db,
+                    pubkey,
+                    blockstamp,
+                    false,
+                )?;
             }
             WotsDBsWriteQuery::RevertExcludeIdentity(ref pubkey, ref blockstamp) => {
-                DALIdentity::exclude_identity(&databases.identities_db, pubkey, blockstamp, true)?;
+                writers::identity::exclude_identity(
+                    &databases.identities_db,
+                    pubkey,
+                    blockstamp,
+                    true,
+                )?;
             }
             WotsDBsWriteQuery::RevokeIdentity(ref pubkey, ref blockstamp, ref explicit) => {
-                DALIdentity::revoke_identity(
+                writers::identity::revoke_identity(
                     &databases.identities_db,
                     pubkey,
                     blockstamp,
@@ -201,7 +206,7 @@ impl WotsDBsWriteQuery {
                 )?;
             }
             WotsDBsWriteQuery::RevertRevokeIdentity(ref pubkey, ref blockstamp, ref explicit) => {
-                DALIdentity::revoke_identity(
+                writers::identity::revoke_identity(
                     &databases.identities_db,
                     pubkey,
                     blockstamp,

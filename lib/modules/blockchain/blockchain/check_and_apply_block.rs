@@ -21,7 +21,7 @@ use crate::*;
 use dubp_documents::Document;
 use dubp_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
 use dup_crypto::keys::*;
-use durs_blockchain_dal::block::DALBlock;
+use durs_blockchain_dal::entities::block::DALBlock;
 use durs_blockchain_dal::*;
 
 #[derive(Debug, Copy, Clone)]
@@ -66,7 +66,7 @@ pub fn check_and_apply_block<W: WebOfTrust>(
 
     // Get BlockDocument && check if already have block
     let already_have_block = if block_from_network {
-        DALBlock::already_have_block(
+        readers::block::already_have_block(
             &blocks_databases.blockchain_db,
             &blocks_databases.forks_blocks_db,
             block_doc.blockstamp(),
@@ -90,11 +90,11 @@ pub fn check_and_apply_block<W: WebOfTrust>(
         // Detect expire_certs
         let blocks_expiring = Vec::with_capacity(0);
         let expire_certs =
-            durs_blockchain_dal::certs::find_expire_certs(certs_db, blocks_expiring)?;
+            durs_blockchain_dal::readers::certs::find_expire_certs(certs_db, blocks_expiring)?;
 
         // Try stack up block
         let old_fork_id = if block_from_network {
-            durs_blockchain_dal::block::get_fork_id_of_blockstamp(
+            durs_blockchain_dal::readers::block::get_fork_id_of_blockstamp(
                 &blocks_databases.forks_blocks_db,
                 &block_doc.blockstamp(),
             )?
@@ -126,7 +126,7 @@ pub fn check_and_apply_block<W: WebOfTrust>(
             "stackable_block : block {} not chainable, store this for future !",
             block_doc.blockstamp()
         );
-        let (fork_id, new_fork) = DALBlock::assign_fork_to_new_block(
+        let (fork_id, new_fork) = writers::fork_tree::assign_fork_to_new_block(
             &blocks_databases.forks_db,
             &PreviousBlockstamp {
                 id: BlockId(block_doc.number.0 - 1),

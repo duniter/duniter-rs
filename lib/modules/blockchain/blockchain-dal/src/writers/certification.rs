@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::currency_params::CurrencyParameters;
+use crate::entities::currency_params::CurrencyParameters;
 use crate::{BinDB, CertsExpirV10Datas, DALError, IdentitiesV10Datas};
 use dubp_documents::documents::certification::CompactCertificationDocument;
 use dubp_documents::BlockId;

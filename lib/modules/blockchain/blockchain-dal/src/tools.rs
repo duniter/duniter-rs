@@ -13,11 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::entities::block::DALBlock;
+use dup_crypto::keys::PubKey;
 use durs_wot::operations::centrality::{CentralitiesCalculator, UlrikBrandesCentralityCalculator};
 use durs_wot::operations::distance::{
     DistanceCalculator, RustyDistanceCalculator, WotDistance, WotDistanceParameters,
 };
 use durs_wot::{NodeId, WebOfTrust};
+use std::collections::HashMap;
 
 /// CENTRALITY_CALCULATOR
 pub static CENTRALITY_CALCULATOR: UlrikBrandesCentralityCalculator =
@@ -135,4 +138,37 @@ pub fn compute_distances<T: WebOfTrust + Sync>(
 /// Compute distance stress centralities
 pub fn calculate_distance_stress_centralities<T: WebOfTrust>(wot: &T, step_max: u32) -> Vec<u64> {
     CENTRALITY_CALCULATOR.distance_stress_centralities(wot, step_max as usize)
+}
+
+/// Compute median issuers frame
+pub fn compute_median_issuers_frame<S: std::hash::BuildHasher>(
+    current_block: DALBlock,
+    current_frame: &HashMap<PubKey, usize, S>,
+) -> usize {
+    if !current_frame.is_empty() {
+        let mut current_frame_vec: Vec<_> = current_frame.values().cloned().collect();
+        current_frame_vec.sort_unstable();
+
+        // Calculate median
+        let mut median_index = match current_block.block.issuers_count % 2 {
+            1 => (current_block.block.issuers_count / 2) + 1,
+            _ => current_block.block.issuers_count / 2,
+        };
+        if median_index >= current_block.block.issuers_count {
+            median_index = current_block.block.issuers_count - 1;
+        }
+        current_frame_vec[median_index]
+
+    /*// Calculate second tiercile index
+    let mut second_tiercile_index = match self.block.issuers_count % 3 {
+        1 | 2 => (self.block.issuers_count as f64 * (2.0 / 3.0)) as usize + 1,
+        _ => (self.block.issuers_count as f64 * (2.0 / 3.0)) as usize,
+    };
+    if second_tiercile_index >= self.block.issuers_count {
+        second_tiercile_index = self.block.issuers_count - 1;
+    }
+    self.second_tiercile_frame = current_frame_vec[second_tiercile_index];*/
+    } else {
+        0
+    }
 }

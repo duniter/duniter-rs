@@ -17,7 +17,6 @@ use crate::check_and_apply_block::BlockError;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::*;
 use dup_crypto::keys::PubKey;
-use durs_blockchain_dal::block::DALBlock;
 use durs_blockchain_dal::*;
 use durs_wot::*;
 use std::collections::HashMap;
@@ -38,8 +37,10 @@ pub fn verify_block_validity<W: WebOfTrust>(
     // Rules that do not concern genesis block
     if block.number.0 > 0 {
         // Get previous block
-        let previous_block_opt =
-            DALBlock::get_block_in_local_blockchain(blockchain_db, BlockId(block.number.0 - 1))?;
+        let previous_block_opt = readers::block::get_block_in_local_blockchain(
+            blockchain_db,
+            BlockId(block.number.0 - 1),
+        )?;
 
         // Previous block must exist
         if previous_block_opt.is_none() {

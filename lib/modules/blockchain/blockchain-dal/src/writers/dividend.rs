@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::sources::SourceAmount;
+use crate::entities::sources::SourceAmount;
 use crate::*;
 use dubp_documents::documents::transaction::*;
 use dubp_documents::BlockId;

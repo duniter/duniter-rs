@@ -22,6 +22,9 @@ pub mod certification;
 /// Dividend apply functions
 pub mod dividend;
 
+/// Fork tree writer functions
+pub mod fork_tree;
+
 /// Identities writer functions
 pub mod identity;
 

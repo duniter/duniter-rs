@@ -15,7 +15,7 @@
 
 use dubp_documents::documents::transaction::*;
 
-use crate::sources::{SourceAmount, SourceIndexV10, UTXOIndexV10, UTXOV10};
+use crate::entities::sources::{SourceAmount, SourceIndexV10, UTXOIndexV10, UTXOV10};
 use crate::*;
 
 #[derive(Debug, Copy, Clone)]

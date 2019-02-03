@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::block::DALBlock;
+use crate::entities::block::DALBlock;
 use crate::ForkId;
 use crate::{BinDB, DALError, ForksBlocksV10Datas, ForksV10Datas, LocalBlockchainV10Datas};
 use dubp_documents::Document;

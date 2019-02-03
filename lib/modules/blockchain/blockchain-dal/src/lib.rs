@@ -35,26 +35,14 @@ extern crate log;
 #[macro_use]
 extern crate serde_derive;
 
-/// Define balance operations
-pub mod balance;
-
-/// Blocks operations
-pub mod block;
-
-/// Certifications operations
-pub mod certs;
-
 /// Define crate constants
 pub mod constants;
 
-/// Currency parameters operations
-pub mod currency_params;
+/// Contains all entities stored in databases
+pub mod entities;
 
-/// Identity operations
-pub mod identity;
-
-/// Define currency sources types
-pub mod sources;
+/// Contains all read databases functions
+pub mod readers;
 
 /// Tools
 pub mod tools;
@@ -81,9 +69,9 @@ use std::fs;
 use std::panic::UnwindSafe;
 use std::path::PathBuf;
 
-use crate::block::DALBlock;
-use crate::identity::DALIdentity;
-use crate::sources::{SourceAmount, UTXOContentV10, UTXOIndexV10};
+use crate::entities::block::DALBlock;
+use crate::entities::identity::DALIdentity;
+use crate::entities::sources::{SourceAmount, UTXOContentV10, UTXOIndexV10};
 use crate::writers::transaction::DALTxV10;
 
 #[derive(Debug, Deserialize, Copy, Clone, Ord, PartialEq, PartialOrd, Eq, Hash, Serialize)]
@@ -94,6 +82,12 @@ pub struct ForkId(pub usize);
 pub type CurrencyParamsV10Datas = (CurrencyName, BlockV10Parameters);
 /// All blocks of local blockchain indexed by block number
 pub type LocalBlockchainV10Datas = HashMap<BlockId, DALBlock>;
+/*/// Forks tree meta datas (block number and hash only)
+pub type ForksTreeV10Datas = Tree<Blockstamp>;
+/// Forks blocks referenced in tree indexed by their blockstamp
+pub type ForksBlocksV10Datas = HashMap<Blockstamp, DALBlock>;
+/// Forks blocks isolated indexed by their blockstamp
+pub type ForksBlocksIsolatedV10Datas = HashMap<Blockstamp, DALBlock>;*/
 /// Forks meta datas (block hash and previous hash only)
 pub type ForksV10Datas = HashMap<ForkId, HashMap<PreviousBlockstamp, BlockHash>>;
 /// Forks blocks indexed by their blockstamp

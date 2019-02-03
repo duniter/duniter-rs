@@ -64,9 +64,7 @@ use duniter_network::{
     requests::{NetworkResponse, OldNetworkRequest},
 };
 use dup_crypto::keys::*;
-use durs_blockchain_dal::block::DALBlock;
-use durs_blockchain_dal::currency_params::CurrencyParameters;
-use durs_blockchain_dal::identity::DALIdentity;
+use durs_blockchain_dal::entities::currency_params::CurrencyParameters;
 use durs_blockchain_dal::writers::requests::BlocksDBsWriteQuery;
 use durs_blockchain_dal::*;
 use durs_common_tools::fatal_error;
@@ -194,11 +192,11 @@ impl BlockchainModule {
 
         // Get current blockstamp
         let current_blockstamp =
-            durs_blockchain_dal::block::get_current_blockstamp(&blocks_databases)
+            durs_blockchain_dal::readers::block::get_current_blockstamp(&blocks_databases)
                 .expect("Fatal error : fail to read Blockchain DB !");
 
         // Get currency parameters
-        let currency_params = durs_blockchain_dal::currency_params::get_currency_params(
+        let currency_params = durs_blockchain_dal::readers::currency_params::get_currency_params(
             &blocks_databases.blockchain_db,
         )
         .expect("Fatal error : fail to read Blockchain DB !")
@@ -206,8 +204,11 @@ impl BlockchainModule {
 
         // Get forks states
         let forks_states = if let Some(current_blockstamp) = current_blockstamp {
-            durs_blockchain_dal::block::get_forks(&blocks_databases.forks_db, current_blockstamp)
-                .expect("Fatal error : fail to read Forks DB !")
+            durs_blockchain_dal::readers::block::get_forks(
+                &blocks_databases.forks_db,
+                current_blockstamp,
+            )
+            .expect("Fatal error : fail to read Forks DB !")
         } else {
             vec![]
         };
@@ -407,7 +408,7 @@ impl BlockchainModule {
                         }
                         current_blockstamp = block_doc.blockstamp();
                         // Update forks states
-                        self.forks_states = durs_blockchain_dal::block::get_forks(
+                        self.forks_states = durs_blockchain_dal::readers::block::get_forks(
                             &self.blocks_databases.forks_db,
                             current_blockstamp,
                         )
@@ -472,7 +473,7 @@ impl BlockchainModule {
             {
                 current_blockstamp = blockstamp;
                 // Update forks states
-                self.forks_states = durs_blockchain_dal::block::get_forks(
+                self.forks_states = durs_blockchain_dal::readers::block::get_forks(
                     &self.blocks_databases.forks_db,
                     current_blockstamp,
                 )
@@ -521,7 +522,7 @@ impl BlockchainModule {
 
         // Get wot index
         let mut wot_index: HashMap<PubKey, NodeId> =
-            DALIdentity::get_wot_index(&self.wot_databases.identities_db)
+            readers::identity::get_wot_index(&self.wot_databases.identities_db)
                 .expect("Fatal eror : get_wot_index : Fail to read blockchain databases");
 
         // Open wot file
@@ -529,7 +530,7 @@ impl BlockchainModule {
 
         // Get current block
         let mut current_blockstamp =
-            durs_blockchain_dal::block::get_current_blockstamp(&self.blocks_databases)
+            durs_blockchain_dal::readers::block::get_current_blockstamp(&self.blocks_databases)
                 .expect("Fatal error : fail to read ForksV10DB !")
                 .unwrap_or_default();
 
@@ -598,7 +599,7 @@ impl BlockchainModule {
                                         );
 
                                         if let Some(current_block) =
-                                            DALBlock::get_block(
+                                            readers::block::get_block(
                                                 &self.blocks_databases.blockchain_db,
                                                 None,
                                                 &current_blockstamp,
@@ -624,7 +625,7 @@ impl BlockchainModule {
                                                     .iter()
                                                     .map(|p| (
                                                         *p,
-                                                        durs_blockchain_dal::identity::get_uid(&self.wot_databases.identities_db, *p)
+                                                        durs_blockchain_dal::readers::identity::get_uid(&self.wot_databases.identities_db, *p)
                                                             .expect("Fatal error : get_uid : Fail to read WotV10DB !")
                                                     ))
                                                     .collect(),
@@ -734,7 +735,7 @@ impl BlockchainModule {
                                                     current_blockstamp = new_current_blockstamp;
                                                     // Update forks states
                                                     self.forks_states =
-                                                        durs_blockchain_dal::block::get_forks(
+                                                        durs_blockchain_dal::readers::block::get_forks(
                                                             &self.blocks_databases.forks_db,
                                                             current_blockstamp,
                                                         )
@@ -768,7 +769,7 @@ impl BlockchainModule {
                 last_get_stackables_blocks = now;
                 loop {
                     let stackable_blocks =
-                        durs_blockchain_dal::block::DALBlock::get_stackables_blocks(
+                        durs_blockchain_dal::readers::fork_tree::get_stackables_blocks(
                             &self.blocks_databases.forks_db,
                             &self.blocks_databases.forks_blocks_db,
                             &current_blockstamp,
@@ -829,7 +830,7 @@ impl BlockchainModule {
                             } else {
                                 warn!("fail to stackable_block({})", stackable_block_number);
                                 // Delete this fork
-                                DALBlock::delete_fork(
+                                writers::fork_tree::delete_fork(
                                     &self.blocks_databases.forks_db,
                                     &self.blocks_databases.forks_blocks_db,
                                     stackable_block.fork_id,

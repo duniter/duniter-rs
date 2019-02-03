@@ -19,7 +19,7 @@ mod download;
 use crate::*;
 use dubp_documents::{BlockHash, BlockId};
 use dup_crypto::keys::*;
-use durs_blockchain_dal::currency_params::CurrencyParameters;
+use durs_blockchain_dal::entities::currency_params::CurrencyParameters;
 use durs_blockchain_dal::writers::requests::*;
 use durs_blockchain_dal::ForkId;
 use durs_common_tools::fatal_error;
@@ -142,7 +142,7 @@ pub fn local_sync<DC: DuniterConf>(
     // Get local current blockstamp
     debug!("Get local current blockstamp...");
     let mut current_blockstamp: Blockstamp =
-        durs_blockchain_dal::block::get_current_blockstamp(&databases)
+        durs_blockchain_dal::readers::block::get_current_blockstamp(&databases)
             .expect("DALError : fail to get current blockstamp !")
             .unwrap_or_default();
     debug!("Success to get local current blockstamp.");
@@ -155,7 +155,7 @@ pub fn local_sync<DC: DuniterConf>(
 
     // Get wot index
     let mut wot_index: HashMap<PubKey, NodeId> =
-        DALIdentity::get_wot_index(&wot_databases.identities_db)
+        readers::identity::get_wot_index(&wot_databases.identities_db)
             .expect("Fatal eror : get_wot_index : Fail to read blockchain databases");
 
     // Start sync
@@ -276,7 +276,7 @@ pub fn local_sync<DC: DuniterConf>(
         }
         // Find expire_certs
         let expire_certs =
-            durs_blockchain_dal::certs::find_expire_certs(&certs_db, blocks_expiring)
+            durs_blockchain_dal::readers::certs::find_expire_certs(&certs_db, blocks_expiring)
                 .expect("find_expire_certs() : DALError");
         // Get block blockstamp
         let blockstamp = block_doc.blockstamp();
