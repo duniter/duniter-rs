@@ -328,6 +328,24 @@ impl super::KeyPair for KeyPair {
     }
 }
 
+/// Keypair generator with seed
+#[derive(Debug, Copy, Clone)]
+pub struct KeyPairFromSeedGenerator {}
+
+impl KeyPairFromSeedGenerator {
+    /// Create a keypair based on a given seed.
+    ///
+    /// The [`PublicKey`](struct.PublicKey.html) will be able to verify messaged signed with
+    /// the [`PrivateKey`](struct.PrivateKey.html).
+    pub fn generate(seed: &[u8; 32]) -> KeyPair {
+        let (private, public) = crypto::ed25519::keypair(seed);
+        KeyPair {
+            pubkey: PublicKey(public),
+            privkey: PrivateKey(private),
+        }
+    }
+}
+
 /// Keypair generator with given parameters for `scrypt` keypair function.
 #[derive(Debug, Copy, Clone)]
 pub struct KeyPairFromSaltedPasswordGenerator {
@@ -360,12 +378,10 @@ impl KeyPairFromSaltedPasswordGenerator {
         KeyPairFromSaltedPasswordGenerator { log_n, r, p }
     }
 
-    /// Create a keypair based on a given password and salt.
-    ///
-    /// The [`PublicKey`](struct.PublicKey.html) will be able to verify messaged signed with
-    /// the [`PrivateKey`](struct.PrivateKey.html).
-    pub fn generate(&self, password: &[u8], salt: &[u8]) -> KeyPair {
+    /// Create a seed based on a given password and salt.
+    pub fn generate_seed(&self, password: &[u8], salt: &[u8]) -> [u8; 32] {
         let mut seed = [0u8; 32];
+
         crypto::scrypt::scrypt(
             salt,
             password,
@@ -373,11 +389,16 @@ impl KeyPairFromSaltedPasswordGenerator {
             &mut seed,
         );
 
-        let (private, public) = crypto::ed25519::keypair(&seed);
-        KeyPair {
-            pubkey: PublicKey(public),
-            privkey: PrivateKey(private),
-        }
+        seed
+    }
+
+    /// Create a keypair based on a given password and salt.
+    ///
+    /// The [`PublicKey`](struct.PublicKey.html) will be able to verify messaged signed with
+    /// the [`PrivateKey`](struct.PrivateKey.html).
+    pub fn generate(&self, password: &[u8], salt: &[u8]) -> KeyPair {
+        let seed: [u8; 32] = self.generate_seed(password, salt);
+        KeyPairFromSeedGenerator::generate(&seed)
     }
 }
 
