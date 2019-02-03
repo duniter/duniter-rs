@@ -13,14 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/// Balances read functions
+/// Block
 pub mod block;
 
-/// Certifications read functions
+/// Currency paramenters
 pub mod currency_params;
 
-/// Identities writer functions
+/// Forks tree
+pub mod fork_tree;
+
+/// Identities
 pub mod identity;
 
-/// Databases write requests
+/// Sources of currency
 pub mod sources;

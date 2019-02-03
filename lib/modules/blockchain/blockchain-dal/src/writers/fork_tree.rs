@@ -17,6 +17,54 @@ use crate::constants::MAX_FORKS;
 use crate::*;
 use dubp_documents::*;
 
+/// Insert new head Block in fork tree
+pub fn insert_new_head_block(
+    fork_tree_db: &BinDB<ForksTreeV10Datas>,
+    blockstamp: Blockstamp,
+) -> Result<(), DALError> {
+    fork_tree_db.write(|fork_tree| {
+        let parent_id_opt = fork_tree.get_main_branch_node_id(BlockId(blockstamp.id.0 - 1));
+        fork_tree.insert_new_node(blockstamp, parent_id_opt, true);
+    })?;
+
+    Ok(())
+}
+
+/// Insert new fork block in fork tree only if parent exist in fork tree (orphan block not inserted)
+/// Returns true if block has a parent and has therefore been inserted, return false if block is orphaned
+pub fn insert_new_fork_block(
+    fork_tree_db: &BinDB<ForksTreeV10Datas>,
+    blockstamp: PreviousBlockstamp,
+) -> Result<bool, DALError> {
+    let parent_id_opt =
+        fork_tree_db.read(|fork_tree| fork_tree.find_node_with_blockstamp(&blockstamp))?;
+
+    if let Some(parent_id) = parent_id_opt {
+        fork_tree_db.write(|fork_tree| {
+            fork_tree.insert_new_node(blockstamp, Some(parent_id), false);
+        })?;
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
+/*************************************
+ * BEGIN OLD FORK SYSTEM (TO REMOVE)
+ *************************************/
+
+/// Insert fork Block in databases
+/// return NodeId of block in tree, or None if block not inserted
+pub fn insert_fork_block(
+    _fork_tree_db: &BinDB<ForksTreeV10Datas>,
+    _fork_blocks: &BinDB<ForksBlocksV10Datas>,
+    _orphan_blocks: &BinDB<OrphanBlocksV10Datas>,
+    _dal_block: &DALBlock,
+) -> Result<Option<id_tree::NodeId>, DALError> {
+    // TODO
+    unimplemented!()
+}
+
 /// Delete fork
 pub fn delete_fork(
     forks_db: &BinDB<ForksV10Datas>,

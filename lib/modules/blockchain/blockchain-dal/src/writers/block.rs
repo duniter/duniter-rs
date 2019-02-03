@@ -14,11 +14,56 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::entities::block::DALBlock;
-use crate::ForkId;
+use crate::*;
 use crate::{BinDB, DALError, ForksBlocksV10Datas, ForksV10Datas, LocalBlockchainV10Datas};
 use dubp_documents::Document;
 use dubp_documents::{BlockHash, BlockId, PreviousBlockstamp};
 use std::collections::HashMap;
+
+/// Insert new head Block in databases
+pub fn insert_new_head_block(
+    blockchain_db: &BinDB<LocalBlockchainV10Datas>,
+    fork_tree_db: &BinDB<ForksTreeV10Datas>,
+    dal_block: &DALBlock,
+) -> Result<(), DALError> {
+    // Insert head block in blockchain
+    blockchain_db.write(|db| {
+        db.insert(dal_block.block.number, dal_block.clone());
+    })?;
+
+    // Insert head block in fork tree
+    crate::writers::fork_tree::insert_new_head_block(fork_tree_db, dal_block.blockstamp())?;
+
+    Ok(())
+}
+
+/// Insert new fork Block in databases
+pub fn insert_new_fork_block(forks_dbs: &ForksDBs, dal_block: &DALBlock) -> Result<(), DALError> {
+    if crate::writers::fork_tree::insert_new_fork_block(
+        &forks_dbs.fork_tree_db,
+        dal_block.block.previous_blockstamp(),
+    )? {
+        // Insert in ForksBlocks
+        forks_dbs.fork_blocks_db.write(|db| {
+            db.insert(dal_block.blockstamp(), dal_block.clone());
+        })?;
+
+        // Verify if orphanBlock can be follow current fork block
+        if let Some(deorphaned_block) = forks_dbs
+            .orphan_blocks_db
+            .read(|db| db.get(&dal_block.blockstamp()).cloned())?
+        {
+            return insert_new_fork_block(forks_dbs, &deorphaned_block);
+        }
+    } else {
+        // insert in OrphanBlocks
+        forks_dbs.orphan_blocks_db.write(|db| {
+            db.insert(dal_block.blockstamp(), dal_block.clone());
+        })?;
+    }
+
+    Ok(())
+}
 
 /// Write DALBlock in databases
 pub fn write(

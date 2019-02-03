@@ -82,16 +82,14 @@ pub struct ForkId(pub usize);
 pub type CurrencyParamsV10Datas = (CurrencyName, BlockV10Parameters);
 /// All blocks of local blockchain indexed by block number
 pub type LocalBlockchainV10Datas = HashMap<BlockId, DALBlock>;
-/*/// Forks tree meta datas (block number and hash only)
-pub type ForksTreeV10Datas = Tree<Blockstamp>;
+/// Forks tree meta datas (block number and hash only)
+pub type ForksTreeV10Datas = entities::fork_tree::ForkTree;
 /// Forks blocks referenced in tree indexed by their blockstamp
 pub type ForksBlocksV10Datas = HashMap<Blockstamp, DALBlock>;
-/// Forks blocks isolated indexed by their blockstamp
-pub type ForksBlocksIsolatedV10Datas = HashMap<Blockstamp, DALBlock>;*/
+/// Blocks orphaned (no parent block) indexed by their previous blockstamp
+pub type OrphanBlocksV10Datas = HashMap<PreviousBlockstamp, DALBlock>;
 /// Forks meta datas (block hash and previous hash only)
-pub type ForksV10Datas = HashMap<ForkId, HashMap<PreviousBlockstamp, BlockHash>>;
-/// Forks blocks indexed by their blockstamp
-pub type ForksBlocksV10Datas = HashMap<Blockstamp, DALBlock>;
+pub type ForksV10Datas = HashMap<ForkId, HashMap<PreviousBlockstamp, BlockHash>>; // TODO remove
 /// V10 Identities indexed by public key
 pub type IdentitiesV10Datas = HashMap<PubKey, DALIdentity>;
 /// Memberships sorted by created block
@@ -199,6 +197,43 @@ impl BlocksV10DBs {
         self.forks_blocks_db
             .save()
             .expect("Fatal error : fail to save ForksBlocksV10DB !");
+    }
+}
+
+#[derive(Debug)]
+/// Set of databases storing forks informations
+pub struct ForksDBs {
+    /// Fork tree (store only blockstamp)
+    pub fork_tree_db: BinDB<ForksTreeV10Datas>,
+    /// Blocks in fork tree
+    pub fork_blocks_db: BinDB<ForksBlocksV10Datas>,
+    /// Orphan blocks
+    pub orphan_blocks_db: BinDB<OrphanBlocksV10Datas>,
+}
+
+impl ForksDBs {
+    /// Open fork databases from their respective files
+    pub fn open(db_path: Option<&PathBuf>) -> ForksDBs {
+        ForksDBs {
+            fork_tree_db: open_db::<ForksTreeV10Datas>(db_path, "fork_tree.db")
+                .expect("Fail to open ForksTreeV10Datas"),
+            fork_blocks_db: open_db::<ForksBlocksV10Datas>(db_path, "fork_blocks.db")
+                .expect("Fail to open ForkForksBlocksV10DatassV10DB"),
+            orphan_blocks_db: open_db::<OrphanBlocksV10Datas>(db_path, "orphan_blocks.db")
+                .expect("Fail to open OrphanBlocksV10Datas"),
+        }
+    }
+    /// Save fork databases in their respective files
+    pub fn save_dbs(&self) {
+        self.fork_tree_db
+            .save()
+            .expect("Fatal error : fail to save ForksTreeV10Datas !");
+        self.fork_blocks_db
+            .save()
+            .expect("Fatal error : fail to save ForkForksBlocksV10DatassV10DB !");
+        self.orphan_blocks_db
+            .save()
+            .expect("Fatal error : fail to save OrphanBlocksV10Datas !");
     }
 }
 
@@ -408,5 +443,36 @@ pub fn open_wot_db<W: WebOfTrust>(dbs_folder_path: Option<&PathBuf>) -> Result<B
         Ok(BinDB::File(open_file_db::<W>(dbs_folder_path, "wot.db")?))
     } else {
         Ok(BinDB::Mem(open_memory_db::<W>()?))
+    }
+}
+
+mod tests {
+    use dubp_documents::BlockHash;
+    use dubp_documents::{BlockId, Blockstamp};
+    use dup_crypto::hashs::Hash;
+
+    pub fn _hash(character: char) -> Hash {
+        let str_hash: String = (0..64).into_iter().map(|_| character).collect();
+
+        Hash::from_hex(&str_hash).expect("Fail to create hash !")
+    }
+
+    pub fn _hash_from_byte(byte: u8) -> Hash {
+        let mut hash_bin = [0u8; 32];
+        for b in &mut hash_bin {
+            *b = byte
+        }
+
+        Hash(hash_bin)
+    }
+
+    pub fn _generate_blockstamps(n: usize) -> Vec<Blockstamp> {
+        (0..n)
+            .into_iter()
+            .map(|i| Blockstamp {
+                id: BlockId(i as u32),
+                hash: BlockHash(_hash_from_byte((i % 255) as u8)),
+            })
+            .collect()
     }
 }
