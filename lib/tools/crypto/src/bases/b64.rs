@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Durs Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,27 +13,23 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Manage cryptographic operations for the DUP (DUniter Protocol).
+//! Provide base64 convertion tools
 
-#![cfg_attr(feature = "strict", deny(warnings))]
-#![deny(
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_import_braces,
-    unused_qualifications
-)]
-#![allow(non_camel_case_types)]
+use crate::bases::BaseConvertionError;
 
-#[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate serde_derive;
+/// Create an array of 64 bytes from a Base64 string.
+pub fn str_base64_to64bytes(base64_data: &str) -> Result<[u8; 64], BaseConvertionError> {
+    let result = base64::decode(base64_data)?;
 
-pub mod bases;
-pub mod hashs;
-pub mod keys;
+    if result.len() == 64 {
+        let mut u8_array = [0; 64];
+        u8_array[..64].clone_from_slice(&base64::decode(base64_data)?[..64]);
+
+        Ok(u8_array)
+    } else {
+        Err(BaseConvertionError::InvalidLength {
+            found: result.len(),
+            expected: 64,
+        })
+    }
+}

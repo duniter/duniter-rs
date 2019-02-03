@@ -15,7 +15,7 @@
 
 //! Provide wrappers for cryptographic hashs
 
-use crate::keys::BaseConvertionError;
+use crate::bases::*;
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
 use rand::{thread_rng, Rng};
@@ -93,36 +93,8 @@ impl Hash {
     ///
     /// The hex string must only contains hex characters
     /// and produce a 32 bytes value.
+    #[inline]
     pub fn from_hex(text: &str) -> Result<Hash, BaseConvertionError> {
-        if text.len() != 64 {
-            Err(BaseConvertionError::InvalidKeyLendth(text.len(), 64))
-        } else {
-            let mut hash = Hash([0u8; 32]);
-
-            let chars: Vec<char> = text.chars().collect();
-
-            for i in 0..64 {
-                if i % 2 != 0 {
-                    continue;
-                }
-
-                let byte1 = chars[i].to_digit(16);
-                let byte2 = chars[i + 1].to_digit(16);
-
-                if byte1.is_none() {
-                    return Err(BaseConvertionError::InvalidCharacter(chars[i], i));
-                } else if byte2.is_none() {
-                    return Err(BaseConvertionError::InvalidCharacter(chars[i + 1], i + 1));
-                }
-
-                let byte1 = byte1.unwrap() as u8;
-                let byte2 = byte2.unwrap() as u8;
-
-                let byte = (byte1 << 4) | byte2;
-                hash.0[i / 2] = byte;
-            }
-
-            Ok(hash)
-        }
+        Ok(Hash(b16::str_hex_to_32bytes(text)?))
     }
 }

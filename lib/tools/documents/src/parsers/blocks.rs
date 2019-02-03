@@ -17,6 +17,7 @@ use crate::documents::block::{BlockDocument, BlockV10Parameters, TxDocOrTxHash};
 use crate::documents::membership::MembershipType;
 use crate::parsers::DefaultHasher;
 use crate::*;
+use dup_crypto::bases::BaseConvertionError;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use failure::Error;

@@ -46,6 +46,7 @@
 //! `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/`
 //! with `=` as padding character.
 
+use crate::bases::BaseConvertionError;
 use base58::ToBase58;
 use bincode;
 use std::fmt::Debug;
@@ -71,20 +72,6 @@ pub enum KeysAlgo {
 pub trait GetKeysAlgo: Clone + Debug + PartialEq + Eq {
     /// Get the cryptographic algorithm.
     fn algo(&self) -> KeysAlgo;
-}
-
-/// Errors enumeration for Base58/64 strings convertion.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Fail)]
-pub enum BaseConvertionError {
-    #[fail(display = "Data have invalid key length.")]
-    /// Data have invalid key length (found, expected).
-    InvalidKeyLendth(usize, usize),
-    #[fail(display = "Invalid character.")]
-    /// Base58 have an invalid character.
-    InvalidCharacter(char, usize),
-    #[fail(display = "Invalid base converter length.")]
-    /// Base58 have invalid lendth
-    InvalidBaseConverterLength(),
 }
 
 /// Errors enumeration for signature verification.

@@ -19,10 +19,10 @@
 //!
 //! [`KeyPairGenerator`]: struct.KeyPairGenerator.html
 
-use super::{BaseConvertionError, PrivateKey as PrivateKeyMethods, PublicKey as PublicKeyMethods};
-use base58::{FromBase58, FromBase58Error, ToBase58};
+use super::{PrivateKey as PrivateKeyMethods, PublicKey as PublicKeyMethods};
+use crate::bases::*;
+use base58::ToBase58;
 use base64;
-use base64::DecodeError;
 use crypto;
 use serde::de::{Deserialize, Deserializer, Error, SeqAccess, Visitor};
 use serde::ser::{Serialize, SerializeTuple, Serializer};
@@ -99,29 +99,9 @@ impl<'de> Deserialize<'de> for Signature {
 }
 
 impl super::Signature for Signature {
+    #[inline]
     fn from_base64(base64_data: &str) -> Result<Signature, BaseConvertionError> {
-        match base64::decode(base64_data) {
-            Ok(result) => {
-                if result.len() == 64 {
-                    let mut u8_array = [0; 64];
-
-                    u8_array[..64].clone_from_slice(&result[..64]);
-
-                    Ok(Signature(u8_array))
-                } else {
-                    Err(BaseConvertionError::InvalidKeyLendth(result.len(), 64))
-                }
-            }
-            Err(DecodeError::InvalidByte(pos, byte)) => {
-                Err(BaseConvertionError::InvalidCharacter(byte as char, pos))
-            }
-            Err(DecodeError::InvalidLength) => {
-                Err(BaseConvertionError::InvalidBaseConverterLength())
-            }
-            Err(DecodeError::InvalidLastSymbol(pos, byte)) => {
-                Err(BaseConvertionError::InvalidCharacter(byte as char, pos))
-            }
-        }
+        Ok(Signature(b64::str_base64_to64bytes(base64_data)?))
     }
 
     fn to_bytes_vector(&self) -> Vec<u8> {
@@ -187,26 +167,9 @@ impl Debug for PublicKey {
 impl super::PublicKey for PublicKey {
     type Signature = Signature;
 
+    #[inline]
     fn from_base58(base58_data: &str) -> Result<Self, BaseConvertionError> {
-        match base58_data.from_base58() {
-            Ok(result) => {
-                if result.len() == 32 {
-                    let mut u8_array = [0; 32];
-
-                    u8_array[..32].clone_from_slice(&result[..32]);
-
-                    Ok(PublicKey(u8_array))
-                } else {
-                    Err(BaseConvertionError::InvalidKeyLendth(result.len(), 32))
-                }
-            }
-            Err(FromBase58Error::InvalidBase58Character(character, pos)) => {
-                Err(BaseConvertionError::InvalidCharacter(character, pos))
-            }
-            Err(FromBase58Error::InvalidBase58Length) => {
-                Err(BaseConvertionError::InvalidBaseConverterLength())
-            }
-        }
+        Ok(PublicKey(b58::str_base58_to_32bytes(base58_data)?))
     }
 
     fn to_bytes_vector(&self) -> Vec<u8> {
@@ -257,26 +220,9 @@ impl Eq for PrivateKey {}
 impl super::PrivateKey for PrivateKey {
     type Signature = Signature;
 
+    #[inline]
     fn from_base58(base58_data: &str) -> Result<Self, BaseConvertionError> {
-        match base58_data.from_base58() {
-            Ok(result) => {
-                if result.len() == 64 {
-                    let mut u8_array = [0; 64];
-
-                    u8_array[..64].clone_from_slice(&result[..64]);
-
-                    Ok(PrivateKey(u8_array))
-                } else {
-                    Err(BaseConvertionError::InvalidKeyLendth(result.len(), 64))
-                }
-            }
-            Err(FromBase58Error::InvalidBase58Character(character, pos)) => {
-                Err(BaseConvertionError::InvalidCharacter(character, pos))
-            }
-            Err(FromBase58Error::InvalidBase58Length) => {
-                Err(BaseConvertionError::InvalidBaseConverterLength())
-            }
-        }
+        Ok(PrivateKey(b58::str_base58_to_64bytes(base58_data)?))
     }
 
     /// Sign a message with this private key.
@@ -406,6 +352,7 @@ impl KeyPairFromSaltedPasswordGenerator {
 mod tests {
     use super::*;
     use crate::keys::{KeyPair, Signature};
+    use base58::FromBase58;
 
     #[test]
     fn base58_private_key() {
@@ -430,21 +377,27 @@ mod tests {
                 "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iA\
                 fZACm7djh",
             ).unwrap_err(),
-            BaseConvertionError::InvalidKeyLendth(67, 64)
+            BaseConvertionError::InvalidLength { found: 67, expected: 64 }
         );
         assert_eq!(
             super::PrivateKey::from_base58(
                 "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9",
             )
             .unwrap_err(),
-            BaseConvertionError::InvalidKeyLendth(53, 64)
+            BaseConvertionError::InvalidLength {
+                found: 53,
+                expected: 64
+            }
         );
         assert_eq!(
             super::PrivateKey::from_base58(
                 "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9<<",
             )
             .unwrap_err(),
-            BaseConvertionError::InvalidCharacter('<', 73)
+            BaseConvertionError::InvalidCharacter {
+                character: '<',
+                offset: 73
+            }
         );
     }
 
@@ -464,17 +417,26 @@ mod tests {
         assert_eq!(
             super::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLVdjq")
                 .unwrap_err(),
-            BaseConvertionError::InvalidKeyLendth(35, 32)
+            BaseConvertionError::InvalidLength {
+                found: 35,
+                expected: 32
+            }
         );
         assert_eq!(
             super::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQd")
                 .unwrap_err(),
-            BaseConvertionError::InvalidKeyLendth(31, 32)
+            BaseConvertionError::InvalidLength {
+                found: 31,
+                expected: 32
+            }
         );
         assert_eq!(
             super::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQd<<")
                 .unwrap_err(),
-            BaseConvertionError::InvalidCharacter('<', 42)
+            BaseConvertionError::InvalidCharacter {
+                character: '<',
+                offset: 42
+            }
         );
     }
 
@@ -491,7 +453,10 @@ mod tests {
 
         assert_eq!(
             super::Signature::from_base64("YmhlaW9iaHNlcGlvaGVvaXNlcGl2ZXBvdm5pc2U=").unwrap_err(),
-            BaseConvertionError::InvalidKeyLendth(29, 64)
+            BaseConvertionError::InvalidLength {
+                found: 29,
+                expected: 64
+            }
         );
         assert_eq!(
             super::Signature::from_base64(
@@ -499,7 +464,10 @@ mod tests {
                  2V2Z3BpaHNlamVwZ25qZXNqb2dwZWpnaW9zZXNkdnNic3JicmJyZGJyZGI=",
             )
             .unwrap_err(),
-            BaseConvertionError::InvalidKeyLendth(86, 64)
+            BaseConvertionError::InvalidLength {
+                found: 86,
+                expected: 64
+            }
         );
         assert_eq!(
             super::Signature::from_base64(
@@ -507,7 +475,10 @@ mod tests {
                  mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAgdha<<",
             )
             .unwrap_err(),
-            BaseConvertionError::InvalidCharacter('<', 89)
+            BaseConvertionError::InvalidCharacter {
+                character: '<',
+                offset: 89
+            }
         );
     }
 
