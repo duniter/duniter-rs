@@ -13,7 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Parse JSON String.
+//! JSON parser based on [pest](https://pest.rs).  
+//! It's is a personal crate for personal use.  
+//! The grammar used is a copy of the grammar proposed in the "pest book".  
 
 #![deny(
     missing_debug_implementations,
