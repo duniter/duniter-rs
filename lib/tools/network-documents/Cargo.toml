@@ -1,8 +1,10 @@
 [package]
 name = "durs-network-documents"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["librelois <elois@duniter.org>"]
 description = "Network documents for DUNP (DUniter Network Protocol)"
+repository = "https://git.duniter.org/nodes/rust/duniter-rs"
+readme = "README.md"
 license = "AGPL-3.0"
 edition = "2018"
 
