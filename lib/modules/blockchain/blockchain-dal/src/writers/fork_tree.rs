@@ -59,6 +59,19 @@ pub fn insert_new_fork_block(
     }
 }
 
+/// Modify the main branch (function to call after a successful roolback)
+pub fn change_main_branch(
+    fork_tree_db: &BinDB<ForksTreeV10Datas>,
+    old_current_blockstamp: Blockstamp,
+    new_current_blockstamp: Blockstamp,
+) -> Result<(), DALError> {
+    fork_tree_db.write(|tree| {
+        tree.change_main_branch(old_current_blockstamp, new_current_blockstamp);
+    })?;
+
+    Ok(())
+}
+
 /*************************************
  * BEGIN OLD FORK SYSTEM (TO REMOVE)
  *************************************/

@@ -208,6 +208,43 @@ impl ForkTree {
             None
         }
     }
+    /// Get fork branch nodes ids
+    pub fn get_fork_branch_nodes_ids(&self, node_id: TreeNodeId) -> Vec<TreeNodeId> {
+        let mut branch = Vec::with_capacity(*crate::constants::FORK_WINDOW_SIZE);
+
+        let node = self.get_ref_node(node_id);
+        if !self.main_branch.contains_key(&node.data.id)
+            || self
+                .get_main_branch_block_hash(node.data.id)
+                .expect("safe unwrap")
+                != node.data.hash
+        {
+            branch.push(node_id);
+        }
+
+        if let Some(first_parent_id) = node.parent {
+            let mut parent = self.get_ref_node(first_parent_id);
+            let mut parent_id = first_parent_id;
+            while !self.main_branch.contains_key(&parent.data.id)
+                || self
+                    .get_main_branch_block_hash(parent.data.id)
+                    .expect("safe unwrap")
+                    != parent.data.hash
+            {
+                branch.push(parent_id);
+
+                if let Some(next_parent_id) = parent.parent {
+                    parent = self.get_ref_node(next_parent_id);
+                    parent_id = next_parent_id;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        branch.reverse();
+        branch
+    }
     /// Get fork branch
     pub fn get_fork_branch(&self, node_id: TreeNodeId) -> Vec<Blockstamp> {
         let mut branch = Vec::with_capacity(*crate::constants::FORK_WINDOW_SIZE);
@@ -234,6 +271,35 @@ impl ForkTree {
 
         branch.reverse();
         branch
+    }
+    /// Modify the main branch (function to call after a successful roolback)
+    pub fn change_main_branch(
+        &mut self,
+        old_current_blockstamp: Blockstamp,
+        new_current_blockstamp: Blockstamp,
+    ) {
+        let target_node = self
+            .find_node_with_blockstamp(&new_current_blockstamp)
+            .expect("Dev error: change main branch: target branch don't exist !");
+        let selected_fork_branch = self.get_fork_branch_nodes_ids(target_node);
+
+        // Delete the part of the old branch that exceeds the new branch
+        if old_current_blockstamp.id > new_current_blockstamp.id {
+            for block_id in (new_current_blockstamp.id.0 + 1)..=old_current_blockstamp.id.0 {
+                self.main_branch.remove(&BlockId(block_id));
+            }
+        }
+
+        for node_id in selected_fork_branch {
+            self.main_branch.insert(
+                self.nodes[node_id.0]
+                    .clone()
+                    .expect("Dev error: node must exist !")
+                    .data
+                    .id,
+                node_id,
+            );
+        }
     }
     /// Find node with specific blockstamp
     pub fn find_node_with_blockstamp(&self, blockstamp: &Blockstamp) -> Option<TreeNodeId> {
@@ -462,7 +528,11 @@ mod tests {
         );
 
         // Get fork branch
-        assert_eq!(vec![fork_blockstamp], tree.get_fork_branch(TreeNodeId(10)));;
+        assert_eq!(vec![fork_blockstamp], tree.get_fork_branch(TreeNodeId(10)));
+        assert_eq!(
+            vec![TreeNodeId(10)],
+            tree.get_fork_branch_nodes_ids(TreeNodeId(10))
+        );
 
         // Insert child to fork block
         let child_fork_blockstamp = Blockstamp {
@@ -499,7 +569,11 @@ mod tests {
         assert_eq!(
             vec![fork_blockstamp, child_fork_blockstamp],
             tree.get_fork_branch(TreeNodeId(11))
-        );;
+        );
+        assert_eq!(
+            vec![TreeNodeId(10), TreeNodeId(11)],
+            tree.get_fork_branch_nodes_ids(TreeNodeId(11))
+        );
     }
 
     #[test]
