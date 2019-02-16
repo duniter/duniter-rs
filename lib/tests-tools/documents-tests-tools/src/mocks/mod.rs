@@ -21,7 +21,6 @@ use dubp_documents::{BlockId, Blockstamp};
 /// Generate n mock blockstamps
 pub fn generate_blockstamps(n: usize) -> Vec<Blockstamp> {
     (0..n)
-        .into_iter()
         .map(|i| Blockstamp {
             id: BlockId(i as u32),
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash_from_byte(

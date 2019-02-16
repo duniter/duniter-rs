@@ -19,7 +19,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 /// Returns true if both slices contain the same elements but not necessarily in the same order
-pub fn slice_same_elems<T: Hash + Eq + Clone>(a: &[T], b: &[T]) -> bool {
+pub fn slice_same_elems<T: Clone + Eq + Hash>(a: &[T], b: &[T]) -> bool {
     if a.len() != b.len() {
         return false;
     }
@@ -39,9 +39,9 @@ pub fn slice_same_elems<T: Hash + Eq + Clone>(a: &[T], b: &[T]) -> bool {
     true
 }
 
-fn find_element_in_slice<T: Hash + Eq>(s: &[T], e: &T) -> Option<usize> {
-    for i in 0..s.len() {
-        if s[i] == *e {
+fn find_element_in_slice<T: Clone + Eq + Hash>(s: &[T], x: &T) -> Option<usize> {
+    for (i, e) in s.iter().enumerate() {
+        if *e == *x {
             return Some(i);
         }
     }
@@ -51,7 +51,7 @@ fn find_element_in_slice<T: Hash + Eq>(s: &[T], e: &T) -> Option<usize> {
 
 #[cfg(test)]
 mod test {
-    
+
     use super::*;
 
     #[test]

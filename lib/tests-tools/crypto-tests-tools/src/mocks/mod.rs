@@ -19,7 +19,7 @@ use dup_crypto::hashs::Hash;
 
 /// Generate mock hash from one character
 pub fn hash(character: char) -> Hash {
-    let str_hash: String = (0..64).into_iter().map(|_| character).collect();
+    let str_hash: String = (0..64).map(|_| character).collect();
 
     Hash::from_hex(&str_hash).expect("Fail to create hash !")
 }
