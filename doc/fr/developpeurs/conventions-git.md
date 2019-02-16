@@ -47,7 +47,7 @@ Exemple, renomage d'un trait `Toto` en `Titi` dans la crate `durs-bidule` :
 * `docs` : Modification de la documentation (y compris traduction et création de nouveau contenu).
 * `feat` : Développement d'une nouvelle fonctionnalitée.
 * `fix` : Correction d'un bug
-* `perf` :  amélioration des performances.
+* `opti` :  Optimisation : amélioration des performances ou/et réduction de l'espace mémoire/disque utilisé.
 * `pub` : commit lié a la publication d'une crate sur [crates.io](https://crates.io).
 * `ref` : Changement du code qui ne change rien au fonctionnement (refactoring en anglais).
 * `style` : Modification du style du code (fmt et clippy).
