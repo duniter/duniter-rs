@@ -17,21 +17,23 @@ use crate::constants::MAX_FORKS;
 use crate::*;
 use dubp_documents::*;
 
-/// Insert new head Block in fork tree
+/// Insert new head Block in fork tree,
+/// return vector of removed blockstamps
 pub fn insert_new_head_block(
     fork_tree_db: &BinDB<ForksTreeV10Datas>,
     blockstamp: Blockstamp,
-) -> Result<(), DALError> {
+) -> Result<Vec<Blockstamp>, DALError> {
     fork_tree_db.write(|fork_tree| {
         let parent_id_opt = if blockstamp.id.0 > 0 {
-            fork_tree.get_main_branch_node_id(BlockId(blockstamp.id.0 - 1))
+            Some(fork_tree.get_main_branch_node_id(BlockId(blockstamp.id.0 - 1))
+                .expect("Fatal error: fail to insert new head block : previous block not exist in main branch"))
         } else {
             None
         };
         fork_tree.insert_new_node(blockstamp, parent_id_opt, true);
     })?;
 
-    Ok(())
+    Ok(fork_tree_db.read(|tree| tree.get_removed_blockstamps())?)
 }
 
 /// Insert new fork block in fork tree only if parent exist in fork tree (orphan block not inserted)
@@ -61,12 +63,23 @@ pub fn insert_new_fork_block(
 
 /// Modify the main branch (function to call after a successful roolback)
 pub fn change_main_branch(
-    fork_tree_db: &BinDB<ForksTreeV10Datas>,
+    forks_dbs: &ForksDBs,
     old_current_blockstamp: Blockstamp,
     new_current_blockstamp: Blockstamp,
 ) -> Result<(), DALError> {
-    fork_tree_db.write(|tree| {
+    forks_dbs.fork_tree_db.write(|tree| {
         tree.change_main_branch(old_current_blockstamp, new_current_blockstamp);
+    })?;
+
+    let removed_blockstamps = forks_dbs
+        .fork_tree_db
+        .read(|tree| tree.get_removed_blockstamps())?;
+
+    // Remove too old blocks
+    forks_dbs.fork_blocks_db.write(|db| {
+        for blockstamp in removed_blockstamps {
+            db.remove(&blockstamp);
+        }
     })?;
 
     Ok(())
@@ -170,11 +183,16 @@ mod test {
     #[test]
     fn test_insert_new_head_block() -> Result<(), DALError> {
         // Create mock datas
-        let blockstamps = dubp_documents_tests_tools::mocks::generate_blockstamps(4);
+        let blockstamps = dubp_documents_tests_tools::mocks::generate_blockstamps(
+            *crate::constants::FORK_WINDOW_SIZE + 2,
+        );
         let fork_tree_db = open_db::<ForksTreeV10Datas>(None, "")?;
 
         // Insert genesis block
-        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[0]));
+        assert_eq!(
+            Ok(vec![]),
+            insert_new_head_block(&fork_tree_db, blockstamps[0])
+        );
 
         // Check tree state
         assert_eq!(1, fork_tree_db.read(|tree| tree.size())?);
@@ -183,16 +201,41 @@ mod test {
             fork_tree_db.read(|tree| tree.get_sheets())?
         );
 
-        // Insert some blocks
-        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[1]));
-        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[2]));
-        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[3]));
+        // Insert FORK_WINDOW_SIZE blocks
+        for i in 1..*crate::constants::FORK_WINDOW_SIZE {
+            assert_eq!(
+                Ok(vec![]),
+                insert_new_head_block(&fork_tree_db, blockstamps[i])
+            );
+        }
 
         // Check tree state
-        assert_eq!(4, fork_tree_db.read(|tree| tree.size())?);
         assert_eq!(
-            vec![(TreeNodeId(3), blockstamps[3])],
+            *crate::constants::FORK_WINDOW_SIZE,
+            fork_tree_db.read(|tree| tree.size())?
+        );
+        assert_eq!(
+            vec![(
+                TreeNodeId(*crate::constants::FORK_WINDOW_SIZE - 1),
+                blockstamps[*crate::constants::FORK_WINDOW_SIZE - 1]
+            )],
             fork_tree_db.read(|tree| tree.get_sheets())?
+        );
+
+        // Insert blocks after FORK_WINDOW_SIZE (firsts blocks must be removed)
+        assert_eq!(
+            Ok(vec![blockstamps[0]]),
+            insert_new_head_block(
+                &fork_tree_db,
+                blockstamps[*crate::constants::FORK_WINDOW_SIZE]
+            )
+        );
+        assert_eq!(
+            Ok(vec![blockstamps[1]]),
+            insert_new_head_block(
+                &fork_tree_db,
+                blockstamps[*crate::constants::FORK_WINDOW_SIZE + 1]
+            )
         );
 
         Ok(())
@@ -201,14 +244,18 @@ mod test {
     #[test]
     fn test_insert_new_fork_block() -> Result<(), DALError> {
         // Create mock datas
-        let blockstamps = dubp_documents_tests_tools::mocks::generate_blockstamps(5);
+        let blockstamps = dubp_documents_tests_tools::mocks::generate_blockstamps(
+            *crate::constants::FORK_WINDOW_SIZE + 3,
+        );
         let fork_tree_db = open_db::<ForksTreeV10Datas>(None, "")?;
 
-        // Insert 3 main blocks
-        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[0]));
-        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[1]));
-        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[2]));
-        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[3]));
+        // Insert 4 main blocks
+        for i in 0..4 {
+            assert_eq!(
+                Ok(vec![]),
+                insert_new_head_block(&fork_tree_db, blockstamps[i])
+            );
+        }
 
         // Check tree state
         assert_eq!(4, fork_tree_db.read(|tree| tree.size())?);
@@ -256,6 +303,63 @@ mod test {
             ],
             &fork_tree_db.read(|tree| tree.get_sheets())?
         ));
+
+        // Insert FORK_WINDOW_SIZE blocks
+        for i in 4..*crate::constants::FORK_WINDOW_SIZE {
+            assert_eq!(
+                Ok(vec![]),
+                insert_new_head_block(&fork_tree_db, blockstamps[i])
+            );
+        }
+
+        // Check tree state
+        assert_eq!(
+            *crate::constants::FORK_WINDOW_SIZE + 2,
+            fork_tree_db.read(|tree| tree.size())?
+        );
+        assert!(rust_tests_tools::collections::slice_same_elems(
+            &vec![
+                (
+                    TreeNodeId(*crate::constants::FORK_WINDOW_SIZE + 1),
+                    blockstamps[*crate::constants::FORK_WINDOW_SIZE - 1]
+                ),
+                (TreeNodeId(5), fork_blockstamp_2)
+            ],
+            &fork_tree_db.read(|tree| tree.get_sheets())?
+        ));
+
+        // Insert 2 new main blocks (too old blocks must be removed)
+        for i in 0..2 {
+            assert_eq!(
+                Ok(vec![blockstamps[i]]),
+                insert_new_head_block(
+                    &fork_tree_db,
+                    blockstamps[*crate::constants::FORK_WINDOW_SIZE + i]
+                )
+            );
+        }
+
+        // Insert one new main block (fork branch must be removed)
+        assert_eq!(
+            Ok(vec![blockstamps[2], fork_blockstamp_2, fork_blockstamp]),
+            insert_new_head_block(
+                &fork_tree_db,
+                blockstamps[*crate::constants::FORK_WINDOW_SIZE + 2]
+            )
+        );
+
+        // Check tree state
+        assert_eq!(
+            *crate::constants::FORK_WINDOW_SIZE,
+            fork_tree_db.read(|tree| tree.size())?
+        );
+        assert_eq!(
+            vec![(
+                TreeNodeId(*crate::constants::FORK_WINDOW_SIZE + 4),
+                blockstamps[*crate::constants::FORK_WINDOW_SIZE + 2]
+            )],
+            fork_tree_db.read(|tree| tree.get_sheets())?
+        );
 
         Ok(())
     }

@@ -116,6 +116,7 @@ pub struct ForkTree {
     nodes: Vec<Option<TreeNode>>,
     main_branch: HashMap<BlockId, TreeNodeId>,
     sheets: HashSet<TreeNodeId>,
+    removed_blockstamps: Vec<Blockstamp>,
 }
 
 impl Default for ForkTree {
@@ -125,6 +126,7 @@ impl Default for ForkTree {
             root: None,
             main_branch: HashMap::with_capacity(*crate::constants::FORK_WINDOW_SIZE + 1),
             sheets: HashSet::new(),
+            removed_blockstamps: Vec::with_capacity(*crate::constants::FORK_WINDOW_SIZE),
         }
     }
 }
@@ -149,6 +151,10 @@ impl ForkTree {
             .iter()
             .map(|s| (*s, self.get_ref_node(*s).data))
             .collect()
+    }
+    ///
+    pub fn get_removed_blockstamps(&self) -> Vec<Blockstamp> {
+        self.removed_blockstamps.clone()
     }
     /// Get specific tree node
     #[inline]
@@ -283,6 +289,19 @@ impl ForkTree {
             .expect("Dev error: change main branch: target branch don't exist !");
         let selected_fork_branch = self.get_fork_branch_nodes_ids(target_node);
 
+        // // Delete the part of the old branch at same level to the new branch
+        if !selected_fork_branch.is_empty() {
+            let selected_fork_branch_first_node_id =
+                selected_fork_branch.get(0).cloned().expect("safe unwrap");
+            let first_fork_block_id = self.nodes[selected_fork_branch_first_node_id.0]
+                .clone()
+                .expect("Dev error: node must exist !")
+                .data
+                .id;
+            for block_id in first_fork_block_id.0..=new_current_blockstamp.id.0 {
+                self.main_branch.remove(&BlockId(block_id));
+            }
+        }
         // Delete the part of the old branch that exceeds the new branch
         if old_current_blockstamp.id > new_current_blockstamp.id {
             for block_id in (new_current_blockstamp.id.0 + 1)..=old_current_blockstamp.id.0 {
@@ -291,14 +310,13 @@ impl ForkTree {
         }
 
         for node_id in selected_fork_branch {
-            self.main_branch.insert(
-                self.nodes[node_id.0]
-                    .clone()
-                    .expect("Dev error: node must exist !")
-                    .data
-                    .id,
-                node_id,
-            );
+            let node = self.nodes[node_id.0]
+                .clone()
+                .expect("Dev error: node must exist !");
+            self.main_branch.insert(node.data.id, node_id);
+            if node.data.id > old_current_blockstamp.id {
+                self.pruning();
+            }
         }
     }
     /// Find node with specific blockstamp
@@ -313,7 +331,8 @@ impl ForkTree {
 
         None
     }
-    /// Insert new node with specified identifier
+    /// Insert new node with specified identifier,
+    /// return blockstamps of deleted blocks
     pub fn insert_new_node(
         &mut self,
         data: Blockstamp,
@@ -344,36 +363,11 @@ impl ForkTree {
             durs_common_tools::fatal_error("Dev error: Insert root node in not empty tree !")
         }
 
+        self.removed_blockstamps.clear();
         if main_branch {
             self.main_branch.insert(data.id, new_node_id);
             if self.main_branch.len() > *crate::constants::FORK_WINDOW_SIZE {
-                // get root node infos
-                let root_node_id = self.root.expect("safe unwrap");
-                let root_node = self.get_node(root_node_id);
-                let root_node_block_id: BlockId = root_node.data.id;
-
-                // Shift the tree one step : remove root node and all his children except main child
-                self.main_branch.remove(&root_node_block_id);
-                let root_node_main_child_id = self
-                    .main_branch
-                    .get(&BlockId(root_node_block_id.0 + 1))
-                    .cloned()
-                    .expect("safe unwrap");
-                let mut children_to_remove = Vec::new();
-                for child_id in root_node.children() {
-                    if *child_id != root_node_main_child_id {
-                        children_to_remove.push(*child_id);
-                    }
-                }
-
-                for child_id in children_to_remove {
-                    self.remove_node_children(child_id);
-                    self.nodes[child_id.0] = None;
-                }
-
-                // Remove root node
-                self.nodes[root_node_id.0] = None;
-                self.root = Some(root_node_main_child_id);
+                self.pruning();
             }
         }
 
@@ -381,12 +375,47 @@ impl ForkTree {
         self.sheets.insert(new_node_id);
     }
 
+    fn pruning(&mut self) {
+        // get root node infos
+        let root_node_id = self.root.expect("safe unwrap");
+        let root_node = self.get_node(root_node_id);
+        let root_node_block_id: BlockId = root_node.data.id;
+
+        // Shift the tree one step : remove root node and all his children except main child
+        self.main_branch.remove(&root_node_block_id);
+        self.removed_blockstamps.push(root_node.data);
+        let root_node_main_child_id = self
+            .main_branch
+            .get(&BlockId(root_node_block_id.0 + 1))
+            .cloned()
+            .expect("safe unwrap");
+        let mut children_to_remove = Vec::new();
+        for child_id in root_node.children() {
+            if *child_id != root_node_main_child_id {
+                children_to_remove.push(*child_id);
+            }
+        }
+
+        for child_id in children_to_remove {
+            self.remove_node_children(child_id);
+            self.removed_blockstamps
+                .push(self.nodes[child_id.0].clone().expect("safe unwrap").data);
+            self.nodes[child_id.0] = None;
+            self.sheets.remove(&child_id);
+        }
+
+        // Remove root node
+        self.nodes[root_node_id.0] = None;
+        self.root = Some(root_node_main_child_id);
+    }
+
+    /// Return removed blockstamps
     fn remove_node_children(&mut self, id: TreeNodeId) {
         let mut ids_to_rm: Vec<TreeNodeId> = Vec::new();
 
         let mut node = self.get_ref_node(id);
         while node.children.len() <= 1 {
-            if let Some(child_id) = node.children.get(1) {
+            if let Some(child_id) = node.children.get(0) {
                 ids_to_rm.push(*child_id);
                 node = self.get_ref_node(*child_id);
             } else {
@@ -399,7 +428,10 @@ impl ForkTree {
         }
 
         for node_id in ids_to_rm {
+            self.removed_blockstamps
+                .push(self.nodes[node_id.0].clone().expect("safe unwrap").data);
             self.nodes[node_id.0] = None;
+            self.sheets.remove(&node_id);
         }
     }
 }
@@ -496,7 +528,7 @@ mod tests {
         }
         assert_eq!(10, tree.size());
 
-        // Insert fork block before block 5
+        // Insert fork block after block 5
         let fork_blockstamp = Blockstamp {
             id: BlockId(6),
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
@@ -582,7 +614,6 @@ mod tests {
         let blockstamps: Vec<Blockstamp> = dubp_documents_tests_tools::mocks::generate_blockstamps(
             *crate::constants::FORK_WINDOW_SIZE + 2,
         );
-        assert_eq!(*crate::constants::FORK_WINDOW_SIZE + 2, blockstamps.len());
 
         // Fill tree with FORK_WINDOW_SIZE nodes
         tree.insert_new_node(blockstamps[0], None, true);
@@ -613,6 +644,85 @@ mod tests {
         );
         assert_eq!(*crate::constants::FORK_WINDOW_SIZE, tree.size());
         assert_eq!(Some(TreeNodeId(2)), tree.get_root_id());
+    }
+
+    #[test]
+    fn test_change_main_branch() {
+        let mut tree = ForkTree::default();
+        let blockstamps: Vec<Blockstamp> = dubp_documents_tests_tools::mocks::generate_blockstamps(
+            *crate::constants::FORK_WINDOW_SIZE + 2,
+        );
+
+        // Fill tree with FORK_WINDOW_SIZE nodes
+        tree.insert_new_node(blockstamps[0], None, true);
+        for i in 1..*crate::constants::FORK_WINDOW_SIZE {
+            tree.insert_new_node(blockstamps[i], Some(TreeNodeId(i - 1)), true);
+        }
+
+        // Insert 2 forks blocks after block (FORK_WINDOW_SIZE - 2)
+        let fork_blockstamp = Blockstamp {
+            id: BlockId(*crate::constants::FORK_WINDOW_SIZE as u32 - 1),
+            hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
+        };
+        tree.insert_new_node(
+            fork_blockstamp,
+            tree.get_main_branch_node_id(BlockId(*crate::constants::FORK_WINDOW_SIZE as u32 - 2)),
+            false,
+        );
+        let fork_blockstamp_2 = Blockstamp {
+            id: BlockId(*crate::constants::FORK_WINDOW_SIZE as u32),
+            hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
+        };
+        tree.insert_new_node(
+            fork_blockstamp_2,
+            Some(TreeNodeId(*crate::constants::FORK_WINDOW_SIZE)),
+            false,
+        );
+
+        // Check tree size
+        assert_eq!(*crate::constants::FORK_WINDOW_SIZE + 2, tree.size());
+
+        // Check that the root of the shaft has not shifted
+        assert_eq!(Some(TreeNodeId(0)), tree.get_root_id());
+
+        // Check that the tree is indeed 2 sheets
+        let sheets = tree.get_sheets();
+        assert_eq!(2, sheets.len());
+
+        // Check sheets content
+        let expected_sheets = vec![
+            (
+                TreeNodeId(*crate::constants::FORK_WINDOW_SIZE - 1),
+                blockstamps[*crate::constants::FORK_WINDOW_SIZE - 1],
+            ),
+            (
+                TreeNodeId(*crate::constants::FORK_WINDOW_SIZE + 1),
+                fork_blockstamp_2,
+            ),
+        ];
+        println!("{:?}", sheets);
+        assert!(rust_tests_tools::collections::slice_same_elems(
+            &expected_sheets,
+            &sheets
+        ));
+
+        // Switch to fork branch
+        tree.change_main_branch(
+            blockstamps[*crate::constants::FORK_WINDOW_SIZE - 1],
+            fork_blockstamp_2,
+        );
+
+        // Check that the shaft still has 2 same sheets
+        assert!(rust_tests_tools::collections::slice_same_elems(
+            &expected_sheets,
+            &sheets
+        ));
+
+        // Check that tree size decrease
+        assert_eq!(*crate::constants::FORK_WINDOW_SIZE + 1, tree.size());
+
+        // Check that the root of the tree has shifted
+        assert_eq!(Some(TreeNodeId(1)), tree.get_root_id());
     }
 
 }

@@ -23,7 +23,7 @@ use std::collections::HashMap;
 /// Insert new head Block in databases
 pub fn insert_new_head_block(
     blockchain_db: &BinDB<LocalBlockchainV10Datas>,
-    fork_tree_db: &BinDB<ForksTreeV10Datas>,
+    forks_dbs: &ForksDBs,
     dal_block: &DALBlock,
 ) -> Result<(), DALError> {
     // Insert head block in blockchain
@@ -32,7 +32,17 @@ pub fn insert_new_head_block(
     })?;
 
     // Insert head block in fork tree
-    crate::writers::fork_tree::insert_new_head_block(fork_tree_db, dal_block.blockstamp())?;
+    let removed_blockstamps = crate::writers::fork_tree::insert_new_head_block(
+        &forks_dbs.fork_tree_db,
+        dal_block.blockstamp(),
+    )?;
+
+    // Remove too old blocks
+    forks_dbs.fork_blocks_db.write(|db| {
+        for blockstamp in removed_blockstamps {
+            db.remove(&blockstamp);
+        }
+    })?;
 
     Ok(())
 }
