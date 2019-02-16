@@ -23,7 +23,11 @@ pub fn insert_new_head_block(
     blockstamp: Blockstamp,
 ) -> Result<(), DALError> {
     fork_tree_db.write(|fork_tree| {
-        let parent_id_opt = fork_tree.get_main_branch_node_id(BlockId(blockstamp.id.0 - 1));
+        let parent_id_opt = if blockstamp.id.0 > 0 {
+            fork_tree.get_main_branch_node_id(BlockId(blockstamp.id.0 - 1))
+        } else {
+            None
+        };
         fork_tree.insert_new_node(blockstamp, parent_id_opt, true);
     })?;
 
@@ -34,10 +38,16 @@ pub fn insert_new_head_block(
 /// Returns true if block has a parent and has therefore been inserted, return false if block is orphaned
 pub fn insert_new_fork_block(
     fork_tree_db: &BinDB<ForksTreeV10Datas>,
-    blockstamp: PreviousBlockstamp,
+    blockstamp: Blockstamp,
+    previous_hash: Hash,
 ) -> Result<bool, DALError> {
+    let previous_blockstamp = Blockstamp {
+        id: BlockId(blockstamp.id.0 - 1),
+        hash: BlockHash(previous_hash),
+    };
+
     let parent_id_opt =
-        fork_tree_db.read(|fork_tree| fork_tree.find_node_with_blockstamp(&blockstamp))?;
+        fork_tree_db.read(|fork_tree| fork_tree.find_node_with_blockstamp(&previous_blockstamp))?;
 
     if let Some(parent_id) = parent_id_opt {
         fork_tree_db.write(|fork_tree| {
@@ -136,4 +146,104 @@ pub fn assign_fork_to_new_block(
         forks_db.insert(new_fork_id, new_fork);
     })?;
     Ok((Some(new_fork_id), true))
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+    use crate::entities::fork_tree::TreeNodeId;
+
+    #[test]
+    fn test_insert_new_head_block() -> Result<(), DALError> {
+        // Create mock datas
+        let blockstamps = dubp_documents_tests_tools::mocks::generate_blockstamps(4);
+        let fork_tree_db = open_db::<ForksTreeV10Datas>(None, "")?;
+
+        // Insert genesis block
+        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[0]));
+
+        // Check tree state
+        assert_eq!(1, fork_tree_db.read(|tree| tree.size())?);
+        assert_eq!(
+            vec![(TreeNodeId(0), blockstamps[0])],
+            fork_tree_db.read(|tree| tree.get_sheets())?
+        );
+
+        // Insert some blocks
+        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[1]));
+        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[2]));
+        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[3]));
+
+        // Check tree state
+        assert_eq!(4, fork_tree_db.read(|tree| tree.size())?);
+        assert_eq!(
+            vec![(TreeNodeId(3), blockstamps[3])],
+            fork_tree_db.read(|tree| tree.get_sheets())?
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_insert_new_fork_block() -> Result<(), DALError> {
+        // Create mock datas
+        let blockstamps = dubp_documents_tests_tools::mocks::generate_blockstamps(5);
+        let fork_tree_db = open_db::<ForksTreeV10Datas>(None, "")?;
+
+        // Insert 3 main blocks
+        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[0]));
+        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[1]));
+        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[2]));
+        assert_eq!(Ok(()), insert_new_head_block(&fork_tree_db, blockstamps[3]));
+
+        // Check tree state
+        assert_eq!(4, fork_tree_db.read(|tree| tree.size())?);
+        assert_eq!(
+            vec![(TreeNodeId(3), blockstamps[3])],
+            fork_tree_db.read(|tree| tree.get_sheets())?
+        );
+
+        // Insert first fork block at child of block 2
+        let fork_blockstamp = Blockstamp {
+            id: BlockId(3),
+            hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
+        };
+        assert_eq!(
+            Ok(true),
+            insert_new_fork_block(&fork_tree_db, fork_blockstamp, blockstamps[2].hash.0)
+        );
+
+        // Check tree state
+        assert_eq!(5, fork_tree_db.read(|tree| tree.size())?);
+        assert!(rust_tests_tools::collections::slice_same_elems(
+            &vec![
+                (TreeNodeId(3), blockstamps[3]),
+                (TreeNodeId(4), fork_blockstamp)
+            ],
+            &fork_tree_db.read(|tree| tree.get_sheets())?
+        ));
+
+        // Insert second fork block at child of first fork block
+        let fork_blockstamp_2 = Blockstamp {
+            id: BlockId(4),
+            hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
+        };
+        assert_eq!(
+            Ok(true),
+            insert_new_fork_block(&fork_tree_db, fork_blockstamp_2, fork_blockstamp.hash.0)
+        );
+
+        // Check tree state
+        assert_eq!(6, fork_tree_db.read(|tree| tree.size())?);
+        assert!(rust_tests_tools::collections::slice_same_elems(
+            &vec![
+                (TreeNodeId(3), blockstamps[3]),
+                (TreeNodeId(5), fork_blockstamp_2)
+            ],
+            &fork_tree_db.read(|tree| tree.get_sheets())?
+        ));
+
+        Ok(())
+    }
 }

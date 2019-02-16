@@ -41,7 +41,8 @@ pub fn insert_new_head_block(
 pub fn insert_new_fork_block(forks_dbs: &ForksDBs, dal_block: &DALBlock) -> Result<(), DALError> {
     if crate::writers::fork_tree::insert_new_fork_block(
         &forks_dbs.fork_tree_db,
-        dal_block.block.previous_blockstamp(),
+        dal_block.block.blockstamp(),
+        dal_block.block.previous_hash,
     )? {
         // Insert in ForksBlocks
         forks_dbs.fork_blocks_db.write(|db| {
