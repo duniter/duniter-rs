@@ -16,11 +16,68 @@
 //! Describe fork tree
 
 use dubp_documents::{BlockHash, BlockId, Blockstamp};
+use serde::de::{self, Deserialize, Deserializer, Visitor};
+use serde::{Serialize, Serializer};
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// unique identifier of tree node
 pub struct TreeNodeId(pub usize);
+
+impl Serialize for TreeNodeId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_u32(self.0 as u32)
+    }
+}
+
+struct TreeNodeIdVisitor;
+
+impl<'de> Visitor<'de> for TreeNodeIdVisitor {
+    type Value = TreeNodeId;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("an integer between -2^31 and 2^31")
+    }
+
+    fn visit_u8<E>(self, value: u8) -> Result<TreeNodeId, E>
+    where
+        E: de::Error,
+    {
+        Ok(TreeNodeId(value as usize))
+    }
+
+    fn visit_u32<E>(self, value: u32) -> Result<TreeNodeId, E>
+    where
+        E: de::Error,
+    {
+        Ok(TreeNodeId(value as usize))
+    }
+
+    fn visit_u64<E>(self, value: u64) -> Result<TreeNodeId, E>
+    where
+        E: de::Error,
+    {
+        use std::usize;
+        if value >= usize::MIN as u64 && value <= usize::MAX as u64 {
+            Ok(TreeNodeId(value as usize))
+        } else {
+            Err(E::custom(format!("u32 out of range: {}", value)))
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for TreeNodeId {
+    fn deserialize<D>(deserializer: D) -> Result<TreeNodeId, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_u32(TreeNodeIdVisitor)
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// Tree node
