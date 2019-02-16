@@ -142,7 +142,7 @@ pub fn calculate_distance_stress_centralities<T: WebOfTrust>(wot: &T, step_max: 
 
 /// Compute median issuers frame
 pub fn compute_median_issuers_frame<S: std::hash::BuildHasher>(
-    current_block: DALBlock,
+    current_block: &DALBlock,
     current_frame: &HashMap<PubKey, usize, S>,
 ) -> usize {
     if !current_frame.is_empty() {
