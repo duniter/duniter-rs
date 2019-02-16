@@ -18,5 +18,6 @@ members = [
     "lib/tools/documents",
     "lib/tools/json-pest-parser",
     "lib/tools/network-documents",
+    "lib/tests-tools/rust-tests-tools",
     "lib/tools/wot",
 ]

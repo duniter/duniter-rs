@@ -392,6 +392,7 @@ dependencies = [
  "durs-wot 0.8.0-a0.9",
  "id_tree 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-tests-tools 0.1.0",
  "rustbreak 2.0.0-rc3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1062,6 +1063,10 @@ dependencies = [
  "rand 0.3.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "rust-tests-tools"
+version = "0.1.0"
 
 [[package]]
 name = "rustbreak"
