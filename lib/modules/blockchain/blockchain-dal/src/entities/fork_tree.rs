@@ -285,7 +285,6 @@ impl ForkTree {
 mod tests {
 
     use super::*;
-    use crate::tests::*;
 
     #[test]
     fn insert_root_nodes() {
@@ -294,7 +293,7 @@ mod tests {
 
         let root_blockstamp = Blockstamp {
             id: BlockId(0),
-            hash: BlockHash(_hash('A')),
+            hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
         };
         tree.insert_new_node(root_blockstamp, None, true);
         assert_eq!(1, tree.size());
@@ -324,15 +323,15 @@ mod tests {
         let blockstamps = vec![
             Blockstamp {
                 id: BlockId(0),
-                hash: BlockHash(_hash('A')),
+                hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
             },
             Blockstamp {
                 id: BlockId(1),
-                hash: BlockHash(_hash('B')),
+                hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
             },
             Blockstamp {
                 id: BlockId(2),
-                hash: BlockHash(_hash('C')),
+                hash: BlockHash(dup_crypto_tests_tools::mocks::hash('C')),
             },
         ];
 
@@ -366,7 +365,8 @@ mod tests {
     fn insert_fork_blocks() {
         // Fill tree with 10 nodes
         let mut tree = ForkTree::default();
-        let blockstamps: Vec<Blockstamp> = _generate_blockstamps(10);
+        let blockstamps: Vec<Blockstamp> =
+            dubp_documents_tests_tools::mocks::generate_blockstamps(10);
         tree.insert_new_node(blockstamps[0], None, true);
         for i in 1..10 {
             tree.insert_new_node(blockstamps[i], Some(TreeNodeId(i - 1)), true);
@@ -376,7 +376,7 @@ mod tests {
         // Insert fork block before block 5
         let fork_blockstamp = Blockstamp {
             id: BlockId(6),
-            hash: BlockHash(_hash('B')),
+            hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
         };
         tree.insert_new_node(
             fork_blockstamp,
@@ -394,7 +394,7 @@ mod tests {
                 TreeNodeId(9),
                 Blockstamp {
                     id: BlockId(9),
-                    hash: BlockHash(_hash_from_byte(9u8)),
+                    hash: BlockHash(dup_crypto_tests_tools::mocks::hash_from_byte(9u8)),
                 },
             ),
             (TreeNodeId(10), fork_blockstamp),
@@ -410,7 +410,7 @@ mod tests {
         // Insert child to fork block
         let child_fork_blockstamp = Blockstamp {
             id: BlockId(7),
-            hash: BlockHash(_hash('C')),
+            hash: BlockHash(dup_crypto_tests_tools::mocks::hash('C')),
         };
         tree.insert_new_node(child_fork_blockstamp, Some(TreeNodeId(10)), false);
 
@@ -424,7 +424,7 @@ mod tests {
                 TreeNodeId(9),
                 Blockstamp {
                     id: BlockId(9),
-                    hash: BlockHash(_hash_from_byte(9u8)),
+                    hash: BlockHash(dup_crypto_tests_tools::mocks::hash_from_byte(9u8)),
                 },
             ),
             (TreeNodeId(11), child_fork_blockstamp),
@@ -433,7 +433,7 @@ mod tests {
             (sheets[0] == expected_sheets[0] && sheets[1] == expected_sheets[1])
                 || (sheets[0] == expected_sheets[1] && sheets[1] == expected_sheets[0])
         );*/
-        assert!(rust_test_tools::collections::slice_same_elems(
+        assert!(rust_tests_tools::collections::slice_same_elems(
             &expected_sheets,
             &sheets
         ));
@@ -448,8 +448,9 @@ mod tests {
     #[test]
     fn insert_more_fork_window_size_nodes() {
         let mut tree = ForkTree::default();
-        let blockstamps: Vec<Blockstamp> =
-            _generate_blockstamps(*crate::constants::FORK_WINDOW_SIZE + 2);
+        let blockstamps: Vec<Blockstamp> = dubp_documents_tests_tools::mocks::generate_blockstamps(
+            *crate::constants::FORK_WINDOW_SIZE + 2,
+        );
         assert_eq!(*crate::constants::FORK_WINDOW_SIZE + 2, blockstamps.len());
 
         // Fill tree with FORK_WINDOW_SIZE nodes

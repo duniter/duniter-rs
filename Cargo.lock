@@ -265,6 +265,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "dubp-documents-tests-tools"
+version = "0.1.0"
+dependencies = [
+ "dubp-documents 0.12.0",
+ "dup-crypto 0.6.0",
+ "dup-crypto-tests-tools 0.1.0",
+]
+
+[[package]]
 name = "duniter-conf"
 version = "0.1.0-a0.1"
 dependencies = [
@@ -344,6 +353,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "dup-crypto-tests-tools"
+version = "0.1.0"
+dependencies = [
+ "dup-crypto 0.6.0",
+]
+
+[[package]]
 name = "durs"
 version = "0.1.0-a1"
 dependencies = [
@@ -386,8 +402,10 @@ name = "durs-blockchain-dal"
 version = "0.1.0-a0.1"
 dependencies = [
  "dubp-documents 0.12.0",
+ "dubp-documents-tests-tools 0.1.0",
  "duniter-module 0.1.0-a0.1",
  "dup-crypto 0.6.0",
+ "dup-crypto-tests-tools 0.1.0",
  "durs-common-tools 0.1.0",
  "durs-wot 0.8.0-a0.9",
  "id_tree 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",

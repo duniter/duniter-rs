@@ -1,0 +1,18 @@
+[package]
+name = "dup-crypto-tests-tools"
+version = "0.1.0"
+authors = ["elois <elois@duniter.org>"]
+description = "Crypto tests tools for projects use dup-crypto."
+repository = "https://git.duniter.org/nodes/rust/duniter-rs"
+readme = "README.md"
+keywords = ["rust", "test", "tools"]
+license = "AGPL-3.0"
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+dup-crypto = { path = "../../tools/crypto" }
+
+[dev-dependencies]

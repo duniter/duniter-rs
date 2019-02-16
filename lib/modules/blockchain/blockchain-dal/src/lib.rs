@@ -445,34 +445,3 @@ pub fn open_wot_db<W: WebOfTrust>(dbs_folder_path: Option<&PathBuf>) -> Result<B
         Ok(BinDB::Mem(open_memory_db::<W>()?))
     }
 }
-
-mod tests {
-    use dubp_documents::BlockHash;
-    use dubp_documents::{BlockId, Blockstamp};
-    use dup_crypto::hashs::Hash;
-
-    pub fn _hash(character: char) -> Hash {
-        let str_hash: String = (0..64).into_iter().map(|_| character).collect();
-
-        Hash::from_hex(&str_hash).expect("Fail to create hash !")
-    }
-
-    pub fn _hash_from_byte(byte: u8) -> Hash {
-        let mut hash_bin = [0u8; 32];
-        for b in &mut hash_bin {
-            *b = byte
-        }
-
-        Hash(hash_bin)
-    }
-
-    pub fn _generate_blockstamps(n: usize) -> Vec<Blockstamp> {
-        (0..n)
-            .into_iter()
-            .map(|i| Blockstamp {
-                id: BlockId(i as u32),
-                hash: BlockHash(_hash_from_byte((i % 255) as u8)),
-            })
-            .collect()
-    }
-}
