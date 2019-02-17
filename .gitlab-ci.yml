@@ -14,9 +14,11 @@ variables:
 .rust_changes: &rust_changes
   only:
     changes:
+      - .gitlab-ci.yml
       - Cargo.toml
       - bin/**/*
       - lib/**/*
+      - release/**/*
 
 .rust_stable_lin64: &rust_stable_lin64
   <<: *rust_changes
