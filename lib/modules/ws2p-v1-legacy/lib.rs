@@ -56,7 +56,7 @@ use crate::ok_message::WS2POkMessageV1;
 use crate::parsers::blocks::parse_json_block;
 use crate::ws2p_connection::*;
 use crate::ws2p_requests::network_request_to_json;
-use dubp_documents::Blockstamp;
+use dubp_documents::{Blockstamp, Document};
 use duniter_conf::DuRsConf;
 use duniter_module::*;
 use duniter_network::cli::sync::SyncOpt;
@@ -496,11 +496,8 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                             } => {
                                 if let DursEvent::BlockchainEvent(ref bc_event) = *event_content {
                                     match *bc_event.deref() {
-                                        BlockchainEvent::StackUpValidBlock(
-                                            ref _block,
-                                            ref blockstamp,
-                                        ) => {
-                                            current_blockstamp = *blockstamp;
+                                        BlockchainEvent::StackUpValidBlock(ref block) => {
+                                            current_blockstamp = block.deref().blockstamp();
                                             debug!(
                                                 "WS2PModule : current_blockstamp = {}",
                                                 current_blockstamp

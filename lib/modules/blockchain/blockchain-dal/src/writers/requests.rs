@@ -40,41 +40,41 @@ pub enum DBsWriteRequest {
 /// Contain a pending write request for blocks databases
 pub enum BlocksDBsWriteQuery {
     /// Write block
-    WriteBlock(Box<DALBlock>, Option<ForkId>, PreviousBlockstamp, BlockHash),
+    WriteBlock(DALBlock),
     /// Revert block
-    RevertBlock(Box<DALBlock>, Option<ForkId>),
+    RevertBlock(DALBlock),
 }
 
 impl BlocksDBsWriteQuery {
     /// BlocksDBsWriteQuery
-    pub fn apply(&self, databases: &BlocksV10DBs, sync: bool) -> Result<(), DALError> {
-        match *self {
-            BlocksDBsWriteQuery::WriteBlock(ref dal_block, ref old_fork_id, _, _) => {
-                let dal_block = dal_block.deref();
+    pub fn apply(
+        self,
+        blockchain_db: &BinDB<LocalBlockchainV10Datas>,
+        forks_db: &ForksDBs,
+        sync_target: Option<Blockstamp>,
+    ) -> Result<(), DALError> {
+        match self {
+            BlocksDBsWriteQuery::WriteBlock(dal_block) => {
+                let dal_block: DALBlock = dal_block;
                 trace!("BlocksDBsWriteQuery::WriteBlock...");
-                super::block::write(
-                    &databases.blockchain_db,
-                    &databases.forks_db,
-                    &databases.forks_blocks_db,
-                    &dal_block,
-                    *old_fork_id,
-                    sync,
-                    false,
-                )?;
-                trace!("BlocksDBsWriteQuery::WriteBlock...finish");
+                if sync_target.is_none()
+                    || dal_block.blockstamp().id.0 + *crate::constants::FORK_WINDOW_SIZE as u32
+                        >= sync_target.expect("safe unwrap").id.0
+                {
+                    super::block::insert_new_head_block(blockchain_db, forks_db, dal_block)?;
+                } else {
+                    // Insert block in blockchain
+                    blockchain_db.write(|db| {
+                        db.insert(dal_block.block.number, dal_block);
+                    })?;
+                }
             }
-            BlocksDBsWriteQuery::RevertBlock(ref dal_block, ref to_fork_id) => {
-                let dal_block = dal_block.deref();
+            BlocksDBsWriteQuery::RevertBlock(dal_block) => {
                 trace!("BlocksDBsWriteQuery::WriteBlock...");
-                super::block::write(
-                    &databases.blockchain_db,
-                    &databases.forks_db,
-                    &databases.forks_blocks_db,
-                    &dal_block,
-                    *to_fork_id,
-                    sync,
-                    true,
-                )?;
+                // Remove block in blockchain
+                blockchain_db.write(|db| {
+                    db.remove(&dal_block.block.number);
+                })?;
                 trace!("BlocksDBsWriteQuery::WriteBlock...finish");
             }
         }

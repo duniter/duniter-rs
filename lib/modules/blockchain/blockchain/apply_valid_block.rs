@@ -15,18 +15,17 @@
 
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::documents::transaction::{TxAmount, TxBase};
-use dubp_documents::BlockId;
-use dubp_documents::Document;
+use dubp_documents::{BlockId, Document};
 use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::block::DALBlock;
 use durs_blockchain_dal::entities::sources::SourceAmount;
 use durs_blockchain_dal::writers::requests::*;
-use durs_blockchain_dal::{BinDB, ForkId};
+use durs_blockchain_dal::BinDB;
 use durs_wot::data::{NewLinkResult, RemLinkResult};
 use durs_wot::{NodeId, WebOfTrust};
 use std::collections::{HashMap, HashSet};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Stores all queries to apply in database to "apply" the block
 pub struct ValidBlockApplyReqs(
     pub BlocksDBsWriteQuery,
@@ -46,7 +45,6 @@ pub fn apply_valid_block<W: WebOfTrust>(
     wot_index: &mut HashMap<PubKey, NodeId>,
     wot_db: &BinDB<W>,
     expire_certs: &HashMap<(NodeId, NodeId), BlockId>,
-    old_fork_id: Option<ForkId>,
 ) -> Result<ValidBlockApplyReqs, ApplyValidBlockError> {
     debug!(
         "BlockchainModule : apply_valid_block({})",
@@ -264,25 +262,14 @@ pub fn apply_valid_block<W: WebOfTrust>(
         );
     }*/
     // Create DALBlock
-    let previous_blockcstamp = block.previous_blockstamp();
-    let block_hash = block
-        .hash
-        .expect("Try to get hash of an uncompleted or reduce block !");
     block.reduce();
     let dal_block = DALBlock {
         block,
-        fork_id: ForkId(0),
-        isolate: false,
         expire_certs: Some(expire_certs.clone()),
     };
     // Return DBs requests
     Ok(ValidBlockApplyReqs(
-        BlocksDBsWriteQuery::WriteBlock(
-            Box::new(dal_block),
-            old_fork_id,
-            previous_blockcstamp,
-            block_hash,
-        ),
+        BlocksDBsWriteQuery::WriteBlock(dal_block),
         wot_dbs_requests,
         currency_dbs_requests,
     ))

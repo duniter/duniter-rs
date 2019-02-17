@@ -15,16 +15,14 @@
 
 use crate::entities::block::DALBlock;
 use crate::*;
-use crate::{BinDB, DALError, ForksBlocksV10Datas, ForksV10Datas, LocalBlockchainV10Datas};
+use crate::{BinDB, DALError, LocalBlockchainV10Datas};
 use dubp_documents::Document;
-use dubp_documents::{BlockHash, BlockId, PreviousBlockstamp};
-use std::collections::HashMap;
 
 /// Insert new head Block in databases
 pub fn insert_new_head_block(
     blockchain_db: &BinDB<LocalBlockchainV10Datas>,
     forks_dbs: &ForksDBs,
-    dal_block: &DALBlock,
+    dal_block: DALBlock,
 ) -> Result<(), DALError> {
     // Insert head block in blockchain
     blockchain_db.write(|db| {
@@ -37,6 +35,11 @@ pub fn insert_new_head_block(
         dal_block.blockstamp(),
     )?;
 
+    // Insert head block in ForksBlocks
+    forks_dbs.fork_blocks_db.write(|db| {
+        db.insert(dal_block.blockstamp(), dal_block);
+    })?;
+
     // Remove too old blocks
     forks_dbs.fork_blocks_db.write(|db| {
         for blockstamp in removed_blockstamps {
@@ -48,7 +51,7 @@ pub fn insert_new_head_block(
 }
 
 /// Insert new fork Block in databases
-pub fn insert_new_fork_block(forks_dbs: &ForksDBs, dal_block: &DALBlock) -> Result<(), DALError> {
+pub fn insert_new_fork_block(forks_dbs: &ForksDBs, dal_block: DALBlock) -> Result<bool, DALError> {
     if crate::writers::fork_tree::insert_new_fork_block(
         &forks_dbs.fork_tree_db,
         dal_block.block.blockstamp(),
@@ -59,24 +62,43 @@ pub fn insert_new_fork_block(forks_dbs: &ForksDBs, dal_block: &DALBlock) -> Resu
             db.insert(dal_block.blockstamp(), dal_block.clone());
         })?;
 
-        // Verify if orphanBlock can be follow current fork block
-        if let Some(deorphaned_block) = forks_dbs
+        // As long as orphan blocks can succeed the last inserted block, they are inserted
+        if let Some(stackables_blocks) = forks_dbs
             .orphan_blocks_db
             .read(|db| db.get(&dal_block.blockstamp()).cloned())?
         {
-            return insert_new_fork_block(forks_dbs, &deorphaned_block);
+            for stackable_block in stackables_blocks {
+                let _ = insert_new_fork_block(forks_dbs, stackable_block);
+            }
         }
-    } else {
-        // insert in OrphanBlocks
-        forks_dbs.orphan_blocks_db.write(|db| {
-            db.insert(dal_block.blockstamp(), dal_block.clone());
-        })?;
-    }
 
-    Ok(())
+        Ok(true)
+    } else {
+        let previous_blockstamp = dal_block.previous_blockstamp();
+
+        // Get orphinBlocks vector
+        let mut orphan_blocks = if let Some(orphan_blocks) = forks_dbs
+            .orphan_blocks_db
+            .read(|db| db.get(&previous_blockstamp).cloned())?
+        {
+            orphan_blocks
+        } else {
+            Vec::new()
+        };
+
+        // Add fork block
+        orphan_blocks.push(dal_block);
+
+        // Update OrphanBlocks DB
+        forks_dbs.orphan_blocks_db.write(|db| {
+            db.insert(previous_blockstamp, orphan_blocks);
+        })?;
+
+        Ok(false)
+    }
 }
 
-/// Write DALBlock in databases
+/*/// Write DALBlock in databases
 pub fn write(
     blockchain_db: &BinDB<LocalBlockchainV10Datas>,
     forks_db: &BinDB<ForksV10Datas>,
@@ -161,4 +183,4 @@ pub fn write(
             .expect("Write blockchain meta datas : DALError");
     }
     Ok(())
-}
+}*/

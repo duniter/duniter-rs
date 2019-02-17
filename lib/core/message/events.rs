@@ -16,7 +16,7 @@
 use crate::*;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::documents::DUBPDocument;
-use dubp_documents::*;
+use dubp_documents::Blockstamp;
 use duniter_network::events::NetworkEvent;
 
 /// The DURS event message.
@@ -47,11 +47,13 @@ pub enum MemPoolEvent {
 /// Blockchain module events
 pub enum BlockchainEvent {
     /// Stack up new valid block in local blockchain
-    StackUpValidBlock(Box<BlockDocument>, Blockstamp),
+    StackUpValidBlock(Box<BlockDocument>),
     /// Revert blocks in local blockchain
     RevertBlocks(Vec<Box<BlockDocument>>),
     /// Receive new valid pending document
     NewValidPendingDoc(DUBPDocument),
     /// Receive new refused pending document
     RefusedPendingDoc(DUBPDocument),
+    /// Receive new refused pending block
+    RefusedBlock(Blockstamp),
 }

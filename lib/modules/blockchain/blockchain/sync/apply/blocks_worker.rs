@@ -21,7 +21,9 @@ pub fn execute(
     pool: &ThreadPool,
     sender_sync_thread: mpsc::Sender<MessForSyncThread>,
     recv: mpsc::Receiver<SyncJobsMess>,
-    databases: BlocksV10DBs,
+    blocks_dbs: BlocksV10DBs,
+    forks_db: ForksDBs,
+    target_blockstamp: Blockstamp,
     mut apply_pb: ProgressBar<std::io::Stdout>,
 ) {
     // Launch blocks_worker thread
@@ -30,61 +32,26 @@ pub fn execute(
 
         // Listen db requets
         let mut chunk_index = 0;
-        let mut blockchain_meta_datas = HashMap::new();
         let mut all_wait_duration = Duration::from_millis(0);
         let mut wait_begin = SystemTime::now();
         while let Ok(SyncJobsMess::BlocksDBsWriteQuery(req)) = recv.recv() {
             all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
+
             // Apply db request
-            req.apply(&databases, true)
-                .expect("Fatal error : Fail to apply DBWriteRequest !");
-            if let BlocksDBsWriteQuery::WriteBlock(
-                ref _dal_block,
-                ref _old_fork_id,
-                ref previous_blockstamp,
-                ref previous_hash,
-            ) = req
-            {
-                blockchain_meta_datas.insert(*previous_blockstamp, *previous_hash);
-                chunk_index += 1;
-                if chunk_index == 250 {
-                    chunk_index = 0;
-                    apply_pb.inc();
-                }
+            req.apply(
+                &blocks_dbs.blockchain_db,
+                &forks_db,
+                Some(target_blockstamp),
+            )
+            .expect("Fatal error : Fail to apply DBWriteRequest !");
+
+            chunk_index += 1;
+            if chunk_index == 250 {
+                chunk_index = 0;
+                apply_pb.inc();
             }
             wait_begin = SystemTime::now();
         }
-
-        // Indexing blockchain meta datas
-        info!("Indexing blockchain meta datas...");
-        /*let blockchain_meta_datas: HashMap<PreviousBlockstamp, BlockHash> = databases
-        .blockchain_db
-        .read(|db| {
-            let mut blockchain_meta_datas: HashMap<
-                PreviousBlockstamp,
-                BlockHash,
-            > = HashMap::new();
-            for dal_block in db.values() {
-                let block_previous_hash = if dal_block.block.number.0 == 0 {
-                    PreviousBlockstamp::default()
-                } else {
-                    PreviousBlockstamp {
-                        id: BlockId(dal_block.block.number.0 - 1),
-                        hash: BlockHash(dal_block.block.previous_hash),
-                    }
-                };
-                blockchain_meta_datas
-                    .insert(block_previous_hash, dal_block.block.expect("Try to get hash of an uncompleted or reduce block !"));
-            }
-            blockchain_meta_datas
-        })
-        .expect("Indexing blockchain meta datas : DALError");*/
-        databases
-            .forks_db
-            .write(|db| {
-                db.insert(ForkId(0), blockchain_meta_datas);
-            })
-            .expect("Indexing blockchain meta datas : DALError");
 
         // Increment progress bar (last chunk)
         apply_pb.inc();
@@ -92,7 +59,8 @@ pub fn execute(
         println!();
         println!("Write indexs in files...");
         info!("Save blockchain and forks databases in files...");
-        databases.save_dbs();
+        blocks_dbs.save_dbs();
+        forks_db.save_dbs();
 
         // Send finish signal
         sender_sync_thread

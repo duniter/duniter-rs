@@ -18,20 +18,26 @@ use std::collections::HashMap;
 use crate::apply_valid_block::*;
 use crate::verify_block::*;
 use crate::*;
+use dubp_documents::Blockstamp;
 use dubp_documents::Document;
-use dubp_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
 use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::block::DALBlock;
 use durs_blockchain_dal::*;
 
+#[derive(Debug, Clone)]
+pub enum CheckAndApplyBlockReturn {
+    ValidBlock(ValidBlockApplyReqs),
+    ForkBlock,
+    OrphanBlock,
+}
+
 #[derive(Debug, Copy, Clone)]
 pub enum BlockError {
+    AlreadyHaveBlockOrOutForkWindow,
     VerifyBlockHashsError(VerifyBlockHashsError),
     DALError(DALError),
     InvalidBlock(InvalidBlockError),
     ApplyValidBlockError(ApplyValidBlockError),
-    NoForkAvailable(),
-    UnknowError(),
 }
 
 impl From<VerifyBlockHashsError> for BlockError {
@@ -54,13 +60,13 @@ impl From<ApplyValidBlockError> for BlockError {
 
 pub fn check_and_apply_block<W: WebOfTrust>(
     blocks_databases: &BlocksV10DBs,
+    forks_dbs: &ForksDBs,
     certs_db: &BinDB<CertsExpirV10Datas>,
     block: Block,
     current_blockstamp: &Blockstamp,
     wot_index: &mut HashMap<PubKey, NodeId>,
     wot_db: &BinDB<W>,
-    forks_states: &[ForkStatus],
-) -> Result<ValidBlockApplyReqs, BlockError> {
+) -> Result<CheckAndApplyBlockReturn, BlockError> {
     let block_from_network = block.is_from_network();
     let block_doc: BlockDocument = block.into_doc();
 
@@ -68,8 +74,9 @@ pub fn check_and_apply_block<W: WebOfTrust>(
     let already_have_block = if block_from_network {
         readers::block::already_have_block(
             &blocks_databases.blockchain_db,
-            &blocks_databases.forks_blocks_db,
+            &forks_dbs,
             block_doc.blockstamp(),
+            block_doc.previous_hash,
         )?
     } else {
         false
@@ -92,16 +99,6 @@ pub fn check_and_apply_block<W: WebOfTrust>(
         let expire_certs =
             durs_blockchain_dal::readers::certs::find_expire_certs(certs_db, blocks_expiring)?;
 
-        // Try stack up block
-        let old_fork_id = if block_from_network {
-            durs_blockchain_dal::readers::block::get_fork_id_of_blockstamp(
-                &blocks_databases.forks_blocks_db,
-                &block_doc.blockstamp(),
-            )?
-        } else {
-            None
-        };
-
         // Verify block validity (check all protocol rule, very long !)
         verify_block_validity(
             &block_doc,
@@ -111,70 +108,39 @@ pub fn check_and_apply_block<W: WebOfTrust>(
             wot_db,
         )?;
 
-        return Ok(apply_valid_block(
+        Ok(CheckAndApplyBlockReturn::ValidBlock(apply_valid_block(
             block_doc,
             wot_index,
             wot_db,
             &expire_certs,
-            old_fork_id,
-        )?);
+        )?))
     } else if !already_have_block
         && (block_doc.number.0 >= current_blockstamp.id.0
-            || (current_blockstamp.id.0 - block_doc.number.0) < 100)
+            || (current_blockstamp.id.0 - block_doc.number.0)
+                < *durs_blockchain_dal::constants::FORK_WINDOW_SIZE as u32)
     {
         debug!(
             "stackable_block : block {} not chainable, store this for future !",
             block_doc.blockstamp()
         );
-        let (fork_id, new_fork) = writers::fork_tree::assign_fork_to_new_block(
-            &blocks_databases.forks_db,
-            &PreviousBlockstamp {
-                id: BlockId(block_doc.number.0 - 1),
-                hash: BlockHash(block_doc.previous_hash),
-            },
-            &block_doc
-                .hash
-                .expect("Try to get hash of an uncompleted or reduce block"),
-        )?;
-        if let Some(fork_id) = fork_id {
-            let mut isolate = true;
-            let fork_state = if new_fork {
-                ForkStatus::Isolate()
-            } else {
-                forks_states[fork_id.0]
-            };
-            match fork_state {
-                ForkStatus::Stackable(_) | ForkStatus::RollBack(_, _) | ForkStatus::TooOld(_) => {
-                    isolate = false
-                }
-                _ => {}
-            }
 
-            let dal_block = DALBlock {
-                fork_id,
-                isolate,
-                block: block_doc.clone(),
-                expire_certs: None,
-            };
+        let dal_block = DALBlock {
+            block: block_doc.clone(),
+            expire_certs: None,
+        };
 
-            durs_blockchain_dal::writers::block::write(
-                &blocks_databases.blockchain_db,
-                &blocks_databases.forks_db,
-                &blocks_databases.forks_blocks_db,
-                &dal_block,
-                None,
-                false,
-                false,
-            )
-            .expect("durs_blockchain_dal::writers::block::write() : DALError")
+        if durs_blockchain_dal::writers::block::insert_new_fork_block(&forks_dbs, dal_block)
+            .expect("durs_blockchain_dal::writers::block::insert_new_fork_block() : DALError")
+        {
+            Ok(CheckAndApplyBlockReturn::ForkBlock)
         } else {
-            return Err(BlockError::NoForkAvailable());
+            Ok(CheckAndApplyBlockReturn::OrphanBlock)
         }
     } else {
         debug!(
             "stackable_block : block {} not chainable and already stored or out of forkWindowSize !",
             block_doc.blockstamp()
         );
+        Err(BlockError::AlreadyHaveBlockOrOutForkWindow)
     }
-    Err(BlockError::UnknowError())
 }

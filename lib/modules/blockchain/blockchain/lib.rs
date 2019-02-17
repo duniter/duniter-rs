@@ -42,7 +42,7 @@ mod revert_block;
 mod sync;
 mod verify_block;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::str;
@@ -54,7 +54,6 @@ use crate::check_and_apply_block::*;
 use crate::constants::*;
 pub use crate::dbex::{DBExQuery, DBExTxQuery, DBExWotQuery};
 use dubp_documents::documents::block::BlockDocument;
-use dubp_documents::documents::DUBPDocument;
 use dubp_documents::*;
 use duniter_module::*;
 use duniter_network::{
@@ -65,7 +64,6 @@ use duniter_network::{
 };
 use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::currency_params::CurrencyParameters;
-use durs_blockchain_dal::writers::requests::BlocksDBsWriteQuery;
 use durs_blockchain_dal::*;
 use durs_common_tools::fatal_error;
 use durs_message::events::*;
@@ -101,12 +99,14 @@ pub struct BlockchainModule {
     pub wot_databases: WotsV10DBs,
     /// Blocks Databases
     pub blocks_databases: BlocksV10DBs,
+    /// Forks Databases
+    pub forks_dbs: ForksDBs,
     /// Currency databases
     currency_databases: CurrencyV10DBs,
     /// The block under construction
     pub pending_block: Option<Box<BlockDocument>>,
-    /// Current state of all forks
-    pub forks_states: Vec<ForkStatus>,
+    /// Memorization of fork whose application fails
+    pub invalid_forks: HashSet<Blockstamp>,
 }
 
 #[derive(Debug, Clone)]
@@ -187,11 +187,12 @@ impl BlockchainModule {
 
         // Open databases
         let blocks_databases = BlocksV10DBs::open(Some(&db_path));
+        let forks_dbs = ForksDBs::open(Some(&db_path));
         let wot_databases = WotsV10DBs::open(Some(&db_path));
         let currency_databases = CurrencyV10DBs::open(Some(&db_path));
 
         // Get current blockstamp
-        let current_blockstamp =
+        let _current_blockstamp =
             durs_blockchain_dal::readers::block::get_current_blockstamp(&blocks_databases)
                 .expect("Fatal error : fail to read Blockchain DB !");
 
@@ -202,17 +203,6 @@ impl BlockchainModule {
         .expect("Fatal error : fail to read Blockchain DB !")
         .unwrap_or_default();
 
-        // Get forks states
-        let forks_states = if let Some(current_blockstamp) = current_blockstamp {
-            durs_blockchain_dal::readers::block::get_forks(
-                &blocks_databases.forks_db,
-                current_blockstamp,
-            )
-            .expect("Fatal error : fail to read Forks DB !")
-        } else {
-            vec![]
-        };
-
         // Instanciate BlockchainModule
         BlockchainModule {
             router_sender,
@@ -220,10 +210,11 @@ impl BlockchainModule {
             currency: conf.currency(),
             currency_params,
             blocks_databases,
+            forks_dbs,
             wot_databases,
             currency_databases,
             pending_block: None,
-            forks_states,
+            invalid_forks: HashSet::new(),
         }
     }
     /// Databases explorer
@@ -327,7 +318,7 @@ impl BlockchainModule {
     /// Send blockchain event
     fn send_event(&self, event: &BlockchainEvent) {
         let module_event = match event {
-            BlockchainEvent::StackUpValidBlock(_, _) => ModuleEvent::NewValidBlock,
+            BlockchainEvent::StackUpValidBlock(_) => ModuleEvent::NewValidBlock,
             BlockchainEvent::RevertBlocks(_) => ModuleEvent::RevertBlocks,
             _ => return,
         };
@@ -356,90 +347,19 @@ impl BlockchainModule {
     fn receive_network_documents<W: WebOfTrust>(
         &mut self,
         network_documents: &[BlockchainDocument],
-        current_blockstamp: &Blockstamp,
+        mut current_blockstamp: Blockstamp,
         wot_index: &mut HashMap<PubKey, NodeId>,
         wot_db: &BinDB<W>,
     ) -> Blockstamp {
-        let mut current_blockstamp = *current_blockstamp;
-
         for network_document in network_documents {
             if let BlockchainDocument::Block(ref block_doc) = network_document {
                 let block_doc = block_doc.deref();
-                match check_and_apply_block::<W>(
-                    &self.blocks_databases,
-                    &self.wot_databases.certs_db,
-                    Block::NetworkBlock(block_doc.clone()),
-                    &current_blockstamp,
+                current_blockstamp = self.receive_blocks(
+                    vec![Block::NetworkBlock(block_doc.deref().clone())],
+                    current_blockstamp,
                     wot_index,
                     wot_db,
-                    &self.forks_states,
-                ) {
-                    Ok(ValidBlockApplyReqs(block_req, wot_dbs_reqs, currency_dbs_reqs)) => {
-                        let block_doc = block_doc.clone();
-                        let mut save_wots_dbs = false;
-                        let mut save_currency_dbs = false;
-
-                        // Apply wot dbs requests
-                        for req in &wot_dbs_reqs {
-                            req.apply(&self.wot_databases, &self.currency_params)
-                                .expect(
-                                    "Fatal error : fail to apply WotsDBsWriteQuery : DALError !",
-                                );
-                        }
-                        // Apply currency dbs requests
-                        for req in currency_dbs_reqs {
-                            req.apply(&self.currency_databases).expect(
-                                "Fatal error : fail to apply CurrencyDBsWriteQuery : DALError !",
-                            );
-                        }
-                        // Write block
-                        block_req
-                            .apply(&self.blocks_databases, false)
-                            .expect("Fatal error : fail to write block in BlocksDBs : DALError !");
-                        if let BlocksDBsWriteQuery::WriteBlock(_, _, _, block_hash) = block_req {
-                            info!("StackUpValidBlock({})", block_doc.number.0);
-                            self.send_event(&BlockchainEvent::StackUpValidBlock(
-                                Box::new(block_doc.clone()),
-                                Blockstamp {
-                                    id: block_doc.number,
-                                    hash: block_hash,
-                                },
-                            ));
-                        }
-                        current_blockstamp = block_doc.blockstamp();
-                        // Update forks states
-                        self.forks_states = durs_blockchain_dal::readers::block::get_forks(
-                            &self.blocks_databases.forks_db,
-                            current_blockstamp,
-                        )
-                        .expect("get_forks() : DALError");
-
-                        if !wot_dbs_reqs.is_empty() {
-                            save_wots_dbs = true;
-                        }
-                        if !block_doc.transactions.is_empty()
-                            || (block_doc.dividend.is_some()
-                                && block_doc.dividend.expect("safe unwrap") > 0)
-                        {
-                            save_currency_dbs = true;
-                        }
-
-                        // Save databases
-                        self.blocks_databases.save_dbs();
-                        if save_wots_dbs {
-                            self.wot_databases.save_dbs();
-                        }
-                        if save_currency_dbs {
-                            self.currency_databases.save_dbs(true, true);
-                        }
-                    }
-                    Err(_) => {
-                        warn!("RefusedBlock({})", block_doc.number.0);
-                        self.send_event(&BlockchainEvent::RefusedPendingDoc(DUBPDocument::Block(
-                            Box::new(block_doc.clone()),
-                        )));
-                    }
-                }
+                );
             }
         }
 
@@ -449,55 +369,66 @@ impl BlockchainModule {
     fn receive_blocks<W: WebOfTrust>(
         &mut self,
         blocks: Vec<Block>,
-        current_blockstamp: &Blockstamp,
+        mut current_blockstamp: Blockstamp,
         wot_index: &mut HashMap<PubKey, NodeId>,
         wot: &BinDB<W>,
     ) -> Blockstamp {
         debug!("BlockchainModule : receive_blocks()");
-        let mut current_blockstamp = *current_blockstamp;
         let mut save_blocks_dbs = false;
         let mut save_wots_dbs = false;
         let mut save_currency_dbs = false;
         for block in blocks.into_iter() {
+            let _from_network = block.is_from_network();
             let blockstamp = block.blockstamp();
-            if let Ok(ValidBlockApplyReqs(bc_db_query, wot_dbs_queries, tx_dbs_queries)) =
-                check_and_apply_block::<W>(
-                    &self.blocks_databases,
-                    &self.wot_databases.certs_db,
-                    block,
-                    &current_blockstamp,
-                    wot_index,
-                    wot,
-                    &self.forks_states,
-                )
-            {
-                current_blockstamp = blockstamp;
-                // Update forks states
-                self.forks_states = durs_blockchain_dal::readers::block::get_forks(
-                    &self.blocks_databases.forks_db,
-                    current_blockstamp,
-                )
-                .expect("get_forks() : DALError");
-                // Apply db requests
-                bc_db_query
-                    .apply(&self.blocks_databases, false)
-                    .expect("Fatal error : Fail to apply DBWriteRequest !");
-                for query in &wot_dbs_queries {
-                    query
-                        .apply(&self.wot_databases, &self.currency_params)
-                        .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
-                }
-                for query in &tx_dbs_queries {
-                    query
-                        .apply(&self.currency_databases)
-                        .expect("Fatal error : Fail to apply CurrencyDBsWriteRequest !");
-                }
-                save_blocks_dbs = true;
-                if !wot_dbs_queries.is_empty() {
-                    save_wots_dbs = true;
-                }
-                if !tx_dbs_queries.is_empty() {
-                    save_currency_dbs = true;
+            match check_and_apply_block::<W>(
+                &self.blocks_databases,
+                &self.forks_dbs,
+                &self.wot_databases.certs_db,
+                block,
+                &current_blockstamp,
+                wot_index,
+                wot,
+            ) {
+                Ok(check_block_return) => match check_block_return {
+                    CheckAndApplyBlockReturn::ValidBlock(ValidBlockApplyReqs(
+                        bc_db_query,
+                        wot_dbs_queries,
+                        tx_dbs_queries,
+                    )) => {
+                        current_blockstamp = blockstamp;
+                        // Apply db requests
+                        bc_db_query
+                            .apply(&self.blocks_databases.blockchain_db, &self.forks_dbs, None)
+                            .expect("Fatal error : Fail to apply DBWriteRequest !");
+                        for query in &wot_dbs_queries {
+                            query
+                                .apply(&self.wot_databases, &self.currency_params)
+                                .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
+                        }
+                        for query in &tx_dbs_queries {
+                            query
+                                .apply(&self.currency_databases)
+                                .expect("Fatal error : Fail to apply CurrencyDBsWriteRequest !");
+                        }
+                        save_blocks_dbs = true;
+                        if !wot_dbs_queries.is_empty() {
+                            save_wots_dbs = true;
+                        }
+                        if !tx_dbs_queries.is_empty() {
+                            save_currency_dbs = true;
+                        }
+                    }
+                    CheckAndApplyBlockReturn::ForkBlock => {
+                        // TODO fork resolution algo
+                        info!("new fork block({})", blockstamp);
+                    }
+                    CheckAndApplyBlockReturn::OrphanBlock => {
+                        debug!("new orphan block({})", blockstamp);
+                    }
+                },
+                Err(_) => {
+                    warn!("RefusedBlock({})", blockstamp.id.0);
+                    self.send_event(&BlockchainEvent::RefusedBlock(blockstamp));
                 }
             }
         }
@@ -645,7 +576,7 @@ impl BlockchainModule {
                                         let new_current_blockstamp = self
                                             .receive_network_documents(
                                                 network_docs,
-                                                &current_blockstamp,
+                                                current_blockstamp,
                                                 &mut wot_index,
                                                 &wot_db,
                                             );
@@ -659,7 +590,7 @@ impl BlockchainModule {
                                 if let MemPoolEvent::FindNextBlock(next_block_box) = mempool_event {
                                     let new_current_blockstamp = self.receive_blocks(
                                         vec![Block::LocalBlock(next_block_box.deref().clone())],
-                                        &current_blockstamp,
+                                        current_blockstamp,
                                         &mut wot_index,
                                         &wot_db,
                                     );
@@ -687,8 +618,6 @@ impl BlockchainModule {
                                                     consensus = blockstamp;
                                                     if current_blockstamp.id.0 > consensus.id.0 + 2
                                                     {
-                                                        // Find free fork id
-                                                        let free_fork_id = ForkId(49);
                                                         // Get last dal_block
                                                         let last_dal_block_id =
                                                             BlockId(current_blockstamp.id.0 - 1);
@@ -704,7 +633,6 @@ impl BlockchainModule {
                                                             &last_dal_block,
                                                             &mut wot_index,
                                                             &wot_db,
-                                                            Some(free_fork_id),
                                                             &self
                                                                 .currency_databases
                                                                 .tx_db
@@ -727,19 +655,12 @@ impl BlockchainModule {
 
                                                 let new_current_blockstamp = self.receive_blocks(
                                                     blocks,
-                                                    &current_blockstamp,
+                                                    current_blockstamp,
                                                     &mut wot_index,
                                                     &wot_db,
                                                 );
                                                 if current_blockstamp != new_current_blockstamp {
                                                     current_blockstamp = new_current_blockstamp;
-                                                    // Update forks states
-                                                    self.forks_states =
-                                                        durs_blockchain_dal::readers::block::get_forks(
-                                                            &self.blocks_databases.forks_db,
-                                                            current_blockstamp,
-                                                        )
-                                                        .expect("get_forks() : DALError");
                                                 }
                                             }
                                         }
@@ -770,8 +691,7 @@ impl BlockchainModule {
                 loop {
                     let stackable_blocks =
                         durs_blockchain_dal::readers::fork_tree::get_stackables_blocks(
-                            &self.blocks_databases.forks_db,
-                            &self.blocks_databases.forks_blocks_db,
+                            &self.forks_dbs,
                             &current_blockstamp,
                         )
                         .expect("Fatal error : Fail to read ForksV10DB !");
@@ -785,22 +705,26 @@ impl BlockchainModule {
                             let stackable_block_number = stackable_block.block.number;
                             let stackable_block_blockstamp = stackable_block.block.blockstamp();
 
-                            if let Ok(ValidBlockApplyReqs(
+                            if let Ok(CheckAndApplyBlockReturn::ValidBlock(ValidBlockApplyReqs(
                                 bc_db_query,
                                 wot_dbs_queries,
                                 tx_dbs_queries,
-                            )) = check_and_apply_block(
+                            ))) = check_and_apply_block(
                                 &self.blocks_databases,
+                                &self.forks_dbs,
                                 &self.wot_databases.certs_db,
                                 Block::LocalBlock(stackable_block.block),
                                 &current_blockstamp,
                                 &mut wot_index,
                                 &wot_db,
-                                &self.forks_states,
                             ) {
                                 // Apply db requests
                                 bc_db_query
-                                    .apply(&self.blocks_databases, false)
+                                    .apply(
+                                        &self.blocks_databases.blockchain_db,
+                                        &self.forks_dbs,
+                                        None,
+                                    )
                                     .expect("Fatal error : Fail to apply DBWriteRequest !");
                                 for query in &wot_dbs_queries {
                                     query
@@ -829,15 +753,6 @@ impl BlockchainModule {
                                 break;
                             } else {
                                 warn!("fail to stackable_block({})", stackable_block_number);
-                                // Delete this fork
-                                writers::fork_tree::delete_fork(
-                                    &self.blocks_databases.forks_db,
-                                    &self.blocks_databases.forks_blocks_db,
-                                    stackable_block.fork_id,
-                                )
-                                .expect("delete_fork() : DALError");
-                                // Update forks states
-                                self.forks_states[stackable_block.fork_id.0] = ForkStatus::Free();
                             }
                         }
                         if !find_valid_block {

@@ -21,7 +21,6 @@ use dubp_documents::{BlockHash, BlockId};
 use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::currency_params::CurrencyParameters;
 use durs_blockchain_dal::writers::requests::*;
-use durs_blockchain_dal::ForkId;
 use durs_common_tools::fatal_error;
 use durs_wot::NodeId;
 use pbr::ProgressBar;
@@ -134,7 +133,10 @@ pub fn local_sync<DC: DuniterConf>(
     let wot_db = open_wot_db::<RustyWebOfTrust>(Some(&db_path)).expect("Fail to open WotDB !");
 
     // Open blocks databases
-    let databases = BlocksV10DBs::open(Some(&db_path));
+    let blocks_dbs = BlocksV10DBs::open(Some(&db_path));
+
+    // Open forks databases
+    let forks_dbs = ForksDBs::open(Some(&db_path));
 
     // Open wot databases
     let wot_databases = WotsV10DBs::open(Some(&db_path));
@@ -142,7 +144,7 @@ pub fn local_sync<DC: DuniterConf>(
     // Get local current blockstamp
     debug!("Get local current blockstamp...");
     let mut current_blockstamp: Blockstamp =
-        durs_blockchain_dal::readers::block::get_current_blockstamp(&databases)
+        durs_blockchain_dal::readers::block::get_current_blockstamp(&blocks_dbs)
             .expect("DALError : fail to get current blockstamp !")
             .unwrap_or_default();
     debug!("Success to get local current blockstamp.");
@@ -191,7 +193,9 @@ pub fn local_sync<DC: DuniterConf>(
         &pool,
         sender_sync_thread.clone(),
         recv_blocks_thread,
-        databases,
+        blocks_dbs,
+        forks_dbs,
+        target_blockstamp,
         apply_pb,
     );
 
@@ -283,13 +287,7 @@ pub fn local_sync<DC: DuniterConf>(
         // Apply block
         let apply_valid_block_begin = SystemTime::now();
         if let Ok(ValidBlockApplyReqs(block_req, wot_db_reqs, currency_db_reqs)) =
-            apply_valid_block::<RustyWebOfTrust>(
-                block_doc,
-                &mut wot_index,
-                &wot_db,
-                &expire_certs,
-                None,
-            )
+            apply_valid_block::<RustyWebOfTrust>(block_doc, &mut wot_index, &wot_db, &expire_certs)
         {
             all_apply_valid_block_duration += SystemTime::now()
                 .duration_since(apply_valid_block_begin)

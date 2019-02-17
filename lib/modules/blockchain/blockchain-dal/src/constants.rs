@@ -19,7 +19,5 @@ pub static DEFAULT_SIG_RENEW_PERIOD: &'static u64 = &5_259_600;
 pub static DEFAULT_MS_PERIOD: &'static u64 = &5_259_600;
 /// Default value for tx_window parameter
 pub static DEFAULT_TX_WINDOW: &'static u64 = &604_800;
-/// Maximum number of forks that can be registered
-pub static MAX_FORKS: &'static usize = &100;
 /// Maximum roolback length
 pub static FORK_WINDOW_SIZE: &'static usize = &200;

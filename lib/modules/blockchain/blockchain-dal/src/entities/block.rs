@@ -23,10 +23,6 @@ use std::collections::HashMap;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// A block as it is saved in a database
 pub struct DALBlock {
-    /// Fork id
-    pub fork_id: ForkId,
-    /// True only if the block is on an isolated fork
-    pub isolate: bool,
     /// Block document
     pub block: BlockDocument,
     /// List of certifications that expire in this block.

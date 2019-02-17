@@ -21,7 +21,7 @@ use durs_blockchain_dal::entities::block::DALBlock;
 use durs_blockchain_dal::entities::sources::SourceAmount;
 use durs_blockchain_dal::writers::requests::*;
 use durs_blockchain_dal::writers::transaction::DALTxV10;
-use durs_blockchain_dal::{BinDB, ForkId, TxV10Datas};
+use durs_blockchain_dal::{BinDB, TxV10Datas};
 use durs_wot::data::{NewLinkResult, RemLinkResult};
 use durs_wot::{NodeId, WebOfTrust};
 use std::collections::HashMap;
@@ -45,7 +45,6 @@ pub fn revert_block<W: WebOfTrust>(
     dal_block: &DALBlock,
     wot_index: &mut HashMap<PubKey, NodeId>,
     wot_db: &BinDB<W>,
-    to_fork_id: Option<ForkId>,
     txs: &TxV10Datas,
 ) -> Result<ValidBlockRevertReqs, RevertValidBlockError> {
     // Revert DALBlock
@@ -232,7 +231,7 @@ pub fn revert_block<W: WebOfTrust>(
     }
     // Return DBs requests
     Ok(ValidBlockRevertReqs(
-        BlocksDBsWriteQuery::RevertBlock(Box::new(dal_block.clone()), to_fork_id),
+        BlocksDBsWriteQuery::RevertBlock(dal_block.clone()),
         wot_dbs_requests,
         currency_dbs_requests,
     ))

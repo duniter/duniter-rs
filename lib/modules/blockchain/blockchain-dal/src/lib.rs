@@ -16,8 +16,8 @@
 //! Datas Access Layer
 
 #![cfg_attr(feature = "strict", deny(warnings))]
-//#![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
 #![cfg_attr(feature = "exp", allow(warnings))]
+#![allow(clippy::large_enum_variant)]
 #![deny(
     missing_docs,
     missing_debug_implementations,
@@ -74,10 +74,6 @@ use crate::entities::identity::DALIdentity;
 use crate::entities::sources::{SourceAmount, UTXOContentV10, UTXOIndexV10};
 use crate::writers::transaction::DALTxV10;
 
-#[derive(Debug, Deserialize, Copy, Clone, Ord, PartialEq, PartialOrd, Eq, Hash, Serialize)]
-/// Each fork has a unique identifier. The local blockchain (also called local branch) has ForkId equal to zero.
-pub struct ForkId(pub usize);
-
 /// Currency parameters (Protocol V10)
 pub type CurrencyParamsV10Datas = (CurrencyName, BlockV10Parameters);
 /// All blocks of local blockchain indexed by block number
@@ -87,9 +83,7 @@ pub type ForksTreeV10Datas = entities::fork_tree::ForkTree;
 /// Forks blocks referenced in tree indexed by their blockstamp
 pub type ForksBlocksV10Datas = HashMap<Blockstamp, DALBlock>;
 /// Blocks orphaned (no parent block) indexed by their previous blockstamp
-pub type OrphanBlocksV10Datas = HashMap<PreviousBlockstamp, DALBlock>;
-/// Forks meta datas (block hash and previous hash only)
-pub type ForksV10Datas = HashMap<ForkId, HashMap<PreviousBlockstamp, BlockHash>>; // TODO remove
+pub type OrphanBlocksV10Datas = HashMap<PreviousBlockstamp, Vec<DALBlock>>;
 /// V10 Identities indexed by public key
 pub type IdentitiesV10Datas = HashMap<PubKey, DALIdentity>;
 /// Memberships sorted by created block
@@ -168,10 +162,6 @@ impl<D: Serialize + DeserializeOwned + Debug + Default + Clone + Send> BinDB<D> 
 pub struct BlocksV10DBs {
     /// Local blockchain database
     pub blockchain_db: BinDB<LocalBlockchainV10Datas>,
-    /// Forks meta datas
-    pub forks_db: BinDB<ForksV10Datas>,
-    /// Forks blocks
-    pub forks_blocks_db: BinDB<ForksBlocksV10Datas>,
 }
 
 impl BlocksV10DBs {
@@ -180,10 +170,6 @@ impl BlocksV10DBs {
         BlocksV10DBs {
             blockchain_db: open_db::<LocalBlockchainV10Datas>(db_path, "blockchain.db")
                 .expect("Fail to open LocalBlockchainV10DB"),
-            forks_db: open_db::<ForksV10Datas>(db_path, "forks.db")
-                .expect("Fail to open ForksV10DB"),
-            forks_blocks_db: open_db::<ForksBlocksV10Datas>(db_path, "forks_blocks.db")
-                .expect("Fail to open ForksBlocksV10DB"),
         }
     }
     /// Save blocks databases in their respective files
@@ -191,12 +177,6 @@ impl BlocksV10DBs {
         self.blockchain_db
             .save()
             .expect("Fatal error : fail to save LocalBlockchainV10DB !");
-        self.forks_db
-            .save()
-            .expect("Fatal error : fail to save ForksV10DB !");
-        self.forks_blocks_db
-            .save()
-            .expect("Fatal error : fail to save ForksBlocksV10DB !");
     }
 }
 
@@ -348,30 +328,6 @@ impl From<RustbreakError> for DALError {
             _ => DALError::UnknowError,
         }
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-/// ForkAlreadyCheck
-pub struct ForkAlreadyCheck(pub bool);
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-/// Stores a state associated with a ForkId
-pub enum ForkStatus {
-    /// This ForkId is empty (available to welcome a new fork)
-    Free(),
-    /// This ForkId points on a stackable fork with no roll back
-    Stackable(ForkAlreadyCheck),
-    /// This ForkId points on a stackable fork with roll back.
-    /// `BlockId` points to the last block in common
-    RollBack(ForkAlreadyCheck, BlockId),
-    /// This ForkId points on a stackable fork with roll back
-    /// but the last block in common is too old (beyond the maximum FORK_WINDOW_SIZE)
-    TooOld(ForkAlreadyCheck),
-    /// This ForkId points on an isolate fork
-    /// An isolated fork is a fork that has no block in common with the local blockchain.
-    Isolate(),
-    /// This ForkId points on an invalid fork
-    Invalid(),
 }
 
 /*#[derive(Debug, Clone)]

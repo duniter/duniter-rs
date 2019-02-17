@@ -268,10 +268,7 @@ impl DursModule<DuRsConf, DursMsg> for SkeletonModule {
                             } => match *event_content {
                                 DursEvent::BlockchainEvent(ref blockchain_event) => {
                                     match *blockchain_event.deref() {
-                                        BlockchainEvent::StackUpValidBlock(
-                                            ref _block,
-                                            ref _blockstamp,
-                                        ) => {
+                                        BlockchainEvent::StackUpValidBlock(ref _block) => {
                                             // Do something when the node has stacked a new block at its local blockchain
                                         }
                                         BlockchainEvent::RevertBlocks(ref _blocks) => {
