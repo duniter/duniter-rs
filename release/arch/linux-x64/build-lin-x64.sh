@@ -57,7 +57,7 @@ build_deb_pack() {
 	sed -i "s/Package: .*/Package: ${2}/g" "${RELEASES}/durs-x64/DEBIAN/control" || exit 1
 
 	cd "${RELEASES}"
-	fakeroot dpkg-deb --build durs-x64 || exit 1
+	dpkg-deb --build durs-x64 || exit 1
 	mv durs-x64.deb "${BIN}/duniter-rust-${1}-${DURS_TAG}-linux-x64.deb" || exit 1
 	create_desc "${BIN}/duniter-rust-${1}-${DURS_TAG}-linux-x64.deb" "${1}" "Linux (Ubuntu/Debian)"
 }
