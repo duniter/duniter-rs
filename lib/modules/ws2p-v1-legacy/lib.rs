@@ -95,7 +95,7 @@ impl Default for WS2PConf {
             outcoming_quota: *WS2P_DEFAULT_OUTCOMING_QUOTA,
             sync_endpoints: vec![
                 EndpointV1::parse_from_raw(
-                    "WS2P c1c39a0a g1-monit.librelois.fr 443 /ws2p",
+                    "WS2P c1c39a0a ts.g1.librelois.fr 443 /ws2p",
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(
                             "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx",
@@ -107,10 +107,34 @@ impl Default for WS2PConf {
                 )
                 .unwrap(),
                 EndpointV1::parse_from_raw(
-                    "WS2P b48824f0 g1.monnaielibreoccitanie.org 443 /ws2p",
+                    "WS2P fb17fcd4 g1.duniter.fr 443 /ws2p",
                     PubKey::Ed25519(
                         ed25519::PublicKey::from_base58(
-                            "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef",
+                            "38MEAZN68Pz1DTvT3tqgxx4yQP6snJCQhPqEFxbDk4aE",
+                        )
+                        .unwrap(),
+                    ),
+                    0,
+                    0,
+                )
+                .unwrap(),
+                EndpointV1::parse_from_raw(
+                    "WS2P 7b33becd g1.nordstrom.duniter.org 443 /ws2p",
+                    PubKey::Ed25519(
+                        ed25519::PublicKey::from_base58(
+                            "DWoSCRLQyQ48dLxUGr1MDKg4NFcbPbC56LN2hJjCCPpZ",
+                        )
+                        .unwrap(),
+                    ),
+                    0,
+                    0,
+                )
+                .unwrap(),
+                EndpointV1::parse_from_raw(
+                    "WS2P dff60418 duniter.normandie-libre.fr 443 /ws2p",
+                    PubKey::Ed25519(
+                        ed25519::PublicKey::from_base58(
+                            "8t6Di3pLxxoTEfjXHjF49pNpjSTXuGEQ6BpkT75CkNb2",
                         )
                         .unwrap(),
                     ),
