@@ -23,7 +23,7 @@ pub fn insert_new_head_block(
     blockstamp: Blockstamp,
 ) -> Result<Vec<Blockstamp>, DALError> {
     fork_tree_db.write(|fork_tree| {
-        let parent_id_opt = if blockstamp.id.0 > 0 {
+        let parent_id_opt = if blockstamp.id.0 > 0 && fork_tree.size() > 0 {
             Some(fork_tree.get_main_branch_node_id(BlockId(blockstamp.id.0 - 1))
                 .expect("Fatal error: fail to insert new head block : previous block not exist in main branch"))
         } else {

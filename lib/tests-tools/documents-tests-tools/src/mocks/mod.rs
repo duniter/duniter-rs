@@ -15,8 +15,9 @@
 
 //! Crypto mocks for projects use dubp-documents
 
-use dubp_documents::BlockHash;
-use dubp_documents::{BlockId, Blockstamp};
+use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::*;
+use dup_crypto::hashs::Hash;
 
 /// Generate n mock blockstamps
 pub fn generate_blockstamps(n: usize) -> Vec<Blockstamp> {
@@ -28,4 +29,67 @@ pub fn generate_blockstamps(n: usize) -> Vec<Blockstamp> {
             )),
         })
         .collect()
+}
+
+/// Generate n empty timed block document
+pub fn gen_empty_timed_blocks(n: usize, time_step: u64) -> Vec<BlockDocument> {
+    (0..n)
+        .map(|i| {
+            gen_empty_timed_block(
+                Blockstamp {
+                    id: BlockId(i as u32),
+                    hash: BlockHash(dup_crypto_tests_tools::mocks::hash_from_byte(
+                        (i % 255) as u8,
+                    )),
+                },
+                time_step * n as u64,
+                if i == 0 {
+                    Hash::default()
+                } else {
+                    dup_crypto_tests_tools::mocks::hash_from_byte(((i - 1) % 255) as u8)
+                },
+            )
+        })
+        .collect()
+}
+
+/// Generate empty timed block document
+/// (usefull for tests that only need blockstamp and median_time fields)
+pub fn gen_empty_timed_block(
+    blockstamp: Blockstamp,
+    time: u64,
+    previous_hash: Hash,
+) -> BlockDocument {
+    BlockDocument {
+        version: 10,
+        nonce: 0,
+        number: blockstamp.id,
+        pow_min: 0,
+        time: 0,
+        median_time: time,
+        members_count: 0,
+        monetary_mass: 0,
+        unit_base: 0,
+        issuers_count: 0,
+        issuers_frame: 0,
+        issuers_frame_var: 0,
+        currency: CurrencyName::default(),
+        issuers: vec![],
+        signatures: vec![],
+        hash: Some(blockstamp.hash),
+        parameters: None,
+        previous_hash,
+        previous_issuer: None,
+        dividend: None,
+        identities: vec![],
+        joiners: vec![],
+        actives: vec![],
+        leavers: vec![],
+        revoked: vec![],
+        excluded: vec![],
+        certifications: vec![],
+        transactions: vec![],
+        inner_hash: None,
+        inner_hash_and_nonce_str: "".to_owned(),
+    }
 }

@@ -38,6 +38,7 @@ mod apply_valid_block;
 mod check_and_apply_block;
 mod constants;
 mod dbex;
+mod fork_algo;
 mod revert_block;
 mod sync;
 mod verify_block;
@@ -419,8 +420,14 @@ impl BlockchainModule {
                         }
                     }
                     CheckAndApplyBlockReturn::ForkBlock => {
-                        // TODO fork resolution algo
                         info!("new fork block({})", blockstamp);
+                        if let Ok(Some(_new_bc_branch)) = fork_algo::fork_resolution_algo(
+                            &self.forks_dbs,
+                            current_blockstamp,
+                            &self.invalid_forks,
+                        ) {
+                            // TODO apply roolback here
+                        }
                     }
                     CheckAndApplyBlockReturn::OrphanBlock => {
                         debug!("new orphan block({})", blockstamp);
