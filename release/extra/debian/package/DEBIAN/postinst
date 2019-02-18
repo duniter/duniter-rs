@@ -11,7 +11,7 @@ if [[ -f $DURS_ROOT/durs.zip ]]; then
 fi
 
 # Create binary symbolic link
-chmod 755 $DUN_SOURCES/bin/durs
+chmod 755 $DUN_SOURCES/durs
 ln -s $DUN_SOURCES/durs /usr/bin/durs
 
 # Add durs user for service
