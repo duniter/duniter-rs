@@ -18,6 +18,7 @@ use dubp_documents::documents::transaction::*;
 use duniter_module::DuniterConf;
 use dup_crypto::keys::*;
 use durs_wot::data::rusty::RustyWebOfTrust;
+use durs_wot::data::WebOfTrust;
 use durs_wot::operations::distance::{DistanceCalculator, WotDistance, WotDistanceParameters};
 use std::time::*;
 
@@ -158,7 +159,9 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
         .expect("Fail to read IdentitiesDB !");
 
     // Open wot db
-    let wot_db = open_wot_db::<RustyWebOfTrust>(Some(&db_path)).expect("Fail to open WotDB !");
+    let wot_db = BinDB::File(
+        open_file_db::<RustyWebOfTrust>(&db_path, "wot.db").expect("Fail to open WotDB !"),
+    );
 
     // Print wot blockstamp
     //println!("Wot : Current blockstamp = {}.", wot_blockstamp);

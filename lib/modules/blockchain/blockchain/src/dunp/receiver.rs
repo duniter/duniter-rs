@@ -17,64 +17,34 @@
 //! (received by the intermediaries of events transmitted by the network module).
 
 use crate::*;
-use dubp_documents::Blockstamp;
-use dup_crypto::keys::*;
-use durs_wot::{NodeId, WebOfTrust};
-use std::collections::HashMap;
+use std::ops::Deref;
 
-pub fn receive_bc_documents<W: WebOfTrust>(
-    bc: &mut BlockchainModule,
-    network_documents: &[BlockchainDocument],
-    mut current_blockstamp: Blockstamp,
-    wot_index: &mut HashMap<PubKey, NodeId>,
-    wot_db: &BinDB<W>,
-) -> Blockstamp {
+pub fn receive_bc_documents(bc: &mut BlockchainModule, network_documents: &[BlockchainDocument]) {
     for network_document in network_documents {
         if let BlockchainDocument::Block(ref block_doc) = network_document {
             let block_doc = block_doc.deref();
-            current_blockstamp = receive_blocks(
-                bc,
-                vec![Block::NetworkBlock(block_doc.deref().clone())],
-                current_blockstamp,
-                wot_index,
-                wot_db,
-            );
+            receive_blocks(bc, vec![Block::NetworkBlock(block_doc.deref().clone())]);
         }
     }
-
-    current_blockstamp
 }
 
-pub fn receive_blocks<W: WebOfTrust>(
-    bc: &mut BlockchainModule,
-    blocks: Vec<Block>,
-    mut current_blockstamp: Blockstamp,
-    wot_index: &mut HashMap<PubKey, NodeId>,
-    wot: &BinDB<W>,
-) -> Blockstamp {
+pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<Block>) {
     debug!("BlockchainModule : receive_blocks()");
     let mut save_blocks_dbs = false;
     let mut save_wots_dbs = false;
     let mut save_currency_dbs = false;
     for block in blocks.into_iter() {
-        let _from_network = block.is_from_network();
         let blockstamp = block.blockstamp();
-        match check_and_apply_block::<W>(
-            &bc.blocks_databases,
-            &bc.forks_dbs,
-            &bc.wot_databases.certs_db,
-            block,
-            &current_blockstamp,
-            wot_index,
-            wot,
-        ) {
+        let _from_network = block.is_from_network();
+        match check_and_apply_block(bc, block) {
             Ok(check_block_return) => match check_block_return {
                 CheckAndApplyBlockReturn::ValidBlock(ValidBlockApplyReqs(
                     bc_db_query,
                     wot_dbs_queries,
                     tx_dbs_queries,
                 )) => {
-                    current_blockstamp = blockstamp;
+                    let new_current_block = bc_db_query.get_block_doc_copy();
+                    bc.current_blockstamp = new_current_block.blockstamp();
                     // Apply db requests
                     bc_db_query
                         .apply(&bc.blocks_databases.blockchain_db, &bc.forks_dbs, None)
@@ -96,16 +66,19 @@ pub fn receive_blocks<W: WebOfTrust>(
                     if !tx_dbs_queries.is_empty() {
                         save_currency_dbs = true;
                     }
+                    events::sent::send_event(
+                        bc,
+                        &BlockchainEvent::StackUpValidBlock(Box::new(new_current_block)),
+                    );
                 }
                 CheckAndApplyBlockReturn::ForkBlock => {
                     info!("new fork block({})", blockstamp);
-                    if let Ok(Some(_new_bc_branch)) = fork_algo::fork_resolution_algo(
+                    if let Ok(Some(new_bc_branch)) = fork_algo::fork_resolution_algo(
                         &bc.forks_dbs,
-                        current_blockstamp,
+                        bc.current_blockstamp,
                         &bc.invalid_forks,
                     ) {
-                        // TODO apply roolback here
-                        rollback::apply_rollback(bc);
+                        rollback::apply_rollback(bc, new_bc_branch);
                     }
                 }
                 CheckAndApplyBlockReturn::OrphanBlock => {
@@ -114,7 +87,7 @@ pub fn receive_blocks<W: WebOfTrust>(
             },
             Err(_) => {
                 warn!("RefusedBlock({})", blockstamp.id.0);
-                crate::events::send_event(bc, &BlockchainEvent::RefusedBlock(blockstamp));
+                crate::events::sent::send_event(bc, &BlockchainEvent::RefusedBlock(blockstamp));
             }
         }
     }
@@ -128,5 +101,4 @@ pub fn receive_blocks<W: WebOfTrust>(
     if save_currency_dbs {
         bc.currency_databases.save_dbs(true, true);
     }
-    current_blockstamp
 }

@@ -18,6 +18,7 @@ use crate::entities::currency_params::CurrencyParameters;
 use crate::entities::sources::SourceAmount;
 use crate::writers::transaction::DALTxV10;
 use crate::*;
+use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::documents::certification::CompactCertificationDocument;
 use dubp_documents::documents::identity::IdentityDocument;
 use dubp_documents::Blockstamp;
@@ -46,6 +47,13 @@ pub enum BlocksDBsWriteQuery {
 }
 
 impl BlocksDBsWriteQuery {
+    /// Get copy of block document
+    pub fn get_block_doc_copy(&self) -> BlockDocument {
+        match self {
+            BlocksDBsWriteQuery::WriteBlock(dal_block) => dal_block.block.clone(),
+            BlocksDBsWriteQuery::RevertBlock(dal_block) => dal_block.block.clone(),
+        }
+    }
     /// BlocksDBsWriteQuery
     pub fn apply(
         self,

@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::BlockchainModule;
+use dubp_documents::Blockstamp;
 
-pub fn apply_rollback(_bc: &mut BlockchainModule) {
+pub fn apply_rollback(_bc: &mut BlockchainModule, _new_bc_branch: Vec<Blockstamp>) {
     unimplemented!() // TODO
 }

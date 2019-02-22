@@ -56,7 +56,7 @@ use dubp_documents::CurrencyName;
 use dubp_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
-use durs_wot::{NodeId, WebOfTrust};
+use durs_wot::data::{rusty::RustyWebOfTrust, NodeId};
 use rustbreak::backend::{FileBackend, MemoryBackend};
 use rustbreak::error::{RustbreakError, RustbreakErrorKind};
 use rustbreak::{deser::Bincode, Database, FileDatabase, MemoryDatabase};
@@ -84,6 +84,8 @@ pub type ForksTreeV10Datas = entities::fork_tree::ForkTree;
 pub type ForksBlocksV10Datas = HashMap<Blockstamp, DALBlock>;
 /// Blocks orphaned (no parent block) indexed by their previous blockstamp
 pub type OrphanBlocksV10Datas = HashMap<PreviousBlockstamp, Vec<DALBlock>>;
+/// Database containing the wot graph (each node of the graph in an u32)
+pub type WotDB = RustyWebOfTrust;
 /// V10 Identities indexed by public key
 pub type IdentitiesV10Datas = HashMap<PubKey, DALIdentity>;
 /// Memberships sorted by created block
@@ -220,7 +222,9 @@ impl ForksDBs {
 #[derive(Debug)]
 /// Set of databases storing web of trust information
 pub struct WotsV10DBs {
-    /// Store iedntities
+    /// Store wot graph
+    pub wot_db: BinDB<WotDB>,
+    /// Store idrntities
     pub identities_db: BinDB<IdentitiesV10Datas>,
     /// Store memberships created_block_id (Use only to detect expirations)
     pub ms_db: BinDB<MsExpirV10Datas>,
@@ -232,6 +236,7 @@ impl WotsV10DBs {
     /// Open wot databases from their respective files
     pub fn open(db_path: Option<&PathBuf>) -> WotsV10DBs {
         WotsV10DBs {
+            wot_db: open_db::<RustyWebOfTrust>(db_path, "wot.db").expect("Fail to open WotDB"),
             identities_db: open_db::<IdentitiesV10Datas>(db_path, "identities.db")
                 .expect("Fail to open IdentitiesV10DB"),
             ms_db: open_db::<MsExpirV10Datas>(db_path, "ms.db").expect("Fail to open MsExpirV10DB"),
@@ -241,6 +246,9 @@ impl WotsV10DBs {
     }
     /// Save wot databases from their respective files
     pub fn save_dbs(&self) {
+        self.wot_db
+            .save()
+            .expect("Fatal error : fail to save WotDB !");
         self.identities_db
             .save()
             .expect("Fatal error : fail to save IdentitiesV10DB !");
@@ -390,14 +398,5 @@ pub fn open_file_db<D: Serialize + DeserializeOwned + Debug + Default + Clone + 
             db_path.as_path(),
             D::default(),
         )?)
-    }
-}
-
-/// Open wot db (cf. durs-wot crate)
-pub fn open_wot_db<W: WebOfTrust>(dbs_folder_path: Option<&PathBuf>) -> Result<BinDB<W>, DALError> {
-    if let Some(dbs_folder_path) = dbs_folder_path {
-        Ok(BinDB::File(open_file_db::<W>(dbs_folder_path, "wot.db")?))
-    } else {
-        Ok(BinDB::Mem(open_memory_db::<W>()?))
     }
 }

@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::sync::*;
+use std::ops::Deref;
 use std::sync::mpsc;
 
 pub fn execute(

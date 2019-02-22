@@ -35,7 +35,7 @@ pub fn verify_block_validity<W: WebOfTrust>(
     block: &BlockDocument,
     blockchain_db: &BinDB<LocalBlockchainV10Datas>,
     _certs_db: &BinDB<CertsExpirV10Datas>,
-    _wot_index: &mut HashMap<PubKey, NodeId>,
+    _wot_index: &HashMap<PubKey, NodeId>,
     _wot_db: &BinDB<W>,
 ) -> Result<(), BlockError> {
     // Rules that do not concern genesis block

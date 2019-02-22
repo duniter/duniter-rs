@@ -13,4 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Sub-module managing the inter-modules requests received.
+//! Sub-module managing the inter-modules requests sent and received.
+
+pub mod received;
+pub mod sent;

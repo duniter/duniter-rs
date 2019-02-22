@@ -13,22 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Sub-module managing responses to inter-modules requests.
+//! Sub-module managing the inter-modules responses sent and received.
 
-use crate::*;
-
-pub fn send_req_response(
-    bc: &BlockchainModule,
-    requester: ModuleStaticName,
-    req_id: ModuleReqId,
-    response: &BlockchainResponse,
-) {
-    bc.router_sender
-        .send(RouterThreadMessage::ModuleMessage(DursMsg::Response {
-            res_from: BlockchainModule::name(),
-            res_to: requester,
-            req_id,
-            res_content: DursResContent::BlockchainResponse(response.clone()),
-        }))
-        .unwrap_or_else(|_| panic!("Fail to send ReqRes to router"));
-}
+pub mod received;
+pub mod sent;

@@ -54,30 +54,28 @@ pub fn request_chunk(
 /// Requests blocks from current to `to`
 pub fn request_blocks_to(
     bc: &BlockchainModule,
-    pending_network_requests: &HashMap<ModuleReqId, OldNetworkRequest>,
-    current_blockstamp: &Blockstamp,
     to: BlockId,
 ) -> HashMap<ModuleReqId, OldNetworkRequest> {
-    let mut from = if *current_blockstamp == Blockstamp::default() {
+    let mut from = if bc.current_blockstamp == Blockstamp::default() {
         0
     } else {
-        current_blockstamp.id.0 + 1
+        bc.current_blockstamp.id.0 + 1
     };
     info!(
         "BlockchainModule : request_blocks_to({}-{})",
-        current_blockstamp.id.0 + 1,
+        bc.current_blockstamp.id.0 + 1,
         to
     );
     let mut requests_ids = HashMap::new();
-    if current_blockstamp.id < to {
-        let real_to = if (to.0 - current_blockstamp.id.0) > *MAX_BLOCKS_REQUEST {
-            current_blockstamp.id.0 + *MAX_BLOCKS_REQUEST
+    if bc.current_blockstamp.id < to {
+        let real_to = if (to.0 - bc.current_blockstamp.id.0) > *MAX_BLOCKS_REQUEST {
+            bc.current_blockstamp.id.0 + *MAX_BLOCKS_REQUEST
         } else {
             to.0
         };
         while from <= real_to {
             let mut req_id = ModuleReqId(0);
-            while pending_network_requests.contains_key(&req_id)
+            while bc.pending_network_requests.contains_key(&req_id)
                 || requests_ids.contains_key(&req_id)
             {
                 req_id = ModuleReqId(req_id.0 + 1);

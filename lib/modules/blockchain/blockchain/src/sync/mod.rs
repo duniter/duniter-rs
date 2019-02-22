@@ -156,9 +156,6 @@ pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt)
     // Write new conf
     duniter_conf::write_conf_file(profile, &conf).expect("Fail to write new conf !");
 
-    // Open wot db
-    let wot_db = open_wot_db::<RustyWebOfTrust>(Some(&db_path)).expect("Fail to open WotDB !");
-
     // Open blocks databases
     let blocks_dbs = BlocksV10DBs::open(Some(&db_path));
 
@@ -314,7 +311,12 @@ pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt)
         // Apply block
         let apply_valid_block_begin = SystemTime::now();
         if let Ok(ValidBlockApplyReqs(block_req, wot_db_reqs, currency_db_reqs)) =
-            apply_valid_block::<RustyWebOfTrust>(block_doc, &mut wot_index, &wot_db, &expire_certs)
+            apply_valid_block::<RustyWebOfTrust>(
+                block_doc,
+                &mut wot_index,
+                &wot_databases.wot_db,
+                &expire_certs,
+            )
         {
             all_apply_valid_block_duration += SystemTime::now()
                 .duration_since(apply_valid_block_begin)
@@ -398,9 +400,6 @@ pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt)
 
     // Save params db
     currency_params_db.save().expect("Fail to save params db");
-
-    // Save wot file
-    wot_db.save().expect("Fail to save wot db");
 
     let main_job_duration =
         SystemTime::now().duration_since(main_job_begin).unwrap() - all_wait_duration;

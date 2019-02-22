@@ -67,11 +67,8 @@ pub fn get_wot_index(
     identities_db: &BinDB<IdentitiesV10Datas>,
 ) -> Result<HashMap<PubKey, NodeId>, DALError> {
     Ok(identities_db.read(|db| {
-        let mut wot_index: HashMap<PubKey, NodeId> = HashMap::new();
-        for (pubkey, member_datas) in db {
-            let wot_id = member_datas.wot_id;
-            wot_index.insert(*pubkey, wot_id);
-        }
-        wot_index
+        db.iter()
+            .map(|(pubkey, member_datas)| (*pubkey, member_datas.wot_id))
+            .collect()
     })?)
 }

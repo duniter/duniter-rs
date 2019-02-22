@@ -23,10 +23,8 @@ use apply::*;
 use check::*;
 use dubp_documents::Blockstamp;
 use dubp_documents::Document;
-use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::block::DALBlock;
 use durs_blockchain_dal::*;
-use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub enum CheckAndApplyBlockReturn {
@@ -62,14 +60,9 @@ impl From<ApplyValidBlockError> for BlockError {
     }
 }
 
-pub fn check_and_apply_block<W: WebOfTrust>(
-    blocks_databases: &BlocksV10DBs,
-    forks_dbs: &ForksDBs,
-    certs_db: &BinDB<CertsExpirV10Datas>,
+pub fn check_and_apply_block(
+    bc: &mut BlockchainModule,
     block: Block,
-    current_blockstamp: &Blockstamp,
-    wot_index: &mut HashMap<PubKey, NodeId>,
-    wot_db: &BinDB<W>,
 ) -> Result<CheckAndApplyBlockReturn, BlockError> {
     let block_from_network = block.is_from_network();
     let block_doc: BlockDocument = block.into_doc();
@@ -77,8 +70,8 @@ pub fn check_and_apply_block<W: WebOfTrust>(
     // Get BlockDocument && check if already have block
     let already_have_block = if block_from_network {
         readers::block::already_have_block(
-            &blocks_databases.blockchain_db,
-            &forks_dbs,
+            &bc.blocks_databases.blockchain_db,
+            &bc.forks_dbs,
             block_doc.blockstamp(),
             block_doc.previous_hash,
         )?
@@ -90,9 +83,9 @@ pub fn check_and_apply_block<W: WebOfTrust>(
     dubp::check::hashs::verify_block_hashs(&block_doc)?;
 
     // Check block chainability
-    if (block_doc.number.0 == current_blockstamp.id.0 + 1
-        && block_doc.previous_hash.to_string() == current_blockstamp.hash.0.to_string())
-        || (block_doc.number.0 == 0 && *current_blockstamp == Blockstamp::default())
+    if (block_doc.number.0 == bc.current_blockstamp.id.0 + 1
+        && block_doc.previous_hash.to_string() == bc.current_blockstamp.hash.0.to_string())
+        || (block_doc.number.0 == 0 && bc.current_blockstamp == Blockstamp::default())
     {
         debug!(
             "stackable_block : block {} chainable !",
@@ -100,27 +93,29 @@ pub fn check_and_apply_block<W: WebOfTrust>(
         );
         // Detect expire_certs
         let blocks_expiring = Vec::with_capacity(0);
-        let expire_certs =
-            durs_blockchain_dal::readers::certs::find_expire_certs(certs_db, blocks_expiring)?;
+        let expire_certs = durs_blockchain_dal::readers::certs::find_expire_certs(
+            &bc.wot_databases.certs_db,
+            blocks_expiring,
+        )?;
 
         // Verify block validity (check all protocol rule, very long !)
         verify_block_validity(
             &block_doc,
-            &blocks_databases.blockchain_db,
-            certs_db,
-            wot_index,
-            wot_db,
+            &bc.blocks_databases.blockchain_db,
+            &bc.wot_databases.certs_db,
+            &bc.wot_index,
+            &bc.wot_databases.wot_db,
         )?;
 
         Ok(CheckAndApplyBlockReturn::ValidBlock(apply_valid_block(
             block_doc,
-            wot_index,
-            wot_db,
+            &mut bc.wot_index,
+            &bc.wot_databases.wot_db,
             &expire_certs,
         )?))
     } else if !already_have_block
-        && (block_doc.number.0 >= current_blockstamp.id.0
-            || (current_blockstamp.id.0 - block_doc.number.0)
+        && (block_doc.number.0 >= bc.current_blockstamp.id.0
+            || (bc.current_blockstamp.id.0 - block_doc.number.0)
                 < *durs_blockchain_dal::constants::FORK_WINDOW_SIZE as u32)
     {
         debug!(
@@ -133,7 +128,7 @@ pub fn check_and_apply_block<W: WebOfTrust>(
             expire_certs: None,
         };
 
-        if durs_blockchain_dal::writers::block::insert_new_fork_block(&forks_dbs, dal_block)
+        if durs_blockchain_dal::writers::block::insert_new_fork_block(&bc.forks_dbs, dal_block)
             .expect("durs_blockchain_dal::writers::block::insert_new_fork_block() : DALError")
         {
             Ok(CheckAndApplyBlockReturn::ForkBlock)
