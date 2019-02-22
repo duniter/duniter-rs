@@ -18,6 +18,4 @@ durs-tui = { path = "../../lib/modules/tui" }
 
 [features]
 ssl = ["durs-ws2p-v1-legacy/ssl"]
-# Treat warnings as a build error.
-strict = []
 

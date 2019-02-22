@@ -22,5 +22,3 @@ durs-common-tools = { path = "../../tools/common-tools" }
 rpassword = "1.0.0"
 
 [features]
-# Treat warnings as a build error.
-strict = []

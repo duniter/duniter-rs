@@ -15,7 +15,6 @@
 
 //! Handles WebSocketToPeer API Messages.
 
-#![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
     missing_docs,
     missing_debug_implementations,

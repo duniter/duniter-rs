@@ -15,8 +15,6 @@
 
 //! Datas Access Layer
 
-#![cfg_attr(feature = "strict", deny(warnings))]
-#![cfg_attr(feature = "exp", allow(warnings))]
 #![allow(clippy::large_enum_variant)]
 #![deny(
     missing_docs,

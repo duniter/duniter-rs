@@ -15,7 +15,6 @@
 
 //! Defined all aspects of the inter-node network that concern all modules and are therefore independent of one implementation or another of this network layer.
 
-#![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
     missing_docs,
     missing_debug_implementations,

@@ -16,7 +16,6 @@
 //! Defined the few global types used by all modules,
 //! as well as the DursModule trait that all modules must implement.
 
-#![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
     missing_docs,
     missing_debug_implementations,

@@ -22,5 +22,3 @@ structopt= "0.2.*"
 [dev-dependencies]
 
 [features]
-# Treat warnings as a build error.
-strict = []

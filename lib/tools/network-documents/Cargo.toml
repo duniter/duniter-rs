@@ -27,5 +27,3 @@ pretty_assertions = "0.5.1"
 bincode = "1.0.1"
 
 [features]
-# Treat warnings as a build error.
-strict = []

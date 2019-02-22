@@ -28,6 +28,3 @@ dup-crypto-tests-tools = { path = "../../../tests-tools/crypto-tests-tools" }
 dubp-documents-tests-tools = { path = "../../../tests-tools/documents-tests-tools" }
 
 [features]
-exp = []
-# Treat warnings as a build error.
-strict = []

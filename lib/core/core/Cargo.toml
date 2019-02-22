@@ -28,5 +28,3 @@ structopt= "0.2.*"
 threadpool = "1.7.*"
 
 [features]
-# Treat warnings as a build error.
-strict = []

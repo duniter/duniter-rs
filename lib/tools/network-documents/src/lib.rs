@@ -15,7 +15,6 @@
 
 //! Implements the Documents of DUNP (DUniter Network Protocol).
 
-#![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
     missing_debug_implementations,
     missing_copy_implementations,

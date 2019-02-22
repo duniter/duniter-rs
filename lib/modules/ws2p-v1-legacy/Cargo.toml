@@ -30,5 +30,3 @@ ws = { version = "0.7.*", features = ["permessage-deflate"] }
 
 [features]
 ssl = ["ws/ssl"]
-# Treat warnings as a build error.
-strict = []

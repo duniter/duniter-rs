@@ -80,7 +80,7 @@ tests:linux64:stable:
     - redshift-rs-stable
   script: 
     - cd bin/durs-server
-    - cargo build --features=strict,ssl
+    - RUSTFLAGS="-D warnings" cargo build --features=ssl
     - cargo test --all
 
 tests:arm-v7-:stable:
@@ -88,7 +88,7 @@ tests:arm-v7-:stable:
   stage: tests
   script: 
     - cd bin/durs-server
-    - cargo build --target=armv7-unknown-linux-gnueabihf --features=ssl
+    - RUSTFLAGS="-D warnings" cargo build --target=armv7-unknown-linux-gnueabihf --features=ssl
     - cargo test --all --target=armv7-unknown-linux-gnueabihf
   allow_failure: true
   when: manual
@@ -100,7 +100,7 @@ tests:arm-v7:stable:
   stage: tests
   script: 
     - cd bin/durs-server
-    - cargo build --target=armv7-unknown-linux-gnueabihf --features=ssl
+    - RUSTFLAGS="-D warnings" cargo build --target=armv7-unknown-linux-gnueabihf --features=ssl
     - cargo test --all --target=armv7-unknown-linux-gnueabihf
   only:
     - tags
@@ -110,7 +110,7 @@ tests:win64:stable:
   stage: tests
   script: 
     - cd bin/durs-server
-    - cargo build --target=x86_64-pc-windows-gnu
+    - RUSTFLAGS="-D warnings" cargo build --target=x86_64-pc-windows-gnu
     - cargo test --package json-pest-parser --target=x86_64-pc-windows-gnu
     - cargo test --package durs-common-tools --target=x86_64-pc-windows-gnu
     - cargo test --package dup-crypto --target=x86_64-pc-windows-gnu
@@ -131,7 +131,7 @@ tests:linux64:beta:
   stage: tests
   script: 
     - cd bin/durs-server
-    - cargo build --features=strict,ssl
+    - RUSTFLAGS="-D warnings" cargo build --features=ssl
     - cargo test --all
   when: manual
   allow_failure: true
@@ -141,7 +141,7 @@ tests:linux64:nightly:
   stage: tests
   script: 
     - cd bin/durs-server
-    - cargo build --features=strict,ssl
+    - RUSTFLAGS="-D warnings" cargo build --features=ssl
     - cargo test --all
   when: manual
   allow_failure: true

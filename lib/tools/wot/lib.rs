@@ -26,7 +26,6 @@
 //!
 //! [js-tests]: https://github.com/duniter/wot/blob/master/wotcpp/webOfTrust.cpp
 
-#![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
     missing_docs,
     missing_debug_implementations,

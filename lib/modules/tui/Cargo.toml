@@ -25,5 +25,3 @@ structopt= "0.2.*"
 termion = "1.5.*"
 
 [features]
-# Treat warnings as a build error.
-strict = []

@@ -15,7 +15,6 @@
 
 //! Module template to copy to create a new Durs module.
 
-#![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
     missing_docs,
     missing_debug_implementations,

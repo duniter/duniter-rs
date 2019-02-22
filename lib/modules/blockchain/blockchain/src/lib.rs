@@ -15,7 +15,6 @@
 
 //! Module managing the Duniter blockchain.
 
-#![cfg_attr(feature = "strict", deny(warnings))]
 #![allow(clippy::large_enum_variant)]
 #![deny(
     missing_docs,

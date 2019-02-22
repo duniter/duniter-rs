@@ -15,7 +15,6 @@
 
 //! WebSocketToPeer API for the Duniter project.
 
-#![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
     missing_debug_implementations,
     missing_copy_implementations,

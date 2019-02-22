@@ -15,7 +15,6 @@
 
 //! Manage cryptographic operations for the DUP (DUniter Protocol).
 
-#![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
     missing_docs,
     missing_debug_implementations,

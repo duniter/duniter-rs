@@ -15,7 +15,6 @@
 
 //! Main function for classic duniter-rust nodes (no specialization).
 
-#![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
     missing_docs,
     missing_debug_implementations,

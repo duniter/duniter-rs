@@ -15,7 +15,6 @@
 
 //! Define the format of the messages exchanged between the DURS modules.
 
-#![cfg_attr(feature = "strict", deny(warnings))]
 #![deny(
     missing_docs,
     missing_debug_implementations,
