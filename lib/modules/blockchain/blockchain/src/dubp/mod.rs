@@ -13,16 +13,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::collections::HashMap;
+//! Sub-module that checks and applies the content of a block according to the DUBP (DUBP DUniter Blockchain Protocol).
 
-use crate::apply_valid_block::*;
-use crate::verify_block::*;
+pub mod apply;
+pub mod check;
+
 use crate::*;
+use apply::*;
+use check::*;
 use dubp_documents::Blockstamp;
 use dubp_documents::Document;
 use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::block::DALBlock;
 use durs_blockchain_dal::*;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub enum CheckAndApplyBlockReturn {
@@ -83,7 +87,7 @@ pub fn check_and_apply_block<W: WebOfTrust>(
     };
 
     // Verify block hashs
-    verify_block_hashs(&block_doc)?;
+    dubp::check::hashs::verify_block_hashs(&block_doc)?;
 
     // Check block chainability
     if (block_doc.number.0 == current_blockstamp.id.0 + 1

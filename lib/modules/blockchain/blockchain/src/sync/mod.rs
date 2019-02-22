@@ -16,6 +16,7 @@
 mod apply;
 mod download;
 
+use crate::dubp::apply::apply_valid_block;
 use crate::*;
 use dubp_documents::{BlockHash, BlockId};
 use dup_crypto::keys::*;
@@ -61,14 +62,40 @@ pub enum SyncJobsMess {
 }
 
 /// Sync from local json files
-pub fn local_sync<DC: DuniterConf>(
-    profile: &str,
-    conf: &DC,
-    json_files_path: PathBuf,
-    end: Option<u32>,
-    cautious: bool,
-    verif_inner_hash: bool,
-) {
+pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt) {
+    let SyncOpt {
+        source,
+        currency,
+        end,
+        cautious_mode: cautious,
+        unsafe_mode: verif_inner_hash,
+        ..
+    } = sync_opts;
+
+    // get json_files_path
+    let json_files_path = if let Some(ref path) = source {
+        PathBuf::from(path)
+    } else {
+        let mut json_chunks_path = match dirs::config_dir() {
+            Some(path) => path,
+            None => panic!("Impossible to get user config directory !"),
+        };
+        json_chunks_path.push("duniter/");
+        json_chunks_path.push("duniter_default");
+
+        let currency = if let Some(currency) = &currency {
+            currency
+        } else {
+            DEFAULT_CURRENCY
+        };
+
+        json_chunks_path.push(currency);
+        json_chunks_path
+    };
+    if !json_files_path.as_path().exists() {
+        panic!("Fatal error : duniter json chunks folder don't exist !");
+    }
+
     // Get verification level
     let _verif_level = if cautious {
         println!("Start cautious sync...");
@@ -243,7 +270,7 @@ pub fn local_sync<DC: DuniterConf>(
         // Verify block hashs
         let verif_block_hashs_begin = SystemTime::now();
         if verif_inner_hash {
-            verify_block_hashs(&block_doc)
+            dubp::check::hashs::verify_block_hashs(&block_doc)
                 .expect("Receive wrong block, please reset data and resync !");
         }
         all_verif_block_hashs_duration += SystemTime::now()

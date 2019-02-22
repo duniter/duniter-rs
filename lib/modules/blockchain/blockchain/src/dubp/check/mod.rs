@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Durs Project Developers.
+//  Copyright (C) 2018  The Duniter Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,7 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::check_and_apply_block::BlockError;
+//! Sub-module checking if a block complies with all the rules of the (DUBP DUniter Blockchain Protocol).
+
+pub mod hashs;
+
+use crate::dubp::BlockError;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::*;
 use dup_crypto::keys::PubKey;

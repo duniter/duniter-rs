@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Sub-module that applies a block backwards.
+
 use dubp_documents::documents::block::TxDocOrTxHash;
 use dubp_documents::documents::transaction::{TxAmount, TxBase};
 use dubp_documents::Document;

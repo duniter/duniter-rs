@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Sub-module that applies the content of a block to the indexes of the local blockchain.
+
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::documents::transaction::{TxAmount, TxBase};
 use dubp_documents::{BlockId, Document};

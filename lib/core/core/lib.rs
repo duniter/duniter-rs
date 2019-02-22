@@ -299,7 +299,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             match opts.source_type {
                 SyncSourceType::Network => unimplemented!(),
                 SyncSourceType::LocalDuniter => {
-                    sync_ts(profile.as_str(), &conf, &opts);
+                    sync_ts(profile.as_str(), &conf, opts);
                 }
             }
 
@@ -650,7 +650,7 @@ pub fn match_profile(cli_args: &ArgMatches) -> String {
 }
 
 /// Launch synchronisation from a duniter-ts database
-pub fn sync_ts<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: &SyncOpt) {
+pub fn sync_ts<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt) {
     // Launch sync-ts
     BlockchainModule::sync_ts(profile, conf, sync_opts);
 }

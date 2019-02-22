@@ -34,14 +34,15 @@
 #[macro_use]
 extern crate log;
 
-mod apply_valid_block;
-mod check_and_apply_block;
 mod constants;
 mod dbex;
-mod fork_algo;
-mod revert_block;
+mod dubp;
+mod dunp;
+mod events;
+mod fork;
+mod requests;
+mod responses;
 mod sync;
-mod verify_block;
 
 use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
@@ -50,10 +51,11 @@ use std::str;
 use std::sync::mpsc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use crate::apply_valid_block::*;
-use crate::check_and_apply_block::*;
 use crate::constants::*;
 pub use crate::dbex::{DBExQuery, DBExTxQuery, DBExWotQuery};
+use crate::dubp::apply::ValidBlockApplyReqs;
+use crate::dubp::*;
+use crate::fork::*;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::*;
 use duniter_module::*;
@@ -66,7 +68,6 @@ use duniter_network::{
 use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::currency_params::CurrencyParameters;
 use durs_blockchain_dal::*;
-use durs_common_tools::fatal_error;
 use durs_message::events::*;
 use durs_message::requests::*;
 use durs_message::responses::*;
@@ -223,233 +224,8 @@ impl BlockchainModule {
         dbex::dbex(profile, conf, csv, req);
     }
     /// Synchronize blockchain from local duniter json files
-    pub fn sync_ts<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: &SyncOpt) {
-        // get json_chunks_path
-        let json_chunks_path = if let Some(ref path) = sync_opts.source {
-            PathBuf::from(path)
-        } else {
-            let mut json_chunks_path = match dirs::config_dir() {
-                Some(path) => path,
-                None => panic!("Impossible to get user config directory !"),
-            };
-            json_chunks_path.push("duniter/");
-            json_chunks_path.push("duniter_default");
-
-            let currency = if let Some(currency) = &sync_opts.currency {
-                currency
-            } else {
-                DEFAULT_CURRENCY
-            };
-
-            json_chunks_path.push(currency);
-            json_chunks_path
-        };
-        if !json_chunks_path.as_path().exists() {
-            panic!("Fatal error : duniter json chunks folder don't exist !");
-        }
-        sync::local_sync(
-            profile,
-            conf,
-            json_chunks_path,
-            sync_opts.end,
-            sync_opts.cautious_mode,
-            !sync_opts.unsafe_mode,
-        );
-    }
-    /// Request chunk from network (chunk = group of blocks)
-    fn request_chunk(&self, req_id: ModuleReqId, from: u32) -> (ModuleReqId, OldNetworkRequest) {
-        let req = OldNetworkRequest::GetBlocks(
-            ModuleReqFullId(BlockchainModule::name(), req_id),
-            NodeFullId::default(),
-            *CHUNK_SIZE,
-            from,
-        );
-        (self.request_network(req_id, &req), req)
-    }
-    /// Requests blocks from current to `to`
-    fn request_blocks_to(
-        &self,
-        pending_network_requests: &HashMap<ModuleReqId, OldNetworkRequest>,
-        current_blockstamp: &Blockstamp,
-        to: BlockId,
-    ) -> HashMap<ModuleReqId, OldNetworkRequest> {
-        let mut from = if *current_blockstamp == Blockstamp::default() {
-            0
-        } else {
-            current_blockstamp.id.0 + 1
-        };
-        info!(
-            "BlockchainModule : request_blocks_to({}-{})",
-            current_blockstamp.id.0 + 1,
-            to
-        );
-        let mut requests_ids = HashMap::new();
-        if current_blockstamp.id < to {
-            let real_to = if (to.0 - current_blockstamp.id.0) > *MAX_BLOCKS_REQUEST {
-                current_blockstamp.id.0 + *MAX_BLOCKS_REQUEST
-            } else {
-                to.0
-            };
-            while from <= real_to {
-                let mut req_id = ModuleReqId(0);
-                while pending_network_requests.contains_key(&req_id)
-                    || requests_ids.contains_key(&req_id)
-                {
-                    req_id = ModuleReqId(req_id.0 + 1);
-                }
-                let (req_id, req) = self.request_chunk(req_id, from);
-                requests_ids.insert(req_id, req);
-                from += *CHUNK_SIZE;
-            }
-        }
-        requests_ids
-    }
-    /// Send network request
-    fn request_network(&self, req_id: ModuleReqId, request: &OldNetworkRequest) -> ModuleReqId {
-        self.router_sender
-            .send(RouterThreadMessage::ModuleMessage(DursMsg::Request {
-                req_from: BlockchainModule::name(),
-                req_to: ModuleRole::InterNodesNetwork,
-                req_id,
-                req_content: DursReqContent::OldNetworkRequest(*request),
-            }))
-            .unwrap_or_else(|_| panic!("Fail to send OldNetworkRequest to router"));
-        request.get_req_id()
-    }
-    /// Send blockchain event
-    fn send_event(&self, event: &BlockchainEvent) {
-        let module_event = match event {
-            BlockchainEvent::StackUpValidBlock(_) => ModuleEvent::NewValidBlock,
-            BlockchainEvent::RevertBlocks(_) => ModuleEvent::RevertBlocks,
-            _ => return,
-        };
-        self.router_sender
-            .send(RouterThreadMessage::ModuleMessage(DursMsg::Event {
-                event_type: module_event,
-                event_content: DursEvent::BlockchainEvent(Box::new(event.clone())),
-            }))
-            .unwrap_or_else(|_| panic!("Fail to send BlockchainEvent to router"));
-    }
-    fn send_req_response(
-        &self,
-        requester: ModuleStaticName,
-        req_id: ModuleReqId,
-        response: &BlockchainResponse,
-    ) {
-        self.router_sender
-            .send(RouterThreadMessage::ModuleMessage(DursMsg::Response {
-                res_from: BlockchainModule::name(),
-                res_to: requester,
-                req_id,
-                res_content: DursResContent::BlockchainResponse(response.clone()),
-            }))
-            .unwrap_or_else(|_| panic!("Fail to send ReqRes to router"));
-    }
-    fn receive_network_documents<W: WebOfTrust>(
-        &mut self,
-        network_documents: &[BlockchainDocument],
-        mut current_blockstamp: Blockstamp,
-        wot_index: &mut HashMap<PubKey, NodeId>,
-        wot_db: &BinDB<W>,
-    ) -> Blockstamp {
-        for network_document in network_documents {
-            if let BlockchainDocument::Block(ref block_doc) = network_document {
-                let block_doc = block_doc.deref();
-                current_blockstamp = self.receive_blocks(
-                    vec![Block::NetworkBlock(block_doc.deref().clone())],
-                    current_blockstamp,
-                    wot_index,
-                    wot_db,
-                );
-            }
-        }
-
-        current_blockstamp
-    }
-
-    fn receive_blocks<W: WebOfTrust>(
-        &mut self,
-        blocks: Vec<Block>,
-        mut current_blockstamp: Blockstamp,
-        wot_index: &mut HashMap<PubKey, NodeId>,
-        wot: &BinDB<W>,
-    ) -> Blockstamp {
-        debug!("BlockchainModule : receive_blocks()");
-        let mut save_blocks_dbs = false;
-        let mut save_wots_dbs = false;
-        let mut save_currency_dbs = false;
-        for block in blocks.into_iter() {
-            let _from_network = block.is_from_network();
-            let blockstamp = block.blockstamp();
-            match check_and_apply_block::<W>(
-                &self.blocks_databases,
-                &self.forks_dbs,
-                &self.wot_databases.certs_db,
-                block,
-                &current_blockstamp,
-                wot_index,
-                wot,
-            ) {
-                Ok(check_block_return) => match check_block_return {
-                    CheckAndApplyBlockReturn::ValidBlock(ValidBlockApplyReqs(
-                        bc_db_query,
-                        wot_dbs_queries,
-                        tx_dbs_queries,
-                    )) => {
-                        current_blockstamp = blockstamp;
-                        // Apply db requests
-                        bc_db_query
-                            .apply(&self.blocks_databases.blockchain_db, &self.forks_dbs, None)
-                            .expect("Fatal error : Fail to apply DBWriteRequest !");
-                        for query in &wot_dbs_queries {
-                            query
-                                .apply(&self.wot_databases, &self.currency_params)
-                                .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
-                        }
-                        for query in &tx_dbs_queries {
-                            query
-                                .apply(&self.currency_databases)
-                                .expect("Fatal error : Fail to apply CurrencyDBsWriteRequest !");
-                        }
-                        save_blocks_dbs = true;
-                        if !wot_dbs_queries.is_empty() {
-                            save_wots_dbs = true;
-                        }
-                        if !tx_dbs_queries.is_empty() {
-                            save_currency_dbs = true;
-                        }
-                    }
-                    CheckAndApplyBlockReturn::ForkBlock => {
-                        info!("new fork block({})", blockstamp);
-                        if let Ok(Some(_new_bc_branch)) = fork_algo::fork_resolution_algo(
-                            &self.forks_dbs,
-                            current_blockstamp,
-                            &self.invalid_forks,
-                        ) {
-                            // TODO apply roolback here
-                        }
-                    }
-                    CheckAndApplyBlockReturn::OrphanBlock => {
-                        debug!("new orphan block({})", blockstamp);
-                    }
-                },
-                Err(_) => {
-                    warn!("RefusedBlock({})", blockstamp.id.0);
-                    self.send_event(&BlockchainEvent::RefusedBlock(blockstamp));
-                }
-            }
-        }
-        // Save databases
-        if save_blocks_dbs {
-            self.blocks_databases.save_dbs();
-        }
-        if save_wots_dbs {
-            self.wot_databases.save_dbs();
-        }
-        if save_currency_dbs {
-            self.currency_databases.save_dbs(true, true);
-        }
-        current_blockstamp
+    pub fn sync_ts<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt) {
+        sync::local_sync(profile, conf, sync_opts);
     }
     /// Start blockchain module.
     pub fn start_blockchain(&mut self, blockchain_receiver: &mpsc::Receiver<DursMsg>) {
@@ -484,8 +260,11 @@ impl BlockchainModule {
                 BlockchainModule::name(),
                 ModuleReqId(pending_network_requests.len() as u32),
             ));
-            let req_id =
-                self.request_network(ModuleReqId(pending_network_requests.len() as u32), &req);
+            let req_id = dunp::queries::request_network(
+                self,
+                ModuleReqId(pending_network_requests.len() as u32),
+                &req,
+            );
             pending_network_requests.insert(req_id, req);
             // Request Blocks
             let now = SystemTime::now();
@@ -500,7 +279,8 @@ impl BlockchainModule {
                     0 => (current_blockstamp.id.0 + *MAX_BLOCKS_REQUEST),
                     _ => consensus.id.0,
                 };
-                let new_pending_network_requests = self.request_blocks_to(
+                let new_pending_network_requests = dunp::queries::request_blocks_to(
+                    self,
                     &pending_network_requests,
                     &current_blockstamp,
                     BlockId(to),
@@ -515,7 +295,7 @@ impl BlockchainModule {
                         req_id = ModuleReqId(req_id.0 + 1);
                     }
                     let from = consensus.id.0 - *CHUNK_SIZE - 1;
-                    let (new_req_id, new_req) = self.request_chunk(req_id, from);
+                    let (new_req_id, new_req) = dunp::queries::request_chunk(self, req_id, from);
                     pending_network_requests.insert(new_req_id, new_req);
                 }
             }
@@ -546,7 +326,7 @@ impl BlockchainModule {
                                             )
                                         {
                                             debug!("BlockchainModule : send_req_response(CurrentBlock({}))", current_blockstamp);
-                                            self.send_req_response(req_from, req_id, &BlockchainResponse::CurrentBlock(
+                                            responses::send_req_response(self, req_from, req_id, &BlockchainResponse::CurrentBlock(
                                                     req_id,
                                                     Box::new(current_block.block),
                                                     current_blockstamp,
@@ -557,7 +337,7 @@ impl BlockchainModule {
                                         }
                                     }
                                     BlockchainRequest::UIDs(ref pubkeys) => {
-                                        self.send_req_response(req_from, req_id, &BlockchainResponse::UIDs(
+                                        responses::send_req_response(self, req_from, req_id, &BlockchainResponse::UIDs(
                                                 req_id,
                                                 pubkeys
                                                     .iter()
@@ -580,8 +360,9 @@ impl BlockchainModule {
                             DursEvent::NetworkEvent(ref network_event_box) => {
                                 match *network_event_box.deref() {
                                     NetworkEvent::ReceiveDocuments(ref network_docs) => {
-                                        let new_current_blockstamp = self
-                                            .receive_network_documents(
+                                        let new_current_blockstamp =
+                                            dunp::receiver::receive_bc_documents(
+                                                self,
                                                 network_docs,
                                                 current_blockstamp,
                                                 &mut wot_index,
@@ -595,7 +376,8 @@ impl BlockchainModule {
                             }
                             DursEvent::MemPoolEvent(ref mempool_event) => {
                                 if let MemPoolEvent::FindNextBlock(next_block_box) = mempool_event {
-                                    let new_current_blockstamp = self.receive_blocks(
+                                    let new_current_blockstamp = dunp::receiver::receive_blocks(
+                                        self,
                                         vec![Block::LocalBlock(next_block_box.deref().clone())],
                                         current_blockstamp,
                                         &mut wot_index,
@@ -660,12 +442,14 @@ impl BlockchainModule {
                                                     .map(|b| Block::NetworkBlock(b.deref().clone()))
                                                     .collect();
 
-                                                let new_current_blockstamp = self.receive_blocks(
-                                                    blocks,
-                                                    current_blockstamp,
-                                                    &mut wot_index,
-                                                    &wot_db,
-                                                );
+                                                let new_current_blockstamp =
+                                                    dunp::receiver::receive_blocks(
+                                                        self,
+                                                        blocks,
+                                                        current_blockstamp,
+                                                        &mut wot_index,
+                                                        &wot_db,
+                                                    );
                                                 if current_blockstamp != new_current_blockstamp {
                                                     current_blockstamp = new_current_blockstamp;
                                                 }
@@ -774,37 +558,5 @@ impl BlockchainModule {
                 );
             }
         }
-    }
-}
-
-/// Verify block hashs
-pub fn verify_block_hashs(block_doc: &BlockDocument) -> Result<(), VerifyBlockHashsError> {
-    trace!("complete_block #{}...", block_doc.number);
-
-    if block_doc.inner_hash.is_none() {
-        fatal_error(
-            "BlockchainModule : verify_block_hashs() : fatal error : block.inner_hash = None",
-        );
-    }
-
-    if block_doc.verify_inner_hash() {
-        if block_doc.verify_hash() {
-            trace!("Succes to verify_block_hashs #{}", block_doc.number.0);
-            Ok(())
-        } else {
-            warn!("BlockchainModule : Refuse Bloc : invalid hash !");
-            Err(VerifyBlockHashsError::InvalidHash(
-                block_doc.number,
-                block_doc.hash,
-            ))
-        }
-    } else {
-        warn!("BlockchainModule : Refuse Bloc : invalid inner hash !");
-        warn!("BlockDocument=\"{:?}\"", block_doc);
-        warn!(
-            "BlockInnerFormat=\"{}\"",
-            block_doc.generate_compact_inner_text()
-        );
-        Err(VerifyBlockHashsError::InvalidInnerHash())
     }
 }
