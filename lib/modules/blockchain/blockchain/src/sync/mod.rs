@@ -401,6 +401,9 @@ pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt)
     // Save params db
     currency_params_db.save().expect("Fail to save params db");
 
+    // Save wot db
+    wot_databases.wot_db.save().expect("Fail to save wot db");
+
     let main_job_duration =
         SystemTime::now().duration_since(main_job_begin).unwrap() - all_wait_duration;
     info!(

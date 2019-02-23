@@ -247,6 +247,10 @@ impl WotsV10DBs {
         self.wot_db
             .save()
             .expect("Fatal error : fail to save WotDB !");
+        self.save_dbs_except_graph();
+    }
+    /// Save wot databases from their respective files (except wot graph)
+    pub fn save_dbs_except_graph(&self) {
         self.identities_db
             .save()
             .expect("Fatal error : fail to save IdentitiesV10DB !");

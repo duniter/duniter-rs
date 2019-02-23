@@ -47,7 +47,7 @@ pub fn execute(
         }
         // Save wots databases
         info!("Save wots databases in files...");
-        databases.save_dbs();
+        databases.save_dbs_except_graph();
 
         // Send finish signal
         sender_sync_thread
