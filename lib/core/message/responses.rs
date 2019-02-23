@@ -57,6 +57,8 @@ pub struct PendingIdtyDatas {
 #[derive(Debug, Clone)]
 /// Response to a BlockchainReqBlockchain request
 pub enum BlockchainResponse {
+    /// Current blockstamp
+    CurrentBlockstamp(ModuleReqId, Blockstamp),
     /// Current block
     CurrentBlock(ModuleReqId, Box<BlockDocument>, Blockstamp),
     /// Block by number

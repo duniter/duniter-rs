@@ -27,6 +27,12 @@ pub fn receive_req(
 ) {
     if let DursReqContent::BlockchainRequest(ref blockchain_req) = req_content {
         match *blockchain_req {
+            BlockchainRequest::CurrentBlockstamp() => responses::sent::send_req_response(
+                bc,
+                req_from,
+                req_id,
+                &BlockchainResponse::CurrentBlockstamp(req_id, bc.current_blockstamp),
+            ),
             BlockchainRequest::CurrentBlock() => {
                 debug!("BlockchainModule : receive DALReqBc::CurrentBlock()");
 

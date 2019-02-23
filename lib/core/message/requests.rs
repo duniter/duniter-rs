@@ -39,6 +39,8 @@ pub enum DursReqContent {
 #[derive(Debug, Clone, PartialEq)]
 /// Inter-module Blockchain request for blockchain data
 pub enum BlockchainRequest {
+    /// Current blockstamp
+    CurrentBlockstamp(),
     /// Current block
     CurrentBlock(),
     /// Block by number
