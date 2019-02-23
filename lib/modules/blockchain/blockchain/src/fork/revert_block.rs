@@ -23,7 +23,8 @@ use durs_blockchain_dal::entities::block::DALBlock;
 use durs_blockchain_dal::entities::sources::SourceAmount;
 use durs_blockchain_dal::writers::requests::*;
 use durs_blockchain_dal::writers::transaction::DALTxV10;
-use durs_blockchain_dal::{BinDB, TxV10Datas};
+use durs_blockchain_dal::{BinDB, DALError, TxV10Datas};
+use durs_common_tools::fatal_error;
 use durs_wot::data::{NewLinkResult, RemLinkResult};
 use durs_wot::{NodeId, WebOfTrust};
 use std::collections::HashMap;
@@ -41,13 +42,20 @@ pub struct ValidBlockRevertReqs(
 pub enum RevertValidBlockError {
     ExcludeUnknowNodeId(),
     RevokeUnknowNodeId(),
+    DALError(DALError),
+}
+
+impl From<DALError> for RevertValidBlockError {
+    fn from(e: DALError) -> Self {
+        RevertValidBlockError::DALError(e)
+    }
 }
 
 pub fn revert_block<W: WebOfTrust>(
     dal_block: &DALBlock,
     wot_index: &mut HashMap<PubKey, NodeId>,
     wot_db: &BinDB<W>,
-    txs: &TxV10Datas,
+    txs_db: &BinDB<TxV10Datas>,
 ) -> Result<ValidBlockRevertReqs, RevertValidBlockError> {
     // Revert DALBlock
     let mut block = dal_block.block.clone();
@@ -61,7 +69,14 @@ pub fn revert_block<W: WebOfTrust>(
         .transactions
         .iter()
         .map(|tx_enum| match *tx_enum {
-            TxDocOrTxHash::TxHash(ref tx_hash) => txs[tx_hash].clone(),
+            TxDocOrTxHash::TxHash(ref tx_hash) => {
+                if let Ok(Some(tx)) = txs_db.read(|db| db.get(tx_hash).cloned()) {
+                    tx
+                } else {
+                    fatal_error(&format!("revert_block(): tx {} not found !", tx_hash));
+                    panic!() // to compile
+                }
+            }
             TxDocOrTxHash::TxDoc(ref _dal_tx) => panic!("Try to revert not reduce block !"),
         })
         .collect();

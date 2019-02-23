@@ -31,26 +31,6 @@ pub fn receive_response(
                     if let NetworkResponse::Consensus(_, response) = *network_response.deref() {
                         if let Ok(blockstamp) = response {
                             bc.consensus = blockstamp;
-                            if bc.current_blockstamp.id.0 > bc.consensus.id.0 + 2 {
-                                // Get last dal_block
-                                let last_dal_block_id = BlockId(bc.current_blockstamp.id.0 - 1);
-                                let last_dal_block = bc
-                                    .blocks_databases
-                                    .blockchain_db
-                                    .read(|db| db.get(&last_dal_block_id).cloned())
-                                    .expect("Fail to read blockchain DB.")
-                                    .expect("Fatal error : not foutn last dal block !");
-                                revert_block::revert_block(
-                                    &last_dal_block,
-                                    &mut bc.wot_index,
-                                    &bc.wot_databases.wot_db,
-                                    &bc.currency_databases
-                                        .tx_db
-                                        .read(|db| db.clone())
-                                        .expect("Fail to read TxDB."),
-                                )
-                                .expect("Fail to revert block");
-                            }
                         }
                     }
                 }
