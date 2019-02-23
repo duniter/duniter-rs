@@ -627,7 +627,7 @@ pub fn connect_to_ws2p_endpoint(
         generate_connect_message(currency, key_pair, conn_meta_datas.challenge.clone());
 
     // Log
-    info!("Try connection to {} ...", ws_url);
+    info!("WS2P: Try connection to {} ...", ws_url);
 
     // Connect to websocket
     connect(ws_url, |ws| {

@@ -32,6 +32,7 @@ pub struct WS2PModuleDatas {
     pub currency: Option<String>,
     pub key_pair: Option<KeyPairEnum>,
     pub conf: WS2PConf,
+    pub ssl: bool,
     pub node_id: NodeId,
     pub main_thread_channel: (
         mpsc::Sender<WS2PThreadSignal>,
@@ -47,7 +48,35 @@ pub struct WS2PModuleDatas {
     pub count_dal_requests: u32,
 }
 
+    #[inline]
+    #[cfg(not(feature = "ssl"))]
+    fn ssl() -> bool { false }
+    #[cfg(feature = "ssl")]
+    fn ssl() -> bool { true }
+
 impl WS2PModuleDatas {
+    pub fn new(
+        router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
+        conf: WS2PConf,
+        node_id: NodeId,
+    ) -> WS2PModuleDatas {
+        WS2PModuleDatas {
+            router_sender,
+            key_pair: None,
+            currency: None,
+            conf,
+            ssl: ssl(),
+            node_id,
+            main_thread_channel: mpsc::channel(),
+            ws2p_endpoints: HashMap::new(),
+            websockets: HashMap::new(),
+            requests_awaiting_response: HashMap::new(),
+            heads_cache: HashMap::new(),
+            my_head: None,
+            uids_cache: HashMap::new(),
+            count_dal_requests: 0,
+        }
+    }
     pub fn open_db(db_path: &PathBuf) -> Result<sqlite::Connection, sqlite::Error> {
         let conn: sqlite::Connection;
         if !db_path.as_path().exists() {
@@ -201,10 +230,11 @@ impl WS2PModuleDatas {
             } else {
                 break;
             };
-            if cfg!(feature = "ssl") || ep.port != 443 {
-                self.connect_to_without_checking_quotas(&ep);
-                free_outcoming_rooms -= 1;
+            if !self.ssl && ep.port == 443 {
+                continue;
             }
+            self.connect_to_without_checking_quotas(&ep);
+            free_outcoming_rooms -= 1;
         }
     }
     pub fn connect_to(&mut self, endpoint: &EndpointV1) {

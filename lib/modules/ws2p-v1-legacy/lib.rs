@@ -292,21 +292,11 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
         let start_time = SystemTime::now();
 
         // Define WS2PModuleDatas
-        let mut ws2p_module = WS2PModuleDatas {
-            router_sender: router_sender.clone(),
-            key_pair: None,
-            currency: None,
+        let mut ws2p_module = WS2PModuleDatas::new(
+            router_sender.clone(),
             conf,
-            node_id: NodeId(soft_meta_datas.conf.my_node_id()),
-            main_thread_channel: mpsc::channel(),
-            ws2p_endpoints: HashMap::new(),
-            websockets: HashMap::new(),
-            requests_awaiting_response: HashMap::new(),
-            heads_cache: HashMap::new(),
-            my_head: None,
-            uids_cache: HashMap::new(),
-            count_dal_requests: 0,
-        };
+            NodeId(soft_meta_datas.conf.my_node_id()),
+        );
 
         // load conf
         let key_pair = match keys {
@@ -314,7 +304,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
             _ => panic!("WS2PModule fatal error at load_conf() : keys != NetworkKeyPair"),
         };
         let mut ws2p_endpoints = HashMap::new();
-        for ep in ws2p_module.conf.sync_endpoints.clone() {
+        for ep in &ws2p_module.conf.sync_endpoints {
             ws2p_endpoints.insert(
                 ep.node_full_id()
                     .expect("Fail to get endpoint node_full_id"),
@@ -410,6 +400,9 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
         let mut last_identities_request = UNIX_EPOCH;
         let mut current_blockstamp = Blockstamp::default();
         let mut next_receiver = 0;
+
+        // Request current blockstamp
+        ws2p_module.send_dal_request(&BlockchainRequest::CurrentBlockstamp());
 
         // Start
         ws2p_module.connect_to_know_endpoints();
@@ -547,14 +540,12 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                                 if let DursResContent::BlockchainResponse(ref bc_res) = *res_content
                                 {
                                     match *bc_res.deref() {
-                                        BlockchainResponse::CurrentBlock(
-                                            ref _requester_full_id,
-                                            ref current_block,
+                                        BlockchainResponse::CurrentBlockstamp(
+                                            ref _requester_id,
                                             ref current_blockstamp_,
                                         ) => {
-                                            let _current_block = current_block.deref();
                                             debug!(
-                                                "WS2PModule : receive DALResBc::CurrentBlock({})",
+                                                "WS2PModule : receive DALResBc::CurrentBlockstamp({})",
                                                 current_blockstamp
                                             );
                                             current_blockstamp = *current_blockstamp_;
@@ -753,8 +744,8 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                             match req {
                                 OldNetworkRequest::GetCurrent(ref _req_id, _receiver) => {
                                     info!(
-                                        "WS2PSignal::ReceiveCurrent({}, {:?}, {:#?})",
-                                        req_id.0, req, response
+                                        "WS2PSignal::ReceiveCurrent({}, {:?})",
+                                        req_id.0, req
                                     );
                                     if let Some(block) = parse_json_block(&response) {
                                         ws2p_module.send_network_req_response(
@@ -770,11 +761,11 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                                 }
                                 OldNetworkRequest::GetBlocks(
                                     ref _req_id,
-                                    _receiver,
-                                    _count,
+                                    _node_full_id,
+                                    count,
                                     from,
                                 ) => {
-                                    info!("WS2PSignal::ReceiveChunk({}, {:?})", req_id.0, req);
+                                    info!("WS2PSignal::ReceiveChunk({}, {} blocks from {})", req_id.0, count, from);
                                     if response.is_array() {
                                         let mut chunk = Vec::new();
                                         for json_block in response.as_array().unwrap() {
@@ -945,6 +936,8 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                     }
                 }
                 // ..
+                // Request current blockstamp
+                ws2p_module.send_dal_request(&BlockchainRequest::CurrentBlockstamp());
             }
         }
         Ok(())
