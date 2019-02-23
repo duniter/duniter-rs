@@ -43,7 +43,7 @@ pub struct BlockHeader {
     pub issuer: PubKey,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Message for main sync thread
 pub enum MessForSyncThread {
     Target(CurrencyName, Blockstamp),

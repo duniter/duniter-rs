@@ -19,11 +19,15 @@ use dubp_documents::parsers::blocks::parse_json_block;
 use dubp_documents::Blockstamp;
 use durs_common_tools::fatal_error;
 use failure::Error;
+use rayon::prelude::*;
 use std::collections::HashSet;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use threadpool::ThreadPool;
+
+/// Number of chunk parsed before sending them to the apply workers
+static CHUNKS_STEP: &'static usize = &16;
 
 /// Json reader worker
 pub fn json_reader_worker(
@@ -108,31 +112,25 @@ pub fn json_reader_worker(
             current_blockstamp.id.0 as usize / *crate::constants::CHUNK_SIZE;
 
         // Parse chunks
-        for chunk_number in first_chunk_number..=max_chunk_number {
-            if chunks_set.get(&chunk_number).is_some() {
-                // Open chunk file
-                let chunk_file_content_result =
-                    open_json_chunk_file(&json_chunks_path, chunk_number);
-                if chunk_file_content_result.is_err() {
-                    fatal_error(&format!("Fail to open chunk file n°{}", chunk_number));
-                }
+        let mut begin_chunk_number = first_chunk_number;
+        while begin_chunk_number <= max_chunk_number {
+            let last_chunk_number = if begin_chunk_number + *CHUNKS_STEP < max_chunk_number + 1 {
+                begin_chunk_number + *CHUNKS_STEP
+            } else {
+                max_chunk_number + 1
+            };
+            let chunks_numbers: Vec<_> = (begin_chunk_number..last_chunk_number).collect();
+            let mut chunks_blocks: HashMap<usize, Vec<BlockDocument>> = chunks_numbers
+                .par_iter()
+                .map(|chunk_number| treat_once_json_chunk(&json_chunks_path, *chunk_number))
+                .collect();
 
-                // Parse chunk file content
-                let blocks_result =
-                    parse_json_chunk(&chunk_file_content_result.expect("safe unwrap"));
-                let blocks = match blocks_result {
-                    Ok(blocks) => blocks,
-                    Err(e) => {
-                        fatal_error(&format!(
-                            "Fail to parse chunk file n°{} : {}",
-                            chunk_number, e,
-                        ));
-                        panic!(); // for compilator
-                    }
-                };
-
-                // Send all blocks of this chunk
-                for block in blocks {
+            // Send blocks
+            for chunk_number in chunks_numbers {
+                for block in chunks_blocks
+                    .remove(&chunk_number)
+                    .expect("Dev error: sync: chunk_blocks not contain key chunk_number !")
+                {
                     // Verify if the block number is within the expected interval
                     let block_id = block.blockstamp().id;
                     if (block_id > current_blockstamp.id && block_id.0 <= max_block_id)
@@ -144,9 +142,9 @@ pub fn json_reader_worker(
                             .expect("Fatal error : sync_thread unrechable !");
                     }
                 }
-            } else {
-                fatal_error(&format!("Missing chunk file n°{}", chunk_number));
             }
+
+            begin_chunk_number += *CHUNKS_STEP;
         }
 
         sender_sync_thread
@@ -161,6 +159,32 @@ pub fn json_reader_worker(
             ts_job_duration.subsec_millis()
         );
     });
+}
+
+/// Treat one JSON Chunk
+fn treat_once_json_chunk(
+    json_chunks_path: &PathBuf,
+    chunk_number: usize,
+) -> (usize, Vec<BlockDocument>) {
+    // Open chunk file
+    let chunk_file_content_result = open_json_chunk_file(json_chunks_path, chunk_number);
+    if chunk_file_content_result.is_err() {
+        fatal_error(&format!("Fail to open chunk file n°{}", chunk_number));
+    }
+
+    // Parse chunk file content
+    let blocks_result = parse_json_chunk(&chunk_file_content_result.expect("safe unwrap"));
+    let blocks = match blocks_result {
+        Ok(blocks) => blocks,
+        Err(e) => {
+            fatal_error(&format!(
+                "Fail to parse chunk file n°{} : {}",
+                chunk_number, e,
+            ));
+            panic!(); // for compilator
+        }
+    };
+    (chunk_number, blocks)
 }
 
 /// Parse json chunk into BlockDocument Vector
