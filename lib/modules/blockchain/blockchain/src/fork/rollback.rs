@@ -121,6 +121,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
 
         // save dbs
         bc.blocks_databases.save_dbs();
+        bc.forks_dbs.save_dbs();
         bc.wot_databases.save_dbs();
         bc.currency_databases.save_dbs(true, true);
         // Send events stackUpValidBlock

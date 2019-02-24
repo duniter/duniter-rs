@@ -94,6 +94,7 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<Block>) {
     // Save databases
     if save_blocks_dbs {
         bc.blocks_databases.save_dbs();
+        bc.forks_dbs.save_dbs();
     }
     if save_wots_dbs {
         bc.wot_databases.save_dbs();
