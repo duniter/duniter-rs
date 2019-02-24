@@ -84,6 +84,20 @@ pub fn receive_req(
                     ),
                 );
             }
+            BlockchainRequest::GetIdentities(filters) => {
+                let identities = durs_blockchain_dal::readers::identity::get_identities(
+                    &bc.wot_databases.identities_db,
+                    filters,
+                    bc.current_blockstamp.id,
+                )
+                .expect("Fatal error : get_identities: Fail to read IdentitiesDB !");
+                responses::sent::send_req_response(
+                    bc,
+                    req_from,
+                    req_id,
+                    &BlockchainResponse::Identities(req_id, identities),
+                );
+            }
             _ => {}
         }
     }

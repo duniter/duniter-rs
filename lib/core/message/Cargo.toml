@@ -14,6 +14,7 @@ dup-crypto = { path = "../../tools/crypto" }
 dubp-documents= { path = "../../tools/documents" }
 duniter-module = { path = "../module" }
 duniter-network = { path = "../network" }
+durs-blockchain-dal = { path = "../../modules/blockchain/blockchain-dal" }
 durs-network-documents = { path = "../../tools/network-documents" }
 serde = "1.0.*"
 serde_derive = "1.0.*"

@@ -18,6 +18,7 @@ use dubp_documents::BlockId;
 use duniter_network::requests::OldNetworkRequest;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
+use durs_blockchain_dal::filters::identities::IdentitiesFilter;
 
 #[derive(Debug, Clone)]
 /// Modules request content
@@ -49,6 +50,8 @@ pub enum BlockchainRequest {
     Chunk(u64, usize),
     /// Usernames corresponding to the public keys in parameter
     UIDs(Vec<PubKey>),
+    /// Get identities
+    GetIdentities(IdentitiesFilter),
 }
 
 #[derive(Debug, Copy, Clone)]

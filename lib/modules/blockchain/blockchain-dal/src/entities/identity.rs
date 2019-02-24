@@ -17,7 +17,7 @@ use dubp_documents::documents::identity::IdentityDocument;
 use dubp_documents::{BlockId, Blockstamp};
 use durs_wot::NodeId;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]
 /// Identity state
 pub enum DALIdentityState {
     /// Member
@@ -32,7 +32,7 @@ pub enum DALIdentityState {
     ImplicitRevoked(Vec<usize>),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]
 /// Identity in database
 pub struct DALIdentity {
     /// Identity hash

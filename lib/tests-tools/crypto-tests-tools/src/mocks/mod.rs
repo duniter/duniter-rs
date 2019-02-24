@@ -16,12 +16,13 @@
 //! Crypto mocks for projects use dup-crypto
 
 use dup_crypto::hashs::Hash;
+use dup_crypto::keys::*;
 
 /// Generate mock hash from one character
 pub fn hash(character: char) -> Hash {
     let str_hash: String = (0..64).map(|_| character).collect();
 
-    Hash::from_hex(&str_hash).expect("Fail to create hash !")
+    Hash::from_hex(&str_hash).expect("Fail to create mock hash !")
 }
 
 /// Generate mock hash from one byte
@@ -32,4 +33,13 @@ pub fn hash_from_byte(byte: u8) -> Hash {
     }
 
     Hash(hash_bin)
+}
+
+/// Generate mock pubkey from one character
+pub fn pubkey(character: char) -> PubKey {
+    let str_pub: String = (0..44).map(|_| character).collect();
+
+    PubKey::Ed25519(
+        ed25519::PublicKey::from_base58(&str_pub).expect("Fail to create mock pubkey !"),
+    )
 }

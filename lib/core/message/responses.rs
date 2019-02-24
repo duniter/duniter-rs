@@ -24,6 +24,7 @@ use duniter_module::ModuleReqId;
 use duniter_network::requests::NetworkResponse;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
+use durs_blockchain_dal::entities::identity::DALIdentity;
 use std::collections::HashMap;
 
 /// Durs request response message
@@ -67,6 +68,8 @@ pub enum BlockchainResponse {
     Chunk(ModuleReqId, Vec<BlockDocument>),
     /// Usernames corresponding to the public keys in parameter
     UIDs(ModuleReqId, HashMap<PubKey, Option<String>>),
+    /// Identities
+    Identities(ModuleReqId, Vec<DALIdentity>),
 }
 
 #[derive(Debug, Clone)]

@@ -13,7 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Crypto mocks for projects use dubp-documents
+//! Mocks for projects use dubp-documents
+
+pub mod identity;
 
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::*;

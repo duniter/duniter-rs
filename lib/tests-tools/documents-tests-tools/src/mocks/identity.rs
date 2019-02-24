@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2019  Éloïs SANCHEZ
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,14 +13,23 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/// Default value for sig_renew_period parameter
-pub static DEFAULT_SIG_RENEW_PERIOD: &'static u64 = &5_259_600;
-/// Default value for ms_period parameter
-pub static DEFAULT_MS_PERIOD: &'static u64 = &5_259_600;
-/// Default value for tx_window parameter
-pub static DEFAULT_TX_WINDOW: &'static u64 = &604_800;
-/// Maximum roolback length
-pub static FORK_WINDOW_SIZE: &'static usize = &200;
+//! Mocks for projects use dubp-documents
 
-/// Default page size for requests responses
-pub static DEFAULT_PAGE_SIZE: &'static usize = &50;
+use dubp_documents::documents::identity::*;
+use dubp_documents::*;
+use dup_crypto::hashs::Hash;
+use dup_crypto::keys::PubKey;
+
+/// Generate mock identity document
+pub fn gen_mock_idty(pubkey: PubKey, created_on: BlockId) -> IdentityDocument {
+    let idty_builder = IdentityDocumentBuilder {
+        currency: "",
+        username: "",
+        blockstamp: &Blockstamp {
+            id: created_on,
+            hash: BlockHash(Hash::default()),
+        },
+        issuer: &pubkey,
+    };
+    idty_builder.build_with_signature(vec![])
+}

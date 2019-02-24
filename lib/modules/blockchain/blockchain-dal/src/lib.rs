@@ -39,6 +39,9 @@ pub mod constants;
 /// Contains all entities stored in databases
 pub mod entities;
 
+/// Define all filters applicable to entities
+pub mod filters;
+
 /// Contains all read databases functions
 pub mod readers;
 
