@@ -15,6 +15,7 @@
 
 //! Define the format of the messages exchanged between the DURS modules.
 
+#![allow(clippy::large_enum_variant)]
 #![deny(
     missing_docs,
     missing_debug_implementations,

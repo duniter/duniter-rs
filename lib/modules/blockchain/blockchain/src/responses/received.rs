@@ -16,30 +16,25 @@
 //! Sub-module managing the inter-modules responses received.
 
 use crate::*;
-use std::ops::Deref;
 
 pub fn receive_response(
     bc: &mut BlockchainModule,
     req_id: ModuleReqId,
-    res_content: &DursResContent,
+    res_content: DursResContent,
 ) {
-    if let DursResContent::NetworkResponse(ref network_response) = *res_content {
+    if let DursResContent::NetworkResponse(network_response) = res_content {
         debug!("BlockchainModule : receive NetworkResponse() !");
         if let Some(request) = bc.pending_network_requests.remove(&req_id) {
             match request {
                 OldNetworkRequest::GetConsensus(_) => {
-                    if let NetworkResponse::Consensus(_, response) = *network_response.deref() {
+                    if let NetworkResponse::Consensus(_, response) = network_response {
                         if let Ok(blockstamp) = response {
                             bc.consensus = blockstamp;
                         }
                     }
                 }
                 OldNetworkRequest::GetBlocks(_, _, _, _) => {
-                    if let NetworkResponse::Chunk(_, _, ref blocks) = *network_response.deref() {
-                        let blocks: Vec<Block> = blocks
-                            .iter()
-                            .map(|b| Block::NetworkBlock(b.deref().clone()))
-                            .collect();
+                    if let NetworkResponse::Chunk(_, _, blocks) = network_response {
                         dunp::receiver::receive_blocks(bc, blocks);
                     }
                 }

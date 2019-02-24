@@ -77,7 +77,7 @@ pub enum NetworkResponse {
     /// Block
     Block(ModuleReqFullId, NodeFullId, Box<BlockDocument>),
     /// Chunk
-    Chunk(ModuleReqFullId, NodeFullId, Vec<Box<BlockDocument>>),
+    Chunk(ModuleReqFullId, NodeFullId, Vec<BlockDocument>),
     /// PendingDocuments
     PendingDocuments(ModuleReqFullId, Vec<BlockchainDocument>),
     /// Consensus

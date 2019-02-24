@@ -79,7 +79,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                 bc_db_query,
                 wot_dbs_queries,
                 tx_dbs_queries,
-            ))) = check_and_apply_block(bc, Block::LocalBlock(dal_block.block))
+            ))) = check_and_apply_block(bc, dal_block.block)
             {
                 bc.current_blockstamp = *blockstamp;
                 // Apply db requests

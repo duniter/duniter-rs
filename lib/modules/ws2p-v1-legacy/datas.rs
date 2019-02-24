@@ -128,6 +128,7 @@ impl WS2PModuleDatas {
             NetworkEvent::ConnectionStateChange(_, _, _, _) => {
                 ModuleEvent::ConnectionsChangeNodeNetwork
             }
+            NetworkEvent::ReceiveBlocks(_) => ModuleEvent::NewBlockFromNetwork,
             NetworkEvent::ReceiveDocuments(network_docs) => {
                 if !network_docs.is_empty() {
                     match network_docs[0] {
@@ -146,7 +147,7 @@ impl WS2PModuleDatas {
         self.router_sender
             .send(RouterThreadMessage::ModuleMessage(DursMsg::Event {
                 event_type: module_event,
-                event_content: DursEvent::NetworkEvent(Box::new(event.clone())),
+                event_content: DursEvent::NetworkEvent(event.clone()),
             }))
             .expect("Fail to send network event to router !");
     }

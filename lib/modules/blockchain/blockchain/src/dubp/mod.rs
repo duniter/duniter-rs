@@ -62,22 +62,15 @@ impl From<ApplyValidBlockError> for BlockError {
 
 pub fn check_and_apply_block(
     bc: &mut BlockchainModule,
-    block: Block,
+    block_doc: BlockDocument,
 ) -> Result<CheckAndApplyBlockReturn, BlockError> {
-    let block_from_network = block.is_from_network();
-    let block_doc: BlockDocument = block.into_doc();
-
     // Get BlockDocument && check if already have block
-    let already_have_block = if block_from_network {
-        readers::block::already_have_block(
-            &bc.blocks_databases.blockchain_db,
-            &bc.forks_dbs,
-            block_doc.blockstamp(),
-            block_doc.previous_hash,
-        )?
-    } else {
-        false
-    };
+    let already_have_block = readers::block::already_have_block(
+        &bc.blocks_databases.blockchain_db,
+        &bc.forks_dbs,
+        block_doc.blockstamp(),
+        block_doc.previous_hash,
+    )?;
 
     // Verify block hashs
     dubp::check::hashs::verify_block_hashs(&block_doc)?;

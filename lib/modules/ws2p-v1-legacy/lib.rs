@@ -770,16 +770,14 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                                         let mut chunk = Vec::new();
                                         for json_block in response.as_array().unwrap() {
                                             if let Some(block) = parse_json_block(json_block) {
-                                                chunk.push(BlockchainDocument::Block(Box::new(
-                                                    block,
-                                                )));
+                                                chunk.push(block);
                                             } else {
                                                 warn!("WS2PModule: Error : fail to parse one json block !");
                                             }
                                         }
                                         debug!("Send chunk to followers : {}", from);
                                         ws2p_module.send_network_event(
-                                            &NetworkEvent::ReceiveDocuments(chunk),
+                                            &NetworkEvent::ReceiveBlocks(chunk),
                                         );
                                     }
                                 }

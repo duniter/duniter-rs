@@ -29,7 +29,7 @@ pub enum DursEvent {
     /// MemPool Event (local node find next block)
     MemPoolEvent(MemPoolEvent),
     /// Network event
-    NetworkEvent(Box<NetworkEvent>),
+    NetworkEvent(NetworkEvent),
     /// Client API event
     ReceiveValidDocsFromClient(Vec<DUBPDocument>),
 }

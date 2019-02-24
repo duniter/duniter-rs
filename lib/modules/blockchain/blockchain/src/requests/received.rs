@@ -23,10 +23,10 @@ pub fn receive_req(
     bc: &BlockchainModule,
     req_from: ModuleStaticName,
     req_id: ModuleReqId,
-    req_content: &DursReqContent,
+    req_content: DursReqContent,
 ) {
-    if let DursReqContent::BlockchainRequest(ref blockchain_req) = req_content {
-        match *blockchain_req {
+    if let DursReqContent::BlockchainRequest(blockchain_req) = req_content {
+        match blockchain_req {
             BlockchainRequest::CurrentBlockstamp() => responses::sent::send_req_response(
                 bc,
                 req_from,
@@ -61,7 +61,7 @@ pub fn receive_req(
                     warn!("BlockchainModule : Req : fail to get current_block in bdd !");
                 }
             }
-            BlockchainRequest::UIDs(ref pubkeys) => {
+            BlockchainRequest::UIDs(pubkeys) => {
                 responses::sent::send_req_response(
                     bc,
                     req_from,
@@ -69,13 +69,13 @@ pub fn receive_req(
                     &BlockchainResponse::UIDs(
                         req_id,
                         pubkeys
-                            .iter()
+                            .into_iter()
                             .map(|p| {
                                 (
-                                    *p,
+                                    p,
                                     durs_blockchain_dal::readers::identity::get_uid(
                                         &bc.wot_databases.identities_db,
-                                        *p,
+                                        p,
                                     )
                                     .expect("Fatal error : get_uid : Fail to read WotV10DB !"),
                                 )

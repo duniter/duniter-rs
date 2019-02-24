@@ -23,22 +23,22 @@ use std::ops::Deref;
 pub fn receive_event(
     bc: &mut BlockchainModule,
     _event_type: ModuleEvent,
-    event_content: &DursEvent,
+    event_content: DursEvent,
 ) {
-    match *event_content {
-        DursEvent::NetworkEvent(ref network_event_box) => match *network_event_box.deref() {
-            NetworkEvent::ReceiveDocuments(ref network_docs) => {
-                dunp::receiver::receive_bc_documents(bc, network_docs);
+    match event_content {
+        DursEvent::NetworkEvent(network_event) => match network_event {
+            NetworkEvent::ReceiveDocuments(network_docs) => {
+                dunp::receiver::receive_bc_documents(bc, &network_docs);
+            }
+            NetworkEvent::ReceiveBlocks(blocks) => {
+                dunp::receiver::receive_blocks(bc, blocks);
             }
             NetworkEvent::ReceiveHeads(_) => {}
             _ => {}
         },
-        DursEvent::MemPoolEvent(ref mempool_event) => {
+        DursEvent::MemPoolEvent(mempool_event) => {
             if let MemPoolEvent::FindNextBlock(next_block_box) = mempool_event {
-                dunp::receiver::receive_blocks(
-                    bc,
-                    vec![Block::LocalBlock(next_block_box.deref().clone())],
-                );
+                dunp::receiver::receive_blocks(bc, vec![next_block_box.deref().clone()]);
             }
         }
         _ => {} // Others modules events

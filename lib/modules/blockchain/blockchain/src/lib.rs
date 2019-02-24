@@ -266,23 +266,23 @@ impl BlockchainModule {
                 requests::sent::request_next_main_blocks(self);
             }
             match blockchain_receiver.recv_timeout(Duration::from_millis(1000)) {
-                Ok(ref durs_message) => {
-                    match *durs_message {
+                Ok(durs_message) => {
+                    match durs_message {
                         DursMsg::Request {
                             req_from,
                             req_id,
-                            ref req_content,
+                            req_content,
                             ..
                         } => {
                             requests::received::receive_req(self, req_from, req_id, req_content);
                         }
                         DursMsg::Event {
                             event_type,
-                            ref event_content,
+                            event_content,
                         } => events::received::receive_event(self, event_type, event_content),
                         DursMsg::Response {
                             req_id,
-                            ref res_content,
+                            res_content,
                             ..
                         } => responses::received::receive_response(self, req_id, res_content),
                         DursMsg::Stop => break,

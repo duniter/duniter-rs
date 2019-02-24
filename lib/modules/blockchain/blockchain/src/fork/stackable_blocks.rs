@@ -37,7 +37,7 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                     bc_db_query,
                     wot_dbs_queries,
                     tx_dbs_queries,
-                ))) = check_and_apply_block(bc, Block::LocalBlock(stackable_block.block))
+                ))) = check_and_apply_block(bc, stackable_block.block)
                 {
                     let new_current_block = bc_db_query.get_block_doc_copy();
                     // Apply db requests

@@ -19,6 +19,7 @@ use crate::documents::*;
 use crate::network_head::NetworkHead;
 use crate::network_peer::PeerCard;
 use crate::NodeFullId;
+use dubp_documents::documents::block::BlockDocument;
 
 #[derive(Debug, Clone)]
 /// Type containing a network event, each time a network event occurs it's relayed to all modules
@@ -29,6 +30,8 @@ pub enum NetworkEvent {
     NewSelfPeer(PeerCard),
     /// Receiving Pending Documents
     ReceiveDocuments(Vec<BlockchainDocument>),
+    /// Receiving blocks
+    ReceiveBlocks(Vec<BlockDocument>),
     /// Receipt of peer cards
     ReceivePeers(Vec<PeerCard>),
     /// Receiving heads

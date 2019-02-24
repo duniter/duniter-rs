@@ -23,19 +23,18 @@ pub fn receive_bc_documents(bc: &mut BlockchainModule, network_documents: &[Bloc
     for network_document in network_documents {
         if let BlockchainDocument::Block(ref block_doc) = network_document {
             let block_doc = block_doc.deref();
-            receive_blocks(bc, vec![Block::NetworkBlock(block_doc.deref().clone())]);
+            receive_blocks(bc, vec![block_doc.deref().clone()]);
         }
     }
 }
 
-pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<Block>) {
+pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
     debug!("BlockchainModule : receive_blocks()");
     let mut save_blocks_dbs = false;
     let mut save_wots_dbs = false;
     let mut save_currency_dbs = false;
     for block in blocks.into_iter() {
         let blockstamp = block.blockstamp();
-        let _from_network = block.is_from_network();
         match check_and_apply_block(bc, block) {
             Ok(check_block_return) => match check_block_return {
                 CheckAndApplyBlockReturn::ValidBlock(ValidBlockApplyReqs(
