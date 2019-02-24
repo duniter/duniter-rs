@@ -98,7 +98,7 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<BlockDocument> {
     }
     let joiners = parse_memberships(&currency, MembershipType::In(), source.get("joiners")?)?;
     let actives = parse_memberships(&currency, MembershipType::In(), source.get("actives")?)?;
-    let leavers = parse_memberships(&currency, MembershipType::Out(), source.get("actives")?)?;
+    let leavers = parse_memberships(&currency, MembershipType::Out(), source.get("leavers")?)?;
     let revoked: Vec<&str> = source
         .get("revoked")?
         .as_array()?
