@@ -174,6 +174,7 @@ impl BlocksV10DBs {
     }
     /// Save blocks databases in their respective files
     pub fn save_dbs(&self) {
+        info!("BLOCKCHAIN-DAL: Save LocalBlockchainV10DB.");
         self.blockchain_db
             .save()
             .expect("Fatal error : fail to save LocalBlockchainV10DB !");
@@ -205,6 +206,7 @@ impl ForksDBs {
     }
     /// Save fork databases in their respective files
     pub fn save_dbs(&self) {
+        info!("BLOCKCHAIN-DAL: Save ForksDBs.");
         self.fork_tree_db
             .save()
             .expect("Fatal error : fail to save ForksTreeV10Datas !");
@@ -244,6 +246,7 @@ impl WotsV10DBs {
     }
     /// Save wot databases from their respective files
     pub fn save_dbs(&self) {
+        info!("BLOCKCHAIN-DAL: Save WotsV10DBs.");
         self.wot_db
             .save()
             .expect("Fatal error : fail to save WotDB !");
@@ -292,6 +295,7 @@ impl CurrencyV10DBs {
     /// Save currency databases in their respective files
     pub fn save_dbs(&self, tx: bool, du: bool) {
         if tx {
+            info!("BLOCKCHAIN-DAL: Save CurrencyV10DBs.");
             self.tx_db
                 .save()
                 .expect("Fatal error : fail to save LocalBlockchainV10DB !");
