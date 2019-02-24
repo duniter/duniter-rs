@@ -56,7 +56,7 @@ use structopt::StructOpt;
 use threadpool::ThreadPool;
 
 /// Number of thread in plugins ThreadPool
-pub static THREAD_POOL_SIZE: &'static usize = &2;
+pub static THREAD_POOL_SIZE: &'static usize = &4;
 
 #[macro_export]
 macro_rules! durs_core_server {

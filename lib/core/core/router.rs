@@ -231,19 +231,19 @@ fn send_msg_to_several_receivers(
     receivers: &[ModuleStaticName],
     modules_senders: &HashMap<ModuleStaticName, mpsc::Sender<DursMsg>>,
 ) {
-    // Send message by copy To all modules that subscribed to this event
-    for module_static_name in &receivers[1..] {
-        if let Some(module_sender) = modules_senders.get(module_static_name) {
-            module_sender.send(msg.clone()).unwrap_or_else(|_| {
-                panic!(
-                    "Fatal error: fail to relay DursMsg to {:?} !",
-                    module_static_name
-                )
-            });
-        }
-    }
-    // Send message by move to the last module to be receive
     if !receivers.is_empty() {
+        // Send message by copy To all modules that subscribed to this event
+        for module_static_name in &receivers[1..] {
+            if let Some(module_sender) = modules_senders.get(module_static_name) {
+                module_sender.send(msg.clone()).unwrap_or_else(|_| {
+                    panic!(
+                        "Fatal error: fail to relay DursMsg to {:?} !",
+                        module_static_name
+                    )
+                });
+            }
+        }
+        // Send message by move to the last module to be receive
         if let Some(module_sender) = modules_senders.get(&receivers[0]) {
             module_sender.send(msg).unwrap_or_else(|_| {
                 panic!("Fatal error: fail to relay DursMsg to {:?} !", receivers[0])
@@ -379,7 +379,8 @@ pub fn start_router(
                                 );
                             // Log the number of modules_senders received
                             info!(
-                                "Router thread receive {} module senders",
+                                "Router thread receive '{}' module registration ({} modules registered).",
+                                module_static_name.0,
                                 modules_senders.len()
                             );
                         }
