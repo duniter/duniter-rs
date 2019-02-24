@@ -48,11 +48,15 @@ pub struct WS2PModuleDatas {
     pub count_dal_requests: u32,
 }
 
-    #[inline]
-    #[cfg(not(feature = "ssl"))]
-    fn ssl() -> bool { false }
-    #[cfg(feature = "ssl")]
-    fn ssl() -> bool { true }
+#[inline]
+#[cfg(not(feature = "ssl"))]
+fn ssl() -> bool {
+    false
+}
+#[cfg(feature = "ssl")]
+fn ssl() -> bool {
+    true
+}
 
 impl WS2PModuleDatas {
     pub fn new(

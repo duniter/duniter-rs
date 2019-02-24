@@ -743,10 +743,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                         WS2PSignal::ReqResponse(req_id, req, recipient_full_id, response) => {
                             match req {
                                 OldNetworkRequest::GetCurrent(ref _req_id, _receiver) => {
-                                    info!(
-                                        "WS2PSignal::ReceiveCurrent({}, {:?})",
-                                        req_id.0, req
-                                    );
+                                    info!("WS2PSignal::ReceiveCurrent({}, {:?})", req_id.0, req);
                                     if let Some(block) = parse_json_block(&response) {
                                         ws2p_module.send_network_req_response(
                                             req.get_req_full_id().0,
@@ -765,7 +762,10 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                                     count,
                                     from,
                                 ) => {
-                                    info!("WS2PSignal::ReceiveChunk({}, {} blocks from {})", req_id.0, count, from);
+                                    info!(
+                                        "WS2PSignal::ReceiveChunk({}, {} blocks from {})",
+                                        req_id.0, count, from
+                                    );
                                     if response.is_array() {
                                         let mut chunk = Vec::new();
                                         for json_block in response.as_array().unwrap() {
