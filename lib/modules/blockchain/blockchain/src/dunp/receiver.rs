@@ -84,10 +84,23 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                     debug!("new orphan block({})", blockstamp);
                 }
             },
-            Err(_) => {
-                warn!("RefusedBlock({})", blockstamp.id.0);
-                crate::events::sent::send_event(bc, &BlockchainEvent::RefusedBlock(blockstamp));
-            }
+            Err(e) => match e {
+                BlockError::VerifyBlockHashsError(_) | BlockError::InvalidBlock(_) => {
+                    warn!("InvalidBlock({})", blockstamp.id.0);
+                    crate::events::sent::send_event(bc, &BlockchainEvent::RefusedBlock(blockstamp));
+                }
+                BlockError::ApplyValidBlockError(e2) => {
+                    error!("ApplyValidBlockError({}): {:?}", blockstamp.id.0, e2);
+                    crate::events::sent::send_event(bc, &BlockchainEvent::RefusedBlock(blockstamp));
+                }
+                BlockError::DALError(e2) => {
+                    error!("BlockError::DALError({}): {:?}", blockstamp.id.0, e2);
+                    crate::events::sent::send_event(bc, &BlockchainEvent::RefusedBlock(blockstamp));
+                }
+                BlockError::AlreadyHaveBlockOrOutForkWindow => {
+                    debug!("AlreadyHaveBlockOrOutForkWindow({})", blockstamp.id.0);
+                }
+            },
         }
     }
     // Save databases
