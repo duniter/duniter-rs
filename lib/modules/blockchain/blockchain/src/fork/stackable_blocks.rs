@@ -54,14 +54,6 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                             .apply(&bc.currency_databases)
                             .expect("Fatal error : Fail to apply CurrencyDBsWriteRequest !");
                     }
-                    // Save databases
-                    bc.blocks_databases.save_dbs();
-                    if !wot_dbs_queries.is_empty() {
-                        bc.wot_databases.save_dbs();
-                    }
-                    if !tx_dbs_queries.is_empty() {
-                        bc.currency_databases.save_dbs(true, true);
-                    }
                     debug!("success to stackable_block({})", stackable_block_number);
 
                     bc.current_blockstamp = stackable_block_blockstamp;
@@ -74,6 +66,11 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                     warn!("fail to stackable_block({})", stackable_block_number);
                 }
             }
+            // Save databases
+            bc.blocks_databases.save_dbs();
+            bc.forks_dbs.save_dbs();
+            bc.wot_databases.save_dbs();
+            bc.currency_databases.save_dbs(true, true);
             break 'blockchain;
         }
     }
