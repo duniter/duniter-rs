@@ -824,19 +824,6 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                         connected_nodes.push(k);
                     }
                 }
-                // Print network consensus
-                match ws2p_module.get_network_consensus() {
-                    Ok(consensus_blockstamp) => {
-                        debug!(
-                            "WS2PModule : get_network_consensus() = {:?}",
-                            consensus_blockstamp
-                        );
-                        if current_blockstamp.id.0 < (consensus_blockstamp.id.0 + 2) {
-                            warn!("We probably are in a fork branch !");
-                        }
-                    }
-                    Err(e) => warn!("{:?}", e),
-                }
                 // Print current_blockstamp
                 info!(
                     "WS2PModule : current_blockstamp() = {:?}",
@@ -859,27 +846,6 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                     info!("Connected to know endpoints...");
                     ws2p_module.connect_to_know_endpoints();
                 }
-                /*// Request blocks from network
-                if SystemTime::now()
-                    .duration_since(last_blocks_request)
-                    .unwrap() > Duration::new(*BLOCKS_REQUEST_INTERVAL, 0)
-                    && SystemTime::now().duration_since(start_time).unwrap() > Duration::new(10, 0)
-                {
-                    let mut request_blocks_from = current_blockstamp.id.0;
-                    if request_blocks_from > 0 {
-                        request_blocks_from += 1;
-                    }
-                    info!("get chunks from all connections...");
-                    let module_id = WS2PModule::name();
-                    let _blocks_request_result =
-                        ws2p_module.send_request_to_all_connections(&OldNetworkRequest::GetBlocks(
-                            ModuleReqFullId(module_id, ModuleReqId(0 as u32)),
-                            NodeFullId::default(),
-                            50,
-                            request_blocks_from,
-                        ));
-                    last_blocks_request = SystemTime::now();
-                }*/
                 // Request pending_identities from network
                 if SystemTime::now()
                     .duration_since(last_identities_request)
@@ -901,15 +867,6 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                         if let Some(&(ref ep, ref state)) =
                             ws2p_module.ws2p_endpoints.get(&ep_full_id)
                         {
-                            /*let dal_endpoint = durs_blockchain_dal::endpoint::DALEndpoint::new(
-                                state.clone() as u32,
-                                ep.node_uuid().unwrap().0,
-                                ep.pubkey(),
-                                durs_blockchain_dal::endpoint::string_to_api(&ep.api().0).unwrap(),
-                                1,
-                                ep.to_string(),
-                                received_time.duration_since(UNIX_EPOCH).unwrap(),
-                            );*/
                             ws2p_db::write_endpoint(
                                 &db,
                                 &ep,

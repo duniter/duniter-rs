@@ -588,10 +588,6 @@ mod tests {
             ),
             (TreeNodeId(11), child_fork_blockstamp),
         ];
-        /*assert!(
-            (sheets[0] == expected_sheets[0] && sheets[1] == expected_sheets[1])
-                || (sheets[0] == expected_sheets[1] && sheets[1] == expected_sheets[0])
-        );*/
         assert!(rust_tests_tools::collections::slice_same_elems(
             &expected_sheets,
             &sheets

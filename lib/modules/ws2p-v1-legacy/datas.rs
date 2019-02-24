@@ -13,10 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::constants::*;
 use crate::*;
-use dubp_documents::Blockstamp;
-use duniter_network::*;
 use dup_crypto::keys::*;
 use durs_message::requests::BlockchainRequest;
 use durs_message::*;
@@ -150,44 +147,6 @@ impl WS2PModuleDatas {
                 event_content: DursEvent::NetworkEvent(event.clone()),
             }))
             .expect("Fail to send network event to router !");
-    }
-    pub fn get_network_consensus(&self) -> Result<Blockstamp, NetworkConsensusError> {
-        let mut count_known_blockstamps = 0;
-        let mut farthest_blockstamp = Blockstamp::default();
-        let mut blockstamps_occurences: HashMap<Blockstamp, usize> =
-            HashMap::with_capacity(*WS2P_DEFAULT_OUTCOMING_QUOTA);
-        let mut dominant_blockstamp = Blockstamp::default();
-        let mut dominant_blockstamp_occurences = 0;
-        for (_ws2p_full_id, head) in self.heads_cache.clone() {
-            count_known_blockstamps += 1;
-            let blockstamps_occurences_copy = blockstamps_occurences.clone();
-            match blockstamps_occurences_copy.get(&head.blockstamp()) {
-                Some(occurences) => {
-                    let occurences_mut = blockstamps_occurences
-                        .get_mut(&head.blockstamp())
-                        .expect("WS2P: Fail to get_mut blockstamps_occurences !");
-                    *occurences_mut += 1;
-                    if *occurences > dominant_blockstamp_occurences {
-                        dominant_blockstamp_occurences = *occurences;
-                        dominant_blockstamp = head.blockstamp();
-                    }
-                }
-                None => {
-                    blockstamps_occurences.insert(head.blockstamp(), 0);
-                }
-            }
-            if head.blockstamp().id.0 > farthest_blockstamp.id.0 {
-                farthest_blockstamp = head.blockstamp();
-            }
-        }
-        if count_known_blockstamps < 5 {
-            return Err(NetworkConsensusError::InsufficientData(
-                count_known_blockstamps,
-            ));
-        } else if farthest_blockstamp == dominant_blockstamp {
-            return Ok(dominant_blockstamp);
-        }
-        Err(NetworkConsensusError::Fork())
     }
     fn count_established_connections(&self) -> usize {
         let mut count_established_connections = 0;
@@ -481,65 +440,6 @@ impl WS2PModuleDatas {
         }
         WS2PSignal::Empty
     }
-
-    /*pub fn send_request_to_all_connections(
-        &mut self,
-        ws2p_request: &OldNetworkRequest,
-    ) -> Result<(), SendRequestError> {
-        let mut count_successful_sending: usize = 0;
-        let mut errors: Vec<ws::Error> = Vec::new();
-        match *ws2p_request {
-            OldNetworkRequest::GetCurrent(req_full_id, _receiver) => {
-                for (ws2p_full_id, (_ep, state)) in self.ws2p_endpoints.clone() {
-                    if let WS2PConnectionState::Established = state {
-                        let ws2p_request = OldNetworkRequest::GetCurrent(
-                            ModuleReqFullId(
-                                req_full_id.0,
-                                ModuleReqId(
-                                    (self.requests_awaiting_response.len()
-                                        + count_successful_sending)
-                                        as u32,
-                                ),
-                            ),
-                            ws2p_full_id,
-                        );
-                        match self.send_request_to_specific_node(&ws2p_full_id, &ws2p_request) {
-                            Ok(_) => count_successful_sending += 1,
-                            Err(e) => errors.push(e),
-                        };
-                    }
-                }
-            }
-            /* OldNetworkRequest::GetBlock(req_full_id, number) => {} */
-    OldNetworkRequest::GetBlocks(_req_full_id, _receiver, _count, _from_number) => {}
-    OldNetworkRequest::GetRequirementsPending(req_full_id, _receiver, min_cert) => {
-    for (ws2p_full_id, (_ep, state)) in self.ws2p_endpoints.clone() {
-    if let WS2PConnectionState::Established = state {
-    let ws2p_request = OldNetworkRequest::GetRequirementsPending(
-    ModuleReqFullId(
-    req_full_id.0,
-    ModuleReqId(self.requests_awaiting_response.len() as u32),
-    ),
-    ws2p_full_id,
-    min_cert,
-    );
-    match self.send_request_to_specific_node(&ws2p_full_id, &ws2p_request) {
-    Ok(_) => count_successful_sending += 1,
-    Err(e) => errors.push(e),
-    };
-    }
-    }
-    }
-    _ => {
-    return Err(SendRequestError::RequestTypeMustNotBeTransmitted());
-    }
-    }
-    debug!("count_successful_sending = {}", count_successful_sending);
-    if !errors.is_empty() {
-    return Err(SendRequestError::WSError(count_successful_sending, errors));
-    }
-    Ok(())
-    }*/
 
     pub fn send_request_to_specific_node(
         &mut self,
