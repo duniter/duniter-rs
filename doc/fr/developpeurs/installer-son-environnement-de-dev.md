@@ -133,6 +133,16 @@ Bien que cela soit de plus en plus rare, certaines crates rust dépendent encore
 
     sudo apt-get install pkg-config
 
+### Pour compiler la feature `ssl`
+
+En Rust, les "features" sont des options de compilation.
+
+Durs peut être compilé avec la feature `ssl`, cela lui permet de contacter les endpoints WS2P en ws**s**://.
+Par défaut les endpoints WS2P sont accesible en ws://, mais certains utilisateurs choississent de placer un reverse proxy avec une couche TLS devant leur endpoint.
+Pour compiler Durs avec la feature `ssl`, vous aurez besoin du paquet supplémentaire suivant :
+
+    sudo apt-get install libssl-dev
+
 ## Tester son environnement avec un "Hello, World !"
 
     mkdir hello-world
