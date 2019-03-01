@@ -22,7 +22,7 @@ variables:
 
 .rust_stable_lin64: &rust_stable_lin64
   <<: *rust_changes
-  image: registry.duniter.org/docker/duniter-rs-ci:v1.32.0
+  image: registry.duniter.org/docker/duniter-rs-ci:v1.33.3
   tags:
     - redshift-rs-stable
   before_script:
@@ -51,7 +51,7 @@ variables:
 
 .rust_stable_armv7: &rust_stable_armv7
   <<: *rust_changes
-  image: registry.duniter.org/docker/rust/armv7-builder:v1.32.0
+  image: registry.duniter.org/docker/rust/armv7-builder:v1.33.0
   tags:
     - redshift-rs-stable
   before_script:

@@ -19,3 +19,20 @@ durs-tui = { path = "../../lib/modules/tui" }
 [features]
 ssl = ["durs-ws2p-v1-legacy/ssl"]
 
+[package.metadata.deb]
+maintainer = "librelois <elois@duniter.org>"
+depends = "$auto"
+section = "misc"
+priority = "optional"
+assets = [
+    ["../../target/release/durs", "usr/bin/", "755"],
+    ["../../images/duniter-rs.png", "usr/share/durs/", "644"],
+]
+features = ["ssl"]
+
+[package.metadata.deb.variants.arm]
+assets = [
+    ["../../target/armv7-unknown-linux-gnueabihf/release/durs", "usr/bin/", "755"],
+    ["../../images/duniter-rs.png", "usr/share/durs/", "644"],
+]
+features = ["ssl"]

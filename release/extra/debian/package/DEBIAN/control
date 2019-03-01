@@ -1,9 +1,0 @@
-Package: duniter-rs
-Version: 0.0.1
-Depends: unzip
-Section: misc
-Priority: optional
-Architecture: all
-Installed-Size: 20000
-Maintainer: Éloïs <elois@duniter.org>
-Description: Crypto-currency software to powering Ğ1 libre currency

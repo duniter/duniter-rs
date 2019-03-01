@@ -1,9 +1,27 @@
 #!/bin/bash
 
+# ------------
+# Check params
+# ------------
+
 if [[ -z "${1}" ]]; then
 	echo "Fatal: no version given to build script"
 	exit 1
 fi
+
+# ---------
+# Constants
+# ---------
+
+DURS_TAG="v${1}"
+DURS_DEB_VER=" ${1}"
+TARGET="armv7-unknown-linux-gnueabihf"
+
+ROOT="${PWD}"
+WORK_NAME=work
+WORK="${ROOT}/${WORK_NAME}"
+RELEASES="${WORK}/releases"
+BIN="${WORK}/bin"
 
 # ---------
 # Functions
@@ -40,72 +58,40 @@ build_extra_server() {
 # -
 # Parameters:
 # 1. Building type (either “desktop” or “server”).
-# 2. Debian package name.
 build_deb_pack() {
-	rm -rf "${RELEASES}/durs-armv7"
-	mkdir "${RELEASES}/durs-armv7" || exit 1
-	cp -r "${ROOT}/release/extra/debian/package/"* "${RELEASES}/durs-armv7" || exit 1
-	build_extra_${1} "${RELEASES}/durs-armv7"
-	mkdir -p "${RELEASES}/durs-armv7/opt/durs/" || exit 1
-	chmod 755 "${RELEASES}/durs-armv7/DEBIAN/"post* || exit 1
-	chmod 755 "${RELEASES}/durs-armv7/DEBIAN/"pre* || exit 1
-	sed -i "s/Version:.*/Version:${DURS_DEB_VER}/g" "${RELEASES}/durs-armv7/DEBIAN/control" || exit 1
-
-	cd "${RELEASES}/${1}_/"
-	zip -qr "${RELEASES}/durs-armv7/opt/durs/durs.zip" * || exit 1
-
-	sed -i "s/Package: .*/Package: ${2}/g" "${RELEASES}/durs-armv7/DEBIAN/control" || exit 1
-
-	cd "${RELEASES}"
-	dpkg-deb --build durs-armv7 || exit 1
-	mv durs-armv7.deb "${BIN}/duniter-rust-${1}-${DURS_TAG}-armv7.deb" || exit 1
+	#cd "bin/durs-${1}"
+	#cargo build --release --target=armv7-unknown-linux-gnueabihf --features=ssl
+	cargo deb --manifest-path="bin/durs-${1}/Cargo.toml" --target=${TARGET} --variant=arm --output "${BIN}/duniter-rust-${1}-${DURS_TAG}-armv7.deb"
 	create_desc "${BIN}/duniter-rust-${1}-${DURS_TAG}-armv7.deb" "${1}" "Linux (Ubuntu/Debian/Raspbian)"
 }
 
-# -----------
+# ------------
+# BEGIN SCRIPT
+# ------------
+
 # Prepare
-# -----------
+mkdir -p "${RELEASES}" "${BIN}" || exit 1
 
-DURS_TAG="v${1}"
-DURS_DEB_VER=" ${1}"
-TARGET="armv7-unknown-linux-gnueabihf"
+# Clean up
+rm -rf "${BIN}/"*.{deb,tar.gz}{,.desc}
 
-# -----------
-# Folders
-# -----------
+# ---------------------
+# Build Debian packages
+# ---------------------
 
-ROOT="${PWD}"
-WORK_NAME=work
-WORK="${ROOT}/${WORK_NAME}"
-DOWNLOADS="${WORK}/downloads"
-RELEASES="${WORK}/releases"
-BIN="${WORK}/bin"
+build_deb_pack server
+#build_deb_pack desktop
 
-mkdir -p "${DOWNLOADS}" "${RELEASES}" "${BIN}" || exit 1
-rm -rf "${BIN}/"*.{deb,tar.gz}{,.desc} # Clean up
 
-# -----------
-# Downloads
-# -----------
+# ---------------
+# Build .tar.gz
+# ---------------
 
-cd "${DOWNLOADS}"
-
-# -----------
-# Releases
-# -----------
-
-# Prepare sources
-mkdir -p "${RELEASES}/durs" || exit 1
-cp -r $(find "${ROOT}" -mindepth 1 -maxdepth 1 ! -name "${WORK_NAME}") "${RELEASES}/durs" || exit 1
-cd "${RELEASES}/durs"
-rm -Rf .gitignore .git || exit 1 # Remove git files
-
-# Build binary
-echo ">> Building binary..."
-cd "${ROOT}/bin/durs-server"
-cargo build --release --features=ssl --target=${TARGET} || exit 1
-
+# Create releases directory
 mkdir -p "${RELEASES}/server_" || exit 1
+#mkdir -p "${RELEASES}/desktop_" || exit 1
+
+# Copy binary (build by cargo deb)
 cp "${ROOT}/target/${TARGET}/release/durs" "${RELEASES}/server_/" || exit 1
 #cp "${ROOT}/target/release/durs" "${RELEASES}/desktop_" || exit 1
 
@@ -114,17 +100,7 @@ cp "${ROOT}/images/duniter-rs.png" "${RELEASES}/server_/" || exit 1
 #cp "${ROOT}/images/duniter-rs.png" "${RELEASES}/desktop_" || exit 1
 
 
-# ---------------
-# Build .tar.gz
-# ---------------
-
+# package tar.gz for server variant
 cd "${RELEASES}/server_"
 tar czf "${BIN}/duniter-rust-server-${DURS_TAG}-armv7.tar.gz" * || exit 1
 create_desc "${BIN}/duniter-rust-server-${DURS_TAG}-armv7.tar.gz" "Server" "Linux (generic)"
-
-# -----------------------
-# Build Debian packages
-# -----------------------
-
-build_deb_pack server durs
-#build_deb_pack desktop durs
