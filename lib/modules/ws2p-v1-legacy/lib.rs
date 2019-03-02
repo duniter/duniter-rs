@@ -653,6 +653,10 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                         }
                         WS2PSignal::WSError(ws2p_full_id) => {
                             endpoints_to_update_status.insert(ws2p_full_id, SystemTime::now());
+                            ws2p_module.close_connection(
+                                &ws2p_full_id,
+                                WS2PCloseConnectionReason::WsError,
+                            );
                             ws2p_module.send_network_event(&NetworkEvent::ConnectionStateChange(
                                 ws2p_full_id,
                                 WS2PConnectionState::WSError as u32,

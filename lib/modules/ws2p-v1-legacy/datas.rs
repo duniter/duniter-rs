@@ -231,11 +231,16 @@ impl WS2PModuleDatas {
             self.connect_to_without_checking_quotas(&endpoint);
         }
     }
-    fn close_connection(&mut self, ws2p_full_id: &NodeFullId, reason: WS2PCloseConnectionReason) {
+    pub fn close_connection(
+        &mut self,
+        ws2p_full_id: &NodeFullId,
+        reason: WS2PCloseConnectionReason,
+    ) {
         match reason {
             WS2PCloseConnectionReason::NegociationTimeout => {}
             WS2PCloseConnectionReason::AuthMessInvalidSig
             | WS2PCloseConnectionReason::Timeout
+            | WS2PCloseConnectionReason::WsError
             | WS2PCloseConnectionReason::Unknow => {
                 self.ws2p_endpoints
                     .get_mut(ws2p_full_id)
@@ -285,28 +290,28 @@ impl WS2PModuleDatas {
                     .expect("Endpoint don't exist !")
                     .1 = WS2PConnectionState::ConnectMessOk;
                 debug!("Send: {:#?}", response);
-                self.websockets
-                    .get_mut(&ws2p_full_id)
-                    .unwrap_or_else(|| panic!("Fatal error : no websocket for {} !", ws2p_full_id))
-                    .0
-                    .send(Message::text(response))
-                    .expect("WS2P: Fail to send OK Message !");
+                if let Some(websocket) = self.websockets.get_mut(&ws2p_full_id) {
+                    if websocket.0.send(Message::text(response)).is_err() {
+                        return WS2PSignal::WSError(ws2p_full_id);
+                    }
+                } else {
+                    panic!("Fatal error : no websocket for {} !", ws2p_full_id);
+                }
             }
-            WS2PConnectionMessagePayload::ValidAckMessage(r, new_con_state) => {
+            WS2PConnectionMessagePayload::ValidAckMessage(response, new_con_state) => {
                 self.ws2p_endpoints
                     .get_mut(&ws2p_full_id)
                     .expect("WS2P: Fail to get mut ep !")
                     .1 = new_con_state;
                 if let WS2PConnectionState::AckMessOk = self.ws2p_endpoints[&ws2p_full_id].1 {
-                    trace!("Send: {:#?}", r);
-                    self.websockets
-                        .get_mut(&ws2p_full_id)
-                        .unwrap_or_else(|| {
-                            panic!("Fatal error : no websocket for {} !", ws2p_full_id)
-                        })
-                        .0
-                        .send(Message::text(r))
-                        .expect("WS2P: Fail to send Message in websocket !");
+                    debug!("Send: {:#?}", response);
+                    if let Some(websocket) = self.websockets.get_mut(&ws2p_full_id) {
+                        if websocket.0.send(Message::text(response)).is_err() {
+                            return WS2PSignal::WSError(ws2p_full_id);
+                        }
+                    } else {
+                        panic!("Fatal error : no websocket for {} !", ws2p_full_id);
+                    }
                 }
             }
             WS2PConnectionMessagePayload::ValidOk(new_con_state) => {

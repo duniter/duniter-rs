@@ -290,6 +290,7 @@ pub enum WS2PCloseConnectionReason {
     AuthMessInvalidSig,
     NegociationTimeout,
     Timeout,
+    WsError,
     Unknow,
 }
 
