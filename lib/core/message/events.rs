@@ -49,7 +49,7 @@ pub enum BlockchainEvent {
     /// Stack up new valid block in local blockchain
     StackUpValidBlock(Box<BlockDocument>),
     /// Revert blocks in local blockchain
-    RevertBlocks(Vec<Box<BlockDocument>>),
+    RevertBlocks(Vec<BlockDocument>),
     /// Receive new valid pending document
     NewValidPendingDoc(DUBPDocument),
     /// Receive new refused pending document
