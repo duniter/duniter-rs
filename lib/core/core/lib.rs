@@ -239,11 +239,6 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
         // Init logger
         init_logger(profile.as_str(), self.soft_meta_datas.soft_name, &cli_args);
 
-        // Print panic! in logs
-        if cfg!(feature = "log_panics") {
-            log_panics::init();
-        }
-
         // Load global conf
         let (conf, keypairs) = duniter_conf::load_conf(profile.as_str());
         info!("Success to load global conf.");
@@ -284,6 +279,9 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
         } else if let Some(_matches) = cli_args.subcommand_matches("start") {
             // Store user command
             self.user_command = Some(UserCommand::Start());
+
+            // Print panic! in logs
+            log_panics::init();
 
             // Start router thread
             self.router_sender = Some(router::start_router(

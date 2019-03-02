@@ -28,4 +28,3 @@ structopt= "0.2.*"
 threadpool = "1.7.*"
 
 [features]
-log_panics = []
