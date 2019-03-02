@@ -20,7 +20,7 @@ ou
 
 Si vous éxécutez Durs et Duniter avec un utilisateur système différent, vous devrez indiquer a Durs le chemin vers le répertoire contenant la blockchain brute sous forme de fichiers JSON. Elle se trouve dans `~/.config/duniter/<profile>/<currency>`.
 
-Exemple: 
+Exemple:
 
 si vous êtez sous Linux, que l'utilisateur de duniter est `user`, que vous utilisez le profil duniter par défaut et que vous souhaitez vous synchronisr sur la g1; le chemin vers lma blockchain brute est :
 

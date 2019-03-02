@@ -77,7 +77,7 @@ Puis éxécutez le script `idea.sh` dans le dossier `/bin` :
 
     cd /opt/idea*/bin/
     ./idea.sh
-    
+
 Enfin installez le plugin pour rust en tapant "Rust" dans le moteur de recherche des plugins dans file -> settings -> plugins.
 
 [IntelliJ IDEA Community Edition]: https://www.jetbrains.com/idea/
@@ -87,9 +87,10 @@ Enfin installez le plugin pour rust en tapant "Rust" dans le moteur de recherche
 [Installation de vscode pour debian/ubuntu](https://code.visualstudio.com/docs/setup/linux#_debian-and-ubuntu-based-distributions).
 
 Une fois vscode installé nous aurons besoin des 3 plugins suivants :
-BetterTOML
-CodeLLDB
-Rust (rls)
+
+* BetterTOML  
+* CodeLLDB
+* Rust (rls)
 
 Après avoir installé les plugins, relancez votre IDE, il devrait vous proposer spontanément d'installer RLS, dites oui.  
 Si cela échoue pour RLS, vous devrez l'installer manuellement avec la commande suivante :
