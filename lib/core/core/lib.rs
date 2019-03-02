@@ -57,6 +57,7 @@ use structopt::clap::{App, ArgMatches};
 use structopt::StructOpt;
 
 #[macro_export]
+/// Launch durs core server
 macro_rules! durs_core_server {
     ( $closure_inject_cli:expr, $closure_plug:expr ) => {{
         duniter_core::main(
@@ -70,6 +71,7 @@ macro_rules! durs_core_server {
 }
 
 #[macro_export]
+/// Inject module subcommand in durs command line
 macro_rules! durs_inject_cli {
     ( $( $Module:ty ),* ) => {
         {
@@ -81,6 +83,7 @@ macro_rules! durs_inject_cli {
 }
 
 #[macro_export]
+/// Plug modules in durs core
 macro_rules! durs_plug {
     ( [ $( $NetworkModule:ty ),* ], [ $( $Module:ty ),* ] ) => {
         {
