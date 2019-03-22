@@ -1,6 +1,6 @@
 [package]
 name = "durs"
-version = "0.1.0-a1"
+version = "0.1.1-a1"
 authors = ["librelois <elois@duniter.org>","nanocryk <nanocryk@duniter.org>","inso <inso@tuta.io>"]
 description = "DURS (Dividende Universel RuSt) is a new implementation of Duniter protocol and software in Rust, a safe, concurrent, practical language"
 license = "AGPL-3.0"
