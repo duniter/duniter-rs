@@ -89,7 +89,7 @@ pub fn dbex_tx<DC: DuniterConf>(profile: &str, conf: &DC, _csv: bool, query: &DB
             {
                 pubkey
             } else {
-                println!("This address doesn't exist !");
+                println!("This address doesn't exist!");
                 return;
             };
             let address = UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(pubkey));

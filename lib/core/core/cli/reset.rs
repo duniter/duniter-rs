@@ -19,9 +19,9 @@ use crate::cli::InvalidInput;
 use std::str::FromStr;
 
 #[derive(StructOpt, Debug, Copy, Clone)]
-/// start durs server
+/// Reset data or configuration
 pub struct ResetOpt {
-    /// choose type datas to reset
+    /// Kind of data to be reseted: data, conf, all
     pub reset_type: ResetType,
 }
 
@@ -44,7 +44,7 @@ impl FromStr for ResetType {
             "data" => Ok(ResetType::Datas),
             "conf" => Ok(ResetType::Conf),
             "all" => Ok(ResetType::All),
-            _ => Err(InvalidInput("Values accepted are : data, conf, all.")),
+            _ => Err(InvalidInput("Kind of data to be reseted: data, conf, all.")),
         }
     }
 }

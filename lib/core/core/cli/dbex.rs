@@ -37,25 +37,25 @@ pub enum DbExSubCommand {
         name = "distance",
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
-    /// durs databases explorer (distances datas)
+    /// Web of Trust distances explorer
     DistanceOpt(DistanceOpt),
     #[structopt(
         name = "members",
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
-    /// durs databases explorer (members datas)
+    /// Members explorer
     MembersOpt(MembersOpt),
     #[structopt(
         name = "member",
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
-    /// durs databases explorer (member datas)
+    /// Member explorer
     MemberOpt(MemberOpt),
     #[structopt(
         name = "balance",
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
-    /// durs databases explorer (balances datas)
+    /// Pubkeys’ balances explorer
     BalanceOpt(BalanceOpt),
 }
 

@@ -37,11 +37,11 @@ use log::Level;
 /// Rust implementation of Duniter
 pub struct DursOpt {
     #[structopt(short = "p", long = "profile")]
-    /// Set a custom user datas folder
+    /// Set a custom user data folder
     profile_name: Option<String>,
     #[structopt(short = "l", long = "logs", raw(next_line_help = "true"))]
-    /// Set the level of logs verbosity. (Default is INFO).
-    /// Possible values : [OFF, ERROR, WARN, INFO, DEBUG, TRACE]
+    /// Set log level. (Defaults to INFO).
+    /// Available levels: [OFF, ERROR, WARN, INFO, DEBUG, TRACE]
     logs_level: Option<Level>,
     #[structopt(subcommand)]
     /// CoreSubCommand
@@ -52,33 +52,33 @@ pub struct DursOpt {
 /// Core cli subcommands
 pub enum CoreSubCommand {
     #[structopt(name = "enable")]
-    /// Enable some module
+    /// Enable a module
     EnableOpt(EnableOpt),
     #[structopt(name = "disable")]
-    /// Disable some module
+    /// Disable a module
     DisableOpt(DisableOpt),
     #[structopt(name = "modules")]
-    /// list modules
+    /// List available modules
     ListModulesOpt(ListModulesOpt),
     #[structopt(name = "start")]
-    /// start durs server
+    /// Start node
     StartOpt(StartOpt),
     #[structopt(name = "sync")]
-    /// synchronization
+    /// Synchronize
     SyncOpt(SyncOpt),
-    /// reset data or conf or all
+    /// Reset data or conf or all
     #[structopt(
         name = "reset",
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
     ResetOpt(ResetOpt),
-    /// durs databases explorer
+    /// Database explorer
     #[structopt(
         name = "dbex",
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
     DbExOpt(DbExOpt),
-    /// keys operations
+    /// Keys operations
     #[structopt(
         name = "keys",
         author = "inso <inso@tuta.io>",
