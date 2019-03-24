@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Durs-core cli : dbex subcommands.
+//! Durs-core cli : keys subcommands.
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(
@@ -21,7 +21,7 @@
     author = "inso <inso@tuta.io>",
     raw(setting = "structopt::clap::AppSettings::ColoredHelp")
 )]
-/// durs databases explorer
+/// keys management
 pub struct KeysOpt {
     #[structopt(subcommand)]
     /// KeysSubCommand
@@ -31,7 +31,7 @@ pub struct KeysOpt {
 #[derive(StructOpt, Debug, Clone)]
 /// keys subcommands
 pub enum KeysSubCommand {
-    /// modify durs keys
+    /// Modify keys
     #[structopt(
         name = "modify",
         author = "inso <inso@tuta.io>",
@@ -39,7 +39,7 @@ pub enum KeysSubCommand {
     )]
     Modify(ModifyOpt),
 
-    /// clear durs keys
+    /// Clear keys
     #[structopt(
         name = "clear",
         author = "inso <inso@tuta.io>",
@@ -47,7 +47,7 @@ pub enum KeysSubCommand {
     )]
     Clear(ClearOpt),
 
-    /// show durs keys
+    /// Show keys
     #[structopt(
         name = "show",
         author = "inso <inso@tuta.io>",
@@ -60,7 +60,7 @@ pub enum KeysSubCommand {
         author = "inso <inso@tuta.io>",
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
-    /// wizard to help user generate durs keys
+    /// Keys generator wizard
     Wizard(WizardOpt),
 }
 

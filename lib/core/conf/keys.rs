@@ -81,10 +81,10 @@ pub fn clear_keys(network: bool, member: bool, mut key_pairs: DuniterKeyPairs) -
 
 /// Show keys command
 pub fn show_keys(key_pairs: DuniterKeyPairs) {
-    println!("Network key : {}", key_pairs.network_keypair);
+    println!("Network key: {}", key_pairs.network_keypair);
     match key_pairs.member_keypair {
         None => println!("No member key configured"),
-        Some(key) => println!("Member key : {}", key),
+        Some(key) => println!("Member key: {}", key),
     }
 }
 
@@ -97,7 +97,7 @@ pub fn save_keypairs(profile: &str, key_pairs: DuniterKeyPairs) {
 fn question_prompt(question: &str, answers: Vec<String>) -> Result<String, WizardError> {
     let mut buf = String::new();
 
-    println!("{} ({}) :", question, answers.join("/"));
+    println!("{} ({}):", question, answers.join("/"));
     let res = io::stdin().read_line(&mut buf);
 
     match res {
@@ -113,9 +113,9 @@ fn question_prompt(question: &str, answers: Vec<String>) -> Result<String, Wizar
 }
 
 fn salt_password_prompt() -> Result<KeyPairEnum, WizardError> {
-    let salt = rpassword::prompt_password_stdout("? Salt: ")?;
+    let salt = rpassword::prompt_password_stdout("Salt: ")?;
     if !salt.is_empty() {
-        let password = rpassword::prompt_password_stdout("? Password: ")?;
+        let password = rpassword::prompt_password_stdout("Password: ")?;
         if !password.is_empty() {
             let generator = ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters();
             let key_pairs = KeyPairEnum::Ed25519(generator.generate(
@@ -134,7 +134,7 @@ fn salt_password_prompt() -> Result<KeyPairEnum, WizardError> {
 /// The wizard key function
 pub fn key_wizard(mut key_pairs: DuniterKeyPairs) -> Result<DuniterKeyPairs, WizardError> {
     let mut answer = question_prompt(
-        "? Modify your network keypair?",
+        "Modify your network keypair?",
         vec!["y".to_string(), "n".to_string()],
     )?;
     if answer == "y" {
@@ -142,13 +142,13 @@ pub fn key_wizard(mut key_pairs: DuniterKeyPairs) -> Result<DuniterKeyPairs, Wiz
     }
 
     answer = question_prompt(
-        "? Modify your member keypair?",
+        "Modify your member keypair?",
         vec!["y".to_string(), "n".to_string(), "d".to_string()],
     )?;
     if answer == "y" {
         key_pairs.member_keypair = Some(salt_password_prompt()?);
     } else if answer == "d" {
-        println!("Deleting member keypair !");
+        println!("Deleting member keypair!");
         key_pairs.member_keypair = None;
     }
 
