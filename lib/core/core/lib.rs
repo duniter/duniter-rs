@@ -178,9 +178,6 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
         cli_conf: &'a App<'b, 'a>,
         run_duration_in_secs: u64,
     ) -> DuniterCore<'b, 'a, DuRsConf> {
-        // Get cli conf
-        //let yaml = load_yaml!("./cli/en.yml");
-        //let cli_conf = TupleApp(App::from_yaml(yaml));
         DuniterCore {
             cli_conf: TupleApp(cli_conf),
             cli_args: None,
