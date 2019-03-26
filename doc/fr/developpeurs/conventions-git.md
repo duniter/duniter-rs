@@ -41,7 +41,7 @@ Exemple, renommage d'un trait `Toto` en `Titi` dans la crate `durs-bidule` :
 
 ### Liste des types de commit
 
-* `build` : Modification des script de build, de packaging ou/et de publication des livrables.
+* `build` : Modification des scripts de build, de packaging ou/et de publication des livrables.
 * `ci` : Modification de la chaine d'intégration continue.
 * `deps` : Modification des dépendances sans modification du code : ce peut être pour mettre à jour des dépendances tierces ou pour supprimer des dépendances tierces qui ne sont plus utilisées.
 * `docs` : Modification de la documentation (y compris traduction et création de nouveau contenu).
@@ -53,15 +53,15 @@ Exemple, renommage d'un trait `Toto` en `Titi` dans la crate `durs-bidule` :
 * `style` : Modification du style du code (fmt et clippy).
 * `tests` : Modification des tests existants ou/et création de nouveaux tests.
 
-Si vous avez besoin d'effectuer une action qui ne rentre dans aucun de ses types, contactez les principaux ndéveloppeurs du proejt pour discuter de l'ajout d'un nouveau type de commit dans cette liste.
+Si vous avez besoin d'effectuer une action qui ne rentre dans aucun de ses types, contactez les principaux développeurs du projet pour discuter de l'ajout d'un nouveau type de commit dans cette liste.
 
 ## Stratégie de mise a jour
 
 On met à jour uniquement avec des rebase, les merge sont strictement interdits !
 
-Chaque fois que la branche `dev` est mise à jour, vous devez rebaser chacune de vos branche de travail sur dev. Pour chaque branche :
+Chaque fois que la branche `dev` est mise à jour, vous devez rebaser chacune de vos branches de travail sur dev. Pour chaque branche :
 
-1. Placez vous sur votre branche
+1. Placez-vous sur votre branche
 2. Lancez un rebase sur dev
 
     git rebase dev
@@ -79,11 +79,11 @@ Il se peut que vous n'ayez pas de conflits du tout, dans ce cas vous sautez dire
 
 ## Quand pusher
 
-Idéalement à chaque fois que vous êtes sur le point d'éteindre votre ordinateur, soit environ 1 fois par jour (uniquement pour les jours où vous codez sur le projet bien sûr).
+Idéalement à chaque fois que vous êtes sur le point d'éteindre votre ordinateur, soit environ une fois par jour (uniquement pour les jours où vous codez sur le projet bien sûr).
 
 Pensez bien à préfixer votre commit par `wip:` pour indiquer que c'est un "work in progress".
 
-> Pourquoi puhser alors que je n'ai pas fini ?
+> Pourquoi pusher alors que je n'ai pas fini ?
 
 Si votre ordinateur rencontre un problème (panne, perte de données, reformatage, etc), pusher vous permet de vous assurer d'avoir toujours une copie de votre travail quelque part sur les internets.
 
@@ -107,6 +107,6 @@ Enfin faites un `push force` sur le dépot distant :
 
     git push -f
 
-Puis rendez vous sur le gitlab et vérifiez que le code sur votre branche distante est bien celui censé s'y trouver.
+Puis, rendez-vous sur le gitlab et vérifiez que le code sur votre branche distante est bien celui censé s'y trouver.
 
-Attendez 20 minutes que la chaîne d'intégration continue puisse vérifier votre code, et si elle réussi vous pouvez alors supprimer la mention WIP de votre Merge Request et tagger des développeurs expérimentés pour demander une revue de code.
+Attendez 20 minutes que la chaîne d'intégration continue puisse vérifier votre code, et si elle réussit vous pouvez alors supprimer la mention WIP de votre Merge Request et tagger des développeurs expérimentés pour demander une revue de code.
