@@ -46,7 +46,9 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
         time: get_number(json_block, "time")?.trunc() as u64,
         median_time: get_number(json_block, "medianTime")?.trunc() as u64,
         members_count: get_number(json_block, "membersCount")?.trunc() as usize,
-        monetary_mass: get_number(json_block, "monetaryMass")?.trunc() as usize,
+        monetary_mass: get_number(json_block, "monetaryMass")
+            .unwrap_or(0f64)
+            .trunc() as usize,
         unit_base: get_number(json_block, "unitbase")?.trunc() as usize,
         issuers_count: get_number(json_block, "issuersCount")?.trunc() as usize,
         issuers_frame: get_number(json_block, "issuersFrame")?.trunc() as isize,
