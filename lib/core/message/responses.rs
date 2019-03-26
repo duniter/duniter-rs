@@ -69,7 +69,7 @@ pub enum BlockchainResponse {
     /// Usernames corresponding to the public keys in parameter
     UIDs(ModuleReqId, HashMap<PubKey, Option<String>>),
     /// Identities
-    Identities(ModuleReqId, Vec<DALIdentity>),
+    Identities(ModuleReqId, Vec<IdentityDocument>),
 }
 
 #[derive(Debug, Clone)]

@@ -16,6 +16,7 @@
 //! Sub-module managing the inter-modules requests received.
 
 use crate::*;
+use dubp_documents::documents::identity::IdentityDocument;
 use duniter_module::*;
 use durs_message::requests::*;
 
@@ -90,7 +91,10 @@ pub fn receive_req(
                     filters,
                     bc.current_blockstamp.id,
                 )
-                .expect("Fatal error : get_identities: Fail to read IdentitiesDB !");
+                .expect("Fatal error : get_identities: Fail to read IdentitiesDB !")
+                .into_iter()
+                .map(|dal_idty| dal_idty.idty_doc)
+                .collect::<Vec<IdentityDocument>>();
                 responses::sent::send_req_response(
                     bc,
                     req_from,
