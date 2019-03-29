@@ -32,7 +32,7 @@ Exemple : si vous souhaitez créer un module nommé `toto`, vous placerez la cra
 
 ### Découper un module en plusieurs crates
 
-Si vous souhaitez découper votre module en plusieurs crates, le dossier de votre crate principale* doit être `lib/modules/{your-module-name}/your-module-name}`. Les crates supplémentaires doivent avoir pour dossier `modules/{your-module-name}/{crate-name}` et leur nom doit être préfixé par `{your-module-name}-`.
+Si vous souhaitez découper votre module en plusieurs crates, le dossier de votre crate principale* doit être `lib/modules/{your-module-name}/{your-module-name}`. Les crates supplémentaires doivent avoir pour dossier `modules/{your-module-name}/{crate-name}` et leur nom doit être préfixé par `{your-module-name}-`.
 
 Exemple : vous souhaitez déplacer une partie du code de votre module toto dans une nouvelle crate `tata`. Vous devrez déplacer votre module `toto` dans `lib/modules/toto/toto` et créer votre module tata dans `lib/modules/toto/toto-tata`. De plus, votre nouvelle doit déclarer dans sont Cargo.toml le nom `durs-toto-tata`.
 
@@ -140,7 +140,7 @@ Déclaration :
     fn name() -> ModuleStaticName;
 ```
 
-`ModuleStaticName` est une tuple struct contenant un seul élément de type `&'static str`. C'est une pratique courante en Rust que d'encapsuler des types standards dans des tuple struct pour manipuler des types pus expressifs. Notez bien qu'il s'agit d'une abstraction sans coût car le compilateur désencapsulera tous vos types dans le binaire final, donc vous pouvez abuser des tuples struct à volonté, c'est considéré comme une bonne pratique. Si vous ne connaissez pas le type `&'static str` je vous renvoie au [Rust Book](https://doc.rust-lang.org/book/second-edition/ch10-03-lifetime-syntax.html#the-static-lifetime).
+`ModuleStaticName` est une tuple struct contenant un seul élément de type `&'static str`. C'est une pratique courante en Rust que d'encapsuler des types standards dans des tuple struct pour manipuler des types plus expressifs. Notez bien qu'il s'agit d'une abstraction sans coût car le compilateur désencapsulera tous vos types dans le binaire final, donc vous pouvez abuser des tuples struct à volonté, c'est considéré comme une bonne pratique. Si vous ne connaissez pas le type `&'static str` je vous renvoie au [Rust Book](https://doc.rust-lang.org/book/second-edition/ch10-03-lifetime-syntax.html#the-static-lifetime).
 
 Dans la pratique, le type `ModuleStaticName` est vraiment très simple à utiliser, si votre module se nomme `toto` vous pouvez écrire :
 
@@ -213,7 +213,7 @@ Déclaration :
     }
 ```
 
-L'implémentation par défaut retourne `false`. Si vous avez une sous commande il vous suffit de réimplémenter la fonction en retournant true.
+L'implémentation par défaut retourne `false`. Si vous avez une sous commande il vous suffit de réimplémenter la fonction en retournant `true`.
 
 #### La fonction `exec_subcommand`
 
