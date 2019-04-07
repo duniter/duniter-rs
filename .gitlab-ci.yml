@@ -275,7 +275,7 @@ package:prod:win64:
   allow_failure: false
 
 .release_jobs: &release_jobs
-  image: tensorflow/tensorflow:latest-py3
+  image: tensorflow/tensorflow:1.12.0-py3
   tags:
     - redshift-rs
   script:
