@@ -58,6 +58,7 @@ use dubp_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_wot::data::{rusty::RustyWebOfTrust, NodeId};
+use fnv::FnvHashMap;
 use rustbreak::backend::{FileBackend, MemoryBackend};
 use rustbreak::error::{RustbreakError, RustbreakErrorKind};
 use rustbreak::{deser::Bincode, Database, FileDatabase, MemoryDatabase};
@@ -78,7 +79,7 @@ use crate::writers::transaction::DALTxV10;
 /// Currency parameters (Protocol V10)
 pub type CurrencyParamsV10Datas = (CurrencyName, BlockV10Parameters);
 /// All blocks of local blockchain indexed by block number
-pub type LocalBlockchainV10Datas = HashMap<BlockId, DALBlock>;
+pub type LocalBlockchainV10Datas = FnvHashMap<BlockId, DALBlock>;
 /// Forks tree meta datas (block number and hash only)
 pub type ForksTreeV10Datas = entities::fork_tree::ForkTree;
 /// Forks blocks referenced in tree indexed by their blockstamp
@@ -90,9 +91,9 @@ pub type WotDB = RustyWebOfTrust;
 /// V10 Identities indexed by public key
 pub type IdentitiesV10Datas = HashMap<PubKey, DALIdentity>;
 /// Memberships sorted by created block
-pub type MsExpirV10Datas = HashMap<BlockId, HashSet<NodeId>>;
+pub type MsExpirV10Datas = FnvHashMap<BlockId, HashSet<NodeId>>;
 /// Certifications sorted by created block
-pub type CertsExpirV10Datas = HashMap<BlockId, HashSet<(NodeId, NodeId)>>;
+pub type CertsExpirV10Datas = FnvHashMap<BlockId, HashSet<(NodeId, NodeId)>>;
 /// V10 Transactions indexed by their hashs
 pub type TxV10Datas = HashMap<Hash, DALTxV10>;
 /// V10 Unused Transaction Output (=sources)
