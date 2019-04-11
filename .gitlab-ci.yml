@@ -11,7 +11,7 @@ stages:
 variables:
   CARGO_HOME: $CI_PROJECT_DIR/cargo
 
-.rust_changes: &rust_changes
+.ci_conditions: &ci_conditions
   only:
     changes:
       - .gitlab-ci.yml
@@ -19,9 +19,12 @@ variables:
       - bin/**/*
       - lib/**/*
       - release/**/*
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /^wip*/i
 
 .rust_stable_lin64: &rust_stable_lin64
-  <<: *rust_changes
+  <<: *ci_conditions
   image: registry.duniter.org/docker/duniter-rs-ci:v1.33.3
   tags:
     - redshift-rs-stable
@@ -31,7 +34,7 @@ variables:
     - rustc --version && cargo --version
 
 .rust_beta_lin64: &rust_beta_lin64
-  <<: *rust_changes
+  <<: *ci_conditions
   image: parity/rust:gitlab-ci
   tags:
     - redshift-rs-stable
@@ -41,7 +44,7 @@ variables:
     - rustup show && rustc --version && cargo --version
 
 .rust_nightly_lin64: &rust_nightly_lin64
-  <<: *rust_changes
+  <<: *ci_conditions
   image: rustlang/rust:nightly
   tags:
     - redshift-rs-nightly
@@ -50,7 +53,7 @@ variables:
     - rustc --version && cargo --version
 
 .rust_stable_armv7: &rust_stable_armv7
-  <<: *rust_changes
+  <<: *ci_conditions
   image: registry.duniter.org/docker/rust/armv7-builder:v1.33.0
   tags:
     - redshift-rs-stable
@@ -58,7 +61,7 @@ variables:
     - rustc --version && cargo --version
 
 .rust_stable_win64: &rust_stable_win64
-  <<: *rust_changes
+  <<: *ci_conditions
   image: registry.duniter.org/docker/rust/win64-builder:v1.32.0
   tags:
     - redshift-rs-stable
