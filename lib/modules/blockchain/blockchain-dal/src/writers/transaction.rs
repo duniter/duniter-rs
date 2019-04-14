@@ -223,7 +223,7 @@ pub fn revert_tx(dbs: &CurrencyV10DBs, dal_tx: &DALTxV10) -> Result<(), DALError
                 db.insert(*utxo_index, utxo_content);
             })?;
         } else if let SourceIndexV10::UD(pubkey, block_id) = s_index {
-            let mut pubkey_dus: HashSet<BlockId> = dbs
+            let mut pubkey_dus: HashSet<BlockNumber> = dbs
                 .du_db
                 .read(|db| db.get(&pubkey).cloned().unwrap_or_default())?;
             pubkey_dus.insert(*block_id);
@@ -330,7 +330,7 @@ pub fn apply_and_write_tx(
                 db.remove(utxo_index);
             })?;
         } else if let SourceIndexV10::UD(pubkey, block_id) = source_index {
-            let mut pubkey_dus: HashSet<BlockId> = dbs
+            let mut pubkey_dus: HashSet<BlockNumber> = dbs
                 .du_db
                 .read(|db| db.get(&pubkey).cloned().unwrap_or_default())?;
             pubkey_dus.remove(block_id);
@@ -473,7 +473,7 @@ mod tests {
             &currency_dbs.du_db,
             &currency_dbs.balances_db,
             &SourceAmount(TxAmount(1000), TxBase(0)),
-            BlockId(1),
+            BlockNumber(1),
             &vec![tx_doc.issuers()[0], tortue_pubkey],
             false,
         )

@@ -18,7 +18,7 @@ use crate::entities::identity::{DALIdentity, DALIdentityState};
 use crate::{BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
 use dubp_documents::documents::identity::IdentityDocument;
 use dubp_documents::Document;
-use dubp_documents::{BlockId, Blockstamp};
+use dubp_documents::{BlockNumber, Blockstamp};
 use dup_crypto::keys::PubKey;
 use durs_wot::NodeId;
 
@@ -55,7 +55,7 @@ pub fn create_identity(
     identities_db: &BinDB<IdentitiesV10Datas>,
     ms_db: &BinDB<MsExpirV10Datas>,
     idty_doc: &IdentityDocument,
-    ms_created_block_id: BlockId,
+    ms_created_block_id: BlockNumber,
     wot_id: NodeId,
     current_blockstamp: Blockstamp,
     current_bc_time: u64,
@@ -182,7 +182,7 @@ pub fn renewal_identity(
     pubkey: &PubKey,
     idty_wot_id: NodeId,
     renewal_timestamp: u64,
-    ms_created_block_id: BlockId,
+    ms_created_block_id: BlockNumber,
     revert: bool,
 ) -> Result<(), DALError> {
     // Get idty_datas

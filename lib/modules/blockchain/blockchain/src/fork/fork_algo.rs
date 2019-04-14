@@ -139,7 +139,7 @@ mod tests {
             .map(|i| {
                 dubp_documents_tests_tools::mocks::gen_empty_timed_block(
                     Blockstamp {
-                        id: BlockId(fork_point.number.0 + i + 1),
+                        id: BlockNumber(fork_point.number.0 + i + 1),
                         hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
                     },
                     ADVANCE_TIME - 1,
@@ -169,7 +169,7 @@ mod tests {
 
         // Add the determining fork block
         let determining_blockstamp = Blockstamp {
-            id: BlockId(fork_point.number.0 + 4),
+            id: BlockNumber(fork_point.number.0 + 4),
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
         };
         assert_eq!(
@@ -204,7 +204,7 @@ mod tests {
             .map(|i| {
                 dubp_documents_tests_tools::mocks::gen_empty_timed_block(
                     Blockstamp {
-                        id: BlockId(fork_point.number.0 + i + 1),
+                        id: BlockNumber(fork_point.number.0 + i + 1),
                         hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
                     },
                     ADVANCE_TIME * 2,

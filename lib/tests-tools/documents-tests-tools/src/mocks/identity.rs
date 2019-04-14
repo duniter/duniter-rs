@@ -21,7 +21,7 @@ use dup_crypto::hashs::Hash;
 use dup_crypto::keys::PubKey;
 
 /// Generate mock identity document
-pub fn gen_mock_idty(pubkey: PubKey, created_on: BlockId) -> IdentityDocument {
+pub fn gen_mock_idty(pubkey: PubKey, created_on: BlockNumber) -> IdentityDocument {
     let idty_builder = IdentityDocumentBuilder {
         currency: "",
         username: "",

@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
-use dubp_documents::BlockId;
+use dubp_documents::BlockNumber;
 use duniter_network::requests::OldNetworkRequest;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
@@ -32,7 +32,7 @@ pub enum DursReqContent {
     /// Mem pool datas request
     MemPoolRequest(MemPoolRequest),
     /// Request to the pow module
-    ProverRequest(BlockId, Hash),
+    ProverRequest(BlockNumber, Hash),
     /// Arbitrary datas
     ArbitraryDatas(ArbitraryDatas),
 }

@@ -36,7 +36,7 @@ pub fn request_next_main_blocks(bc: &mut BlockchainModule) {
         0 => (bc.current_blockstamp.id.0 + *MAX_BLOCKS_REQUEST),
         _ => bc.consensus.id.0,
     };
-    let new_pending_network_requests = dunp::queries::request_blocks_to(bc, BlockId(to));
+    let new_pending_network_requests = dunp::queries::request_blocks_to(bc, BlockNumber(to));
     for (new_req_id, new_req) in new_pending_network_requests {
         bc.pending_network_requests.insert(new_req_id, new_req);
     }

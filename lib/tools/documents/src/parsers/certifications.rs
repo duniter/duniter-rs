@@ -15,7 +15,7 @@
 
 use crate::documents::certification::{CertificationDocument, CompactCertificationDocument};
 use crate::text_document_traits::TextDocumentFormat;
-use crate::BlockId;
+use crate::BlockNumber;
 use dup_crypto::keys::*;
 
 /// Parse array of certification json documents into vector of `CompactCertificationDocument`
@@ -35,7 +35,7 @@ pub fn parse_certifications_into_compact(
                     ed25519::PublicKey::from_base58(certifications_datas[1])
                         .expect("Receive block in wrong format : fail to parse target !"),
                 ),
-                block_number: BlockId(
+                block_number: BlockNumber(
                     certifications_datas[2]
                         .parse()
                         .expect("Receive block in wrong format : fail to parse block number !"),

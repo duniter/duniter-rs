@@ -54,7 +54,7 @@ pub mod writers;
 use dubp_documents::documents::block::BlockV10Parameters;
 use dubp_documents::documents::transaction::*;
 use dubp_documents::CurrencyName;
-use dubp_documents::{BlockHash, BlockId, Blockstamp, PreviousBlockstamp};
+use dubp_documents::{BlockHash, BlockNumber, Blockstamp, PreviousBlockstamp};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_wot::data::{rusty::RustyWebOfTrust, NodeId};
@@ -79,7 +79,7 @@ use crate::writers::transaction::DALTxV10;
 /// Currency parameters (Protocol V10)
 pub type CurrencyParamsV10Datas = (CurrencyName, BlockV10Parameters);
 /// All blocks of local blockchain indexed by block number
-pub type LocalBlockchainV10Datas = FnvHashMap<BlockId, DALBlock>;
+pub type LocalBlockchainV10Datas = FnvHashMap<BlockNumber, DALBlock>;
 /// Forks tree meta datas (block number and hash only)
 pub type ForksTreeV10Datas = entities::fork_tree::ForkTree;
 /// Forks blocks referenced in tree indexed by their blockstamp
@@ -91,15 +91,15 @@ pub type WotDB = RustyWebOfTrust;
 /// V10 Identities indexed by public key
 pub type IdentitiesV10Datas = HashMap<PubKey, DALIdentity>;
 /// Memberships sorted by created block
-pub type MsExpirV10Datas = FnvHashMap<BlockId, HashSet<NodeId>>;
+pub type MsExpirV10Datas = FnvHashMap<BlockNumber, HashSet<NodeId>>;
 /// Certifications sorted by created block
-pub type CertsExpirV10Datas = FnvHashMap<BlockId, HashSet<(NodeId, NodeId)>>;
+pub type CertsExpirV10Datas = FnvHashMap<BlockNumber, HashSet<(NodeId, NodeId)>>;
 /// V10 Transactions indexed by their hashs
 pub type TxV10Datas = HashMap<Hash, DALTxV10>;
 /// V10 Unused Transaction Output (=sources)
 pub type UTXOsV10Datas = HashMap<UTXOIndexV10, UTXOContentV10>;
 /// V10 UDs sources
-pub type UDsV10Datas = HashMap<PubKey, HashSet<BlockId>>;
+pub type UDsV10Datas = HashMap<PubKey, HashSet<BlockNumber>>;
 /// V10 Balances accounts
 pub type BalancesV10Datas = HashMap<UTXOConditionsGroup, (SourceAmount, HashSet<UTXOIndexV10>)>;
 

@@ -20,7 +20,7 @@ use crate::*;
 use base58::ToBase58;
 use dubp_documents::ToStringObject;
 use dubp_documents::{blockstamp::Blockstamp, CurrencyName};
-use dubp_documents::{BlockHash, BlockId};
+use dubp_documents::{BlockHash, BlockNumber};
 use dup_crypto::keys::text_signable::TextSignable;
 use dup_crypto::keys::*;
 use pest::iterators::Pair;
@@ -162,7 +162,7 @@ impl TextDocumentParser<Rule> for PeerCardV11 {
                     let block_id: &str = inner_rules.next().unwrap().as_str();
                     let block_hash: &str = inner_rules.next().unwrap().as_str();
                     blockstamp = Some(Blockstamp {
-                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
+                        id: BlockNumber(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
                         hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
                     });
                 }

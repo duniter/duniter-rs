@@ -16,7 +16,7 @@
 use crate::entities::currency_params::CurrencyParameters;
 use crate::{BinDB, CertsExpirV10Datas, DALError, IdentitiesV10Datas};
 use dubp_documents::documents::certification::CompactCertificationDocument;
-use dubp_documents::BlockId;
+use dubp_documents::BlockNumber;
 use dup_crypto::keys::*;
 use durs_wot::NodeId;
 
@@ -28,7 +28,7 @@ pub fn write_certification(
     source_pubkey: PubKey,
     source: NodeId,
     target: NodeId,
-    created_block_id: BlockId,
+    created_block_id: BlockNumber,
     written_timestamp: u64,
 ) -> Result<(), DALError> {
     // Get cert_chainable_on
@@ -86,7 +86,7 @@ pub fn revert_expire_cert(
     certs_db: &BinDB<CertsExpirV10Datas>,
     source: NodeId,
     target: NodeId,
-    created_block_id: BlockId,
+    created_block_id: BlockNumber,
 ) -> Result<(), DALError> {
     // Reinsert CertsExpirV10Datas entry
     certs_db.write(|db| {
@@ -100,7 +100,7 @@ pub fn revert_expire_cert(
 /// Apply "certification expiry" event in databases
 pub fn expire_certs(
     certs_db: &BinDB<CertsExpirV10Datas>,
-    created_block_id: BlockId,
+    created_block_id: BlockNumber,
 ) -> Result<(), DALError> {
     // Remove CertsExpirV10Datas entries
     certs_db.write(|db| {

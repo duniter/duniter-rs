@@ -233,10 +233,10 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
             let blockchain_db = open_file_db::<LocalBlockchainV10Datas>(&db_path, "blockchain.db")
                 .expect("Fail to open blockchain db");
             // Get blocks_times
-            let (current_bc_time, blocks_times): (u64, HashMap<BlockId, u64>) = blockchain_db
+            let (current_bc_time, blocks_times): (u64, HashMap<BlockNumber, u64>) = blockchain_db
                 .read(|db| {
                     (
-                        db[&BlockId(db.len() as u32 - 1)].block.median_time,
+                        db[&BlockNumber(db.len() as u32 - 1)].block.median_time,
                         db.iter()
                             .map(|(block_id, dal_block)| (*block_id, dal_block.block.median_time))
                             .collect(),

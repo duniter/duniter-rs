@@ -173,7 +173,7 @@ pub enum VerifyBlockHashsError {
     /// Invalid block inner hash
     InvalidInnerHash(),
     /// Invalid block hash
-    InvalidHash(BlockId, Option<BlockHash>),
+    InvalidHash(BlockNumber, Option<BlockHash>),
     /// Invalid block version
     InvalidVersion(),
 }

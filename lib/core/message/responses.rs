@@ -18,7 +18,7 @@ use dubp_documents::documents::certification::CertificationDocument;
 use dubp_documents::documents::identity::IdentityDocument;
 use dubp_documents::documents::membership::MembershipDocument;
 use dubp_documents::documents::revocation::RevocationDocument;
-use dubp_documents::BlockId;
+use dubp_documents::BlockNumber;
 use dubp_documents::Blockstamp;
 use duniter_module::ModuleReqId;
 use duniter_network::requests::NetworkResponse;
@@ -36,7 +36,7 @@ pub enum DursResContent {
     /// Response of OldNetworkRequest
     NetworkResponse(NetworkResponse),
     /// Pow module response
-    ProverResponse(BlockId, Sig, u64),
+    ProverResponse(BlockNumber, Sig, u64),
 }
 
 #[derive(Debug, Clone)]

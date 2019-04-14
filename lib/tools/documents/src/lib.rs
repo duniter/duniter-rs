@@ -154,9 +154,9 @@ impl CurrencyName {
 
 /// A block Id.
 #[derive(Copy, Clone, Debug, Deserialize, Ord, PartialEq, PartialOrd, Eq, Hash, Serialize)]
-pub struct BlockId(pub u32);
+pub struct BlockNumber(pub u32);
 
-impl Display for BlockId {
+impl Display for BlockNumber {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "{}", self.0)
     }

@@ -15,15 +15,15 @@
 
 pub mod identities;
 
-use dubp_documents::BlockId;
+use dubp_documents::BlockNumber;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// Pagination parameters
 pub struct PagingFilter {
     /// Retrieve only the elements created after this block
-    pub from: BlockId,
+    pub from: BlockNumber,
     /// Retrieve only the elements created before this block
-    pub to: Option<BlockId>,
+    pub to: Option<BlockNumber>,
     /// Number of elements per page
     pub page_size: usize,
     /// Number of the page requested
@@ -33,7 +33,7 @@ pub struct PagingFilter {
 impl Default for PagingFilter {
     fn default() -> Self {
         PagingFilter {
-            from: BlockId(0),
+            from: BlockNumber(0),
             to: None,
             page_size: *crate::constants::DEFAULT_PAGE_SIZE,
             page_number: 0,
@@ -44,7 +44,7 @@ impl Default for PagingFilter {
 impl PagingFilter {
     #[inline]
     /// Checks if a given element has been created in the requested period
-    pub fn check_created_on(&self, created_on: BlockId, current_block_id: BlockId) -> bool {
+    pub fn check_created_on(&self, created_on: BlockNumber, current_block_id: BlockNumber) -> bool {
         created_on >= self.from && created_on <= self.to.unwrap_or(current_block_id)
     }
     #[inline]

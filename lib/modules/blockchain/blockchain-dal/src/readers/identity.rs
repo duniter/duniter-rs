@@ -16,7 +16,7 @@
 use crate::entities::identity::DALIdentity;
 use crate::filters::identities::IdentitiesFilter;
 use crate::{BinDB, DALError, IdentitiesV10Datas};
-use dubp_documents::{BlockId, Document};
+use dubp_documents::{BlockNumber, Document};
 use dup_crypto::keys::*;
 use durs_wot::NodeId;
 use std::collections::HashMap;
@@ -25,7 +25,7 @@ use std::collections::HashMap;
 pub fn get_identities(
     db: &BinDB<IdentitiesV10Datas>,
     filters: IdentitiesFilter,
-    current_block_id: BlockId,
+    current_block_id: BlockNumber,
 ) -> Result<Vec<DALIdentity>, DALError> {
     if let Some(pubkey) = filters.by_pubkey {
         if let Some(idty) = db.read(|db| db.get(&pubkey).cloned())? {
@@ -124,7 +124,7 @@ mod test {
     use dup_crypto_tests_tools::mocks::pubkey;
     use rust_tests_tools::collections::slice_same_elems;
 
-    fn gen_mock_dal_idty(pubkey: PubKey, created_block_id: BlockId) -> DALIdentity {
+    fn gen_mock_dal_idty(pubkey: PubKey, created_block_id: BlockNumber) -> DALIdentity {
         DALIdentity {
             hash: "".to_owned(),
             state: DALIdentityState::Member(vec![]),
@@ -136,7 +136,7 @@ mod test {
                 created_block_id,
             ),
             wot_id: NodeId(0),
-            ms_created_block_id: BlockId(0),
+            ms_created_block_id: BlockNumber(0),
             ms_chainable_on: vec![],
             cert_chainable_on: vec![],
         }
@@ -146,11 +146,11 @@ mod test {
     fn test_get_identities() -> Result<(), DALError> {
         // Create mock identities
         let mock_identities = vec![
-            gen_mock_dal_idty(pubkey('A'), BlockId(0)),
-            gen_mock_dal_idty(pubkey('B'), BlockId(1)),
-            gen_mock_dal_idty(pubkey('C'), BlockId(3)),
-            gen_mock_dal_idty(pubkey('D'), BlockId(4)),
-            gen_mock_dal_idty(pubkey('E'), BlockId(5)),
+            gen_mock_dal_idty(pubkey('A'), BlockNumber(0)),
+            gen_mock_dal_idty(pubkey('B'), BlockNumber(1)),
+            gen_mock_dal_idty(pubkey('C'), BlockNumber(3)),
+            gen_mock_dal_idty(pubkey('D'), BlockNumber(4)),
+            gen_mock_dal_idty(pubkey('E'), BlockNumber(5)),
         ];
 
         // Write mock identities in DB
@@ -166,25 +166,25 @@ mod test {
         let mut filters = IdentitiesFilter::default();
         assert!(slice_same_elems(
             &mock_identities,
-            &get_identities(&identities_db, filters, BlockId(5))?
+            &get_identities(&identities_db, filters, BlockNumber(5))?
         ));
 
         // Test by pubkey filter
         filters = IdentitiesFilter::by_pubkey(pubkey('A'));
         assert_eq!(
             vec![mock_identities[0].clone()],
-            get_identities(&identities_db, filters, BlockId(5))?
+            get_identities(&identities_db, filters, BlockNumber(5))?
         );
         filters = IdentitiesFilter::by_pubkey(pubkey('C'));
         assert_eq!(
             vec![mock_identities[2].clone()],
-            get_identities(&identities_db, filters, BlockId(5))?
+            get_identities(&identities_db, filters, BlockNumber(5))?
         );
 
         // Test paging filter with little page size
         filters = IdentitiesFilter {
             paging: PagingFilter {
-                from: BlockId(0),
+                from: BlockNumber(0),
                 to: None,
                 page_size: 2,
                 page_number: 1,
@@ -193,14 +193,14 @@ mod test {
         };
         assert!(slice_same_elems(
             &vec![mock_identities[2].clone(), mock_identities[3].clone()],
-            &get_identities(&identities_db, filters, BlockId(5))?
+            &get_identities(&identities_db, filters, BlockNumber(5))?
         ));
 
         // Test paging filter with limited interval
         filters = IdentitiesFilter {
             paging: PagingFilter {
-                from: BlockId(2),
-                to: Some(BlockId(3)),
+                from: BlockNumber(2),
+                to: Some(BlockNumber(3)),
                 page_size: 50,
                 page_number: 0,
             },
@@ -208,7 +208,7 @@ mod test {
         };
         assert_eq!(
             vec![mock_identities[2].clone()],
-            get_identities(&identities_db, filters, BlockId(5))?
+            get_identities(&identities_db, filters, BlockNumber(5))?
         );
 
         Ok(())

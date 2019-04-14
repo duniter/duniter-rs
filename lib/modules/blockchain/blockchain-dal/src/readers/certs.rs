@@ -14,15 +14,15 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{BinDB, CertsExpirV10Datas, DALError};
-use dubp_documents::BlockId;
+use dubp_documents::BlockNumber;
 use durs_wot::NodeId;
 use std::collections::HashMap;
 
 /// Find certifications that emitted in indicated blocks expiring
 pub fn find_expire_certs(
     certs_db: &BinDB<CertsExpirV10Datas>,
-    blocks_expiring: Vec<BlockId>,
-) -> Result<HashMap<(NodeId, NodeId), BlockId>, DALError> {
+    blocks_expiring: Vec<BlockNumber>,
+) -> Result<HashMap<(NodeId, NodeId), BlockNumber>, DALError> {
     Ok(certs_db.read(|db| {
         let mut all_expire_certs = HashMap::new();
         for expire_block_id in blocks_expiring {

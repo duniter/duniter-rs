@@ -56,7 +56,7 @@ pub struct TxIndex(pub usize);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum TransactionInput {
     /// Universal Dividend Input
-    D(TxAmount, TxBase, PubKey, BlockId),
+    D(TxAmount, TxBase, PubKey, BlockNumber),
     /// Previous Transaction Input
     T(TxAmount, TxBase, Hash, TxIndex),
 }
@@ -88,7 +88,7 @@ impl TransactionInput {
                         ed25519::PublicKey::from_base58(inner_rules.next().unwrap().as_str())
                             .unwrap(),
                     ),
-                    BlockId(inner_rules.next().unwrap().as_str().parse().unwrap()),
+                    BlockNumber(inner_rules.next().unwrap().as_str().parse().unwrap()),
                 )
             }
             Rule::tx_input_tx => {
@@ -135,7 +135,7 @@ impl FromStr for TransactionInput {
                 PubKey::Ed25519(
                     ed25519::PublicKey::from_base58(pubkey).expect("fail to parse input pubkey !"),
                 ),
-                BlockId(
+                BlockNumber(
                     block_number
                         .parse()
                         .expect("fail to parse input block_number !"),
@@ -859,7 +859,7 @@ impl TextDocumentParser<Rule> for TransactionDocumentParser {
                     let block_id: &str = inner_rules.next().unwrap().as_str();
                     let block_hash: &str = inner_rules.next().unwrap().as_str();
                     blockstamp = Blockstamp {
-                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
+                        id: BlockNumber(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
                         hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
                     };
                 }
@@ -941,7 +941,7 @@ mod tests {
                     ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
                         .unwrap(),
                 ),
-                BlockId(0),
+                BlockNumber(0),
             )],
             unlocks: &vec![TransactionInputUnlocks {
                 index: 0,

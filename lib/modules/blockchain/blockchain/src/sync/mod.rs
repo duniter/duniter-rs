@@ -18,7 +18,7 @@ mod download;
 
 use crate::dubp::apply::apply_valid_block;
 use crate::*;
-use dubp_documents::{BlockHash, BlockId};
+use dubp_documents::{BlockHash, BlockNumber};
 use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::currency_params::CurrencyParameters;
 use durs_blockchain_dal::writers::requests::*;
@@ -38,7 +38,7 @@ pub static NB_SYNC_JOBS: &'static usize = &4;
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Block header
 pub struct BlockHeader {
-    pub number: BlockId,
+    pub number: BlockNumber,
     pub hash: BlockHash,
     pub issuer: PubKey,
 }
@@ -299,7 +299,7 @@ pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt)
             < Some(block_doc.median_time - currency_params.sig_validity)
         {
             last_block_expiring += 1;
-            blocks_expiring.push(BlockId(last_block_expiring as u32));
+            blocks_expiring.push(BlockNumber(last_block_expiring as u32));
             blocks_not_expiring.pop_front();
         }
         // Find expire_certs

@@ -21,7 +21,7 @@ pub fn get_currency_params(
     blockchain_db: &BinDB<LocalBlockchainV10Datas>,
 ) -> Result<Option<CurrencyParameters>, DALError> {
     Ok(blockchain_db.read(|db| {
-        if let Some(genesis_block) = db.get(&BlockId(0)) {
+        if let Some(genesis_block) = db.get(&BlockNumber(0)) {
             if genesis_block.block.parameters.is_some() {
                 Some(CurrencyParameters::from((
                     genesis_block.block.currency.clone(),

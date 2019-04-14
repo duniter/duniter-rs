@@ -16,7 +16,7 @@
 use crate::*;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::Document;
-use dubp_documents::{BlockId, Blockstamp};
+use dubp_documents::{BlockNumber, Blockstamp};
 use durs_wot::NodeId;
 use std::collections::HashMap;
 
@@ -26,9 +26,9 @@ pub struct DALBlock {
     /// Block document
     pub block: BlockDocument,
     /// List of certifications that expire in this block.
-    /// Warning : BlockId contain the emission block, not the written block !
-    /// HashMap<(Source, Target), CreatedBlockId>
-    pub expire_certs: Option<HashMap<(NodeId, NodeId), BlockId>>,
+    /// Warning : BlockNumber contain the emission block, not the written block !
+    /// HashMap<(Source, Target), BlockNumber>
+    pub expire_certs: Option<HashMap<(NodeId, NodeId), BlockNumber>>,
 }
 
 impl DALBlock {
@@ -39,7 +39,7 @@ impl DALBlock {
     /// Get previous blockstamp
     pub fn previous_blockstamp(&self) -> PreviousBlockstamp {
         Blockstamp {
-            id: BlockId(self.block.number.0 - 1),
+            id: BlockNumber(self.block.number.0 - 1),
             hash: BlockHash(self.block.previous_hash),
         }
     }

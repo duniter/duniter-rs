@@ -25,7 +25,7 @@ use dup_crypto::hashs::Hash;
 pub fn generate_blockstamps(n: usize) -> Vec<Blockstamp> {
     (0..n)
         .map(|i| Blockstamp {
-            id: BlockId(i as u32),
+            id: BlockNumber(i as u32),
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash_from_byte(
                 (i % 255) as u8,
             )),
@@ -39,7 +39,7 @@ pub fn gen_empty_timed_blocks(n: usize, time_step: u64) -> Vec<BlockDocument> {
         .map(|i| {
             gen_empty_timed_block(
                 Blockstamp {
-                    id: BlockId(i as u32),
+                    id: BlockNumber(i as u32),
                     hash: BlockHash(dup_crypto_tests_tools::mocks::hash_from_byte(
                         (i % 255) as u8,
                     )),

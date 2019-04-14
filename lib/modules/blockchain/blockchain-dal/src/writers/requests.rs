@@ -94,13 +94,13 @@ impl BlocksDBsWriteQuery {
 /// Contain a pending write request for wots databases
 pub enum WotsDBsWriteQuery {
     /// Newcomer (wot_id, blockstamp, current_bc_time, idty_doc, ms_created_block_id)
-    CreateIdentity(NodeId, Blockstamp, u64, Box<IdentityDocument>, BlockId),
+    CreateIdentity(NodeId, Blockstamp, u64, Box<IdentityDocument>, BlockNumber),
     /// Revert newcomer event (wot_id, blockstamp, current_bc_time, idty_doc, ms_created_block_id)
     RevertCreateIdentity(PubKey),
     /// Active (pubKey, idty_wot_id, current_bc_time, ms_created_block_id)
-    RenewalIdentity(PubKey, NodeId, u64, BlockId),
+    RenewalIdentity(PubKey, NodeId, u64, BlockNumber),
     /// Revert active (pubKey, idty_wot_id, current_bc_time, ms_created_block_id)
-    RevertRenewalIdentity(PubKey, NodeId, u64, BlockId),
+    RevertRenewalIdentity(PubKey, NodeId, u64, BlockNumber),
     /// Excluded
     ExcludeIdentity(PubKey, Blockstamp),
     /// Revert exclusion
@@ -110,13 +110,13 @@ pub enum WotsDBsWriteQuery {
     /// Revert revocation
     RevertRevokeIdentity(PubKey, Blockstamp, bool),
     /// Certification (source_pubkey, source, target, created_block_id, median_time)
-    CreateCert(PubKey, NodeId, NodeId, BlockId, u64),
+    CreateCert(PubKey, NodeId, NodeId, BlockNumber, u64),
     /// Revert certification (source_pubkey, source, target, created_block_id, median_time)
     RevertCert(CompactCertificationDocument, NodeId, NodeId),
     /// Certification expiry (source, target, created_block_id)
-    ExpireCerts(BlockId),
+    ExpireCerts(BlockNumber),
     /// Revert certification expiry event (source, target, created_block_id)
-    RevertExpireCert(NodeId, NodeId, BlockId),
+    RevertExpireCert(NodeId, NodeId, BlockNumber),
 }
 
 impl WotsDBsWriteQuery {
@@ -277,9 +277,9 @@ pub enum CurrencyDBsWriteQuery {
     /// Revert transaction
     RevertTx(Box<DALTxV10>),
     /// Create dividend
-    CreateUD(SourceAmount, BlockId, Vec<PubKey>),
+    CreateUD(SourceAmount, BlockNumber, Vec<PubKey>),
     /// Revert dividend
-    RevertUD(SourceAmount, BlockId, Vec<PubKey>),
+    RevertUD(SourceAmount, BlockNumber, Vec<PubKey>),
 }
 
 impl CurrencyDBsWriteQuery {

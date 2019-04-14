@@ -41,7 +41,7 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
     Ok(BlockDocument {
         version: get_number(json_block, "version")?.trunc() as u32,
         nonce: get_number(json_block, "nonce")?.trunc() as u64,
-        number: BlockId(block_number),
+        number: BlockNumber(block_number),
         pow_min: get_number(json_block, "powMin")?.trunc() as usize,
         time: get_number(json_block, "time")?.trunc() as u64,
         median_time: get_number(json_block, "medianTime")?.trunc() as u64,
@@ -175,7 +175,7 @@ mod tests {
             BlockDocument {
                 version: 10,
                 nonce: 10200000037108,
-                number: BlockId(7),
+                number: BlockNumber(7),
                 pow_min: 70,
                 time: 1488987677,
                 median_time: 1488987394,
@@ -297,7 +297,7 @@ mod tests {
         let expected_block = BlockDocument {
                 version: 10,
                 nonce: 10100000033688,
-                number: BlockId(52),
+                number: BlockNumber(52),
                 pow_min: 74,
                 time: 1488990898,
                 median_time: 1488990117,

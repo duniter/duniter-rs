@@ -16,7 +16,7 @@
 use crate::*;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::Document;
-use dubp_documents::{BlockHash, BlockId, Blockstamp};
+use dubp_documents::{BlockHash, BlockNumber, Blockstamp};
 use dup_crypto::keys::*;
 use std::collections::HashMap;
 
@@ -26,7 +26,7 @@ pub fn get_current_blockstamp(blocks_db: &BlocksV10DBs) -> Result<Option<Blockst
         let blockchain_len = db.len() as u32;
         if blockchain_len == 0 {
             None
-        } else if let Some(dal_block) = db.get(&BlockId(blockchain_len - 1)) {
+        } else if let Some(dal_block) = db.get(&BlockNumber(blockchain_len - 1)) {
             Some(dal_block.blockstamp())
         } else {
             None
@@ -37,7 +37,7 @@ pub fn get_current_blockstamp(blocks_db: &BlocksV10DBs) -> Result<Option<Blockst
 /// Get block hash
 pub fn get_block_hash(
     db: &BinDB<LocalBlockchainV10Datas>,
-    block_number: BlockId,
+    block_number: BlockNumber,
 ) -> Result<Option<BlockHash>, DALError> {
     Ok(db.read(|db| {
         if let Some(dal_block) = db.get(&block_number) {
@@ -55,7 +55,7 @@ pub fn already_have_block(
     previous_hash: Hash,
 ) -> Result<bool, DALError> {
     let previous_blockstamp = Blockstamp {
-        id: BlockId(blockstamp.id.0 - 1),
+        id: BlockNumber(blockstamp.id.0 - 1),
         hash: BlockHash(previous_hash),
     };
 
@@ -110,7 +110,7 @@ pub fn get_block(
 /// Get block in local blockchain
 pub fn get_block_in_local_blockchain(
     db: &BinDB<LocalBlockchainV10Datas>,
-    block_id: BlockId,
+    block_id: BlockNumber,
 ) -> Result<Option<BlockDocument>, DALError> {
     Ok(db.read(|db| {
         if let Some(dal_block) = db.get(&block_id) {
@@ -131,7 +131,7 @@ pub fn get_current_frame(
         let mut current_frame: HashMap<PubKey, usize> = HashMap::new();
         for block_number in frame_begin..current_block.block.number.0 {
             let issuer = db
-                .get(&BlockId(block_number))
+                .get(&BlockNumber(block_number))
                 .unwrap_or_else(|| panic!("Fail to get block #{} !", block_number))
                 .block
                 .issuers()[0];

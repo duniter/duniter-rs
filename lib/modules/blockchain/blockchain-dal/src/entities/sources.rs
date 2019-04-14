@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use dubp_documents::documents::transaction::*;
-use dubp_documents::BlockId;
+use dubp_documents::BlockNumber;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::PubKey;
 use std::cmp::Ordering;
@@ -116,5 +116,5 @@ pub enum SourceIndexV10 {
     /// unused Transaction Output
     UTXO(UTXOIndexV10),
     /// universal Dividend
-    UD(PubKey, BlockId),
+    UD(PubKey, BlockNumber),
 }

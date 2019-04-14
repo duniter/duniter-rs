@@ -30,7 +30,7 @@ pub struct CompactCertificationDocument {
     /// Target
     pub target: PubKey,
     /// Blockstamp
-    pub block_number: BlockId,
+    pub block_number: BlockNumber,
     /// Signature
     pub signature: Sig,
 }
@@ -301,7 +301,7 @@ impl TextDocumentParser<Rule> for CertificationDocumentParser {
                     let block_id: &str = inner_rules.next().unwrap().as_str();
                     let block_hash: &str = inner_rules.next().unwrap().as_str();
                     blockstamps.push(Blockstamp {
-                        id: BlockId(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
+                        id: BlockNumber(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
                         hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
                     });
                 }

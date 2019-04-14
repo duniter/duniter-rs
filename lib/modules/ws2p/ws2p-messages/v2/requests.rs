@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use dubp_documents::{BlockId, Blockstamp};
+use dubp_documents::{BlockNumber, Blockstamp};
 
 /// WS2Pv2Request
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -42,11 +42,11 @@ pub enum WS2Pv2RequestBody {
     /// It would be counterproductive to ask directly for the entire blocks, when you will only need them if you actually decide to stack the corresponding branch.
     /// param1: begin_block_id (u32)
     /// param2: blocks_count (u16)
-    BlocksHashs(BlockId, u16),
+    BlocksHashs(BlockNumber, u16),
     /// CHUNK: Request chunk of blocks.
     /// param1: begin_block_id (u32)
     /// param2: blocks_count (u16)
-    Chunk(BlockId, u16),
+    Chunk(BlockNumber, u16),
     /// CHUNK_BY_HASH : During synchronization, chunk is requested by Chunkstamp (= Blockstamp of the last block of the chunk).
     ChunkByHash(Blockstamp),
     /// WOT_POOL : For network performance reasons, a Durs* node never shares its entire wot pool at once.

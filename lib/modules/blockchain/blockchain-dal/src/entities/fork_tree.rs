@@ -15,7 +15,7 @@
 
 //! Describe fork tree
 
-use dubp_documents::{BlockHash, BlockId, Blockstamp};
+use dubp_documents::{BlockHash, BlockNumber, Blockstamp};
 use serde::de::{self, Deserialize, Deserializer, Visitor};
 use serde::{Serialize, Serializer};
 use std::collections::{HashMap, HashSet};
@@ -114,7 +114,7 @@ impl TreeNode {
 pub struct ForkTree {
     root: Option<TreeNodeId>,
     nodes: Vec<Option<TreeNode>>,
-    main_branch: HashMap<BlockId, TreeNodeId>,
+    main_branch: HashMap<BlockNumber, TreeNodeId>,
     sheets: HashSet<TreeNodeId>,
     removed_blockstamps: Vec<Blockstamp>,
 }
@@ -198,7 +198,7 @@ impl ForkTree {
     }
     /// Get main branch node
     #[inline]
-    pub fn get_main_branch_node_id(&self, block_id: BlockId) -> Option<TreeNodeId> {
+    pub fn get_main_branch_node_id(&self, block_id: BlockNumber) -> Option<TreeNodeId> {
         if let Some(node_id) = self.main_branch.get(&block_id) {
             Some(*node_id)
         } else {
@@ -207,7 +207,7 @@ impl ForkTree {
     }
     /// Get main branch block hash
     #[inline]
-    pub fn get_main_branch_block_hash(&self, block_id: BlockId) -> Option<BlockHash> {
+    pub fn get_main_branch_block_hash(&self, block_id: BlockNumber) -> Option<BlockHash> {
         if let Some(node_id) = self.main_branch.get(&block_id) {
             Some(self.get_ref_node(*node_id).data.hash)
         } else {
@@ -299,13 +299,13 @@ impl ForkTree {
                 .data
                 .id;
             for block_id in first_fork_block_id.0..=new_current_blockstamp.id.0 {
-                self.main_branch.remove(&BlockId(block_id));
+                self.main_branch.remove(&BlockNumber(block_id));
             }
         }
         // Delete the part of the old branch that exceeds the new branch
         if old_current_blockstamp.id > new_current_blockstamp.id {
             for block_id in (new_current_blockstamp.id.0 + 1)..=old_current_blockstamp.id.0 {
-                self.main_branch.remove(&BlockId(block_id));
+                self.main_branch.remove(&BlockNumber(block_id));
             }
         }
 
@@ -379,14 +379,14 @@ impl ForkTree {
         // get root node infos
         let root_node_id = self.root.expect("safe unwrap");
         let root_node = self.get_node(root_node_id);
-        let root_node_block_id: BlockId = root_node.data.id;
+        let root_node_block_id: BlockNumber = root_node.data.id;
 
         // Shift the tree one step : remove root node and all his children except main child
         self.main_branch.remove(&root_node_block_id);
         self.removed_blockstamps.push(root_node.data);
         let root_node_main_child_id = self
             .main_branch
-            .get(&BlockId(root_node_block_id.0 + 1))
+            .get(&BlockNumber(root_node_block_id.0 + 1))
             .cloned()
             .expect("safe unwrap");
         let mut children_to_remove = Vec::new();
@@ -447,7 +447,7 @@ mod tests {
         assert_eq!(0, tree.size());
 
         let root_blockstamp = Blockstamp {
-            id: BlockId(0),
+            id: BlockNumber(0),
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
         };
         tree.insert_new_node(root_blockstamp, None, true);
@@ -460,11 +460,11 @@ mod tests {
         assert_eq!(None, tree.get_free_node_id());
         assert_eq!(
             Some(TreeNodeId(0)),
-            tree.get_main_branch_node_id(BlockId(0))
+            tree.get_main_branch_node_id(BlockNumber(0))
         );
         assert_eq!(
             Some(root_blockstamp.hash),
-            tree.get_main_branch_block_hash(BlockId(0))
+            tree.get_main_branch_block_hash(BlockNumber(0))
         );
         assert_eq!(
             Some(TreeNodeId(0)),
@@ -477,15 +477,15 @@ mod tests {
         let mut tree = ForkTree::default();
         let blockstamps = vec![
             Blockstamp {
-                id: BlockId(0),
+                id: BlockNumber(0),
                 hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
             },
             Blockstamp {
-                id: BlockId(1),
+                id: BlockNumber(1),
                 hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
             },
             Blockstamp {
-                id: BlockId(2),
+                id: BlockNumber(2),
                 hash: BlockHash(dup_crypto_tests_tools::mocks::hash('C')),
             },
         ];
@@ -503,11 +503,11 @@ mod tests {
         for i in 0..=2 {
             assert_eq!(
                 Some(TreeNodeId(i)),
-                tree.get_main_branch_node_id(BlockId(i as u32))
+                tree.get_main_branch_node_id(BlockNumber(i as u32))
             );
             assert_eq!(
                 Some(blockstamps[i].hash),
-                tree.get_main_branch_block_hash(BlockId(i as u32))
+                tree.get_main_branch_block_hash(BlockNumber(i as u32))
             );
             assert_eq!(
                 Some(TreeNodeId(i)),
@@ -530,12 +530,12 @@ mod tests {
 
         // Insert fork block after block 5
         let fork_blockstamp = Blockstamp {
-            id: BlockId(6),
+            id: BlockNumber(6),
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
         };
         tree.insert_new_node(
             fork_blockstamp,
-            tree.get_main_branch_node_id(BlockId(5)),
+            tree.get_main_branch_node_id(BlockNumber(5)),
             false,
         );
 
@@ -548,7 +548,7 @@ mod tests {
             (
                 TreeNodeId(9),
                 Blockstamp {
-                    id: BlockId(9),
+                    id: BlockNumber(9),
                     hash: BlockHash(dup_crypto_tests_tools::mocks::hash_from_byte(9u8)),
                 },
             ),
@@ -568,7 +568,7 @@ mod tests {
 
         // Insert child to fork block
         let child_fork_blockstamp = Blockstamp {
-            id: BlockId(7),
+            id: BlockNumber(7),
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('C')),
         };
         tree.insert_new_node(child_fork_blockstamp, Some(TreeNodeId(10)), false);
@@ -582,7 +582,7 @@ mod tests {
             (
                 TreeNodeId(9),
                 Blockstamp {
-                    id: BlockId(9),
+                    id: BlockNumber(9),
                     hash: BlockHash(dup_crypto_tests_tools::mocks::hash_from_byte(9u8)),
                 },
             ),
@@ -657,16 +657,18 @@ mod tests {
 
         // Insert 2 forks blocks after block (FORK_WINDOW_SIZE - 2)
         let fork_blockstamp = Blockstamp {
-            id: BlockId(*crate::constants::FORK_WINDOW_SIZE as u32 - 1),
+            id: BlockNumber(*crate::constants::FORK_WINDOW_SIZE as u32 - 1),
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
         };
         tree.insert_new_node(
             fork_blockstamp,
-            tree.get_main_branch_node_id(BlockId(*crate::constants::FORK_WINDOW_SIZE as u32 - 2)),
+            tree.get_main_branch_node_id(BlockNumber(
+                *crate::constants::FORK_WINDOW_SIZE as u32 - 2,
+            )),
             false,
         );
         let fork_blockstamp_2 = Blockstamp {
-            id: BlockId(*crate::constants::FORK_WINDOW_SIZE as u32),
+            id: BlockNumber(*crate::constants::FORK_WINDOW_SIZE as u32),
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
         };
         tree.insert_new_node(

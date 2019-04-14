@@ -17,7 +17,7 @@
 
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::documents::transaction::{TxAmount, TxBase};
-use dubp_documents::{BlockId, Document};
+use dubp_documents::{BlockNumber, Document};
 use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::block::DALBlock;
 use durs_blockchain_dal::entities::sources::SourceAmount;
@@ -46,7 +46,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
     mut block: BlockDocument,
     wot_index: &mut HashMap<PubKey, NodeId>,
     wot_db: &BinDB<W>,
-    expire_certs: &HashMap<(NodeId, NodeId), BlockId>,
+    expire_certs: &HashMap<(NodeId, NodeId), BlockNumber>,
 ) -> Result<ValidBlockApplyReqs, ApplyValidBlockError> {
     debug!(
         "BlockchainModule : apply_valid_block({})",

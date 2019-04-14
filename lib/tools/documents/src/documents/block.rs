@@ -229,7 +229,7 @@ pub struct BlockDocument {
     /// Nonce
     pub nonce: u64,
     /// number
-    pub number: BlockId,
+    pub number: BlockNumber,
     /// Minimal proof of work difficulty
     pub pow_min: usize,
     /// Local time of the block issuer
@@ -292,7 +292,7 @@ impl BlockDocument {
     pub fn previous_blockstamp(&self) -> Blockstamp {
         if self.number.0 > 0 {
             Blockstamp {
-                id: BlockId(self.number.0 - 1),
+                id: BlockNumber(self.number.0 - 1),
                 hash: BlockHash(self.previous_hash),
             }
         } else {
@@ -584,7 +584,7 @@ mod tests {
         let mut block = BlockDocument {
             nonce: 100_010_200_000_006_940,
             version: 10,
-            number: BlockId(174_260),
+            number: BlockNumber(174_260),
             pow_min: 68,
             time: 1_525_296_873,
             median_time: 1_525_292_577,
@@ -686,7 +686,7 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
         let mut block = BlockDocument {
             nonce: 0,
             version: 10,
-            number: BlockId(107_984),
+            number: BlockNumber(107_984),
             pow_min: 88,
             time: 1_522_685_861,
             median_time: 1522683184,
@@ -867,7 +867,7 @@ nxr4exGrt16jteN9ZX3XZPP9l+X0OUbZ1o/QjE1hbWQNtVU3HhH9SJoEvNj2iVl3gCRr9u2OA9uj9vCy
         let mut block = BlockDocument {
             nonce: 0,
             version: 10,
-            number: BlockId(165_647),
+            number: BlockNumber(165_647),
             pow_min: 90,
             time: 1_540_633_175,
             median_time: 1_540_627_811,

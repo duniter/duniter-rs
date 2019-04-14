@@ -24,7 +24,7 @@ pub fn insert_new_head_block(
 ) -> Result<Vec<Blockstamp>, DALError> {
     fork_tree_db.write(|fork_tree| {
         let parent_id_opt = if blockstamp.id.0 > 0 && fork_tree.size() > 0 {
-            Some(fork_tree.get_main_branch_node_id(BlockId(blockstamp.id.0 - 1))
+            Some(fork_tree.get_main_branch_node_id(BlockNumber(blockstamp.id.0 - 1))
                 .expect("Fatal error: fail to insert new head block : previous block not exist in main branch"))
         } else {
             None
@@ -43,7 +43,7 @@ pub fn insert_new_fork_block(
     previous_hash: Hash,
 ) -> Result<bool, DALError> {
     let previous_blockstamp = Blockstamp {
-        id: BlockId(blockstamp.id.0 - 1),
+        id: BlockNumber(blockstamp.id.0 - 1),
         hash: BlockHash(previous_hash),
     };
 
@@ -176,7 +176,7 @@ mod test {
 
         // Insert first fork block at child of block 2
         let fork_blockstamp = Blockstamp {
-            id: BlockId(3),
+            id: BlockNumber(3),
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
         };
         assert_eq!(
@@ -196,7 +196,7 @@ mod test {
 
         // Insert second fork block at child of first fork block
         let fork_blockstamp_2 = Blockstamp {
-            id: BlockId(4),
+            id: BlockNumber(4),
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
         };
         assert_eq!(

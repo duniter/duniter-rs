@@ -54,7 +54,7 @@ pub fn request_chunk(
 /// Requests blocks from current to `to`
 pub fn request_blocks_to(
     bc: &BlockchainModule,
-    to: BlockId,
+    to: BlockNumber,
 ) -> HashMap<ModuleReqId, OldNetworkRequest> {
     let mut from = if bc.current_blockstamp == Blockstamp::default() {
         0

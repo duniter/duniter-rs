@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use dubp_documents::documents::identity::IdentityDocument;
-use dubp_documents::{BlockId, Blockstamp};
+use dubp_documents::{BlockNumber, Blockstamp};
 use durs_wot::NodeId;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]
@@ -50,7 +50,7 @@ pub struct DALIdentity {
     /// Identity wot id
     pub wot_id: NodeId,
     /// Membership created block number
-    pub ms_created_block_id: BlockId,
+    pub ms_created_block_id: BlockNumber,
     /// Timestamp from which membership can be renewed
     pub ms_chainable_on: Vec<u64>,
     /// Timestamp from which the identity can write a new certification

@@ -7,12 +7,12 @@ use dubp_documents::documents::membership::*;
 use dubp_documents::parsers::certifications::*;
 use dubp_documents::parsers::revoked::*;
 use dubp_documents::CurrencyName;
-use dubp_documents::{BlockHash, BlockId};
+use dubp_documents::{BlockHash, BlockNumber};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use std::str::FromStr;
 
-fn parse_previous_hash(block_number: BlockId, source: &serde_json::Value) -> Option<Hash> {
+fn parse_previous_hash(block_number: BlockNumber, source: &serde_json::Value) -> Option<Hash> {
     match source.get("previousHash")?.as_str() {
         Some(hash_str) => match Hash::from_hex(hash_str) {
             Ok(hash) => Some(hash),
@@ -59,7 +59,7 @@ fn parse_memberships(
 }
 
 pub fn parse_json_block(source: &serde_json::Value) -> Option<BlockDocument> {
-    let number = BlockId(source.get("number")?.as_u64()? as u32);
+    let number = BlockNumber(source.get("number")?.as_u64()? as u32);
     let currency = source.get("currency")?.as_str()?.to_string();
     let issuer = match ed25519::PublicKey::from_base58(source.get("issuer")?.as_str()?) {
         Ok(pubkey) => PubKey::Ed25519(pubkey),
@@ -120,7 +120,7 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<BlockDocument> {
     Some(BlockDocument {
         nonce: source.get("nonce")?.as_i64()? as u64,
         version: source.get("version")?.as_u64()? as u32,
-        number: BlockId(source.get("number")?.as_u64()? as u32),
+        number: BlockNumber(source.get("number")?.as_u64()? as u32),
         pow_min: source.get("powMin")?.as_u64()? as usize,
         time: source.get("time")?.as_u64()?,
         median_time: source.get("medianTime")?.as_u64()?,

@@ -25,9 +25,9 @@ pub enum BlockstampParseError {
     /// Given string have invalid format
     #[fail(display = "Given string have invalid format")]
     InvalidFormat(),
-    /// [`BlockId`](struct.BlockHash.html) part is not a valid number.
-    #[fail(display = "BlockId part is not a valid number.")]
-    InvalidBlockId(),
+    /// [`BlockNumber`](struct.BlockHash.html) part is not a valid number.
+    #[fail(display = "BlockNumber part is not a valid number.")]
+    InvalidBlockNumber(),
     /// [`BlockHash`](struct.BlockHash.html) part is not a valid hex number.
     #[fail(display = "BlockHash part is not a valid hex number.")]
     InvalidBlockHash(),
@@ -35,24 +35,24 @@ pub enum BlockstampParseError {
 
 /// A blockstamp (Unique ID).
 ///
-/// It's composed of the [`BlockId`] and
+/// It's composed of the [`BlockNumber`] and
 /// the [`BlockHash`] of the block.
 ///
 /// Thanks to blockchain immutability and frequent block production, it can
 /// be used to date information.
 ///
-/// [`BlockId`]: struct.BlockId.html
+/// [`BlockNumber`]: struct.BlockNumber.html
 /// [`BlockHash`]: struct.BlockHash.html
 
 #[derive(Copy, Clone, Deserialize, PartialEq, Eq, Hash, Serialize)]
 pub struct Blockstamp {
     /// Block Id.
-    pub id: BlockId,
+    pub id: BlockNumber,
     /// Block hash.
     pub hash: BlockHash,
 }
 
-/// Previous blockstamp (BlockId-1, previous_hash)
+/// Previous blockstamp (BlockNumber-1, previous_hash)
 pub type PreviousBlockstamp = Blockstamp;
 
 impl Blockstamp {
@@ -75,7 +75,7 @@ impl Debug for Blockstamp {
 impl Default for Blockstamp {
     fn default() -> Blockstamp {
         Blockstamp {
-            id: BlockId(0),
+            id: BlockNumber(0),
             hash: BlockHash(Hash::default()),
         }
     }
@@ -126,12 +126,12 @@ impl Blockstamp {
             let hash = Hash::from_hex(split.next().unwrap());
 
             if id.is_err() {
-                Err(BlockstampParseError::InvalidBlockId())
+                Err(BlockstampParseError::InvalidBlockNumber())
             } else if hash.is_err() {
                 Err(BlockstampParseError::InvalidBlockHash())
             } else {
                 Ok(Blockstamp {
-                    id: BlockId(id.unwrap()),
+                    id: BlockNumber(id.unwrap()),
                     hash: BlockHash(
                         hash.expect("Try to get hash of an uncompleted or reduce block !"),
                     ),

@@ -43,7 +43,7 @@ pub fn verify_block_validity<W: WebOfTrust>(
         // Get previous block
         let previous_block_opt = readers::block::get_block_in_local_blockchain(
             blockchain_db,
-            BlockId(block.number.0 - 1),
+            BlockNumber(block.number.0 - 1),
         )?;
 
         // Previous block must exist

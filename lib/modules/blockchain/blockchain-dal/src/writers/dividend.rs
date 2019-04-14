@@ -16,7 +16,7 @@
 use crate::entities::sources::SourceAmount;
 use crate::*;
 use dubp_documents::documents::transaction::*;
-use dubp_documents::BlockId;
+use dubp_documents::BlockNumber;
 use dup_crypto::keys::PubKey;
 use std::collections::{HashMap, HashSet};
 
@@ -25,7 +25,7 @@ pub fn create_du(
     du_db: &BinDB<UDsV10Datas>,
     balances_db: &BinDB<BalancesV10Datas>,
     du_amount: &SourceAmount,
-    du_block_id: BlockId,
+    du_block_id: BlockNumber,
     members: &[PubKey],
     revert: bool,
 ) -> Result<(), DALError> {
