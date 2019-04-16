@@ -52,8 +52,8 @@ pub fn str_hex_to_32bytes(text: &str) -> Result<[u8; 32], BaseConvertionError> {
                 });
             }
 
-            let byte1 = byte1.unwrap() as u8;
-            let byte2 = byte2.unwrap() as u8;
+            let byte1 = byte1.unwrap_or_else(|| panic!(dbg!("dev error"))) as u8;
+            let byte2 = byte2.unwrap_or_else(|| panic!(dbg!("dev error"))) as u8;
 
             let byte = (byte1 << 4) | byte2;
             bytes[i / 2] = byte;
