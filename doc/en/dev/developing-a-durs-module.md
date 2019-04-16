@@ -20,7 +20,7 @@ A Durs module is a library crate. You must then create your crate in the `lib/` 
 
 The `lib/` directory has 4 sub-directories which correspond to 4 types of libraries:
 
-1. `tools`: utilities, that could be useful to all crates.
+1. `tools`: utilities that could be useful to all crates.
 2. `modules`: libraries forming a Durs module.
 3. `modules-lib`: libraries dedicated to a subset of modules.
 4. `core`: libraries structuring the architecture, linking modules between them.
@@ -32,7 +32,8 @@ For example: you create a new module named "toto". You put the crate, which cont
 
 ### How to split a module in several crates
 
-If you want to decouple your module in several crates, the directory of your main crate* must be `lib/modules/{your-module-name}/{your-module-name}`. The additional crates must be in `modules/{your-module-name}/{crate-name}`, where `crate-name` must be prefixed by `{your-module-name}`.
+If you want to decouple your module in several crates, the directory of your main crate must be `lib/modules/{your-module-name}/{your-module-name}`.
+The additional crates must be in `modules/{your-module-name}/{crate-name}`, where `crate-name` must be prefixed by `{your-module-name}`.
 
 For example: you want to move some of your "toto" code into a new "tata" crate. You must move `toto` into `lib/modules/toto/toto` and create the tata module into `lib/modules/toto/toto-tata`. In addition, your new crate must declare, into its `Cargo.toml`, the name `durs-toto-tata`.
 
@@ -44,7 +45,7 @@ If you want to write a library to be used by several modules and by them only, y
 
 The `tools/` directory must only contain libraries that are also use by the core.
 
-Summing up:
+Summary:
 
 * if a library is used by the core and maybe by some modules: into `tools/`.
 * if it is used only by modules: into `modules-common/`.

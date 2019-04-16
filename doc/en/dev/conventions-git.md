@@ -5,7 +5,7 @@
 ### Branch created by Gitlab
 
 Most of the time, you'll use the "create a merge request" button and
-Gitlab will name your branche. In that case, please prefix the name of
+Gitlab will name your branch. In that case, please prefix the name of
 your branch with your Gitlab username and a slash, for example:
 
     elois/issue-test

@@ -115,7 +115,7 @@ Although this is becoming increasingly rare, some rust crates still depend on C/
     cd hello-world
     cargo init --bin
 
-The `--bin' option indicates that you want to create a binary, by default cargo create a library project.
+The `--bin` option indicates that you want to create a binary, by default cargo create a library project.
 
 You should have the following content in the `hello-world` folder:
 
@@ -128,13 +128,11 @@ You should have the following content in the `hello-world` folder:
 This is the minimum content of any binary project, the source code is found in `main.rs`.
 Any Rust project (binary or library) must contain a file named `Cargo.toml` at the root of the project, it is somehow the equivalent of the `package.json` of npm.
 
-The `main.rs` file already contains by default a code to perform the traditional "Hello, world ! :
+The `main.rs` file already contains by default a code to perform the traditional "Hello, world !":
 
     fn main() {
         println!("Hello, world!");
     }
-
-Cette syntaxe doit vous rappeler furieusement le C/C++ pour ceux qui connaissent, et c'est bien normal car Rust est conçu pour être l'un des successeurs potentiel du C++. On peut toutefois déjà noter trois différences majeures avec le C/C++ :
 
 This syntax must remind you furiously of C/C++ for those who know it, and that's normal because Rust is designed to be one of the potential successors of C++. However, three major differences can already be noted with C/C++ :
 
@@ -142,13 +140,13 @@ This syntax must remind you furiously of C/C++ for those who know it, and that's
 2. println! is not a function, it's a macro. In Rust all macros are of the form `macro_name!(params)`, so it is to `!` that they are recognized. So why a macro just to print a string? Well because in Rust any function must have a finite number of parameters and each parameter must have an explicitly defined type. To exceed this limit we use a macro that will create the desired function during compilation.
 3. The main() function doesn't return any value, when your program ends, Rust sends by default the EXIT_SUCCESS code to the OS. To interrupt your program by sending another exit code, there are macro such as `panic!(err_message)`.
 
-Before changing the code, make sure that the default code compiles correctly :
+Before changing the code, make sure that the default code compiles correctly:
 
     $ cargo build
     Compiling hello-world v0.1.0 (file:///home/elois/dev/hello-world)
     Finished dev [unoptimized + debuginfo] target(s) in 0.91 secs
 
-Cargo is the equivalent of npm for Rust, it will look for all the dependencies of the crates (=libraries) you install. Yes in Rust we speak of crates to designate an addiction, it can be a library or a package.  
+Cargo is the equivalent of npm for Rust, it will look for all the dependencies of the crates you install. In Rust a "crate" refers to any library or package. It's comparable to Python wheels, Java archive, Ruby gems...
 
 If you get a `Finished dev[unoptimized + debuginfo] target(s) in x.xx secs`, congratulations you just compiled your first Rust program :)
 
