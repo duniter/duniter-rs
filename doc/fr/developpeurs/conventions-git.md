@@ -2,20 +2,20 @@
 
 ## Nommage des branches
 
-### Branche créée par gitlab
+### Branche créée par Gitlab
 
 Le plus souvent, votre branche sera nommée automatiquement par Gitlab puisque vous êtes censé créer votre branche en cliquant sur le bouton "Create a merge request" sur l'issue liée.
-Dans ce cas vous devez préfixer la branche par votre pseudo gitlab suivi d'un slash, exemple :
+Dans ce cas vous devez préfixer la branche par votre pseudo Gitlab suivi d'un slash, exemple :
 
     elois/2-test-de-ticket
 
 ### Branche créée manuellement
 
-Dans tous les autres cas, votre branche doit impérativement commencer par le pseudo de votre compte gitlab afin que tout un chacun sache qui travaille sur cette branche. Voici la convention à respecter pour les branches que vous créez manuellement :
+Dans tous les autres cas, votre branche doit impérativement commencer par le pseudo de votre compte Gitlab afin que tout un chacun sache qui travaille sur cette branche. Voici la convention à respecter pour les branches que vous créez manuellement :
 
     pseudo/type/description
 
-pseudo := pseudo de votre compte gitlab.
+pseudo := pseudo de votre compte Gitlab.
 type := voir "Liste des types de commit".
 description := courte description en anglais à l'impératif présent, 3 à 4 mots maximum, pas d'articles.
 
@@ -42,7 +42,7 @@ Exemple, renommage d'un trait `Toto` en `Titi` dans la crate `durs-bidule` :
 ### Liste des types de commit
 
 * `build` : Modification des scripts de build, de packaging ou/et de publication des livrables.
-* `ci` : Modification de la chaine d'intégration continue.
+* `ci` : Modification de la chaîne d'intégration continue.
 * `deps` : Modification des dépendances sans modification du code : ce peut être pour mettre à jour des dépendances tierces ou pour supprimer des dépendances tierces qui ne sont plus utilisées.
 * `docs` : Modification de la documentation (y compris traduction et création de nouveau contenu).
 * `feat` : Développement d'une nouvelle fonctionnalité.
@@ -55,7 +55,7 @@ Exemple, renommage d'un trait `Toto` en `Titi` dans la crate `durs-bidule` :
 
 Si vous avez besoin d'effectuer une action qui ne rentre dans aucun de ses types, contactez les principaux développeurs du projet pour discuter de l'ajout d'un nouveau type de commit dans cette liste.
 
-## Stratégie de mise a jour
+## Stratégie de mise à jour
 
 On met à jour uniquement avec des rebase, les merge sont strictement interdits !
 
@@ -107,6 +107,6 @@ Enfin faites un `push force` sur le dépot distant :
 
     git push -f
 
-Puis, rendez-vous sur le gitlab et vérifiez que le code sur votre branche distante est bien celui censé s'y trouver.
+Puis, rendez-vous sur le Gitlab et vérifiez que le code sur votre branche distante est bien celui censé s'y trouver.
 
 Attendez 20 minutes que la chaîne d'intégration continue puisse vérifier votre code, et si elle réussit vous pouvez alors supprimer la mention WIP de votre Merge Request et tagger des développeurs expérimentés pour demander une revue de code.

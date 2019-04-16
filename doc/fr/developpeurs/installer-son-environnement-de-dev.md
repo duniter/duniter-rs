@@ -44,7 +44,7 @@ Pour lancer clippy, rendez-vous à la racine de votre projet puis éxécutez la 
 
     cargo clippy --all
 
-Clippy va alors vous signaler de façopn très pédagogique tout ce qu'il convient de modifier dans votre code pour être plus dans "l'esprit rust".
+Clippy va alors vous signaler de façon très pédagogique tout ce qu'il convient de modifier dans votre code pour être plus dans "l'esprit rust".
 
 ## IDE/Editeur
 
@@ -73,7 +73,7 @@ Ensuite extrayez l'archive dans le dossier contenant vos programmes (/opt pour l
 
     sudo tar xf idea*.tar.gz -C /opt/
 
-Puis éxécutez le script `idea.sh` dans le dossier `/bin` :
+Puis exécutez le script `idea.sh` dans le dossier `/bin` :
 
     cd /opt/idea*/bin/
     ./idea.sh
@@ -216,3 +216,4 @@ Pour aller plus loin, je vous invite a lire l'excellent [tutoriel Rust de Guilla
 Et si vous savez lire l'anglais, la référence des références que vous devez absolument lire c'est évidemment le sacro-sain [Rust Book](https://doc.rust-lang.org/book/).
 
 Le Rust Book part vraiment de zéro et se lit très facilement même avec un faible niveau en anglais.
+

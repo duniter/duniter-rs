@@ -12,7 +12,7 @@ Dans tout les cas vous aurez 3 choix a faire :
 
 `durs-desktop` est destiné aux utilisateurs souhaitant installer Durs sur leur ordinateur personnel et administrer leur noeud Durs via une interface graphique.
 
-`durs-server` est beaucoup plus léger et se manipule via la ligne de commande. Il est nottament utile dans les cas suivants :
+`durs-server` est beaucoup plus léger et se manipule via la ligne de commande. Il est notamment utile dans les cas suivants :
 
 * Installation de durs sur serveur dédié
 * Installation de durs sur micro pc (raspberry pi, brique internet, etc)
@@ -24,7 +24,7 @@ Notez bien : il est possible d'administrer `durs-server` a distance via une inte
 
 <s>Rendez vous sur [le site officiel de Durs](durs.info), vous y trouverez un lien direct vers la dernière version stable.</s>
 
-Le site web de Durs n'existe pas encore, en attendant vous devrez vous renseigenr sur le [forum duniter](forum.duniter.org) pour savoir quelle version installer.
+Le site web de Durs n'existe pas encore, en attendant vous devrez vous renseigenr sur le [forum duniter](https://forum.duniter.org) pour savoir quelle version installer.
 
 Vous trouverez toute les versions disponibles au téléchargement sur [cette page du gitlab](https://git.duniter.org/nodes/rust/duniter-rs/tags).
 
@@ -55,7 +55,7 @@ Ensuite, clonez le dépot git :
 
     git clone https://git.duniter.org/nodes/rust/duniter-rs.git
 
-Rendez vous dans le dossier `duniter-rs` ainsi créer puis dnas le sous-dossier correspondant a la variante que vous souhaitez installer :
+Rendez vous dans le dossier `duniter-rs` ainsi créé puis dans le sous-dossier correspondant à la variante que vous souhaitez installer :
 
 * Pour `durs-server`, rendez-vous dans `bin/durs-server`
 
@@ -76,4 +76,5 @@ Si vous avez des problèmes avec `openssl` lors de la compilation, vous pouvez e
 Cela implique juste que votre noeud ne pourra pas contacter les endpoint WS2P qui sont derrière une couche SSL/TLS.  
 Votre noeud devrait tout de même fonctionner normalement s'il ya suffisamment de endpoint WS2P accesibles en clair.
 
-Si la compilation réussie, votre éxécutable se trouve dans `duniter-rs/target/release` et se nomme `durs` ou  `durs-desktop`. Vous pouvez le déplacer ou bon vous semble sur votre disque puis l'éxécuter directement.
+Si la compilation réussie, votre exécutable se trouve dans `duniter-rs/target/release` et se nomme `durs` ou `durs-desktop`.
+Vous pouvez le déplacer ou bon vous semble sur votre disque puis l'exécuter directement.

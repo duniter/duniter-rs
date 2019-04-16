@@ -9,7 +9,7 @@ Si ce n'est pas déjà fait, vous devez au préalable [préparer votre environne
 
 ## Architecture générale du dépôt durs
 
-Le dépôt durs est constitué de deux types de crates : les binaires et les bibliothèques (nommées librairies par abus de language).
+Le dépôt durs est constitué de deux types de crates : les binaires et les bibliothèques (nommées librairies par abus de langage).
 
 Les crates binaires sont regroupés dans le dossier `bin` et sont au nombre de deux :
 
@@ -68,7 +68,7 @@ La seule obligation que vous devez respecter pour que votre module soit reconnu 
 Ensuite vous n'avez plus qu'à modifier les crates binaires pour qu'elles importent votre structure qui implémente le trait `DursModule`. (La modification des binaires sera détaillée plus loin).
 
 Les traits sont au cœur du langage Rust, on les utilise partout et tout le temps. Ils ressemblent au concept d'interfaces que l'on peut trouver dans d'autres langages.
-Un trait défini un **comportement**, il expose effectivement des méthodes un peu comme les interfaces ainsi que des traits parents rapellant le concept d'héritage mais un trait peut également exposer des types, et c'est d'ailleurs le cas du trait `DursModule`.
+Un trait défini un **comportement**, il expose effectivement des méthodes un peu comme les interfaces ainsi que des traits parents rappelant le concept d'héritage mais un trait peut également exposer des types, et c'est d'ailleurs le cas du trait `DursModule`.
 
 Le trait `DursModule` expose 2 types que vous devrez donc définir dans votre module : `ModuleConf` et `ModuleOpt`.
 
@@ -97,7 +97,7 @@ Le module skeleton donne un exemple de configuration avec un champ de type `Stri
 
 ### Le type `ModuleOpt`
 
-Type représentant les options de ligne de commande pour votre module. Si votre module n'a pas de commande cli (ou une commande cli sans aucune option) vous pouvez créer un type structure vide.
+Type représentant les options de ligne de commande pour votre module (CLI = command line interface). Si votre module n'a pas de commande cli (ou une commande cli sans aucune option) vous pouvez créer un type structure vide.
 
 Exemple de structure vide :
 
@@ -247,10 +247,10 @@ Déclaration :
     ) -> Result<(), ModuleInitError>;
 ```
 
-Dans le cas d'un module qui ne servirait qu'à ajouter une sous-commande à la ligne de commande Durs, l'implémentation de la fonction start reste obligatoire et le module doit absolument s'enregistrer auprès du router quand même et garder son thread actif jusqu'à la fin du programme. J'ai ouvert [un ticket](https://git.duniter.org/nodes/rust/duniter-rs/issues/112) pour améliorer cela.
+Dans le cas d'un module qui ne servirait qu'à ajouter une sous-commande à la ligne de commande Durs, l'implémentation de la fonction `start` reste obligatoire et le module doit absolument s'enregistrer auprès du router quand même et garder son thread actif jusqu'à la fin du programme. J'ai ouvert [un ticket](https://git.duniter.org/nodes/rust/duniter-rs/issues/112) pour améliorer cela.
 
 La 1ère chose à faire dans votre fonction start est de vérifier l'intégrité et la cohérence de la configuration de votre module.
-Si vous détectez la moindre erreur dans la configuration de votre module, vous devez interrompre le programme avec un message d'erreur indiquand clairement le nom de votre module et le fait que la configuration est incorrecte.
+Si vous détectez la moindre erreur dans la configuration de votre module, vous devez interrompre le programme avec un message d'erreur indiquant clairement le nom de votre module et le fait que la configuration est incorrecte.
 
 Ensuite si `load_conf_only` vaut `true` vous n'avez plus rien à faire, retournez `Ok(())`.
 En revanche, si `load_conf_only` vaut `false` c'est qu'il vous faut réellement lancer votre module, cela se fera en plusieurs étapes détaillées plus bas :
@@ -269,7 +269,7 @@ Si jamais le router n'a pas reçu l'enregistrement de tous les modules au bout d
 Le plus important est donc d'enregistrer votre module auprès du router AVANT tout traitement lourd ou coûteux.
 20 secondes peut vous sembler énorme, mais gardez en tête que Durs peut être amené à s'exécuter dans n'importe quel contexte, y compris sur un micro-pc aux performances très très réduites. De plus, Durs n'est pas seul sur la machine de l'utilisateur final, le délai de 20 secondes doit être respecté même dans le pire des scénarios (micro-pc déjà très occupé à d'autres taches).
 
-Si vous prévoyez de réaliser des traitements lours ou/et coûteux dans votre module, il peut être pertinent de ne pas l'inclure dans la release pour micro-pc (architecture arm), n'hésitez pas à poser la question aux développeurs principaux du projet en cas de doute.
+Si vous prévoyez de réaliser des traitements lourds ou/et coûteux dans votre module, il peut être pertinent de ne pas l'inclure dans la release pour micro-pc (architecture arm), n'hésitez pas à poser la question aux développeurs principaux du projet en cas de doute.
 En gros, lorsque votre poste de développement ne fait rien de coûteux en même temps, votre module doit s'être enregistré en moins de 3 secondes, si ça dépasse c'est que vous faites trop de choses à l'initialisation.
 
 ## Injecter votre module dans les crates binaires
@@ -284,7 +284,7 @@ Vous pouvez modifier une copie de la ligne du module skeleton pour être sûr de
 
 ### Injecter votre module dans `durs-server`
 
-Une fois que vous avez ajouter votre module en dépendance dans le Cargo.toml de `durs-server`, il va falloir utiliser votre module dans le main.rs :
+Une fois que vous avez ajouté votre module en dépendance dans le Cargo.toml de `durs-server`, il va falloir utiliser votre module dans le main.rs :
 
 1. Utilisez votre structure implémentant le trait DursModule :
 
@@ -294,7 +294,7 @@ Une fois que vous avez ajouter votre module en dépendance dans le Cargo.toml de
 
     durs_plug!([WS2PModule], [TuiModule, .., TotoModule])
 
-    Notez que `durs_plug!` prend en paramètre 2 tableaux de modules, le 1er correspond aux modules de type réseau inter-noeuds, tous les autres modules doivent se trouver dans le 2ème tableau.
+    Notez que `durs_plug!` prend en paramètre 2 tableaux de modules, le 1er correspond aux modules de type réseau inter-nœuds, tous les autres modules doivent se trouver dans le 2ème tableau.
 
 3. Si votre module doit injecter une sous-commande dans la ligne de commande `durs`, ajoutez le également a la macro `durs_inject_cli!` :
 
