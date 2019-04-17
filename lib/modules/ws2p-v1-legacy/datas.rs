@@ -295,7 +295,11 @@ impl WS2PModuleDatas {
                         return WS2PSignal::WSError(ws2p_full_id);
                     }
                 } else {
-                    panic!("Fatal error : no websocket for {} !", ws2p_full_id);
+                    // Connection closed by remote peer
+                    self.ws2p_endpoints
+                    .get_mut(&ws2p_full_id)
+                    .expect("Endpoint don't exist !")
+                    .1 = WS2PConnectionState::Close;
                 }
             }
             WS2PConnectionMessagePayload::ValidAckMessage(response, new_con_state) => {
