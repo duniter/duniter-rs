@@ -23,3 +23,9 @@ members = [
     "lib/tests-tools/rust-tests-tools",
     "lib/tools/wot",
 ]
+
+[profile.dev]
+panic = 'abort'
+
+[profile.release]
+panic = 'abort'
