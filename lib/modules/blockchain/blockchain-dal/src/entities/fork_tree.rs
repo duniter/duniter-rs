@@ -171,8 +171,7 @@ impl ForkTree {
         if let Some(Some(ref node)) = self.nodes.get(id.0) {
             node
         } else {
-            durs_common_tools::fatal_error("Dev error: fork tree : get unexist or removed node !");
-            panic!() // for compiler
+            durs_common_tools::fatal_error!("Dev error: fork tree : get unexist or removed node !");
         }
     }
     /// Get mutable reference to a specific tree node
@@ -181,8 +180,7 @@ impl ForkTree {
         if let Some(Some(ref mut node)) = self.nodes.get_mut(id.0) {
             node
         } else {
-            durs_common_tools::fatal_error("Dev error: fork tree : get unexist or removed node !");
-            panic!() // for compiler
+            durs_common_tools::fatal_error!("Dev error: fork tree : get unexist or removed node !");
         }
     }
     /// Get free identifier
@@ -360,7 +358,7 @@ impl ForkTree {
         } else if self.root.is_none() {
             self.root = Some(new_node_id);
         } else {
-            durs_common_tools::fatal_error("Dev error: Insert root node in not empty tree !")
+            durs_common_tools::fatal_error!("Dev error: Insert root node in not empty tree !")
         }
 
         self.removed_blockstamps.clear();

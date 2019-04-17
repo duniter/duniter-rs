@@ -26,18 +26,32 @@
     unused_import_braces
 )]
 
-#[macro_use]
-extern crate log;
-
 /// Interrupts the program and log error message
-pub fn fatal_error(msg: &str) {
-    if cfg!(feature = "log_panics") {
-        panic!(format!("Fatal Error : {}", msg));
-    } else {
-        error!("{}", &format!("Fatal Error : {}", msg));
-        panic!(format!("Fatal Error : {}", msg));
-    }
+/// WARNING: this macro must not be called before the logger is initialized !
+#[macro_export]
+macro_rules! fatal_error {
+    ($msg:expr) => ({
+        error!("{}", &dbg!($msg));
+        panic!($msg);
+    });
+    ($msg:expr,) => ({
+        error!("{}", &dbg!($msg));
+        panic!($msg);
+    });
+    ($fmt:expr, $($arg:tt)+) => ({
+        error!("{}", dbg!(format!($fmt, $($arg)+)));
+        panic!($fmt, $($arg)+);
+    });
 }
+
+/*macro_rules! error {
+    (target: $target:expr, $($arg:tt)+) => (
+        log!(target: $target, $crate::Level::Error, $($arg)+);
+    );
+    ($($arg:tt)+) => (
+        log!($crate::Level::Error, $($arg)+);
+    )
+}*/
 
 /// Unescape backslash
 pub fn unescape_str(source: &str) -> String {

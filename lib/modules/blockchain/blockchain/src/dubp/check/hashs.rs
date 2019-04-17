@@ -24,7 +24,7 @@ pub fn verify_block_hashs(block_doc: &BlockDocument) -> Result<(), VerifyBlockHa
     trace!("complete_block #{}...", block_doc.number);
 
     if block_doc.inner_hash.is_none() {
-        fatal_error(
+        fatal_error!(
             "BlockchainModule : verify_block_hashs() : fatal error : block.inner_hash = None",
         );
     }

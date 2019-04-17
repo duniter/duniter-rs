@@ -33,8 +33,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
             .fork_blocks_db
             .read(|db| db.get(&bc.current_blockstamp).cloned())
             .unwrap_or_else(|_| {
-                fatal_error(&format!("revert block {} fail !", bc.current_blockstamp));
-                panic!()
+                fatal_error!("revert block {} fail !", bc.current_blockstamp);
             })
         {
             let ValidBlockRevertReqs(bc_db_query, wot_dbs_queries, tx_dbs_queries) =
@@ -45,8 +44,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                     &bc.currency_databases.tx_db,
                 )
                 .unwrap_or_else(|_| {
-                    fatal_error(&format!("revert block {} fail !", bc.current_blockstamp));
-                    panic!()
+                    fatal_error!("revert block {} fail !", bc.current_blockstamp);
                 });
             // Apply db requests
             bc_db_query
@@ -63,7 +61,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                     .expect("Fatal error : Fail to apply CurrencyDBsWriteRequest !");
             }
         } else {
-            fatal_error("apply_rollback(): Not found current block in forks blocks DB !");
+            fatal_error!("apply_rollback(): Not found current block in forks blocks DB !");
         }
     }
 
@@ -102,10 +100,10 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                 break;
             }
         } else {
-            fatal_error(&format!(
+            fatal_error!(
                 "apply_rollback(): Fail to get block {} on new branch in forks blocks DB !",
                 blockstamp
-            ));
+            );
         }
     }
 
@@ -116,7 +114,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
             old_current_blockstamp,
             bc.current_blockstamp,
         ) {
-            fatal_error(&format!("DALError: ForksDB: {:?}", err));
+            fatal_error!("DALError: ForksDB: {:?}", err);
         }
 
         // save dbs

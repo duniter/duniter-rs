@@ -142,8 +142,7 @@ pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt)
         {
             (currency, target_blockstamp)
         } else {
-            fatal_error("Fatal error : no target blockstamp !");
-            panic!(); // for compilator
+            fatal_error!("Fatal error : no target blockstamp !");
         };
 
     // Update DuniterConf

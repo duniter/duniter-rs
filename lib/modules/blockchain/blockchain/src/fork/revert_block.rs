@@ -73,8 +73,7 @@ pub fn revert_block<W: WebOfTrust>(
                 if let Ok(Some(tx)) = txs_db.read(|db| db.get(tx_hash).cloned()) {
                     tx
                 } else {
-                    fatal_error(&format!("revert_block(): tx {} not found !", tx_hash));
-                    panic!() // to compile
+                    fatal_error!("revert_block(): tx {} not found !", tx_hash);
                 }
             }
             TxDocOrTxHash::TxDoc(ref _dal_tx) => panic!("Try to revert not reduce block !"),

@@ -43,7 +43,7 @@ pub fn json_reader_worker(
         // Get list of json chunk files
         let chunks_set = get_chunks_set(&json_chunks_path);
         if chunks_set.is_empty() {
-            fatal_error("json_files_path directory is empty !");
+            fatal_error!("json_files_path directory is empty !");
         }
 
         // Get max chunk number and max block id
@@ -58,13 +58,13 @@ pub fn json_reader_worker(
 
         // Verify if max chunk exist
         if chunks_set.get(&max_chunk_number).is_none() {
-            fatal_error(&format!("Missing chunk file n°{}", max_chunk_number));
+            fatal_error!("Missing chunk file n°{}", max_chunk_number);
         };
 
         // Open chunk file
         let chunk_file_content_result = open_json_chunk_file(&json_chunks_path, max_chunk_number);
         if chunk_file_content_result.is_err() {
-            fatal_error(&format!("Fail to open chunk file n°{}", max_chunk_number));
+            fatal_error!("Fail to open chunk file n°{}", max_chunk_number);
         }
 
         // Parse chunk file content
@@ -72,16 +72,12 @@ pub fn json_reader_worker(
         let last_chunk_blocks = match blocks_result {
             Ok(blocks) => blocks,
             Err(e) => {
-                fatal_error(&format!(
-                    "Fail to parse chunk file n°{} : {}",
-                    max_chunk_number, e,
-                ));
-                unreachable!();
+                fatal_error!("Fail to parse chunk file n°{} : {}", max_chunk_number, e);
             }
         };
 
         if last_chunk_blocks.is_empty() {
-            fatal_error("Last chunk is empty !");
+            fatal_error!("Last chunk is empty !");
         }
 
         let last_block = last_chunk_blocks
@@ -168,7 +164,7 @@ fn treat_once_json_chunk(
     // Open chunk file
     let chunk_file_content_result = open_json_chunk_file(json_chunks_path, chunk_number);
     if chunk_file_content_result.is_err() {
-        fatal_error(&format!("Fail to open chunk file n°{}", chunk_number));
+        fatal_error!("Fail to open chunk file n°{}", chunk_number);
     }
 
     // Parse chunk file content
@@ -176,11 +172,7 @@ fn treat_once_json_chunk(
     let blocks = match blocks_result {
         Ok(blocks) => blocks,
         Err(e) => {
-            fatal_error(&format!(
-                "Fail to parse chunk file n°{} : {}",
-                chunk_number, e,
-            ));
-            panic!(); // for compilator
+            fatal_error!("Fail to parse chunk file n°{} : {}", chunk_number, e);
         }
     };
     (chunk_number, blocks)
@@ -198,13 +190,13 @@ fn parse_json_chunk(json_chunk_content: &str) -> Result<Vec<BlockDocument>, Erro
                     block_doc_vec.push(parse_json_block(json_block)?);
                 }
             } else {
-                fatal_error("Fail to parse json chunk : field \"blocks\" must be an array !");
+                fatal_error!("Fail to parse json chunk : field \"blocks\" must be an array !");
             }
         } else {
-            fatal_error("Fail to parse json chunk : field \"blocks\" don't exist !");
+            fatal_error!("Fail to parse json chunk : field \"blocks\" don't exist !");
         }
     } else {
-        fatal_error("Fail to parse json chunk : json root node must be an object !");
+        fatal_error!("Fail to parse json chunk : json root node must be an object !");
     }
 
     Ok(block_doc_vec)

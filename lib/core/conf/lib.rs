@@ -28,6 +28,8 @@
 )]
 
 #[macro_use]
+extern crate log;
+#[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
@@ -479,7 +481,7 @@ pub fn get_blockchain_db_path(profile: &str, currency: &CurrencyName) -> PathBuf
     if !db_path.as_path().exists() {
         if let Err(io_error) = fs::create_dir(db_path.as_path()) {
             if io_error.kind() != std::io::ErrorKind::AlreadyExists {
-                fatal_error("Impossible to create blockchain dir !");
+                fatal_error!("Impossible to create blockchain dir !");
             }
         }
     }

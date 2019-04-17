@@ -282,6 +282,7 @@ dependencies = [
  "duniter-module 0.1.0-a0.1",
  "dup-crypto 0.6.0",
  "durs-common-tools 0.1.0",
+ "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rpassword 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -423,7 +424,6 @@ dependencies = [
 name = "durs-common-tools"
 version = "0.1.0"
 dependencies = [
- "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "pretty_assertions 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

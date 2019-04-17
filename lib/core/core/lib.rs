@@ -687,6 +687,7 @@ pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DBExQu
 }
 
 /// Initialize logger
+/// Warning: This function cannot use the macro fatal_error! because the logger is not yet initialized, so it must use panic !
 pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches) {
     // Get datas folder path
     let mut log_file_path = match dirs::config_dir() {
