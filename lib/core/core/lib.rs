@@ -739,7 +739,7 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
         .expect("Fatal error : fail to create log file path !");
     }
 
-    CombinedLogger::init(vec![WriteLogger::new(
+    WriteLogger::init(
         log_level.to_level_filter(),
         logger_config,
         OpenOptions::new()
@@ -751,7 +751,7 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
                     .expect("Fatal error : fail to get log file path !"),
             )
             .expect("Fatal error : fail to open log file !"),
-    )])
+    )
     .expect("Fatal error : fail to init logger !");
 
     info!("Successfully init logger");
