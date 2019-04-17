@@ -61,19 +61,9 @@ pub enum SyncJobsMess {
     End(),
 }
 
-/// Sync from local json files
-pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt) {
-    let SyncOpt {
-        source,
-        currency,
-        end,
-        cautious_mode: cautious,
-        unsafe_mode: verif_inner_hash,
-        ..
-    } = sync_opts;
-
-    // get json_files_path
-    let json_files_path = if let Some(ref path) = source {
+/// Get json files path
+fn get_json_files_path(source: Option<String>, currency: Option<String>) -> PathBuf {
+    if let Some(ref path) = source {
         PathBuf::from(path)
     } else {
         let mut json_chunks_path = match dirs::config_dir() {
@@ -91,9 +81,44 @@ pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt)
 
         json_chunks_path.push(currency);
         json_chunks_path
-    };
+    }
+}
+
+/// Get and write currency params
+fn get_and_write_currency_params(
+    currency_params_db: &BinDB<CurrencyParamsV10Datas>,
+    block_doc: &BlockDocument,
+) -> CurrencyParameters {
+    if block_doc.number.0 != 0 {
+        fatal_error!("The first block must have number equal to zero !");
+    } else if block_doc.parameters.is_none() {
+        fatal_error!("The genesis block must have parameters !");
+    } else {
+        currency_params_db
+            .write(|db| {
+                db.0 = block_doc.currency.clone();
+                db.1 = block_doc.parameters.unwrap();
+            })
+            .expect("fail to write in params DB");
+        CurrencyParameters::from((block_doc.currency.clone(), block_doc.parameters.unwrap()))
+    }
+}
+
+/// Sync from local json files
+pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt) {
+    let SyncOpt {
+        source,
+        currency,
+        end,
+        cautious_mode: cautious,
+        unsafe_mode: verif_inner_hash,
+        ..
+    } = sync_opts;
+
+    // get json_files_path
+    let json_files_path = get_json_files_path(source, currency);
     if !json_files_path.as_path().exists() {
-        panic!("Fatal error : duniter json chunks folder don't exist !");
+        fatal_error!("duniter json chunks folder don't exist !");
     }
 
     // Get verification level
@@ -119,9 +144,6 @@ pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt)
     };
     let pool = ThreadPool::new(nb_workers);
 
-    //match source {
-    //SyncSource::LocalJsonFiles(json_files_path) => {
-    // json_files_path must be a directory
     if !json_files_path.is_dir() {
         error!("json_files_path must be a directory");
         panic!("json_files_path must be a directory");
@@ -244,8 +266,10 @@ pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt)
 
     // Open currency_params_db
     let dbs_path = duniter_conf::get_blockchain_db_path(profile, &conf.currency());
-    let currency_params_db = open_file_db::<CurrencyParamsV10Datas>(&dbs_path, "params.db")
-        .expect("Fail to open params db");
+    let currency_params_db = BinDB::File(
+        open_file_db::<CurrencyParamsV10Datas>(&dbs_path, "params.db")
+            .expect("Fail to open params db"),
+    );
 
     // Apply blocks
     let mut blocks_not_expiring = VecDeque::with_capacity(200_000);
@@ -272,23 +296,10 @@ pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt)
         all_verif_block_hashs_duration += SystemTime::now()
             .duration_since(verif_block_hashs_begin)
             .unwrap();
-        // Get currency params
-        if !get_currency_params && block_doc.number.0 == 0 {
-            if block_doc.parameters.is_some() {
-                currency_params_db
-                    .write(|db| {
-                        db.0 = block_doc.currency.clone();
-                        db.1 = block_doc.parameters.unwrap();
-                    })
-                    .expect("fail to write in params DB");
-                currency_params = CurrencyParameters::from((
-                    block_doc.currency.clone(),
-                    block_doc.parameters.unwrap(),
-                ));
-                get_currency_params = true;
-            } else {
-                panic!("The genesis block are None parameters !");
-            }
+        // Get and write currency params
+        if !get_currency_params {
+            currency_params = get_and_write_currency_params(&currency_params_db, &block_doc);
+            get_currency_params = true;
         }
         // Push block median_time in blocks_not_expiring
         blocks_not_expiring.push_back(block_doc.median_time);
