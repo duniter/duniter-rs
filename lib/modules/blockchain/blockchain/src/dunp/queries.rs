@@ -45,7 +45,6 @@ pub fn request_chunk(
 ) -> (ModuleReqId, OldNetworkRequest) {
     let req = OldNetworkRequest::GetBlocks(
         ModuleReqFullId(BlockchainModule::name(), req_id),
-        NodeFullId::default(),
         *CHUNK_SIZE,
         from,
     );

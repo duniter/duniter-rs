@@ -425,57 +425,47 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                                     match *old_net_request {
                                         OldNetworkRequest::GetBlocks(
                                             ref req_id,
-                                            ref receiver,
                                             ref count,
                                             ref from,
                                         ) => {
-                                            if *receiver == NodeFullId::default() {
-                                                let mut receiver_index = 0;
-                                                let mut real_receiver = NodeFullId::default();
+                                            let mut receiver_index = 0;
+                                            let mut real_receiver = None;
+                                            for (ws2p_full_id, (_ep, state)) in
+                                                ws2p_module.ws2p_endpoints.clone()
+                                            {
+                                                if let WS2PConnectionState::Established = state {
+                                                    if receiver_index == next_receiver {
+                                                        real_receiver = Some(ws2p_full_id);
+                                                        break;
+                                                    }
+                                                    receiver_index += 1;
+                                                }
+                                            }
+                                            if real_receiver.is_none() {
+                                                next_receiver = 0;
                                                 for (ws2p_full_id, (_ep, state)) in
-                                                    ws2p_module.ws2p_endpoints.clone()
+                                                    &ws2p_module.ws2p_endpoints
                                                 {
-                                                    if let WS2PConnectionState::Established = state
+                                                    if let WS2PConnectionState::Established = *state
                                                     {
-                                                        if receiver_index == next_receiver {
-                                                            real_receiver = ws2p_full_id;
-                                                            break;
-                                                        }
-                                                        receiver_index += 1;
+                                                        real_receiver = Some(*ws2p_full_id);
+                                                        break;
                                                     }
-                                                }
-                                                if real_receiver == NodeFullId::default() {
-                                                    next_receiver = 0;
-                                                    for (ws2p_full_id, (_ep, state)) in
-                                                        ws2p_module.ws2p_endpoints.clone()
-                                                    {
-                                                        if let WS2PConnectionState::Established =
-                                                            state
-                                                        {
-                                                            real_receiver = ws2p_full_id;
-                                                            break;
-                                                        }
-                                                    }
-                                                } else {
-                                                    next_receiver += 1;
-                                                }
-                                                if real_receiver != NodeFullId::default() {
-                                                    let _blocks_request_result = ws2p_module
-                                                        .send_request_to_specific_node(
-                                                            &real_receiver,
-                                                            &OldNetworkRequest::GetBlocks(
-                                                                *req_id, *receiver, *count, *from,
-                                                            ),
-                                                        );
                                                 }
                                             } else {
+                                                next_receiver += 1;
+                                            }
+                                            if let Some(real_receiver) = real_receiver {
+                                                debug!("WS2P: send req to: ({:?})", real_receiver);
                                                 let _blocks_request_result = ws2p_module
                                                     .send_request_to_specific_node(
-                                                        &receiver,
+                                                        &real_receiver,
                                                         &OldNetworkRequest::GetBlocks(
-                                                            *req_id, *receiver, *count, *from,
+                                                            *req_id, *count, *from,
                                                         ),
                                                     );
+                                            } else {
+                                                warn!("WS2P: not found peer to send request !");
                                             }
                                         }
                                         OldNetworkRequest::GetEndpoints(ref _request) => {}
@@ -628,13 +618,13 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                             let req_id =
                                 ModuleReqId(ws2p_module.requests_awaiting_response.len() as u32);
                             let module_id = WS2PModule::name();
+                            debug!("WS2P: send req to: ({:?})", ws2p_full_id);
                             let _current_request_result = ws2p_module
                                 .send_request_to_specific_node(
                                     &ws2p_full_id,
-                                    &OldNetworkRequest::GetCurrent(
-                                        ModuleReqFullId(module_id, req_id),
-                                        ws2p_full_id,
-                                    ),
+                                    &OldNetworkRequest::GetCurrent(ModuleReqFullId(
+                                        module_id, req_id,
+                                    )),
                                 );
                             if ws2p_module.uids_cache.get(&ws2p_full_id.1).is_none() {
                                 ws2p_module.send_dal_request(&BlockchainRequest::UIDs(vec![
@@ -746,7 +736,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                         }
                         WS2PSignal::ReqResponse(req_id, req, recipient_full_id, response) => {
                             match req {
-                                OldNetworkRequest::GetCurrent(ref _req_id, _receiver) => {
+                                OldNetworkRequest::GetCurrent(ref _req_id) => {
                                     info!("WS2PSignal::ReceiveCurrent({}, {:?})", req_id.0, req);
                                     if let Some(block) = parse_json_block(&response) {
                                         ws2p_module.send_network_req_response(
@@ -760,12 +750,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                                         );
                                     }
                                 }
-                                OldNetworkRequest::GetBlocks(
-                                    ref _req_id,
-                                    _node_full_id,
-                                    count,
-                                    from,
-                                ) => {
+                                OldNetworkRequest::GetBlocks(ref _req_id, count, from) => {
                                     info!(
                                         "WS2PSignal::ReceiveChunk({}, {} blocks from {})",
                                         req_id.0, count, from
@@ -785,11 +770,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                                         );
                                     }
                                 }
-                                OldNetworkRequest::GetRequirementsPending(
-                                    _req_id,
-                                    _receiver,
-                                    min_cert,
-                                ) => {
+                                OldNetworkRequest::GetRequirementsPending(_req_id, min_cert) => {
                                     info!(
                                         "WS2PSignal::ReceiveRequirementsPending({}, {})",
                                         req_id.0, min_cert
@@ -1118,12 +1099,8 @@ mod tests {
     #[test]
     fn ws2p_requests() {
         let module_id = WS2PModule::name();
-        let request = OldNetworkRequest::GetBlocks(
-            ModuleReqFullId(module_id, ModuleReqId(58)),
-            NodeFullId::default(),
-            50,
-            0,
-        );
+        let request =
+            OldNetworkRequest::GetBlocks(ModuleReqFullId(module_id, ModuleReqId(58)), 50, 0);
         assert_eq!(
             network_request_to_json(&request),
             json!({

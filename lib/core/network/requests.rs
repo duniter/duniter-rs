@@ -24,12 +24,12 @@ use dubp_documents::Blockstamp;
 /// Type containing a request addressed to the network module
 pub enum OldNetworkRequest {
     /// Get a current block of a specific node
-    GetCurrent(ModuleReqFullId, NodeFullId),
-    //GetBlock(NodeFullId, u64),
+    GetCurrent(ModuleReqFullId),
+    //GetBlock(u64),
     /// Get a blocks chunk from specified node
-    GetBlocks(ModuleReqFullId, NodeFullId, u32, u32),
+    GetBlocks(ModuleReqFullId, u32, u32),
     /// Get pending wot documents from specified node
-    GetRequirementsPending(ModuleReqFullId, NodeFullId, u32),
+    GetRequirementsPending(ModuleReqFullId, u32),
     /// Obtain the current network consensus
     GetConsensus(ModuleReqFullId),
     /// Getting the heads cache
@@ -42,9 +42,9 @@ impl OldNetworkRequest {
     /// Get request full identitifier
     pub fn get_req_full_id(&self) -> ModuleReqFullId {
         match *self {
-            OldNetworkRequest::GetCurrent(ref req_id, _)
-            | OldNetworkRequest::GetBlocks(ref req_id, _, _, _)
-            | OldNetworkRequest::GetRequirementsPending(ref req_id, _, _)
+            OldNetworkRequest::GetCurrent(ref req_id)
+            | OldNetworkRequest::GetBlocks(ref req_id, _, _)
+            | OldNetworkRequest::GetRequirementsPending(ref req_id, _)
             | OldNetworkRequest::GetConsensus(ref req_id)
             | OldNetworkRequest::GetHeadsCache(ref req_id)
             | OldNetworkRequest::GetEndpoints(ref req_id) => *req_id,

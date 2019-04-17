@@ -70,7 +70,6 @@ use durs_message::events::*;
 use durs_message::requests::*;
 use durs_message::responses::*;
 use durs_message::*;
-use durs_network_documents::NodeFullId;
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::operations::distance::RustyDistanceCalculator;
 use durs_wot::NodeId;

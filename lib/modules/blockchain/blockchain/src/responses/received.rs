@@ -33,7 +33,7 @@ pub fn receive_response(
                         }
                     }
                 }
-                OldNetworkRequest::GetBlocks(_, _, _, _) => {
+                OldNetworkRequest::GetBlocks(_, _, _) => {
                     if let NetworkResponse::Chunk(_, _, blocks) = network_response {
                         dunp::receiver::receive_blocks(bc, blocks);
                     }

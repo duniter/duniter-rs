@@ -2,10 +2,8 @@ use duniter_network::requests::OldNetworkRequest;
 
 pub fn network_request_to_json(request: &OldNetworkRequest) -> serde_json::Value {
     let (request_id, request_type, request_params) = match *request {
-        OldNetworkRequest::GetCurrent(ref req_full_id, _receiver) => {
-            (req_full_id.1, "CURRENT", json!({}))
-        }
-        OldNetworkRequest::GetBlocks(ref req_full_id, _receiver, count, from_mumber) => (
+        OldNetworkRequest::GetCurrent(ref req_full_id) => (req_full_id.1, "CURRENT", json!({})),
+        OldNetworkRequest::GetBlocks(ref req_full_id, count, from_mumber) => (
             req_full_id.1,
             "BLOCKS_CHUNK",
             json!({
@@ -13,7 +11,7 @@ pub fn network_request_to_json(request: &OldNetworkRequest) -> serde_json::Value
                 "fromNumber": from_mumber
             }),
         ),
-        OldNetworkRequest::GetRequirementsPending(ref req_full_id, _receiver, min_cert) => (
+        OldNetworkRequest::GetRequirementsPending(ref req_full_id, min_cert) => (
             req_full_id.1,
             "WOT_REQUIREMENTS_OF_PENDING",
             json!({ "minCert": min_cert }),

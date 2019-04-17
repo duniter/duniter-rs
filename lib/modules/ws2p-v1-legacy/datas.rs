@@ -297,9 +297,9 @@ impl WS2PModuleDatas {
                 } else {
                     // Connection closed by remote peer
                     self.ws2p_endpoints
-                    .get_mut(&ws2p_full_id)
-                    .expect("Endpoint don't exist !")
-                    .1 = WS2PConnectionState::Close;
+                        .get_mut(&ws2p_full_id)
+                        .expect("Endpoint don't exist !")
+                        .1 = WS2PConnectionState::Close;
                 }
             }
             WS2PConnectionMessagePayload::ValidAckMessage(response, new_con_state) => {
@@ -428,12 +428,12 @@ impl WS2PModuleDatas {
         }
         // Detect timeout requests
         let mut requests_timeout = Vec::new();
-        for &(ref req, ref _ws2p_full_id, ref timestamp) in
+        for &(ref req, ref ws2p_full_id, ref timestamp) in
             self.requests_awaiting_response.clone().values()
         {
             if SystemTime::now().duration_since(*timestamp).unwrap() > Duration::new(20, 0) {
                 requests_timeout.push(req.get_req_full_id());
-                warn!("request timeout : {:?}", req);
+                warn!("request timeout : {:?} (sent to {:?})", req, ws2p_full_id);
             }
         }
         // Delete (and resend) timeout requests
