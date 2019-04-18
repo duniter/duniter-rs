@@ -101,8 +101,6 @@ impl Default for DuRsConfV1 {
 pub enum DuRsConf {
     /// Duniter node configuration v1
     V1(DuRsConfV1),
-    /// Duniter node configuration v2
-    V2(),
 }
 
 impl Default for DuRsConf {
@@ -115,25 +113,21 @@ impl DuniterConf for DuRsConf {
     fn version(&self) -> usize {
         match *self {
             DuRsConf::V1(ref _conf_v1) => 1,
-            _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
     fn currency(&self) -> CurrencyName {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.currency.clone(),
-            _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
     fn set_currency(&mut self, new_currency: CurrencyName) {
         match *self {
             DuRsConf::V1(ref mut conf_v1) => conf_v1.currency = new_currency,
-            _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
     fn my_node_id(&self) -> u32 {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.my_node_id,
-            _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
     fn disable(&mut self, module: ModuleName) {
@@ -142,7 +136,6 @@ impl DuniterConf for DuRsConf {
                 conf_v1.disabled.insert(module.clone());
                 conf_v1.enabled.remove(&module);
             }
-            _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
     fn enable(&mut self, module: ModuleName) {
@@ -151,25 +144,21 @@ impl DuniterConf for DuRsConf {
                 conf_v1.disabled.remove(&module);
                 conf_v1.enabled.insert(module);
             }
-            _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
     fn disabled_modules(&self) -> HashSet<ModuleName> {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.disabled.clone(),
-            _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
     fn enabled_modules(&self) -> HashSet<ModuleName> {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.enabled.clone(),
-            _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
     fn modules(&self) -> serde_json::Value {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.modules.clone(),
-            _ => panic!("Fail to load duniter conf : conf version not supported !"),
         }
     }
     fn set_module_conf(&mut self, module_id: String, new_module_conf: serde_json::Value) {
@@ -188,7 +177,6 @@ impl DuniterConf for DuRsConf {
                         .insert(module_id, new_module_conf);
                 }
             }
-            _ => panic!("Fail to set duniter conf : conf version not supported !"),
         }
     }
 }
