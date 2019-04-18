@@ -711,13 +711,13 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
     log_file_path.push(format!("{}.log", soft_name));
 
     // Get log level
-    let log_level = match cli_args.value_of("logs_level").unwrap_or("i") {
-        "e" | "error" => Level::Error,
-        "w" | "warn" => Level::Warn,
-        "i" | "info" => Level::Info,
-        "d" | "debug" => Level::Debug,
-        "t" | "trace" => Level::Trace,
-        _ => panic!("Fatal error : unknow log level !"),
+    let log_level = match cli_args.value_of("logs_level").unwrap_or("INFO") {
+        "ERROR" => Level::Error,
+        "WARN" => Level::Warn,
+        "INFO" => Level::Info,
+        "DEBUG" => Level::Debug,
+        "TRACE" => Level::Trace,
+        _ => unreachable!("Structopt guarantees us that the string match necessarily with one of the variants of the enum Level"),
     };
 
     // Config logger

@@ -41,7 +41,7 @@ pub struct DursOpt {
     profile_name: Option<String>,
     #[structopt(short = "l", long = "logs", raw(next_line_help = "true"))]
     /// Set log level. (Defaults to INFO).
-    /// Available levels: [OFF, ERROR, WARN, INFO, DEBUG, TRACE]
+    /// Available levels: [ERROR, WARN, INFO, DEBUG, TRACE]
     logs_level: Option<Level>,
     #[structopt(subcommand)]
     /// CoreSubCommand
