@@ -40,23 +40,22 @@ pub fn str_hex_to_32bytes(text: &str) -> Result<[u8; 32], BaseConvertionError> {
             let byte1 = chars[i].to_digit(16);
             let byte2 = chars[i + 1].to_digit(16);
 
-            if byte1.is_none() {
+            if let Some(byte1) = byte1 {
+                if let Some(byte2) = byte2 {
+                    let byte = ((byte1 as u8) << 4) | byte2 as u8;
+                    bytes[i / 2] = byte;
+                } else {
+                    return Err(BaseConvertionError::InvalidCharacter {
+                        character: chars[i + 1],
+                        offset: i + 1,
+                    });
+                }
+            } else {
                 return Err(BaseConvertionError::InvalidCharacter {
                     character: chars[i],
                     offset: i,
                 });
-            } else if byte2.is_none() {
-                return Err(BaseConvertionError::InvalidCharacter {
-                    character: chars[i + 1],
-                    offset: i + 1,
-                });
             }
-
-            let byte1 = byte1.unwrap_or_else(|| panic!(dbg!("dev error"))) as u8;
-            let byte2 = byte2.unwrap_or_else(|| panic!(dbg!("dev error"))) as u8;
-
-            let byte = (byte1 << 4) | byte2;
-            bytes[i / 2] = byte;
         }
 
         Ok(bytes)
