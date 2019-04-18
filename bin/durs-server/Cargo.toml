@@ -4,6 +4,10 @@ version = "0.1.1-a1"
 authors = ["librelois <elois@duniter.org>","nanocryk <nanocryk@duniter.org>","inso <inso@tuta.io>"]
 description = "DURS (Dividende Universel RuSt) is a new implementation of Duniter protocol and software in Rust, a safe, concurrent, practical language"
 license = "AGPL-3.0"
+repository = "https://git.duniter.org/nodes/rust/duniter-rs"
+readme = "README.md"
+keywords = ["blockchain", "cryptocurrency", "duniter"]
+categories = ["command-line-utilities", "network-programming"]
 edition = "2018"
 
 [dependencies]
