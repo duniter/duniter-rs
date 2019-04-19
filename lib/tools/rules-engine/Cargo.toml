@@ -1,0 +1,17 @@
+[package]
+name = "rules-engine"
+version = "0.1.0"
+authors = ["librelois <elois@ifee.fr>"]
+description = "Rules engine"
+license = "AGPL-3.0"
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+failure = "0.1.5"
+rayon = "1.0.3"
+
+[dev-dependencies]
+maplit = "1.0.1"
