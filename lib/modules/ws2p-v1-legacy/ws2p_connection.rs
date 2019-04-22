@@ -503,7 +503,9 @@ impl WS2PConnectionMetaDatas {
                                             heads_array.clone(),
                                         );
                                     }
-                                    None => return WS2PConnectionMessagePayload::WrongFormatMessage,
+                                    None => {
+                                        return WS2PConnectionMessagePayload::WrongFormatMessage
+                                    }
                                 },
                                 None => return WS2PConnectionMessagePayload::WrongFormatMessage,
                             },
