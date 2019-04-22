@@ -711,7 +711,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                         WS2PSignal::Heads(ws2p_full_id, heads) => {
                             trace!("WS2PSignal::Heads({}, {:?})", ws2p_full_id, heads.len());
                             ws2p_module.send_dal_request(&BlockchainRequest::UIDs(
-                                heads.iter().map(|h| h.pubkey()).collect(),
+                                heads.iter().map(NetworkHead::pubkey).collect(),
                             ));
                             ws2p_module.send_network_event(&NetworkEvent::ReceiveHeads(
                                 heads

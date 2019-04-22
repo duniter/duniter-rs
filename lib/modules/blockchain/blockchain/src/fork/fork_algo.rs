@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use dubp_documents::Blockstamp;
+use durs_blockchain_dal::entities::fork_tree::ForkTree;
 use durs_blockchain_dal::{DALError, ForksDBs};
 use std::collections::HashSet;
 
@@ -34,9 +35,7 @@ pub fn fork_resolution_algo(
             .median_time
     })?;
 
-    let mut sheets = forks_dbs
-        .fork_tree_db
-        .read(|fork_tree| fork_tree.get_sheets())?;
+    let mut sheets = forks_dbs.fork_tree_db.read(ForkTree::get_sheets)?;
 
     sheets.sort_unstable_by(|s1, s2| s2.1.id.cmp(&s1.1.id));
 

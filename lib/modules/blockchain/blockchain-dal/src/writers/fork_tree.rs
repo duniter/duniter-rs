@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::entities::fork_tree::ForkTree;
 use crate::*;
 use dubp_documents::*;
 
@@ -32,7 +33,7 @@ pub fn insert_new_head_block(
         fork_tree.insert_new_node(blockstamp, parent_id_opt, true);
     })?;
 
-    Ok(fork_tree_db.read(|tree| tree.get_removed_blockstamps())?)
+    Ok(fork_tree_db.read(ForkTree::get_removed_blockstamps)?)
 }
 
 /// Insert new fork block in fork tree only if parent exist in fork tree (orphan block not inserted)
@@ -72,7 +73,7 @@ pub fn change_main_branch(
 
     let removed_blockstamps = forks_dbs
         .fork_tree_db
-        .read(|tree| tree.get_removed_blockstamps())?;
+        .read(ForkTree::get_removed_blockstamps)?;
 
     // Remove too old blocks
     forks_dbs.fork_blocks_db.write(|db| {

@@ -67,7 +67,7 @@ pub fn already_have_block(
     } else if let Some(orphan_blockstamps) = forks_dbs.orphan_blocks_db.read(|db| {
         if let Some(orphan_blocks) = db.get(&previous_blockstamp) {
             let orphan_blockstamps: Vec<Blockstamp> =
-                orphan_blocks.iter().map(|b| b.blockstamp()).collect();
+                orphan_blocks.iter().map(DALBlock::blockstamp).collect();
             Some(orphan_blockstamps)
         } else {
             None

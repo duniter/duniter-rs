@@ -37,7 +37,7 @@ pub fn _self_peer_update_endpoints(
                 false
             }
         })
-        .map(|ep| ep.api())
+        .map(EndpointEnum::api)
         .collect();
     let mut new_endpoints_bin = Vec::with_capacity(max_eps);
     let mut new_endpoints_str = Vec::with_capacity(max_eps);

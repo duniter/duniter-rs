@@ -97,7 +97,7 @@ pub fn revert_block<W: WebOfTrust>(
     if let Some(du_amount) = block.dividend {
         if du_amount > 0 {
             let members_wot_ids = wot_db
-                .read(|db| db.get_enabled())
+                .read(WebOfTrust::get_enabled)
                 .expect("Fail to read WotDB");
             let mut members_pubkeys = Vec::new();
             for (pubkey, wot_id) in wot_index.iter() {

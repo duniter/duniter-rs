@@ -168,7 +168,7 @@ pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DB
 
     // Get members count
     let members_count = wot_db
-        .read(|db| db.get_enabled())
+        .read(WebOfTrust::get_enabled)
         .expect("Fail to read WotDB")
         .len();
 

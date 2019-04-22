@@ -199,7 +199,7 @@ impl PeerCardV11 {
             algorithm: self.issuer.algo(),
             pubkey: self.issuer.to_base58(),
             blockstamp: self.blockstamp.to_string(),
-            endpoints: self.endpoints.iter().map(|ep| ep.to_string()).collect(),
+            endpoints: self.endpoints.iter().map(EndpointV2::to_string).collect(),
             signature: if let Some(sig) = self.sig {
                 Some(sig.to_base64())
             } else {
