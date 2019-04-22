@@ -25,7 +25,7 @@ variables:
 
 .rust_stable_lin64: &rust_stable_lin64
   <<: *ci_conditions
-  image: registry.duniter.org/docker/duniter-rs-ci:v1.33.3
+  image: registry.duniter.org/docker/duniter-rs-ci:v1.34.0
   tags:
     - redshift-rs-stable
   before_script:
