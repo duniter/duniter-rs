@@ -84,7 +84,7 @@ tests:linux64:stable:
   script: 
     - cd bin/durs-server
     - RUSTFLAGS="-D warnings" cargo build --features=ssl
-    - cargo test --all
+    - cargo test --all -- --include-ignored
 
 tests:arm-v7-:stable:
   <<: *rust_stable_armv7
@@ -92,7 +92,7 @@ tests:arm-v7-:stable:
   script: 
     - cd bin/durs-server
     - RUSTFLAGS="-D warnings" cargo build --target=armv7-unknown-linux-gnueabihf --features=ssl
-    - cargo test --all --target=armv7-unknown-linux-gnueabihf
+    - cargo test --all --target=armv7-unknown-linux-gnueabihf -- --include-ignored
   allow_failure: true
   when: manual
   except:
@@ -104,7 +104,7 @@ tests:arm-v7:stable:
   script: 
     - cd bin/durs-server
     - RUSTFLAGS="-D warnings" cargo build --target=armv7-unknown-linux-gnueabihf --features=ssl
-    - cargo test --all --target=armv7-unknown-linux-gnueabihf
+    - cargo test --all --target=armv7-unknown-linux-gnueabihf -- --include-ignored
   only:
     - tags
 
@@ -135,7 +135,7 @@ tests:linux64:beta:
   script: 
     - cd bin/durs-server
     - RUSTFLAGS="-D warnings" cargo build --features=ssl
-    - cargo test --all
+    - cargo test --all -- --include-ignored
   when: manual
   allow_failure: true
     
@@ -145,7 +145,7 @@ tests:linux64:nightly:
   script: 
     - cd bin/durs-server
     - RUSTFLAGS="-D warnings" cargo build --features=ssl
-    - cargo test --all
+    - cargo test --all -- --include-ignored
   when: manual
   allow_failure: true
 
