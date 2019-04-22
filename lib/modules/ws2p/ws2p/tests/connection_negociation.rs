@@ -64,8 +64,7 @@ fn client_node() -> MySelfWs2pNode {
     }
 }
 
-//#[ignore]
-
+#[ignore]
 #[test]
 #[cfg(unix)]
 fn test_connection_negociation() {

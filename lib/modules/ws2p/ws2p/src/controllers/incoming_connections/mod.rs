@@ -71,8 +71,7 @@ mod tests {
         )
     }
 
-    #[ignore]
-    #[test]
+    //#[test]
     fn listen_on_localhost() {
         // create service channel
         let (service_sender, _service_receiver): (
