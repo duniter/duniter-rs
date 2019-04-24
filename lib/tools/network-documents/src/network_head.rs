@@ -21,6 +21,7 @@ use crate::{NodeFullId, NodeId};
 use dubp_documents::blockstamp::*;
 use dup_crypto::bases::BaseConvertionError;
 use dup_crypto::keys::*;
+use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::HashMap;
 use std::num::ParseIntError;

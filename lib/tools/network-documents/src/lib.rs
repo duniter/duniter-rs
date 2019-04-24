@@ -30,8 +30,6 @@ extern crate pest_derive;
 #[cfg(test)]
 #[macro_use]
 extern crate pretty_assertions;
-#[macro_use]
-extern crate serde_derive;
 
 pub mod network_endpoint;
 pub mod network_head;
@@ -48,6 +46,7 @@ use dup_crypto::hashs::*;
 use dup_crypto::keys::*;
 use pest::iterators::Pair;
 use pest::Parser;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Error, Formatter};
 
 #[derive(Parser)]
@@ -116,7 +115,7 @@ impl<'a> From<&'a str> for NodeId {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 /// Complete identifier of a duniter node.
 pub struct NodeFullId(pub NodeId, pub PubKey);
 

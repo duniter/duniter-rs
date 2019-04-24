@@ -19,6 +19,7 @@ use crate::NodeId;
 use dubp_documents::blockstamp::*;
 use dup_crypto::bases::BaseConvertionError;
 use dup_crypto::keys::*;
+use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::num::ParseIntError;
 use std::ops::Deref;
