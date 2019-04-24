@@ -27,6 +27,7 @@ mod tests {
     use dubp_documents::DocumentBuilder;
     use dup_crypto::keys::*;
     use std::str::FromStr;
+    use unwrap::unwrap;
 
     #[test]
     fn parse_json_tx() {
@@ -57,28 +58,24 @@ mod tests {
 
         let tx_builder = TransactionDocumentBuilder {
             currency: "g1",
-            blockstamp: &Blockstamp::from_string(
+            blockstamp: &unwrap!(Blockstamp::from_string(
                 "112533-000002150F2E805E604D9B31212D079570AAD8D3A4D8BB75F2C15A94A345B6B1",
-            )
-            .unwrap(),
+            )),
             locktime: &0,
-            issuers: &vec![PubKey::Ed25519(
-                ed25519::PublicKey::from_base58("51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2")
-                    .unwrap(),
-            )],
-            inputs: &vec![TransactionInput::from_str(
+            issuers: &vec![PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+                "51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2"
+            )))],
+            inputs: &vec![unwrap!(TransactionInput::from_str(
                 "1000:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:46496",
-            )
-            .unwrap()],
-            outputs: &vec![TransactionOutput::from_str(
+            ))],
+            outputs: &vec![unwrap!(TransactionOutput::from_str(
                 "1000:0:SIG(2yN8BRSkARcqE8NCxKMBiHfTpx1EvwULFn56Myf6qRmy)",
-            )
-            .unwrap()],
-            unlocks: &vec![TransactionInputUnlocks::from_str("0:SIG(0)").unwrap()],
+            ))],
+            unlocks: &vec![unwrap!(TransactionInputUnlocks::from_str("0:SIG(0)"))],
             comment: "Merci pour la calligraphie ;) de Liam",
             hash: None,
         };
-        let mut tx_doc = tx_builder.build_with_signature(vec![Sig::Ed25519(ed25519::Signature::from_base64("5olrjFylTCsVq8I5Yr7FpXeviynICyvIwe1yG5N0RJF+VZb+bCFBnLAMpmMCU2qzUvK7z41UXOrMRybXiLa2Dw==").unwrap())]);
+        let mut tx_doc = tx_builder.build_with_signature(vec![Sig::Ed25519(unwrap!(ed25519::Signature::from_base64("5olrjFylTCsVq8I5Yr7FpXeviynICyvIwe1yG5N0RJF+VZb+bCFBnLAMpmMCU2qzUvK7z41UXOrMRybXiLa2Dw==")))]);
         tx_doc.compute_hash();
         assert_eq!(
             parse_transaction("g1", &tx_json).expect("Fail to parse transaction !"),
@@ -116,32 +113,29 @@ mod tests {
 
         let tx_builder = TransactionDocumentBuilder {
             currency: "g1",
-            blockstamp: &Blockstamp::from_string(
+            blockstamp: &unwrap!(Blockstamp::from_string(
                 "58-00005B9167EBA1E32C6EAD42AE7F72D8F14B765D3C9E47D233B553D47C5AEE0C",
-            )
-            .unwrap(),
+            )),
             locktime: &0,
-            issuers: &vec![PubKey::Ed25519(
-                ed25519::PublicKey::from_base58("FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD")
-                    .unwrap(),
-            )],
-            inputs: &vec![TransactionInput::from_str(
+            issuers: &vec![PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+                "FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD"
+            )))],
+            inputs: &vec![unwrap!(TransactionInput::from_str(
                 "1000:0:D:FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD:1",
-            )
-            .unwrap()],
+            ))],
             outputs: &vec![
-                TransactionOutput::from_str("3:0:SIG(7vU9BMDhN6fBuRa2iK3JRbC6pqQKb4qDMGsFcQuT5cz)")
-                    .unwrap(),
-                TransactionOutput::from_str(
+                unwrap!(TransactionOutput::from_str(
+                    "3:0:SIG(7vU9BMDhN6fBuRa2iK3JRbC6pqQKb4qDMGsFcQuT5cz)"
+                )),
+                unwrap!(TransactionOutput::from_str(
                     "997:0:SIG(FVUFRrk1K5TQGsY7PRLwqHgdHRoHrwb1hcucp4C2N5tD)",
-                )
-                .unwrap(),
+                )),
             ],
-            unlocks: &vec![TransactionInputUnlocks::from_str("0:SIG(0)").unwrap()],
+            unlocks: &vec![unwrap!(TransactionInputUnlocks::from_str("0:SIG(0)"))],
             comment: "Un petit cafe ;-)",
             hash: None,
         };
-        let mut tx_doc = tx_builder.build_with_signature(vec![Sig::Ed25519(ed25519::Signature::from_base64("VWbvsiybM4L2X5+o+6lIiuKNw5KrD1yGZqmV+lHtA28XoRUFzochSIgfoUqBsTAaYEHY45vSX917LDXudTEzBg==").unwrap())]);
+        let mut tx_doc = tx_builder.build_with_signature(vec![Sig::Ed25519(unwrap!(ed25519::Signature::from_base64("VWbvsiybM4L2X5+o+6lIiuKNw5KrD1yGZqmV+lHtA28XoRUFzochSIgfoUqBsTAaYEHY45vSX917LDXudTEzBg==")))]);
         tx_doc.compute_hash();
         assert_eq!(
             parse_transaction("g1", &tx_json).expect("Fail to parse transaction !"),

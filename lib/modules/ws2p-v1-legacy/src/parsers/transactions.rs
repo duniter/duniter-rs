@@ -96,6 +96,7 @@ pub fn parse_transaction(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use unwrap::unwrap;
 
     #[test]
     fn parse_compact_tx() {
@@ -110,24 +111,20 @@ Merci pour la calligraphie ;) de Liam$\
 
         let _tx_builder = TransactionDocumentBuilder {
             currency: "g1",
-            blockstamp: &Blockstamp::from_string(
+            blockstamp: &unwrap!(Blockstamp::from_string(
                 "112533-000002150F2E805E604D9B31212D079570AAD8D3A4D8BB75F2C15A94A345B6B1",
-            )
-            .unwrap(),
+            )),
             locktime: &0,
-            issuers: &vec![PubKey::Ed25519(
-                ed25519::PublicKey::from_base58("51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2")
-                    .unwrap(),
-            )],
-            inputs: &vec![TransactionInput::from_str(
+            issuers: &vec![PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+                "51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2"
+            )))],
+            inputs: &vec![unwrap!(TransactionInput::from_str(
                 "1000:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:46496",
-            )
-            .unwrap()],
-            outputs: &vec![TransactionOutput::from_str(
+            ))],
+            outputs: &vec![unwrap!(TransactionOutput::from_str(
                 "1000:0:SIG(2yN8BRSkARcqE8NCxKMBiHfTpx1EvwULFn56Myf6qRmy)",
-            )
-            .unwrap()],
-            unlocks: &vec![TransactionInputUnlocks::from_str("0:SIG(0)").unwrap()],
+            ))],
+            unlocks: &vec![unwrap!(TransactionInputUnlocks::from_str("0:SIG(0)"))],
             comment: "Merci pour la calligraphie ;) de Liam",
             hash: None,
         };

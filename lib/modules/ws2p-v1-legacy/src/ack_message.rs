@@ -1,4 +1,4 @@
-use super::WS2PMessage;
+use crate::*;
 use dup_crypto::keys::*;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 
@@ -11,20 +11,19 @@ pub struct WS2PAckMessageV1 {
 }
 
 impl WS2PMessage for WS2PAckMessageV1 {
-    fn parse(v: &serde_json::Value, currency: String) -> Option<Self> {
+    fn parse(v: &serde_json::Value, currency: String) -> Result<Self, WS2PMsgParseErr> {
         let pubkey = match v.get("pub") {
-            Some(pubkey) => pubkey.as_str().unwrap().to_string(),
-            None => return None,
+            Some(pubkey) => pubkey.as_str().ok_or(WS2PMsgParseErr {})?.to_string(),
+            None => return Err(WS2PMsgParseErr {}),
         };
         let signature = match v.get("sig") {
-            Some(signature) => signature.as_str().unwrap().to_string(),
-            None => return None,
+            Some(signature) => signature.as_str().ok_or(WS2PMsgParseErr {})?.to_string(),
+            None => return Err(WS2PMsgParseErr {}),
         };
-        let pubkey = PubKey::Ed25519(ed25519::PublicKey::from_base58(&pubkey).unwrap());
-        let signature: Option<Sig> = Some(Sig::Ed25519(
-            ed25519::Signature::from_base64(&signature).unwrap(),
-        ));
-        Some(WS2PAckMessageV1 {
+        let pubkey = PubKey::Ed25519(ed25519::PublicKey::from_base58(&pubkey)?);
+        let signature: Option<Sig> =
+            Some(Sig::Ed25519(ed25519::Signature::from_base64(&signature)?));
+        Ok(WS2PAckMessageV1 {
             currency,
             pubkey,
             challenge: "".to_string(),
@@ -38,8 +37,11 @@ impl WS2PMessage for WS2PAckMessageV1 {
         )
     }
     fn verify(&self) -> bool {
-        self.pubkey
-            .verify(self.to_raw().as_bytes(), &self.signature.unwrap())
+        if let Some(sig) = self.signature {
+            self.pubkey.verify(self.to_raw().as_bytes(), &sig)
+        } else {
+            false
+        }
     }
 }
 

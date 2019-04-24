@@ -10,23 +10,24 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
+bincode = "1.0.1"
 byteorder = "1.2.3"
-duniter-conf = { path = "../../core/conf" }
-dup-crypto = { path = "../../tools/crypto" }
 dubp-documents= { path = "../../tools/documents" }
-durs-network-documents = { path = "../../tools/network-documents" }
-durs-message =  { path = "../../core/message" }
+duniter-conf = { path = "../../core/conf" }
 duniter-module = { path = "../../core/module" }
 duniter-network = { path = "../../core/network" }
+dup-crypto = { path = "../../tools/crypto" }
+durs-network-documents = { path = "../../tools/network-documents" }
+durs-message =  { path = "../../core/message" }
+durs-common-tools = { path = "../../tools/common-tools" }
 durs-wot = { path = "../../tools/wot" }
 log = "0.4.*"
 rand = "0.4.*"
-sqlite = "0.23.*"
-serde = "1.0.*"
-serde_derive = "1.0.*"
+serde = { version = "1.0.*", features = ["derive"] }
 serde_json = "1.0.*"
 structopt= "0.2.*"
-ws = { version = "0.7.*", features = ["permessage-deflate"] }
+unwrap = "1.2.1"
+ws = "0.7.*"
 
 [features]
 ssl = ["ws/ssl"]

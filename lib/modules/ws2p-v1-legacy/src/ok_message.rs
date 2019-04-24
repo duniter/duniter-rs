@@ -1,4 +1,4 @@
-use super::WS2PMessage;
+use crate::*;
 use dup_crypto::keys::*;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 
@@ -11,23 +11,18 @@ pub struct WS2POkMessageV1 {
 }
 
 impl WS2PMessage for WS2POkMessageV1 {
-    fn parse(v: &serde_json::Value, currency: String) -> Option<Self> {
+    fn parse(v: &serde_json::Value, currency: String) -> Result<Self, WS2PMsgParseErr> {
         let signature = match v.get("sig") {
-            Some(signature) => signature
-                .as_str()
-                .expect("Parsing of OK message : fail to convert sig to str")
-                .to_string(),
-            None => return None,
+            Some(signature) => signature.as_str().ok_or(WS2PMsgParseErr {})?.to_string(),
+            None => return Err(WS2PMsgParseErr {}),
         };
-        let pubkey: PubKey = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("969qRJs8KhsnkyzqarpL4RKZGMdVKNbZgu8fhsigM7Lj")
-                .expect("fail to create default pubkey !"),
-        );
-        let signature: Option<Sig> = Some(Sig::Ed25519(
-            dup_crypto::keys::Signature::from_base64(&signature)
-                .expect("fail to parse signature of OK message !"),
-        ));
-        Some(WS2POkMessageV1 {
+        let pubkey: PubKey = PubKey::Ed25519(ed25519::PublicKey::from_base58(
+            "969qRJs8KhsnkyzqarpL4RKZGMdVKNbZgu8fhsigM7Lj",
+        )?);
+        let signature: Option<Sig> = Some(Sig::Ed25519(dup_crypto::keys::Signature::from_base64(
+            &signature,
+        )?));
+        Ok(WS2POkMessageV1 {
             currency,
             pubkey,
             challenge: "".to_string(),
@@ -41,8 +36,11 @@ impl WS2PMessage for WS2POkMessageV1 {
         )
     }
     fn verify(&self) -> bool {
-        self.pubkey
-            .verify(self.to_raw().as_bytes(), &self.signature.unwrap())
+        if let Some(sig) = self.signature {
+            self.pubkey.verify(self.to_raw().as_bytes(), &sig)
+        } else {
+            false
+        }
     }
 }
 
