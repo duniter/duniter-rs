@@ -26,6 +26,13 @@
     unused_import_braces
 )]
 
+use std::fs::File;
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
+
 /// Interrupts the program and log error message
 /// WARNING: this macro must not be called before the logger is initialized !
 #[macro_export]
@@ -44,14 +51,35 @@ macro_rules! fatal_error {
     });
 }
 
-/*macro_rules! error {
-    (target: $target:expr, $($arg:tt)+) => (
-        log!(target: $target, $crate::Level::Error, $($arg)+);
-    );
-    ($($arg:tt)+) => (
-        log!($crate::Level::Error, $($arg)+);
-    )
-}*/
+#[inline]
+/// Get current timestamp in seconds
+pub fn current_timestamp() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("SystemTime::duration_since failed")
+        .as_secs()
+}
+
+/// Read bin file
+pub fn read_bin_file(file_path: &Path) -> Result<Vec<u8>, std::io::Error> {
+    let mut file = File::open(file_path)?;
+    if file.metadata()?.len() == 0 {
+        Ok(vec![])
+    } else {
+        let mut bin_datas = Vec::new();
+        file.read_to_end(&mut bin_datas)?;
+
+        Ok(bin_datas)
+    }
+}
+
+/// Write bin file
+pub fn write_bin_file(file_path: &Path, datas: &[u8]) -> Result<(), std::io::Error> {
+    let mut file = File::create(file_path)?;
+    file.write_all(&datas[..])?;
+
+    Ok(())
+}
 
 /// Unescape backslash
 pub fn unescape_str(source: &str) -> String {
