@@ -16,6 +16,7 @@ variables:
     changes:
       - .gitlab-ci.yml
       - Cargo.toml
+      - Cargo.lock
       - bin/**/*
       - lib/**/*
       - release/**/*
