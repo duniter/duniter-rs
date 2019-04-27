@@ -49,7 +49,7 @@ fn main() {
 #[cfg(target_arch = "arm")]
 fn main() {
     durs_core_server!(
-        durs_inject_cli![WS2PModule, TuiModule],
+        durs_inject_cli![WS2PModule],
         durs_plug!([WS2PModule], [TuiModule])
     );
 }
