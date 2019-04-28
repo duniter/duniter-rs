@@ -64,7 +64,7 @@ mod tests {
     use std::thread;
     use std::time::Duration;
 
-    pub fn keypair1() -> ed25519::KeyPair {
+    pub fn _keypair1() -> ed25519::KeyPair {
         ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(
             "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV".as_bytes(),
             "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV_".as_bytes(),
@@ -72,7 +72,7 @@ mod tests {
     }
 
     //#[test]
-    fn listen_on_localhost() {
+    fn _listen_on_localhost() {
         // create service channel
         let (service_sender, _service_receiver): (
             mpsc::Sender<Ws2pServiceSender>,
@@ -85,7 +85,7 @@ mod tests {
                 service_sender,
                 MySelfWs2pNode {
                     my_node_id: NodeId(1),
-                    my_key_pair: KeyPairEnum::Ed25519(keypair1()),
+                    my_key_pair: KeyPairEnum::Ed25519(_keypair1()),
                     my_features: WS2PFeatures(vec![5u8]),
                 },
                 "localhost",

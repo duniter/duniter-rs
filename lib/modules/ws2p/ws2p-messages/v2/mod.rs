@@ -87,13 +87,7 @@ impl<'de> BinSignable<'de> for WS2Pv2Message {
         self.issuer_pubkey
     }
     fn store_hash(&self) -> bool {
-        true
-    }
-    fn hash(&self) -> Option<Hash> {
-        self.message_hash
-    }
-    fn set_hash(&mut self, hash: Hash) {
-        self.message_hash = Some(hash)
+        false
     }
     fn signature(&self) -> Option<Sig> {
         self.signature

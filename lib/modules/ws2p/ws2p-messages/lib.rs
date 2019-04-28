@@ -66,12 +66,6 @@ impl From<bincode::Error> for WS2PMessageError {
 }
 
 impl WS2PMessage {
-    /// Verify signature validity
-    pub fn verify(&self) -> Result<(), SigError> {
-        match *self {
-            WS2PMessage::V2(ref msg_v2) => msg_v2.verify(),
-        }
-    }
     /// Get message hash
     pub fn hash(&self) -> Option<Hash> {
         match *self {
