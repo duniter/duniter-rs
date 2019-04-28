@@ -1,7 +1,14 @@
 {
-    "V1": {
+    "V2": {
         "currency":"g1",
         "my_node_id": 1191678020,
+        "default_sync_module": "ws2pv1",
+        "ressources_usage": {
+            "cpu_usage": "Large",
+            "network_usage": "Large",
+            "memory_usage": "Large",
+            "disk_space_usage": "Large"
+        },
         "disabled": [],
         "enabled": [],
         "modules": {

@@ -190,7 +190,7 @@ impl BlockchainModule {
         _keys: RequiredKeysContent,
     ) -> BlockchainModule {
         // Get db path
-        let dbs_path = duniter_conf::get_blockchain_db_path(profile, &conf.currency());
+        let dbs_path = durs_conf::get_blockchain_db_path(profile, &conf.currency());
 
         // Open databases
         let blocks_databases = BlocksV10DBs::open(Some(&dbs_path));

@@ -27,7 +27,7 @@ pub fn execute(
     pool.execute(move || {
         let tx_job_begin = SystemTime::now();
         // Open databases
-        let db_path = duniter_conf::get_blockchain_db_path(&profile, &currency);
+        let db_path = durs_conf::get_blockchain_db_path(&profile, &currency);
         let databases = CurrencyV10DBs::open(Some(&db_path));
 
         // Listen db requets

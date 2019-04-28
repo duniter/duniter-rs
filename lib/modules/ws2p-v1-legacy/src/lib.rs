@@ -57,7 +57,6 @@ use crate::ws_connections::messages::WS2PConnectionMessage;
 use crate::ws_connections::states::WS2PConnectionState;
 use crate::ws_connections::*;
 use dubp_documents::Blockstamp;
-use duniter_conf::DuRsConf;
 use duniter_module::*;
 use duniter_network::cli::sync::SyncOpt;
 use duniter_network::documents::*;
@@ -66,6 +65,7 @@ use duniter_network::requests::*;
 use duniter_network::*;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
+use durs_conf::DuRsConf;
 use durs_message::events::*;
 use durs_message::requests::*;
 use durs_message::responses::*;
@@ -322,7 +322,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
     type ModuleOpt = WS2POpt;
 
     fn name() -> ModuleStaticName {
-        ModuleStaticName("ws2p")
+        ModuleStaticName("ws2p1")
     }
     fn priority() -> ModulePriority {
         ModulePriority::Essential()
@@ -379,7 +379,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
 
         // Get endpoints file path
         let mut ep_file_path =
-            duniter_conf::datas_path(&soft_meta_datas.profile, &soft_meta_datas.conf.currency());
+            durs_conf::datas_path(&soft_meta_datas.profile, &soft_meta_datas.conf.currency());
         ep_file_path.push("ws2pv1");
         if !ep_file_path.exists() {
             fs::create_dir(ep_file_path.as_path()).expect("Impossible to create ws2pv1 dir !");

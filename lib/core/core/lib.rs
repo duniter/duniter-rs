@@ -36,11 +36,13 @@ pub mod change_conf;
 pub mod cli;
 pub mod router;
 
-pub use duniter_conf::{keys::*, ChangeGlobalConf, DuRsConf, DuniterKeyPairs, KEYPAIRS_FILENAME};
 use duniter_module::*;
 use duniter_network::cli::sync::*;
 use duniter_network::NetworkModule;
 use durs_blockchain::{BlockchainModule, DBExQuery, DBExTxQuery, DBExWotQuery};
+pub use durs_conf::{
+    constants::KEYPAIRS_FILENAME, keys::*, ChangeGlobalConf, DuRsConf, DuniterKeyPairs,
+};
 use durs_message::*;
 use log::Level;
 use simplelog::*;
@@ -237,7 +239,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
         init_logger(profile.as_str(), self.soft_meta_datas.soft_name, &cli_args);
 
         // Load global conf
-        let (conf, keypairs) = duniter_conf::load_conf(profile.as_str());
+        let (conf, keypairs) = durs_conf::load_conf(profile.as_str());
         info!("Success to load global conf.");
 
         // save profile and conf
@@ -344,7 +346,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                 Some(path) => path,
                 None => panic!("Impossible to get user config directory !"),
             };
-            profile_path.push(duniter_conf::get_user_datas_folder());
+            profile_path.push(durs_conf::get_user_datas_folder());
             profile_path.push(profile.clone());
             if !profile_path.as_path().exists() {
                 panic!(format!("Error : {} profile don't exist !", profile));
@@ -616,7 +618,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                             .get(&M::name().to_string().as_str())
                             .cloned();
                         let (_conf, keypairs) =
-                            duniter_conf::load_conf(self.soft_meta_datas.profile.as_str());
+                            durs_conf::load_conf(self.soft_meta_datas.profile.as_str());
                         let (module_conf, required_keys) =
                             get_module_conf_and_keys::<M>(module_conf_json, keypairs);
                         // Execute module subcommand
@@ -697,7 +699,7 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
     if !log_file_path.as_path().exists() {
         fs::create_dir(log_file_path.as_path()).expect("Impossible to create ~/.config dir !");
     }
-    log_file_path.push(duniter_conf::get_user_datas_folder());
+    log_file_path.push(durs_conf::get_user_datas_folder());
     if !log_file_path.as_path().exists() {
         fs::create_dir(log_file_path.as_path()).expect("Impossible to create ~/.config/durs dir !");
     }

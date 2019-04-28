@@ -10,7 +10,7 @@ edition = "2018"
 path = "lib.rs"
 
 [dependencies]
-duniter-conf = { path = "../../core/conf" }
+durs-conf = { path = "../../core/conf" }
 dup-crypto = { path = "../../tools/crypto" }
 dubp-documents= { path = "../../tools/documents" }
 durs-message =  { path = "../../core/message" }

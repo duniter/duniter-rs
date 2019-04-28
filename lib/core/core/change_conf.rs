@@ -15,8 +15,8 @@
 
 //! Crate containing Duniter-rust core.
 
-use duniter_conf::ChangeGlobalConf;
 use duniter_module::DuniterConf;
+use durs_conf::ChangeGlobalConf;
 
 /// Change global configuration
 pub fn change_global_conf<DC: DuniterConf>(
@@ -32,7 +32,8 @@ pub fn change_global_conf<DC: DuniterConf>(
     }
 
     // Write new conf
-    ::duniter_conf::write_conf_file(profile, &conf).expect("IOError : Fail to update conf  ");
+    durs_conf::write_conf_file(&durs_conf::get_conf_path(profile), &conf)
+        .expect("IOError : Fail to update conf  ");
 
     println!("Configuration successfully updated.");
 }

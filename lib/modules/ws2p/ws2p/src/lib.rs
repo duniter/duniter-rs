@@ -39,10 +39,10 @@ mod generate_peer;
 pub mod services;
 
 use crate::constants::*;
-use duniter_conf::DuRsConf;
 use duniter_module::*;
 use duniter_network::cli::sync::SyncOpt;
 use duniter_network::*;
+use durs_conf::DuRsConf;
 use durs_message::DursMsg;
 use durs_network_documents::network_endpoint::*;
 use std::sync::mpsc;

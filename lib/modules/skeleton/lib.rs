@@ -34,9 +34,9 @@ extern crate serde_derive;
 #[macro_use]
 extern crate structopt;
 
-use duniter_conf::DuRsConf;
 use duniter_module::*;
 use duniter_network::events::NetworkEvent;
+use durs_conf::DuRsConf;
 use durs_message::events::*;
 use durs_message::*;
 use std::ops::Deref;
@@ -132,11 +132,13 @@ impl DursModule<DuRsConf, DursMsg> for SkeletonModule {
             test_fake_conf_field: subcommand_args.new_conf_field.clone(),
         };
         conf.set_module_conf(
-            MODULE_NAME.to_owned(),
+            ModuleName(MODULE_NAME.to_owned()),
             serde_json::value::to_value(new_skeleton_conf)
                 .expect("Fail to jsonifie SkeletonConf !"),
         );
-        duniter_conf::write_conf_file(&soft_meta_datas.profile, &conf)
+        let mut conf_path = durs_conf::get_profile_path(&soft_meta_datas.profile);
+        conf_path.push(durs_conf::constants::CONF_FILENAME);
+        durs_conf::write_conf_file(conf_path.as_path(), &conf)
             .expect("Fail to write new conf file ! ");
         println!(
             "Succesfully exec skeleton subcommand whit terminal name : {} and conf={:?}!",

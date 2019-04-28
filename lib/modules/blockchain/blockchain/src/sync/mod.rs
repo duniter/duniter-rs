@@ -171,11 +171,16 @@ pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt)
     let mut conf = conf.clone();
     conf.set_currency(currency.clone());
 
+    // Get profile path
+    let profile_path = durs_conf::get_profile_path(profile);
+
     // Get databases path
-    let db_path = duniter_conf::get_blockchain_db_path(profile, &currency);
+    let db_path = durs_conf::get_blockchain_db_path(profile, &currency);
 
     // Write new conf
-    duniter_conf::write_conf_file(profile, &conf).expect("Fail to write new conf !");
+    let mut conf_path = profile_path;
+    conf_path.push(durs_conf::constants::CONF_FILENAME);
+    durs_conf::write_conf_file(conf_path.as_path(), &conf).expect("Fail to write new conf !");
 
     // Open blocks databases
     let blocks_dbs = BlocksV10DBs::open(Some(&db_path));
@@ -265,7 +270,7 @@ pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt)
     let main_job_begin = SystemTime::now();
 
     // Open currency_params_db
-    let dbs_path = duniter_conf::get_blockchain_db_path(profile, &conf.currency());
+    let dbs_path = durs_conf::get_blockchain_db_path(profile, &conf.currency());
     let currency_params_db = BinDB::File(
         open_file_db::<CurrencyParamsV10Datas>(&dbs_path, "params.db")
             .expect("Fail to open params db"),

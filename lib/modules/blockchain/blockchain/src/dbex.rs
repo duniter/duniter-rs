@@ -60,7 +60,7 @@ pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DBExQu
 
 pub fn dbex_tx<DC: DuniterConf>(profile: &str, conf: &DC, _csv: bool, query: &DBExTxQuery) {
     // Get db path
-    let db_path = duniter_conf::get_blockchain_db_path(profile, &conf.currency());
+    let db_path = durs_conf::get_blockchain_db_path(profile, &conf.currency());
 
     // Open databases
     let load_dbs_begin = SystemTime::now();
@@ -119,7 +119,7 @@ pub fn dbex_tx<DC: DuniterConf>(profile: &str, conf: &DC, _csv: bool, query: &DB
 
 pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DBExWotQuery) {
     // Get db path
-    let db_path = duniter_conf::get_blockchain_db_path(profile, &conf.currency());
+    let db_path = durs_conf::get_blockchain_db_path(profile, &conf.currency());
 
     // Open databases
     let load_dbs_begin = SystemTime::now();

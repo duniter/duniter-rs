@@ -11,7 +11,7 @@ path = "src/lib.rs"
 
 [dependencies]
 bincode = "1.0.*"
-duniter-conf= { path = "../../../core/conf" }
+durs-conf= { path = "../../../core/conf" }
 dup-crypto = { path = "../../../tools/crypto" }
 dubp-documents= { path = "../../../tools/documents" }
 durs-network-documents = { path = "../../../tools/network-documents" }

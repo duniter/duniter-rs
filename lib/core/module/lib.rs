@@ -102,6 +102,9 @@ impl ToString for ModuleReqFullId {
 pub trait DuniterConf:
     Clone + Debug + Default + PartialEq + Serialize + DeserializeOwned + Send + ToOwned
 {
+    /// Upgrade configuration to latest version
+    /// Return new configuration and a boolean which indicates if the configuration has been updated
+    fn upgrade(self) -> (Self, bool);
     /// Get conf version profile
     fn version(&self) -> usize;
     /// Get currency
@@ -121,7 +124,7 @@ pub trait DuniterConf:
     /// Get modules conf
     fn modules(&self) -> serde_json::Value;
     /// Change module conf
-    fn set_module_conf(&mut self, module_id: String, new_module_conf: serde_json::Value);
+    fn set_module_conf(&mut self, module_name: ModuleName, new_module_conf: serde_json::Value);
 }
 
 /// Sofware meta datas

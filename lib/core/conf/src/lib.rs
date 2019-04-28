@@ -31,9 +31,8 @@
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
-extern crate serde_json;
 
+pub mod constants;
 pub mod keys;
 
 use dubp_documents::CurrencyName;
@@ -46,15 +45,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
-use std::path::PathBuf;
-
-static USER_DATAS_FOLDER: &'static str = "durs-dev";
-
-/// If no currency is specified by the user, is the currency will be chosen by default
-pub static DEFAULT_CURRRENCY: &'static str = "g1";
-
-/// Keypairs filename
-pub static KEYPAIRS_FILENAME: &'static str = "keypairs.json";
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 /// User request on global conf
@@ -70,6 +61,27 @@ pub enum ChangeGlobalConf {
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
+/// Modules conf
+pub struct ModulesConf(pub serde_json::Value);
+
+impl ModulesConf {
+    /// Change module conf
+    pub fn set_module_conf(&mut self, module_name: ModuleName, new_module_conf: serde_json::Value) {
+        if self.0.is_null() {
+            let mut new_modules_conf = serde_json::Map::with_capacity(1);
+            new_modules_conf.insert(module_name.0, new_module_conf);
+            self.0 = serde_json::value::to_value(new_modules_conf)
+                .expect("Fail to create map of new modules conf !");
+        } else {
+            self.0
+                .as_object_mut()
+                .expect("Conf file currupted !")
+                .insert(module_name.0, new_module_conf);
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
 /// Duniter configuration v1
 pub struct DuRsConfV1 {
     /// Currency name
@@ -77,7 +89,7 @@ pub struct DuRsConfV1 {
     /// Duniter node unique identifier
     pub my_node_id: u32,
     /// Configuration of modules in json format (obtained from the conf.json file)
-    pub modules: serde_json::Value,
+    pub modules: ModulesConf,
     /// Disabled modules
     pub disabled: HashSet<ModuleName>,
     /// Enabled modules
@@ -87,47 +99,143 @@ pub struct DuRsConfV1 {
 impl Default for DuRsConfV1 {
     fn default() -> Self {
         DuRsConfV1 {
-            currency: CurrencyName(String::from("g1")),
+            currency: CurrencyName(String::from(constants::DEFAULT_CURRRENCY)),
             my_node_id: generate_random_node_id(),
-            modules: serde_json::Value::Null,
+            modules: ModulesConf(serde_json::Value::Null),
             disabled: HashSet::with_capacity(0),
             enabled: HashSet::with_capacity(0),
         }
     }
 }
 
+#[derive(Debug, Copy, Clone, Deserialize, PartialEq, Serialize)]
+/// Ressource usage
+pub enum ResourceUsage {
+    /// Minimal use of the resource, to the detriment of performance
+    Minimal,
+    /// Trade-off between resource use and performance
+    Medium,
+    /// A performance-oriented trade-off, the use of the resource is slightly limited
+    Large,
+    /// No restrictions on the use of the resource, maximizes performance
+    Infinite,
+}
+#[derive(Debug, Copy, Clone, Deserialize, PartialEq, Serialize)]
+/// Ressources usage
+pub struct ResourcesUsage {
+    /// Cpu usage
+    pub cpu_usage: ResourceUsage,
+    /// Network usage
+    pub network_usage: ResourceUsage,
+    /// Memory usage
+    pub memory_usage: ResourceUsage,
+    /// Disk space usage
+    pub disk_space_usage: ResourceUsage,
+}
+
+impl Default for ResourcesUsage {
+    fn default() -> Self {
+        ResourcesUsage {
+            cpu_usage: ResourceUsage::Large,
+            network_usage: ResourceUsage::Large,
+            memory_usage: ResourceUsage::Large,
+            disk_space_usage: ResourceUsage::Large,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
+/// Duniter configuration v2
+pub struct DuRsConfV2 {
+    /// Currency name
+    pub currency: CurrencyName,
+    /// Duniter node unique identifier
+    pub my_node_id: u32,
+    /// Name of the module used by default for synchronization
+    pub default_sync_module: ModuleName,
+    /// Ressources usage
+    pub ressources_usage: ResourcesUsage,
+    /// Configuration of modules in json format (obtained from the conf.json file)
+    pub modules: ModulesConf,
+    /// Disabled modules
+    pub disabled: HashSet<ModuleName>,
+    /// Enabled modules
+    pub enabled: HashSet<ModuleName>,
+}
+
+impl Default for DuRsConfV2 {
+    fn default() -> Self {
+        DuRsConfV2 {
+            currency: CurrencyName(String::from(constants::DEFAULT_CURRRENCY)),
+            my_node_id: generate_random_node_id(),
+            default_sync_module: ModuleName(String::from(constants::DEFAULT_DEFAULT_SYNC_MODULE)),
+            ressources_usage: ResourcesUsage::default(),
+            modules: ModulesConf(serde_json::Value::Null),
+            disabled: HashSet::with_capacity(0),
+            enabled: HashSet::with_capacity(0),
+        }
+    }
+}
+
+impl From<DuRsConfV1> for DuRsConfV2 {
+    fn from(conf_v1: DuRsConfV1) -> Self {
+        DuRsConfV2 {
+            currency: conf_v1.currency,
+            my_node_id: conf_v1.my_node_id,
+            default_sync_module: ModuleName(String::from(constants::DEFAULT_DEFAULT_SYNC_MODULE)),
+            ressources_usage: ResourcesUsage::default(),
+            modules: conf_v1.modules,
+            disabled: conf_v1.disabled,
+            enabled: conf_v1.enabled,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-/// Duniter node configuration
+/// Durs node configuration
 pub enum DuRsConf {
-    /// Duniter node configuration v1
+    /// Durs node configuration v1
     V1(DuRsConfV1),
+    /// Durs node configuration v2
+    V2(DuRsConfV2),
 }
 
 impl Default for DuRsConf {
     fn default() -> Self {
-        DuRsConf::V1(DuRsConfV1::default())
+        DuRsConf::V2(DuRsConfV2::default())
     }
 }
 
 impl DuniterConf for DuRsConf {
+    fn upgrade(self) -> (Self, bool) {
+        if let DuRsConf::V1(conf_v1) = self {
+            (DuRsConf::V2(DuRsConfV2::from(conf_v1)), true)
+        } else {
+            (self, false)
+        }
+    }
     fn version(&self) -> usize {
         match *self {
-            DuRsConf::V1(ref _conf_v1) => 1,
+            DuRsConf::V1(_) => 1,
+            DuRsConf::V2(_) => 2,
         }
     }
     fn currency(&self) -> CurrencyName {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.currency.clone(),
+            DuRsConf::V2(ref conf_v2) => conf_v2.currency.clone(),
         }
     }
     fn set_currency(&mut self, new_currency: CurrencyName) {
         match *self {
             DuRsConf::V1(ref mut conf_v1) => conf_v1.currency = new_currency,
+            DuRsConf::V2(ref mut conf_v2) => conf_v2.currency = new_currency,
         }
     }
     fn my_node_id(&self) -> u32 {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.my_node_id,
+            DuRsConf::V2(ref conf_v2) => conf_v2.my_node_id,
         }
     }
     fn disable(&mut self, module: ModuleName) {
@@ -135,6 +243,10 @@ impl DuniterConf for DuRsConf {
             DuRsConf::V1(ref mut conf_v1) => {
                 conf_v1.disabled.insert(module.clone());
                 conf_v1.enabled.remove(&module);
+            }
+            DuRsConf::V2(ref mut conf_v2) => {
+                conf_v2.disabled.insert(module.clone());
+                conf_v2.enabled.remove(&module);
             }
         }
     }
@@ -144,39 +256,38 @@ impl DuniterConf for DuRsConf {
                 conf_v1.disabled.remove(&module);
                 conf_v1.enabled.insert(module);
             }
+            DuRsConf::V2(ref mut conf_v2) => {
+                conf_v2.disabled.remove(&module);
+                conf_v2.enabled.insert(module);
+            }
         }
     }
     fn disabled_modules(&self) -> HashSet<ModuleName> {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.disabled.clone(),
+            DuRsConf::V2(ref conf_v2) => conf_v2.disabled.clone(),
         }
     }
     fn enabled_modules(&self) -> HashSet<ModuleName> {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.enabled.clone(),
+            DuRsConf::V2(ref conf_v2) => conf_v2.enabled.clone(),
         }
     }
     fn modules(&self) -> serde_json::Value {
         match *self {
-            DuRsConf::V1(ref conf_v1) => conf_v1.modules.clone(),
+            DuRsConf::V1(ref conf_v1) => conf_v1.modules.0.clone(),
+            DuRsConf::V2(ref conf_v2) => conf_v2.modules.0.clone(),
         }
     }
-    fn set_module_conf(&mut self, module_id: String, new_module_conf: serde_json::Value) {
+    fn set_module_conf(&mut self, module_name: ModuleName, new_module_conf: serde_json::Value) {
         match *self {
-            DuRsConf::V1(ref mut conf_v1) => {
-                if conf_v1.modules.is_null() {
-                    let mut new_modules_conf = serde_json::Map::with_capacity(1);
-                    new_modules_conf.insert(module_id, new_module_conf);
-                    conf_v1.modules = serde_json::value::to_value(new_modules_conf)
-                        .expect("Fail to create map of new modules conf !");
-                } else {
-                    conf_v1
-                        .modules
-                        .as_object_mut()
-                        .expect("Conf file currupted !")
-                        .insert(module_id, new_module_conf);
-                }
-            }
+            DuRsConf::V1(ref mut conf_v1) => conf_v1
+                .modules
+                .set_module_conf(module_name, new_module_conf),
+            DuRsConf::V2(ref mut conf_v2) => conf_v2
+                .modules
+                .set_module_conf(module_name, new_module_conf),
         }
     }
 }
@@ -248,10 +359,6 @@ impl DuniterKeyPairs {
     }
 }
 
-fn _use_json_macro() -> serde_json::Value {
-    json!({})
-}
-
 fn generate_random_keypair(algo: KeysAlgo) -> KeyPairEnum {
     let mut rng = rand::thread_rng();
     match algo {
@@ -270,7 +377,7 @@ fn generate_random_node_id() -> u32 {
 
 /// Return the user datas folder name
 pub fn get_user_datas_folder() -> &'static str {
-    USER_DATAS_FOLDER
+    constants::USER_DATAS_FOLDER
 }
 
 /// Returns the path to the folder containing the currency datas of the running profile
@@ -283,6 +390,14 @@ pub fn datas_path(profile: &str, currency: &CurrencyName) -> PathBuf {
     datas_path
 }
 
+#[inline]
+/// Return path to configuration file
+pub fn get_conf_path(profile: &str) -> PathBuf {
+    let mut conf_path = get_profile_path(profile);
+    conf_path.push(constants::CONF_FILENAME);
+    conf_path
+}
+
 /// Returns the path to the folder containing the user data of the running profile
 pub fn get_profile_path(profile: &str) -> PathBuf {
     // Define and create datas directory if not exist
@@ -290,10 +405,13 @@ pub fn get_profile_path(profile: &str) -> PathBuf {
         Some(path) => path,
         None => panic!("Impossible to get user config directory !"),
     };
-    profile_path.push(USER_DATAS_FOLDER);
+    profile_path.push(constants::USER_DATAS_FOLDER);
     if !profile_path.as_path().exists() {
         fs::create_dir(profile_path.as_path()).unwrap_or_else(|_| {
-            panic!("Impossible to create ~/.config/{} dir !", USER_DATAS_FOLDER)
+            panic!(
+                "Impossible to create ~/.config/{} dir !",
+                constants::USER_DATAS_FOLDER
+            )
         });
     }
     profile_path.push(profile);
@@ -307,7 +425,7 @@ pub fn get_profile_path(profile: &str) -> PathBuf {
 pub fn keypairs_filepath(profile: &str) -> PathBuf {
     let profile_path = get_profile_path(profile);
     let mut conf_keys_path = profile_path.clone();
-    conf_keys_path.push(KEYPAIRS_FILENAME);
+    conf_keys_path.push(constants::KEYPAIRS_FILENAME);
     conf_keys_path
 }
 
@@ -316,7 +434,7 @@ pub fn load_conf(profile: &str) -> (DuRsConf, DuniterKeyPairs) {
     let mut profile_path = get_profile_path(profile);
 
     // Load conf
-    let (conf, keypairs) = load_conf_at_path(profile, &profile_path);
+    let (conf, keypairs) = load_conf_at_path(profile_path.clone());
 
     // Create currency dir
     profile_path.push(conf.currency().to_string());
@@ -329,10 +447,10 @@ pub fn load_conf(profile: &str) -> (DuRsConf, DuniterKeyPairs) {
 }
 
 /// Load configuration. at specified path
-pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuRsConf, DuniterKeyPairs) {
+pub fn load_conf_at_path(profile_path: PathBuf) -> (DuRsConf, DuniterKeyPairs) {
     // Get KeyPairs
     let mut keypairs_path = profile_path.clone();
-    keypairs_path.push(KEYPAIRS_FILENAME);
+    keypairs_path.push(constants::KEYPAIRS_FILENAME);
     let keypairs = if keypairs_path.as_path().exists() {
         if let Ok(mut f) = File::open(keypairs_path.as_path()) {
             let mut contents = String::new();
@@ -412,22 +530,36 @@ pub fn load_conf_at_path(profile: &str, profile_path: &PathBuf) -> (DuRsConf, Du
     };
 
     // Open conf file
-    let mut conf = DuRsConf::default();
-    let mut conf_path = profile_path.clone();
-    conf_path.push("conf.json");
-    if conf_path.as_path().exists() {
+    let mut conf_path = profile_path;
+    conf_path.push(constants::CONF_FILENAME);
+    let conf = if conf_path.as_path().exists() {
         if let Ok(mut f) = File::open(conf_path.as_path()) {
             let mut contents = String::new();
             if f.read_to_string(&mut contents).is_ok() {
-                conf = serde_json::from_str(&contents).expect("Conf: Fail to parse conf file !");
+                // Parse conf file
+                let conf: DuRsConf =
+                    serde_json::from_str(&contents).expect("Conf: Fail to parse conf file !");
+                // Upgrade conf to latest version
+                let (conf, upgraded) = conf.upgrade();
+                // If conf is upgraded, rewrite conf file
+                if upgraded {
+                    write_conf_file(conf_path.as_path(), &conf)
+                        .expect("Fatal error : fail to write conf file !");
+                }
+                conf
+            } else {
+                panic!("Fail to read conf file !");
             }
         } else {
             panic!("Fail to open conf file !");
         }
     } else {
         // Create conf file with default conf
-        write_conf_file(profile, &conf).expect("Fatal error : fail to write default conf file !");
-    }
+        let conf = DuRsConf::default();
+        write_conf_file(conf_path.as_path(), &conf)
+            .expect("Fatal error : fail to write default conf file !");
+        conf
+    };
 
     // Return conf and keypairs
     (conf, keypairs)
@@ -449,10 +581,8 @@ pub fn write_keypairs_file(
 }
 
 /// Save configuration in profile folder
-pub fn write_conf_file<DC: DuniterConf>(profile: &str, conf: &DC) -> Result<(), std::io::Error> {
-    let mut conf_path = get_profile_path(profile);
-    conf_path.push("conf.json");
-    let mut f = File::create(conf_path.as_path())?;
+pub fn write_conf_file<DC: DuniterConf>(conf_path: &Path, conf: &DC) -> Result<(), std::io::Error> {
+    let mut f = File::create(conf_path)?;
     f.write_all(
         serde_json::to_string_pretty(conf)
             .expect("Fatal error : fail to write default conf file !")
@@ -482,7 +612,7 @@ pub fn get_wot_path(profile: String, currency: &CurrencyName) -> PathBuf {
         Some(path) => path,
         None => panic!("Impossible to get your home dir!"),
     };
-    wot_path.push(USER_DATAS_FOLDER);
+    wot_path.push(constants::USER_DATAS_FOLDER);
     wot_path.push(profile);
     wot_path.push(currency.to_string());
     wot_path.push("wot.bin");
@@ -492,10 +622,63 @@ pub fn get_wot_path(profile: String, currency: &CurrencyName) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+
+    #[inline]
+    fn save_old_conf(profile_path: PathBuf) -> std::io::Result<()> {
+        let mut conf_path = profile_path.clone();
+        conf_path.push(constants::CONF_FILENAME);
+        let mut conf_sav_path = profile_path;
+        conf_sav_path.push("conf-sav.json");
+        std::fs::copy(conf_path.as_path(), conf_sav_path.as_path())?;
+        Ok(())
+    }
+
+    fn restore_old_conf_and_save_upgraded_conf(profile_path: PathBuf) -> std::io::Result<()> {
+        let mut conf_path = profile_path.clone();
+        conf_path.push(constants::CONF_FILENAME);
+        let mut conf_sav_path = profile_path.clone();
+        conf_sav_path.push("conf-sav.json");
+        let mut conf_upgraded_path = profile_path;
+        conf_upgraded_path.push("conf-upgraded.json");
+        std::fs::copy(conf_path.as_path(), &conf_upgraded_path.as_path())?;
+        std::fs::copy(conf_sav_path.as_path(), &conf_path.as_path())?;
+        std::fs::remove_file(conf_sav_path.as_path())?;
+        Ok(())
+    }
 
     #[test]
-    fn load_conf_file() {
-        let (conf, _keys) = load_conf_at_path("test", &PathBuf::from("./test/"));
+    fn load_conf_file_v1() -> std::io::Result<()> {
+        let profile_path = PathBuf::from("./test/v1/");
+        save_old_conf(PathBuf::from(profile_path.clone()))?;
+        let (conf, _keys) = load_conf_at_path(profile_path.clone());
+        assert_eq!(
+            conf.modules()
+                .get("ws2p")
+                .expect("Not found ws2p conf")
+                .clone(),
+            json!({
+                "sync_peers": [{
+                    "pubkey": "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx",
+                    "ws2p_endpoints": ["WS2P c1c39a0a i3.ifee.fr 80 /ws2p"]
+                },{
+                    "pubkey": "BoZP6aqtErHjiKLosLrQxBafi4ATciyDZQ6XRQkNefqG",
+                    "ws2p_endpoints": ["WS2P 15af24db g1.ifee.fr 80 /ws2p"]
+                },{
+                    "pubkey": "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef",
+                    "ws2p_endpoints": ["WS2P b48824f0 g1.monnaielibreoccitanie.org 80 /ws2p"]
+                }]
+            })
+        );
+        restore_old_conf_and_save_upgraded_conf(profile_path)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn load_conf_file_v2() {
+        let profile_path = PathBuf::from("./test/v2/");
+        let (conf, _keys) = load_conf_at_path(profile_path);
         assert_eq!(
             conf.modules()
                 .get("ws2p")

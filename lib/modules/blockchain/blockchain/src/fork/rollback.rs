@@ -139,7 +139,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
         }
     } else {
         // reload dbs
-        let dbs_path = duniter_conf::get_blockchain_db_path(&bc.profile, &bc.currency);
+        let dbs_path = durs_conf::get_blockchain_db_path(&bc.profile, &bc.currency);
         bc.blocks_databases = BlocksV10DBs::open(Some(&dbs_path));
         bc.forks_dbs = ForksDBs::open(Some(&dbs_path));
         bc.wot_databases = WotsV10DBs::open(Some(&dbs_path));
