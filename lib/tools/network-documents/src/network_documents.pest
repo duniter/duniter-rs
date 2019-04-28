@@ -59,9 +59,11 @@ ip6 = _{ "[" ~ ip6_inner ~ "] " }
 // Endpoint v2 rules
 api_version_inner = @{ no_zero_u_int }
 api_version = _{ "V" ~ api_version_inner ~ " " }
+http = @{ "HTTP " }
+ws = @{ "WS " }
 tls = @{ "S " }
 tor = @{ "TOR " }
-network_features = _{ tls? ~ tor? }
+network_features = _{ http? ~ ws? ~ tls? ~ tor? }
 api_features_inner = @{ (hexa_lower{2})+ | no_zero_hexa_lower }
 api_features = _{ api_features_inner ~ " " }
 host_v2_inner = @{ ASCII_ALPHA_LOWER ~ (ASCII_ALPHA_LOWER | ASCII_DIGIT | "-" | "_" | ".")* }

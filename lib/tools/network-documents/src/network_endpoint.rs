@@ -193,6 +193,12 @@ impl ToString for EndpointV2NetworkFeatures {
             return "".to_owned();
         }
         let mut features_str = Vec::with_capacity(2);
+        if self.http() {
+            features_str.push("HTTP");
+        }
+        if self.ws() {
+            features_str.push("WS");
+        }
         if self.tls() {
             features_str.push("S");
         }
@@ -220,13 +226,21 @@ impl EndpointV2NetworkFeatures {
     pub fn to_bytes_slice(&self) -> &[u8] {
         &self.0
     }
+    /// HTTP feature is enable ?
+    pub fn http(&self) -> bool {
+        self.0[0] & 0b0000_0001 == 1u8
+    }
+    /// WS feature is enable ?
+    pub fn ws(&self) -> bool {
+        self.0[0] & 0b0000_0010 == 2u8
+    }
     /// TLS feature is enable ?
     pub fn tls(&self) -> bool {
-        self.0[0] & 0b0000_0001 == 1u8
+        self.0[0] & 0b0000_0100 == 4u8
     }
     /// TOR feature is enable ?
     pub fn tor(&self) -> bool {
-        self.0[0] & 0b0000_0010 == 2u8
+        self.0[0] & 0b0000_1000 == 8u8
     }
 }
 
@@ -358,8 +372,10 @@ impl EndpointV2 {
             match field.as_rule() {
                 Rule::api_name => api_str = field.as_str(),
                 Rule::api_version_inner => api_version = field.as_str().parse().unwrap(),
-                Rule::tls => network_features.0[0] |= 0b_0000_0001,
-                Rule::tor => network_features.0[0] |= 0b_0000_0010,
+                Rule::http => network_features.0[0] |= 0b_0000_0001,
+                Rule::ws => network_features.0[0] |= 0b_0000_0010,
+                Rule::tls => network_features.0[0] |= 0b_0000_0100,
+                Rule::tor => network_features.0[0] |= 0b_0000_1000,
                 Rule::api_features_inner => {
                     api_features = if field.as_str().len() == 1 {
                         ApiFeatures(hex::decode(&format!("0{}", field.as_str())).unwrap())
@@ -513,23 +529,33 @@ mod tests {
 
     #[test]
     fn test_network_features() {
-        assert_eq!(EndpointV2NetworkFeatures(vec![1u8]).tls(), true);
-        assert_eq!(EndpointV2NetworkFeatures(vec![1u8]).tor(), false);
-        assert_eq!(EndpointV2NetworkFeatures(vec![2u8]).tls(), false);
-        assert_eq!(EndpointV2NetworkFeatures(vec![2u8]).tor(), true);
-        assert_eq!(EndpointV2NetworkFeatures(vec![3u8]).tls(), true);
-        assert_eq!(EndpointV2NetworkFeatures(vec![3u8]).tor(), true);
+        assert_eq!(EndpointV2NetworkFeatures(vec![1u8]).http(), true);
+        assert_eq!(EndpointV2NetworkFeatures(vec![2u8]).ws(), true);
+        assert_eq!(EndpointV2NetworkFeatures(vec![4u8]).tls(), true);
+        assert_eq!(EndpointV2NetworkFeatures(vec![4u8]).tor(), false);
+        assert_eq!(EndpointV2NetworkFeatures(vec![8u8]).tls(), false);
+        assert_eq!(EndpointV2NetworkFeatures(vec![8u8]).tor(), true);
+        assert_eq!(EndpointV2NetworkFeatures(vec![12u8]).tls(), true);
+        assert_eq!(EndpointV2NetworkFeatures(vec![12u8]).tor(), true);
 
         assert_eq!(
             EndpointV2NetworkFeatures(vec![1u8]).to_string().as_str(),
-            "S "
+            "HTTP "
         );
         assert_eq!(
             EndpointV2NetworkFeatures(vec![2u8]).to_string().as_str(),
+            "WS "
+        );
+        assert_eq!(
+            EndpointV2NetworkFeatures(vec![4u8]).to_string().as_str(),
+            "S "
+        );
+        assert_eq!(
+            EndpointV2NetworkFeatures(vec![8u8]).to_string().as_str(),
             "TOR "
         );
         assert_eq!(
-            EndpointV2NetworkFeatures(vec![3u8]).to_string().as_str(),
+            EndpointV2NetworkFeatures(vec![12u8]).to_string().as_str(),
             "S TOR "
         );
     }
@@ -607,7 +633,7 @@ mod tests {
         let endpoint = EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV2NetworkFeatures(vec![1u8]),
+            network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: None,
@@ -629,7 +655,7 @@ mod tests {
         let endpoint = EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV2NetworkFeatures(vec![1u8]),
+            network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("84.16.72.210").unwrap()),
             ip_v6: None,
@@ -646,7 +672,7 @@ mod tests {
         let endpoint = EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV2NetworkFeatures(vec![1u8]),
+            network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
@@ -663,7 +689,7 @@ mod tests {
         let endpoint = EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV2NetworkFeatures(vec![1u8]),
+            network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("5.135.188.170").unwrap()),
             ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
@@ -680,7 +706,7 @@ mod tests {
         let endpoint = EndpointV2 {
             api: NetworkEndpointApi(String::from("WS2P")),
             api_version: 2,
-            network_features: EndpointV2NetworkFeatures(vec![1u8]),
+            network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("5.135.188.170").unwrap()),
             ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
