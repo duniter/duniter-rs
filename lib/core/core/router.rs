@@ -15,7 +15,7 @@
 
 //! Relay messages between durs modules.
 
-use duniter_module::*;
+use durs_module::*;
 use durs_conf;
 use durs_conf::DuRsConf;
 use durs_message::*;

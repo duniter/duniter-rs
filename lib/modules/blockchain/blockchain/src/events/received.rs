@@ -16,7 +16,7 @@
 //! Sub-module managing events received from other durs modules
 
 use crate::*;
-use duniter_module::*;
+use durs_module::*;
 use durs_message::events::DursEvent;
 use std::ops::Deref;
 

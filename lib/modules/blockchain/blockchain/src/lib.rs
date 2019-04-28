@@ -56,7 +56,7 @@ use crate::dubp::*;
 use crate::fork::*;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::*;
-use duniter_module::*;
+use durs_module::*;
 use duniter_network::{
     cli::sync::SyncOpt,
     documents::BlockchainDocument,

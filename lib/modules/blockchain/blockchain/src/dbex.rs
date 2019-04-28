@@ -15,7 +15,7 @@
 
 use crate::*;
 use dubp_documents::documents::transaction::*;
-use duniter_module::DuniterConf;
+use durs_module::DuniterConf;
 use dup_crypto::keys::*;
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::data::WebOfTrust;

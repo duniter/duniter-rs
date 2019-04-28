@@ -35,9 +35,9 @@ extern crate serde_derive;
 #[macro_use]
 extern crate structopt;
 
-use duniter_module::*;
-use duniter_network::events::NetworkEvent;
 use durs_conf::DuRsConf;
+use durs_module::*;
+use duniter_network::events::NetworkEvent;
 use durs_message::events::*;
 use durs_message::*;
 use durs_network_documents::network_head::NetworkHead;

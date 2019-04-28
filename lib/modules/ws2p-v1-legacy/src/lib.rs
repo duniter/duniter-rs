@@ -57,7 +57,8 @@ use crate::ws_connections::messages::WS2PConnectionMessage;
 use crate::ws_connections::states::WS2PConnectionState;
 use crate::ws_connections::*;
 use dubp_documents::Blockstamp;
-use duniter_module::*;
+use durs_conf::DuRsConf;
+use durs_module::*;
 use duniter_network::cli::sync::SyncOpt;
 use duniter_network::documents::*;
 use duniter_network::events::*;
@@ -65,7 +66,6 @@ use duniter_network::requests::*;
 use duniter_network::*;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
-use durs_conf::DuRsConf;
 use durs_message::events::*;
 use durs_message::requests::*;
 use durs_message::responses::*;
@@ -856,7 +856,7 @@ mod tests {
     use super::*;
     use crate::ws_connections::requests::sent::network_request_to_json;
     use dubp_documents::documents::block::BlockDocument;
-    use duniter_module::DursModule;
+    use durs_module::DursModule;
 
     #[test]
     fn test_parse_json_block() {

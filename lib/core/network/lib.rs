@@ -31,7 +31,7 @@
 extern crate structopt;
 
 use crate::cli::sync::SyncOpt;
-use duniter_module::*;
+use durs_module::*;
 use durs_network_documents::network_endpoint::ApiFeatures;
 use durs_network_documents::network_head::NetworkHead;
 use durs_network_documents::*;

@@ -20,7 +20,7 @@ use dubp_documents::documents::membership::MembershipDocument;
 use dubp_documents::documents::revocation::RevocationDocument;
 use dubp_documents::BlockNumber;
 use dubp_documents::Blockstamp;
-use duniter_module::ModuleReqId;
+use durs_module::ModuleReqId;
 use duniter_network::requests::NetworkResponse;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;

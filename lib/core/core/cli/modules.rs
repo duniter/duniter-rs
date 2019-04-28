@@ -15,7 +15,7 @@
 
 //! Durs-core cli : modules manager subcommands.
 
-use duniter_module::*;
+use durs_module::*;
 use std::collections::HashSet;
 
 #[derive(StructOpt, Debug)]

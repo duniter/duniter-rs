@@ -17,7 +17,7 @@
 
 use crate::*;
 use dubp_documents::documents::identity::IdentityDocument;
-use duniter_module::*;
+use durs_module::*;
 use durs_message::requests::*;
 
 pub fn receive_req(

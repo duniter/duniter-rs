@@ -12,7 +12,7 @@ path = "src/lib.rs"
 [dependencies]
 dup-crypto = { path = "../../../tools/crypto" }
 dubp-documents= { path = "../../../tools/documents" }
-duniter-module = { path = "../../../core/module" }
+durs-module = { path = "../../../core/module" }
 durs-common-tools = { path = "../../../tools/common-tools" }
 durs-wot = { path = "../../../tools/wot" }
 fnv = "1.0.6"

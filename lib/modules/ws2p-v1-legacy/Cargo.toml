@@ -14,7 +14,7 @@ bincode = "1.0.1"
 byteorder = "1.2.3"
 dubp-documents= { path = "../../tools/documents" }
 durs-conf = { path = "../../core/conf" }
-duniter-module = { path = "../../core/module" }
+durs-module = { path = "../../core/module" }
 duniter-network = { path = "../../core/network" }
 dup-crypto = { path = "../../tools/crypto" }
 durs-network-documents = { path = "../../tools/network-documents" }

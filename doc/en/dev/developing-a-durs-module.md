@@ -166,7 +166,7 @@ Its declaration:
     fn priority() -> ModulePriority;
 ```
 
-There are different priority levels in Duniter: see https://nodes.duniter.io/rust/duniter-rs/duniter_module/enum.ModulePriority.html
+There are different priority levels in Duniter: see https://nodes.duniter.io/rust/duniter-rs/durs_module/enum.ModulePriority.html
 
 You just have to choose one of the three variants and return it. For example, if your module is optional and not activated by default:
 
@@ -185,7 +185,7 @@ Its declaration:
     fn ask_required_keys() -> RequiredKeys;
 ```
 
-The `RequiredKeys` enum is presented on the documentation: https://nodes.duniter.io/rust/duniter-rs/duniter_module/enum.RequiredKeys.html.
+The `RequiredKeys` enum is presented on the documentation: https://nodes.duniter.io/rust/duniter-rs/durs_module/enum.RequiredKeys.html.
 
 As above, you just have to return a variant. For example, if you don't need any key:
 

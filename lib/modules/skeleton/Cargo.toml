@@ -12,7 +12,7 @@ path = "lib.rs"
 [dependencies]
 durs-conf = { path = "../../core/conf" }
 durs-message =  { path = "../../core/message" }
-duniter-module = { path = "../../core/module" }
+durs-module = { path = "../../core/module" }
 duniter-network = { path = "../../core/network" }
 dup-crypto = { path = "../../tools/crypto" }
 log = "0.4.*"

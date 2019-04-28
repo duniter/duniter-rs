@@ -14,7 +14,7 @@ durs-conf = { path = "../../core/conf" }
 dup-crypto = { path = "../../tools/crypto" }
 dubp-documents= { path = "../../tools/documents" }
 durs-message =  { path = "../../core/message" }
-duniter-module = { path = "../../core/module" }
+durs-module = { path = "../../core/module" }
 duniter-network = { path = "../../core/network" }
 durs-network-documents = { path = "../../tools/network-documents" }
 log = "0.4.*"

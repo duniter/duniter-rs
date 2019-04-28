@@ -36,7 +36,7 @@ pub mod change_conf;
 pub mod cli;
 pub mod router;
 
-use duniter_module::*;
+use durs_module::*;
 use duniter_network::cli::sync::*;
 use duniter_network::NetworkModule;
 use durs_blockchain::{BlockchainModule, DBExQuery, DBExTxQuery, DBExWotQuery};

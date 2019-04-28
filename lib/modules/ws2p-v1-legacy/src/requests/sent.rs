@@ -16,7 +16,7 @@
 //! Sub-module managing the inter-modules requests sent.
 
 use crate::WS2PModule;
-use duniter_module::{DursModule, ModuleReqId, ModuleRole, RouterThreadMessage};
+use durs_module::{DursModule, ModuleReqId, ModuleRole, RouterThreadMessage};
 use durs_message::requests::{BlockchainRequest, DursReqContent};
 use durs_message::*;
 

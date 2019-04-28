@@ -28,7 +28,7 @@
     unused_qualifications
 )]
 
-use duniter_module::*;
+use durs_module::*;
 use durs_network_documents::network_endpoint::EndpointEnum;
 
 /// Define modules events

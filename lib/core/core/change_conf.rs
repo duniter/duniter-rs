@@ -15,7 +15,7 @@
 
 //! Crate containing Duniter-rust core.
 
-use duniter_module::DuniterConf;
+use durs_module::DuniterConf;
 use durs_conf::ChangeGlobalConf;
 
 /// Change global configuration

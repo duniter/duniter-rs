@@ -16,7 +16,7 @@
 //! WS2P outgoing connections controllers.
 
 use dubp_documents::CurrencyName;
-//use duniter_module::ModuleReqId;
+//use durs_module::ModuleReqId;
 use crate::controllers::handler::Ws2pConnectionHandler;
 use crate::controllers::*;
 use crate::services::*;

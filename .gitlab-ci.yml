@@ -121,7 +121,7 @@ tests:win64:stable:
     - cargo test --package durs-wot --target=x86_64-pc-windows-gnu
     - cargo test --package dubp-documents --target=x86_64-pc-windows-gnu
     - cargo test --package durs-network-documents --target=x86_64-pc-windows-gnu
-    - cargo test --package duniter-module --target=x86_64-pc-windows-gnu
+    - cargo test --package durs-module --target=x86_64-pc-windows-gnu
     - cargo test --package duniter-network --target=x86_64-pc-windows-gnu
     - cargo test --package durs-conf --target=x86_64-pc-windows-gnu
     - cargo test --package durs-blockchain-dal --target=x86_64-pc-windows-gnu

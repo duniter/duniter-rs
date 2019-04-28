@@ -16,7 +16,7 @@
 //! Sub-module managing the events emitted by the blockchain module.
 
 use crate::WS2PModule;
-use duniter_module::{ModuleEvent, RouterThreadMessage};
+use durs_module::{ModuleEvent, RouterThreadMessage};
 use duniter_network::documents::BlockchainDocument;
 use duniter_network::events::NetworkEvent;
 use durs_message::events::DursEvent;

@@ -173,7 +173,7 @@ Déclaration :
     fn priority() -> ModulePriority;
 ```
 
-Les différents niveaux de priorité possibles sont présentés dans la [documentation auto-générée](https://nodes.duniter.io/rust/duniter-rs/duniter_module/enum.ModulePriority.html).
+Les différents niveaux de priorité possibles sont présentés dans la [documentation auto-générée](https://nodes.duniter.io/rust/duniter-rs/durs_module/enum.ModulePriority.html).
 
 Il suffit de choisir la variante de l'énumération qui vous convient puis de la retourner. Par exemple si votre module est optionnel et désactivé par défaut :
 
@@ -192,7 +192,7 @@ Déclaration :
     fn ask_required_keys() -> RequiredKeys;
 ```
 
-Toutes les variantes de l'énumération `RequiredKeys` sont présentées dans la [documentation auto-générée](https://nodes.duniter.io/rust/duniter-rs/duniter_module/enum.RequiredKeys.html).
+Toutes les variantes de l'énumération `RequiredKeys` sont présentées dans la [documentation auto-générée](https://nodes.duniter.io/rust/duniter-rs/durs_module/enum.RequiredKeys.html).
 
 Il suffit de choisir la variante de l'énumération qui vous convient puis de la retourner. Par exemple si vous n'avez besoin d'aucune clé :
 

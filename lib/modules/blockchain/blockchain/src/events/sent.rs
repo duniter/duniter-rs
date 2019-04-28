@@ -16,7 +16,7 @@
 //! Sub-module managing the events emitted by the blockchain module.
 
 use crate::*;
-use duniter_module::ModuleEvent;
+use durs_module::ModuleEvent;
 use durs_message::events::BlockchainEvent;
 
 /// Send blockchain event

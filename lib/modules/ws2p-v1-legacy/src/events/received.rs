@@ -17,7 +17,7 @@
 
 use crate::*;
 use dubp_documents::Document;
-use duniter_module::*;
+use durs_module::*;
 use durs_message::events::DursEvent;
 use std::ops::Deref;
 

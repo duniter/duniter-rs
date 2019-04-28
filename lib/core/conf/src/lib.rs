@@ -36,7 +36,7 @@ pub mod constants;
 pub mod keys;
 
 use dubp_documents::CurrencyName;
-use duniter_module::{DuniterConf, ModuleName, RequiredKeys, RequiredKeysContent};
+use durs_module::{DuniterConf, ModuleName, RequiredKeys, RequiredKeysContent};
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
 use rand::Rng;
