@@ -83,18 +83,18 @@ pub enum SigError {
     InvalidSig(),
     /// Absence of signature
     NotSig(),
-    /// Deserialization error
-    DeserError(bincode::Error),
+    /// Serialization error
+    SerdeError(bincode::Error),
 }
 
 impl From<bincode::Error> for SigError {
     fn from(e: bincode::Error) -> Self {
-        SigError::DeserError(e)
+        SigError::SerdeError(e)
     }
 }
 
 /// SignError
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 pub enum SignError {
     /// WrongAlgo
     WrongAlgo(),
@@ -102,6 +102,14 @@ pub enum SignError {
     WrongPrivkey(),
     /// AlreadySign
     AlreadySign(),
+    /// Serialization error
+    SerdeError(bincode::Error),
+}
+
+impl From<bincode::Error> for SignError {
+    fn from(e: bincode::Error) -> Self {
+        SignError::SerdeError(e)
+    }
 }
 
 /// Define the operations that can be performed on a cryptographic signature.
