@@ -195,7 +195,7 @@ pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt)
     debug!("Success to get local current blockstamp.");
 
     // Node is already synchronized ?
-    if target_blockstamp.id.0 < current_blockstamp.id.0 {
+    if target_blockstamp.id.0 <= current_blockstamp.id.0 {
         println!("Your durs node is already synchronized.");
         return;
     }
