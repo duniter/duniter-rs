@@ -34,6 +34,7 @@ pub use durs_tui::TuiModule;
 //pub use durs_skeleton::SkeletonModule;
 pub use durs_ws2p_v1_legacy::WS2PModule;
 //pub use durs_ws2p::WS2Pv2Module;
+use log::error;
 use structopt::StructOpt;
 
 /// Main function
@@ -43,7 +44,7 @@ fn main() {
     durs_core_server!(
         durs_inject_cli![WS2PModule /*, SkeletonModule ,DasaModule*/],
         durs_plug!([WS2PModule], [TuiModule /*, SkeletonModule ,DasaModule*/])
-    );
+    )
 }
 #[cfg(unix)]
 #[cfg(target_arch = "arm")]
@@ -51,9 +52,9 @@ fn main() {
     durs_core_server!(
         durs_inject_cli![WS2PModule],
         durs_plug!([WS2PModule], [TuiModule])
-    );
+    )
 }
 #[cfg(windows)]
 fn main() {
-    durs_core_server!(durs_inject_cli![WS2PModule], durs_plug!([WS2PModule], []));
+    durs_core_server!(durs_inject_cli![WS2PModule], durs_plug!([WS2PModule], []))
 }

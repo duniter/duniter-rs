@@ -17,8 +17,8 @@
 
 use crate::*;
 use dubp_documents::Document;
-use durs_module::*;
 use durs_message::events::DursEvent;
+use durs_module::*;
 use std::ops::Deref;
 
 pub fn receive_event(

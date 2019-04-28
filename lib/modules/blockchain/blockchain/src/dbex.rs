@@ -15,8 +15,8 @@
 
 use crate::*;
 use dubp_documents::documents::transaction::*;
-use durs_module::DuniterConf;
 use dup_crypto::keys::*;
+use durs_module::DursConfTrait;
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::data::WebOfTrust;
 use durs_wot::operations::distance::{DistanceCalculator, WotDistance, WotDistanceParameters};
@@ -51,14 +51,14 @@ pub enum DBExQuery {
     TxQuery(DBExTxQuery),
 }
 
-pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DBExQuery) {
+pub fn dbex<DC: DursConfTrait>(profile: &str, conf: &DC, csv: bool, query: &DBExQuery) {
     match *query {
         DBExQuery::WotQuery(ref wot_query) => dbex_wot(profile, conf, csv, wot_query),
         DBExQuery::TxQuery(ref tx_query) => dbex_tx(profile, conf, csv, tx_query),
     }
 }
 
-pub fn dbex_tx<DC: DuniterConf>(profile: &str, conf: &DC, _csv: bool, query: &DBExTxQuery) {
+pub fn dbex_tx<DC: DursConfTrait>(profile: &str, conf: &DC, _csv: bool, query: &DBExTxQuery) {
     // Get db path
     let db_path = durs_conf::get_blockchain_db_path(profile, &conf.currency());
 
@@ -117,7 +117,7 @@ pub fn dbex_tx<DC: DuniterConf>(profile: &str, conf: &DC, _csv: bool, query: &DB
     );
 }
 
-pub fn dbex_wot<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DBExWotQuery) {
+pub fn dbex_wot<DC: DursConfTrait>(profile: &str, conf: &DC, csv: bool, query: &DBExWotQuery) {
     // Get db path
     let db_path = durs_conf::get_blockchain_db_path(profile, &conf.currency());
 

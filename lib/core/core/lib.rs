@@ -36,7 +36,6 @@ pub mod change_conf;
 pub mod cli;
 pub mod router;
 
-use durs_module::*;
 use duniter_network::cli::sync::*;
 use duniter_network::NetworkModule;
 use durs_blockchain::{BlockchainModule, DBExQuery, DBExTxQuery, DBExWotQuery};
@@ -44,6 +43,8 @@ pub use durs_conf::{
     constants::KEYPAIRS_FILENAME, keys::*, ChangeGlobalConf, DuRsConf, DuniterKeyPairs,
 };
 use durs_message::*;
+use durs_module::*;
+use failure::Fail;
 use log::Level;
 use simplelog::*;
 //use std::error::Error;
@@ -62,13 +63,16 @@ use structopt::StructOpt;
 /// Launch durs core server
 macro_rules! durs_core_server {
     ( $closure_inject_cli:expr, $closure_plug:expr ) => {{
-        duniter_core::main(
+        if let Err(err) = duniter_core::main(
             env!("CARGO_PKG_NAME"),
             env!("CARGO_PKG_VERSION"),
             &DursOpt::clap(),
             $closure_inject_cli,
             $closure_plug,
-        );
+        ) {
+            println!("{}", err);
+            error!("{}", err);
+        }
     }};
 }
 
@@ -90,11 +94,25 @@ macro_rules! durs_plug {
     ( [ $( $NetworkModule:ty ),* ], [ $( $Module:ty ),* ] ) => {
         {
             |core| {
-                $(core.plug::<$Module>();)*
-                $(core.plug_network::<$NetworkModule>();)*
+                $(core.plug::<$Module>()?;)*
+                $(core.plug_network::<$NetworkModule>()?;)*
+                Ok(())
             }
         }
     };
+}
+
+#[derive(Debug, Fail)]
+/// Durs server error
+pub enum DursServerError {
+    /// Plug module error
+    #[fail(display = "Error on loading module '{}': {}", module_name, error)]
+    PlugModuleError {
+        /// Module name
+        module_name: ModuleStaticName,
+        /// Error details
+        error: PlugModuleError,
+    },
 }
 
 /// Durs main function
@@ -104,10 +122,11 @@ pub fn main<'b, 'a: 'b, CliFunc, PlugFunc>(
     clap_app: &'a App<'b, 'a>,
     mut inject_modules_subcommands: CliFunc,
     mut plug_modules: PlugFunc,
-) where
+) -> Result<(), DursServerError>
+where
     'b: 'a,
     CliFunc: FnMut(&mut DuniterCore<'a, 'b, DuRsConf>),
-    PlugFunc: FnMut(&mut DuniterCore<'a, 'b, DuRsConf>),
+    PlugFunc: FnMut(&mut DuniterCore<'a, 'b, DuRsConf>) -> Result<(), DursServerError>,
 {
     // Instantiate duniter core
     let mut duniter_core = DuniterCore::<DuRsConf>::new(soft_name, soft_version, clap_app, 0);
@@ -118,9 +137,11 @@ pub fn main<'b, 'a: 'b, CliFunc, PlugFunc>(
     // Match user command
     if duniter_core.match_user_command() {
         // Plug all plugins
-        plug_modules(&mut duniter_core);
+        plug_modules(&mut duniter_core)?;
         duniter_core.start_core();
     }
+
+    Ok(())
 }
 
 #[derive(Debug, Clone)]
@@ -147,7 +168,7 @@ pub struct TupleApp<'b, 'a: 'b>(&'b App<'a, 'b>);
 }*/
 
 /// Duniter Core Datas
-pub struct DuniterCore<'a, 'b: 'a, DC: DuniterConf> {
+pub struct DuniterCore<'a, 'b: 'a, DC: DursConfTrait> {
     /// Command line configuration
     pub cli_conf: TupleApp<'a, 'b>,
     /// Command line arguments parsing by clap
@@ -491,8 +512,20 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             }
         }
     }
+    #[inline]
     /// Plug a network module
-    pub fn plug_network<NM: NetworkModule<DuRsConf, DursMsg>>(&mut self) {
+    pub fn plug_network<NM: NetworkModule<DuRsConf, DursMsg>>(
+        &mut self,
+    ) -> Result<(), DursServerError> {
+        self.plug_network_::<NM>()
+            .map_err(|error| DursServerError::PlugModuleError {
+                module_name: NM::name(),
+                error,
+            })
+    }
+    fn plug_network_<NM: NetworkModule<DuRsConf, DursMsg>>(
+        &mut self,
+    ) -> Result<(), PlugModuleError> {
         let enabled = enabled::<DuRsConf, DursMsg, NM>(&self.soft_meta_datas.conf);
         if enabled {
             self.network_modules_count += 1;
@@ -511,17 +544,20 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                     .get(&NM::name().to_string().as_str())
                     .cloned();
                 let keypairs = self.keypairs;
+
+                // Load module conf and keys
+                let (module_conf, required_keys) = get_module_conf_and_keys::<NM>(
+                    &soft_meta_datas.conf.get_global_conf(),
+                    module_conf_json,
+                    keypairs.expect("Try to plug addon into a core without keypair !"),
+                )?;
+
                 let sync_params = network_sync.clone();
                 let thread_builder = thread::Builder::new().name(NM::name().0.into());
                 self.threads.insert(
                     NM::name(),
                     thread_builder
                         .spawn(move || {
-                            // Load module conf and keys
-                            let (module_conf, required_keys) = get_module_conf_and_keys::<NM>(
-                                module_conf_json,
-                                keypairs.expect("Try to plug addon into a core without keypair !"),
-                            );
                             NM::sync(
                                 &soft_meta_datas,
                                 required_keys,
@@ -540,21 +576,29 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                 );
                 self.modules_names.push(NM::name());
                 info!("Success to load {} module.", NM::name().to_string());
+                Ok(())
             } else {
-                self.plug_::<NM>(true);
+                self.plug_::<NM>(true)
             }
         } else {
-            self.plug_::<NM>(true);
+            self.plug_::<NM>(true)
         }
     }
-
+    #[inline]
     /// Plug a module
-    pub fn plug<M: DursModule<DuRsConf, DursMsg>>(&mut self) {
-        self.plug_::<M>(false);
+    pub fn plug<M: DursModule<DuRsConf, DursMsg>>(&mut self) -> Result<(), DursServerError> {
+        self.plug_::<M>(false)
+            .map_err(|error| DursServerError::PlugModuleError {
+                module_name: M::name(),
+                error,
+            })
     }
 
     /// Plug a module
-    pub fn plug_<M: DursModule<DuRsConf, DursMsg>>(&mut self, is_network_module: bool) {
+    pub fn plug_<M: DursModule<DuRsConf, DursMsg>>(
+        &mut self,
+        is_network_module: bool,
+    ) -> Result<(), PlugModuleError> {
         let enabled = enabled::<DuRsConf, DursMsg, M>(&self.soft_meta_datas.conf);
         if enabled {
             if let Some(UserCommand::Start()) = self.user_command {
@@ -572,16 +616,18 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                     .get(&M::name().to_string().as_str())
                     .cloned();
                 let keypairs = self.keypairs;
+                // Load module conf and keys
+                let (module_conf, required_keys) = get_module_conf_and_keys::<M>(
+                    &soft_meta_datas.conf.get_global_conf(),
+                    module_conf_json,
+                    keypairs.expect("Try to plug addon into a core without keypair !"),
+                )?;
+
                 let thread_builder = thread::Builder::new().name(M::name().0.into());
                 self.threads.insert(
                     M::name(),
                     thread_builder
                         .spawn(move || {
-                            // Load module conf and keys
-                            let (module_conf, required_keys) = get_module_conf_and_keys::<M>(
-                                module_conf_json,
-                                keypairs.expect("Try to plug addon into a core without keypair !"),
-                            );
                             M::start(
                                 &soft_meta_datas,
                                 required_keys,
@@ -617,15 +663,18 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                             .modules()
                             .get(&M::name().to_string().as_str())
                             .cloned();
-                        let (_conf, keypairs) =
+                        let (conf, keypairs) =
                             durs_conf::load_conf(self.soft_meta_datas.profile.as_str());
-                        let (module_conf, required_keys) =
-                            get_module_conf_and_keys::<M>(module_conf_json, keypairs);
+                        let (module_conf, required_keys) = get_module_conf_and_keys::<M>(
+                            &conf.get_global_conf(),
+                            module_conf_json,
+                            keypairs,
+                        )?;
                         // Execute module subcommand
                         M::exec_subcommand(
                             &self.soft_meta_datas,
-                            required_keys, //required_keys,
-                            module_conf,   //module_conf,
+                            required_keys,
+                            module_conf,
                             M::ModuleOpt::from_clap(subcommand_args),
                         );
                     }
@@ -645,29 +694,33 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                 }
             }
         }
+        Ok(())
     }
 }
 
 /// Get module conf and keys
 pub fn get_module_conf_and_keys<M: DursModule<DuRsConf, DursMsg>>(
+    global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
     module_conf_json: Option<serde_json::Value>,
     keypairs: DuniterKeyPairs,
-) -> (M::ModuleConf, RequiredKeysContent) {
-    (
-        get_module_conf::<M>(module_conf_json),
+) -> Result<(M::ModuleConf, RequiredKeysContent), ModuleConfError> {
+    Ok((
+        get_module_conf::<M>(global_conf, module_conf_json)?,
         DuniterKeyPairs::get_required_keys_content(M::ask_required_keys(), keypairs),
-    )
+    ))
 }
 
 /// get module conf
 pub fn get_module_conf<M: DursModule<DuRsConf, DursMsg>>(
+    global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
     module_conf_json: Option<serde_json::Value>,
-) -> M::ModuleConf {
+) -> Result<M::ModuleConf, ModuleConfError> {
     if let Some(module_conf_json) = module_conf_json {
-        serde_json::from_str(module_conf_json.to_string().as_str())
-            .unwrap_or_else(|_| panic!("Fail to parse conf of module {}", M::name().to_string()))
+        let module_user_conf: M::ModuleUserConf =
+            serde_json::from_str(module_conf_json.to_string().as_str())?;
+        M::generate_module_conf(global_conf, module_user_conf)
     } else {
-        M::ModuleConf::default()
+        Ok(M::ModuleConf::default())
     }
 }
 
@@ -677,13 +730,13 @@ pub fn match_profile(cli_args: &ArgMatches) -> String {
 }
 
 /// Launch synchronisation from a duniter-ts database
-pub fn sync_ts<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt) {
+pub fn sync_ts<DC: DursConfTrait>(profile: &str, conf: &DC, sync_opts: SyncOpt) {
     // Launch sync-ts
     BlockchainModule::sync_ts(profile, conf, sync_opts);
 }
 
 /// Launch databases explorer
-pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, query: &DBExQuery) {
+pub fn dbex<DC: DursConfTrait>(profile: &str, conf: &DC, csv: bool, query: &DBExQuery) {
     // Launch databases explorer
     BlockchainModule::dbex(profile, conf, csv, query);
 }

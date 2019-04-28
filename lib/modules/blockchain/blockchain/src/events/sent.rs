@@ -16,8 +16,8 @@
 //! Sub-module managing the events emitted by the blockchain module.
 
 use crate::*;
-use durs_module::ModuleEvent;
 use durs_message::events::BlockchainEvent;
+use durs_module::ModuleEvent;
 
 /// Send blockchain event
 pub fn send_event(bc: &BlockchainModule, event: &BlockchainEvent) {

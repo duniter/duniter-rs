@@ -35,11 +35,11 @@ extern crate serde_derive;
 #[macro_use]
 extern crate structopt;
 
-use durs_conf::DuRsConf;
-use durs_module::*;
 use duniter_network::events::NetworkEvent;
+use durs_conf::DuRsConf;
 use durs_message::events::*;
 use durs_message::*;
+use durs_module::*;
 use durs_network_documents::network_head::NetworkHead;
 use durs_network_documents::NodeFullId;
 use std::collections::HashMap;
@@ -53,17 +53,13 @@ use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
 use termion::{clear, color, cursor, style};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Tui Module Configuration (For future use)
-pub struct TuiConf {
-    test_fake_conf_field: String,
-}
+pub struct TuiConf {}
 
 impl Default for TuiConf {
     fn default() -> Self {
-        TuiConf {
-            test_fake_conf_field: String::from("default"),
-        }
+        TuiConf {}
     }
 }
 
@@ -377,6 +373,7 @@ impl Default for TuiModule {
 }
 
 impl DursModule<DuRsConf, DursMsg> for TuiModule {
+    type ModuleUserConf = TuiConf;
     type ModuleConf = TuiConf;
     type ModuleOpt = TuiOpt;
 
@@ -388,6 +385,12 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
     }
     fn ask_required_keys() -> RequiredKeys {
         RequiredKeys::None()
+    }
+    fn generate_module_conf(
+        _global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
+        _module_user_conf: Self::ModuleUserConf,
+    ) -> Result<Self::ModuleConf, ModuleConfError> {
+        Ok(TuiConf {})
     }
     fn start(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
@@ -468,7 +471,8 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
         });
 
         // Enter raw mode.
-        //let mut stdout = stdout().into_raw_mode().unwrap();
+        // Wait a short while before modifying stdout, in case errors should be reported regarding the launch of the other modules.
+        thread::sleep(Duration::from_millis(500));
         let mut stdout = MouseTerminal::from(stdout().into_raw_mode().unwrap());
 
         // Initial draw

@@ -57,8 +57,6 @@ use crate::ws_connections::messages::WS2PConnectionMessage;
 use crate::ws_connections::states::WS2PConnectionState;
 use crate::ws_connections::*;
 use dubp_documents::Blockstamp;
-use durs_conf::DuRsConf;
-use durs_module::*;
 use duniter_network::cli::sync::SyncOpt;
 use duniter_network::documents::*;
 use duniter_network::events::*;
@@ -66,10 +64,12 @@ use duniter_network::requests::*;
 use duniter_network::*;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
+use durs_conf::DuRsConf;
 use durs_message::events::*;
 use durs_message::requests::*;
 use durs_message::responses::*;
 use durs_message::*;
+use durs_module::*;
 use durs_network_documents::network_endpoint::*;
 use durs_network_documents::network_head::*;
 use durs_network_documents::*;
@@ -95,13 +95,22 @@ pub fn ssl() -> bool {
     true
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// WS2P Configuration
 pub struct WS2PConf {
     /// Limit of outcoming connections
     pub outcoming_quota: usize,
     /// Default WS2P endpoints provides by configuration file
     pub sync_endpoints: Vec<EndpointV1>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+/// WS2P Configuration
+pub struct WS2PUserConf {
+    /// Limit of outcoming connections
+    pub outcoming_quota: Option<usize>,
+    /// Default WS2P endpoints provides by configuration file
+    pub sync_endpoints: Option<Vec<EndpointV1>>,
 }
 
 impl Default for WS2PConf {
@@ -318,6 +327,7 @@ impl NetworkModule<DuRsConf, DursMsg> for WS2PModule {
 pub struct WS2POpt {}
 
 impl DursModule<DuRsConf, DursMsg> for WS2PModule {
+    type ModuleUserConf = WS2PUserConf;
     type ModuleConf = WS2PConf;
     type ModuleOpt = WS2POpt;
 
@@ -332,6 +342,21 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
     }
     fn have_subcommand() -> bool {
         true
+    }
+    fn generate_module_conf(
+        _global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
+        module_user_conf: Self::ModuleUserConf,
+    ) -> Result<Self::ModuleConf, ModuleConfError> {
+        let mut conf = WS2PConf::default();
+
+        if let Some(outcoming_quota) = module_user_conf.outcoming_quota {
+            conf.outcoming_quota = outcoming_quota;
+        }
+        if let Some(sync_endpoints) = module_user_conf.sync_endpoints {
+            conf.sync_endpoints = sync_endpoints;
+        }
+
+        Ok(conf)
     }
     fn exec_subcommand(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,

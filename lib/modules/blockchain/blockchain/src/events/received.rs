@@ -16,8 +16,8 @@
 //! Sub-module managing events received from other durs modules
 
 use crate::*;
-use durs_module::*;
 use durs_message::events::DursEvent;
+use durs_module::*;
 use std::ops::Deref;
 
 pub fn receive_event(

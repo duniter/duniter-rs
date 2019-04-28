@@ -44,7 +44,7 @@ pub mod events;
 pub mod requests;
 
 /// ApiModule
-pub trait ApiModule<DC: DuniterConf, M: ModuleMessage>: DursModule<DC, M> {
+pub trait ApiModule<DC: DursConfTrait, M: ModuleMessage>: DursModule<DC, M> {
     /// Parsing error
     type ParseErr;
     /// Parse raw api features
@@ -52,7 +52,7 @@ pub trait ApiModule<DC: DuniterConf, M: ModuleMessage>: DursModule<DC, M> {
 }
 
 /// NetworkModule
-pub trait NetworkModule<DC: DuniterConf, M: ModuleMessage>: ApiModule<DC, M> {
+pub trait NetworkModule<DC: DursConfTrait, M: ModuleMessage>: ApiModule<DC, M> {
     /// Launch synchronisation
     fn sync(
         soft_meta_datas: &SoftwareMetaDatas<DC>,

@@ -56,7 +56,6 @@ use crate::dubp::*;
 use crate::fork::*;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::*;
-use durs_module::*;
 use duniter_network::{
     cli::sync::SyncOpt,
     documents::BlockchainDocument,
@@ -70,6 +69,7 @@ use durs_message::events::*;
 use durs_message::requests::*;
 use durs_message::responses::*;
 use durs_message::*;
+use durs_module::*;
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::operations::distance::RustyDistanceCalculator;
 use durs_wot::NodeId;
@@ -183,7 +183,7 @@ impl BlockchainModule {
         ModuleStaticName("blockchain")
     }
     /// Loading blockchain configuration
-    pub fn load_blockchain_conf<DC: DuniterConf>(
+    pub fn load_blockchain_conf<DC: DursConfTrait>(
         router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
         profile: &str,
         conf: &DC,
@@ -235,11 +235,11 @@ impl BlockchainModule {
         }
     }
     /// Databases explorer
-    pub fn dbex<DC: DuniterConf>(profile: &str, conf: &DC, csv: bool, req: &DBExQuery) {
+    pub fn dbex<DC: DursConfTrait>(profile: &str, conf: &DC, csv: bool, req: &DBExQuery) {
         dbex::dbex(profile, conf, csv, req);
     }
     /// Synchronize blockchain from local duniter json files
-    pub fn sync_ts<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt) {
+    pub fn sync_ts<DC: DursConfTrait>(profile: &str, conf: &DC, sync_opts: SyncOpt) {
         sync::local_sync(profile, conf, sync_opts);
     }
     /// Start blockchain module.

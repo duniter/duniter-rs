@@ -15,11 +15,11 @@
 
 //! Crate containing Duniter-rust core.
 
-use durs_module::DuniterConf;
 use durs_conf::ChangeGlobalConf;
+use durs_module::DursConfTrait;
 
 /// Change global configuration
-pub fn change_global_conf<DC: DuniterConf>(
+pub fn change_global_conf<DC: DursConfTrait>(
     profile: &str,
     mut conf: DC,
     user_request: ChangeGlobalConf,

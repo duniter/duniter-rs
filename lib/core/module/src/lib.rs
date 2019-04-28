@@ -34,6 +34,7 @@ extern crate serde_derive;
 use dubp_documents::CurrencyName;
 use dup_crypto::keys::{KeyPair, KeyPairEnum};
 use durs_network_documents::network_endpoint::EndpointEnum;
+use failure::Fail;
 use serde::de::DeserializeOwned;
 use serde::ser::{Serialize, Serializer};
 use std::collections::HashSet;
@@ -46,9 +47,9 @@ use structopt::StructOpt;
 /// Store module name in static lifetime
 pub struct ModuleStaticName(pub &'static str);
 
-impl ToString for ModuleStaticName {
-    fn to_string(&self) -> String {
-        String::from(self.0)
+impl std::fmt::Display for ModuleStaticName {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -98,38 +99,43 @@ impl ToString for ModuleReqFullId {
     }
 }
 
-/// Duniter configuration
-pub trait DuniterConf:
+/// Durs configuration trait
+pub trait DursConfTrait:
     Clone + Debug + Default + PartialEq + Serialize + DeserializeOwned + Send + ToOwned
 {
+    /// Durs configuration without modules configuration
+    type GlobalConf: Clone + Debug + PartialEq + Serialize + DeserializeOwned + Send + ToOwned;
+
+    /// Get currency
+    fn currency(&self) -> CurrencyName;
+    /// Disable a module
+    fn disable(&mut self, module: ModuleName);
+    /// Get disabled modules
+    fn disabled_modules(&self) -> HashSet<ModuleName>;
+    /// Enable a module
+    fn enable(&mut self, module: ModuleName);
+    /// Get enabled modules
+    fn enabled_modules(&self) -> HashSet<ModuleName>;
+    /// Get global conf
+    fn get_global_conf(&self) -> Self::GlobalConf;
+    /// Get modules conf
+    fn modules(&self) -> serde_json::Value;
+    /// Get node id
+    fn my_node_id(&self) -> u32;
+    /// Set currency
+    fn set_currency(&mut self, new_currency: CurrencyName);
+    /// Change module conf
+    fn set_module_conf(&mut self, module_name: ModuleName, new_module_conf: serde_json::Value);
     /// Upgrade configuration to latest version
     /// Return new configuration and a boolean which indicates if the configuration has been updated
     fn upgrade(self) -> (Self, bool);
     /// Get conf version profile
     fn version(&self) -> usize;
-    /// Get currency
-    fn currency(&self) -> CurrencyName;
-    /// Set currency
-    fn set_currency(&mut self, new_currency: CurrencyName);
-    /// Get node id
-    fn my_node_id(&self) -> u32;
-    /// Disable a module
-    fn disable(&mut self, module: ModuleName);
-    /// Enable a module
-    fn enable(&mut self, module: ModuleName);
-    /// Get disabled modules
-    fn disabled_modules(&self) -> HashSet<ModuleName>;
-    /// Get enabled modules
-    fn enabled_modules(&self) -> HashSet<ModuleName>;
-    /// Get modules conf
-    fn modules(&self) -> serde_json::Value;
-    /// Change module conf
-    fn set_module_conf(&mut self, module_name: ModuleName, new_module_conf: serde_json::Value);
 }
 
 /// Sofware meta datas
 #[derive(Debug, Clone)]
-pub struct SoftwareMetaDatas<DC: DuniterConf> {
+pub struct SoftwareMetaDatas<DC: DursConfTrait> {
     /// Software name
     pub soft_name: &'static str,
     /// Software version
@@ -269,7 +275,7 @@ pub enum ModulePriority {
 }
 
 /// Determines if a module is activated or not
-pub fn enabled<DC: DuniterConf, Mess: ModuleMessage, M: DursModule<DC, Mess>>(conf: &DC) -> bool {
+pub fn enabled<DC: DursConfTrait, Mess: ModuleMessage, M: DursModule<DC, Mess>>(conf: &DC) -> bool {
     let disabled_modules = conf.disabled_modules();
     let enabled_modules = conf.enabled_modules();
     match M::priority() {
@@ -293,7 +299,7 @@ pub enum ModulesFilter {
 
 /// Returns true only if the module checks all filters
 pub fn module_valid_filters<
-    DC: DuniterConf,
+    DC: DursConfTrait,
     Mess: ModuleMessage,
     M: DursModule<DC, Mess>,
     S: ::std::hash::BuildHasher,
@@ -319,10 +325,46 @@ pub fn module_valid_filters<
     true
 }
 
+#[derive(Debug, Fail)]
+/// Error when generating the configuration of a module
+pub enum ModuleConfError {
+    /// Parse error
+    #[fail(display = "{}", _0)]
+    ParseError(serde_json::Error),
+    /// Combination forbidden
+    #[fail(display = "Forbidden configuration: {}", cause)]
+    CombinationForbidden {
+        /// Cause
+        cause: String,
+    },
+}
+
+impl From<serde_json::Error> for ModuleConfError {
+    fn from(err: serde_json::Error) -> Self {
+        ModuleConfError::ParseError(err)
+    }
+}
+
+#[derive(Debug, Fail)]
+/// Error when plug a module
+pub enum PlugModuleError {
+    /// Error when generating the configuration of a module
+    #[fail(display = "{}", _0)]
+    ModuleConfError(ModuleConfError),
+}
+
+impl From<ModuleConfError> for PlugModuleError {
+    fn from(err: ModuleConfError) -> Self {
+        PlugModuleError::ModuleConfError(err)
+    }
+}
+
 /// All Duniter-rs modules must implement this trait.
-pub trait DursModule<DC: DuniterConf, M: ModuleMessage> {
-    /// Module configuration
-    type ModuleConf: Clone + Debug + Default + DeserializeOwned + Send + Serialize + Sync;
+pub trait DursModule<DC: DursConfTrait, M: ModuleMessage> {
+    ///Module user configuration (configuration provided by the user)
+    type ModuleUserConf: Clone + Debug + DeserializeOwned + Send + Serialize + Sync;
+    /// Module real configuration (configuration calculated from the configuration provided by the user and the global configuration)
+    type ModuleConf: 'static + Clone + Debug + Default + Send + Sync;
     /// Module subcommand options
     type ModuleOpt: StructOpt;
 
@@ -332,6 +374,11 @@ pub trait DursModule<DC: DuniterConf, M: ModuleMessage> {
     fn priority() -> ModulePriority;
     /// Indicates which keys the module needs
     fn ask_required_keys() -> RequiredKeys;
+    /// Generate module configuration
+    fn generate_module_conf(
+        global_conf: &DC::GlobalConf,
+        module_user_conf: Self::ModuleUserConf,
+    ) -> Result<Self::ModuleConf, ModuleConfError>;
     /// Define if module have a cli subcommand
     fn have_subcommand() -> bool {
         false

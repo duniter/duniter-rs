@@ -1,40 +1,36 @@
 {
   "V2": {
-    "currency": "g1",
-    "my_node_id": 1191678020,
-    "default_sync_module": "ws2p1",
-    "ressources_usage": {
-      "cpu_usage": "Large",
-      "network_usage": "Large",
-      "memory_usage": "Large",
-      "disk_space_usage": "Large"
+    "global_conf": {
+      "currency": "g1",
+      "my_node_id": 1191678020,
+      "default_sync_module": "ws2p1",
+      "ressources_usage": {
+        "cpu_usage": "Large",
+        "network_usage": "Large",
+        "memory_usage": "Large",
+        "disk_space_usage": "Large"
+      },
+      "disabled": [],
+      "enabled": []
     },
-    "modules": {
+    "modules_conf": {
       "tui": null,
       "ws2p": {
-        "sync_peers": [
+        "sync_endpoints": [
           {
-            "pubkey": "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx",
-            "ws2p_endpoints": [
-              "WS2P c1c39a0a i3.ifee.fr 80 /ws2p"
-            ]
+            "endpoint": "WS2P c1c39a0a i3.ifee.fr 80 /ws2p",
+            "pubkey": "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx"
           },
           {
-            "pubkey": "BoZP6aqtErHjiKLosLrQxBafi4ATciyDZQ6XRQkNefqG",
-            "ws2p_endpoints": [
-              "WS2P 15af24db g1.ifee.fr 80 /ws2p"
-            ]
+            "endpoint": "WS2P 15af24db g1.ifee.fr 80 /ws2p",
+            "pubkey": "BoZP6aqtErHjiKLosLrQxBafi4ATciyDZQ6XRQkNefqG"
           },
           {
-            "pubkey": "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef",
-            "ws2p_endpoints": [
-              "WS2P b48824f0 g1.monnaielibreoccitanie.org 80 /ws2p"
-            ]
+            "endpoint": "WS2P b48824f0 g1.monnaielibreoccitanie.org 80 /ws2p",
+            "pubkey": "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef"
           }
         ]
       }
-    },
-    "disabled": [],
-    "enabled": []
+    }
   }
 }

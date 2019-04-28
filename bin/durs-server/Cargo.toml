@@ -15,6 +15,7 @@ duniter-core = { path = "../../lib/core/core" }
 #durs-skeleton = { path = "../../lib/modules/skeleton" }
 durs-ws2p = { path = "../../lib/modules/ws2p/ws2p" }
 durs-ws2p-v1-legacy = { path = "../../lib/modules/ws2p-v1-legacy" }
+log = "0.4.*"
 structopt= "0.2.*"
 
 [target.'cfg(unix)'.dependencies]

@@ -17,8 +17,8 @@
 
 use crate::*;
 use dubp_documents::documents::identity::IdentityDocument;
-use durs_module::*;
 use durs_message::requests::*;
+use durs_module::*;
 
 pub fn receive_req(
     bc: &BlockchainModule,

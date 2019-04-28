@@ -15,10 +15,10 @@
 
 //! Relay messages between durs modules.
 
-use durs_module::*;
 use durs_conf;
 use durs_conf::DuRsConf;
 use durs_message::*;
+use durs_module::*;
 use durs_network_documents::network_endpoint::EndpointEnum;
 use std::collections::HashMap;
 use std::sync::mpsc;

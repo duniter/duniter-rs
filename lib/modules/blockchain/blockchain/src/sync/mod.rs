@@ -105,7 +105,7 @@ fn get_and_write_currency_params(
 }
 
 /// Sync from local json files
-pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt) {
+pub fn local_sync<DC: DursConfTrait>(profile: &str, conf: &DC, sync_opts: SyncOpt) {
     let SyncOpt {
         source,
         currency,
@@ -167,7 +167,7 @@ pub fn local_sync<DC: DuniterConf>(profile: &str, conf: &DC, sync_opts: SyncOpt)
             fatal_error!("Fatal error : no target blockstamp !");
         };
 
-    // Update DuniterConf
+    // Update DursConf
     let mut conf = conf.clone();
     conf.set_currency(currency.clone());
 

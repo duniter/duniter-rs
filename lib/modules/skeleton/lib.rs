@@ -34,11 +34,11 @@ extern crate serde_derive;
 #[macro_use]
 extern crate structopt;
 
-use durs_module::*;
 use duniter_network::events::NetworkEvent;
 use durs_conf::DuRsConf;
 use durs_message::events::*;
 use durs_message::*;
+use durs_module::*;
 use std::ops::Deref;
 use std::sync::mpsc;
 use std::thread;
@@ -59,6 +59,12 @@ impl Default for SkeletonConf {
             test_fake_conf_field: String::from("default value"),
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+/// Skeleton Module Configuration
+pub struct SkeletonUserConf {
+    test_fake_conf_field: Option<String>,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -105,6 +111,7 @@ impl Default for SkeletonModule {
 }
 
 impl DursModule<DuRsConf, DursMsg> for SkeletonModule {
+    type ModuleUserConf = SkeletonUserConf;
     type ModuleConf = SkeletonConf;
     type ModuleOpt = SkeletonOpt;
 
@@ -120,6 +127,18 @@ impl DursModule<DuRsConf, DursMsg> for SkeletonModule {
     }
     fn have_subcommand() -> bool {
         true
+    }
+    fn generate_module_conf(
+        _global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
+        module_user_conf: Self::ModuleUserConf,
+    ) -> Result<Self::ModuleConf, ModuleConfError> {
+        let mut conf = SkeletonConf::default();
+
+        if let Some(test_fake_conf_field) = module_user_conf.test_fake_conf_field {
+            conf.test_fake_conf_field = test_fake_conf_field;
+        }
+
+        Ok(conf)
     }
     fn exec_subcommand(
         soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,

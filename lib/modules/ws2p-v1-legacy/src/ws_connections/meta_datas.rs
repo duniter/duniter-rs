@@ -19,9 +19,9 @@ use super::messages::WS2PConnectionMessagePayload;
 use super::states::WS2PConnectionState;
 use crate::parsers::blocks::parse_json_block;
 use crate::*;
-use durs_module::ModuleReqId;
 use duniter_network::documents::BlockchainDocument;
 use dup_crypto::keys::*;
+use durs_module::ModuleReqId;
 use durs_network_documents::network_endpoint::{EndpointV1, NetworkEndpointApi};
 use durs_network_documents::NodeId;
 #[allow(deprecated)]

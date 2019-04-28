@@ -22,9 +22,9 @@ pub mod requests;
 pub mod states;
 
 use crate::*;
-use durs_module::ModuleReqId;
 use duniter_network::documents::BlockchainDocument;
 use dup_crypto::keys::*;
+use durs_module::ModuleReqId;
 use durs_network_documents::network_endpoint::EndpointV1;
 use rand::Rng;
 use states::WS2PConnectionState;

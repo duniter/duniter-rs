@@ -36,9 +36,9 @@ pub mod constants;
 pub mod keys;
 
 use dubp_documents::CurrencyName;
-use durs_module::{DuniterConf, ModuleName, RequiredKeys, RequiredKeysContent};
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
+use durs_module::{DursConfTrait, ModuleName, RequiredKeys, RequiredKeysContent};
 use rand::Rng;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use std::collections::HashSet;
@@ -63,6 +63,13 @@ pub enum ChangeGlobalConf {
 #[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
 /// Modules conf
 pub struct ModulesConf(pub serde_json::Value);
+
+impl Default for ModulesConf {
+    #[inline]
+    fn default() -> Self {
+        ModulesConf(serde_json::Value::Null)
+    }
+}
 
 impl ModulesConf {
     /// Change module conf
@@ -101,7 +108,7 @@ impl Default for DuRsConfV1 {
         DuRsConfV1 {
             currency: CurrencyName(String::from(constants::DEFAULT_CURRRENCY)),
             my_node_id: generate_random_node_id(),
-            modules: ModulesConf(serde_json::Value::Null),
+            modules: ModulesConf::default(),
             disabled: HashSet::with_capacity(0),
             enabled: HashSet::with_capacity(0),
         }
@@ -155,8 +162,6 @@ pub struct DuRsConfV2 {
     pub default_sync_module: ModuleName,
     /// Ressources usage
     pub ressources_usage: ResourcesUsage,
-    /// Configuration of modules in json format (obtained from the conf.json file)
-    pub modules: ModulesConf,
     /// Disabled modules
     pub disabled: HashSet<ModuleName>,
     /// Enabled modules
@@ -170,7 +175,6 @@ impl Default for DuRsConfV2 {
             my_node_id: generate_random_node_id(),
             default_sync_module: ModuleName(String::from(constants::DEFAULT_DEFAULT_SYNC_MODULE)),
             ressources_usage: ResourcesUsage::default(),
-            modules: ModulesConf(serde_json::Value::Null),
             disabled: HashSet::with_capacity(0),
             enabled: HashSet::with_capacity(0),
         }
@@ -184,7 +188,6 @@ impl From<DuRsConfV1> for DuRsConfV2 {
             my_node_id: conf_v1.my_node_id,
             default_sync_module: ModuleName(String::from(constants::DEFAULT_DEFAULT_SYNC_MODULE)),
             ressources_usage: ResourcesUsage::default(),
-            modules: conf_v1.modules,
             disabled: conf_v1.disabled,
             enabled: conf_v1.enabled,
         }
@@ -197,19 +200,54 @@ pub enum DuRsConf {
     /// Durs node configuration v1
     V1(DuRsConfV1),
     /// Durs node configuration v2
+    V2 {
+        /// Global configuration
+        global_conf: DuRsConfV2,
+        /// Modules configuration
+        modules_conf: ModulesConf,
+    },
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+/// Durs global configuration (without modules configuration)
+pub enum DuRsGlobalConf {
+    /// Durs global configuration v1
+    V1(DuRsConfV1),
+    /// Durs global configuration v2
     V2(DuRsConfV2),
 }
 
 impl Default for DuRsConf {
+    #[inline]
     fn default() -> Self {
-        DuRsConf::V2(DuRsConfV2::default())
+        DuRsConf::V2 {
+            global_conf: DuRsConfV2::default(),
+            modules_conf: ModulesConf::default(),
+        }
     }
 }
 
-impl DuniterConf for DuRsConf {
+impl DursConfTrait for DuRsConf {
+    type GlobalConf = DuRsGlobalConf;
+
+    fn get_global_conf(&self) -> Self::GlobalConf {
+        match *self {
+            DuRsConf::V1(ref conf_v1) => DuRsGlobalConf::V1(conf_v1.clone()),
+            DuRsConf::V2 {
+                ref global_conf, ..
+            } => DuRsGlobalConf::V2(global_conf.clone()),
+        }
+    }
     fn upgrade(self) -> (Self, bool) {
         if let DuRsConf::V1(conf_v1) = self {
-            (DuRsConf::V2(DuRsConfV2::from(conf_v1)), true)
+            let modules_conf = conf_v1.modules.clone();
+            (
+                DuRsConf::V2 {
+                    global_conf: DuRsConfV2::from(conf_v1),
+                    modules_conf,
+                },
+                true,
+            )
         } else {
             (self, false)
         }
@@ -217,25 +255,32 @@ impl DuniterConf for DuRsConf {
     fn version(&self) -> usize {
         match *self {
             DuRsConf::V1(_) => 1,
-            DuRsConf::V2(_) => 2,
+            DuRsConf::V2 { .. } => 2,
         }
     }
     fn currency(&self) -> CurrencyName {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.currency.clone(),
-            DuRsConf::V2(ref conf_v2) => conf_v2.currency.clone(),
+            DuRsConf::V2 {
+                ref global_conf, ..
+            } => global_conf.currency.clone(),
         }
     }
     fn set_currency(&mut self, new_currency: CurrencyName) {
         match *self {
             DuRsConf::V1(ref mut conf_v1) => conf_v1.currency = new_currency,
-            DuRsConf::V2(ref mut conf_v2) => conf_v2.currency = new_currency,
+            DuRsConf::V2 {
+                ref mut global_conf,
+                ..
+            } => global_conf.currency = new_currency,
         }
     }
     fn my_node_id(&self) -> u32 {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.my_node_id,
-            DuRsConf::V2(ref conf_v2) => conf_v2.my_node_id,
+            DuRsConf::V2 {
+                ref global_conf, ..
+            } => global_conf.my_node_id,
         }
     }
     fn disable(&mut self, module: ModuleName) {
@@ -244,9 +289,12 @@ impl DuniterConf for DuRsConf {
                 conf_v1.disabled.insert(module.clone());
                 conf_v1.enabled.remove(&module);
             }
-            DuRsConf::V2(ref mut conf_v2) => {
-                conf_v2.disabled.insert(module.clone());
-                conf_v2.enabled.remove(&module);
+            DuRsConf::V2 {
+                ref mut global_conf,
+                ..
+            } => {
+                global_conf.disabled.insert(module.clone());
+                global_conf.enabled.remove(&module);
             }
         }
     }
@@ -256,28 +304,37 @@ impl DuniterConf for DuRsConf {
                 conf_v1.disabled.remove(&module);
                 conf_v1.enabled.insert(module);
             }
-            DuRsConf::V2(ref mut conf_v2) => {
-                conf_v2.disabled.remove(&module);
-                conf_v2.enabled.insert(module);
+            DuRsConf::V2 {
+                ref mut global_conf,
+                ..
+            } => {
+                global_conf.disabled.remove(&module);
+                global_conf.enabled.insert(module);
             }
         }
     }
     fn disabled_modules(&self) -> HashSet<ModuleName> {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.disabled.clone(),
-            DuRsConf::V2(ref conf_v2) => conf_v2.disabled.clone(),
+            DuRsConf::V2 {
+                ref global_conf, ..
+            } => global_conf.disabled.clone(),
         }
     }
     fn enabled_modules(&self) -> HashSet<ModuleName> {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.enabled.clone(),
-            DuRsConf::V2(ref conf_v2) => conf_v2.enabled.clone(),
+            DuRsConf::V2 {
+                ref global_conf, ..
+            } => global_conf.enabled.clone(),
         }
     }
     fn modules(&self) -> serde_json::Value {
         match *self {
             DuRsConf::V1(ref conf_v1) => conf_v1.modules.0.clone(),
-            DuRsConf::V2(ref conf_v2) => conf_v2.modules.0.clone(),
+            DuRsConf::V2 {
+                ref modules_conf, ..
+            } => modules_conf.0.clone(),
         }
     }
     fn set_module_conf(&mut self, module_name: ModuleName, new_module_conf: serde_json::Value) {
@@ -285,9 +342,10 @@ impl DuniterConf for DuRsConf {
             DuRsConf::V1(ref mut conf_v1) => conf_v1
                 .modules
                 .set_module_conf(module_name, new_module_conf),
-            DuRsConf::V2(ref mut conf_v2) => conf_v2
-                .modules
-                .set_module_conf(module_name, new_module_conf),
+            DuRsConf::V2 {
+                ref mut modules_conf,
+                ..
+            } => modules_conf.set_module_conf(module_name, new_module_conf),
         }
     }
 }
@@ -581,7 +639,10 @@ pub fn write_keypairs_file(
 }
 
 /// Save configuration in profile folder
-pub fn write_conf_file<DC: DuniterConf>(conf_path: &Path, conf: &DC) -> Result<(), std::io::Error> {
+pub fn write_conf_file<DC: DursConfTrait>(
+    conf_path: &Path,
+    conf: &DC,
+) -> Result<(), std::io::Error> {
     let mut f = File::create(conf_path)?;
     f.write_all(
         serde_json::to_string_pretty(conf)
@@ -658,16 +719,20 @@ mod tests {
                 .expect("Not found ws2p conf")
                 .clone(),
             json!({
-                "sync_peers": [{
-                    "pubkey": "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx",
-                    "ws2p_endpoints": ["WS2P c1c39a0a i3.ifee.fr 80 /ws2p"]
-                },{
-                    "pubkey": "BoZP6aqtErHjiKLosLrQxBafi4ATciyDZQ6XRQkNefqG",
-                    "ws2p_endpoints": ["WS2P 15af24db g1.ifee.fr 80 /ws2p"]
-                },{
-                    "pubkey": "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef",
-                    "ws2p_endpoints": ["WS2P b48824f0 g1.monnaielibreoccitanie.org 80 /ws2p"]
-                }]
+                "sync_endpoints": [
+                {
+                    "endpoint": "WS2P c1c39a0a i3.ifee.fr 80 /ws2p",
+                    "pubkey": "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx"
+                },
+                {
+                    "endpoint": "WS2P 15af24db g1.ifee.fr 80 /ws2p",
+                    "pubkey": "BoZP6aqtErHjiKLosLrQxBafi4ATciyDZQ6XRQkNefqG"
+                },
+                {
+                    "endpoint": "WS2P b48824f0 g1.monnaielibreoccitanie.org 80 /ws2p",
+                    "pubkey": "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef"
+                }
+                ]
             })
         );
         restore_old_conf_and_save_upgraded_conf(profile_path)?;
@@ -685,16 +750,20 @@ mod tests {
                 .expect("Not found ws2p conf")
                 .clone(),
             json!({
-                "sync_peers": [{
-                    "pubkey": "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx",
-                    "ws2p_endpoints": ["WS2P c1c39a0a i3.ifee.fr 80 /ws2p"]
-                },{
-                    "pubkey": "BoZP6aqtErHjiKLosLrQxBafi4ATciyDZQ6XRQkNefqG",
-                    "ws2p_endpoints": ["WS2P 15af24db g1.ifee.fr 80 /ws2p"]
-                },{
-                    "pubkey": "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef",
-                    "ws2p_endpoints": ["WS2P b48824f0 g1.monnaielibreoccitanie.org 80 /ws2p"]
-                }]
+                "sync_endpoints": [
+                {
+                    "endpoint": "WS2P c1c39a0a i3.ifee.fr 80 /ws2p",
+                    "pubkey": "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx"
+                },
+                {
+                    "endpoint": "WS2P 15af24db g1.ifee.fr 80 /ws2p",
+                    "pubkey": "BoZP6aqtErHjiKLosLrQxBafi4ATciyDZQ6XRQkNefqG"
+                },
+                {
+                    "endpoint": "WS2P b48824f0 g1.monnaielibreoccitanie.org 80 /ws2p",
+                    "pubkey": "7v2J4badvfWQ6qwRdCwhhJfAsmKwoxRUNpJHiJHj7zef"
+                }
+                ]
             })
         );
     }
