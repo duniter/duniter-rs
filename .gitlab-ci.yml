@@ -202,6 +202,48 @@ package:test:linux64:
       - tags
   when: manual
 
+package:test:docker-test-image:
+  <<: *ci_conditions
+  stage: package
+  image: docker:git
+  tags:
+    - docker
+  services:
+    - docker:dind
+  variables:
+    LAST_COMMIT_HASH: $CI_COMMIT_SHORT_SHA
+  script:
+    - docker build -f release/docker/Dockerfile .
+    - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" $CI_REGISTRY
+    - docker build --pull -t "$CI_REGISTRY_IMAGE:test-image" -f release/docker/Dockerfile .
+    - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" $CI_REGISTRY
+    - docker push "$CI_REGISTRY_IMAGE:test-image"
+  except:
+    - tags
+  when: manual
+
+package:test:docker:
+  <<: *ci_conditions
+  stage: package
+  image: docker:git
+  tags:
+    - docker
+  services:
+    - docker:dind
+  variables:
+    LAST_COMMIT_HASH: $CI_COMMIT_SHORT_SHA
+  script:
+    - docker build -f release/docker/Dockerfile .
+    - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" $CI_REGISTRY
+    - docker build --pull -t "$CI_REGISTRY_IMAGE:dev" -f release/docker/Dockerfile .
+    - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" $CI_REGISTRY
+    - docker push "$CI_REGISTRY_IMAGE:dev"
+  only:
+    refs:
+      - dev
+  except:
+    - tags
+
 package:test:armv7:
   <<: *rust_stable_armv7
   stage: package
@@ -248,6 +290,26 @@ package:prod:linux64:
   only:
     - tags
   when: manual
+  allow_failure: false
+
+package:prod:docker:
+  <<: *ci_conditions
+  stage: package
+  image: docker:git
+  tags:
+    - docker
+  services:
+    - docker:dind
+  variables:
+    LAST_COMMIT_HASH: $CI_COMMIT_SHORT_SHA
+  script:
+    - docker build -f release/docker/Dockerfile .
+    - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" $CI_REGISTRY
+    - docker build --pull -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG" -f release/docker/Dockerfile .
+    - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" $CI_REGISTRY
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG"
+  only:
+    - tags
   allow_failure: false
 
 package:prod:armv7:
