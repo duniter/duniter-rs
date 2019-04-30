@@ -43,6 +43,9 @@ pub struct DursOpt {
     /// Set log level. (Defaults to INFO).
     /// Available levels: [ERROR, WARN, INFO, DEBUG, TRACE]
     logs_level: Option<Level>,
+    #[structopt(long = "log-stdout")]
+    /// Print logs in standard output
+    log_stdout: bool,
     #[structopt(subcommand)]
     /// CoreSubCommand
     cmd: CoreSubCommand,

@@ -775,6 +775,9 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
         _ => unreachable!("Structopt guarantees us that the string match necessarily with one of the variants of the enum Level"),
     };
 
+    // Get log-stdout option
+    let log_stdout = cli_args.is_present("log_stdout");
+
     // Config logger
     let logger_config = Config {
         time: Some(Level::Error),
@@ -794,20 +797,28 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
         .expect("Fatal error : fail to create log file path !");
     }
 
-    WriteLogger::init(
-        log_level.to_level_filter(),
-        logger_config,
-        OpenOptions::new()
-            .write(true)
-            .append(true)
-            .open(
-                log_file_path
-                    .to_str()
-                    .expect("Fatal error : fail to get log file path !"),
-            )
-            .expect("Fatal error : fail to open log file !"),
-    )
-    .expect("Fatal error : fail to init logger !");
+    let level_filter = log_level.to_level_filter();
+    let file_logger_opts = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(
+            log_file_path
+                .to_str()
+                .expect("Fatal error : fail to get log file path !"),
+        )
+        .expect("Fatal error : fail to open log file !");
+
+    if log_stdout {
+        CombinedLogger::init(vec![
+            TermLogger::new(level_filter, logger_config)
+                .expect("Fatal error : fail to create term logger !"),
+            WriteLogger::new(level_filter, logger_config, file_logger_opts),
+        ])
+        .expect("Fatal error : Fail to init combined logger !");
+    } else {
+        WriteLogger::init(level_filter, logger_config, file_logger_opts)
+            .expect("Fatal error : fail to init file logger !");
+    }
 
     info!("Successfully init logger");
 }
