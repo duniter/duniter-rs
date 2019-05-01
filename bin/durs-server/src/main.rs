@@ -27,10 +27,12 @@
     unused_qualifications
 )]
 
+mod init;
 pub use duniter_core::cli::DursOpt;
 pub use duniter_core::*;
 #[cfg(unix)]
 pub use durs_tui::TuiModule;
+use init::init;
 //pub use durs_skeleton::SkeletonModule;
 pub use durs_ws2p_v1_legacy::WS2PModule;
 //pub use durs_ws2p::WS2Pv2Module;
@@ -41,6 +43,7 @@ use structopt::StructOpt;
 #[cfg(unix)]
 #[cfg(not(target_arch = "arm"))]
 fn main() {
+    init();
     durs_core_server!(
         durs_inject_cli![WS2PModule /*, SkeletonModule ,DasaModule*/],
         durs_plug!([WS2PModule], [TuiModule /*, SkeletonModule ,DasaModule*/])
@@ -49,6 +52,7 @@ fn main() {
 #[cfg(unix)]
 #[cfg(target_arch = "arm")]
 fn main() {
+    init();
     durs_core_server!(
         durs_inject_cli![WS2PModule],
         durs_plug!([WS2PModule], [TuiModule])
@@ -56,5 +60,6 @@ fn main() {
 }
 #[cfg(windows)]
 fn main() {
+    init();
     durs_core_server!(durs_inject_cli![WS2PModule], durs_plug!([WS2PModule], []))
 }

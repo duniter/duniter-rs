@@ -5,6 +5,7 @@ authors = ["librelois <elois@duniter.org>","nanocryk <nanocryk@duniter.org>","in
 description = "DURS (Dividende Universel RuSt) is a new implementation of Duniter protocol and software in Rust, a safe, concurrent, practical language"
 license = "AGPL-3.0"
 repository = "https://git.duniter.org/nodes/rust/duniter-rs"
+homepage = "https://git.duniter.org/nodes/rust/duniter-rs"
 readme = "README.md"
 keywords = ["blockchain", "cryptocurrency", "duniter"]
 categories = ["command-line-utilities", "network-programming"]
@@ -16,7 +17,8 @@ duniter-core = { path = "../../lib/core/core" }
 durs-ws2p = { path = "../../lib/modules/ws2p/ws2p" }
 durs-ws2p-v1-legacy = { path = "../../lib/modules/ws2p-v1-legacy" }
 log = "0.4.*"
-structopt= "0.2.*"
+structopt = "0.2.*"
+human-panic = "1.0.*"
 
 [target.'cfg(unix)'.dependencies]
 durs-tui = { path = "../../lib/modules/tui" }
