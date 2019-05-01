@@ -439,8 +439,13 @@ pub fn get_user_datas_folder() -> &'static str {
 }
 
 /// Returns the path to the folder containing the currency datas of the running profile
-pub fn datas_path(profile: &str, currency: &CurrencyName) -> PathBuf {
-    let mut datas_path = get_profile_path(profile);
+#[inline]
+pub fn datas_path(
+    profiles_path: &Option<PathBuf>,
+    profile_name: &str,
+    currency: &CurrencyName,
+) -> PathBuf {
+    let mut datas_path = get_profile_path(profiles_path, profile_name);
     datas_path.push(currency.to_string());
     if !datas_path.as_path().exists() {
         fs::create_dir(datas_path.as_path()).expect("Impossible to create currency dir !");
@@ -450,29 +455,35 @@ pub fn datas_path(profile: &str, currency: &CurrencyName) -> PathBuf {
 
 #[inline]
 /// Return path to configuration file
-pub fn get_conf_path(profile: &str) -> PathBuf {
-    let mut conf_path = get_profile_path(profile);
+pub fn get_conf_path(profile_path: &PathBuf) -> PathBuf {
+    let mut conf_path = profile_path.clone();
     conf_path.push(constants::CONF_FILENAME);
     conf_path
 }
 
 /// Returns the path to the folder containing the user data of the running profile
-pub fn get_profile_path(profile: &str) -> PathBuf {
+pub fn get_profile_path(profiles_path: &Option<PathBuf>, profile_name: &str) -> PathBuf {
     // Define and create datas directory if not exist
-    let mut profile_path = match dirs::config_dir() {
-        Some(path) => path,
-        None => panic!("Impossible to get user config directory !"),
+    let profiles_path: PathBuf = if let Some(profiles_path) = profiles_path {
+        profiles_path.clone()
+    } else {
+        let mut user_config_path = match dirs::config_dir() {
+            Some(path) => path,
+            None => panic!("Impossible to get user config directory !"),
+        };
+        user_config_path.push(constants::USER_DATAS_FOLDER);
+        user_config_path
     };
-    profile_path.push(constants::USER_DATAS_FOLDER);
-    if !profile_path.as_path().exists() {
-        fs::create_dir(profile_path.as_path()).unwrap_or_else(|_| {
+    if !profiles_path.as_path().exists() {
+        fs::create_dir(profiles_path.as_path()).unwrap_or_else(|_| {
             panic!(
-                "Impossible to create ~/.config/{} dir !",
-                constants::USER_DATAS_FOLDER
+                "Impossible to create profiles directory: {:?} !",
+                profiles_path
             )
         });
     }
-    profile_path.push(profile);
+    let mut profile_path = profiles_path;
+    profile_path.push(profile_name);
     if !profile_path.as_path().exists() {
         fs::create_dir(profile_path.as_path()).expect("Impossible to create your profile dir !");
     }
@@ -480,19 +491,23 @@ pub fn get_profile_path(profile: &str) -> PathBuf {
 }
 
 /// Get keypairs file path
-pub fn keypairs_filepath(profile: &str) -> PathBuf {
-    let profile_path = get_profile_path(profile);
+pub fn keypairs_filepath(profiles_path: &Option<PathBuf>, profile: &str) -> PathBuf {
+    let profile_path = get_profile_path(profiles_path, profile);
     let mut conf_keys_path = profile_path.clone();
     conf_keys_path.push(constants::KEYPAIRS_FILENAME);
     conf_keys_path
 }
 
 /// Load configuration.
-pub fn load_conf(profile: &str) -> (DuRsConf, DuniterKeyPairs) {
-    let mut profile_path = get_profile_path(profile);
+pub fn load_conf(
+    profile: &str,
+    profiles_path: &Option<PathBuf>,
+    keypairs_file_path: &Option<PathBuf>,
+) -> (DuRsConf, DuniterKeyPairs) {
+    let mut profile_path = get_profile_path(profiles_path, profile);
 
     // Load conf
-    let (conf, keypairs) = load_conf_at_path(profile_path.clone());
+    let (conf, keypairs) = load_conf_at_path(profile_path.clone(), keypairs_file_path);
 
     // Create currency dir
     profile_path.push(conf.currency().to_string());
@@ -505,10 +520,18 @@ pub fn load_conf(profile: &str) -> (DuRsConf, DuniterKeyPairs) {
 }
 
 /// Load configuration. at specified path
-pub fn load_conf_at_path(profile_path: PathBuf) -> (DuRsConf, DuniterKeyPairs) {
+pub fn load_conf_at_path(
+    profile_path: PathBuf,
+    keypairs_file_path: &Option<PathBuf>,
+) -> (DuRsConf, DuniterKeyPairs) {
     // Get KeyPairs
-    let mut keypairs_path = profile_path.clone();
-    keypairs_path.push(constants::KEYPAIRS_FILENAME);
+    let keypairs_path = if let Some(ref keypairs_file_path) = keypairs_file_path {
+        keypairs_file_path.clone()
+    } else {
+        let mut keypairs_path = profile_path.clone();
+        keypairs_path.push(constants::KEYPAIRS_FILENAME);
+        keypairs_path
+    };
     let keypairs = if keypairs_path.as_path().exists() {
         if let Ok(mut f) = File::open(keypairs_path.as_path()) {
             let mut contents = String::new();
@@ -582,8 +605,9 @@ pub fn load_conf_at_path(profile_path: PathBuf) -> (DuRsConf, DuniterKeyPairs) {
             network_keypair: generate_random_keypair(KeysAlgo::Ed25519),
             member_keypair: None,
         };
-        write_keypairs_file(&keypairs_path, &keypairs)
-            .expect("Fatal error : fail to write default keypairs file !");
+        write_keypairs_file(&keypairs_path, &keypairs).unwrap_or_else(|_| {
+            panic!(dbg!("Fatal error : fail to write default keypairs file !"))
+        });
         keypairs
     };
 
@@ -601,8 +625,9 @@ pub fn load_conf_at_path(profile_path: PathBuf) -> (DuRsConf, DuniterKeyPairs) {
                 let (conf, upgraded) = conf.upgrade();
                 // If conf is upgraded, rewrite conf file
                 if upgraded {
-                    write_conf_file(conf_path.as_path(), &conf)
-                        .expect("Fatal error : fail to write conf file !");
+                    write_conf_file(conf_path.as_path(), &conf).unwrap_or_else(|_| {
+                        panic!(dbg!("Fatal error : fail to write conf file !"))
+                    });
                 }
                 conf
             } else {
@@ -615,7 +640,7 @@ pub fn load_conf_at_path(profile_path: PathBuf) -> (DuRsConf, DuniterKeyPairs) {
         // Create conf file with default conf
         let conf = DuRsConf::default();
         write_conf_file(conf_path.as_path(), &conf)
-            .expect("Fatal error : fail to write default conf file !");
+            .unwrap_or_else(|_| panic!(dbg!("Fatal error : fail to write default conf file!")));
         conf
     };
 
@@ -631,7 +656,7 @@ pub fn write_keypairs_file(
     let mut f = File::create(file_path.as_path())?;
     f.write_all(
         serde_json::to_string_pretty(keypairs)
-            .expect("Fatal error : fail to write default keypairs file !")
+            .unwrap_or_else(|_| panic!(dbg!("Fatal error : fail to deserialize keypairs !")))
             .as_bytes(),
     )?;
     f.sync_all()?;
@@ -654,8 +679,16 @@ pub fn write_conf_file<DC: DursConfTrait>(
 }
 
 /// Returns the path to the database containing the blockchain
-pub fn get_blockchain_db_path(profile: &str, currency: &CurrencyName) -> PathBuf {
-    let mut db_path = datas_path(profile, &currency);
+pub fn get_blockchain_db_path(profile_path: PathBuf, currency: &CurrencyName) -> PathBuf {
+    let mut db_path = profile_path;
+    db_path.push(&currency.0);
+    if !db_path.as_path().exists() {
+        if let Err(io_error) = fs::create_dir(db_path.as_path()) {
+            if io_error.kind() != std::io::ErrorKind::AlreadyExists {
+                fatal_error!("Impossible to create currency dir !");
+            }
+        }
+    }
     db_path.push("blockchain/");
     if !db_path.as_path().exists() {
         if let Err(io_error) = fs::create_dir(db_path.as_path()) {
@@ -712,7 +745,7 @@ mod tests {
     fn load_conf_file_v1() -> std::io::Result<()> {
         let profile_path = PathBuf::from("./test/v1/");
         save_old_conf(PathBuf::from(profile_path.clone()))?;
-        let (conf, _keys) = load_conf_at_path(profile_path.clone());
+        let (conf, _keys) = load_conf_at_path(profile_path.clone(), &None);
         assert_eq!(
             conf.modules()
                 .get("ws2p")
@@ -743,7 +776,7 @@ mod tests {
     #[test]
     fn load_conf_file_v2() {
         let profile_path = PathBuf::from("./test/v2/");
-        let (conf, _keys) = load_conf_at_path(profile_path);
+        let (conf, _keys) = load_conf_at_path(profile_path, &None);
         assert_eq!(
             conf.modules()
                 .get("ws2p")

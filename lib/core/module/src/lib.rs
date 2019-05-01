@@ -39,6 +39,7 @@ use serde::de::DeserializeOwned;
 use serde::ser::{Serialize, Serializer};
 use std::collections::HashSet;
 use std::fmt::Debug;
+use std::path::PathBuf;
 use std::sync::mpsc;
 //use structopt::clap::ArgMatches;
 use structopt::StructOpt;
@@ -136,14 +137,18 @@ pub trait DursConfTrait:
 /// Sofware meta datas
 #[derive(Debug, Clone)]
 pub struct SoftwareMetaDatas<DC: DursConfTrait> {
+    /// User configuration
+    pub conf: DC,
+    /// Path where user profiles are persisted
+    pub profiles_path: Option<PathBuf>,
+    /// Keypairs file path
+    pub keypairs_file_path: Option<PathBuf>,
+    /// User profile
+    pub profile: String,
     /// Software name
     pub soft_name: &'static str,
     /// Software version
     pub soft_version: &'static str,
-    /// User profile
-    pub profile: String,
-    /// User configuration
-    pub conf: DC,
 }
 
 /// The different modules of Duniter-rs can exchange messages with the type of their choice,

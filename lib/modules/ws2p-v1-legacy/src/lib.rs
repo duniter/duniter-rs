@@ -403,8 +403,11 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
         }
 
         // Get endpoints file path
-        let mut ep_file_path =
-            durs_conf::datas_path(&soft_meta_datas.profile, &soft_meta_datas.conf.currency());
+        let mut ep_file_path = durs_conf::datas_path(
+            &soft_meta_datas.profiles_path,
+            &soft_meta_datas.profile,
+            &soft_meta_datas.conf.currency(),
+        );
         ep_file_path.push("ws2pv1");
         if !ep_file_path.exists() {
             fs::create_dir(ep_file_path.as_path()).expect("Impossible to create ws2pv1 dir !");

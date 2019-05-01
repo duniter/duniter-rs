@@ -18,7 +18,7 @@ use std::sync::mpsc;
 
 pub fn execute(
     pool: &ThreadPool,
-    profile: String,
+    profile_path: PathBuf,
     currency: CurrencyName,
     sender_sync_thread: mpsc::Sender<MessForSyncThread>,
     recv: mpsc::Receiver<SyncJobsMess>,
@@ -27,7 +27,7 @@ pub fn execute(
     pool.execute(move || {
         let tx_job_begin = SystemTime::now();
         // Open databases
-        let db_path = durs_conf::get_blockchain_db_path(&profile, &currency);
+        let db_path = durs_conf::get_blockchain_db_path(profile_path, &currency);
         let databases = CurrencyV10DBs::open(Some(&db_path));
 
         // Listen db requets

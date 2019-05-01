@@ -17,11 +17,12 @@
 
 use durs_conf::ChangeGlobalConf;
 use durs_module::DursConfTrait;
+use std::path::PathBuf;
 
 /// Change global configuration
 pub fn change_global_conf<DC: DursConfTrait>(
-    profile: &str,
-    mut conf: DC,
+    profile_path: &PathBuf,
+    conf: &mut DC,
     user_request: ChangeGlobalConf,
 ) {
     match user_request {
@@ -32,7 +33,7 @@ pub fn change_global_conf<DC: DursConfTrait>(
     }
 
     // Write new conf
-    durs_conf::write_conf_file(&durs_conf::get_conf_path(profile), &conf)
+    durs_conf::write_conf_file(&durs_conf::get_conf_path(profile_path), conf)
         .expect("IOError : Fail to update conf  ");
 
     println!("Configuration successfully updated.");

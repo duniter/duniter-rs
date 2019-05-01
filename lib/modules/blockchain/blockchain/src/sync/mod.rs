@@ -105,7 +105,7 @@ fn get_and_write_currency_params(
 }
 
 /// Sync from local json files
-pub fn local_sync<DC: DursConfTrait>(profile: &str, conf: &DC, sync_opts: SyncOpt) {
+pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts: SyncOpt) {
     let SyncOpt {
         source,
         currency,
@@ -152,7 +152,7 @@ pub fn local_sync<DC: DursConfTrait>(profile: &str, conf: &DC, sync_opts: SyncOp
     // Lauch json reader worker
     download::json_reader_worker::json_reader_worker(
         &pool,
-        profile.to_owned(),
+        profile_path.clone(),
         sender_sync_thread.clone(),
         json_files_path,
         end,
@@ -171,14 +171,11 @@ pub fn local_sync<DC: DursConfTrait>(profile: &str, conf: &DC, sync_opts: SyncOp
     let mut conf = conf.clone();
     conf.set_currency(currency.clone());
 
-    // Get profile path
-    let profile_path = durs_conf::get_profile_path(profile);
-
     // Get databases path
-    let db_path = durs_conf::get_blockchain_db_path(profile, &currency);
+    let db_path = durs_conf::get_blockchain_db_path(profile_path.clone(), &currency);
 
     // Write new conf
-    let mut conf_path = profile_path;
+    let mut conf_path = profile_path.clone();
     conf_path.push(durs_conf::constants::CONF_FILENAME);
     durs_conf::write_conf_file(conf_path.as_path(), &conf).expect("Fail to write new conf !");
 
@@ -252,7 +249,7 @@ pub fn local_sync<DC: DursConfTrait>(profile: &str, conf: &DC, sync_opts: SyncOp
     // / Launch wot_worker thread
     apply::wot_worker::execute(
         &pool,
-        profile.to_owned(),
+        profile_path.clone(),
         currency.clone(),
         sender_sync_thread.clone(),
         recv_wot_thread,
@@ -261,7 +258,7 @@ pub fn local_sync<DC: DursConfTrait>(profile: &str, conf: &DC, sync_opts: SyncOp
     // Launch tx_worker thread
     apply::txs_worker::execute(
         &pool,
-        profile.to_owned(),
+        profile_path.clone(),
         currency.clone(),
         sender_sync_thread.clone(),
         recv_tx_thread,
@@ -270,7 +267,7 @@ pub fn local_sync<DC: DursConfTrait>(profile: &str, conf: &DC, sync_opts: SyncOp
     let main_job_begin = SystemTime::now();
 
     // Open currency_params_db
-    let dbs_path = durs_conf::get_blockchain_db_path(profile, &conf.currency());
+    let dbs_path = durs_conf::get_blockchain_db_path(profile_path, &conf.currency());
     let currency_params_db = BinDB::File(
         open_file_db::<CurrencyParamsV10Datas>(&dbs_path, "params.db")
             .expect("Fail to open params db"),

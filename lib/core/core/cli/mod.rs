@@ -28,27 +28,34 @@ pub use crate::reset::*;
 pub use crate::start::*;
 pub use duniter_network::cli::sync::SyncOpt;
 use log::Level;
+use std::path::PathBuf;
 
 #[derive(StructOpt, Debug)]
 #[structopt(
     name = "durs",
     raw(setting = "structopt::clap::AppSettings::ColoredHelp")
 )]
-/// Rust implementation of Duniter
+/// Durs command line options
 pub struct DursOpt {
-    #[structopt(short = "p", long = "profile")]
-    /// Set a custom user data folder
-    profile_name: Option<String>,
-    #[structopt(short = "l", long = "logs", raw(next_line_help = "true"))]
+    /// CoreSubCommand
+    #[structopt(subcommand)]
+    cmd: CoreSubCommand,
+    /// Path where user profiles are persisted
+    #[structopt(long = "profiles-path", parse(from_os_str))]
+    profiles_path: Option<PathBuf>,
+    /// Keypairs file path
+    #[structopt(long = "keypairs-file", parse(from_os_str))]
+    keypairs_file: Option<PathBuf>,
     /// Set log level. (Defaults to INFO).
     /// Available levels: [ERROR, WARN, INFO, DEBUG, TRACE]
+    #[structopt(short = "l", long = "logs", raw(next_line_help = "true"))]
     logs_level: Option<Level>,
-    #[structopt(long = "log-stdout")]
     /// Print logs in standard output
+    #[structopt(long = "log-stdout")]
     log_stdout: bool,
-    #[structopt(subcommand)]
-    /// CoreSubCommand
-    cmd: CoreSubCommand,
+    /// Set a custom user profile name
+    #[structopt(short = "p", long = "profile-name")]
+    profile_name: Option<String>,
 }
 
 #[derive(StructOpt, Debug)]

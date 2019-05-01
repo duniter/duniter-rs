@@ -54,6 +54,7 @@ use crate::cli::*;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::{File, OpenOptions};
+use std::path::PathBuf;
 use std::sync::mpsc;
 use std::thread;
 use structopt::clap::{App, ArgMatches};
@@ -207,10 +208,12 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             plugins_cli_conf: vec![],
             user_command: None,
             soft_meta_datas: SoftwareMetaDatas {
+                conf: DuRsConf::default(),
+                profiles_path: None,
+                keypairs_file_path: None,
+                profile: String::from("default"),
                 soft_name,
                 soft_version,
-                profile: String::from("default"),
-                conf: DuRsConf::default(),
             },
             keypairs: None,
             run_duration_in_secs,
@@ -253,19 +256,37 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             cli_conf.get_matches()
         });
         let cli_args = self.cli_args.clone().expect("cli_args must be Some !");
-        // Get datas profile name
+
+        // Get profile name
         let profile = match_profile(&cli_args);
 
+        // Get profile path
+        let profiles_path = match_profiles_path(&cli_args);
+
+        // Get keypairs file path
+        let keypairs_file_path = match_keypairs_file(&cli_args);
+
+        // Compute user profile path
+        let profile_path = durs_conf::get_profile_path(&profiles_path, &profile);
+
         // Init logger
-        init_logger(profile.as_str(), self.soft_meta_datas.soft_name, &cli_args);
+        init_logger(
+            profile_path.clone(),
+            self.soft_meta_datas.soft_name,
+            self.soft_meta_datas.soft_version,
+            &cli_args,
+        );
 
         // Load global conf
-        let (conf, keypairs) = durs_conf::load_conf(profile.as_str());
+        let (conf, keypairs) =
+            durs_conf::load_conf(profile.as_str(), &profiles_path, &keypairs_file_path);
         info!("Success to load global conf.");
 
-        // save profile and conf
+        // Save conf and profile and keypairs file path
+        self.soft_meta_datas.conf = conf;
+        self.soft_meta_datas.profiles_path = profiles_path.clone();
+        self.soft_meta_datas.keypairs_file_path = keypairs_file_path;
         self.soft_meta_datas.profile = profile.clone();
-        self.soft_meta_datas.conf = conf.clone();
 
         // Save keypairs
         self.keypairs = Some(keypairs);
@@ -276,16 +297,16 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
         if let Some(matches) = cli_args.subcommand_matches("disable") {
             let opts = DisableOpt::from_clap(matches);
             change_conf::change_global_conf(
-                &profile,
-                conf,
+                &profile_path,
+                &mut self.soft_meta_datas.conf,
                 ChangeGlobalConf::DisableModule(opts.module_name),
             );
             false
         } else if let Some(matches) = cli_args.subcommand_matches("enable") {
             let opts = EnableOpt::from_clap(matches);
             change_conf::change_global_conf(
-                &profile,
-                conf,
+                &profile_path,
+                &mut self.soft_meta_datas.conf,
                 ChangeGlobalConf::EnableModule(opts.module_name),
             );
             false
@@ -294,7 +315,12 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             self.user_command = Some(UserCommand::ListModules(ListModulesOpt::from_clap(matches)));
 
             // Start router thread
-            self.router_sender = Some(router::start_router(0, profile.clone(), conf, vec![]));
+            self.router_sender = Some(router::start_router(
+                0,
+                profile_path.clone(),
+                self.soft_meta_datas.conf.clone(),
+                vec![],
+            ));
             true
         } else if let Some(_matches) = cli_args.subcommand_matches("start") {
             // Store user command
@@ -306,8 +332,8 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             // Start router thread
             self.router_sender = Some(router::start_router(
                 self.run_duration_in_secs,
-                profile.clone(),
-                conf,
+                profile_path.clone(),
+                self.soft_meta_datas.conf.clone(),
                 external_followers,
             ));
             true
@@ -316,7 +342,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             match opts.source_type {
                 SyncSourceType::Network => unimplemented!(),
                 SyncSourceType::LocalDuniter => {
-                    sync_ts(profile.as_str(), &conf, opts);
+                    sync_ts(profile_path.clone(), &self.soft_meta_datas.conf, opts);
                 }
             }
 
@@ -325,37 +351,37 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             let opts = DbExOpt::from_clap(matches);
             match opts.subcommand {
                 DbExSubCommand::DistanceOpt(distance_opts) => dbex(
-                    profile.as_str(),
-                    &conf,
+                    profile_path.clone(),
+                    &self.soft_meta_datas.conf,
                     opts.csv,
                     &DBExQuery::WotQuery(DBExWotQuery::AllDistances(distance_opts.reverse)),
                 ),
                 DbExSubCommand::MemberOpt(member_opts) => dbex(
-                    profile.as_str(),
-                    &conf,
+                    profile_path.clone(),
+                    &self.soft_meta_datas.conf,
                     opts.csv,
                     &DBExQuery::WotQuery(DBExWotQuery::MemberDatas(member_opts.uid)),
                 ),
                 DbExSubCommand::MembersOpt(members_opts) => {
                     if members_opts.expire {
                         dbex(
-                            profile.as_str(),
-                            &conf,
+                            profile_path.clone(),
+                            &self.soft_meta_datas.conf,
                             opts.csv,
                             &DBExQuery::WotQuery(DBExWotQuery::ExpireMembers(members_opts.reverse)),
                         );
                     } else {
                         dbex(
-                            profile.as_str(),
-                            &conf,
+                            profile_path.clone(),
+                            &self.soft_meta_datas.conf,
                             opts.csv,
                             &DBExQuery::WotQuery(DBExWotQuery::ListMembers(members_opts.reverse)),
                         );
                     }
                 }
                 DbExSubCommand::BalanceOpt(balance_opts) => dbex(
-                    &profile,
-                    &conf,
+                    profile_path.clone(),
+                    &self.soft_meta_datas.conf,
                     opts.csv,
                     &DBExQuery::TxQuery(DBExTxQuery::Balance(balance_opts.address)),
                 ),
@@ -363,15 +389,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             false
         } else if let Some(matches) = cli_args.subcommand_matches("reset") {
             let opts = ResetOpt::from_clap(matches);
-            let mut profile_path = match dirs::config_dir() {
-                Some(path) => path,
-                None => panic!("Impossible to get user config directory !"),
-            };
-            profile_path.push(durs_conf::get_user_datas_folder());
-            profile_path.push(profile.clone());
-            if !profile_path.as_path().exists() {
-                panic!(format!("Error : {} profile don't exist !", profile));
-            }
+
             match opts.reset_type {
                 ResetType::Datas => {
                     let mut currency_datas_path = profile_path.clone();
@@ -399,18 +417,18 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             match opts.subcommand {
                 KeysSubCommand::Wizard(_wizardopt) => {
                     let new_keypairs = key_wizard(keypairs).unwrap();
-                    save_keypairs(profile.as_str(), new_keypairs);
+                    save_keypairs(&profiles_path, profile.as_str(), new_keypairs);
                 }
                 KeysSubCommand::Modify(modifyopt) => match modifyopt.subcommand {
                     ModifySubCommand::NetworkSaltPassword(networkopt) => {
                         let new_keypairs =
                             modify_network_keys(&networkopt.salt, &networkopt.password, keypairs);
-                        save_keypairs(profile.as_str(), new_keypairs);
+                        save_keypairs(&profiles_path, profile.as_str(), new_keypairs);
                     }
                     ModifySubCommand::MemberSaltPassword(memberopt) => {
                         let new_keypairs =
                             modify_member_keys(&memberopt.salt, &memberopt.password, keypairs);
-                        save_keypairs(profile.as_str(), new_keypairs);
+                        save_keypairs(&profiles_path, profile.as_str(), new_keypairs);
                     }
                 },
                 KeysSubCommand::Clear(clearopt) => {
@@ -419,7 +437,7 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                         clearopt.member || clearopt.all,
                         keypairs,
                     );
-                    save_keypairs(profile.as_str(), new_keypairs);
+                    save_keypairs(&profiles_path, profile.as_str(), new_keypairs);
                 }
                 KeysSubCommand::Show(_showopt) => {
                     show_keys(keypairs);
@@ -482,10 +500,16 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                 ))
                 .expect("Fatal error: fail to send blockchain registration to router thread !");
 
+            // Get profile path
+            let profile_path = durs_conf::get_profile_path(
+                &self.soft_meta_datas.profiles_path,
+                &self.soft_meta_datas.profile,
+            );
+
             // Instantiate blockchain module and load is conf
             let mut blockchain_module = BlockchainModule::load_blockchain_conf(
                 router_sender.clone(),
-                &self.soft_meta_datas.profile,
+                profile_path,
                 &self.soft_meta_datas.conf,
                 RequiredKeysContent::MemberKeyPair(None),
             );
@@ -663,8 +687,11 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
                             .modules()
                             .get(&M::name().to_string().as_str())
                             .cloned();
-                        let (conf, keypairs) =
-                            durs_conf::load_conf(self.soft_meta_datas.profile.as_str());
+                        let (conf, keypairs) = durs_conf::load_conf(
+                            self.soft_meta_datas.profile.as_str(),
+                            &self.soft_meta_datas.profiles_path,
+                            &self.soft_meta_datas.keypairs_file_path,
+                        );
                         let (module_conf, required_keys) = get_module_conf_and_keys::<M>(
                             &conf.get_global_conf(),
                             module_conf_json,
@@ -725,42 +752,44 @@ pub fn get_module_conf<M: DursModule<DuRsConf, DursMsg>>(
 }
 
 /// Match cli option --profile
+#[inline]
 pub fn match_profile(cli_args: &ArgMatches) -> String {
     String::from(cli_args.value_of("profile_name").unwrap_or("default"))
 }
 
+/// Match cli option --profiles--path
+#[inline]
+pub fn match_profiles_path(cli_args: &ArgMatches) -> Option<PathBuf> {
+    cli_args.value_of_os("profiles_path").map(PathBuf::from)
+}
+
+/// Match cli option --keypairs-file
+#[inline]
+pub fn match_keypairs_file(cli_args: &ArgMatches) -> Option<PathBuf> {
+    cli_args.value_of_os("keypairs_file").map(PathBuf::from)
+}
+
 /// Launch synchronisation from a duniter-ts database
-pub fn sync_ts<DC: DursConfTrait>(profile: &str, conf: &DC, sync_opts: SyncOpt) {
+pub fn sync_ts<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts: SyncOpt) {
     // Launch sync-ts
-    BlockchainModule::sync_ts(profile, conf, sync_opts);
+    BlockchainModule::sync_ts(profile_path, conf, sync_opts);
 }
 
 /// Launch databases explorer
-pub fn dbex<DC: DursConfTrait>(profile: &str, conf: &DC, csv: bool, query: &DBExQuery) {
+pub fn dbex<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, csv: bool, query: &DBExQuery) {
     // Launch databases explorer
-    BlockchainModule::dbex(profile, conf, csv, query);
+    BlockchainModule::dbex(profile_path, conf, csv, query);
 }
 
 /// Initialize logger
 /// Warning: This function cannot use the macro fatal_error! because the logger is not yet initialized, so it must use panic !
-pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches) {
-    // Get datas folder path
-    let mut log_file_path = match dirs::config_dir() {
-        Some(path) => path,
-        None => panic!("Fatal error : Impossible to get user config directory"),
-    };
-    if !log_file_path.as_path().exists() {
-        fs::create_dir(log_file_path.as_path()).expect("Impossible to create ~/.config dir !");
-    }
-    log_file_path.push(durs_conf::get_user_datas_folder());
-    if !log_file_path.as_path().exists() {
-        fs::create_dir(log_file_path.as_path()).expect("Impossible to create ~/.config/durs dir !");
-    }
-    log_file_path.push(profile);
-    // Create datas folder if not exist
-    if !log_file_path.as_path().exists() {
-        fs::create_dir(log_file_path.as_path()).expect("Impossible to create your profile dir !");
-    }
+pub fn init_logger(
+    profile_path: PathBuf,
+    soft_name: &'static str,
+    soft_version: &'static str,
+    cli_args: &ArgMatches,
+) {
+    let mut log_file_path = profile_path;
 
     // Get log_file_path
     log_file_path.push(format!("{}.log", soft_name));
@@ -820,5 +849,25 @@ pub fn init_logger(profile: &str, soft_name: &'static str, cli_args: &ArgMatches
             .expect("Fatal error : fail to init file logger !");
     }
 
+    info!("Launching {}", get_software_infos(soft_name, soft_version));
     info!("Successfully init logger");
+}
+
+#[inline]
+/// Get sofware informations
+pub fn get_software_infos(soft_name: &'static str, soft_version: &'static str) -> String {
+    if let Some(last_commit_hash) = get_last_commit_hash() {
+        format!(
+            "{} v{}-dev (commit {})",
+            soft_name, soft_version, last_commit_hash
+        )
+    } else {
+        format!("{} v{}", soft_name, soft_version)
+    }
+}
+
+#[inline]
+/// Get last commit hash
+pub fn get_last_commit_hash() -> Option<&'static str> {
+    option_env!("LAST_COMMIT_HASH")
 }

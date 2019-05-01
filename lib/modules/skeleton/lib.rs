@@ -155,7 +155,8 @@ impl DursModule<DuRsConf, DursMsg> for SkeletonModule {
             serde_json::value::to_value(new_skeleton_conf)
                 .expect("Fail to jsonifie SkeletonConf !"),
         );
-        let mut conf_path = durs_conf::get_profile_path(&soft_meta_datas.profile);
+        let mut conf_path =
+            durs_conf::get_profile_path(&soft_meta_datas.profiles_path, &soft_meta_datas.profile);
         conf_path.push(durs_conf::constants::CONF_FILENAME);
         durs_conf::write_conf_file(conf_path.as_path(), &conf)
             .expect("Fail to write new conf file ! ");

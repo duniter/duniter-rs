@@ -89,8 +89,12 @@ pub fn show_keys(key_pairs: DuniterKeyPairs) {
 }
 
 /// Save keys after a command run
-pub fn save_keypairs(profile: &str, key_pairs: DuniterKeyPairs) {
-    let conf_keys_path = keypairs_filepath(profile);
+pub fn save_keypairs(
+    profiles_path: &Option<PathBuf>,
+    profile_name: &str,
+    key_pairs: DuniterKeyPairs,
+) {
+    let conf_keys_path = keypairs_filepath(profiles_path, profile_name);
     write_keypairs_file(&conf_keys_path, &key_pairs).expect("could not write keypairs file");
 }
 

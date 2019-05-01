@@ -31,7 +31,7 @@ static CHUNKS_STEP: &'static usize = &16;
 /// Json reader worker
 pub fn json_reader_worker(
     pool: &ThreadPool,
-    profile: String,
+    profile_path: PathBuf,
     sender_sync_thread: mpsc::Sender<MessForSyncThread>,
     json_chunks_path: PathBuf,
     end: Option<u32>,
@@ -94,7 +94,7 @@ pub fn json_reader_worker(
 
         // Get current local blockstamp
         debug!("Get local current blockstamp...");
-        let db_path = durs_conf::get_blockchain_db_path(&profile, &last_block.currency);
+        let db_path = durs_conf::get_blockchain_db_path(profile_path, &last_block.currency);
         let blocks_databases = BlocksV10DBs::open(Some(&db_path));
         let current_blockstamp: Blockstamp =
             durs_blockchain_dal::readers::block::get_current_blockstamp(&blocks_databases)

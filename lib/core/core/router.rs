@@ -21,6 +21,7 @@ use durs_message::*;
 use durs_module::*;
 use durs_network_documents::network_endpoint::EndpointEnum;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::mpsc;
 use std::sync::mpsc::RecvTimeoutError;
 use std::thread;
@@ -207,8 +208,12 @@ fn start_broadcasting_thread(
 }
 
 /// Start conf thread
-fn start_conf_thread(profile: &str, mut conf: DuRsConf, receiver: &mpsc::Receiver<DursMsg>) {
-    let conf_path = durs_conf::get_conf_path(profile);
+fn start_conf_thread(
+    profile_path: PathBuf,
+    mut conf: DuRsConf,
+    receiver: &mpsc::Receiver<DursMsg>,
+) {
+    let conf_path = durs_conf::get_conf_path(&profile_path);
     loop {
         match receiver.recv() {
             Ok(msg) => {
@@ -286,7 +291,7 @@ fn store_msg_in_pool(
 /// Start router thread
 pub fn start_router(
     run_duration_in_secs: u64,
-    profile: String,
+    profile_path: PathBuf,
     conf: DuRsConf,
     external_followers: Vec<mpsc::Sender<DursMsg>>,
 ) -> mpsc::Sender<RouterThreadMessage<DursMsg>> {
@@ -322,7 +327,7 @@ pub fn start_router(
 
         // Create conf thread
         thread::spawn(move || {
-            start_conf_thread(&profile, conf, &conf_receiver);
+            start_conf_thread(profile_path.clone(), conf, &conf_receiver);
         });
 
         // Define variables

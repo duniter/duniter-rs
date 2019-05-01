@@ -51,16 +51,21 @@ pub enum DBExQuery {
     TxQuery(DBExTxQuery),
 }
 
-pub fn dbex<DC: DursConfTrait>(profile: &str, conf: &DC, csv: bool, query: &DBExQuery) {
+pub fn dbex<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, csv: bool, query: &DBExQuery) {
     match *query {
-        DBExQuery::WotQuery(ref wot_query) => dbex_wot(profile, conf, csv, wot_query),
-        DBExQuery::TxQuery(ref tx_query) => dbex_tx(profile, conf, csv, tx_query),
+        DBExQuery::WotQuery(ref wot_query) => dbex_wot(profile_path, conf, csv, wot_query),
+        DBExQuery::TxQuery(ref tx_query) => dbex_tx(profile_path, conf, csv, tx_query),
     }
 }
 
-pub fn dbex_tx<DC: DursConfTrait>(profile: &str, conf: &DC, _csv: bool, query: &DBExTxQuery) {
+pub fn dbex_tx<DC: DursConfTrait>(
+    profile_path: PathBuf,
+    conf: &DC,
+    _csv: bool,
+    query: &DBExTxQuery,
+) {
     // Get db path
-    let db_path = durs_conf::get_blockchain_db_path(profile, &conf.currency());
+    let db_path = durs_conf::get_blockchain_db_path(profile_path, &conf.currency());
 
     // Open databases
     let load_dbs_begin = SystemTime::now();
@@ -117,9 +122,14 @@ pub fn dbex_tx<DC: DursConfTrait>(profile: &str, conf: &DC, _csv: bool, query: &
     );
 }
 
-pub fn dbex_wot<DC: DursConfTrait>(profile: &str, conf: &DC, csv: bool, query: &DBExWotQuery) {
+pub fn dbex_wot<DC: DursConfTrait>(
+    profile_path: PathBuf,
+    conf: &DC,
+    csv: bool,
+    query: &DBExWotQuery,
+) {
     // Get db path
-    let db_path = durs_conf::get_blockchain_db_path(profile, &conf.currency());
+    let db_path = durs_conf::get_blockchain_db_path(profile_path, &conf.currency());
 
     // Open databases
     let load_dbs_begin = SystemTime::now();

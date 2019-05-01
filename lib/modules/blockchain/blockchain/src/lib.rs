@@ -88,8 +88,8 @@ pub static DISTANCE_CALCULATOR: &'static RustyDistanceCalculator = &RustyDistanc
 pub struct BlockchainModule {
     /// Router sender
     pub router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
-    /// Name of the user datas profile
-    pub profile: String,
+    ///Path to the user datas profile
+    pub profile_path: PathBuf,
     /// Currency
     pub currency: CurrencyName,
     /// Blocks Databases
@@ -185,12 +185,12 @@ impl BlockchainModule {
     /// Loading blockchain configuration
     pub fn load_blockchain_conf<DC: DursConfTrait>(
         router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
-        profile: &str,
+        profile_path: PathBuf,
         conf: &DC,
         _keys: RequiredKeysContent,
     ) -> BlockchainModule {
         // Get db path
-        let dbs_path = durs_conf::get_blockchain_db_path(profile, &conf.currency());
+        let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone(), &conf.currency());
 
         // Open databases
         let blocks_databases = BlocksV10DBs::open(Some(&dbs_path));
@@ -219,7 +219,7 @@ impl BlockchainModule {
         // Instanciate BlockchainModule
         BlockchainModule {
             router_sender,
-            profile: profile.to_string(),
+            profile_path,
             currency: conf.currency(),
             currency_params,
             current_blockstamp,
@@ -235,12 +235,12 @@ impl BlockchainModule {
         }
     }
     /// Databases explorer
-    pub fn dbex<DC: DursConfTrait>(profile: &str, conf: &DC, csv: bool, req: &DBExQuery) {
-        dbex::dbex(profile, conf, csv, req);
+    pub fn dbex<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, csv: bool, req: &DBExQuery) {
+        dbex::dbex(profile_path, conf, csv, req);
     }
     /// Synchronize blockchain from local duniter json files
-    pub fn sync_ts<DC: DursConfTrait>(profile: &str, conf: &DC, sync_opts: SyncOpt) {
-        sync::local_sync(profile, conf, sync_opts);
+    pub fn sync_ts<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts: SyncOpt) {
+        sync::local_sync(profile_path, conf, sync_opts);
     }
     /// Start blockchain module.
     pub fn start_blockchain(&mut self, blockchain_receiver: &mpsc::Receiver<DursMsg>) {
