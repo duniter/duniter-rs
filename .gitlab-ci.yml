@@ -219,7 +219,9 @@ package:test:docker-test-image:
     - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" $CI_REGISTRY
     - docker push "$CI_REGISTRY_IMAGE:test-image"
   except:
-    - tags
+    refs:
+      - dev
+      - tags
   when: manual
 
 package:test:docker:
