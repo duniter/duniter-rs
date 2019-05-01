@@ -3,8 +3,8 @@ stages:
     - tests
     - clippy
     - publish_crate
-    - publish_doc
     - package
+    - publish_doc
     - prerelease
     - release
 
@@ -168,20 +168,6 @@ publish:crate:
     - cargo publish
   only:
     - tags
-  allow_failure: true
-  when: manual
-
-pages:
-  <<: *rust_stable_lin64
-  stage: publish_doc
-  script:
-    - cargo doc
-    - mv target/doc public
-    - ls public
-  artifacts:
-    untracked: true
-    paths:
-      - public
   allow_failure: true
   when: manual
 
@@ -350,6 +336,20 @@ package:prod:win64:
     - python3 .gitlab/releaser
   only:
     - tags
+
+pages:
+  <<: *rust_stable_lin64
+  stage: publish_doc
+  script:
+    - cargo doc
+    - mv target/doc public
+    - ls public
+  artifacts:
+    untracked: true
+    paths:
+      - public
+  allow_failure: true
+  when: manual
 
 prerelease:
   <<: *release_jobs
