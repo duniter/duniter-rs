@@ -326,9 +326,6 @@ impl<'a, 'b: 'a> DuniterCore<'b, 'a, DuRsConf> {
             // Store user command
             self.user_command = Some(UserCommand::Start());
 
-            // Print panic! in logs
-            log_panics::init();
-
             // Start router thread
             self.router_sender = Some(router::start_router(
                 self.run_duration_in_secs,
