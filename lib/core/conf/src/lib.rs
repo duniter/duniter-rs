@@ -417,6 +417,7 @@ impl DuniterKeyPairs {
     }
 }
 
+// Warning: This function cannot use the macro fatal_error! because the logger is not yet initialized, so it must use panic !
 fn generate_random_keypair(algo: KeysAlgo) -> KeyPairEnum {
     let mut rng = rand::thread_rng();
     match algo {
@@ -462,6 +463,7 @@ pub fn get_conf_path(profile_path: &PathBuf) -> PathBuf {
 }
 
 /// Returns the path to the folder containing the user data of the running profile
+// Warning: This function cannot use the macro fatal_error! because the logger is not yet initialized, so it must use panic !
 pub fn get_profile_path(profiles_path: &Option<PathBuf>, profile_name: &str) -> PathBuf {
     // Define and create datas directory if not exist
     let profiles_path: PathBuf = if let Some(profiles_path) = profiles_path {
@@ -520,6 +522,7 @@ pub fn load_conf(
 }
 
 /// Load configuration. at specified path
+// Warning: This function cannot use the macro fatal_error! because the logger is not yet initialized, so it must use panic !
 pub fn load_conf_at_path(
     profile_path: PathBuf,
     keypairs_file_path: &Option<PathBuf>,
@@ -649,6 +652,7 @@ pub fn load_conf_at_path(
 }
 
 /// Save keypairs in profile folder
+// Warning: This function cannot use the macro fatal_error! because the logger is not yet initialized, so it must use panic !
 pub fn write_keypairs_file(
     file_path: &PathBuf,
     keypairs: &DuniterKeyPairs,
