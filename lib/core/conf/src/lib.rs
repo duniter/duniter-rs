@@ -441,12 +441,8 @@ pub fn get_user_datas_folder() -> &'static str {
 
 /// Returns the path to the folder containing the currency datas of the running profile
 #[inline]
-pub fn datas_path(
-    profiles_path: &Option<PathBuf>,
-    profile_name: &str,
-    currency: &CurrencyName,
-) -> PathBuf {
-    let mut datas_path = get_profile_path(profiles_path, profile_name);
+pub fn datas_path(profile_path: PathBuf, currency: &CurrencyName) -> PathBuf {
+    let mut datas_path = profile_path;
     datas_path.push(currency.to_string());
     if !datas_path.as_path().exists() {
         fs::create_dir(datas_path.as_path()).expect("Impossible to create currency dir !");
@@ -502,12 +498,9 @@ pub fn keypairs_filepath(profiles_path: &Option<PathBuf>, profile: &str) -> Path
 
 /// Load configuration.
 pub fn load_conf(
-    profile: &str,
-    profiles_path: &Option<PathBuf>,
+    mut profile_path: PathBuf,
     keypairs_file_path: &Option<PathBuf>,
 ) -> (DuRsConf, DuniterKeyPairs) {
-    let mut profile_path = get_profile_path(profiles_path, profile);
-
     // Load conf
     let (conf, keypairs) = load_conf_at_path(profile_path.clone(), keypairs_file_path);
 

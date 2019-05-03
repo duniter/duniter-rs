@@ -15,6 +15,7 @@
 
 //! Crate containing Duniter-rust core.
 
+use crate::errors::DursCoreError;
 use durs_conf::ChangeGlobalConf;
 use durs_module::DursConfTrait;
 use std::path::PathBuf;
@@ -24,7 +25,7 @@ pub fn change_global_conf<DC: DursConfTrait>(
     profile_path: &PathBuf,
     conf: &mut DC,
     user_request: ChangeGlobalConf,
-) {
+) -> Result<(), DursCoreError> {
     match user_request {
         ChangeGlobalConf::ChangeCurrency(_) => {}
         ChangeGlobalConf::DisableModule(module_id) => conf.disable(module_id),
@@ -34,7 +35,5 @@ pub fn change_global_conf<DC: DursConfTrait>(
 
     // Write new conf
     durs_conf::write_conf_file(&durs_conf::get_conf_path(profile_path), conf)
-        .expect("IOError : Fail to update conf  ");
-
-    println!("Configuration successfully updated.");
+        .map_err(DursCoreError::FailUpdateConf)
 }

@@ -90,12 +90,19 @@ pub fn show_keys(key_pairs: DuniterKeyPairs) {
 
 /// Save keys after a command run
 pub fn save_keypairs(
-    profiles_path: &Option<PathBuf>,
-    profile_name: &str,
+    profile_path: PathBuf,
+    keypairs_file_path: &Option<PathBuf>,
     key_pairs: DuniterKeyPairs,
-) {
-    let conf_keys_path = keypairs_filepath(profiles_path, profile_name);
-    write_keypairs_file(&conf_keys_path, &key_pairs).expect("could not write keypairs file");
+) -> Result<(), std::io::Error> {
+    let conf_keys_path: PathBuf = if let Some(keypairs_file_path) = keypairs_file_path {
+        keypairs_file_path.to_path_buf()
+    } else {
+        let mut conf_keys_path = profile_path;
+        conf_keys_path.push(crate::constants::KEYPAIRS_FILENAME);
+        conf_keys_path
+    };
+    write_keypairs_file(&conf_keys_path, &key_pairs)?;
+    Ok(())
 }
 
 fn question_prompt(question: &str, answers: Vec<String>) -> Result<String, WizardError> {

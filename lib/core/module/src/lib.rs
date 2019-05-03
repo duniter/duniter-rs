@@ -139,12 +139,8 @@ pub trait DursConfTrait:
 pub struct SoftwareMetaDatas<DC: DursConfTrait> {
     /// User configuration
     pub conf: DC,
-    /// Path where user profiles are persisted
-    pub profiles_path: Option<PathBuf>,
-    /// Keypairs file path
-    pub keypairs_file_path: Option<PathBuf>,
-    /// User profile
-    pub profile: String,
+    /// Path where the user profile datas are stored
+    pub profile_path: PathBuf,
     /// Software name
     pub soft_name: &'static str,
     /// Software version
@@ -353,6 +349,17 @@ impl From<serde_json::Error> for ModuleConfError {
 #[derive(Debug, Fail)]
 /// Error when plug a module
 pub enum PlugModuleError {
+    /// Fail to spawn thread for a module
+    #[fail(
+        display = "Fail to spawn main thread for module '{}': {}",
+        module_name, error
+    )]
+    FailSpawnModuleThread {
+        /// Module name
+        module_name: ModuleStaticName,
+        /// Error
+        error: std::io::Error,
+    },
     /// Error when generating the configuration of a module
     #[fail(display = "{}", _0)]
     ModuleConfError(ModuleConfError),

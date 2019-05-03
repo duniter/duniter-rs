@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Durs Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Main function for classic duniter-rust nodes (no specialization).
+//! Main function for classic Durs nodes (no specialization).
 
 #![deny(
     missing_docs,
@@ -27,39 +27,57 @@
     unused_qualifications
 )]
 
+pub mod cli;
 mod init;
-pub use duniter_core::cli::DursOpt;
-pub use duniter_core::*;
-#[cfg(unix)]
-pub use durs_tui::TuiModule;
-use init::init;
-//pub use durs_skeleton::SkeletonModule;
-pub use durs_ws2p_v1_legacy::WS2PModule;
-//pub use durs_ws2p::WS2Pv2Module;
+
+use crate::cli::DursCliOpt;
+use crate::init::init;
+use durs_core::durs_plug;
 use log::error;
 use structopt::StructOpt;
 
-/// Main function
+#[cfg(unix)]
+pub use durs_tui::TuiModule;
+//pub use durs_skeleton::SkeletonModule;
+pub use durs_ws2p_v1_legacy::{WS2PModule, WS2POpt};
+//pub use durs_ws2p::WS2Pv2Module;
+
+/// Durs command line edition, main function
 #[cfg(unix)]
 #[cfg(not(target_arch = "arm"))]
 fn main() {
     init();
-    durs_core_server!(
-        durs_inject_cli![WS2PModule /*, SkeletonModule ,DasaModule*/],
-        durs_plug!([WS2PModule], [TuiModule /*, SkeletonModule ,DasaModule*/])
-    )
+    if let Err(err) = DursCliOpt::from_args()
+        .into_durs_command()
+        .execute(durs_plug!(
+            [WS2PModule],
+            [TuiModule /*, SkeletonModule ,DasaModule*/]
+        ))
+    {
+        println!("{}", err);
+        error!("{}", err);
+    }
 }
 #[cfg(unix)]
 #[cfg(target_arch = "arm")]
 fn main() {
     init();
-    durs_core_server!(
-        durs_inject_cli![WS2PModule],
-        durs_plug!([WS2PModule], [TuiModule])
-    )
+    if let Err(err) = DursCliOpt::from_args()
+        .into_durs_command()
+        .execute(durs_plug!([WS2PModule], [TuiModule /*, SkeletonModule*/]))
+    {
+        println!("{}", err);
+        error!("{}", err);
+    }
 }
 #[cfg(windows)]
 fn main() {
     init();
-    durs_core_server!(durs_inject_cli![WS2PModule], durs_plug!([WS2PModule], []))
+    if let Err(err) = DursCliOpt::from_args()
+        .into_durs_command()
+        .execute(durs_plug!([WS2PModule], []))
+    {
+        println!("{}", err);
+        error!("{}", err);
+    }
 }

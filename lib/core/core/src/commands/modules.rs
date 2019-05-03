@@ -15,10 +15,14 @@
 
 //! Durs-core cli : modules manager subcommands.
 
+use crate::commands::DursExecutableCoreCommand;
+use crate::errors::DursCoreError;
+use crate::DursCore;
+use durs_conf::{ChangeGlobalConf, DuRsConf};
 use durs_module::*;
 use std::collections::HashSet;
 
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt, Debug, Clone)]
 #[structopt(
     name = "enable",
     raw(setting = "structopt::clap::AppSettings::ColoredHelp")
@@ -30,7 +34,18 @@ pub struct EnableOpt {
     pub module_name: ModuleName,
 }
 
-#[derive(StructOpt, Debug)]
+impl DursExecutableCoreCommand for EnableOpt {
+    #[inline]
+    fn execute(self, mut durs_core: DursCore<DuRsConf>) -> Result<(), DursCoreError> {
+        crate::change_conf::change_global_conf(
+            &durs_core.soft_meta_datas.profile_path.clone(),
+            &mut durs_core.soft_meta_datas.conf,
+            ChangeGlobalConf::EnableModule(self.module_name),
+        )
+    }
+}
+
+#[derive(StructOpt, Debug, Clone)]
 #[structopt(
     name = "disable",
     raw(setting = "structopt::clap::AppSettings::ColoredHelp")
@@ -40,6 +55,17 @@ pub struct DisableOpt {
     #[structopt(parse(from_str))]
     /// The module name to disable
     pub module_name: ModuleName,
+}
+
+impl DursExecutableCoreCommand for DisableOpt {
+    #[inline]
+    fn execute(self, mut durs_core: DursCore<DuRsConf>) -> Result<(), DursCoreError> {
+        crate::change_conf::change_global_conf(
+            &durs_core.soft_meta_datas.profile_path.clone(),
+            &mut durs_core.soft_meta_datas.conf,
+            ChangeGlobalConf::DisableModule(self.module_name),
+        )
+    }
 }
 
 #[derive(StructOpt, Debug, Copy, Clone)]

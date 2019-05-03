@@ -15,6 +15,13 @@
 
 //! Durs-core cli : dbex subcommands.
 
+use crate::commands::DursExecutableCoreCommand;
+use crate::dbex;
+use crate::errors::DursCoreError;
+use crate::DursCore;
+use durs_blockchain::{DBExQuery, DBExTxQuery, DBExWotQuery};
+use durs_conf::DuRsConf;
+
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(
     name = "dbex",
@@ -90,4 +97,50 @@ pub struct MemberOpt {
 pub struct BalanceOpt {
     /// public key or uid
     pub address: String,
+}
+
+impl DursExecutableCoreCommand for DbExOpt {
+    fn execute(self, durs_core: DursCore<DuRsConf>) -> Result<(), DursCoreError> {
+        let profile_path = durs_core.soft_meta_datas.profile_path;
+
+        match self.subcommand {
+            DbExSubCommand::DistanceOpt(distance_opts) => dbex(
+                profile_path,
+                &durs_core.soft_meta_datas.conf,
+                self.csv,
+                &DBExQuery::WotQuery(DBExWotQuery::AllDistances(distance_opts.reverse)),
+            ),
+            DbExSubCommand::MemberOpt(member_opts) => dbex(
+                profile_path,
+                &durs_core.soft_meta_datas.conf,
+                self.csv,
+                &DBExQuery::WotQuery(DBExWotQuery::MemberDatas(member_opts.uid)),
+            ),
+            DbExSubCommand::MembersOpt(members_opts) => {
+                if members_opts.expire {
+                    dbex(
+                        profile_path,
+                        &durs_core.soft_meta_datas.conf,
+                        self.csv,
+                        &DBExQuery::WotQuery(DBExWotQuery::ExpireMembers(members_opts.reverse)),
+                    );
+                } else {
+                    dbex(
+                        profile_path,
+                        &durs_core.soft_meta_datas.conf,
+                        self.csv,
+                        &DBExQuery::WotQuery(DBExWotQuery::ListMembers(members_opts.reverse)),
+                    );
+                }
+            }
+            DbExSubCommand::BalanceOpt(balance_opts) => dbex(
+                profile_path,
+                &durs_core.soft_meta_datas.conf,
+                self.csv,
+                &DBExQuery::TxQuery(DBExTxQuery::Balance(balance_opts.address)),
+            ),
+        }
+
+        Ok(())
+    }
 }

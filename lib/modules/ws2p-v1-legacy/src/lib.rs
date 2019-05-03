@@ -404,8 +404,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
 
         // Get endpoints file path
         let mut ep_file_path = durs_conf::datas_path(
-            &soft_meta_datas.profiles_path,
-            &soft_meta_datas.profile,
+            soft_meta_datas.profile_path.clone(),
             &soft_meta_datas.conf.currency(),
         );
         ep_file_path.push("ws2pv1");

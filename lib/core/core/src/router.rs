@@ -15,7 +15,7 @@
 
 //! Relay messages between durs modules.
 
-use durs_conf;
+use durs_common_tools::fatal_error;
 use durs_conf::DuRsConf;
 use durs_message::*;
 use durs_module::*;
@@ -78,8 +78,8 @@ fn start_broadcasting_thread(
                                 .unwrap_or(&Vec::with_capacity(0))
                             {
                                 module_sender.send(msg.clone()).unwrap_or_else(|_| {
-                                    panic!(
-                                        "Fatal error: fail to relay DursMsg to {:?} !",
+                                    fatal_error!(
+                                        "fail to relay DursMsg to {:?} !",
                                         module_static_name
                                     )
                                 });
@@ -98,8 +98,8 @@ fn start_broadcasting_thread(
                                 .unwrap_or(&Vec::with_capacity(0))
                             {
                                 module_sender.send(msg.clone()).unwrap_or_else(|_| {
-                                    panic!(
-                                        "Fatal error: fail to relay DursMsg to {:?} !",
+                                    fatal_error!(
+                                        "fail to relay DursMsg to {:?} !",
                                         module_static_name
                                     )
                                 });
@@ -114,11 +114,14 @@ fn start_broadcasting_thread(
                         for ep in &module_endpoints {
                             let ep_api = ep.api();
                             if !module_reserved_apis_name.contains(&ep_api.0) {
-                                panic!("Fatal error : Module {} try to declare endpoint with undeclared api name: {} !", module_static_name.0, ep_api.0);
+                                fatal_error!("Module {} try to declare endpoint with undeclared api name: {} !", module_static_name.0, ep_api.0);
                             }
                             for other_module_ep in &local_node_endpoints {
                                 if ep_api == other_module_ep.api() {
-                                    panic!("Fatal error : two modules try to declare endpoint of same api : {} !", ep_api.0);
+                                    fatal_error!(
+                                        "two modules try to declare endpoint of same api : {} !",
+                                        ep_api.0
+                                    );
                                 }
                             }
                         }
@@ -185,9 +188,7 @@ fn start_broadcasting_thread(
             }
             Err(e) => match e {
                 RecvTimeoutError::Timeout => continue,
-                RecvTimeoutError::Disconnected => {
-                    panic!("Fatal error : router thread disconnnected !")
-                }
+                RecvTimeoutError::Disconnected => fatal_error!("router thread disconnnected !"),
             },
         }
         if (expected_registrations_count.is_none()
@@ -198,7 +199,7 @@ fn start_broadcasting_thread(
                 .as_secs()
                 > *MAX_REGISTRATION_DELAY
         {
-            panic!(
+            fatal_error!(
                 "{} modules have registered, but expected {} !",
                 registrations_count,
                 expected_registrations_count.unwrap_or(0)
@@ -242,18 +243,15 @@ fn send_msg_to_several_receivers(
         for module_static_name in &receivers[1..] {
             if let Some(module_sender) = modules_senders.get(module_static_name) {
                 module_sender.send(msg.clone()).unwrap_or_else(|_| {
-                    panic!(
-                        "Fatal error: fail to relay DursMsg to {:?} !",
-                        module_static_name
-                    )
+                    fatal_error!("fail to relay DursMsg to {:?} !", module_static_name)
                 });
             }
         }
         // Send message by move to the last module to be receive
         if let Some(module_sender) = modules_senders.get(&receivers[0]) {
-            module_sender.send(msg).unwrap_or_else(|_| {
-                panic!("Fatal error: fail to relay DursMsg to {:?} !", receivers[0])
-            });
+            module_sender
+                .send(msg)
+                .unwrap_or_else(|_| fatal_error!("Fail to relay DursMsg to {:?} !", receivers[0]));
         }
     }
 }
@@ -361,8 +359,8 @@ pub fn start_router(
                             if let Some(msgs) = pool_msgs.remove(&module_static_name) {
                                 for msg in msgs {
                                     module_sender.send(msg).unwrap_or_else(|_| {
-                                        panic!(
-                                            "Fatal error: fail to relay DursMsg to {:?} !",
+                                        fatal_error!(
+                                            "Fail to relay DursMsg to {:?} !",
                                             module_static_name
                                         )
                                     });
@@ -430,8 +428,8 @@ pub fn start_router(
                                         modules_senders.get(&module_static_name)
                                     {
                                         module_sender.send(msg).unwrap_or_else(|_| {
-                                            panic!(
-                                                "Fatal error: fail to relay DursMsg to {:?} !",
+                                            fatal_error!(
+                                                "Fail to relay DursMsg to {:?} !",
                                                 module_static_name
                                             )
                                         });

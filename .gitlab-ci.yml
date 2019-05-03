@@ -127,7 +127,7 @@ tests:win64:stable:
     - cargo test --package durs-blockchain-dal --target=x86_64-pc-windows-gnu
     - cargo test --package durs-message --target=x86_64-pc-windows-gnu
     - cargo test --package durs-blockchain --target=x86_64-pc-windows-gnu
-    - cargo test --package duniter-core --target=x86_64-pc-windows-gnu
+    - cargo test --package durs-core --target=x86_64-pc-windows-gnu
     #- cargo test --package durs-skeleton-module --target=x86_64-pc-windows-gnu
     
 tests:linux64:beta:

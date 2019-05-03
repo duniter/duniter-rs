@@ -15,6 +15,12 @@
 
 //! Durs-core cli : keys subcommands.
 
+use crate::commands::DursExecutableCoreCommand;
+use crate::errors::DursCoreError;
+use crate::DursCore;
+use durs_conf::keys::*;
+use durs_conf::DuRsConf;
+
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(
     name = "keys",
@@ -125,3 +131,46 @@ pub struct WizardOpt {}
 #[derive(StructOpt, Debug, Copy, Clone)]
 /// ShowOpt
 pub struct ShowOpt {}
+
+impl DursExecutableCoreCommand for KeysOpt {
+    fn execute(self, durs_core: DursCore<DuRsConf>) -> Result<(), DursCoreError> {
+        let profile_path = durs_core.soft_meta_datas.profile_path;
+        let keypairs_file = durs_core.options.keypairs_file;
+        let keypairs = durs_core.keypairs;
+
+        match self.subcommand {
+            KeysSubCommand::Wizard(_) => {
+                let new_keypairs = key_wizard(keypairs).unwrap();
+                save_keypairs(profile_path, &keypairs_file, new_keypairs)
+                    .map_err(DursCoreError::FailWriteKeypairsFile)
+            }
+            KeysSubCommand::Modify(modify_opt) => match modify_opt.subcommand {
+                ModifySubCommand::NetworkSaltPassword(network_opt) => {
+                    let new_keypairs =
+                        modify_network_keys(&network_opt.salt, &network_opt.password, keypairs);
+                    save_keypairs(profile_path, &keypairs_file, new_keypairs)
+                        .map_err(DursCoreError::FailWriteKeypairsFile)
+                }
+                ModifySubCommand::MemberSaltPassword(member_opt) => {
+                    let new_keypairs =
+                        modify_member_keys(&member_opt.salt, &member_opt.password, keypairs);
+                    save_keypairs(profile_path, &keypairs_file, new_keypairs)
+                        .map_err(DursCoreError::FailWriteKeypairsFile)
+                }
+            },
+            KeysSubCommand::Clear(clear_opt) => {
+                let new_keypairs = clear_keys(
+                    clear_opt.network || clear_opt.all,
+                    clear_opt.member || clear_opt.all,
+                    keypairs,
+                );
+                save_keypairs(profile_path, &keypairs_file, new_keypairs)
+                    .map_err(DursCoreError::FailWriteKeypairsFile)
+            }
+            KeysSubCommand::Show(_) => {
+                show_keys(keypairs);
+                Ok(())
+            }
+        }
+    }
+}

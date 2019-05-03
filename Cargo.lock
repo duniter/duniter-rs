@@ -285,28 +285,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "duniter-core"
-version = "0.1.0-a0.1"
-dependencies = [
- "dirs 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "duniter-network 0.1.0-a0.1",
- "dup-crypto 0.6.0",
- "durs-blockchain 0.1.0-a0.1",
- "durs-conf 0.1.0-a0.1",
- "durs-message 0.1.0-a0.1",
- "durs-module 0.1.0-a0.1",
- "durs-network-documents 0.3.1",
- "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.38 (registry+https://github.com/rust-lang/crates.io-index)",
- "simplelog 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "structopt 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "threadpool 1.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "duniter-network"
 version = "0.1.0-a0.1"
 dependencies = [
@@ -347,7 +325,9 @@ dependencies = [
 name = "durs"
 version = "0.1.1-a1"
 dependencies = [
- "duniter-core 0.1.0-a0.1",
+ "duniter-network 0.1.0-a0.1",
+ "durs-core 0.1.0-a0.1",
+ "durs-module 0.1.0-a0.1",
  "durs-tui 0.1.0-a0.1",
  "durs-ws2p 0.1.0-a0.1",
  "durs-ws2p-v1-legacy 0.1.0-a0.1",
@@ -427,6 +407,29 @@ dependencies = [
  "serde 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.38 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "durs-core"
+version = "0.1.0-a0.1"
+dependencies = [
+ "dirs 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "duniter-network 0.1.0-a0.1",
+ "dup-crypto 0.6.0",
+ "durs-blockchain 0.1.0-a0.1",
+ "durs-common-tools 0.1.0",
+ "durs-conf 0.1.0-a0.1",
+ "durs-message 0.1.0-a0.1",
+ "durs-module 0.1.0-a0.1",
+ "durs-network-documents 0.3.1",
+ "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "simplelog 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "structopt 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "threadpool 1.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
