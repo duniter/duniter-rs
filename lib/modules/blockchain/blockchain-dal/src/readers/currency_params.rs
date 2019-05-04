@@ -28,7 +28,7 @@ pub fn get_currency_params(
                     genesis_block.block.parameters.expect("safe unwrap"),
                 )))
             } else {
-                panic!("The genesis block are None parameters !");
+                fatal_error!("The genesis block are None parameters !");
             }
         } else {
             None

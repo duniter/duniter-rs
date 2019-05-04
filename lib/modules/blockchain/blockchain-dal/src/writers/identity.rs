@@ -20,6 +20,7 @@ use dubp_documents::documents::identity::IdentityDocument;
 use dubp_documents::Document;
 use dubp_documents::{BlockNumber, Blockstamp};
 use dup_crypto::keys::PubKey;
+use durs_common_tools::fatal_error;
 use durs_wot::NodeId;
 
 /// Remove identity from databases
@@ -102,14 +103,14 @@ pub fn exclude_identity(
             DALIdentityState::ExpireMember(renewed_counts) => {
                 DALIdentityState::Member(renewed_counts)
             }
-            _ => panic!("Try to revert exclusion for a no excluded identity !"),
+            _ => fatal_error!("Try to revert exclusion for a no excluded identity !"),
         }
     } else {
         match idty_datas.state {
             DALIdentityState::Member(renewed_counts) => {
                 DALIdentityState::ExpireMember(renewed_counts)
             }
-            _ => panic!("Try to exclude for an already excluded/revoked identity !"),
+            _ => fatal_error!("Try to exclude for an already excluded/revoked identity !"),
         }
     };
     idty_datas.expired_on = if revert {
@@ -145,7 +146,7 @@ pub fn revoke_identity(
             | DALIdentityState::ImplicitRevoked(renewed_counts) => {
                 DALIdentityState::ExpireMember(renewed_counts)
             }
-            _ => panic!("Try to revert revoke_identity() for a no revoked idty !"),
+            _ => fatal_error!("Try to revert revoke_identity() for a no revoked idty !"),
         }
     } else {
         match member_datas.state {
@@ -159,7 +160,7 @@ pub fn revoke_identity(
                     DALIdentityState::ImplicitRevoked(renewed_counts)
                 }
             }
-            _ => panic!("Try to revert revoke an already revoked idty !"),
+            _ => fatal_error!("Try to revert revoke an already revoked idty !"),
         }
     };
     member_datas.revoked_on = if revert {
@@ -201,7 +202,7 @@ pub fn renewal_identity(
                     DALIdentityState::ExpireMember(new_renewed_counts)
                 }
             }
-            _ => panic!("Try to revert renewal_identity() for an excluded or revoked idty !"),
+            _ => fatal_error!("Try to revert renewal_identity() for an excluded or revoked idty !"),
         }
     } else {
         match idty_datas.state {
@@ -215,7 +216,7 @@ pub fn renewal_identity(
                 new_renewed_counts.push(0);
                 DALIdentityState::Member(new_renewed_counts)
             }
-            _ => panic!("Try to renewed a revoked identity !"),
+            _ => fatal_error!("Try to renewed a revoked identity !"),
         }
     };
     // Calculate new ms_chainable_on value

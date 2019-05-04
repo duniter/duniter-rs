@@ -17,6 +17,7 @@ use dubp_documents::documents::transaction::*;
 use dubp_documents::BlockNumber;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::PubKey;
+use durs_common_tools::fatal_error;
 use std::cmp::Ordering;
 use std::ops::{Add, Sub};
 
@@ -46,7 +47,7 @@ impl Add for SourceAmount {
         if self.1 == s2.1 {
             SourceAmount(self.0 + s2.0, self.1)
         } else {
-            panic!("Source change base not yet supported !")
+            fatal_error!("Source change base not yet supported !")
         }
     }
 }
@@ -57,7 +58,7 @@ impl Sub for SourceAmount {
         if self.1 == s2.1 {
             SourceAmount(self.0 - s2.0, self.1)
         } else {
-            panic!("Source change base not yet supported !")
+            fatal_error!("Source change base not yet supported !")
         }
     }
 }
@@ -98,14 +99,14 @@ impl UTXO {
     pub fn get_conditions(&self) -> UTXOConditionsGroup {
         match *self {
             UTXO::V10(ref utxo_v10) => utxo_v10.get_conditions(),
-            _ => panic!("UTXO version not supported !"),
+            _ => fatal_error!("UTXO version not supported !"),
         }
     }
     /// UTXO amount
     pub fn get_amount(&self) -> SourceAmount {
         match *self {
             UTXO::V10(ref utxo_v10) => utxo_v10.get_amount(),
-            _ => panic!("UTXO version not supported !"),
+            _ => fatal_error!("UTXO version not supported !"),
         }
     }
 }

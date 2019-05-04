@@ -57,6 +57,7 @@ use dubp_documents::CurrencyName;
 use dubp_documents::{BlockHash, BlockNumber, Blockstamp, PreviousBlockstamp};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
+use durs_common_tools::fatal_error;
 use durs_wot::data::{rusty::RustyWebOfTrust, NodeId};
 use fnv::FnvHashMap;
 use rustbreak::backend::{FileBackend, MemoryBackend};
@@ -289,7 +290,7 @@ impl CurrencyV10DBs {
         CurrencyV10DBs {
             du_db: open_db::<UDsV10Datas>(db_path, "du.db").expect("Fail to open UDsV10DB"),
             tx_db: open_db::<TxV10Datas>(db_path, "tx.db")
-                .unwrap_or_else(|_| panic!("Fail to open TxV10DB")),
+                .unwrap_or_else(|_| fatal_error!("Fail to open TxV10DB")),
             utxos_db: open_db::<UTXOsV10Datas>(db_path, "sources.db")
                 .expect("Fail to open UTXOsV10DB"),
             balances_db: open_db::<BalancesV10Datas>(db_path, "balances.db")

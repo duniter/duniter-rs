@@ -15,6 +15,7 @@
 
 use crate::entities::block::DALBlock;
 use dup_crypto::keys::PubKey;
+use durs_common_tools::fatal_error;
 use durs_wot::operations::centrality::{CentralitiesCalculator, UlrikBrandesCentralityCalculator};
 use durs_wot::operations::distance::{
     DistanceCalculator, RustyDistanceCalculator, WotDistance, WotDistanceParameters,
@@ -68,12 +69,12 @@ pub fn get_sentry_requirement(members_count: usize, step_max: u32) -> u32 {
             } else if members_count < 1_889_569 {
                 18
             } else {
-                panic!(
+                fatal_error!(
                     "get_sentry_requirement not define for members_count greater than 1_889_569 !"
                 );
             }
         }
-        _ => panic!("get_sentry_requirement not define for step_max != 5 !"),
+        _ => fatal_error!("get_sentry_requirement not define for step_max != 5 !"),
     }
 }
 
@@ -85,7 +86,7 @@ pub fn calculate_average_density<T: WebOfTrust>(wot: &T) -> usize {
     for member in &enabled_members {
         count_actives_links += wot
             .issued_count(*member)
-            .unwrap_or_else(|| panic!("Fail to get issued_count of wot_id {}", (*member).0));
+            .unwrap_or_else(|| fatal_error!("Fail to get issued_count of wot_id {}", (*member).0));
     }
     ((count_actives_links as f32 / enabled_members_count as f32) * 1_000.0) as usize
 }

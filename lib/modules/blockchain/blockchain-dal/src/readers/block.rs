@@ -132,7 +132,7 @@ pub fn get_current_frame(
         for block_number in frame_begin..current_block.block.number.0 {
             let issuer = db
                 .get(&BlockNumber(block_number))
-                .unwrap_or_else(|| panic!("Fail to get block #{} !", block_number))
+                .unwrap_or_else(|| fatal_error!("Fail to get block #{} !", block_number))
                 .block
                 .issuers()[0];
             let issuer_count_blocks = if let Some(issuer_count_blocks) = current_frame.get(&issuer)

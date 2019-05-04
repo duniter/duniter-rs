@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use dubp_documents::documents::transaction::*;
+use durs_common_tools::fatal_error;
 
 use crate::entities::sources::{SourceAmount, SourceIndexV10, UTXOIndexV10, UTXOV10};
 use crate::*;
@@ -75,12 +76,12 @@ pub fn revert_tx(dbs: &CurrencyV10DBs, dal_tx: &DALTxV10) -> Result<(), DALError
                 new_sources_index.remove(&source.0);
                 (*balance, new_sources_index)
             } else {
-                panic!("Fail to revert tx : an output conditions don't exist in BalancesDB.")
+                fatal_error!("Fail to revert tx : an output conditions don't exist in BalancesDB.")
             };
             let new_balance = if balance >= source_amount {
                 balance - source_amount
             } else {
-                panic!("Fail to revert tx : an output revert cause negative balance.")
+                fatal_error!("Fail to revert tx : an output revert cause negative balance.")
             };
             new_balances_consumed_adress.insert(conditions, (new_balance, new_sources_index));
         }
@@ -270,7 +271,7 @@ pub fn apply_and_write_tx(
                     // Get utxo
                     let utxo = db.get(&utxo_index).unwrap_or_else(|| {
                         debug!("apply_tx=\"{:#?}\"", tx_doc);
-                        panic!(
+                        fatal_error!(
                             "ApplyBLockError : unknow UTXO in inputs : {:?} !",
                             utxo_index
                         )
@@ -312,7 +313,7 @@ pub fn apply_and_write_tx(
                 new_balances_consumed_adress
                     .push((conditions.clone(), (new_balance, new_sources_index)));
             } else {
-                panic!("Apply Tx : try to consume a source, but the owner address is not found in balances db : {:?}", conditions)
+                fatal_error!("Apply Tx : try to consume a source, but the owner address is not found in balances db : {:?}", conditions)
             }
         }
         new_balances_consumed_adress
