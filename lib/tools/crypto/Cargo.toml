@@ -21,7 +21,7 @@ rand = "0.5.*"
 rust-crypto-wasm = "0.3.1"
 serde = "1.0.*"
 serde_derive = "1.0.*"
-
-
+durs-common-tools = { path = "../common-tools" }
+log = "0.4.*"
 
 [features]

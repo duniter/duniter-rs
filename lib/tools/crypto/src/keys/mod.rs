@@ -49,6 +49,7 @@
 use crate::bases::BaseConvertionError;
 use base58::ToBase58;
 use bincode;
+use durs_common_tools::fatal_error;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Error;
@@ -153,7 +154,7 @@ impl Sig {
     pub fn size_in_bytes(&self) -> usize {
         match *self {
             Sig::Ed25519(_) => *ed25519::SIG_SIZE_IN_BYTES + 2,
-            Sig::Schnorr() => panic!("Schnorr algo not yet supported !"),
+            Sig::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
 }
@@ -180,13 +181,13 @@ impl Signature for Sig {
     fn to_bytes_vector(&self) -> Vec<u8> {
         match *self {
             Sig::Ed25519(ed25519_sig) => ed25519_sig.to_bytes_vector(),
-            Sig::Schnorr() => panic!("Schnorr algo not yet supported !"),
+            Sig::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
     fn to_base64(&self) -> String {
         match *self {
             Sig::Ed25519(ed25519_sig) => ed25519_sig.to_base64(),
-            Sig::Schnorr() => panic!("Schnorr algo not yet supported !"),
+            Sig::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
 }
@@ -234,7 +235,7 @@ impl PubKey {
     pub fn size_in_bytes(&self) -> usize {
         match *self {
             PubKey::Ed25519(_) => ed25519::PUBKEY_SIZE_IN_BYTES + 3,
-            PubKey::Schnorr() => panic!("Schnorr algo not yet supported !"),
+            PubKey::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
 }
@@ -258,7 +259,7 @@ impl ToBase58 for PubKey {
     fn to_base58(&self) -> String {
         match *self {
             PubKey::Ed25519(ed25519_pub) => ed25519_pub.to_base58(),
-            PubKey::Schnorr() => panic!("Schnorr algo not yet supported !"),
+            PubKey::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
 }
@@ -278,7 +279,7 @@ impl PublicKey for PubKey {
     fn to_bytes_vector(&self) -> Vec<u8> {
         match *self {
             PubKey::Ed25519(ed25519_pubkey) => ed25519_pubkey.to_bytes_vector(),
-            PubKey::Schnorr() => panic!("Schnorr algo not yet supported !"),
+            PubKey::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool {
@@ -287,10 +288,10 @@ impl PublicKey for PubKey {
                 if let Sig::Ed25519(ed25519_sig) = signature {
                     ed25519_pubkey.verify(message, ed25519_sig)
                 } else {
-                    panic!("Try to verify a signature with public key of a different algorithm !\nSignature={:?}\nPublickey={:?}", signature, self)
+                    fatal_error!("Try to verify a signature with public key of a different algorithm !\nSignature={:?}\nPublickey={:?}", signature, self)
                 }
             }
-            PubKey::Schnorr() => panic!("Schnorr algo not yet supported !"),
+            PubKey::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
 }
@@ -343,7 +344,7 @@ impl ToBase58 for PrivKey {
     fn to_base58(&self) -> String {
         match *self {
             PrivKey::Ed25519(ed25519_privkey) => ed25519_privkey.to_base58(),
-            PrivKey::Schnorr() => panic!("Schnorr algo not yet supported !"),
+            PrivKey::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
 }
@@ -362,7 +363,7 @@ impl PrivateKey for PrivKey {
     fn sign(&self, message: &[u8]) -> Self::Signature {
         match *self {
             PrivKey::Ed25519(ed25519_privkey) => Sig::Ed25519(ed25519_privkey.sign(message)),
-            PrivKey::Schnorr() => panic!("Schnorr algo not yet supported !"),
+            PrivKey::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
 }
@@ -413,7 +414,7 @@ impl Display for KeyPairEnum {
             KeyPairEnum::Ed25519(ed25519_keypair) => {
                 write!(f, "({}, hidden)", ed25519_keypair.pubkey.to_base58())
             }
-            KeyPairEnum::Schnorr() => panic!("Schnorr algo not yet supported !"),
+            KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
 }
@@ -426,7 +427,7 @@ impl KeyPair for KeyPairEnum {
     fn public_key(&self) -> Self::PublicKey {
         match *self {
             KeyPairEnum::Ed25519(ed25519_keypair) => PubKey::Ed25519(ed25519_keypair.public_key()),
-            KeyPairEnum::Schnorr() => panic!("Schnorr algo not yet supported !"),
+            KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
     fn private_key(&self) -> Self::PrivateKey {
@@ -434,7 +435,7 @@ impl KeyPair for KeyPairEnum {
             KeyPairEnum::Ed25519(ed25519_keypair) => {
                 PrivKey::Ed25519(ed25519_keypair.private_key())
             }
-            KeyPairEnum::Schnorr() => panic!("Schnorr algo not yet supported !"),
+            KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
     fn verify(&self, message: &[u8], signature: &Sig) -> bool {
@@ -443,16 +444,16 @@ impl KeyPair for KeyPairEnum {
                 if let Sig::Ed25519(ed25519_sig) = signature {
                     ed25519_keypair.verify(message, ed25519_sig)
                 } else {
-                    panic!("Try to verify a signature with key pair of a different algorithm !\nSignature={:?}\nKeyPair={:?}", signature, self)
+                    fatal_error!("Try to verify a signature with key pair of a different algorithm !\nSignature={:?}\nKeyPair={:?}", signature, self)
                 }
             }
-            KeyPairEnum::Schnorr() => panic!("Schnorr algo not yet supported !"),
+            KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
     fn sign(&self, message: &[u8]) -> Sig {
         match *self {
             KeyPairEnum::Ed25519(ed25519_keypair) => Sig::Ed25519(ed25519_keypair.sign(message)),
-            KeyPairEnum::Schnorr() => panic!("Schnorr algo not yet supported !"),
+            KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
 }
