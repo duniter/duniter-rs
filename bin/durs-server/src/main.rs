@@ -42,42 +42,36 @@ pub use durs_tui::TuiModule;
 pub use durs_ws2p_v1_legacy::{WS2PModule, WS2POpt};
 //pub use durs_ws2p::WS2Pv2Module;
 
+/// Durs cli main macro
+macro_rules! durs_cli_main {
+    ( $closure_plug:expr ) => {{
+        init();
+        if let Err(err) = DursCliOpt::from_args().into_durs_command().execute(
+            env!("CARGO_PKG_NAME"),
+            env!("CARGO_PKG_VERSION"),
+            $closure_plug,
+        ) {
+            println!("{}", err);
+            error!("{}", err);
+        }
+    }};
+}
+
 /// Durs command line edition, main function
 #[cfg(unix)]
 #[cfg(not(target_arch = "arm"))]
 fn main() {
-    init();
-    if let Err(err) = DursCliOpt::from_args()
-        .into_durs_command()
-        .execute(durs_plug!(
-            [WS2PModule],
-            [TuiModule /*, SkeletonModule ,DasaModule*/]
-        ))
-    {
-        println!("{}", err);
-        error!("{}", err);
-    }
+    durs_cli_main!(durs_plug!(
+        [WS2PModule],
+        [TuiModule /*, SkeletonModule ,DasaModule*/]
+    ))
 }
 #[cfg(unix)]
 #[cfg(target_arch = "arm")]
 fn main() {
-    init();
-    if let Err(err) = DursCliOpt::from_args()
-        .into_durs_command()
-        .execute(durs_plug!([WS2PModule], [TuiModule /*, SkeletonModule*/]))
-    {
-        println!("{}", err);
-        error!("{}", err);
-    }
+    durs_cli_main!(durs_plug!([WS2PModule], [TuiModule /*, SkeletonModule*/]))
 }
 #[cfg(windows)]
 fn main() {
-    init();
-    if let Err(err) = DursCliOpt::from_args()
-        .into_durs_command()
-        .execute(durs_plug!([WS2PModule], []))
-    {
-        println!("{}", err);
-        error!("{}", err);
-    }
+    durs_cli_main!(durs_plug!([WS2PModule], []))
 }

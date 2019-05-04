@@ -22,7 +22,7 @@ pub mod reset;
 pub mod start;
 
 use crate::errors::DursCoreError;
-use crate::{durs_exec_core_cmd, DursCore};
+use crate::DursCore;
 pub use dbex::*;
 pub use duniter_network::cli::sync::SyncOpt;
 use durs_conf::DuRsConf;
@@ -77,14 +77,24 @@ pub enum DursCommandEnum<T: ExecutableModuleCommand> {
 
 impl<T: ExecutableModuleCommand> DursCommand<T> {
     /// Execute Durs command
-    pub fn execute<PlugFunc>(self, plug_modules: PlugFunc) -> Result<(), DursCoreError>
+    pub fn execute<PlugFunc>(
+        self,
+        soft_name: &'static str,
+        soft_version: &'static str,
+        plug_modules: PlugFunc,
+    ) -> Result<(), DursCoreError>
     where
         PlugFunc: FnMut(&mut DursCore<DuRsConf>) -> Result<(), DursCoreError>,
     {
         match self.command {
-            DursCommandEnum::Core(core_cmd) => {
-                durs_exec_core_cmd!(core_cmd, self.options, plug_modules,)
-            }
+            DursCommandEnum::Core(core_cmd) => DursCore::execute_core_command(
+                core_cmd,
+                self.options,
+                vec![],
+                plug_modules,
+                soft_name,
+                soft_version,
+            ),
             DursCommandEnum::Other(cmd) => cmd.execute_module_command(self.options),
         }
     }

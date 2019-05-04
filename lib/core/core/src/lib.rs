@@ -57,21 +57,6 @@ use std::sync::mpsc;
 use std::thread;
 
 #[macro_export]
-/// Durs execute core command
-macro_rules! durs_exec_core_cmd {
-    ( $core_command:expr, $options:expr, $closure_plug:expr, ) => {{
-        DursCore::execute_core_command(
-            $core_command,
-            $options,
-            vec![],
-            $closure_plug,
-            env!("CARGO_PKG_NAME"),
-            env!("CARGO_PKG_VERSION"),
-        )
-    }};
-}
-
-#[macro_export]
 /// Plug modules in durs core
 macro_rules! durs_plug {
     ( [ $( $NetworkModule:ty ),* ], [ $( $Module:ty ),* ] ) => {
