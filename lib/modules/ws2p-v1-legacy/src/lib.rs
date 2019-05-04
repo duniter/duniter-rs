@@ -489,7 +489,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                             break;
                         };
                     }
-                    Err(e) => panic!(format!("{}", e)),
+                    Err(e) => fatal_error!(format!("{}", e)),
                 }
             }
         });
@@ -817,7 +817,7 @@ impl WS2PModule {
                 },
                 Err(e) => match e {
                     mpsc::RecvTimeoutError::Disconnected => {
-                        panic!("Disconnected ws2p module !");
+                        fatal_error!("Disconnected ws2p module !");
                     }
                     mpsc::RecvTimeoutError::Timeout => {}
                 },
@@ -1096,7 +1096,7 @@ mod tests {
             }
             assert_eq!(head.verify(), true);
         } else {
-            panic!("Fail to parse head !")
+            fatal_error!("Fail to parse head !")
         }
         assert_eq!(heads_count, 1);
     }

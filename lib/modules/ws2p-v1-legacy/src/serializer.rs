@@ -1,3 +1,4 @@
+use durs_common_tools::fatal_error;
 use durs_network_documents::network_head::*;
 
 use std::ops::Deref;
@@ -14,6 +15,6 @@ pub fn serialize_head(head: NetworkHead) -> serde_json::Value {
                 "step": head_v2.step + 1
             })
         }
-        _ => panic!("HEAD version not supported !"),
+        _ => fatal_error!("HEAD version not supported !"),
     }
 }

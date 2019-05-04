@@ -17,6 +17,7 @@
 
 use crate::WS2PModule;
 use duniter_network::requests::OldNetworkRequest;
+use durs_common_tools::fatal_error;
 use durs_network_documents::NodeFullId;
 use std::time::SystemTime;
 use ws::Message;
@@ -57,13 +58,13 @@ pub fn network_request_to_json(request: &OldNetworkRequest) -> serde_json::Value
             json!({ "minCert": min_cert }),
         ),
         OldNetworkRequest::GetConsensus(_) => {
-            panic!("GetConsensus() request must be not convert to json !");
+            fatal_error!("GetConsensus() request must be not convert to json !");
         }
         OldNetworkRequest::GetHeadsCache(_) => {
-            panic!("GetHeadsCache() request must be not convert to json !");
+            fatal_error!("GetHeadsCache() request must be not convert to json !");
         }
         OldNetworkRequest::GetEndpoints(_) => {
-            panic!("GetEndpoints() request must be not convert to json !");
+            fatal_error!("GetEndpoints() request must be not convert to json !");
         }
     };
 
