@@ -32,6 +32,8 @@ extern crate pretty_assertions;*/
 
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate log;
 
 /// WS2Pv2 Messages
 pub mod v2;
@@ -40,6 +42,7 @@ use crate::v2::WS2Pv2Message;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::bin_signable::BinSignable;
 use dup_crypto::keys::*;
+use durs_common_tools::fatal_error;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 /// WS2Pv2Message
@@ -84,7 +87,7 @@ impl WS2PMessage {
         let sig_len = if let Some(sig) = msg.signature() {
             match sig {
                 Sig::Ed25519(_) => 69,
-                Sig::Schnorr() => panic!("Schnorr algo not yet implemented !"),
+                Sig::Schnorr() => fatal_error!("Schnorr algo not yet implemented !"),
             }
         } else {
             1
