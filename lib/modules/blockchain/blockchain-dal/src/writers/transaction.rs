@@ -426,6 +426,7 @@ mod tests {
     use super::*;
     use dubp_documents::{Document, DocumentBuilder, VerificationResult};
     use std::str::FromStr;
+    use unwrap::unwrap;
 
     fn build_first_tx_of_g1() -> TransactionDocument {
         let pubkey = PubKey::Ed25519(
@@ -516,7 +517,10 @@ mod tests {
             SourceAmount(TxAmount(1000), TxBase(0))
         );
         // Apply first g1 transaction
-        apply_and_write_tx(&currency_dbs, &tx_doc).expect("Fail to apply first g1 tx");
+        let blockstamp = unwrap!(Blockstamp::from_string(
+            "52-000057D4B29AF6DADB16F841F19C54C00EB244CECA9C8F2D4839D54E5F91451C"
+        ));
+        apply_and_write_tx(&blockstamp, &currency_dbs, &tx_doc).expect("Fail to apply first g1 tx");
         // Check issuer new balance
         let cgeek_new_balance = currency_dbs
             .balances_db
@@ -547,7 +551,11 @@ mod tests {
         );
 
         // Revert first g1 tx
+        let blockstamp = unwrap!(Blockstamp::from_string(
+            "52-000057D4B29AF6DADB16F841F19C54C00EB244CECA9C8F2D4839D54E5F91451C"
+        ));
         revert_tx(
+            &blockstamp,
             &currency_dbs,
             &DALTxV10 {
                 tx_doc: tx_doc.clone(),
