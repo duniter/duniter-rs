@@ -35,6 +35,7 @@ extern crate serde_derive;
 extern crate structopt;
 
 use duniter_network::events::NetworkEvent;
+use durs_common_tools::fatal_error;
 use durs_conf::DuRsConf;
 use durs_message::events::*;
 use durs_message::*;
@@ -320,7 +321,7 @@ impl DursModule<DuRsConf, DursMsg> for SkeletonModule {
                 },
                 Err(e) => match e {
                     mpsc::RecvTimeoutError::Disconnected => {
-                        panic!("Disconnected skeleton module !");
+                        fatal_error!("Disconnected skeleton module !");
                     }
                     mpsc::RecvTimeoutError::Timeout => {
                         // If you arrive here it's because your main thread did not receive anything at the end of the timeout.
