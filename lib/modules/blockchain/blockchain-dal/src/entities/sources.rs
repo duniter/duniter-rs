@@ -44,22 +44,36 @@ impl Ord for SourceAmount {
 impl Add for SourceAmount {
     type Output = SourceAmount;
     fn add(self, s2: SourceAmount) -> Self::Output {
-        if self.1 == s2.1 {
-            SourceAmount(self.0 + s2.0, self.1)
+        let (mut s_min, s_max) = if self.1 > s2.1 {
+            (s2, self)
         } else {
-            fatal_error!("Source change base not yet supported !")
+            (self, s2)
+        };
+
+        while s_min.1 < s_max.1 {
+            (s_min.0).0 /= 10;
+            (s_min.1).0 += 1;
         }
+
+        SourceAmount(s_min.0 + s_max.0, s_max.1)
     }
 }
 
 impl Sub for SourceAmount {
     type Output = SourceAmount;
     fn sub(self, s2: SourceAmount) -> Self::Output {
-        if self.1 == s2.1 {
-            SourceAmount(self.0 - s2.0, self.1)
+        let (mut s_min, s_max) = if self.1 > s2.1 {
+            (s2, self)
         } else {
-            fatal_error!("Source change base not yet supported !")
+            (self, s2)
+        };
+
+        while s_min.1 < s_max.1 {
+            (s_min.0).0 /= 10;
+            (s_min.1).0 += 1;
         }
+
+        SourceAmount(s_min.0 - s_max.0, s_max.1)
     }
 }
 
