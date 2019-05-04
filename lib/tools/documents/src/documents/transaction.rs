@@ -22,6 +22,7 @@ use pest::iterators::Pairs;
 use pest::Parser;
 use std::ops::{Add, Deref, Sub};
 use std::str::FromStr;
+use unwrap::unwrap;
 
 use crate::blockstamp::Blockstamp;
 use crate::documents::*;
@@ -116,7 +117,7 @@ impl FromStr for TransactionInput {
                 pairs.next().unwrap().into_inner(),
             )),
             Err(_) => Err(TextDocumentParseError::InvalidInnerFormat(
-                "Invalid unlocks !",
+                "Invalid unlocks !".to_owned(),
             )),
         }
     }
@@ -239,7 +240,7 @@ impl FromStr for TransactionInputUnlocks {
                 pairs.next().unwrap().into_inner(),
             )),
             Err(_) => Err(TextDocumentParseError::InvalidInnerFormat(
-                "Invalid unlocks !",
+                "Invalid unlocks !".to_owned(),
             )),
         }
     }
@@ -466,13 +467,42 @@ impl FromStr for TransactionOutput {
     type Err = TextDocumentParseError;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
-        match DocumentsParser::parse(Rule::tx_output, source) {
-            Ok(mut utxo_pairs) => Ok(TransactionOutput::from_pest_pair(
-                utxo_pairs.next().unwrap().into_inner(),
-            )),
-            Err(_) => Err(TextDocumentParseError::InvalidInnerFormat(
-                "Invalid output !",
-            )),
+        let output_parts: Vec<&str> = source.split(':').collect();
+        let amount = output_parts.get(0);
+        let base = output_parts.get(1);
+        let conditions_origin_str = output_parts.get(2);
+
+        let str_to_parse = if amount.is_some() && base.is_some() && conditions_origin_str.is_some()
+        {
+            format!(
+                "{}:{}:({})",
+                unwrap!(amount),
+                unwrap!(base),
+                unwrap!(conditions_origin_str)
+            )
+        } else {
+            source.to_owned()
+        };
+
+        match DocumentsParser::parse(Rule::tx_output, &str_to_parse) {
+            Ok(mut utxo_pairs) => {
+                let mut output =
+                    TransactionOutput::from_pest_pair(utxo_pairs.next().unwrap().into_inner());
+                output.conditions.origin_str = conditions_origin_str.map(ToString::to_string);
+                Ok(output)
+            }
+            Err(_) => match DocumentsParser::parse(Rule::tx_output, source) {
+                Ok(mut utxo_pairs) => {
+                    let mut output =
+                        TransactionOutput::from_pest_pair(utxo_pairs.next().unwrap().into_inner());
+                    output.conditions.origin_str = conditions_origin_str.map(ToString::to_string);
+                    Ok(output)
+                }
+                Err(e) => Err(TextDocumentParseError::InvalidInnerFormat(format!(
+                    "Invalid output : {}",
+                    e
+                ))),
+            },
         }
     }
 }
@@ -578,8 +608,10 @@ impl TransactionDocument {
         } else {
             fatal_error!("Try to compute_hash of tx with None text !")
         };
-        hashing_text.push_str(&self.signatures[0].to_string());
-        hashing_text.push_str("\n");
+        for sig in &self.signatures {
+            hashing_text.push_str(&sig.to_string());
+            hashing_text.push_str("\n");
+        }
         //println!("tx_text_hasing={}", hashing_text);
         self.hash = Some(Hash::compute_str(&hashing_text));
         self.hash.expect("Try to get hash of a reduce tx !")

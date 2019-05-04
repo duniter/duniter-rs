@@ -76,8 +76,8 @@ pub trait TextDocumentParser<R: RuleType> {
 #[derive(Debug, Clone, Fail)]
 pub enum TextDocumentParseError {
     /// The given source don't have a valid specific document format (document type).
-    #[fail(display = "TextDocumentParseError: Invalid inner format.")]
-    InvalidInnerFormat(&'static str),
+    #[fail(display = "TextDocumentParseError: Invalid inner format: {}", _0)]
+    InvalidInnerFormat(String),
     /// Error with pest parser
     #[fail(display = "TextDocumentParseError: PestError.")]
     PestError(String),
