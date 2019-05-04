@@ -55,6 +55,7 @@ use std::fmt::Display;
 use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::Hash;
+use std::str::FromStr;
 
 pub mod bin_signable;
 pub mod ed25519;
@@ -267,6 +268,14 @@ impl ToBase58 for PubKey {
 impl Display for PubKey {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "{}", self.to_base58())
+    }
+}
+
+impl FromStr for PubKey {
+    type Err = BaseConvertionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        ed25519::PublicKey::from_base58(s).map(PubKey::Ed25519)
     }
 }
 

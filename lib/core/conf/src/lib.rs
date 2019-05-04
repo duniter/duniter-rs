@@ -41,6 +41,7 @@ use durs_common_tools::fatal_error;
 use durs_module::{
     DursConfTrait, DursGlobalConfTrait, ModuleName, RequiredKeys, RequiredKeysContent,
 };
+use failure::Fail;
 use rand::Rng;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use std::collections::HashSet;
@@ -503,9 +504,9 @@ pub fn keypairs_filepath(profiles_path: &Option<PathBuf>, profile: &str) -> Path
 pub fn load_conf(
     mut profile_path: PathBuf,
     keypairs_file_path: &Option<PathBuf>,
-) -> (DuRsConf, DuniterKeyPairs) {
+) -> Result<(DuRsConf, DuniterKeyPairs), DursConfFileError> {
     // Load conf
-    let (conf, keypairs) = load_conf_at_path(profile_path.clone(), keypairs_file_path);
+    let (conf, keypairs) = load_conf_at_path(profile_path.clone(), keypairs_file_path)?;
 
     // Create currency dir
     profile_path.push(conf.currency().to_string());
@@ -514,7 +515,21 @@ pub fn load_conf(
     }
 
     // Return conf and keypairs
-    (conf, keypairs)
+    Ok((conf, keypairs))
+}
+
+/// Error with configuration file
+#[derive(Debug, Fail)]
+pub enum DursConfFileError {
+    /// Read error
+    #[fail(display = "fail to read configuration file: {}", _0)]
+    ReadError(std::io::Error),
+    /// Parse error
+    #[fail(display = "fail to parse configuration file: {}", _0)]
+    ParseError(serde_json::Error),
+    /// Write error
+    #[fail(display = "fail to write configuration file: {}", _0)]
+    WriteError(std::io::Error),
 }
 
 /// Load configuration. at specified path
@@ -522,7 +537,7 @@ pub fn load_conf(
 pub fn load_conf_at_path(
     profile_path: PathBuf,
     keypairs_file_path: &Option<PathBuf>,
-) -> (DuRsConf, DuniterKeyPairs) {
+) -> Result<(DuRsConf, DuniterKeyPairs), DursConfFileError> {
     // Get KeyPairs
     let keypairs_path = if let Some(ref keypairs_file_path) = keypairs_file_path {
         keypairs_file_path.clone()
@@ -614,26 +629,24 @@ pub fn load_conf_at_path(
     let mut conf_path = profile_path;
     conf_path.push(constants::CONF_FILENAME);
     let conf = if conf_path.as_path().exists() {
-        if let Ok(mut f) = File::open(conf_path.as_path()) {
-            let mut contents = String::new();
-            if f.read_to_string(&mut contents).is_ok() {
+        match File::open(conf_path.as_path()) {
+            Ok(mut f) => {
+                let mut contents = String::new();
+                f.read_to_string(&mut contents)
+                    .map_err(DursConfFileError::ReadError)?;
                 // Parse conf file
                 let conf: DuRsConf =
-                    serde_json::from_str(&contents).expect("Conf: Fail to parse conf file !");
+                    serde_json::from_str(&contents).map_err(DursConfFileError::ParseError)?;
                 // Upgrade conf to latest version
                 let (conf, upgraded) = conf.upgrade();
                 // If conf is upgraded, rewrite conf file
                 if upgraded {
-                    write_conf_file(conf_path.as_path(), &conf).unwrap_or_else(|_| {
-                        panic!(dbg!("Fatal error : fail to write conf file !"))
-                    });
+                    write_conf_file(conf_path.as_path(), &conf)
+                        .map_err(DursConfFileError::WriteError)?;
                 }
                 conf
-            } else {
-                panic!("Fail to read conf file !");
             }
-        } else {
-            panic!("Fail to open conf file !");
+            Err(e) => return Err(DursConfFileError::ReadError(e)),
         }
     } else {
         // Create conf file with default conf
@@ -644,7 +657,7 @@ pub fn load_conf_at_path(
     };
 
     // Return conf and keypairs
-    (conf, keypairs)
+    Ok((conf, keypairs))
 }
 
 /// Save keypairs in profile folder
@@ -661,6 +674,19 @@ pub fn write_keypairs_file(
     )?;
     f.sync_all()?;
     Ok(())
+}
+
+/// Write new module conf
+pub fn write_new_module_conf<DC: DursConfTrait>(
+    conf: &mut DC,
+    profile_path: PathBuf,
+    module_name: ModuleName,
+    new_module_conf: serde_json::Value,
+) {
+    conf.set_module_conf(module_name, new_module_conf);
+    let mut conf_path = profile_path;
+    conf_path.push(crate::constants::CONF_FILENAME);
+    write_conf_file(conf_path.as_path(), conf).expect("Fail to write new conf file ! ");
 }
 
 /// Save configuration in profile folder
@@ -742,10 +768,11 @@ mod tests {
     }
 
     #[test]
-    fn load_conf_file_v1() -> std::io::Result<()> {
+    fn load_conf_file_v1() -> Result<(), DursConfFileError> {
         let profile_path = PathBuf::from("./test/v1/");
-        save_old_conf(PathBuf::from(profile_path.clone()))?;
-        let (conf, _keys) = load_conf_at_path(profile_path.clone(), &None);
+        save_old_conf(PathBuf::from(profile_path.clone()))
+            .map_err(DursConfFileError::WriteError)?;
+        let (conf, _keys) = load_conf_at_path(profile_path.clone(), &None)?;
         assert_eq!(
             conf.modules()
                 .get("ws2p")
@@ -768,15 +795,16 @@ mod tests {
                 ]
             })
         );
-        restore_old_conf_and_save_upgraded_conf(profile_path)?;
+        restore_old_conf_and_save_upgraded_conf(profile_path)
+            .map_err(DursConfFileError::WriteError)?;
 
         Ok(())
     }
 
     #[test]
-    fn load_conf_file_v2() {
+    fn load_conf_file_v2() -> Result<(), DursConfFileError> {
         let profile_path = PathBuf::from("./test/v2/");
-        let (conf, _keys) = load_conf_at_path(profile_path, &None);
+        let (conf, _keys) = load_conf_at_path(profile_path, &None)?;
         assert_eq!(
             conf.modules()
                 .get("ws2p")
@@ -799,5 +827,6 @@ mod tests {
                 ]
             })
         );
+        Ok(())
     }
 }

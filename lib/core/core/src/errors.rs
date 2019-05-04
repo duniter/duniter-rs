@@ -22,6 +22,9 @@ use failure::Fail;
 #[derive(Debug, Fail)]
 /// Durs server error
 pub enum DursCoreError {
+    /// Error with configuration file
+    #[fail(display = "Error with configuration file: {}", _0)]
+    ConfFileError(durs_conf::DursConfFileError),
     /// Fail to remove configuration file
     #[fail(display = "Fail to remove configuration file: {}", _0)]
     FailRemoveConfFile(std::io::Error),

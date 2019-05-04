@@ -343,15 +343,23 @@ pub fn module_valid_filters<
 #[derive(Debug, Fail)]
 /// Error when generating the configuration of a module
 pub enum ModuleConfError {
-    /// Parse error
-    #[fail(display = "{}", _0)]
-    ParseError(serde_json::Error),
     /// Combination forbidden
     #[fail(display = "Forbidden configuration: {}", cause)]
     CombinationForbidden {
         /// Cause
         cause: String,
     },
+    /// Invalid field
+    #[fail(display = "Field '{}' is invalid: {}", field_name, cause)]
+    InvalidField {
+        /// Field name
+        field_name: &'static str,
+        /// Cause
+        cause: String,
+    },
+    /// Parse error
+    #[fail(display = "{}", _0)]
+    ParseError(serde_json::Error),
 }
 
 impl From<serde_json::Error> for ModuleConfError {
@@ -388,7 +396,7 @@ impl From<ModuleConfError> for PlugModuleError {
 /// All Duniter-rs modules must implement this trait.
 pub trait DursModule<DC: DursConfTrait, M: ModuleMessage> {
     ///Module user configuration (configuration provided by the user)
-    type ModuleUserConf: Clone + Debug + DeserializeOwned + Send + Serialize + Sync;
+    type ModuleUserConf: Clone + Debug + Default + DeserializeOwned + Send + Serialize + Sync;
     /// Module real configuration (configuration calculated from the configuration provided by the user and the global configuration)
     type ModuleConf: 'static + Clone + Debug + Default + Send + Sync;
     /// Module subcommand options
@@ -404,7 +412,7 @@ pub trait DursModule<DC: DursConfTrait, M: ModuleMessage> {
     fn generate_module_conf(
         global_conf: &DC::GlobalConf,
         module_user_conf: Option<Self::ModuleUserConf>,
-    ) -> Result<Self::ModuleConf, ModuleConfError>;
+    ) -> Result<(Self::ModuleConf, Option<Self::ModuleUserConf>), ModuleConfError>;
     /// Define if module have a cli subcommand
     fn have_subcommand() -> bool {
         false
@@ -414,8 +422,10 @@ pub trait DursModule<DC: DursConfTrait, M: ModuleMessage> {
         _soft_meta_datas: &SoftwareMetaDatas<DC>,
         _keys: RequiredKeysContent,
         _module_conf: Self::ModuleConf,
+        _module_user_conf: Option<Self::ModuleUserConf>,
         _subcommand_args: Self::ModuleOpt,
-    ) {
+    ) -> Option<Self::ModuleUserConf> {
+        None
     }
     /// Launch the module
     fn start(

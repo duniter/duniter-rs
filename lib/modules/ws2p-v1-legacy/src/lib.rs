@@ -43,6 +43,7 @@ pub mod parsers;
 mod requests;
 mod responses;
 pub mod serializer;
+mod subcommands;
 pub mod ws2p_db;
 pub mod ws_connections;
 
@@ -52,6 +53,7 @@ use crate::constants::*;
 use crate::ok_message::WS2POkMessageV1;
 use crate::parsers::blocks::parse_json_block;
 use crate::requests::sent::send_dal_request;
+use crate::subcommands::WS2PSubCommands;
 use crate::ws2p_db::DbEndpoint;
 use crate::ws_connections::messages::WS2PConnectionMessage;
 use crate::ws_connections::states::WS2PConnectionState;
@@ -74,10 +76,11 @@ use durs_network_documents::network_endpoint::*;
 use durs_network_documents::network_head::*;
 use durs_network_documents::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::ops::Deref;
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -95,28 +98,33 @@ pub fn ssl() -> bool {
     true
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// WS2P Configuration
-pub struct WS2PConf {
-    /// Limit of outcoming connections
-    pub outcoming_quota: usize,
-    /// Default WS2P endpoints provides by configuration file
-    pub sync_endpoints: Vec<EndpointV1>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 /// WS2P Configuration
 pub struct WS2PUserConf {
     /// Limit of outcoming connections
     pub outcoming_quota: Option<usize>,
+    /// List of prefered public keys
+    pub prefered_pubkeys: Option<HashSet<String>>,
     /// Default WS2P endpoints provides by configuration file
     pub sync_endpoints: Option<Vec<EndpointV1>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// WS2P Configuration
+pub struct WS2PConf {
+    /// Limit of outcoming connections
+    pub outcoming_quota: usize,
+    /// List of prefered public keys
+    pub prefered_pubkeys: HashSet<PubKey>,
+    /// Default WS2P endpoints provides by configuration file
+    pub sync_endpoints: Vec<EndpointV1>,
 }
 
 impl Default for WS2PConf {
     fn default() -> Self {
         WS2PConf {
             outcoming_quota: *WS2P_DEFAULT_OUTCOMING_QUOTA,
+            prefered_pubkeys: HashSet::new(),
             sync_endpoints: vec![
                 unwrap!(EndpointV1::parse_from_raw(
                     "WS2P c1c39a0a ts.g1.librelois.fr 443 /ws2p",
@@ -318,13 +326,25 @@ impl NetworkModule<DuRsConf, DursMsg> for WS2PModule {
     }
 }
 
-#[derive(StructOpt, Debug, Copy, Clone)]
+#[derive(Clone, Debug, StructOpt)]
 #[structopt(
     name = "ws2p",
     raw(setting = "structopt::clap::AppSettings::ColoredHelp")
 )]
-/// WS2Pv1 subcommand options
-pub struct WS2POpt {}
+/// WS2P1 subcommand options
+pub struct WS2POpt {
+    /// Ws2p1 subcommands
+    #[structopt(subcommand)]
+    pub subcommand: WS2PSubCommands,
+}
+
+macro_rules! fields_overload {
+    ($struct:ident; $option_struct:ident; [$($field:ident),+]) => {{
+        $(if let Some($field) = $option_struct.$field {
+            $struct.$field = $field;
+        })+
+    }};
+}
 
 impl DursModule<DuRsConf, DursMsg> for WS2PModule {
     type ModuleUserConf = WS2PUserConf;
@@ -343,10 +363,11 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
     fn have_subcommand() -> bool {
         true
     }
+
     fn generate_module_conf(
         global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
         module_user_conf: Option<Self::ModuleUserConf>,
-    ) -> Result<Self::ModuleConf, ModuleConfError> {
+    ) -> Result<(Self::ModuleConf, Option<Self::ModuleUserConf>), ModuleConfError> {
         let mut conf = WS2PConf::default();
 
         if global_conf.currency() == CurrencyName("g1-test".to_owned()) {
@@ -360,24 +381,49 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
             ))];
         }
 
-        if let Some(module_user_conf) = module_user_conf {
-            if let Some(outcoming_quota) = module_user_conf.outcoming_quota {
+        if let Some(module_user_conf) = module_user_conf.clone() {
+            /*if let Some(outcoming_quota) = module_user_conf.outcoming_quota {
                 conf.outcoming_quota = outcoming_quota;
             }
             if let Some(sync_endpoints) = module_user_conf.sync_endpoints {
                 conf.sync_endpoints = sync_endpoints;
+            }*/
+            if let Some(prefered_pubkeys) = module_user_conf.prefered_pubkeys {
+                conf.prefered_pubkeys = prefered_pubkeys
+                    .iter()
+                    .enumerate()
+                    .map(|(i, p)| {
+                        PubKey::from_str(p).map_err(|e| ModuleConfError::InvalidField {
+                            field_name: stringify!(prefered_pubkeys),
+                            cause: format!("pubkey n°{} is invalid: {}", i, e),
+                        })
+                    })
+                    .collect::<Result<HashSet<PubKey>, ModuleConfError>>()?;
             }
+            fields_overload!(
+                conf;
+                module_user_conf;
+                [
+                    outcoming_quota,
+                    sync_endpoints
+                ]
+            )
         }
 
-        Ok(conf)
+        Ok((conf, module_user_conf))
     }
     fn exec_subcommand(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
         _module_conf: Self::ModuleConf,
-        _subcommand_args: WS2POpt,
-    ) {
-        println!("Succesfully exec ws2p subcommand !")
+        module_user_conf: Option<Self::ModuleUserConf>,
+        opts: WS2POpt,
+    ) -> Option<Self::ModuleUserConf> {
+        match opts.subcommand {
+            WS2PSubCommands::Prefered {
+                subcommand: prefered_subcommand,
+            } => prefered_subcommand.execute(module_user_conf),
+        }
     }
     fn start(
         soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,

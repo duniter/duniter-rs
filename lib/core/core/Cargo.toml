@@ -27,5 +27,6 @@ serde_json = "1.0.*"
 simplelog = "0.5.*"
 structopt= "0.2.*"
 threadpool = "1.7.*"
+unwrap = "1.2.1"
 
 [features]

@@ -216,8 +216,9 @@ If you do have a subcommand, simply return `true`.
         soft_meta_datas: &SoftwareMetaDatas<DC>,
         keys: RequiredKeysContent,
         module_conf: Self::ModuleConf,
+        module_user_conf: Option<Self::ModuleUserConf>,
         subcommand_args: Self::ModuleOpt,
-    ) {
+    ) -> Option<Self::ModuleUserConf> {
     }
 ```
 

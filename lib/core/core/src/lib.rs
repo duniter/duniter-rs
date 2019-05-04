@@ -55,6 +55,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::thread;
+use unwrap::unwrap;
 
 #[macro_export]
 /// Plug modules in durs core
@@ -111,8 +112,7 @@ impl DursCore<DuRsConf> {
         soft_name: &'static str,
         soft_version: &'static str,
     ) -> Result<(), DursCoreError> {
-        let durs_core = DursCore::<DuRsConf>::init(soft_name, soft_version, durs_core_opts, 0)?;
-
+        let mut durs_core = DursCore::<DuRsConf>::init(soft_name, soft_version, durs_core_opts, 0)?;
         // Load module conf and keys
         let module_conf_json = durs_core
             .soft_meta_datas
@@ -122,7 +122,7 @@ impl DursCore<DuRsConf> {
             .get(&M::name().to_string().as_str())
             .cloned();
 
-        let (module_conf, required_keys) = get_module_conf_and_keys::<M>(
+        let ((module_conf, module_user_conf), required_keys) = get_module_conf_and_keys::<M>(
             &durs_core.soft_meta_datas.conf.get_global_conf(),
             module_conf_json,
             durs_core.keypairs,
@@ -131,13 +131,20 @@ impl DursCore<DuRsConf> {
             module_name: M::name(),
             error: e.into(),
         })?;
-
         // Execute module subcommand
-        M::exec_subcommand(
+        let new_module_conf = M::exec_subcommand(
             &durs_core.soft_meta_datas,
             required_keys,
             module_conf,
+            module_user_conf,
             module_command,
+        );
+
+        durs_conf::write_new_module_conf(
+            &mut durs_core.soft_meta_datas.conf,
+            durs_core.soft_meta_datas.profile_path.clone(),
+            M::name().into(),
+            unwrap!(serde_json::value::to_value(new_module_conf)),
         );
 
         Ok(())
@@ -227,7 +234,8 @@ impl DursCore<DuRsConf> {
 
         // Load global conf
         let (conf, keypairs) =
-            durs_conf::load_conf(profile_path.clone(), &durs_core_opts.keypairs_file);
+            durs_conf::load_conf(profile_path.clone(), &durs_core_opts.keypairs_file)
+                .map_err(DursCoreError::ConfFileError)?;
         info!("Success to load global conf.");
 
         // Instanciate durs core
@@ -355,7 +363,7 @@ impl DursCore<DuRsConf> {
                 let keypairs = self.keypairs;
 
                 // Load module conf and keys
-                let (module_conf, required_keys) = get_module_conf_and_keys::<NM>(
+                let ((module_conf, _), required_keys) = get_module_conf_and_keys::<NM>(
                     &soft_meta_datas.conf.get_global_conf(),
                     module_conf_json,
                     keypairs,
@@ -429,7 +437,7 @@ impl DursCore<DuRsConf> {
                     .cloned();
                 let keypairs = self.keypairs;
                 // Load module conf and keys
-                let (module_conf, required_keys) = get_module_conf_and_keys::<M>(
+                let ((module_conf, _), required_keys) = get_module_conf_and_keys::<M>(
                     &soft_meta_datas.conf.get_global_conf(),
                     module_conf_json,
                     keypairs,
@@ -477,12 +485,21 @@ impl DursCore<DuRsConf> {
     }
 }
 
+/// Module configurations and required keys
+pub type ModuleConfsAndKeys<M> = (
+    (
+        <M as DursModule<DuRsConf, DursMsg>>::ModuleConf,
+        Option<<M as DursModule<DuRsConf, DursMsg>>::ModuleUserConf>,
+    ),
+    RequiredKeysContent,
+);
+
 /// Get module conf and keys
 pub fn get_module_conf_and_keys<M: DursModule<DuRsConf, DursMsg>>(
     global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
     module_conf_json: Option<serde_json::Value>,
     keypairs: DuniterKeyPairs,
-) -> Result<(M::ModuleConf, RequiredKeysContent), ModuleConfError> {
+) -> Result<ModuleConfsAndKeys<M>, ModuleConfError> {
     Ok((
         get_module_conf::<M>(global_conf, module_conf_json)?,
         DuniterKeyPairs::get_required_keys_content(M::ask_required_keys(), keypairs),
@@ -493,11 +510,11 @@ pub fn get_module_conf_and_keys<M: DursModule<DuRsConf, DursMsg>>(
 pub fn get_module_conf<M: DursModule<DuRsConf, DursMsg>>(
     global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
     module_conf_json: Option<serde_json::Value>,
-) -> Result<M::ModuleConf, ModuleConfError> {
+) -> Result<(M::ModuleConf, Option<M::ModuleUserConf>), ModuleConfError> {
     if let Some(module_conf_json) = module_conf_json {
-        let module_user_conf: M::ModuleUserConf =
+        let module_user_conf: Option<M::ModuleUserConf> =
             serde_json::from_str(module_conf_json.to_string().as_str())?;
-        M::generate_module_conf(global_conf, Some(module_user_conf))
+        M::generate_module_conf(global_conf, module_user_conf)
     } else {
         M::generate_module_conf(global_conf, None)
     }

@@ -62,7 +62,7 @@ impl Default for SkeletonConf {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Skeleton Module Configuration
 pub struct SkeletonUserConf {
     test_fake_conf_field: Option<String>,
@@ -132,40 +132,32 @@ impl DursModule<DuRsConf, DursMsg> for SkeletonModule {
     fn generate_module_conf(
         _global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
         module_user_conf: Option<Self::ModuleUserConf>,
-    ) -> Result<Self::ModuleConf, ModuleConfError> {
+    ) -> Result<(Self::ModuleConf, Option<Self::ModuleUserConf>), ModuleConfError> {
         let mut conf = SkeletonConf::default();
 
-        if let Some(module_user_conf) = module_user_conf {
-            if let Some(test_fake_conf_field) = module_user_conf.test_fake_conf_field {
-                conf.test_fake_conf_field = test_fake_conf_field;
+        if let Some(ref module_user_conf) = module_user_conf {
+            if let Some(ref test_fake_conf_field) = module_user_conf.test_fake_conf_field {
+                conf.test_fake_conf_field = test_fake_conf_field.to_owned();
             }
         }
 
-        Ok(conf)
+        Ok((conf, module_user_conf))
     }
     fn exec_subcommand(
-        soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
+        _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
         module_conf: Self::ModuleConf,
+        _module_user_conf: Option<Self::ModuleUserConf>,
         subcommand_args: Self::ModuleOpt,
-    ) {
-        let mut conf = soft_meta_datas.conf.clone();
-        let new_skeleton_conf = SkeletonConf {
-            test_fake_conf_field: subcommand_args.new_conf_field.clone(),
+    ) -> Option<Self::ModuleUserConf> {
+        let new_skeleton_conf = SkeletonUserConf {
+            test_fake_conf_field: Some(subcommand_args.new_conf_field.to_owned()),
         };
-        conf.set_module_conf(
-            ModuleName(MODULE_NAME.to_owned()),
-            serde_json::value::to_value(new_skeleton_conf)
-                .expect("Fail to jsonifie SkeletonConf !"),
-        );
-        let mut conf_path = soft_meta_datas.profile_path.clone();
-        conf_path.push(durs_conf::constants::CONF_FILENAME);
-        durs_conf::write_conf_file(conf_path.as_path(), &conf)
-            .expect("Fail to write new conf file ! ");
         println!(
             "Succesfully exec skeleton subcommand whit terminal name : {} and conf={:?}!",
             subcommand_args.new_conf_field, module_conf
-        )
+        );
+        Some(new_skeleton_conf)
     }
     fn start(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,

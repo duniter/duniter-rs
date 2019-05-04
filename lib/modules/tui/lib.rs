@@ -390,8 +390,8 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
     fn generate_module_conf(
         _global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
         _module_user_conf: Option<Self::ModuleUserConf>,
-    ) -> Result<Self::ModuleConf, ModuleConfError> {
-        Ok(TuiConf {})
+    ) -> Result<(Self::ModuleConf, Option<Self::ModuleUserConf>), ModuleConfError> {
+        Ok((TuiConf {}, None))
     }
     fn start(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,

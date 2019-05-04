@@ -56,7 +56,7 @@ pub struct WS2PConf {
     pub sync_endpoints: Vec<EndpointEnum>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// WS2P Configuration
 pub struct WS2PUserConf {
     /// Limit of outcoming connections
@@ -160,10 +160,10 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv2Module {
     fn generate_module_conf(
         _global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
         module_user_conf: Option<Self::ModuleUserConf>,
-    ) -> Result<Self::ModuleConf, ModuleConfError> {
+    ) -> Result<(Self::ModuleConf, Option<Self::ModuleUserConf>), ModuleConfError> {
         let mut conf = WS2PConf::default();
 
-        if let Some(module_user_conf) = module_user_conf {
+        if let Some(module_user_conf) = module_user_conf.clone() {
             if let Some(outcoming_quota) = module_user_conf.outcoming_quota {
                 conf.outcoming_quota = outcoming_quota;
             }
@@ -172,15 +172,17 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv2Module {
             }
         }
 
-        Ok(conf)
+        Ok((conf, module_user_conf))
     }
     fn exec_subcommand(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
         _module_conf: Self::ModuleConf,
+        _module_user_conf: Option<Self::ModuleUserConf>,
         _subcommand_args: WS2POpt,
-    ) {
-        println!("Succesfully exec ws2p subcommand !")
+    ) -> Option<Self::ModuleUserConf> {
+        println!("Succesfully exec ws2p subcommand !");
+        None
     }
     fn start(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,

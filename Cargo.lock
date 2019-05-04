@@ -389,6 +389,7 @@ dependencies = [
  "dup-crypto 0.6.0",
  "durs-common-tools 0.1.0",
  "durs-module 0.1.0-a0.1",
+ "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rpassword 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -418,6 +419,7 @@ dependencies = [
  "simplelog 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "structopt 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "threadpool 1.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unwrap 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
