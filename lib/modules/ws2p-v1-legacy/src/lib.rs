@@ -56,7 +56,7 @@ use crate::ws2p_db::DbEndpoint;
 use crate::ws_connections::messages::WS2PConnectionMessage;
 use crate::ws_connections::states::WS2PConnectionState;
 use crate::ws_connections::*;
-use dubp_documents::Blockstamp;
+use dubp_documents::{Blockstamp, CurrencyName};
 use duniter_network::cli::sync::SyncOpt;
 use duniter_network::documents::*;
 use duniter_network::events::*;
@@ -344,16 +344,29 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
         true
     }
     fn generate_module_conf(
-        _global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
-        module_user_conf: Self::ModuleUserConf,
+        global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
+        module_user_conf: Option<Self::ModuleUserConf>,
     ) -> Result<Self::ModuleConf, ModuleConfError> {
         let mut conf = WS2PConf::default();
 
-        if let Some(outcoming_quota) = module_user_conf.outcoming_quota {
-            conf.outcoming_quota = outcoming_quota;
+        if global_conf.currency() == CurrencyName("g1-test".to_owned()) {
+            conf.sync_endpoints = vec![unwrap!(EndpointV1::parse_from_raw(
+                "WS2P 3eaab4c7 ts.gt.librelois.fr 443 /ws2p",
+                PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+                    "CrznBiyq8G4RVUprH9jHmAw1n1iuzw8y9FdJbrESnaX7",
+                )),),
+                0,
+                0,
+            ))];
         }
-        if let Some(sync_endpoints) = module_user_conf.sync_endpoints {
-            conf.sync_endpoints = sync_endpoints;
+
+        if let Some(module_user_conf) = module_user_conf {
+            if let Some(outcoming_quota) = module_user_conf.outcoming_quota {
+                conf.outcoming_quota = outcoming_quota;
+            }
+            if let Some(sync_endpoints) = module_user_conf.sync_endpoints {
+                conf.sync_endpoints = sync_endpoints;
+            }
         }
 
         Ok(conf)

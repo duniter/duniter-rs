@@ -131,12 +131,14 @@ impl DursModule<DuRsConf, DursMsg> for SkeletonModule {
     }
     fn generate_module_conf(
         _global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
-        module_user_conf: Self::ModuleUserConf,
+        module_user_conf: Option<Self::ModuleUserConf>,
     ) -> Result<Self::ModuleConf, ModuleConfError> {
         let mut conf = SkeletonConf::default();
 
-        if let Some(test_fake_conf_field) = module_user_conf.test_fake_conf_field {
-            conf.test_fake_conf_field = test_fake_conf_field;
+        if let Some(module_user_conf) = module_user_conf {
+            if let Some(test_fake_conf_field) = module_user_conf.test_fake_conf_field {
+                conf.test_fake_conf_field = test_fake_conf_field;
+            }
         }
 
         Ok(conf)

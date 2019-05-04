@@ -100,15 +100,27 @@ impl ToString for ModuleReqFullId {
     }
 }
 
+/// Durs global configuration trait
+pub trait DursGlobalConfTrait:
+    Clone + Debug + PartialEq + Serialize + DeserializeOwned + Send + ToOwned
+{
+    /// Get currency
+    fn currency(&self) -> CurrencyName;
+    /// Get node id
+    fn my_node_id(&self) -> u32;
+}
+
 /// Durs configuration trait
 pub trait DursConfTrait:
     Clone + Debug + Default + PartialEq + Serialize + DeserializeOwned + Send + ToOwned
 {
     /// Durs configuration without modules configuration
-    type GlobalConf: Clone + Debug + PartialEq + Serialize + DeserializeOwned + Send + ToOwned;
+    type GlobalConf: DursGlobalConfTrait;
 
     /// Get currency
-    fn currency(&self) -> CurrencyName;
+    fn currency(&self) -> CurrencyName {
+        self.get_global_conf().currency()
+    }
     /// Disable a module
     fn disable(&mut self, module: ModuleName);
     /// Get disabled modules
@@ -122,7 +134,9 @@ pub trait DursConfTrait:
     /// Get modules conf
     fn modules(&self) -> serde_json::Value;
     /// Get node id
-    fn my_node_id(&self) -> u32;
+    fn my_node_id(&self) -> u32 {
+        self.get_global_conf().my_node_id()
+    }
     /// Set currency
     fn set_currency(&mut self, new_currency: CurrencyName);
     /// Change module conf
@@ -389,7 +403,7 @@ pub trait DursModule<DC: DursConfTrait, M: ModuleMessage> {
     /// Generate module configuration
     fn generate_module_conf(
         global_conf: &DC::GlobalConf,
-        module_user_conf: Self::ModuleUserConf,
+        module_user_conf: Option<Self::ModuleUserConf>,
     ) -> Result<Self::ModuleConf, ModuleConfError>;
     /// Define if module have a cli subcommand
     fn have_subcommand() -> bool {

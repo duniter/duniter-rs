@@ -497,9 +497,9 @@ pub fn get_module_conf<M: DursModule<DuRsConf, DursMsg>>(
     if let Some(module_conf_json) = module_conf_json {
         let module_user_conf: M::ModuleUserConf =
             serde_json::from_str(module_conf_json.to_string().as_str())?;
-        M::generate_module_conf(global_conf, module_user_conf)
+        M::generate_module_conf(global_conf, Some(module_user_conf))
     } else {
-        Ok(M::ModuleConf::default())
+        M::generate_module_conf(global_conf, None)
     }
 }
 

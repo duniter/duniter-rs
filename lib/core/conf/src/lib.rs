@@ -38,7 +38,9 @@ pub mod keys;
 use dubp_documents::CurrencyName;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
-use durs_module::{DursConfTrait, ModuleName, RequiredKeys, RequiredKeysContent};
+use durs_module::{
+    DursConfTrait, DursGlobalConfTrait, ModuleName, RequiredKeys, RequiredKeysContent,
+};
 use rand::Rng;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use std::collections::HashSet;
@@ -217,6 +219,23 @@ pub enum DuRsGlobalConf {
     V2(DuRsConfV2),
 }
 
+impl DursGlobalConfTrait for DuRsGlobalConf {
+    /// Get currency
+    fn currency(&self) -> CurrencyName {
+        match *self {
+            DuRsGlobalConf::V1(ref conf_v1) => conf_v1.currency.clone(),
+            DuRsGlobalConf::V2(ref conf_v2) => conf_v2.currency.clone(),
+        }
+    }
+    /// Get node id
+    fn my_node_id(&self) -> u32 {
+        match *self {
+            DuRsGlobalConf::V1(ref conf_v1) => conf_v1.my_node_id,
+            DuRsGlobalConf::V2(ref conf_v2) => conf_v2.my_node_id,
+        }
+    }
+}
+
 impl Default for DuRsConf {
     #[inline]
     fn default() -> Self {
@@ -258,14 +277,6 @@ impl DursConfTrait for DuRsConf {
             DuRsConf::V2 { .. } => 2,
         }
     }
-    fn currency(&self) -> CurrencyName {
-        match *self {
-            DuRsConf::V1(ref conf_v1) => conf_v1.currency.clone(),
-            DuRsConf::V2 {
-                ref global_conf, ..
-            } => global_conf.currency.clone(),
-        }
-    }
     fn set_currency(&mut self, new_currency: CurrencyName) {
         match *self {
             DuRsConf::V1(ref mut conf_v1) => conf_v1.currency = new_currency,
@@ -273,14 +284,6 @@ impl DursConfTrait for DuRsConf {
                 ref mut global_conf,
                 ..
             } => global_conf.currency = new_currency,
-        }
-    }
-    fn my_node_id(&self) -> u32 {
-        match *self {
-            DuRsConf::V1(ref conf_v1) => conf_v1.my_node_id,
-            DuRsConf::V2 {
-                ref global_conf, ..
-            } => global_conf.my_node_id,
         }
     }
     fn disable(&mut self, module: ModuleName) {
