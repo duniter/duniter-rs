@@ -18,6 +18,7 @@
 use bincode;
 use dubp_documents::{Blockstamp, CurrencyName};
 use dup_crypto::keys::PubKey;
+use durs_common_tools::fatal_error;
 use durs_network_documents::network_endpoint::*;
 use durs_network_documents::network_peer::*;
 use durs_network_documents::*;
@@ -57,7 +58,7 @@ pub fn _self_peer_update_endpoints(
         if let EndpointEnum::V2(ep_v2) = ep {
             let bin_len = bincode::serialize(&ep_v2)
                 .unwrap_or_else(|_| {
-                    panic!(
+                    fatal_error!(
                         "Fail to update self peer : invalid endpoint : {:?} !",
                         ep_v2
                     )
@@ -97,7 +98,7 @@ pub fn _generate_self_peer(
         if let EndpointEnum::V2(ep_v2) = ep {
             let bin_len = bincode::serialize(&ep_v2)
                 .unwrap_or_else(|_| {
-                    panic!(
+                    fatal_error!(
                         "Fail to generate self peer : invalid endpoint : {:?} !",
                         ep_v2
                     )

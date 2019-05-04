@@ -15,6 +15,7 @@ durs-conf= { path = "../../../core/conf" }
 dup-crypto = { path = "../../../tools/crypto" }
 dubp-documents= { path = "../../../tools/documents" }
 durs-network-documents = { path = "../../../tools/network-documents" }
+durs-common-tools = { path = "../../../tools/common-tools" }
 durs-ws2p-messages = { path = "../ws2p-messages" }
 durs-message= { path = "../../../core/message" }
 durs-module = { path = "../../../core/module" }
