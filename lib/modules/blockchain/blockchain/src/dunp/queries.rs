@@ -17,6 +17,7 @@
 
 use crate::*;
 use duniter_network::requests::OldNetworkRequest;
+use durs_common_tools::fatal_error;
 use durs_message::*;
 use durs_module::ModuleReqId;
 
@@ -33,7 +34,7 @@ pub fn request_network(
             req_id,
             req_content: DursReqContent::OldNetworkRequest(*request),
         }))
-        .unwrap_or_else(|_| panic!("Fail to send OldNetworkRequest to router"));
+        .unwrap_or_else(|_| fatal_error!("Fail to send OldNetworkRequest to router"));
     request.get_req_id()
 }
 

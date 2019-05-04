@@ -68,7 +68,7 @@ fn get_json_files_path(source: Option<String>, currency: Option<String>) -> Path
     } else {
         let mut json_chunks_path = match dirs::config_dir() {
             Some(path) => path,
-            None => panic!("Impossible to get user config directory !"),
+            None => fatal_error!("Impossible to get user config directory !"),
         };
         json_chunks_path.push("duniter/");
         json_chunks_path.push("duniter_default");
@@ -146,7 +146,7 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
 
     if !json_files_path.is_dir() {
         error!("json_files_path must be a directory");
-        panic!("json_files_path must be a directory");
+        fatal_error!("json_files_path must be a directory");
     }
 
     // Lauch json reader worker
@@ -385,11 +385,11 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
                     // Sync completed
                     break;
                 } else {
-                    panic!("Fatal Error : we get a fork, please reset data and sync again !");
+                    fatal_error!("Fatal Error : we get a fork, please reset data and sync again !");
                 }
             }
         } else {
-            panic!(
+            fatal_error!(
                 "Fatal error : fail to stack up block #{}",
                 current_blockstamp.id.0 + 1
             )

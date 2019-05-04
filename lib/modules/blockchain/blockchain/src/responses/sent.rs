@@ -16,6 +16,7 @@
 //! Sub-module managing the inter-modules responses sent.
 
 use crate::*;
+use durs_common_tools::fatal_error;
 
 pub fn send_req_response(
     bc: &BlockchainModule,
@@ -30,5 +31,5 @@ pub fn send_req_response(
             req_id,
             res_content: DursResContent::BlockchainResponse(response.clone()),
         }))
-        .unwrap_or_else(|_| panic!("Fail to send ReqRes to router"));
+        .unwrap_or_else(|_| fatal_error!("Fail to send ReqRes to router"));
 }

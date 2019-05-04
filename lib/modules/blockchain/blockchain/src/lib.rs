@@ -65,6 +65,7 @@ use duniter_network::{
 use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::currency_params::CurrencyParameters;
 use durs_blockchain_dal::*;
+use durs_common_tools::fatal_error;
 use durs_message::events::*;
 use durs_message::requests::*;
 use durs_message::responses::*;
@@ -290,7 +291,7 @@ impl BlockchainModule {
                 }
                 Err(e) => match e {
                     mpsc::RecvTimeoutError::Disconnected => {
-                        panic!("Disconnected blockchain module !");
+                        fatal_error!("Disconnected blockchain module !");
                     }
                     mpsc::RecvTimeoutError::Timeout => {}
                 },

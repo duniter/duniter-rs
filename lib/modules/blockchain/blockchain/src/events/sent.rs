@@ -16,6 +16,7 @@
 //! Sub-module managing the events emitted by the blockchain module.
 
 use crate::*;
+use durs_common_tools::fatal_error;
 use durs_message::events::BlockchainEvent;
 use durs_module::ModuleEvent;
 
@@ -31,5 +32,5 @@ pub fn send_event(bc: &BlockchainModule, event: &BlockchainEvent) {
             event_type: module_event,
             event_content: DursEvent::BlockchainEvent(Box::new(event.clone())),
         }))
-        .unwrap_or_else(|_| panic!("Fail to send BlockchainEvent to router"));
+        .unwrap_or_else(|_| fatal_error!("Fail to send BlockchainEvent to router"));
 }

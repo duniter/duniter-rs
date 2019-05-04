@@ -206,7 +206,7 @@ fn get_chunks_set(dir: &Path) -> HashSet<usize> {
     let json_chunk_file_list_result = fs::read_dir(dir);
     if json_chunk_file_list_result.is_err() {
         error!("Fail to read dir json_files_path !");
-        panic!("Fail to read dir json_files_path !");
+        fatal_error!("Fail to read dir json_files_path !");
     }
 
     let mut chunks_set = HashSet::new();

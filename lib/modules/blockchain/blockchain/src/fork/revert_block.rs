@@ -76,7 +76,7 @@ pub fn revert_block<W: WebOfTrust>(
                     fatal_error!("revert_block(): tx {} not found !", tx_hash);
                 }
             }
-            TxDocOrTxHash::TxDoc(ref _dal_tx) => panic!("Try to revert not reduce block !"),
+            TxDocOrTxHash::TxDoc(ref _dal_tx) => fatal_error!("Try to revert not reduce block !"),
         })
         .collect();
 
@@ -122,7 +122,12 @@ pub fn revert_block<W: WebOfTrust>(
                     let result = db.add_link(source, target);
                     match result {
                         NewLinkResult::Ok(_) => {}
-                        _ => panic!("Fail to add_link {}->{} : {:?}", source.0, target.0, result),
+                        _ => fatal_error!(
+                            "Fail to add_link {}->{} : {:?}",
+                            source.0,
+                            target.0,
+                            result
+                        ),
                     }
                 })
                 .expect("Fail to write in WotDB");
@@ -144,9 +149,11 @@ pub fn revert_block<W: WebOfTrust>(
                 let result = db.rem_link(wot_node_from, wot_node_to);
                 match result {
                     RemLinkResult::Removed(_) => {}
-                    _ => panic!(
+                    _ => fatal_error!(
                         "Fail to rem_link {}->{} : {:?}",
-                        wot_node_from.0, wot_node_to.0, result
+                        wot_node_from.0,
+                        wot_node_to.0,
+                        result
                     ),
                 }
             })
