@@ -50,12 +50,12 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                         .expect("Fatal error : Fail to apply DBWriteRequest !");
                     for query in &wot_dbs_queries {
                         query
-                            .apply(&bc.wot_databases, &bc.currency_params)
+                            .apply(&blockstamp, &bc.currency_params, &bc.wot_databases)
                             .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
                     }
                     for query in &tx_dbs_queries {
                         query
-                            .apply(&bc.currency_databases)
+                            .apply(&blockstamp, &bc.currency_databases)
                             .expect("Fatal error : Fail to apply CurrencyDBsWriteRequest !");
                     }
                     save_blocks_dbs = true;

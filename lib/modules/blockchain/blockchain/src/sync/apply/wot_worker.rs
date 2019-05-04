@@ -37,8 +37,8 @@ pub fn execute(
         while let Ok(mess) = recv.recv() {
             all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
             match mess {
-                SyncJobsMess::WotsDBsWriteQuery(req, currency_params) => req
-                    .apply(&databases, &currency_params.deref())
+                SyncJobsMess::WotsDBsWriteQuery(blockstamp, currency_params, req) => req
+                    .apply(&blockstamp, &currency_params.deref(), &databases)
                     .expect("Fatal error : Fail to apply DBWriteRequest !"),
                 SyncJobsMess::End() => break,
                 _ => {}

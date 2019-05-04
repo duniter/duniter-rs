@@ -123,8 +123,9 @@ impl WotsDBsWriteQuery {
     /// Apply WotsDBsWriteQuery
     pub fn apply(
         &self,
-        databases: &WotsV10DBs,
+        _blockstamp: &Blockstamp,
         currency_params: &CurrencyParameters,
+        databases: &WotsV10DBs,
     ) -> Result<(), DALError> {
         match *self {
             WotsDBsWriteQuery::CreateIdentity(
@@ -284,13 +285,17 @@ pub enum CurrencyDBsWriteQuery {
 
 impl CurrencyDBsWriteQuery {
     /// Apply CurrencyDBsWriteQuery
-    pub fn apply(&self, databases: &CurrencyV10DBs) -> Result<(), DALError> {
+    pub fn apply(
+        &self,
+        blockstamp: &Blockstamp,
+        databases: &CurrencyV10DBs,
+    ) -> Result<(), DALError> {
         match *self {
             CurrencyDBsWriteQuery::WriteTx(ref tx_doc) => {
-                super::transaction::apply_and_write_tx(&databases, tx_doc.deref())?;
+                super::transaction::apply_and_write_tx(blockstamp, &databases, tx_doc.deref())?;
             }
             CurrencyDBsWriteQuery::RevertTx(ref dal_tx) => {
-                super::transaction::revert_tx(&databases, dal_tx.deref())?;
+                super::transaction::revert_tx(blockstamp, &databases, dal_tx.deref())?;
             }
             CurrencyDBsWriteQuery::CreateUD(ref du_amount, ref block_id, ref members) => {
                 super::dividend::create_du(

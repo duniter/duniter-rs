@@ -56,8 +56,8 @@ pub enum MessForSyncThread {
 /// Message for a job thread
 pub enum SyncJobsMess {
     BlocksDBsWriteQuery(BlocksDBsWriteQuery),
-    WotsDBsWriteQuery(WotsDBsWriteQuery, Box<CurrencyParameters>),
-    CurrencyDBsWriteQuery(CurrencyDBsWriteQuery),
+    WotsDBsWriteQuery(Blockstamp, Box<CurrencyParameters>, WotsDBsWriteQuery),
+    CurrencyDBsWriteQuery(Blockstamp, CurrencyDBsWriteQuery),
     End(),
 }
 
@@ -364,8 +364,9 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
                 }
                 sender_wot_thread
                     .send(SyncJobsMess::WotsDBsWriteQuery(
-                        req.clone(),
+                        current_blockstamp,
                         Box::new(currency_params),
+                        req.clone(),
                     ))
                     .expect(
                         "Fail to communicate with tx worker thread, please reset data & resync !",
@@ -374,7 +375,10 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
             // Send blocks and wot requests to wot worker thread
             for req in currency_db_reqs {
                 sender_tx_thread
-                    .send(SyncJobsMess::CurrencyDBsWriteQuery(req.clone()))
+                    .send(SyncJobsMess::CurrencyDBsWriteQuery(
+                        current_blockstamp,
+                        req.clone(),
+                    ))
                     .expect(
                         "Fail to communicate with tx worker thread, please reset data & resync !",
                     );

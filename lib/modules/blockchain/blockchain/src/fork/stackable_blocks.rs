@@ -40,18 +40,19 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                 ))) = check_and_apply_block(bc, stackable_block.block)
                 {
                     let new_current_block = bc_db_query.get_block_doc_copy();
+                    let blockstamp = new_current_block.blockstamp();
                     // Apply db requests
                     bc_db_query
                         .apply(&bc.blocks_databases.blockchain_db, &bc.forks_dbs, None)
                         .expect("Fatal error : Fail to apply DBWriteRequest !");
                     for query in &wot_dbs_queries {
                         query
-                            .apply(&bc.wot_databases, &bc.currency_params)
+                            .apply(&blockstamp, &bc.currency_params, &bc.wot_databases)
                             .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
                     }
                     for query in &tx_dbs_queries {
                         query
-                            .apply(&bc.currency_databases)
+                            .apply(&blockstamp, &bc.currency_databases)
                             .expect("Fatal error : Fail to apply CurrencyDBsWriteRequest !");
                     }
                     debug!("success to stackable_block({})", stackable_block_number);

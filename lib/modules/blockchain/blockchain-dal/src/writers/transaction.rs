@@ -44,7 +44,11 @@ pub struct DALTxV10 {
 }
 
 /// Apply transaction backwards
-pub fn revert_tx(dbs: &CurrencyV10DBs, dal_tx: &DALTxV10) -> Result<(), DALError> {
+pub fn revert_tx(
+    blockstamp: &Blockstamp,
+    dbs: &CurrencyV10DBs,
+    dal_tx: &DALTxV10,
+) -> Result<(), DALError> {
     let mut tx_doc = dal_tx.tx_doc.clone();
     let tx_hash = tx_doc.get_hash();
     let sources_destroyed = &dal_tx.sources_destroyed;
@@ -153,9 +157,13 @@ pub fn revert_tx(dbs: &CurrencyV10DBs, dal_tx: &DALTxV10) -> Result<(), DALError
             for (source_index, source_amount) in &recreated_sources {
                 if let SourceIndexV10::UTXO(utxo_index) = source_index {
                     // Get utxo
-                    let utxo = db
-                        .get(&utxo_index)
-                        .expect("ApplyBLockError : unknow UTXO in inputs !");
+                    let utxo = db.get(&utxo_index).unwrap_or_else(|| {
+                        fatal_error!(
+                            "ApplyBLockError {} : unknow UTXO in inputs : {:?} !",
+                            blockstamp,
+                            utxo_index
+                        )
+                    });
                     // Get utxo conditions(=address)
                     let conditions = &utxo.conditions.conditions;
                     // Calculate new balances datas for "conditions" address
@@ -238,6 +246,7 @@ pub fn revert_tx(dbs: &CurrencyV10DBs, dal_tx: &DALTxV10) -> Result<(), DALError
 
 /// Apply and write transaction in databases
 pub fn apply_and_write_tx(
+    blockstamp: &Blockstamp,
     dbs: &CurrencyV10DBs,
     tx_doc: &TransactionDocument,
 ) -> Result<(), DALError> {
@@ -272,7 +281,8 @@ pub fn apply_and_write_tx(
                     let utxo = db.get(&utxo_index).unwrap_or_else(|| {
                         debug!("apply_tx=\"{:#?}\"", tx_doc);
                         fatal_error!(
-                            "ApplyBLockError : unknow UTXO in inputs : {:?} !",
+                            "ApplyBLockError {} : unknow UTXO in inputs : {:?} !",
+                            blockstamp,
                             utxo_index
                         )
                     });

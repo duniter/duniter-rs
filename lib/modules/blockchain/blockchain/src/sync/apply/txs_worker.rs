@@ -33,10 +33,10 @@ pub fn execute(
         // Listen db requets
         let mut all_wait_duration = Duration::from_millis(0);
         let mut wait_begin = SystemTime::now();
-        while let Ok(SyncJobsMess::CurrencyDBsWriteQuery(req)) = recv.recv() {
+        while let Ok(SyncJobsMess::CurrencyDBsWriteQuery(blockstamp, req)) = recv.recv() {
             all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
             // Apply db request
-            req.apply(&databases)
+            req.apply(&blockstamp, &databases)
                 .expect("Fatal error : Fail to apply DBWriteRequest !");
             wait_begin = SystemTime::now();
         }
