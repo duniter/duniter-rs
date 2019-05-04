@@ -86,3 +86,7 @@ Please note we have a specific workflow, please follow it in all your interactio
 
 - You may merge the Merge Request in once you have the sign-off of two other developers. If you
   do not have permission to do that, you may request the second reviewer to merge it for you.
+
+## Detailed instructions
+
+See more detailed instructions [in the doc (en)](./doc/en/dev/conventions-git.md) (french also available [here](./doc/fr/developpeurs/conventions-git.md)).
