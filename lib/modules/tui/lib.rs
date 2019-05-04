@@ -36,6 +36,7 @@ extern crate serde_derive;
 extern crate structopt;
 
 use duniter_network::events::NetworkEvent;
+use durs_common_tools::fatal_error;
 use durs_conf::DuRsConf;
 use durs_message::events::*;
 use durs_message::*;
@@ -637,7 +638,7 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
                 },
                 Err(e) => match e {
                     mpsc::RecvTimeoutError::Disconnected => {
-                        panic!("Disconnected tui module !");
+                        fatal_error!("Disconnected tui module !");
                     }
                     mpsc::RecvTimeoutError::Timeout => {}
                 },

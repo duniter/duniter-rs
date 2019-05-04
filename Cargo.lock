@@ -485,6 +485,7 @@ dependencies = [
  "dubp-documents 0.12.0",
  "duniter-network 0.1.0-a0.1",
  "dup-crypto 0.6.0",
+ "durs-common-tools 0.1.0",
  "durs-conf 0.1.0-a0.1",
  "durs-message 0.1.0-a0.1",
  "durs-module 0.1.0-a0.1",

@@ -13,6 +13,7 @@ path = "lib.rs"
 durs-conf = { path = "../../core/conf" }
 dup-crypto = { path = "../../tools/crypto" }
 dubp-documents= { path = "../../tools/documents" }
+durs-common-tools = { path = "../../tools/common-tools" }
 durs-message =  { path = "../../core/message" }
 durs-module = { path = "../../core/module" }
 duniter-network = { path = "../../core/network" }
