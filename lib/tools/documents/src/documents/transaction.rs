@@ -16,6 +16,7 @@
 //! Wrappers around Transaction documents.
 
 use dup_crypto::hashs::*;
+use durs_common_tools::fatal_error;
 use pest::iterators::Pair;
 use pest::iterators::Pairs;
 use pest::Parser;
@@ -101,7 +102,7 @@ impl TransactionInput {
                     TxIndex(inner_rules.next().unwrap().as_str().parse().unwrap()),
                 )
             }
-            _ => panic!("unexpected rule: {:?}", tx_input_type_pair.as_rule()), // Grammar ensures that we never reach this line
+            _ => fatal_error!("unexpected rule: {:?}", tx_input_type_pair.as_rule()), // Grammar ensures that we never reach this line
         }
     }
 }
@@ -219,7 +220,7 @@ impl TransactionInputUnlocks {
                 Rule::unlock_xhx => unlock_conds.push(TransactionUnlockProof::Xhx(String::from(
                     unlock_field.into_inner().next().unwrap().as_str(),
                 ))),
-                _ => panic!("unexpected rule: {:?}", unlock_field.as_rule()), // Grammar ensures that we never reach this line
+                _ => fatal_error!("unexpected rule: {:?}", unlock_field.as_rule()), // Grammar ensures that we never reach this line
             }
         }
         TransactionInputUnlocks {
@@ -334,7 +335,7 @@ macro_rules! utxo_conds_wrap_op_chain {
                 ));
                 UTXOConditionsGroup::$fn_name(conds_subgroups)
             } else {
-                panic!(
+                fatal_error!(
                     "Grammar should ensure that and chain contains at least two conditions subgroups !"
                 )
             }
@@ -385,7 +386,7 @@ impl UTXOConditionsGroup {
                     pair.into_inner().next().unwrap().as_str().parse().unwrap(),
                 ))
             }
-            _ => panic!("unexpected rule: {:?}", pair.as_rule()), // Grammar ensures that we never reach this line
+            _ => fatal_error!("unexpected rule: {:?}", pair.as_rule()), // Grammar ensures that we never reach this line
         }
     }
 }
@@ -575,7 +576,7 @@ impl TransactionDocument {
         let mut hashing_text = if let Some(ref text) = self.text {
             text.clone()
         } else {
-            panic!("Try to compute_hash of tx with None text !")
+            fatal_error!("Try to compute_hash of tx with None text !")
         };
         hashing_text.push_str(&self.signatures[0].to_string());
         hashing_text.push_str("\n");
@@ -702,7 +703,7 @@ impl TextDocument for TransactionDocument {
         if let Some(ref text) = self.text {
             text
         } else {
-            panic!("Try to get text of tx whti None text !")
+            fatal_error!("Try to get text of tx whti None text !")
         }
     }
 
@@ -881,7 +882,7 @@ impl TextDocumentParser<Rule> for TransactionDocumentParser {
                     ));
                 }
                 Rule::EOI => (),
-                _ => panic!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
+                _ => fatal_error!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
             }
         }
         TransactionDocument {

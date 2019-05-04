@@ -17,6 +17,7 @@
 
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
+use durs_common_tools::fatal_error;
 use std::ops::Deref;
 
 use crate::blockstamp::Blockstamp;
@@ -214,7 +215,7 @@ impl TxDocOrTxHash {
         if let TxDocOrTxHash::TxDoc(ref tx_doc) = self {
             tx_doc.deref().clone()
         } else {
-            panic!("Try to unwrap_doc() in a TxHash() variant of TxDocOrTxHash !")
+            fatal_error!("Try to unwrap_doc() in a TxHash() variant of TxDocOrTxHash !")
         }
     }
 }
@@ -558,7 +559,9 @@ impl TextDocument for BlockDocument {
     type CompactTextDocument_ = BlockDocument;
 
     fn as_text(&self) -> &str {
-        panic!();
+        fatal_error!(
+            "Dev error: function not implemented. Please use to_compact_document() instead"
+        );
     }
 
     fn to_compact_document(&self) -> Self::CompactTextDocument_ {

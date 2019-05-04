@@ -15,6 +15,7 @@
 
 //! Wrappers around Identity documents.
 
+use durs_common_tools::fatal_error;
 use pest::Parser;
 
 use crate::documents::*;
@@ -146,7 +147,7 @@ impl TextDocument for IdentityDocument {
         if let Some(ref text) = self.text {
             text
         } else {
-            panic!("Try to get text of reduce identity !")
+            fatal_error!("Try to get text of reduce identity !")
         }
     }
 
@@ -272,7 +273,7 @@ impl TextDocumentParser<Rule> for IdentityDocumentParser {
                 }
                 Rule::ed25519_sig => sig_str = field.as_str(),
                 Rule::EOI => (),
-                _ => panic!("unexpected rule"), // Grammar ensures that we never reach this line
+                _ => fatal_error!("unexpected rule"), // Grammar ensures that we never reach this line
             }
         }
         IdentityDocument {

@@ -24,6 +24,7 @@ use crate::documents::transaction::*;
 use crate::Rule;
 use crate::*;
 
+use durs_common_tools::fatal_error;
 use pest::iterators::Pair;
 use pest::Parser;
 
@@ -115,7 +116,7 @@ impl TextDocumentParser<Rule> for DUBPDocument {
 
         match doc_vx_pair.as_rule() {
             Rule::document_v10 => DUBPDocument::from_pest_pair_v10(doc_vx_pair),
-            _ => panic!("unexpected rule: {:?}", doc_vx_pair.as_rule()), // Grammar ensures that we never reach this line
+            _ => fatal_error!("unexpected rule: {:?}", doc_vx_pair.as_rule()), // Grammar ensures that we never reach this line
         }
     }
 }
@@ -140,7 +141,7 @@ impl DUBPDocument {
             Rule::tx_v10 => DUBPDocument::Transaction(Box::new(
                 transaction::TransactionDocumentParser::from_pest_pair(doc_type_v10_pair),
             )),
-            _ => panic!("unexpected rule: {:?}", doc_type_v10_pair.as_rule()), // Grammar ensures that we never reach this line
+            _ => fatal_error!("unexpected rule: {:?}", doc_type_v10_pair.as_rule()), // Grammar ensures that we never reach this line
         }
     }
 }

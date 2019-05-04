@@ -16,6 +16,7 @@
 //! Wrappers around Certification documents.
 
 use dup_crypto::keys::*;
+use durs_common_tools::fatal_error;
 use pest::Parser;
 
 use crate::blockstamp::Blockstamp;
@@ -276,7 +277,7 @@ impl TextDocumentParser<Rule> for CertificationDocumentParser {
                     ))),
                 }
             }
-            Err(pest_error) => panic!("{}", pest_error), //Err(TextDocumentParseError::PestError()),
+            Err(pest_error) => fatal_error!("{}", pest_error), //Err(TextDocumentParseError::PestError()),
         }
     }
     fn from_pest_pair(pair: Pair<Rule>) -> Self::DocumentType {
@@ -311,7 +312,7 @@ impl TextDocumentParser<Rule> for CertificationDocumentParser {
                     ));
                 }
                 Rule::EOI => (),
-                _ => panic!("unexpected rule"), // Grammar ensures that we never reach this line
+                _ => fatal_error!("unexpected rule"), // Grammar ensures that we never reach this line
             }
         }
         CertificationDocument {

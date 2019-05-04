@@ -16,6 +16,7 @@
 //! Wrappers around Membership documents.
 
 use dup_crypto::keys::*;
+use durs_common_tools::fatal_error;
 use pest::Parser;
 
 use crate::blockstamp::Blockstamp;
@@ -196,7 +197,7 @@ impl TextDocument for MembershipDocument {
         if let Some(ref text) = self.text {
             text
         } else {
-            panic!("Try to get text of reduce membership !")
+            fatal_error!("Try to get text of reduce membership !")
         }
     }
 
@@ -335,7 +336,7 @@ impl TextDocumentParser<Rule> for MembershipDocumentParser {
                 }
                 Rule::ed25519_sig => sig_str = field.as_str(),
                 Rule::EOI => (),
-                _ => panic!("unexpected rule"), // Grammar ensures that we never reach this line
+                _ => fatal_error!("unexpected rule"), // Grammar ensures that we never reach this line
             }
         }
         MembershipDocument {

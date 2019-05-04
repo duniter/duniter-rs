@@ -16,6 +16,7 @@
 //! Wrappers around Revocation documents.
 
 use dup_crypto::keys::*;
+use durs_common_tools::fatal_error;
 use pest::Parser;
 
 use crate::blockstamp::Blockstamp;
@@ -273,7 +274,7 @@ impl TextDocumentParser<Rule> for RevocationDocumentParser {
                     ));
                 }
                 Rule::EOI => (),
-                _ => panic!("unexpected rule"), // Grammar ensures that we never reach this line
+                _ => fatal_error!("unexpected rule"), // Grammar ensures that we never reach this line
             }
         }
         RevocationDocument {
