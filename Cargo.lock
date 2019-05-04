@@ -506,6 +506,8 @@ version = "0.8.0-a0.9"
 dependencies = [
  "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "durs-common-tools 0.1.0",
+ "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",

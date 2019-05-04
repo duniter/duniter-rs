@@ -16,6 +16,7 @@
 //! Provide a trait and implementation to read and write `WebOfTrust` to disk.
 
 use crate::data::NodeId;
+use durs_common_tools::fatal_error;
 use std::fs;
 use std::fs::File;
 use std::io;
@@ -122,7 +123,7 @@ impl FileFormater for BinaryFileFormater {
             + blockstamp_size as usize
             + 4;
         if count_total_bytes_read != file_size as usize {
-            panic!("not read all wot file !");
+            fatal_error!("not read all wot file !");
         }
         // Apply nodes state
         let mut count_remaining_nodes = nodes_count;
@@ -168,7 +169,7 @@ impl FileFormater for BinaryFileFormater {
             }
         }
         if count_bytes % 3 != 0 {
-            panic!("not read all wot file !");
+            fatal_error!("not read all wot file !");
         }
         Ok((wot, file_pointing_to_blockstamp))
     }
