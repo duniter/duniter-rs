@@ -1,5 +1,21 @@
 # DURS' git conventions
 
+## TL;DR summary of this page, workflow instructions
+
+The summary gives an overview of the rules described below. Reading it will help you to dive into the details.
+
+- branch created from an issue must have your pseudo as prefix
+- manually created branches must be named according to the template `pseudo/type/description`
+- draft work must be prefixed by "WIP" (work in progress)
+- the naming of final commits must comply with the template `[type] crate: action subject`
+- one should communicate with developers through dedicated spaces
+- integrating a contribution can only be done via a rebase (merge is fordbidden) and since the following critera are fullfilled
+    - branch up to date with dev branch
+    - idiomatic code formatting, automated tests passed successfully
+    - clean commit history, understandable and concise
+    - contribution approved by a reviewer
+
+
 ## Branch naming
 
 ### Branch created by Gitlab
@@ -42,6 +58,8 @@ For example, we rename the trait `Foo` to `Fii` in the `durs-crate` crate:
 
     [ref] mycrate: rename Foo -> Fii
 
+Commits must be lowercase.
+
 ### Commit types
 
 * `build`: Changes in the scripts of build, packaging or publication of releases.
@@ -56,6 +74,8 @@ For example, we rename the trait `Foo` to `Fii` in the `durs-crate` crate:
 * `style` : Style modification (usually `fmt` and `clippy`).
 * `tests` : Changes in tests or new tests.
 
+The commit name hase to be meaningful in the context of commit history reread. It should not make reference to a specific MR or discussion.
+Among other, commit history is used in changlogs and to follow the project progress, that's why it has to be self-explanatory.
 If you have a new need, please contact the main developers to add a type together.
 
 
@@ -77,6 +97,7 @@ Every time the `dev` branch is updated, you must rebase each of your working bra
 
 4. When you don't have any conflict anymore after `git rebase --continue`, then the rebase succeeded. Then rebase a remaning branch.
 
+
 ## When to push
 
 Ideally, you should push when you are about to shut down your computer, so about once a day.
@@ -88,12 +109,34 @@ You must prefix your commit with `wip:` when it is a work in progress.
 Pushing is no big deal and prevents you from loosing work in case of
 any problem with your material.
 
+
+## Before requesting proofreading of your merge request
+
+After complying with the above criteria in your commits, you should check that your branch is up to date with the target branch (`dev` in this example). As this branch is moving forward frequently, it is possible that new commits may have occurred while you were working on your branch (named YOUR_BRANCH, here). If this is the case or in case of doubt, to update your branch with respect to `dev`, do the following:
+
+  git checkout dev          # switch to dev branch
+  git pull                  # updates the remote branch based on remote
+  git checkout YOU_BRANCH   # switch back to your branch
+  git rebase dev            # rebase you work on dev branch
+
+In case of conflict during rebase that you can not solve, contact a lead developer telling him the hash of the commit on which YOUR_BRANCH is currently based so he can reproduce the rebase and see the conflicts. While waiting for his answer, you can cancel the rebase and work on YOUR_BRANCH without updating:
+
+  git rebase --abort
+
+It is better to take your time before integrating a new contribution because the history of the dev branch cannot be modified: it is a protected branch. Each commit on this branch remains there *ad vitam aeternam* that is why we make sure to keep a clear and understandable commit history.
+
+## Discussion in a merge request
+
+On Gitlab, a discussion is opened for each merge request. It will allow you to discuss the changes you have made. Feel free to identify someone by writing @pseudo so that they are notified of your request. Don't be impatient, the review of your contribution may take more or less time depending on its content!
+
+The general discussion is used to comment on the merge request as a whole, for example to tag a developer for a proofreading request. When it comes to discussing a specific change in the code, you should go to the "Changes" tab of the merge request and comment under the code extract involved. This makes it easier to break down the resolution of problems raised by the merge request via the "comment resolution" feature. Each segment can be marked as resolved, but only the reviewer is allowed to do so!
+
 ## How to merge
 
 When you finished developing, run `fmt` and `clippy` and run all tests:
 
-    cargo +nightly fmt
-    cargo +nightly clippy
+    cargo fmt
+    cargo clippy
     cargo test --all
 
 Then commit everything.
