@@ -30,6 +30,8 @@ extern crate pest_derive;
 #[cfg(test)]
 #[macro_use]
 extern crate pretty_assertions;
+#[macro_use]
+extern crate log;
 
 pub mod network_endpoint;
 pub mod network_head;
@@ -44,6 +46,7 @@ use crate::network_peer::PeerCardV11;
 use dubp_documents::{TextDocumentParseError, TextDocumentParser};
 use dup_crypto::hashs::*;
 use dup_crypto::keys::*;
+use durs_common_tools::fatal_error;
 use pest::iterators::Pair;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
@@ -82,7 +85,7 @@ impl TextDocumentParser<Rule> for NetworkDocument {
             Rule::head_v3 => NetworkDocument::Head(NetworkHead::V3(Box::new(
                 NetworkHeadV3::from_pest_pair(pair),
             ))),
-            _ => panic!("unexpected rule: {:?}", pair.as_rule()), // Grammar ensures that we never reach this line
+            _ => fatal_error!("unexpected rule: {:?}", pair.as_rule()), // Grammar ensures that we never reach this line
         }
     }
 }

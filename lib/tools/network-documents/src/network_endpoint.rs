@@ -147,7 +147,7 @@ impl EndpointV1 {
                 Rule::host => host_str = ep_pair.as_str(),
                 Rule::port => port = ep_pair.as_str().parse().unwrap(),
                 Rule::path_inner => path = Some(String::from(ep_pair.as_str())),
-                _ => panic!("unexpected rule: {:?}", ep_pair.as_rule()), // Grammar ensures that we never reach this line
+                _ => fatal_error!("unexpected rule: {:?}", ep_pair.as_rule()), // Grammar ensures that we never reach this line
             }
         }
         EndpointV1 {
@@ -388,7 +388,7 @@ impl EndpointV2 {
                 Rule::ip4_inner => ip_v4 = Some(Ipv4Addr::from_str(field.as_str()).unwrap()),
                 Rule::ip6_inner => ip_v6 = Some(Ipv6Addr::from_str(field.as_str()).unwrap()),
                 Rule::path_inner => path = Some(String::from(field.as_str())),
-                _ => panic!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
+                _ => fatal_error!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
             }
         }
         if network_features.is_empty() {
@@ -468,7 +468,7 @@ impl EndpointEnum {
     pub fn raw(&self) -> String {
         match *self {
             EndpointEnum::V1(ref ep) => ep.raw_endpoint.clone(),
-            _ => panic!("Endpoint version is not supported !"),
+            _ => fatal_error!("Endpoint version is not supported !"),
         }
     }
     /// Accessors providing endpoint accessibility status

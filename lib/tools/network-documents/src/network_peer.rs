@@ -172,7 +172,7 @@ impl TextDocumentParser<Rule> for PeerCardV11 {
                         ed25519::Signature::from_base64(field.as_str()).unwrap(),
                     ))
                 }
-                _ => panic!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
+                _ => fatal_error!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
             }
         }
         let endpoints_len = endpoints.len();
@@ -252,7 +252,6 @@ impl PeerCard {
         match *self {
             PeerCard::V10(ref peer_v10) => peer_v10.blockstamp,
             PeerCard::V11(ref peer_v11) => peer_v11.blockstamp,
-            //_ => panic!("Peer version is not supported !"),
         }
     }
     /// Get peer card issuer
@@ -260,7 +259,6 @@ impl PeerCard {
         match *self {
             PeerCard::V10(ref peer_v10) => peer_v10.issuer,
             PeerCard::V11(ref peer_v11) => peer_v11.issuer,
-            //_ => panic!("Peer version is not supported !"),
         }
     }
 }

@@ -12,6 +12,8 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
+log = "0.4.*"
+durs-common-tools = { path = "../common-tools" }
 base58 = "0.1.*"
 dup-crypto = { path = "../crypto" }
 dubp-documents= { path = "../documents" }

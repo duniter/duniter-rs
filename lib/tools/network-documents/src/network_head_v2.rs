@@ -19,6 +19,7 @@ use crate::NodeId;
 use dubp_documents::blockstamp::*;
 use dup_crypto::bases::BaseConvertionError;
 use dup_crypto::keys::*;
+use durs_common_tools::fatal_error;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::num::ParseIntError;
@@ -202,28 +203,28 @@ impl NetworkHeadMessage {
     pub fn to_human_string(&self, max_len: usize, uid: Option<String>) -> String {
         match *self {
             NetworkHeadMessage::V2(ref mess_v2) => mess_v2.deref().to_human_string(max_len, uid),
-            _ => panic!("NetworkHead version not supported !"),
+            _ => fatal_error!("NetworkHead version not supported !"),
         }
     }
     /// Get head blockcstamp
     pub fn blockstamp(&self) -> Blockstamp {
         match *self {
             NetworkHeadMessage::V2(ref head_message_v2) => head_message_v2.blockstamp,
-            _ => panic!("This HEAD version is not supported !"),
+            _ => fatal_error!("This HEAD version is not supported !"),
         }
     }
     /// Get head node id
     pub fn node_uuid(&self) -> NodeId {
         match *self {
             NetworkHeadMessage::V2(ref head_message_v2) => head_message_v2.node_uuid,
-            _ => panic!("This HEAD version is not supported !"),
+            _ => fatal_error!("This HEAD version is not supported !"),
         }
     }
     /// Get head issuer public key
     fn _pubkey(&self) -> PubKey {
         match *self {
             NetworkHeadMessage::V2(ref head_message_v2) => head_message_v2.pubkey,
-            _ => panic!("This HEAD version is not supported !"),
+            _ => fatal_error!("This HEAD version is not supported !"),
         }
     }
 }
@@ -253,7 +254,7 @@ impl ToString for NetworkHeadMessageV2 {
                 self.free_member_room.unwrap(),
                 self.free_mirror_room.unwrap()
             ),
-            _ => panic!("NetworkHeadMessage is wrongly parsed !"),
+            _ => fatal_error!("NetworkHeadMessage is wrongly parsed !"),
         }
     }
 }
@@ -262,7 +263,7 @@ impl ToString for NetworkHeadMessage {
     fn to_string(&self) -> String {
         match *self {
             NetworkHeadMessage::V2(ref head_message) => head_message.to_string(),
-            _ => panic!("This HEADMessage version is not supported !"),
+            _ => fatal_error!("This HEADMessage version is not supported !"),
         }
     }
 }

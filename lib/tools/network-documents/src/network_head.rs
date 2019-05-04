@@ -21,6 +21,7 @@ use crate::{NodeFullId, NodeId};
 use dubp_documents::blockstamp::*;
 use dup_crypto::bases::BaseConvertionError;
 use dup_crypto::keys::*;
+use durs_common_tools::fatal_error;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::HashMap;
@@ -41,7 +42,7 @@ impl ToString for NetworkHead {
     fn to_string(&self) -> String {
         match *self {
             NetworkHead::V2(ref head_v2) => head_v2.deref().to_string(),
-            _ => panic!("NetworkHead version not supported !"),
+            _ => fatal_error!("NetworkHead version not supported !"),
         }
     }
 }
@@ -96,14 +97,14 @@ impl NetworkHead {
     pub fn version(&self) -> u32 {
         match *self {
             NetworkHead::V2(_) => 2,
-            _ => panic!("This HEAD version is not supported !"),
+            _ => fatal_error!("This HEAD version is not supported !"),
         }
     }
     /// Get HEAD blockstamp
     pub fn blockstamp(&self) -> Blockstamp {
         match *self {
             NetworkHead::V2(ref head_v2) => head_v2.message_v2.blockstamp(),
-            _ => panic!("This HEAD version is not supported !"),
+            _ => fatal_error!("This HEAD version is not supported !"),
         }
     }
     /// Get pubkey of head issuer
@@ -111,30 +112,30 @@ impl NetworkHead {
         match *self {
             NetworkHead::V2(ref head_v2) => match head_v2.message_v2 {
                 NetworkHeadMessage::V2(ref head_message_v2) => head_message_v2.pubkey,
-                _ => panic!("This HEAD message version is not supported !"),
+                _ => fatal_error!("This HEAD message version is not supported !"),
             },
-            _ => panic!("This HEAD version is not supported !"),
+            _ => fatal_error!("This HEAD version is not supported !"),
         }
     }
     /// Get uid of head issuer
     pub fn uid(&self) -> Option<String> {
         match *self {
             NetworkHead::V2(ref head_v2) => head_v2.uid(),
-            _ => panic!("This HEAD version is not supported !"),
+            _ => fatal_error!("This HEAD version is not supported !"),
         }
     }
     /// Change uid of head issuer
     pub fn set_uid(&mut self, uid: &str) {
         match *self {
             NetworkHead::V2(ref mut head_v2) => head_v2.uid = Some(String::from(uid)),
-            _ => panic!("This HEAD version is not supported !"),
+            _ => fatal_error!("This HEAD version is not supported !"),
         }
     }
     /// return the HEAD Step
     pub fn step(&self) -> u32 {
         match *self {
             NetworkHead::V2(ref head_v2) => head_v2.step,
-            _ => panic!("This HEAD version is not supported !"),
+            _ => fatal_error!("This HEAD version is not supported !"),
         }
     }
     /// Checks the validity of all head signatures
@@ -147,14 +148,14 @@ impl NetworkHead {
                         .pubkey()
                         .verify(head_v2.message_v2.to_string().as_bytes(), &head_v2.sig_v2)
             }
-            _ => panic!("This HEAD version is not supported !"),
+            _ => fatal_error!("This HEAD version is not supported !"),
         }
     }
     /// Returns issuer node id
     pub fn node_uuid(&self) -> NodeId {
         match *self {
             NetworkHead::V2(ref head_v2) => head_v2.message_v2.node_uuid(),
-            _ => panic!("This HEAD version is not supported !"),
+            _ => fatal_error!("This HEAD version is not supported !"),
         }
     }
     /// Returns issuer node full identifier
@@ -249,7 +250,7 @@ impl NetworkHead {
     pub fn to_human_string(&self, max_len: usize) -> String {
         match *self {
             NetworkHead::V2(ref head_v2) => head_v2.deref().to_human_string(max_len),
-            _ => panic!("NetworkHead version not supported !"),
+            _ => fatal_error!("NetworkHead version not supported !"),
         }
     }
 }

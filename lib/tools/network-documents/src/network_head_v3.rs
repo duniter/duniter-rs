@@ -162,7 +162,7 @@ impl TextDocumentParser<Rule> for NetworkHeadV3 {
                     ))
                 }
                 Rule::step => step = field.as_str().parse().unwrap(),
-                _ => panic!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
+                _ => fatal_error!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
             }
         }
         NetworkHeadV3 {
