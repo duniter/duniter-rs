@@ -24,7 +24,7 @@ use durs_blockchain_dal::entities::sources::SourceAmount;
 use durs_blockchain_dal::writers::requests::*;
 use durs_blockchain_dal::BinDB;
 use durs_common_tools::fatal_error;
-use durs_wot::data::{NewLinkResult, RemLinkResult};
+use durs_wot::data::NewLinkResult;
 use durs_wot::{NodeId, WebOfTrust};
 use std::collections::{HashMap, HashSet};
 
@@ -186,16 +186,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
             }
             wot_db
                 .write(|db| {
-                    let result = db.rem_link(*source, *target);
-                    match result {
-                        RemLinkResult::Removed(_) => {}
-                        _ => fatal_error!(
-                            "Fail to rem_link {}->{} : {:?}",
-                            source.0,
-                            target.0,
-                            result
-                        ),
-                    }
+                    let _ = db.rem_link(*source, *target);
                 })
                 .expect("Fail to write in WotDB");
         }
