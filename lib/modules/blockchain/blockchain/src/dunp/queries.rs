@@ -16,10 +16,10 @@
 //! Sub-module that sends requests to the inter-node network layer.
 
 use crate::*;
-use duniter_network::requests::OldNetworkRequest;
 use durs_common_tools::fatal_error;
 use durs_message::*;
 use durs_module::ModuleReqId;
+use durs_network::requests::OldNetworkRequest;
 
 /// Send network request
 pub fn request_network(

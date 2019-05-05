@@ -34,12 +34,12 @@ extern crate serde_derive;
 #[macro_use]
 extern crate structopt;
 
-use duniter_network::events::NetworkEvent;
 use durs_common_tools::fatal_error;
 use durs_conf::DuRsConf;
 use durs_message::events::*;
 use durs_message::*;
 use durs_module::*;
+use durs_network::events::NetworkEvent;
 use std::ops::Deref;
 use std::sync::mpsc;
 use std::thread;

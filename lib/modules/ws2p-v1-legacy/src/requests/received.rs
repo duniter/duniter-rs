@@ -18,8 +18,8 @@
 use crate::ws2p_db::DbEndpoint;
 use crate::ws_connections::states::WS2PConnectionState;
 use crate::WS2PModule;
-use duniter_network::requests::OldNetworkRequest;
 use durs_message::requests::DursReqContent;
+use durs_network::requests::OldNetworkRequest;
 
 pub fn receive_req(ws2p_module: &mut WS2PModule, req_content: &DursReqContent) {
     if let DursReqContent::OldNetworkRequest(ref old_net_request) = *req_content {

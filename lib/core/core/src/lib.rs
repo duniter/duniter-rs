@@ -42,8 +42,6 @@ mod router;
 use crate::commands::*;
 use crate::constants::DEFAULT_USER_PROFILE;
 use crate::errors::DursCoreError;
-use duniter_network::cli::sync::*;
-use duniter_network::NetworkModule;
 use durs_blockchain::{BlockchainModule, DBExQuery};
 use durs_common_tools::fatal_error;
 pub use durs_conf::{
@@ -51,6 +49,8 @@ pub use durs_conf::{
 };
 use durs_message::*;
 use durs_module::*;
+use durs_network::cli::sync::*;
+use durs_network::NetworkModule;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::mpsc;

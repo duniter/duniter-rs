@@ -17,7 +17,7 @@ use crate::*;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::documents::DUBPDocument;
 use dubp_documents::Blockstamp;
-use duniter_network::events::NetworkEvent;
+use durs_network::events::NetworkEvent;
 
 /// The DURS event message.
 #[derive(Debug, Clone)]

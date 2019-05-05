@@ -24,7 +24,7 @@ use durs_network_documents::network_endpoint::EndpointEnum;
 use durs_network_documents::NodeFullId;
 use ws::connect;
 use ws::deflate::DeflateBuilder;
-//use duniter_network::*;
+//use durs_network::*;
 use durs_ws2p_messages::v2::connect::WS2Pv2ConnectType;
 use std::sync::mpsc;
 

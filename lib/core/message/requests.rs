@@ -15,10 +15,10 @@
 
 use crate::*;
 use dubp_documents::BlockNumber;
-use duniter_network::requests::OldNetworkRequest;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_blockchain_dal::filters::identities::IdentitiesFilter;
+use durs_network::requests::OldNetworkRequest;
 
 #[derive(Debug, Clone)]
 /// Modules request content

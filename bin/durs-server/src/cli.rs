@@ -15,7 +15,6 @@
 
 //! Command line options for classic Durs nodes (no specialization).
 
-use duniter_network::cli::sync::SyncOpt;
 use durs_core::commands::dbex::DbExOpt;
 use durs_core::commands::keys::KeysOpt;
 use durs_core::commands::modules::{DisableOpt, EnableOpt, ListModulesOpt};
@@ -26,6 +25,7 @@ use durs_core::commands::{
 };
 use durs_core::errors::DursCoreError;
 use durs_core::DursCore;
+use durs_network::cli::sync::SyncOpt;
 use durs_ws2p_v1_legacy::{WS2PModule, WS2POpt};
 use log::Level;
 use std::path::PathBuf;

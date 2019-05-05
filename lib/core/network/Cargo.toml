@@ -1,5 +1,5 @@
 [package]
-name = "duniter-network"
+name = "durs-network"
 version = "0.1.0-a0.1"
 authors = ["librelois <elois@duniter.org>"]
 description = "Network model for the Durs project."

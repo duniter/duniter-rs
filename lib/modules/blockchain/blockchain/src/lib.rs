@@ -56,12 +56,6 @@ use crate::dubp::*;
 use crate::fork::*;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::*;
-use duniter_network::{
-    cli::sync::SyncOpt,
-    documents::BlockchainDocument,
-    events::NetworkEvent,
-    requests::{NetworkResponse, OldNetworkRequest},
-};
 use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::currency_params::CurrencyParameters;
 use durs_blockchain_dal::*;
@@ -71,6 +65,12 @@ use durs_message::requests::*;
 use durs_message::responses::*;
 use durs_message::*;
 use durs_module::*;
+use durs_network::{
+    cli::sync::SyncOpt,
+    documents::BlockchainDocument,
+    events::NetworkEvent,
+    requests::{NetworkResponse, OldNetworkRequest},
+};
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::operations::distance::RustyDistanceCalculator;
 use durs_wot::NodeId;

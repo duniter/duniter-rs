@@ -22,7 +22,7 @@ use crate::controllers::*;
 use crate::services::*;
 use ws::deflate::DeflateBuilder;
 use ws::listen;
-//use duniter_network::*;
+//use durs_network::*;
 use durs_ws2p_messages::v2::connect::WS2Pv2ConnectType;
 use std::sync::mpsc;
 

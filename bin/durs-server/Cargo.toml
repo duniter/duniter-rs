@@ -12,7 +12,7 @@ categories = ["command-line-utilities", "network-programming"]
 edition = "2018"
 
 [dependencies]
-duniter-network = { path = "../../lib/core/network" }
+durs-network = { path = "../../lib/core/network" }
 durs-core = { path = "../../lib/core/core" }
 durs-module = { path = "../../lib/core/module" }
 #durs-skeleton = { path = "../../lib/modules/skeleton" }

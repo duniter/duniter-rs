@@ -16,7 +16,7 @@
 //! Sub-module managing the inter-modules requests sent.
 
 use crate::*;
-use duniter_network::requests::OldNetworkRequest;
+use durs_network::requests::OldNetworkRequest;
 
 pub fn request_network_consensus(bc: &mut BlockchainModule) {
     let req = OldNetworkRequest::GetConsensus(ModuleReqFullId(

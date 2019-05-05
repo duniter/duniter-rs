@@ -13,7 +13,7 @@ path = "lib.rs"
 dup-crypto = { path = "../../tools/crypto" }
 dubp-documents= { path = "../../tools/documents" }
 durs-module = { path = "../module" }
-duniter-network = { path = "../network" }
+durs-network = { path = "../network" }
 durs-blockchain-dal = { path = "../../modules/blockchain/blockchain-dal" }
 durs-network-documents = { path = "../../tools/network-documents" }
 serde = "1.0.*"

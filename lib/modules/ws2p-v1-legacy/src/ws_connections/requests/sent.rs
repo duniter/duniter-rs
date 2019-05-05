@@ -16,8 +16,8 @@
 //! Sub-module managing the WS2Pv1 requests sent.
 
 use crate::WS2PModule;
-use duniter_network::requests::OldNetworkRequest;
 use durs_common_tools::fatal_error;
+use durs_network::requests::OldNetworkRequest;
 use durs_network_documents::NodeFullId;
 use std::time::SystemTime;
 use ws::Message;

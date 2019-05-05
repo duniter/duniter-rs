@@ -16,7 +16,7 @@ dubp-documents= { path = "../../tools/documents" }
 durs-common-tools = { path = "../../tools/common-tools" }
 durs-message =  { path = "../../core/message" }
 durs-module = { path = "../../core/module" }
-duniter-network = { path = "../../core/network" }
+durs-network = { path = "../../core/network" }
 durs-network-documents = { path = "../../tools/network-documents" }
 log = "0.4.*"
 serde = "1.0.*"

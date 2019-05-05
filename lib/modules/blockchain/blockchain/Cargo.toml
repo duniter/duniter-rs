@@ -19,7 +19,7 @@ durs-common-tools = { path = "../../../tools/common-tools" }
 durs-network-documents = { path = "../../../tools/network-documents" }
 durs-message =  { path = "../../../core/message" }
 durs-module = { path = "../../../core/module" }
-duniter-network = { path = "../../../core/network" }
+durs-network = { path = "../../../core/network" }
 durs-wot = { path = "../../../tools/wot" }
 failure = "0.1.5"
 json-pest-parser = { path = "../../../tools/json-pest-parser" }
