@@ -494,6 +494,12 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
                 let ws2p_enpoints = ws2p_enpoints
                     .into_iter()
                     .filter(|(_, dal_ep)| cfg!(feature = "ssl") || dal_ep.ep.port != 443)
+                    .map(|(node_full_id, mut dal_ep)| {
+                        if dal_ep.state == WS2PConnectionState::Established {
+                            dal_ep.state = WS2PConnectionState::Close;
+                        }
+                        (node_full_id, dal_ep)
+                    })
                     .collect::<Vec<(NodeFullId, DbEndpoint)>>();
                 count = ws2p_enpoints.len();
                 ws2p_module.ws2p_endpoints.extend(ws2p_enpoints);
