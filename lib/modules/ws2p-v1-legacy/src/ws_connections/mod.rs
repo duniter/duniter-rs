@@ -28,6 +28,7 @@ use durs_network::documents::BlockchainDocument;
 use durs_network_documents::network_endpoint::EndpointV1;
 use rand::Rng;
 use states::WS2PConnectionState;
+use std::cmp::Ordering;
 use std::collections::HashSet;
 #[allow(deprecated)]
 use ws::Sender;
@@ -64,7 +65,9 @@ pub fn connect_to_know_endpoints(ws2p_module: &mut WS2PModule) {
                 | WS2PConnectionState::Close
                 | WS2PConnectionState::Denial => {
                     pubkeys.insert(ep.issuer);
-                    reachable_endpoints.push(ep);
+                    if ws2p_module.ssl || ep.port != 443 {
+                        reachable_endpoints.push(ep);
+                    }
                 }
                 _ => {
                     pubkeys.insert(ep.issuer);
@@ -72,6 +75,19 @@ pub fn connect_to_know_endpoints(ws2p_module: &mut WS2PModule) {
                 }
             }
         }
+    }
+    if !ws2p_module.conf.prefered_pubkeys.is_empty() {
+        reachable_endpoints.sort_unstable_by(|ep1, ep2| {
+            if ws2p_module.conf.prefered_pubkeys.contains(&ep1.issuer) {
+                if ws2p_module.conf.prefered_pubkeys.contains(&ep2.issuer) {
+                    Ordering::Equal
+                } else {
+                    Ordering::Greater
+                }
+            } else {
+                Ordering::Less
+            }
+        });
     }
     let mut free_outcoming_rooms =
         ws2p_module.conf.clone().outcoming_quota - count_established_connections;
@@ -87,9 +103,6 @@ pub fn connect_to_know_endpoints(ws2p_module: &mut WS2PModule) {
         } else {
             break;
         };
-        if !ws2p_module.ssl && ep.port == 443 {
-            continue;
-        }
         connect_to_without_checking_quotas(ws2p_module, unwrap!(ep.node_full_id()));
         free_outcoming_rooms -= 1;
     }
