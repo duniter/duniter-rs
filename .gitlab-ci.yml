@@ -38,19 +38,6 @@ variables:
     - rustup show
     - rustc --version && cargo --version
 
-.rust_beta_lin64: &rust_beta_lin64
-  only:
-    <<: *ci_only_conditions
-  except:
-    <<: *ci_except_conditions
-  image: parity/rust:gitlab-ci
-  tags:
-    - redshift-rs-stable
-  before_script:
-    - export PATH="$HOME/.cargo/bin:$PATH"
-    - rustup default beta
-    - rustup show && rustc --version && cargo --version
-
 .rust_nightly_lin64: &rust_nightly_lin64
   only:
     <<: *ci_only_conditions
@@ -163,26 +150,6 @@ tests:win64:stable:
     - cargo test --package durs-network-documents --target=x86_64-pc-windows-gnu
     - cargo test --package rules-engine --target=x86_64-pc-windows-gnu
     - cargo test --package durs-wot --target=x86_64-pc-windows-gnu
-    
-tests:linux64:beta:
-  <<: *rust_beta_lin64
-  stage: tests
-  when: manual
-  allow_failure: true
-  script: 
-    - cd bin/durs-server
-    - RUSTFLAGS="-D warnings" cargo build --features=ssl
-    - cargo test --all
-    
-tests:linux64:nightly:
-  <<: *rust_nightly_lin64
-  stage: tests
-  when: manual
-  allow_failure: true
-  script: 
-    - cd bin/durs-server
-    - RUSTFLAGS="-D warnings" cargo build --features=ssl
-    - cargo test --all
 
 clippy:
   <<: *rust_stable_lin64
