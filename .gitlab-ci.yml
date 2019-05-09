@@ -110,6 +110,7 @@ tests:linux64:stable:
     - cd bin/durs-server
     - RUSTFLAGS="-D warnings" cargo build --features=ssl
     - cargo test --all
+    - cargo test --all -- --ignored
 
 tests:arm-v7-:stable:
   <<: *rust_stable_armv7
