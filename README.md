@@ -2,8 +2,10 @@
 
 # Duniter Rust (durs)
 
+![Latest Version](https://img.shields.io/badge/latest-v0.1.1--a1-orange.svg)
 [![docs](https://librelois.fr/img/docs-read%20now-green.svg)](https://nodes.duniter.io/rust/duniter-rs/durs/)
 [![build status](https://git.duniter.org/nodes/rust/duniter-rs/badges/dev/build.svg)](https://git.duniter.org/nodes/rust/duniter-rs/commits/dev)
+![Minimum rustc version](https://img.shields.io/badge/rustc-1.32.0+-yellow.svg)
 
 ## What is Duniter
 
