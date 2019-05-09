@@ -13,15 +13,15 @@ members = [
     "lib/modules/ws2p-v1-legacy",
     "lib/modules/ws2p/ws2p",
     "lib/modules/ws2p/ws2p-messages",
+    "lib/tests-tools/crypto-tests-tools",
+    "lib/tests-tools/documents-tests-tools",
+    "lib/tests-tools/rust-tests-tools",
     "lib/tools/crypto",
     "lib/tools/common-tools",
     "lib/tools/documents",
     "lib/tools/json-pest-parser",
     "lib/tools/network-documents",
     "lib/tools/rules-engine",
-    "lib/tests-tools/crypto-tests-tools",
-    "lib/tests-tools/documents-tests-tools",
-    "lib/tests-tools/rust-tests-tools",
     "lib/tools/wot",
 ]
 
