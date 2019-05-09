@@ -1,10 +1,11 @@
 stages:
+    - no_ci
     - fmt
     - tests
     - clippy
     - publish_crate
     - package
-    - publish_doc
+    - publish_doc 
     - prerelease
     - release
 
@@ -83,6 +84,14 @@ variables:
     - redshift-rs-stable
   before_script:
     - rustc --version && cargo --version
+
+no_ci:
+  stage: no_ci
+  only:
+    <<: *ci_except_conditions
+  allow_failure: true
+  script:
+    - exit -1
 
 fmt:
   <<: *rust_stable_lin64
