@@ -11,8 +11,7 @@ stages:
 variables:
   CARGO_HOME: $CI_PROJECT_DIR/cargo
 
-.ci_conditions: &ci_conditions
-  only:
+.ci_conditions: &ci_only_conditions
     changes:
       - .gitlab-ci.yml
       - Cargo.toml
@@ -20,12 +19,16 @@ variables:
       - bin/**/*
       - lib/**/*
       - release/**/*
-  except:
+
+.ci_except_conditions: &ci_except_conditions
     variables:
       - $CI_COMMIT_MESSAGE =~ /^wip*/i
 
 .rust_stable_lin64: &rust_stable_lin64
-  <<: *ci_conditions
+  only:
+    <<: *ci_only_conditions
+  except:
+    <<: *ci_except_conditions
   image: registry.duniter.org/docker/duniter-rs-ci:v1.34.0
   tags:
     - redshift-rs-stable
@@ -35,7 +38,10 @@ variables:
     - rustc --version && cargo --version
 
 .rust_beta_lin64: &rust_beta_lin64
-  <<: *ci_conditions
+  only:
+    <<: *ci_only_conditions
+  except:
+    <<: *ci_except_conditions
   image: parity/rust:gitlab-ci
   tags:
     - redshift-rs-stable
@@ -45,7 +51,10 @@ variables:
     - rustup show && rustc --version && cargo --version
 
 .rust_nightly_lin64: &rust_nightly_lin64
-  <<: *ci_conditions
+  only:
+    <<: *ci_only_conditions
+  except:
+    <<: *ci_except_conditions
   image: rustlang/rust:nightly
   tags:
     - redshift-rs-nightly
@@ -54,7 +63,10 @@ variables:
     - rustc --version && cargo --version
 
 .rust_stable_armv7: &rust_stable_armv7
-  <<: *ci_conditions
+  only:
+    <<: *ci_only_conditions
+  except:
+    <<: *ci_except_conditions
   image: registry.duniter.org/docker/rust/armv7-builder:v1.33.0
   tags:
     - redshift-rs-stable
@@ -62,7 +74,10 @@ variables:
     - rustc --version && cargo --version
 
 .rust_stable_win64: &rust_stable_win64
-  <<: *ci_conditions
+  only:
+    <<: *ci_only_conditions
+  except:
+    <<: *ci_except_conditions
   image: registry.duniter.org/docker/rust/win64-builder:v1.32.0
   tags:
     - redshift-rs-stable
@@ -90,24 +105,28 @@ tests:linux64:stable:
 tests:arm-v7-:stable:
   <<: *rust_stable_armv7
   stage: tests
+  allow_failure: true
+  when: manual
+  only:
+    <<: *ci_only_conditions
+  except:
+    <<: *ci_except_conditions
+    refs:
+      - tags
   script: 
     - cd bin/durs-server
     - RUSTFLAGS="-D warnings" cargo build --target=armv7-unknown-linux-gnueabihf --features=ssl
     - cargo test --all --target=armv7-unknown-linux-gnueabihf
-  allow_failure: true
-  when: manual
-  except:
-    - tags
 
 tests:arm-v7:stable:
   <<: *rust_stable_armv7
   stage: tests
+  only:
+    - tags
   script: 
     - cd bin/durs-server
     - RUSTFLAGS="-D warnings" cargo build --target=armv7-unknown-linux-gnueabihf --features=ssl
     - cargo test --all --target=armv7-unknown-linux-gnueabihf
-  only:
-    - tags
 
 tests:win64:stable:
   <<: *rust_stable_win64
@@ -133,22 +152,22 @@ tests:win64:stable:
 tests:linux64:beta:
   <<: *rust_beta_lin64
   stage: tests
+  when: manual
+  allow_failure: true
   script: 
     - cd bin/durs-server
     - RUSTFLAGS="-D warnings" cargo build --features=ssl
     - cargo test --all
-  when: manual
-  allow_failure: true
     
 tests:linux64:nightly:
   <<: *rust_nightly_lin64
   stage: tests
+  when: manual
+  allow_failure: true
   script: 
     - cd bin/durs-server
     - RUSTFLAGS="-D warnings" cargo build --features=ssl
     - cargo test --all
-  when: manual
-  allow_failure: true
 
 clippy:
   <<: *rust_stable_lin64
@@ -161,19 +180,26 @@ clippy:
 publish:crate:
   <<: *rust_stable_lin64
   stage: publish_crate
+  when: manual
+  allow_failure: true
+  only:
+    - tags
   script:
     - IFS='/' read -r first a <<< "$CI_COMMIT_TAG"
     - cd $first
     - cargo login $DUNITER_CRATES_TOKEN
     - cargo publish
-  only:
-    - tags
-  allow_failure: true
-  when: manual
 
 package:test:linux64:
   <<: *rust_stable_lin64
   stage: package
+  when: manual
+  only:
+    <<: *ci_only_conditions
+  except:
+    <<: *ci_except_conditions
+    refs:
+      - tags
   script:
     - bash "release/arch/linux-x64/build-lin-x64.sh" "$(date +%Y%m%d).$(date +%H%M).$(date +%S)"
   cache:
@@ -184,35 +210,41 @@ package:test:linux64:
     paths:
       - work/bin/
     expire_in: 1 weeks
-  except:
-      - tags
-  when: manual
 
 package:test:docker-test-image:
-  <<: *ci_conditions
   stage: package
+  only:
+    <<: *ci_only_conditions
+  except:
+    <<: *ci_except_conditions
+    refs:
+      - dev
+      - tags
+  when: manual
   image: docker:git
   tags:
     - docker
   services:
     - docker:dind
   variables:
-    LAST_COMMIT_HASH: $CI_COMMIT_SHORT_SHA
+    LAST_COMMIT_HASH: $CI_COMMIT_SHORT_SHA 
   script:
     - docker build -f release/docker/Dockerfile .
     - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" $CI_REGISTRY
     - docker build --pull -t "$CI_REGISTRY_IMAGE:test-image" -f release/docker/Dockerfile .
     - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" $CI_REGISTRY
     - docker push "$CI_REGISTRY_IMAGE:test-image"
-  except:
-    refs:
-      - dev
-      - tags
-  when: manual
 
 package:test:docker:
-  <<: *ci_conditions
   stage: package
+  only:
+    <<: *ci_only_conditions
+    refs:
+      - dev
+  except:
+    <<: *ci_except_conditions
+    refs:
+      - tags
   image: docker:git
   tags:
     - docker
@@ -226,15 +258,17 @@ package:test:docker:
     - docker build --pull -t "$CI_REGISTRY_IMAGE:dev" -f release/docker/Dockerfile .
     - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" $CI_REGISTRY
     - docker push "$CI_REGISTRY_IMAGE:dev"
-  only:
-    refs:
-      - dev
-  except:
-    - tags
 
 package:test:armv7:
   <<: *rust_stable_armv7
   stage: package
+  when: manual
+  only:
+    <<: *ci_only_conditions
+  except:
+    <<: *ci_except_conditions
+    refs:
+      - tags
   script:
     - bash "release/arch/armv7/build-armv7.sh" "$(date +%Y%m%d).$(date +%H%M).$(date +%S)"
   cache:
@@ -245,13 +279,17 @@ package:test:armv7:
     paths:
       - work/bin/
     expire_in: 1 weeks
-  except:
-      - tags
-  when: manual
 
 package:test:win64:
   <<: *rust_stable_win64
   stage: package
+  when: manual
+  only:
+    <<: *ci_only_conditions
+  except:
+    <<: *ci_except_conditions
+    refs:
+      - tags
   script:
     - bash "release/arch/win64/build-win64.sh" "$(date +%Y%m%d).$(date +%H%M).$(date +%S)"
   cache:
@@ -262,27 +300,23 @@ package:test:win64:
     paths:
       - work/bin/
     expire_in: 1 weeks
-  except:
-      - tags
-  when: manual
 
 package:prod:linux64:
   <<: *rust_stable_lin64
   stage: package
+  only:
+    - tags
   script:
     - bash "release/arch/linux-x64/build-lin-x64.sh" "${CI_COMMIT_TAG#v}"
   artifacts:
     paths:
       - work/bin/
     expire_in: 2 weeks
-  only:
-    - tags
-  when: manual
-  allow_failure: false
 
 package:prod:docker:
-  <<: *ci_conditions
   stage: package
+  only:
+    - tags
   image: docker:git
   tags:
     - docker
@@ -296,26 +330,23 @@ package:prod:docker:
     - docker build --pull -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG" -f release/docker/Dockerfile .
     - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" $CI_REGISTRY
     - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG"
-  only:
-    - tags
-  allow_failure: false
 
 package:prod:armv7:
   <<: *rust_stable_armv7
   stage: package
+  only:
+    - tags
   script:
     - bash "release/arch/armv7/build-armv7.sh" "${CI_COMMIT_TAG#v}"
   artifacts:
     paths:
       - work/bin/
     expire_in: 2 weeks
-  only:
-    - tags
-  when: manual
-  allow_failure: false
 
 package:prod:win64:
   <<: *rust_stable_win64
+  only:
+    - tags
   stage: package
   script:
     - bash "release/arch/win64/build-win64.sh" "${CI_COMMIT_TAG#v}"
@@ -323,23 +354,27 @@ package:prod:win64:
     paths:
       - work/bin/
     expire_in: 2 weeks
-  only:
-    - tags
-  when: manual
-  allow_failure: false
 
 .release_jobs: &release_jobs
+  only:
+    - tags
   image: rdadev/jinja2:py3.6
   tags:
     - redshift-rs
   script:
     - python3 .gitlab/releaser
-  only:
-    - tags
 
 pages:
   <<: *rust_stable_lin64
   stage: publish_doc
+  only:
+    <<: *ci_only_conditions
+    refs:
+      - dev
+  except:
+    <<: *ci_except_conditions
+    refs:
+      - tags
   script:
     - cargo doc
     - mv target/doc public
@@ -348,8 +383,6 @@ pages:
     untracked: true
     paths:
       - public
-  allow_failure: true
-  when: manual
 
 prerelease:
   <<: *release_jobs
@@ -361,8 +394,8 @@ prerelease:
 release:
   <<: *release_jobs
   stage: release
+  allow_failure: false
+  when: manual
   variables:
     RELEASE_BIN_DIR: work/bin/
     WIKI_RELEASE: Releases
-  allow_failure: false
-  when: manual
