@@ -13,19 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Common rust tools for DURS project.
+//! Common rust traits for DURS project.
 
-#![deny(
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_import_braces
-)]
-
-pub mod fns;
-pub mod macros;
-pub mod traits;
+pub mod merge;
