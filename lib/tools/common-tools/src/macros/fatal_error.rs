@@ -13,19 +13,22 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Common rust tools for DURS project.
+//! Fatal error macro for DURS project.
 
-#![deny(
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_import_braces
-)]
-
-pub mod fns;
-pub mod macros;
-use std::io::Write;
+/// Interrupts the program and log error message
+/// WARNING: this macro must not be called before the logger is initialized !
+#[macro_export]
+macro_rules! fatal_error {
+    ($msg:expr) => ({
+        error!("{}", &dbg!($msg));
+        panic!($msg);
+    });
+    ($msg:expr,) => ({
+        error!("{}", &dbg!($msg));
+        panic!($msg);
+    });
+    ($fmt:expr, $($arg:tt)+) => ({
+        error!("{}", dbg!(format!($fmt, $($arg)+)));
+        panic!($fmt, $($arg)+);
+    });
+}

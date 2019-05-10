@@ -74,7 +74,7 @@ pub fn get_endpoints(
     file_path: &Path,
 ) -> Result<HashMap<NodeFullId, DbEndpoint>, Ws2pPeersDbError> {
     if file_path.exists() {
-        let bin_endpoints = durs_common_tools::read_bin_file(file_path)?;
+        let bin_endpoints = durs_common_tools::fns::bin_file::read_bin_file(file_path)?;
         if bin_endpoints.is_empty() {
             Ok(HashMap::new())
         } else {
@@ -91,7 +91,7 @@ pub fn write_endpoints<S: std::hash::BuildHasher>(
     endpoints: &HashMap<NodeFullId, DbEndpoint, S>,
 ) -> Result<(), Ws2pPeersDbError> {
     let bin_endpoints = bincode::serialize(&endpoints)?;
-    durs_common_tools::write_bin_file(file_path, &bin_endpoints)?;
+    durs_common_tools::fns::bin_file::write_bin_file(file_path, &bin_endpoints)?;
 
     Ok(())
 }

@@ -13,19 +13,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Common rust tools for DURS project.
+//! Common rust functions for manage time.
 
-#![deny(
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_import_braces
-)]
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 
-pub mod fns;
-pub mod macros;
-use std::io::Write;
+#[inline]
+/// Get current timestamp in seconds
+pub fn current_timestamp() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("SystemTime::duration_since failed")
+        .as_secs()
+}

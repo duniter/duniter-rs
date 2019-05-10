@@ -80,7 +80,7 @@ pub fn ws2p_conn_message_pretreatment(
                 .get_mut(&ws2p_full_id)
                 .expect("WS2P: Fail to get mut ep !");
             dal_ep.state = WS2PConnectionState::WSError;
-            dal_ep.last_check = durs_common_tools::current_timestamp();
+            dal_ep.last_check = durs_common_tools::fns::time::current_timestamp();
             return WS2PSignal::WSError(ws2p_full_id);
         }
         WS2PConnectionMessagePayload::TryToSendConnectMess => {
@@ -96,7 +96,7 @@ pub fn ws2p_conn_message_pretreatment(
                 .get_mut(&ws2p_full_id)
                 .expect("WS2P: Fail to get mut ep !");
             dal_ep.state = WS2PConnectionState::Unreachable;
-            dal_ep.last_check = durs_common_tools::current_timestamp();
+            dal_ep.last_check = durs_common_tools::fns::time::current_timestamp();
         }
         WS2PConnectionMessagePayload::WebsocketOk(sender) => {
             ws2p_module.websockets.insert(ws2p_full_id, sender);
@@ -119,7 +119,7 @@ pub fn ws2p_conn_message_pretreatment(
                     .get_mut(&ws2p_full_id)
                     .expect("WS2P: Fail to get mut ep !");
                 dal_ep.state = WS2PConnectionState::Close;
-                dal_ep.last_check = durs_common_tools::current_timestamp();
+                dal_ep.last_check = durs_common_tools::fns::time::current_timestamp();
             }
         }
         WS2PConnectionMessagePayload::ValidAckMessage(response, new_con_state) => {
@@ -230,7 +230,7 @@ pub fn ws2p_conn_message_pretreatment(
                         .get_mut(&ws2p_full_id)
                         .expect("WS2P: Fail to get mut ep !");
                     dal_ep.state = WS2PConnectionState::Unreachable;
-                    dal_ep.last_check = durs_common_tools::current_timestamp();
+                    dal_ep.last_check = durs_common_tools::fns::time::current_timestamp();
                 }
             }
             close_connection(

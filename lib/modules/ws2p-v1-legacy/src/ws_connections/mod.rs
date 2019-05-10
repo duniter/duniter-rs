@@ -156,7 +156,7 @@ pub fn close_connection(
         | WS2PCloseConnectionReason::Unknow => {
             if let Some(dal_ep) = ws2p_module.ws2p_endpoints.get_mut(ws2p_full_id) {
                 dal_ep.state = WS2PConnectionState::Close;
-                dal_ep.last_check = durs_common_tools::current_timestamp();
+                dal_ep.last_check = durs_common_tools::fns::time::current_timestamp();
             }
         }
     }
