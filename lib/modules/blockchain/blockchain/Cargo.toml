@@ -24,7 +24,7 @@ durs-wot = { path = "../../../tools/wot" }
 failure = "0.1.5"
 json-pest-parser = { path = "../../../tools/json-pest-parser" }
 log = "0.4.*"
-num_cpus = "1.8.*"
+num_cpus = "1.10.*"
 pbr = "1.0.*"
 rayon = "1.0.3"
 serde = "1.0.*"
