@@ -25,6 +25,23 @@ variables:
     variables:
       - $CI_COMMIT_MESSAGE =~ /^wip*/i
 
+block_ci:
+  only:
+    <<: *ci_except_conditions
+  stage: no_ci
+  when: manual
+  allow_failure: false
+  script:
+    - exit -1
+
+skip_ci:
+  except:
+    <<: *ci_only_conditions
+  stage: no_ci
+  when: manual
+  script:
+    - echo 1
+
 .rust_stable_lin64: &rust_stable_lin64
   only:
     <<: *ci_only_conditions
@@ -71,14 +88,6 @@ variables:
     - redshift-rs-stable
   before_script:
     - rustc --version && cargo --version
-
-no_ci:
-  stage: no_ci
-  only:
-    <<: *ci_except_conditions
-  allow_failure: true
-  script:
-    - exit -1
 
 fmt:
   <<: *rust_stable_lin64
