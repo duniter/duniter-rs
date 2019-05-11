@@ -13,6 +13,7 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-
+log = "0.4.*"
+simplelog = "0.5.*"
 
 [dev-dependencies]

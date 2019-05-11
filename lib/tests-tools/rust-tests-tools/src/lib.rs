@@ -27,3 +27,22 @@
 )]
 
 pub mod collections;
+
+use log::Level;
+use simplelog::{Config, LevelFilter, TermLogger};
+
+/// Initialize simple stdout logger
+pub fn init_logger_stdout() {
+    // Config logger
+    let logger_config = Config {
+        time: Some(Level::Error),
+        level: Some(Level::Error),
+        target: Some(Level::Debug),
+        location: Some(Level::Debug),
+        time_format: Some("%Y-%m-%d %H:%M:%S%:z"),
+    };
+
+    // Active stdout logger
+    TermLogger::init(LevelFilter::Debug, logger_config)
+        .expect("TESTS: fail to init stdout logger !");
+}
