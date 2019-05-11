@@ -347,56 +347,68 @@ impl DursCore<DuRsConf> {
         if enabled {
             self.network_modules_count += 1;
             if let Some(ServerMode::_Sync(ref network_sync)) = self.server_command {
-                // Start module in a new thread
-                let router_sender = self
-                    .router_sender
-                    .clone()
-                    .expect("Try to start a core without router_sender !");
-                let soft_meta_datas = self.soft_meta_datas.clone();
-                let module_conf_json = self
-                    .soft_meta_datas
-                    .conf
-                    .clone()
-                    .modules()
-                    .get(&NM::name().to_string().as_str())
-                    .cloned();
-                let keypairs = self.keypairs;
+                if NM::name().0
+                    == self
+                        .soft_meta_datas
+                        .conf
+                        .get_global_conf()
+                        .default_sync_module()
+                        .0
+                {
+                    // Start module in a new thread
+                    let router_sender = self
+                        .router_sender
+                        .clone()
+                        .expect("Try to start a core without router_sender !");
+                    let soft_meta_datas = self.soft_meta_datas.clone();
+                    let module_conf_json = self
+                        .soft_meta_datas
+                        .conf
+                        .clone()
+                        .modules()
+                        .get(&NM::name().to_string().as_str())
+                        .cloned();
+                    let keypairs = self.keypairs;
 
-                // Load module conf and keys
-                let ((module_conf, _), required_keys) = get_module_conf_and_keys::<NM>(
-                    &soft_meta_datas.conf.get_global_conf(),
-                    module_conf_json,
-                    keypairs,
-                )?;
+                    // Load module conf and keys
+                    let ((module_conf, _), required_keys) = get_module_conf_and_keys::<NM>(
+                        &soft_meta_datas.conf.get_global_conf(),
+                        module_conf_json,
+                        keypairs,
+                    )?;
 
-                let sync_params = network_sync.clone();
-                let thread_builder = thread::Builder::new().name(NM::name().0.into());
-                self.threads.insert(
-                    NM::name(),
-                    thread_builder
-                        .spawn(move || {
-                            NM::sync(
-                                &soft_meta_datas,
-                                required_keys,
-                                module_conf,
-                                router_sender,
-                                sync_params,
-                            )
-                            .unwrap_or_else(|_| {
-                                fatal_error!(
-                                    "Fatal error : fail to load module '{}' !",
-                                    NM::name().to_string()
+                    let sync_params = network_sync.clone();
+                    let thread_builder = thread::Builder::new().name(NM::name().0.into());
+                    self.threads.insert(
+                        NM::name(),
+                        thread_builder
+                            .spawn(move || {
+                                NM::sync(
+                                    &soft_meta_datas,
+                                    required_keys,
+                                    module_conf,
+                                    router_sender,
+                                    sync_params,
                                 )
-                            });
-                        })
-                        .map_err(|e| PlugModuleError::FailSpawnModuleThread {
-                            module_name: NM::name(),
-                            error: e,
-                        })?,
-                );
-                self.modules_names.push(NM::name());
-                info!("Success to load {} module.", NM::name().to_string());
-                Ok(())
+                                .unwrap_or_else(|_| {
+                                    fatal_error!(
+                                        "Fatal error : fail to load module '{}' !",
+                                        NM::name().to_string()
+                                    )
+                                });
+                            })
+                            .map_err(|e| PlugModuleError::FailSpawnModuleThread {
+                                module_name: NM::name(),
+                                error: e,
+                            })?,
+                    );
+                    self.modules_names.push(NM::name());
+                    info!("Success to load {} module.", NM::name().to_string());
+                    Ok(())
+                } else {
+                    debug!("Module '{}' not used for sync.", NM::name());
+                    Ok(())
+                }
             } else {
                 self.plug_::<NM>(true)
             }
@@ -453,11 +465,8 @@ impl DursCore<DuRsConf> {
                                 required_keys,
                                 module_conf,
                                 router_sender_clone,
-                                false,
                             )
-                            .unwrap_or_else(|_| {
-                                fatal_error!("Fail to load module '{}' !", M::name())
-                            });
+                            .unwrap_or_else(|e| fatal_error!("Module '{}': {}", M::name(), e));
                         })
                         .map_err(|e| PlugModuleError::FailSpawnModuleThread {
                             module_name: M::name(),

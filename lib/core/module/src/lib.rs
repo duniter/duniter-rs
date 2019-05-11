@@ -108,6 +108,8 @@ pub trait DursGlobalConfTrait:
     fn currency(&self) -> CurrencyName;
     /// Get node id
     fn my_node_id(&self) -> u32;
+    /// Get default sync module
+    fn default_sync_module(&self) -> ModuleName;
 }
 
 /// Durs configuration trait

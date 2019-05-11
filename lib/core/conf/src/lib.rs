@@ -221,18 +221,24 @@ pub enum DuRsGlobalConf {
 }
 
 impl DursGlobalConfTrait for DuRsGlobalConf {
-    /// Get currency
     fn currency(&self) -> CurrencyName {
         match *self {
             DuRsGlobalConf::V1(ref conf_v1) => conf_v1.currency.clone(),
             DuRsGlobalConf::V2(ref conf_v2) => conf_v2.currency.clone(),
         }
     }
-    /// Get node id
     fn my_node_id(&self) -> u32 {
         match *self {
             DuRsGlobalConf::V1(ref conf_v1) => conf_v1.my_node_id,
             DuRsGlobalConf::V2(ref conf_v2) => conf_v2.my_node_id,
+        }
+    }
+    fn default_sync_module(&self) -> ModuleName {
+        match *self {
+            DuRsGlobalConf::V1(_) => {
+                fatal_error!("Feature default_sync_module not exist in durs conf v1 !")
+            }
+            DuRsGlobalConf::V2(ref conf_v2) => conf_v2.default_sync_module.clone(),
         }
     }
 }
