@@ -130,7 +130,7 @@ impl NetworkModule<DuRsConf, DursMsg> for WS2PModule {
         _conf: WS2PConf,
         _main_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
         _sync_params: SyncOpt,
-    ) -> Result<(), ModuleInitError> {
+    ) -> Result<(), SyncError> {
         unimplemented!()
     }
 }

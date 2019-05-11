@@ -35,6 +35,7 @@ use durs_module::*;
 use durs_network_documents::network_endpoint::ApiFeatures;
 use durs_network_documents::network_head::NetworkHead;
 use durs_network_documents::*;
+use failure::Fail;
 use std::fmt::Debug;
 use std::sync::mpsc;
 
@@ -60,7 +61,7 @@ pub trait NetworkModule<DC: DursConfTrait, M: ModuleMessage>: ApiModule<DC, M> {
         module_conf: <Self as DursModule<DC, M>>::ModuleConf,
         main_sender: mpsc::Sender<RouterThreadMessage<M>>,
         sync_params: SyncOpt,
-    ) -> Result<(), ModuleInitError>;
+    ) -> Result<(), SyncError>;
 }
 
 /// Trait to be implemented by the configuration object of the module managing the inter-node network.
@@ -73,4 +74,21 @@ pub enum NetworkConsensusError {
     InsufficientData(usize),
     /// The network module does not determine consensus, there is most likely a fork
     Fork(),
+}
+
+#[derive(Debug, Clone, Fail, PartialEq, Eq, Hash)]
+/// Synchronization error
+pub enum SyncError {
+    /// Invalid source
+    #[fail(display = "invalid source: {}", source)]
+    InvalidSource {
+        /// Source
+        source: String,
+    },
+    /// Unreachable source
+    #[fail(display = "unreachable source: {}", source)]
+    UnreachableSource {
+        /// Source
+        source: String,
+    },
 }
