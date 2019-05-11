@@ -39,7 +39,7 @@ use structopt::StructOpt;
 #[cfg(unix)]
 pub use durs_tui::TuiModule;
 //pub use durs_skeleton::SkeletonModule;
-//pub use durs_ws2p::WS2PModule;
+pub use durs_ws2p::WS2PModule;
 pub use durs_ws2p_v1_legacy::WS2Pv1Module;
 
 /// Durs cli main macro
@@ -62,7 +62,7 @@ macro_rules! durs_cli_main {
 #[cfg(not(target_arch = "arm"))]
 fn main() {
     durs_cli_main!(durs_plug!(
-        [WS2Pv1Module],
+        [WS2Pv1Module, WS2PModule],
         [TuiModule /*, SkeletonModule ,DasaModule*/]
     ))
 }
@@ -70,11 +70,11 @@ fn main() {
 #[cfg(target_arch = "arm")]
 fn main() {
     durs_cli_main!(durs_plug!(
-        [WS2Pv1Module],
+        [WS2Pv1Module, WS2PModule],
         [TuiModule /*, SkeletonModule*/]
     ))
 }
 #[cfg(windows)]
 fn main() {
-    durs_cli_main!(durs_plug!([WS2Pv1Module], []))
+    durs_cli_main!(durs_plug!([WS2Pv1Module, WS2PModule], []))
 }
