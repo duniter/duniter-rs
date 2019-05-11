@@ -285,14 +285,14 @@ impl DursCore<DuRsConf> {
 
         // Send blockchain module registration to router thread
         router_sender
-            .send(RouterThreadMessage::ModuleRegistration(
-                BlockchainModule::name(),
-                blockchain_sender,
-                vec![ModuleRole::BlockchainDatas, ModuleRole::BlockValidation],
-                vec![ModuleEvent::NewBlockFromNetwork],
-                vec![],
-                vec![],
-            ))
+            .send(RouterThreadMessage::ModuleRegistration {
+                static_name: BlockchainModule::name(),
+                sender: blockchain_sender,
+                roles: vec![ModuleRole::BlockchainDatas, ModuleRole::BlockValidation],
+                events_subscription: vec![ModuleEvent::NewBlockFromNetwork],
+                reserved_apis_parts: vec![],
+                endpoints: vec![],
+            })
             .expect("Fatal error: fail to send blockchain registration to router thread !");
 
         // Get profile path

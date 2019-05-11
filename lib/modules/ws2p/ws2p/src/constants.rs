@@ -13,6 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+pub static API_NAME: &'static str = "WS2P";
+pub static MODULE_NAME: &'static str = "ws2p";
+
 pub static WS2P_DEFAULT_OUTCOMING_QUOTA: &'static usize = &10;
 
 /*pub static WS2P_OUTCOMING_INTERVAL_AT_STARTUP: &'static u64 = &75;

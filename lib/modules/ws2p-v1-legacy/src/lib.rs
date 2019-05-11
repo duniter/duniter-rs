@@ -75,6 +75,8 @@ use durs_network::*;
 use durs_network_documents::network_endpoint::*;
 use durs_network_documents::network_head::*;
 use durs_network_documents::*;
+use failure::Fail;
+use maplit::hashset;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -319,7 +321,7 @@ impl NetworkModule<DuRsConf, DursMsg> for WS2Pv1Module {
         _conf: WS2PConf,
         _main_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
         _sync_params: SyncOpt,
-    ) -> Result<(), ModuleInitError> {
+    ) -> Result<(), SyncError> {
         println!("Downlaod blockchain from network...");
         println!("Error : not yet implemented !");
         Ok(())
@@ -344,6 +346,12 @@ macro_rules! fields_overload {
             $struct.$field = $field;
         })+
     }};
+}
+
+#[derive(Clone, Debug, Fail)]
+enum WS2Pv1Error {
+    #[fail(display = "WS2Pv1Module fatal error at load_conf() : keys != NetworkKeyPair")]
+    UnexpectedKeys,
 }
 
 impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
@@ -430,8 +438,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
         keys: RequiredKeysContent,
         conf: WS2PConf,
         router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
-        load_conf_only: bool,
-    ) -> Result<(), ModuleInitError> {
+    ) -> Result<(), failure::Error> {
         // Get start time
         let start_time = SystemTime::now();
 
@@ -439,9 +446,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
         let key_pair = if let RequiredKeysContent::NetworkKeyPair(key_pair) = keys {
             key_pair
         } else {
-            return Err(ModuleInitError::FailToLoadConf(
-                "WS2Pv1Module fatal error at load_conf() : keys != NetworkKeyPair",
-            ));
+            return Err(WS2Pv1Error::UnexpectedKeys.into());
         };
 
         // load conf
@@ -508,11 +513,6 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
         }
         info!("Load {} endpoints from DB !", count);
 
-        // Stop here in load_conf_only mode
-        if load_conf_only {
-            return Ok(());
-        }
-
         // Create proxy channel
         let (proxy_sender, proxy_receiver): (mpsc::Sender<DursMsg>, mpsc::Receiver<DursMsg>) =
             mpsc::channel();
@@ -522,20 +522,23 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
         thread::spawn(move || {
             // Send proxy sender to main
             router_sender
-                .send(RouterThreadMessage::ModuleRegistration(
-                    WS2Pv1Module::name(),
-                    proxy_sender_clone,
-                    vec![ModuleRole::InterNodesNetwork],
-                    vec![
+                .send(RouterThreadMessage::ModuleRegistration {
+                    static_name: WS2Pv1Module::name(),
+                    sender: proxy_sender_clone,
+                    roles: vec![ModuleRole::InterNodesNetwork],
+                    events_subscription: vec![
                         ModuleEvent::NewValidBlock,
                         ModuleEvent::NewWotDocInPool,
                         ModuleEvent::NewTxinPool,
                     ],
-                    vec![],
-                    vec![],
-                ))
-                .expect("Fatal error : ws2p module fail to send is sender channel !");
-            debug!("Send ws2p sender to main thread.");
+                    reserved_apis_parts: vec![ApiPart {
+                        name: ApiName(WS2P_API.to_owned()),
+                        versions: hashset![ApiVersion(1)],
+                    }],
+                    endpoints: vec![],
+                })
+                .expect("Fatal error : ws2p1 module fail to send is sender channel !");
+            debug!("Send ws2p1 sender to main thread.");
             loop {
                 match proxy_receiver.recv() {
                     Ok(message) => {

@@ -35,16 +35,19 @@ extern crate structopt;
 
 mod constants;
 pub mod controllers;
+mod errors;
 mod generate_peer;
 pub mod services;
 
-use crate::constants::*;
+use crate::errors::WS2PError;
+use durs_common_tools::fatal_error;
 use durs_conf::DuRsConf;
 use durs_message::DursMsg;
 use durs_module::*;
 use durs_network::cli::sync::SyncOpt;
 use durs_network::*;
 use durs_network_documents::network_endpoint::*;
+use maplit::hashset;
 use std::sync::mpsc;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -68,7 +71,7 @@ pub struct WS2PUserConf {
 impl Default for WS2PConf {
     fn default() -> Self {
         WS2PConf {
-            outcoming_quota: *WS2P_DEFAULT_OUTCOMING_QUOTA,
+            outcoming_quota: *constants::WS2P_DEFAULT_OUTCOMING_QUOTA,
             sync_endpoints: vec![
                 EndpointV2::parse_from_raw("WS2P 2 g1.durs.info 443 ws2p").unwrap(),
                 EndpointV2::parse_from_raw("WS2P 2 rs.g1.librelois.fr 443 ws2p").unwrap(),
@@ -146,7 +149,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
     type ModuleOpt = WS2POpt;
 
     fn name() -> ModuleStaticName {
-        ModuleStaticName("ws2p")
+        ModuleStaticName(constants::MODULE_NAME)
     }
     fn priority() -> ModulePriority {
         ModulePriority::Essential()
@@ -186,11 +189,48 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
     }
     fn start(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
-        _keys: RequiredKeysContent,
+        keys: RequiredKeysContent,
         _conf: WS2PConf,
-        _rooter_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
-        _load_conf_only: bool,
-    ) -> Result<(), ModuleInitError> {
-        unimplemented!()
+        router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
+    ) -> Result<(), failure::Error> {
+        // Get key_pair
+        let _key_pair = if let RequiredKeysContent::NetworkKeyPair(key_pair) = keys {
+            key_pair
+        } else {
+            return Err(WS2PError::UnexpectedKeys.into());
+        };
+
+        // Create module channel
+        let (module_sender, module_receiver) = mpsc::channel();
+
+        // Registration with the rooter
+        if router_sender
+            .send(RouterThreadMessage::ModuleRegistration {
+                static_name: ModuleStaticName(constants::MODULE_NAME),
+                sender: module_sender,
+                roles: vec![ModuleRole::InterNodesNetwork],
+                events_subscription: vec![
+                    ModuleEvent::NewValidBlock,
+                    ModuleEvent::NewWotDocInPool,
+                    ModuleEvent::NewTxinPool,
+                ],
+                reserved_apis_parts: vec![ApiPart {
+                    name: ApiName(constants::API_NAME.to_owned()),
+                    versions: hashset![ApiVersion(2)],
+                }],
+                endpoints: vec![],
+            })
+            .is_err()
+        {
+            fatal_error!("WS2P module fail to send registration to router !")
+        }
+
+        while let Ok(msg) = module_receiver.recv() {
+            if let DursMsg::Stop = msg {
+                break;
+            }
+        }
+
+        Ok(())
     }
 }

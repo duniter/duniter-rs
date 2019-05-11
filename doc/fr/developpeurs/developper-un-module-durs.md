@@ -244,8 +244,7 @@ Déclaration :
         keys: RequiredKeysContent,
         module_conf: Self::ModuleConf,
         main_sender: mpsc::Sender<RouterThreadMessage<M>>,
-        load_conf_only: bool,
-    ) -> Result<(), ModuleInitError>;
+    ) -> Result<(), failure::Error>;
 ```
 
 Dans le cas d'un module qui ne servirait qu'à ajouter une sous-commande à la ligne de commande Durs, l'implémentation de la fonction `start` reste obligatoire et le module doit absolument s'enregistrer auprès du router quand même et garder son thread actif jusqu'à la fin du programme. J'ai ouvert [un ticket](https://git.duniter.org/nodes/rust/duniter-rs/issues/112) pour améliorer cela.

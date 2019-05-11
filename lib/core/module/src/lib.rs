@@ -33,7 +33,7 @@ extern crate serde_derive;
 
 use dubp_documents::CurrencyName;
 use dup_crypto::keys::{KeyPair, KeyPairEnum};
-use durs_network_documents::network_endpoint::EndpointEnum;
+use durs_network_documents::network_endpoint::{ApiPart, EndpointEnum};
 use failure::Fail;
 use serde::de::DeserializeOwned;
 use serde::ser::{Serialize, Serializer};
@@ -221,29 +221,26 @@ pub enum ModuleEvent {
     NewValidPeerFromNodeNetwork,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-/// Type returned by module initialization function
-pub enum ModuleInitError {
-    /// Fail to load configuration
-    FailToLoadConf(&'static str),
-    /// Unknow error
-    UnknowError(),
-}
-
 #[derive(Debug, Clone)]
 /// Type sent by each module to the router during initialization
 pub enum RouterThreadMessage<M: ModuleMessage> {
     /// Number of expected modules
     ModulesCount(usize),
     /// Registration of the module at the router
-    ModuleRegistration(
-        ModuleStaticName,
-        mpsc::Sender<M>,
-        Vec<ModuleRole>,
-        Vec<ModuleEvent>,
-        Vec<String>,
-        Vec<EndpointEnum>,
-    ),
+    ModuleRegistration {
+        /// Module name
+        static_name: ModuleStaticName,
+        /// Module channel sender (to send messages to the module)
+        sender: mpsc::Sender<M>,
+        /// Module roles
+        roles: Vec<ModuleRole>,
+        /// Events to which the module subscribes
+        events_subscription: Vec<ModuleEvent>,
+        /// API parts that the module reserves
+        reserved_apis_parts: Vec<ApiPart>,
+        /// Endpoints that the module wishes to declare in the peer card of the local node
+        endpoints: Vec<EndpointEnum>,
+    },
     /// Module message
     ModuleMessage(M),
 }
@@ -433,6 +430,5 @@ pub trait DursModule<DC: DursConfTrait, M: ModuleMessage> {
         keys: RequiredKeysContent,
         module_conf: Self::ModuleConf,
         main_sender: mpsc::Sender<RouterThreadMessage<M>>,
-        load_conf_only: bool,
-    ) -> Result<(), ModuleInitError>;
+    ) -> Result<(), failure::Error>;
 }

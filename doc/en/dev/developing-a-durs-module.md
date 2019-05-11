@@ -233,8 +233,7 @@ ping us if you need this documentation :)
         keys: RequiredKeysContent,
         module_conf: Self::ModuleConf,
         main_sender: mpsc::Sender<RouterThreadMessage<M>>,
-        load_conf_only: bool,
-    ) -> Result<(), ModuleInitError>;
+    ) -> Result<(), failure::Error>;
 ```
 
 Note: even in the case of a simple module that only declares a subcommand, it must implement `start`. I opened an issue to improve this, see https://git.duniter.org/nodes/rust/duniter-rs/issues/112

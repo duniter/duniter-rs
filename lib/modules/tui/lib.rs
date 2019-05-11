@@ -398,14 +398,8 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
         _keys: RequiredKeysContent,
         _conf: Self::ModuleConf,
         main_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
-        load_conf_only: bool,
-    ) -> Result<(), ModuleInitError> {
+    ) -> Result<(), failure::Error> {
         let start_time = SystemTime::now(); //: DateTime<Utc> = Utc::now();
-
-        // load conf
-        if load_conf_only {
-            return Ok(());
-        }
 
         // Instanciate Tui module datas
         let mut tui = TuiModuleDatas {
@@ -429,19 +423,19 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
         thread::spawn(move || {
             // Send proxy sender to main
             main_sender
-                .send(RouterThreadMessage::ModuleRegistration(
-                    TuiModule::name(),
-                    proxy_sender,
-                    vec![ModuleRole::UserInterface],
-                    vec![
+                .send(RouterThreadMessage::ModuleRegistration {
+                    static_name: TuiModule::name(),
+                    sender: proxy_sender,
+                    roles: vec![ModuleRole::UserInterface],
+                    events_subscription: vec![
                         ModuleEvent::NewValidBlock,
                         ModuleEvent::ConnectionsChangeNodeNetwork,
                         ModuleEvent::NewValidHeadFromNetwork,
                         ModuleEvent::NewValidPeerFromNodeNetwork,
                     ],
-                    vec![],
-                    vec![],
-                ))
+                    reserved_apis_parts: vec![],
+                    endpoints: vec![],
+                })
                 .expect("Fatal error : tui module fail to send is sender channel !");
             debug!("Send tui sender to main thread.");
             loop {

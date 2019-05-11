@@ -29,7 +29,7 @@ pub fn _self_peer_update_endpoints(
     new_endpoints: Vec<EndpointEnum>,
 ) -> PeerCardV11 {
     let max_eps = self_peer.endpoints.len() + self_peer.endpoints_str.len() + new_endpoints.len();
-    let apis: Vec<NetworkEndpointApi> = new_endpoints
+    let apis: Vec<ApiName> = new_endpoints
         .iter()
         .filter(|ep| {
             if let EndpointEnum::V2(_) = ep {
@@ -50,7 +50,7 @@ pub fn _self_peer_update_endpoints(
     for ep in self_peer.endpoints_str {
         let ep_clone = ep.clone();
         let ep_fields: Vec<&str> = ep_clone.split(' ').collect();
-        if !apis.contains(&NetworkEndpointApi(ep_fields[0].to_owned())) {
+        if !apis.contains(&ApiName(ep_fields[0].to_owned())) {
             new_endpoints_str.push(ep);
         }
     }

@@ -22,7 +22,7 @@ use crate::*;
 use dup_crypto::keys::*;
 use durs_module::ModuleReqId;
 use durs_network::documents::BlockchainDocument;
-use durs_network_documents::network_endpoint::{EndpointV1, NetworkEndpointApi};
+use durs_network_documents::network_endpoint::{ApiName, EndpointV1};
 use durs_network_documents::NodeId;
 #[allow(deprecated)]
 #[derive(Debug, Clone)]
@@ -282,9 +282,7 @@ impl WS2PConnectionMetaDatas {
                                                 0,
                                                 0,
                                             ) {
-                                                if ep.api
-                                                    == NetworkEndpointApi(String::from("WS2P"))
-                                                {
+                                                if ep.api == ApiName(String::from("WS2P")) {
                                                     ws2p_endpoints.push(ep);
                                                 }
                                             }

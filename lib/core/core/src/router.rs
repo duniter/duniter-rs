@@ -19,7 +19,7 @@ use durs_common_tools::fatal_error;
 use durs_conf::DuRsConf;
 use durs_message::*;
 use durs_module::*;
-use durs_network_documents::network_endpoint::EndpointEnum;
+use durs_network_documents::network_endpoint::{ApiPart, EndpointEnum};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::mpsc;
@@ -52,7 +52,7 @@ fn start_broadcasting_thread(
     let mut registrations_count = 0;
     let mut expected_registrations_count = None;
     let mut local_node_endpoints: Vec<EndpointEnum> = Vec::new();
-    let mut reserved_apis_name: HashMap<ModuleStaticName, Vec<String>> = HashMap::new();
+    let mut reserved_apis_parts: HashMap<ModuleStaticName, Vec<ApiPart>> = HashMap::new();
 
     loop {
         match receiver.recv_timeout(Duration::from_secs(1)) {
@@ -61,14 +61,14 @@ fn start_broadcasting_thread(
                     RouterThreadMessage::ModulesCount(modules_count) => {
                         expected_registrations_count = Some(modules_count)
                     }
-                    RouterThreadMessage::ModuleRegistration(
-                        module_static_name,
-                        module_sender,
-                        sender_roles,
+                    RouterThreadMessage::ModuleRegistration {
+                        static_name: module_static_name,
+                        sender: module_sender,
+                        roles: module_roles,
                         events_subscription,
-                        module_reserved_apis_name,
-                        mut module_endpoints,
-                    ) => {
+                        reserved_apis_parts: module_reserved_apis_parts,
+                        endpoints: mut module_endpoints,
+                    } => {
                         registrations_count += 1;
                         // For all events
                         for event in events_subscription {
@@ -91,7 +91,7 @@ fn start_broadcasting_thread(
                                 .push(module_static_name);
                         }
                         // For all roles
-                        for role in sender_roles {
+                        for role in module_roles {
                             // Send pending message for this role
                             for msg in pool_msgs
                                 .get(&DursMsgReceiver::Role(role))
@@ -110,23 +110,51 @@ fn start_broadcasting_thread(
                                 .or_insert_with(Vec::new)
                                 .push(module_static_name);
                         }
-                        // For all endpoints
-                        for ep in &module_endpoints {
-                            let ep_api = ep.api();
-                            if !module_reserved_apis_name.contains(&ep_api.0) {
-                                fatal_error!("Module {} try to declare endpoint with undeclared api name: {} !", module_static_name.0, ep_api.0);
-                            }
-                            for other_module_ep in &local_node_endpoints {
-                                if ep_api == other_module_ep.api() {
-                                    fatal_error!(
-                                        "two modules try to declare endpoint of same api : {} !",
-                                        ep_api.0
-                                    );
+                        // For all reserved apis parts
+                        for other_module_reserved_apis_parts in reserved_apis_parts.values() {
+                            for other_api_part in other_module_reserved_apis_parts {
+                                for api_part in &module_reserved_apis_parts {
+                                    if api_part.union_exist(other_api_part) {
+                                        fatal_error!(
+                                            "two modules try to reserve same api name '{}' with at least 1 version in common '({:?}; {:?})' !",
+                                            api_part.name.0,
+                                            api_part.versions,
+                                            other_api_part.versions,
+                                        );
+                                    }
                                 }
                             }
                         }
-                        // Store reserved APIs name
-                        reserved_apis_name.insert(module_static_name, module_reserved_apis_name);
+                        // For all endpoints
+                        for ep in &module_endpoints {
+                            let ep_api = ep.api();
+                            let ep_version = ep.version();
+
+                            if module_reserved_apis_parts
+                                .iter()
+                                .filter(|api_part| api_part.contains(&ep_api, ep_version))
+                                .count()
+                                == 0
+                            {
+                                fatal_error!(
+                                    "Module {} try to declare endpoint with undeclared api part (name: '{}', version: '{}') !",
+                                    module_static_name.0,
+                                    ep_api.0,
+                                    ep_version.0,
+                                );
+                            }
+                            /*for other_module_ep in &local_node_endpoints {
+                                if ep_api == other_module_ep.api() && ep_version == other_module_ep.version() {
+                                    fatal_error!(
+                                        "two modules try to declare endpoint of same api '{}' and same version '{}' !",
+                                        ep_api.0,
+                                        ep_version.0,
+                                    );
+                                }
+                            }*/
+                        }
+                        // Store reserved APIs parts
+                        reserved_apis_parts.insert(module_static_name, module_reserved_apis_parts);
                         // Add module endpoints to local node endpoints
                         local_node_endpoints.append(&mut module_endpoints);
                         // Send endpoints to network module
@@ -347,14 +375,14 @@ pub fn start_router(
                                     "Fail to relay ModulesCount message to broadcasting thread !",
                                 );
                         }
-                        RouterThreadMessage::ModuleRegistration(
-                            module_static_name,
-                            module_sender,
+                        RouterThreadMessage::ModuleRegistration {
+                            static_name: module_static_name,
+                            sender: module_sender,
                             events_subscription,
-                            sender_roles,
-                            _module_reserved_apis_name,
-                            _module_endpoints,
-                        ) => {
+                            roles,
+                            reserved_apis_parts,
+                            endpoints,
+                        } => {
                             // Send pending messages destined specifically to this module
                             if let Some(msgs) = pool_msgs.remove(&module_static_name) {
                                 for msg in msgs {
@@ -370,14 +398,14 @@ pub fn start_router(
                             modules_senders.insert(module_static_name, module_sender.clone());
                             // Relay to broadcasting thread
                             broadcasting_sender
-                                .send(RouterThreadMessage::ModuleRegistration(
-                                    module_static_name,
-                                    module_sender,
+                                .send(RouterThreadMessage::ModuleRegistration {
+                                    static_name: module_static_name,
+                                    sender: module_sender,
                                     events_subscription,
-                                    sender_roles,
-                                    vec![],
-                                    vec![],
-                                ))
+                                    roles,
+                                    reserved_apis_parts,
+                                    endpoints,
+                                })
                                 .expect(
                                     "Fail to relay module registration to broadcasting thread !",
                                 );
@@ -460,13 +488,12 @@ pub fn start_router(
                         }
                     }
                 }
-                Err(e) => match e {
-                    RecvTimeoutError::Timeout => continue,
-                    RecvTimeoutError::Disconnected => {
-                        warn!("Router thread disconnnected... break main loop.");
+                Err(e) => {
+                    if let RecvTimeoutError::Disconnected = e {
+                        warn!("Router thread disconnnected... break router main loop.");
                         break;
                     }
-                },
+                }
             }
             if run_duration_in_secs > 0
                 && SystemTime::now()

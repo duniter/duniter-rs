@@ -164,26 +164,8 @@ impl DursModule<DuRsConf, DursMsg> for SkeletonModule {
         _keys: RequiredKeysContent,
         _conf: Self::ModuleConf,
         router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
-        load_conf_only: bool,
-    ) -> Result<(), ModuleInitError> {
+    ) -> Result<(), failure::Error> {
         let _start_time = SystemTime::now();
-
-        // load conf
-        if load_conf_only {
-            // Check conf validity
-            // ...
-            let conf_valid = true;
-
-            // If the configuration is valid, we return OK.
-            if conf_valid {
-                return Ok(());
-            } else {
-                // If the configuration is invalid, an error message is returned
-                return Err(ModuleInitError::FailToLoadConf(
-                    "write the details of the error here",
-                ));
-            }
-        }
 
         // Instanciate Skeleton module datas
         let datas = SkeletonModuleDatas {
@@ -207,14 +189,14 @@ impl DursModule<DuRsConf, DursMsg> for SkeletonModule {
         thread::spawn(move || {
             // Send skeleton module registration to router thread
             router_sender_clone
-                .send(RouterThreadMessage::ModuleRegistration(
-                    ModuleStaticName(MODULE_NAME),
-                    proxy_sender, // Messages sent by the router will be received by your proxy thread
-                    vec![ModuleRole::UserInterface], // Roles assigned to your module
-                    vec![ModuleEvent::NewValidBlock], // Events to which your module subscribes
-                    vec![],
-                    vec![],
-                ))
+                .send(RouterThreadMessage::ModuleRegistration {
+                    static_name: ModuleStaticName(MODULE_NAME),
+                    sender: proxy_sender, // Messages sent by the router will be received by your proxy thread
+                    roles: vec![ModuleRole::UserInterface], // Roles assigned to your module
+                    events_subscription: vec![ModuleEvent::NewValidBlock], // Events to which your module subscribes
+                    reserved_apis_parts: vec![],
+                    endpoints: vec![],
+                })
                 .expect("Fatal error : skeleton module fail to register to router !"); // The registration of your module must be successful, in case of failure the program must be interrupted.
 
             // If we are here it means that your module has successfully registered, we indicate it in the debug level log, it can be helpful.
