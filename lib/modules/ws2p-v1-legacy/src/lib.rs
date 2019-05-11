@@ -199,7 +199,7 @@ pub enum SendRequestError {
 }
 
 #[derive(Debug)]
-pub struct WS2PModule {
+pub struct WS2Pv1Module {
     pub conf: WS2PConf,
     pub count_dal_requests: u32,
     pub currency: Option<String>,
@@ -225,15 +225,15 @@ pub struct WS2PModule {
     pub uids_cache: HashMap<PubKey, String>,
 }
 
-impl WS2PModule {
+impl WS2Pv1Module {
     pub fn new(
         soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         conf: WS2PConf,
         ep_file_path: PathBuf,
         key_pair: KeyPairEnum,
         router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
-    ) -> WS2PModule {
-        WS2PModule {
+    ) -> WS2Pv1Module {
+        WS2Pv1Module {
             router_sender,
             key_pair,
             currency: None,
@@ -290,7 +290,7 @@ pub enum WS2PFeaturesParseError {
     UnknowApiFeature(String),
 }
 
-impl ApiModule<DuRsConf, DursMsg> for WS2PModule {
+impl ApiModule<DuRsConf, DursMsg> for WS2Pv1Module {
     type ParseErr = WS2PFeaturesParseError;
     /// Parse raw api features
     fn parse_raw_api_features(str_features: &str) -> Result<ApiFeatures, Self::ParseErr> {
@@ -312,7 +312,7 @@ impl ApiModule<DuRsConf, DursMsg> for WS2PModule {
     }
 }
 
-impl NetworkModule<DuRsConf, DursMsg> for WS2PModule {
+impl NetworkModule<DuRsConf, DursMsg> for WS2Pv1Module {
     fn sync(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
@@ -346,7 +346,7 @@ macro_rules! fields_overload {
     }};
 }
 
-impl DursModule<DuRsConf, DursMsg> for WS2PModule {
+impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
     type ModuleUserConf = WS2PUserConf;
     type ModuleConf = WS2PConf;
     type ModuleOpt = WS2POpt;
@@ -440,7 +440,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
             key_pair
         } else {
             return Err(ModuleInitError::FailToLoadConf(
-                "WS2PModule fatal error at load_conf() : keys != NetworkKeyPair",
+                "WS2Pv1Module fatal error at load_conf() : keys != NetworkKeyPair",
             ));
         };
 
@@ -472,8 +472,8 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
         }
         ep_file_path.push("endpoints.bin");
 
-        // Define WS2PModule
-        let mut ws2p_module = WS2PModule::new(
+        // Define WS2Pv1Module
+        let mut ws2p_module = WS2Pv1Module::new(
             soft_meta_datas,
             conf,
             ep_file_path.clone(),
@@ -523,7 +523,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
             // Send proxy sender to main
             router_sender
                 .send(RouterThreadMessage::ModuleRegistration(
-                    WS2PModule::name(),
+                    WS2Pv1Module::name(),
                     proxy_sender_clone,
                     vec![ModuleRole::InterNodesNetwork],
                     vec![
@@ -569,7 +569,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
     }
 }
 
-impl WS2PModule {
+impl WS2Pv1Module {
     fn main_loop(mut self, start_time: SystemTime, soft_meta_datas: &SoftwareMetaDatas<DuRsConf>) {
         // Initialize variables
         let key_pair = self.key_pair;
@@ -612,7 +612,7 @@ impl WS2PModule {
                                             ref current_blockstamp_,
                                         ) => {
                                             debug!(
-                                                "WS2PModule : receive DALResBc::CurrentBlockstamp({})",
+                                                "WS2Pv1Module : receive DALResBc::CurrentBlockstamp({})",
                                                 self.current_blockstamp
                                             );
                                             self.current_blockstamp = *current_blockstamp_;
@@ -687,7 +687,7 @@ impl WS2PModule {
                             WS2PSignal::ConnectionEstablished(ws2p_full_id) => {
                                 let req_id =
                                     ModuleReqId(self.requests_awaiting_response.len() as u32);
-                                let module_id = WS2PModule::name();
+                                let module_id = WS2Pv1Module::name();
                                 debug!("WS2P: send req to: ({:?})", ws2p_full_id);
                                 let _current_request_result =
                                     ws_connections::requests::sent::send_request_to_specific_node(
@@ -827,7 +827,7 @@ impl WS2PModule {
                                                 req.get_req_full_id().0,
                                                 req.get_req_full_id().1,
                                                 NetworkResponse::CurrentBlock(
-                                                    ModuleReqFullId(WS2PModule::name(), req_id),
+                                                    ModuleReqFullId(WS2Pv1Module::name(), req_id),
                                                     recipient_full_id,
                                                     Box::new(block),
                                                 ),
@@ -845,7 +845,7 @@ impl WS2PModule {
                                                 if let Some(block) = parse_json_block(json_block) {
                                                     chunk.push(block);
                                                 } else {
-                                                    warn!("WS2PModule: Error : fail to parse one json block !");
+                                                    warn!("WS2Pv1Module: Error : fail to parse one json block !");
                                                 }
                                             }
                                             debug!("Send chunk to followers : {}", from);
@@ -907,7 +907,7 @@ impl WS2PModule {
                 }
                 // Print current_blockstamp
                 info!(
-                    "WS2PModule : current_blockstamp() = {:?}",
+                    "WS2Pv1Module : current_blockstamp() = {:?}",
                     self.current_blockstamp
                 );
                 // New WS2P connection wave
@@ -1118,7 +1118,7 @@ mod tests {
 
     #[test]
     fn ws2p_requests() {
-        let module_id = WS2PModule::name();
+        let module_id = WS2Pv1Module::name();
         let request =
             OldNetworkRequest::GetBlocks(ModuleReqFullId(module_id, ModuleReqId(58)), 50, 0);
         assert_eq!(

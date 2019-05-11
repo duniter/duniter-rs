@@ -293,13 +293,13 @@ Une fois que vous avez ajouté votre module en dépendance dans le Cargo.toml de
 
 2. Ajoutez votre module en paramètre de la macro `durs_plug!` :
 
-    durs_plug!([WS2PModule], [TuiModule, .., TotoModule])
+    durs_plug!([WS2Pv1Module], [TuiModule, .., TotoModule])
 
     Notez que `durs_plug!` prend en paramètre 2 tableaux de modules, le 1er correspond aux modules de type réseau inter-nœuds, tous les autres modules doivent se trouver dans le 2ème tableau.
 
 3. Si votre module doit injecter une sous-commande dans la ligne de commande `durs`, ajoutez le également a la macro `durs_inject_cli!` :
 
-    durs_inject_cli![WS2PModule, .., TotoModule],
+    durs_inject_cli![WS2Pv1Module, .., TotoModule],
 
     La macro `durs_inject_cli!` n'accepte qu'un seul tableau qui doit comporter tous les modules injectant une sous-commande, pas de distinction ici.
 

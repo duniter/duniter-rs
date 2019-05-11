@@ -26,7 +26,7 @@ use durs_core::commands::{
 use durs_core::errors::DursCoreError;
 use durs_core::DursCore;
 use durs_network::cli::sync::SyncOpt;
-use durs_ws2p_v1_legacy::{WS2PModule, WS2POpt};
+use durs_ws2p_v1_legacy::{WS2POpt, WS2Pv1Module};
 use log::Level;
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -64,7 +64,7 @@ impl ExecutableModuleCommand for DursCliOpt {
     fn execute_module_command(self, options: DursCoreOptions) -> Result<(), DursCoreError> {
         match self.cmd {
             DursCliSubCommand::Ws2p1(module_opts) => {
-                DursCore::execute_module_command::<WS2PModule>(
+                DursCore::execute_module_command::<WS2Pv1Module>(
                     options,
                     module_opts,
                     env!("CARGO_PKG_NAME"),

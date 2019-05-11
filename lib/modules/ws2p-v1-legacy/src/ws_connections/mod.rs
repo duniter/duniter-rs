@@ -51,7 +51,7 @@ pub enum WS2PCloseConnectionReason {
     Unknow,
 }
 
-pub fn connect_to_know_endpoints(ws2p_module: &mut WS2PModule) {
+pub fn connect_to_know_endpoints(ws2p_module: &mut WS2Pv1Module) {
     info!("WS2P: connect to know endpoints...");
     let mut count_established_connections = 0;
     let mut pubkeys = HashSet::new();
@@ -108,7 +108,7 @@ pub fn connect_to_know_endpoints(ws2p_module: &mut WS2PModule) {
     }
 }
 
-pub fn connect_to(ws2p_module: &mut WS2PModule, ep: &EndpointV1) {
+pub fn connect_to(ws2p_module: &mut WS2Pv1Module, ep: &EndpointV1) {
     // Add endpoint to endpoints list (if there isn't already)
     let node_full_id = ep
         .node_full_id()
@@ -127,7 +127,10 @@ pub fn connect_to(ws2p_module: &mut WS2PModule, ep: &EndpointV1) {
     }
 }
 
-pub fn connect_to_without_checking_quotas(ws2p_module: &mut WS2PModule, node_full_id: NodeFullId) {
+pub fn connect_to_without_checking_quotas(
+    ws2p_module: &mut WS2Pv1Module,
+    node_full_id: NodeFullId,
+) {
     let endpoint = unwrap!(ws2p_module.ws2p_endpoints.get(&node_full_id));
     let endpoint_copy = endpoint.ep.clone();
     let conductor_sender_copy = ws2p_module.main_thread_channel.0.clone();
@@ -144,7 +147,7 @@ pub fn connect_to_without_checking_quotas(ws2p_module: &mut WS2PModule, node_ful
 }
 
 pub fn close_connection(
-    ws2p_module: &mut WS2PModule,
+    ws2p_module: &mut WS2Pv1Module,
     ws2p_full_id: &NodeFullId,
     reason: WS2PCloseConnectionReason,
 ) {
@@ -186,7 +189,7 @@ pub fn get_random_connection<S: ::std::hash::BuildHasher>(
     }
 }
 
-pub fn count_established_connections(ws2p_module: &WS2PModule) -> usize {
+pub fn count_established_connections(ws2p_module: &WS2Pv1Module) -> usize {
     let mut count_established_connections = 0;
     for DbEndpoint { state, .. } in ws2p_module.ws2p_endpoints.values() {
         if let WS2PConnectionState::Established = state {

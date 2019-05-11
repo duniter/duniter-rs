@@ -15,12 +15,12 @@
 
 //! Sub-module managing the inter-modules requests sent.
 
-use crate::WS2PModule;
+use crate::WS2Pv1Module;
 use durs_message::requests::{BlockchainRequest, DursReqContent};
 use durs_message::*;
 use durs_module::{DursModule, ModuleReqId, ModuleRole, RouterThreadMessage};
 
-pub fn send_dal_request(ws2p_module: &mut WS2PModule, req: &BlockchainRequest) {
+pub fn send_dal_request(ws2p_module: &mut WS2Pv1Module, req: &BlockchainRequest) {
     ws2p_module.count_dal_requests += 1;
     if ws2p_module.count_dal_requests == std::u32::MAX {
         ws2p_module.count_dal_requests = 0;
@@ -28,7 +28,7 @@ pub fn send_dal_request(ws2p_module: &mut WS2PModule, req: &BlockchainRequest) {
     ws2p_module
         .router_sender
         .send(RouterThreadMessage::ModuleMessage(DursMsg::Request {
-            req_from: WS2PModule::name(),
+            req_from: WS2Pv1Module::name(),
             req_to: ModuleRole::BlockchainDatas,
             req_id: ModuleReqId(ws2p_module.count_dal_requests),
             req_content: DursReqContent::BlockchainRequest(req.clone()),

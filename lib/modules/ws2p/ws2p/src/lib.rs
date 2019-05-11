@@ -79,11 +79,11 @@ impl Default for WS2PConf {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// WS2Pv2 Module
-pub struct WS2Pv2Module {}
+pub struct WS2PModule {}
 
-impl Default for WS2Pv2Module {
-    fn default() -> WS2Pv2Module {
-        WS2Pv2Module {}
+impl Default for WS2PModule {
+    fn default() -> WS2PModule {
+        WS2PModule {}
     }
 }
 
@@ -94,7 +94,7 @@ pub enum WS2PFeaturesParseError {
     UnknowApiFeature(String),
 }
 
-impl ApiModule<DuRsConf, DursMsg> for WS2Pv2Module {
+impl ApiModule<DuRsConf, DursMsg> for WS2PModule {
     type ParseErr = WS2PFeaturesParseError;
     /// Parse raw api features
     fn parse_raw_api_features(str_features: &str) -> Result<ApiFeatures, Self::ParseErr> {
@@ -120,7 +120,7 @@ impl ApiModule<DuRsConf, DursMsg> for WS2Pv2Module {
     }
 }
 
-impl NetworkModule<DuRsConf, DursMsg> for WS2Pv2Module {
+impl NetworkModule<DuRsConf, DursMsg> for WS2PModule {
     fn sync(
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
@@ -140,7 +140,7 @@ impl NetworkModule<DuRsConf, DursMsg> for WS2Pv2Module {
 /// WS2P subcommand options
 pub struct WS2POpt {}
 
-impl DursModule<DuRsConf, DursMsg> for WS2Pv2Module {
+impl DursModule<DuRsConf, DursMsg> for WS2PModule {
     type ModuleUserConf = WS2PUserConf;
     type ModuleConf = WS2PConf;
     type ModuleOpt = WS2POpt;

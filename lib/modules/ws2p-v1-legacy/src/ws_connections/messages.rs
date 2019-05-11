@@ -67,7 +67,7 @@ pub fn generate_connect_message(
 }
 
 pub fn ws2p_conn_message_pretreatment(
-    ws2p_module: &mut WS2PModule,
+    ws2p_module: &mut WS2Pv1Module,
     message: WS2PConnectionMessage,
 ) -> WS2PSignal {
     let ws2p_full_id = message.0;

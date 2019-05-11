@@ -15,7 +15,7 @@
 
 //! Sub-module managing the WS2Pv1 requests sent.
 
-use crate::WS2PModule;
+use crate::WS2Pv1Module;
 use durs_common_tools::fatal_error;
 use durs_network::requests::OldNetworkRequest;
 use durs_network_documents::NodeFullId;
@@ -23,7 +23,7 @@ use std::time::SystemTime;
 use ws::Message;
 
 pub fn send_request_to_specific_node(
-    ws2p_module: &mut WS2PModule,
+    ws2p_module: &mut WS2Pv1Module,
     ws2p_full_id: &NodeFullId,
     ws2p_request: &OldNetworkRequest,
 ) -> ws::Result<()> {

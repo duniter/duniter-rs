@@ -19,7 +19,7 @@ use crate::*;
 use durs_message::*;
 
 pub fn send_network_req_response(
-    ws2p_module: &WS2PModule,
+    ws2p_module: &WS2Pv1Module,
     requester: ModuleStaticName,
     req_id: ModuleReqId,
     response: NetworkResponse,
@@ -27,7 +27,7 @@ pub fn send_network_req_response(
     ws2p_module
         .router_sender
         .send(RouterThreadMessage::ModuleMessage(DursMsg::Response {
-            res_from: WS2PModule::name(),
+            res_from: WS2Pv1Module::name(),
             res_to: requester,
             req_id,
             res_content: DursResContent::NetworkResponse(response),

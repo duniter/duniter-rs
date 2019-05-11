@@ -15,20 +15,20 @@
 
 //! Sub-module managing the events emitted by the blockchain module.
 
-use crate::WS2PModule;
+use crate::WS2Pv1Module;
 use durs_message::events::DursEvent;
 use durs_message::*;
 use durs_module::{ModuleEvent, RouterThreadMessage};
 use durs_network::documents::BlockchainDocument;
 use durs_network::events::NetworkEvent;
 
-pub fn send_network_events(ws2p_module: &mut WS2PModule, events: Vec<NetworkEvent>) {
+pub fn send_network_events(ws2p_module: &mut WS2Pv1Module, events: Vec<NetworkEvent>) {
     for event in events {
         send_network_event(ws2p_module, event);
     }
 }
 
-pub fn send_network_event(ws2p_module: &mut WS2PModule, event: NetworkEvent) {
+pub fn send_network_event(ws2p_module: &mut WS2Pv1Module, event: NetworkEvent) {
     let module_event = match event {
         NetworkEvent::ConnectionStateChange(_, _, _, _) => {
             ModuleEvent::ConnectionsChangeNodeNetwork

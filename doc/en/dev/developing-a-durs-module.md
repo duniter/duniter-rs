@@ -274,12 +274,12 @@ Once you added your module in `durs-server` dependencies as shown above, you'll 
 
 2. Add your module to the macro `durs_plug!` :
 
-    durs_plug!([WS2PModule], [TuiModule, .., TotoModule])
+    durs_plug!([WS2Pv1Module], [TuiModule, .., TotoModule])
 
 Its first argument is a list of modules of type network inter-node. Other modules go into the second list.
 
 3. If your module injects a subcommand, add it to the `durs_inject_cli!` macro:
 
-    durs_inject_cli![WS2PModule, .., TotoModule],
+    durs_inject_cli![WS2Pv1Module, .., TotoModule],
 
 And now ping us if you want more tutorial…

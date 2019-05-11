@@ -22,7 +22,7 @@ use durs_module::*;
 use std::ops::Deref;
 
 pub fn receive_event(
-    ws2p_module: &mut WS2PModule,
+    ws2p_module: &mut WS2Pv1Module,
     _event_type: ModuleEvent,
     event_content: &DursEvent,
 ) {
@@ -31,7 +31,7 @@ pub fn receive_event(
             BlockchainEvent::StackUpValidBlock(ref block) => {
                 ws2p_module.current_blockstamp = block.deref().blockstamp();
                 debug!(
-                    "WS2PModule : current_blockstamp = {}",
+                    "WS2Pv1Module : current_blockstamp = {}",
                     ws2p_module.current_blockstamp
                 );
                 ws2p_module.my_head = Some(heads::generate_my_head(
