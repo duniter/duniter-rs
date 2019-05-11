@@ -29,6 +29,7 @@ pub fn send_event(bc: &BlockchainModule, event: &BlockchainEvent) {
     };
     bc.router_sender
         .send(RouterThreadMessage::ModuleMessage(DursMsg::Event {
+            event_from: ModuleStaticName(MODULE_NAME),
             event_type: module_event,
             event_content: DursEvent::BlockchainEvent(Box::new(event.clone())),
         }))

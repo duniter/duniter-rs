@@ -360,7 +360,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
     type ModuleOpt = WS2POpt;
 
     fn name() -> ModuleStaticName {
-        ModuleStaticName("ws2p1")
+        ModuleStaticName(MODULE_NAME)
     }
     fn priority() -> ModulePriority {
         ModulePriority::Essential()

@@ -13,6 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+/// Module name
+pub static MODULE_NAME: &'static str = "blockchain";
+
 /// Default currency
 pub static DEFAULT_CURRENCY: &'static str = "g1";
 

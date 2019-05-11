@@ -15,6 +15,9 @@
 
 //! WS2Pv1 constants
 
+/// Module name
+pub static MODULE_NAME: &'static str = "ws2p1";
+
 /// API Name
 pub static WS2P_API: &'static str = "WS2P";
 

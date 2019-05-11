@@ -181,7 +181,7 @@ pub enum VerifyBlockHashsError {
 impl BlockchainModule {
     /// Return module identifier
     pub fn name() -> ModuleStaticName {
-        ModuleStaticName("blockchain")
+        ModuleStaticName(MODULE_NAME)
     }
     /// Loading blockchain configuration
     pub fn load_blockchain_conf<DC: DursConfTrait>(
@@ -279,6 +279,7 @@ impl BlockchainModule {
                         DursMsg::Event {
                             event_type,
                             event_content,
+                            ..
                         } => events::received::receive_event(self, event_type, event_content),
                         DursMsg::Response {
                             req_id,

@@ -49,6 +49,8 @@ use crate::responses::*;
 pub enum DursMsg {
     /// Durs module event
     Event {
+        /// The module that issued the event
+        event_from: ModuleStaticName,
         /// Event type
         event_type: ModuleEvent,
         /// Event content
