@@ -177,7 +177,7 @@ mod tests {
             EndpointV1::parse_from_raw("WS2P c1c39a0a i3.ifee.fr 80 /ws2p", issuer, 0, 0),
             Ok(EndpointV1 {
                 issuer,
-                api: NetworkEndpointApi(String::from("WS2P")),
+                api: ApiName(String::from("WS2P")),
                 node_id: Some(node_id),
                 hash_full_id: Some(full_id.sha256()),
                 host: String::from("i3.ifee.fr"),
@@ -202,7 +202,7 @@ mod tests {
             EndpointV1::parse_from_raw("WS2P cb06a19b g1.imirhil.fr 53012", issuer, 0, 0),
             Ok(EndpointV1 {
                 issuer,
-                api: NetworkEndpointApi(String::from("WS2P")),
+                api: ApiName(String::from("WS2P")),
                 node_id: Some(node_id),
                 hash_full_id: Some(full_id.sha256()),
                 host: String::from("g1.imirhil.fr"),

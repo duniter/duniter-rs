@@ -21,6 +21,7 @@ use dup_crypto::keys::PubKey;
 use hex;
 use pest::iterators::Pair;
 use pest::Parser;
+use std::collections::HashSet;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 
@@ -61,13 +62,41 @@ impl ApiFeatures {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Identifies the API of an endpoint
-pub struct NetworkEndpointApi(pub String);
+pub struct ApiName(pub String);
+
+/// Api version
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct ApiVersion(pub usize);
+
+/// Api parts
+#[derive(Clone, Debug)]
+pub struct ApiPart {
+    pub name: ApiName,
+    pub versions: HashSet<ApiVersion>,
+}
+
+impl ApiPart {
+    pub fn union_exist(&self, other: &Self) -> bool {
+        if self.name == other.name {
+            self.versions.intersection(&other.versions).count() > 0
+        } else {
+            false
+        }
+    }
+    pub fn contains(&self, api_name: &ApiName, api_version: ApiVersion) -> bool {
+        if self.name == *api_name {
+            self.versions.contains(&api_version)
+        } else {
+            false
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Endpoint v1
 pub struct EndpointV1 {
     /// API Name
-    pub api: NetworkEndpointApi,
+    pub api: ApiName,
     /// Node unique identifier
     pub node_id: Option<NodeId>,
     /// Public key of the node declaring this endpoint
@@ -152,7 +181,7 @@ impl EndpointV1 {
         }
         EndpointV1 {
             issuer,
-            api: NetworkEndpointApi(String::from(api_name)),
+            api: ApiName(String::from(api_name)),
             node_id,
             hash_full_id,
             host: String::from(host_str),
@@ -259,7 +288,7 @@ pub struct Endpoint {
 /// Endpoint v2
 pub struct EndpointV2 {
     /// API Name
-    pub api: NetworkEndpointApi,
+    pub api: ApiName,
     /// API version
     pub api_version: u16,
     /// Network features
@@ -395,7 +424,7 @@ impl EndpointV2 {
             network_features = EndpointV2NetworkFeatures(vec![]);
         }
         EndpointV2 {
-            api: NetworkEndpointApi(String::from(api_str)),
+            api: ApiName(String::from(api_str)),
             api_version,
             network_features,
             api_features,
@@ -437,10 +466,16 @@ impl ToString for EndpointEnum {
 
 impl EndpointEnum {
     /// Accessors providing API name
-    pub fn api(&self) -> NetworkEndpointApi {
+    pub fn api(&self) -> ApiName {
         match *self {
             EndpointEnum::V1(ref ep) => ep.api.clone(),
             EndpointEnum::V2(ref ep) => ep.api.clone(),
+        }
+    }
+    pub fn version(&self) -> ApiVersion {
+        match *self {
+            EndpointEnum::V1(_) => ApiVersion(1),
+            EndpointEnum::V2(_) => ApiVersion(2),
         }
     }
     /// Accessors providing node unique identifier
@@ -526,6 +561,64 @@ impl EndpointEnum {
 mod tests {
     use super::*;
     use bincode::{deserialize, serialize};
+    use maplit::hashset;
+
+    #[inline]
+    fn api_part_1() -> ApiPart {
+        ApiPart {
+            name: ApiName("api1".to_owned()),
+            versions: hashset![ApiVersion(1)],
+        }
+    }
+
+    #[test]
+    fn test_api_part_contains() {
+        let api_part = api_part_1();
+
+        assert_eq!(
+            true,
+            api_part.contains(&ApiName("api1".to_owned()), ApiVersion(1))
+        );
+
+        assert_eq!(
+            false,
+            api_part.contains(&ApiName("api1".to_owned()), ApiVersion(2))
+        );
+
+        assert_eq!(
+            false,
+            api_part.contains(&ApiName("api2".to_owned()), ApiVersion(1))
+        );
+    }
+
+    #[test]
+    fn test_api_part_union_exist() {
+        let api_part = api_part_1();
+
+        assert_eq!(
+            false,
+            api_part.union_exist(&ApiPart {
+                name: ApiName("api2".to_owned()),
+                versions: hashset![ApiVersion(1)],
+            })
+        );
+
+        assert_eq!(
+            false,
+            api_part.union_exist(&ApiPart {
+                name: ApiName("api1".to_owned()),
+                versions: hashset![ApiVersion(2), ApiVersion(3)],
+            })
+        );
+
+        assert_eq!(
+            true,
+            api_part.union_exist(&ApiPart {
+                name: ApiName("api1".to_owned()),
+                versions: hashset![ApiVersion(1), ApiVersion(2)],
+            })
+        );
+    }
 
     #[test]
     fn test_network_features() {
@@ -575,7 +668,7 @@ mod tests {
     fn test_parse_and_read_minimal_endpoint() {
         let str_endpoint = "UNKNOWN_API 8080";
         let endpoint = EndpointV2 {
-            api: NetworkEndpointApi(String::from("UNKNOWN_API")),
+            api: ApiName(String::from("UNKNOWN_API")),
             api_version: 0,
             network_features: EndpointV2NetworkFeatures(vec![]),
             api_features: ApiFeatures(vec![]),
@@ -592,7 +685,7 @@ mod tests {
     fn test_parse_and_read_localhost_endpoint() {
         let str_endpoint = "WS2P localhost 10900";
         let endpoint = EndpointV2 {
-            api: NetworkEndpointApi(String::from("WS2P")),
+            api: ApiName(String::from("WS2P")),
             api_version: 0,
             network_features: EndpointV2NetworkFeatures(vec![]),
             api_features: ApiFeatures(vec![]),
@@ -614,7 +707,7 @@ mod tests {
     fn test_parse_and_read_classic_v1_endpoint() {
         let str_endpoint = "ES_CORE_API g1.data.duniter.fr 443";
         let endpoint = EndpointV2 {
-            api: NetworkEndpointApi(String::from("ES_CORE_API")),
+            api: ApiName(String::from("ES_CORE_API")),
             api_version: 0,
             network_features: EndpointV2NetworkFeatures(vec![]),
             api_features: ApiFeatures(vec![]),
@@ -631,7 +724,7 @@ mod tests {
     fn test_parse_and_read_endpoint_with_host() {
         let str_endpoint = "WS2P V2 S 7 g1.durs.ifee.fr 443 ws2p";
         let endpoint = EndpointV2 {
-            api: NetworkEndpointApi(String::from("WS2P")),
+            api: ApiName(String::from("WS2P")),
             api_version: 2,
             network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
@@ -653,7 +746,7 @@ mod tests {
     fn test_parse_and_read_endpoint_with_ipv4() {
         let str_endpoint = "WS2P V2 S 7 84.16.72.210 443 ws2p";
         let endpoint = EndpointV2 {
-            api: NetworkEndpointApi(String::from("WS2P")),
+            api: ApiName(String::from("WS2P")),
             api_version: 2,
             network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
@@ -670,7 +763,7 @@ mod tests {
     fn test_parse_and_read_endpoint_with_ipv6() {
         let str_endpoint = "WS2P V2 S 7 [2001:41d0:8:c5aa::1] 443 ws2p";
         let endpoint = EndpointV2 {
-            api: NetworkEndpointApi(String::from("WS2P")),
+            api: ApiName(String::from("WS2P")),
             api_version: 2,
             network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
@@ -687,7 +780,7 @@ mod tests {
     fn test_parse_and_read_endpoint_with_ipv4_and_ip_v6() {
         let str_endpoint = "WS2P V2 S 7 5.135.188.170 [2001:41d0:8:c5aa::1] 443 ws2p";
         let endpoint = EndpointV2 {
-            api: NetworkEndpointApi(String::from("WS2P")),
+            api: ApiName(String::from("WS2P")),
             api_version: 2,
             network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
@@ -704,7 +797,7 @@ mod tests {
     fn test_parse_and_read_endpoint_with_all_fields() {
         let str_endpoint = "WS2P V2 S 7 g1.durs.info 5.135.188.170 [2001:41d0:8:c5aa::1] 443 ws2p";
         let endpoint = EndpointV2 {
-            api: NetworkEndpointApi(String::from("WS2P")),
+            api: ApiName(String::from("WS2P")),
             api_version: 2,
             network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),

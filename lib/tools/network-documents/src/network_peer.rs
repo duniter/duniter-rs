@@ -272,7 +272,7 @@ mod tests {
 
     fn create_endpoint_v2() -> EndpointV2 {
         EndpointV2 {
-            api: NetworkEndpointApi(String::from("WS2P")),
+            api: ApiName(String::from("WS2P")),
             api_version: 2,
             network_features: EndpointV2NetworkFeatures(vec![1u8]),
             api_features: ApiFeatures(vec![7u8]),
@@ -285,7 +285,7 @@ mod tests {
     }
     fn create_second_endpoint_v2() -> EndpointV2 {
         EndpointV2 {
-            api: NetworkEndpointApi(String::from("WS2P")),
+            api: ApiName(String::from("WS2P")),
             api_version: 2,
             network_features: EndpointV2NetworkFeatures(vec![1u8]),
             api_features: ApiFeatures(vec![7u8]),
