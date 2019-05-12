@@ -43,11 +43,19 @@ pub enum BlockchainRequest {
     /// Current blockstamp
     CurrentBlockstamp(),
     /// Current block
-    CurrentBlock(),
+    CurrentBlock,
     /// Block by number
-    BlockByNumber(u64),
+    BlockByNumber {
+        /// Block number
+        block_number: BlockNumber,
+    },
     /// Chunk (block pack)
-    Chunk(u64, usize),
+    Chunk {
+        /// First block number
+        first_block_number: BlockNumber,
+        /// Number of blocks
+        count: u32,
+    },
     /// Usernames corresponding to the public keys in parameter
     UIDs(Vec<PubKey>),
     /// Get identities

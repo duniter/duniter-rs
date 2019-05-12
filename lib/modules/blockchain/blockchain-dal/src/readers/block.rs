@@ -107,7 +107,9 @@ pub fn get_block(
         Ok(dal_block)
     }
 }
+
 /// Get block in local blockchain
+#[inline]
 pub fn get_block_in_local_blockchain(
     db: &BinDB<LocalBlockchainV10Datas>,
     block_id: BlockNumber,
@@ -118,6 +120,24 @@ pub fn get_block_in_local_blockchain(
         } else {
             None
         }
+    })?)
+}
+
+/// Get several blocks in local blockchain
+#[inline]
+pub fn get_blocks_in_local_blockchain(
+    db: &BinDB<LocalBlockchainV10Datas>,
+    first_block_number: BlockNumber,
+    count: u32,
+) -> Result<Vec<BlockDocument>, DALError> {
+    Ok(db.read(|db| {
+        let mut blocks = Vec::with_capacity(count as usize);
+        let mut current_block_number = first_block_number;
+        while let Some(dal_block) = db.get(&current_block_number) {
+            blocks.push(dal_block.block.clone());
+            current_block_number = BlockNumber(current_block_number.0 + 1);
+        }
+        blocks
     })?)
 }
 

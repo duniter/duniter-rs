@@ -58,17 +58,17 @@ pub struct PendingIdtyDatas {
 /// Response to a BlockchainReqBlockchain request
 pub enum BlockchainResponse {
     /// Current blockstamp
-    CurrentBlockstamp(ModuleReqId, Blockstamp),
+    CurrentBlockstamp(Blockstamp),
     /// Current block
-    CurrentBlock(ModuleReqId, Box<BlockDocument>, Blockstamp),
+    CurrentBlock(Box<BlockDocument>, Blockstamp),
     /// Block by number
-    BlockByNumber(ModuleReqId, Box<BlockDocument>),
+    BlockByNumber(Box<BlockDocument>),
     /// Chunk (block pack)
-    Chunk(ModuleReqId, Vec<BlockDocument>),
+    Chunk(Vec<BlockDocument>),
     /// Usernames corresponding to the public keys in parameter
-    UIDs(ModuleReqId, HashMap<PubKey, Option<String>>),
+    UIDs(HashMap<PubKey, Option<String>>),
     /// Identities
-    Identities(ModuleReqId, Vec<IdentityDocument>),
+    Identities(Vec<IdentityDocument>),
 }
 
 #[derive(Debug, Clone)]

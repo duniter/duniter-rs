@@ -32,34 +32,108 @@ pub fn receive_req(
                 bc,
                 req_from,
                 req_id,
-                &BlockchainResponse::CurrentBlockstamp(req_id, bc.current_blockstamp),
+                &BlockchainResponse::CurrentBlockstamp(bc.current_blockstamp),
             ),
-            BlockchainRequest::CurrentBlock() => {
-                debug!("BlockchainModule : receive DALReqBc::CurrentBlock()");
+            BlockchainRequest::CurrentBlock => {
+                debug!("BlockchainModule : receive BlockchainRequest::CurrentBlock()");
 
-                if let Some(current_block) = readers::block::get_block(
+                if let Ok(block_opt) = readers::block::get_block(
                     &bc.blocks_databases.blockchain_db,
                     None,
                     &bc.current_blockstamp,
-                )
-                .expect("Fatal error : get_block : fail to read LocalBlockchainV10DB !")
-                {
-                    debug!(
-                        "BlockchainModule : send_req_response(CurrentBlock({}))",
-                        bc.current_blockstamp
-                    );
-                    responses::sent::send_req_response(
-                        bc,
-                        req_from,
-                        req_id,
-                        &BlockchainResponse::CurrentBlock(
+                ) {
+                    if let Some(dal_block) = block_opt {
+                        debug!(
+                            "BlockchainModule : send_req_response(CurrentBlock({}))",
+                            bc.current_blockstamp
+                        );
+                        responses::sent::send_req_response(
+                            bc,
+                            req_from,
                             req_id,
-                            Box::new(current_block.block),
-                            bc.current_blockstamp,
-                        ),
-                    );
+                            &BlockchainResponse::CurrentBlock(
+                                Box::new(dal_block.block),
+                                bc.current_blockstamp,
+                            ),
+                        );
+                    } else {
+                        warn!("BlockchainModule : Req : fail to get current_block in bdd !");
+                    }
                 } else {
-                    warn!("BlockchainModule : Req : fail to get current_block in bdd !");
+                    fatal_error!(
+                        "BlockchainModule: get_block(): fail to read LocalBlockchainV10DB !"
+                    )
+                }
+            }
+            BlockchainRequest::BlockByNumber { block_number } => {
+                debug!(
+                    "BlockchainModule : receive BlockchainRequest::BlockByNumber(#{})",
+                    block_number
+                );
+
+                if let Ok(block_opt) = readers::block::get_block_in_local_blockchain(
+                    &bc.blocks_databases.blockchain_db,
+                    block_number,
+                ) {
+                    if let Some(block) = block_opt {
+                        debug!(
+                            "BlockchainModule : send_req_response(BlockByNumber(#{}))",
+                            block_number
+                        );
+                        responses::sent::send_req_response(
+                            bc,
+                            req_from,
+                            req_id,
+                            &BlockchainResponse::BlockByNumber(Box::new(block)),
+                        );
+                    } else {
+                        debug!(
+                            "BlockchainModule : Req : not found block #{} in bdd !",
+                            block_number
+                        );
+                    }
+                } else {
+                    fatal_error!(
+                        "BlockchainModule: get_block(): fail to read LocalBlockchainV10DB !"
+                    )
+                }
+            }
+            BlockchainRequest::Chunk {
+                first_block_number,
+                count,
+            } => {
+                debug!(
+                    "BlockchainModule : receive BlockchainRequest::Chunk(#{}, {})",
+                    first_block_number, count
+                );
+
+                if let Ok(blocks) = readers::block::get_blocks_in_local_blockchain(
+                    &bc.blocks_databases.blockchain_db,
+                    first_block_number,
+                    count,
+                ) {
+                    if blocks.is_empty() {
+                        debug!(
+                            "BlockchainModule : Req : not found chunk (#{}, {}) in bdd !",
+                            first_block_number, count,
+                        );
+                    } else {
+                        debug!(
+                            "BlockchainModule : send_req_response(Chunk(#{}, {}))",
+                            first_block_number,
+                            blocks.len(),
+                        );
+                        responses::sent::send_req_response(
+                            bc,
+                            req_from,
+                            req_id,
+                            &BlockchainResponse::Chunk(blocks),
+                        );
+                    }
+                } else {
+                    fatal_error!(
+                        "BlockchainModule: get_block(): fail to read LocalBlockchainV10DB !"
+                    )
                 }
             }
             BlockchainRequest::UIDs(pubkeys) => {
@@ -68,7 +142,6 @@ pub fn receive_req(
                     req_from,
                     req_id,
                     &BlockchainResponse::UIDs(
-                        req_id,
                         pubkeys
                             .into_iter()
                             .map(|p| {
@@ -99,10 +172,9 @@ pub fn receive_req(
                     bc,
                     req_from,
                     req_id,
-                    &BlockchainResponse::Identities(req_id, identities),
+                    &BlockchainResponse::Identities(identities),
                 );
             }
-            _ => {}
         }
     }
 }

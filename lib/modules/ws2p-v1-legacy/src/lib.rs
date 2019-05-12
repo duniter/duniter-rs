@@ -622,7 +622,6 @@ impl WS2Pv1Module {
                                 {
                                     match *bc_res.deref() {
                                         BlockchainResponse::CurrentBlockstamp(
-                                            ref _requester_id,
                                             ref current_blockstamp_,
                                         ) => {
                                             debug!(
@@ -646,7 +645,7 @@ impl WS2Pv1Module {
                                                     .clone())]);
                                             events::sent::send_network_event(&mut self, event);
                                         }
-                                        BlockchainResponse::UIDs(ref _req_id, ref uids) => {
+                                        BlockchainResponse::UIDs(ref uids) => {
                                             // Add uids to heads
                                             for head in self.heads_cache.values_mut() {
                                                 if let Some(uid_option) = uids.get(&head.pubkey()) {
