@@ -72,7 +72,7 @@ skip_ci:
     <<: *ci_only_conditions
   except:
     <<: *ci_except_conditions
-  image: registry.duniter.org/docker/rust/armv7-builder:v1.33.0
+  image: registry.duniter.org/docker/rust/armv7-builder:v1.34.1
   tags:
     - redshift-rs-stable
   before_script:
@@ -83,7 +83,7 @@ skip_ci:
     <<: *ci_only_conditions
   except:
     <<: *ci_except_conditions
-  image: registry.duniter.org/docker/rust/win64-builder:v1.32.0
+  image: registry.duniter.org/docker/rust/win64-builder:v1.34.1
   tags:
     - redshift-rs-stable
   before_script:
