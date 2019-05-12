@@ -575,6 +575,154 @@ impl IntoSpecializedDocument<DUBPDocument> for BlockDocument {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct BlockDocumentStringified {
+    /// Version
+    pub version: u64,
+    /// Nonce
+    pub nonce: u64,
+    /// number
+    pub number: u64,
+    /// Minimal proof of work difficulty
+    pub pow_min: u64,
+    /// Local time of the block issuer
+    pub time: u64,
+    /// Average time
+    pub median_time: u64,
+    /// Members count
+    pub members_count: u64,
+    /// Monetary mass
+    pub monetary_mass: u64,
+    /// Unit base (power of ten)
+    pub unit_base: u64,
+    /// Number of compute members in the current frame
+    pub issuers_count: u64,
+    /// Current frame size (in blocks)
+    pub issuers_frame: i64,
+    /// Current frame variation buffer
+    pub issuers_frame_var: i64,
+    /// Currency.
+    pub currency: String,
+    /// Document issuer (there should be only one).
+    pub issuers: Vec<String>,
+    /// Document signature (there should be only one).
+    /// This vector is empty, when the block is generated but the proof of work has not yet started
+    pub signatures: Vec<String>,
+    /// The hash is None, when the block is generated but the proof of work has not yet started
+    pub hash: Option<String>,
+    /// Currency parameters (only in genesis block)
+    pub parameters: Option<String>,
+    /// Hash of the previous block
+    pub previous_hash: String,
+    /// Issuer of the previous block
+    pub previous_issuer: Option<String>,
+    /// Hash of the deterministic content of the block
+    pub inner_hash: Option<String>,
+    /// Amount of new dividend created at this block, None if no dividend is created at this block
+    pub dividend: Option<u64>,
+    /// Identities
+    pub identities: Vec<IdentityStringDocument>,
+    /// joiners
+    pub joiners: Vec<MembershipStringDocument>,
+    /// Actives (=renewals)
+    pub actives: Vec<MembershipStringDocument>,
+    /// Leavers
+    pub leavers: Vec<MembershipStringDocument>,
+    /// Revokeds
+    pub revoked: Vec<CompactRevocationStringDocument>,
+    /// Excludeds
+    pub excluded: Vec<String>,
+    /// Certifications
+    pub certifications: Vec<CompactCertificationStringDocument>,
+    /// Transactions
+    pub transactions: Vec<TransactionDocumentStringified>,
+}
+
+impl ToStringObject for BlockDocument {
+    type StringObject = BlockDocumentStringified;
+    /// Transforms an object into a json object
+    fn to_string_object(&self) -> BlockDocumentStringified {
+        BlockDocumentStringified {
+            version: u64::from(self.version),
+            nonce: self.nonce,
+            number: u64::from(self.number.0),
+            pow_min: self.pow_min as u64,
+            time: self.time,
+            median_time: self.median_time,
+            members_count: self.members_count as u64,
+            monetary_mass: self.monetary_mass as u64,
+            unit_base: self.unit_base as u64,
+            issuers_count: self.issuers_count as u64,
+            issuers_frame: self.issuers_frame as i64,
+            issuers_frame_var: self.issuers_frame_var as i64,
+            currency: self.currency.to_string(),
+            issuers: self.issuers.iter().map(ToString::to_string).collect(),
+            signatures: self.signatures.iter().map(ToString::to_string).collect(),
+            hash: self.hash.map(|hash| hash.to_string()),
+            parameters: self.parameters.map(|parameters| parameters.to_string()),
+            previous_hash: self.previous_hash.to_string(),
+            previous_issuer: self.previous_issuer.map(|p| p.to_string()),
+            inner_hash: self.inner_hash.map(|hash| hash.to_string()),
+            dividend: self.dividend.map(|dividend| dividend as u64),
+            identities: self
+                .identities
+                .iter()
+                .map(ToStringObject::to_string_object)
+                .collect(),
+            joiners: self
+                .joiners
+                .iter()
+                .map(ToStringObject::to_string_object)
+                .collect(),
+            actives: self
+                .actives
+                .iter()
+                .map(ToStringObject::to_string_object)
+                .collect(),
+            leavers: self
+                .leavers
+                .iter()
+                .map(ToStringObject::to_string_object)
+                .collect(),
+            revoked: self
+                .revoked
+                .iter()
+                .map(|revocation_doc| match revocation_doc {
+                    TextDocumentFormat::Complete(complete_revoc_doc) => {
+                        complete_revoc_doc.to_compact_document().to_string_object()
+                    }
+                    TextDocumentFormat::Compact(compact_revoc_doc) => {
+                        compact_revoc_doc.to_string_object()
+                    }
+                })
+                .collect(),
+            excluded: self.excluded.iter().map(ToString::to_string).collect(),
+            certifications: self
+                .certifications
+                .iter()
+                .map(|cert_doc| match cert_doc {
+                    TextDocumentFormat::Complete(complete_cert_doc) => {
+                        complete_cert_doc.to_compact_document().to_string_object()
+                    }
+                    TextDocumentFormat::Compact(compact_cert_doc) => {
+                        compact_cert_doc.to_string_object()
+                    }
+                })
+                .collect(),
+            transactions: self
+                .transactions
+                .iter()
+                .map(|tx_doc_or_tx_hash| match tx_doc_or_tx_hash {
+                    TxDocOrTxHash::TxDoc(tx_doc) => tx_doc.to_string_object(),
+                    TxDocOrTxHash::TxHash(_) => {
+                        fatal_error!("Try to stringify block without their tx documents")
+                    }
+                })
+                .collect(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::certification::CertificationDocumentParser;

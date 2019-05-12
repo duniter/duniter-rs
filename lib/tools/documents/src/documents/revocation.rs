@@ -42,6 +42,26 @@ impl CompactTextDocument for CompactRevocationDocument {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
+/// Revocation document for jsonification
+pub struct CompactRevocationStringDocument {
+    /// Document issuer
+    issuer: String,
+    /// Document signature
+    signature: String,
+}
+
+impl ToStringObject for CompactRevocationDocument {
+    type StringObject = CompactRevocationStringDocument;
+    /// Transforms an object into a json object
+    fn to_string_object(&self) -> CompactRevocationStringDocument {
+        CompactRevocationStringDocument {
+            issuer: format!("{}", self.issuer),
+            signature: format!("{}", self.signature),
+        }
+    }
+}
+
 /// Wrap an Revocation document.
 ///
 /// Must be created by parsing a text document or using a builder.

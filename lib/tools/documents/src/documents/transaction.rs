@@ -559,7 +559,7 @@ pub struct TransactionDocumentStringified {
     outputs: Vec<String>,
     /// Transaction comment
     comment: String,
-    /// Document signature (there should be only one).
+    /// Document signatures
     signatures: Vec<String>,
     /// Transaction hash
     hash: Option<String>,
@@ -567,7 +567,7 @@ pub struct TransactionDocumentStringified {
 
 impl ToStringObject for TransactionDocument {
     type StringObject = TransactionDocumentStringified;
-    /// Transforms an object into a json object
+
     fn to_string_object(&self) -> TransactionDocumentStringified {
         TransactionDocumentStringified {
             currency: self.currency.clone(),

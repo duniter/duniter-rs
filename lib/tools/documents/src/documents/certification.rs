@@ -48,6 +48,32 @@ impl CompactTextDocument for CompactCertificationDocument {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
+/// identity document for jsonification
+pub struct CompactCertificationStringDocument {
+    /// Document issuer
+    issuer: String,
+    /// issuer of target identity.
+    target: String,
+    /// Block number
+    block_number: u64,
+    /// Document signature
+    signature: String,
+}
+
+impl ToStringObject for CompactCertificationDocument {
+    type StringObject = CompactCertificationStringDocument;
+    /// Transforms an object into a json object
+    fn to_string_object(&self) -> CompactCertificationStringDocument {
+        CompactCertificationStringDocument {
+            issuer: format!("{}", self.issuer),
+            target: format!("{}", self.target),
+            block_number: u64::from(self.block_number.0),
+            signature: format!("{}", self.signature),
+        }
+    }
+}
+
 /// Wrap an Certification document.
 ///
 /// Must be created by parsing a text document or using a builder.
