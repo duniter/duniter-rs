@@ -15,7 +15,7 @@ members = [
     "lib/modules/ws2p/ws2p-messages",
     "lib/tests-tools/crypto-tests-tools",
     "lib/tests-tools/documents-tests-tools",
-    "lib/tests-tools/rust-tests-tools",
+    "lib/tests-tools/common-tests-tools",
     "lib/tools/crypto",
     "lib/tools/common-tools",
     "lib/tools/documents",

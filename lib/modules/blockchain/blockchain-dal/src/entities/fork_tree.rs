@@ -586,7 +586,7 @@ mod tests {
             ),
             (TreeNodeId(11), child_fork_blockstamp),
         ];
-        assert!(rust_tests_tools::collections::slice_same_elems(
+        assert!(durs_common_tests_tools::collections::slice_same_elems(
             &expected_sheets,
             &sheets
         ));
@@ -697,7 +697,7 @@ mod tests {
             ),
         ];
         println!("{:?}", sheets);
-        assert!(rust_tests_tools::collections::slice_same_elems(
+        assert!(durs_common_tests_tools::collections::slice_same_elems(
             &expected_sheets,
             &sheets
         ));
@@ -709,7 +709,7 @@ mod tests {
         );
 
         // Check that the shaft still has 2 same sheets
-        assert!(rust_tests_tools::collections::slice_same_elems(
+        assert!(durs_common_tests_tools::collections::slice_same_elems(
             &expected_sheets,
             &sheets
         ));

@@ -122,7 +122,7 @@ mod test {
     use crate::*;
     use dubp_documents::Blockstamp;
     use dup_crypto_tests_tools::mocks::pubkey;
-    use rust_tests_tools::collections::slice_same_elems;
+    use durs_common_tests_tools::collections::slice_same_elems;
 
     fn gen_mock_dal_idty(pubkey: PubKey, created_block_id: BlockNumber) -> DALIdentity {
         DALIdentity {

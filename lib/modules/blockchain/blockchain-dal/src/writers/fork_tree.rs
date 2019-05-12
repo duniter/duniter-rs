@@ -187,7 +187,7 @@ mod test {
 
         // Check tree state
         assert_eq!(5, fork_tree_db.read(|tree| tree.size())?);
-        assert!(rust_tests_tools::collections::slice_same_elems(
+        assert!(durs_common_tests_tools::collections::slice_same_elems(
             &vec![
                 (TreeNodeId(3), blockstamps[3]),
                 (TreeNodeId(4), fork_blockstamp)
@@ -207,7 +207,7 @@ mod test {
 
         // Check tree state
         assert_eq!(6, fork_tree_db.read(|tree| tree.size())?);
-        assert!(rust_tests_tools::collections::slice_same_elems(
+        assert!(durs_common_tests_tools::collections::slice_same_elems(
             &vec![
                 (TreeNodeId(3), blockstamps[3]),
                 (TreeNodeId(5), fork_blockstamp_2)
@@ -228,7 +228,7 @@ mod test {
             *crate::constants::FORK_WINDOW_SIZE + 2,
             fork_tree_db.read(|tree| tree.size())?
         );
-        assert!(rust_tests_tools::collections::slice_same_elems(
+        assert!(durs_common_tests_tools::collections::slice_same_elems(
             &vec![
                 (
                     TreeNodeId(*crate::constants::FORK_WINDOW_SIZE + 1),
