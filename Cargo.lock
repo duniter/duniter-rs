@@ -451,6 +451,7 @@ version = "0.1.0-a0.1"
 dependencies = [
  "dubp-documents 0.12.0",
  "dup-crypto 0.6.0",
+ "durs-common-tools 0.1.0",
  "durs-network-documents 0.3.1",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",

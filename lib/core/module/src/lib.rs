@@ -33,6 +33,7 @@ extern crate serde_derive;
 
 use dubp_documents::CurrencyName;
 use dup_crypto::keys::{KeyPair, KeyPairEnum};
+use durs_common_tools::traits::merge::Merge;
 use durs_network_documents::network_endpoint::{ApiPart, EndpointEnum};
 use failure::Fail;
 use serde::de::DeserializeOwned;
@@ -395,7 +396,14 @@ impl From<ModuleConfError> for PlugModuleError {
 /// All Duniter-rs modules must implement this trait.
 pub trait DursModule<DC: DursConfTrait, M: ModuleMessage> {
     ///Module user configuration (configuration provided by the user)
-    type ModuleUserConf: Clone + Debug + Default + DeserializeOwned + Send + Serialize + Sync;
+    type ModuleUserConf: Clone
+        + Debug
+        + Default
+        + DeserializeOwned
+        + Merge
+        + Send
+        + Serialize
+        + Sync;
     /// Module real configuration (configuration calculated from the configuration provided by the user and the global configuration)
     type ModuleConf: 'static + Clone + Debug + Default + Send + Sync;
     /// Module subcommand options

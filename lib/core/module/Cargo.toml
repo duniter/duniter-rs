@@ -11,7 +11,8 @@ path = "src/lib.rs"
 
 [dependencies]
 dup-crypto = { path = "../../tools/crypto" }
-dubp-documents= { path = "../../tools/documents" }
+dubp-documents = { path = "../../tools/documents" }
+durs-common-tools = { path = "../../tools/common-tools" }
 durs-network-documents = { path = "../../tools/network-documents" }
 failure = "0.1.5"
 serde = "1.0.*"

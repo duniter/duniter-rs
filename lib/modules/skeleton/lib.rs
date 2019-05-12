@@ -35,6 +35,7 @@ extern crate serde_derive;
 extern crate structopt;
 
 use durs_common_tools::fatal_error;
+use durs_common_tools::traits::merge::Merge;
 use durs_conf::DuRsConf;
 use durs_message::events::*;
 use durs_message::*;
@@ -66,6 +67,14 @@ impl Default for SkeletonConf {
 /// Skeleton Module Configuration
 pub struct SkeletonUserConf {
     test_fake_conf_field: Option<String>,
+}
+
+impl Merge for SkeletonUserConf {
+    fn merge(self, other: Self) -> Self {
+        SkeletonUserConf {
+            test_fake_conf_field: self.test_fake_conf_field.or(other.test_fake_conf_field),
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone)]

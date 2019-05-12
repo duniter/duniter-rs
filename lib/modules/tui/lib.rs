@@ -36,6 +36,7 @@ extern crate serde_derive;
 extern crate structopt;
 
 use durs_common_tools::fatal_error;
+use durs_common_tools::traits::merge::Merge;
 use durs_conf::DuRsConf;
 use durs_message::events::*;
 use durs_message::*;
@@ -61,6 +62,12 @@ pub struct TuiConf {}
 impl Default for TuiConf {
     fn default() -> Self {
         TuiConf {}
+    }
+}
+
+impl Merge for TuiConf {
+    fn merge(self, _: Self) -> Self {
+        self
     }
 }
 

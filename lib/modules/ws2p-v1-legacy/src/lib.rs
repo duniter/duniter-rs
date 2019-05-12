@@ -61,6 +61,7 @@ use crate::ws_connections::*;
 use dubp_documents::{Blockstamp, CurrencyName};
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
+use durs_common_tools::traits::merge::Merge;
 use durs_conf::DuRsConf;
 use durs_message::events::*;
 use durs_message::requests::*;
@@ -109,6 +110,16 @@ pub struct WS2PUserConf {
     pub prefered_pubkeys: Option<HashSet<String>>,
     /// Default WS2P endpoints provides by configuration file
     pub sync_endpoints: Option<Vec<EndpointV1>>,
+}
+
+impl Merge for WS2PUserConf {
+    fn merge(self, other: Self) -> Self {
+        WS2PUserConf {
+            outcoming_quota: self.outcoming_quota.or(other.outcoming_quota),
+            prefered_pubkeys: self.prefered_pubkeys.or(other.prefered_pubkeys),
+            sync_endpoints: self.sync_endpoints.or(other.sync_endpoints),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

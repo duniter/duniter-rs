@@ -41,6 +41,7 @@ pub mod services;
 
 use crate::errors::WS2PError;
 use durs_common_tools::fatal_error;
+use durs_common_tools::traits::merge::Merge;
 use durs_conf::DuRsConf;
 use durs_message::DursMsg;
 use durs_module::*;
@@ -66,6 +67,15 @@ pub struct WS2PUserConf {
     pub outcoming_quota: Option<usize>,
     /// Default WS2P endpoints provides by configuration file
     pub sync_endpoints: Option<Vec<EndpointEnum>>,
+}
+
+impl Merge for WS2PUserConf {
+    fn merge(self, other: Self) -> Self {
+        WS2PUserConf {
+            outcoming_quota: self.outcoming_quota.or(other.outcoming_quota),
+            sync_endpoints: self.sync_endpoints.or(other.sync_endpoints),
+        }
+    }
 }
 
 impl Default for WS2PConf {
