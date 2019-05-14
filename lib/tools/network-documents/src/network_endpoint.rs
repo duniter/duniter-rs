@@ -52,9 +52,9 @@ impl ApiFeatures {
         } else {
             let hex_str = hex::encode(self.0.clone());
             if hex_str.len() == 2 {
-                format!("{} ", &hex_str[1..])
+                format!("0x{} ", &hex_str[1..])
             } else {
-                format!("{} ", hex_str)
+                format!("0x{} ", hex_str)
             }
         }
     }
@@ -722,7 +722,7 @@ mod tests {
 
     #[test]
     fn test_parse_and_read_endpoint_with_host() {
-        let str_endpoint = "WS2P V2 S 7 g1.durs.ifee.fr 443 ws2p";
+        let str_endpoint = "WS2P V2 S 0x7 g1.durs.ifee.fr 443 ws2p";
         let endpoint = EndpointV2 {
             api: ApiName(String::from("WS2P")),
             api_version: 2,
@@ -744,7 +744,7 @@ mod tests {
 
     #[test]
     fn test_parse_and_read_endpoint_with_ipv4() {
-        let str_endpoint = "WS2P V2 S 7 84.16.72.210 443 ws2p";
+        let str_endpoint = "WS2P V2 S 0x7 84.16.72.210 443 ws2p";
         let endpoint = EndpointV2 {
             api: ApiName(String::from("WS2P")),
             api_version: 2,
@@ -761,7 +761,7 @@ mod tests {
 
     #[test]
     fn test_parse_and_read_endpoint_with_ipv6() {
-        let str_endpoint = "WS2P V2 S 7 [2001:41d0:8:c5aa::1] 443 ws2p";
+        let str_endpoint = "WS2P V2 S 0x7 [2001:41d0:8:c5aa::1] 443 ws2p";
         let endpoint = EndpointV2 {
             api: ApiName(String::from("WS2P")),
             api_version: 2,
@@ -778,7 +778,7 @@ mod tests {
 
     #[test]
     fn test_parse_and_read_endpoint_with_ipv4_and_ip_v6() {
-        let str_endpoint = "WS2P V2 S 7 5.135.188.170 [2001:41d0:8:c5aa::1] 443 ws2p";
+        let str_endpoint = "WS2P V2 S 0x7 5.135.188.170 [2001:41d0:8:c5aa::1] 443 ws2p";
         let endpoint = EndpointV2 {
             api: ApiName(String::from("WS2P")),
             api_version: 2,
@@ -795,7 +795,8 @@ mod tests {
 
     #[test]
     fn test_parse_and_read_endpoint_with_all_fields() {
-        let str_endpoint = "WS2P V2 S 7 g1.durs.info 5.135.188.170 [2001:41d0:8:c5aa::1] 443 ws2p";
+        let str_endpoint =
+            "WS2P V2 S 0x7 g1.durs.info 5.135.188.170 [2001:41d0:8:c5aa::1] 443 ws2p";
         let endpoint = EndpointV2 {
             api: ApiName(String::from("WS2P")),
             api_version: 2,
