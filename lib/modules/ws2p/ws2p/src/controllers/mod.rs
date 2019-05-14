@@ -60,11 +60,11 @@ pub enum WS2PConnectionState {
     /// Websocket error
     WSError,
     /// Try to send connect message
-    TryToSendConnectMess,
+    TryToSendConnectMsg,
     /// Endpoint unreachable
     Unreachable,
     /// Waiting connect message
-    WaitingConnectMess,
+    WaitingConnectMsg,
     /// No response
     NoResponse,
     /// Negociation timeout
@@ -72,14 +72,14 @@ pub enum WS2PConnectionState {
     /// Receive valid connect message
     ConnectMessOk,
     /// Receive valid OK message but wait ACK message
-    OkMessOkWaitingAckMess,
+    OkMsgOkWaitingAckMsg,
     /// Receive valid ACK message
-    AckMessOk,
+    AckMsgOk,
     /// Connection denial (maybe due to many different reasons : receive wrong message, wrong format, wrong signature, etc)
     Denial,
     /// Connection closed
     Close,
-    /// Connection succesfully established
+    /// Connection successfully established
     Established,
 }
 

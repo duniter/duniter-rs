@@ -105,7 +105,9 @@ mod tests {
 
     #[test]
     fn test_ws2p_message_ack() {
-        test_ws2p_message(WS2Pv2MessagePayload::Ack(Hash::random()));
+        test_ws2p_message(WS2Pv2MessagePayload::Ack {
+            challenge: Hash::random(),
+        });
     }
 
     #[test]

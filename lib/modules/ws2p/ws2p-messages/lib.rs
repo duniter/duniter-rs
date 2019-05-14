@@ -80,7 +80,7 @@ impl WS2PMessage {
     pub fn parse_and_check_bin_message(bin_msg: &[u8]) -> Result<WS2PMessage, WS2PMessageError> {
         let msg: WS2PMessage = bincode::deserialize(&bin_msg)?;
         let hash = msg.hash();
-        //println!("DEBUG: parse_and_check_bin_message: hash={:?}", hash);
+        //debug!("parse_and_check_bin_message: hash={:?}", hash);
         // Compute hash len
         let hash_len = 33;
         // Compute signature len

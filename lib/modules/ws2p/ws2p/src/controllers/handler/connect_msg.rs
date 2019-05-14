@@ -13,10 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Process WS2P CONNECT mesage.
+//! Process WS2P CONNECT message.
 
 use crate::controllers::handler::*;
 use crate::controllers::*;
+use durs_common_tools::fatal_error;
 use durs_network_documents::NodeFullId;
 use durs_ws2p_messages::v2::connect::WS2Pv2ConnectMsg;
 use ws::CloseCode;
@@ -29,7 +30,7 @@ pub fn process_ws2p_v2_connect_msg(
     remote_full_id: NodeFullId,
     connect_msg: &WS2Pv2ConnectMsg,
 ) {
-    println!("DEBUG: Receive CONNECT message !");
+    debug!("Receive CONNECT message !");
 
     // Get remote node datas
     let remote_challenge = connect_msg.challenge;
@@ -38,7 +39,7 @@ pub fn process_ws2p_v2_connect_msg(
         peer_card: None,
         current_blockstamp: None,
     };
-    if let WS2PConnectionState::WaitingConnectMess = handler.conn_datas.state {
+    if let WS2PConnectionState::WaitingConnectMsg = handler.conn_datas.state {
         // Check remote node datas
         if let WS2Pv2ConnectType::Incoming = handler.conn_datas.connect_type {
             handler.conn_datas.remote_full_id = Some(remote_full_id);
@@ -97,25 +98,26 @@ pub fn process_ws2p_v2_connect_msg(
     handler.send_new_conn_state_to_service();
 
     // Encapsulate and binarize ACK message
-    let (_, bin_ack_msg) = WS2Pv2Message::encapsulate_payload(
+    if let Ok((_, bin_ack_msg)) = WS2Pv2Message::encapsulate_payload(
         handler.currency.clone(),
         handler.local_node.my_node_id,
         handler.local_node.my_key_pair,
-        WS2Pv2MessagePayload::Ack(remote_challenge),
-    )
-    .expect("WS2P : Fail to sign own ack message !");
-    // Send ACk Message
-    match handler.ws.0.send(Message::binary(bin_ack_msg)) {
-        Ok(()) => {
+        WS2Pv2MessagePayload::Ack {
+            challenge: remote_challenge,
+        },
+    ) {
+        // Send Ack Message
+        if let Ok(()) = handler.ws.0.send(Message::binary(bin_ack_msg)) {
             // Update state
             handler.conn_datas.state = WS2PConnectionState::ConnectMessOk;
-        }
-        Err(_) => {
+        } else {
             handler.conn_datas.state = WS2PConnectionState::Unreachable;
             let _ = handler
                 .ws
                 .0
-                .close_with_reason(CloseCode::Error, "Fail to send ACk message !");
+                .close_with_reason(CloseCode::Error, "Fail to send Ack message !");
         }
+    } else {
+        fatal_error!("Dev error: Fail to sign own ack message !")
     }
 }

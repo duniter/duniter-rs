@@ -15,17 +15,17 @@
 
 //! WS2P connection handler.
 
+pub mod ack_msg;
 pub mod connect_msg;
+pub mod ok_msg;
 
 use crate::constants::*;
 use crate::controllers::*;
-use crate::services::*;
-use ws::{util::Token, CloseCode, /*Frame,*/ Handler, Handshake, Message};
-//use dup_crypto::keys::KeyPairEnum;
-use dubp_documents::CurrencyName;
-use durs_network_documents::NodeFullId;
-//use durs_ws2p_messages::v2::api_features::WS2PFeatures;
 use crate::services::Ws2pServiceSender;
+use crate::services::*;
+use dubp_documents::CurrencyName;
+use durs_common_tools::fatal_error;
+use durs_network_documents::NodeFullId;
 use durs_ws2p_messages::v2::connect::generate_connect_message;
 use durs_ws2p_messages::v2::payload_container::WS2Pv2MessagePayload;
 use durs_ws2p_messages::v2::WS2Pv2Message;
@@ -35,6 +35,7 @@ use std::ops::Deref;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
+use ws::{util::Token, CloseCode, Handler, Handshake, Message};
 
 const CONNECT: Token = Token(1);
 const EXPIRE: Token = Token(2);
@@ -77,7 +78,8 @@ impl Ws2pConnectionHandler {
         ) = mpsc::channel();
 
         // Send controller sender to service
-        println!("DEBUG: Send controller sender to service");
+        debug!("Send controller sender to service");
+
         service_sender.send(Ws2pServiceSender::ControllerSender(sender))?;
 
         Ok(Ws2pConnectionHandler {
@@ -103,6 +105,11 @@ impl Ws2pConnectionHandler {
             ))
             .expect("WS2p Service unreacheable !");
     }
+    #[inline]
+    fn update_status(&mut self, status: WS2PConnectionState) {
+        self.conn_datas.state = status;
+        self.send_new_conn_state_to_service();
+    }
 }
 
 fn print_opt_addr(addr: Option<SocketAddr>) -> String {
@@ -121,14 +128,13 @@ impl Handler for Ws2pConnectionHandler {
     // Handler state or reject the connection based on the details of the Request
     // or Response, such as by checking cookies or Auth headers.
     fn on_open(&mut self, handshake: Handshake) -> ws::Result<()> {
-        #[cfg(test)]
-        println!(
-            "TESTS: open websocket from {}",
+        debug!(
+            "open websocket from {}",
             print_opt_addr(handshake.peer_addr)
         );
 
         // Update connection state
-        self.conn_datas.state = WS2PConnectionState::TryToSendConnectMess;
+        self.conn_datas.state = WS2PConnectionState::TryToSendConnectMsg;
         self.send_new_conn_state_to_service();
 
         // Generate connect message
@@ -140,77 +146,58 @@ impl Handler for Ws2pConnectionHandler {
         );
 
         // Encapsulate and binarize connect message
-        let (_ws2p_full_msg, bin_connect_msg) = WS2Pv2Message::encapsulate_payload(
+        if let Ok((_ws2p_full_msg, bin_connect_msg)) = WS2Pv2Message::encapsulate_payload(
             self.currency.clone(),
             self.local_node.my_node_id,
             self.local_node.my_key_pair,
             WS2Pv2MessagePayload::Connect(Box::new(connect_msg)),
-        )
-        .expect("WS2P : Fail to sign own connect message !");
+        ) {
+            // Start negociation timeouts
+            self.ws.0.timeout(*WS2P_NEGOTIATION_TIMEOUT, CONNECT)?;
+            // Start expire timeout
+            self.ws
+                .0
+                .timeout(*WS2P_EXPIRE_TIMEOUT_IN_SECS * 1_000, EXPIRE)?;
 
-        // Start negociation timeouts
-        self.ws.0.timeout(*WS2P_NEGOTIATION_TIMEOUT, CONNECT)?;
-        // Start expire timeout
-        self.ws
-            .0
-            .timeout(*WS2P_EXPIRE_TIMEOUT_IN_SECS * 1_000, EXPIRE)?;
-
-        // Send connect message
-        match self.ws.0.send(Message::binary(bin_connect_msg)) {
-            Ok(()) => {
-                // Update state
-                if let WS2PConnectionState::TryToSendConnectMess = self.conn_datas.state {
-                    self.conn_datas.state = WS2PConnectionState::WaitingConnectMess;
-                    self.send_new_conn_state_to_service();
+            // Send connect message
+            match self.ws.0.send(Message::binary(bin_connect_msg)) {
+                Ok(()) => {
+                    // Update state
+                    if let WS2PConnectionState::TryToSendConnectMsg = self.conn_datas.state {
+                        self.conn_datas.state = WS2PConnectionState::WaitingConnectMsg;
+                        self.send_new_conn_state_to_service();
+                    }
+                    // Log
+                    info!(
+                        "Send CONNECT message to {}",
+                        print_opt_addr(handshake.peer_addr)
+                    );
+                    debug!(
+                        "Succesfully send CONNECT message to {}",
+                        print_opt_addr(handshake.peer_addr)
+                    );
                 }
-                // Log
-                info!(
-                    "Send CONNECT message to {}",
-                    print_opt_addr(handshake.peer_addr)
-                );
-                #[cfg(test)]
-                println!(
-                    "TESTS: Succesfully send CONNECT message to {}",
-                    print_opt_addr(handshake.peer_addr)
-                );
+                Err(e) => {
+                    self.conn_datas.state = WS2PConnectionState::Unreachable;
+                    warn!(
+                        "Fail to send CONNECT message to {} : {}",
+                        print_opt_addr(handshake.peer_addr),
+                        e
+                    );
+                    debug!(
+                        "Fail send CONNECT message to {}",
+                        print_opt_addr(handshake.peer_addr)
+                    );
+                    let _ = self
+                        .ws
+                        .0
+                        .close_with_reason(CloseCode::Error, "Fail to send CONNECT message !");
+                }
             }
-            Err(e) => {
-                self.conn_datas.state = WS2PConnectionState::Unreachable;
-                warn!(
-                    "Fail to send CONNECT message to {} : {}",
-                    print_opt_addr(handshake.peer_addr),
-                    e
-                );
-                #[cfg(test)]
-                println!(
-                    "TESTS: Fail send CONNECT message to {}",
-                    print_opt_addr(handshake.peer_addr)
-                );
-                let _ = self
-                    .ws
-                    .0
-                    .close_with_reason(CloseCode::Error, "Fail to send CONNECT message !");
-            }
-        }
-        /*
-        // Send ws::Sender to WS2PConductor
-        let result = self
-            .conductor_sender
-            .send(WS2PThreadSignal::WS2PConnectionMessage(
-                WS2PConnectionMessage(
-                    self.conn_datas.node_full_id(),
-                    WS2PConnectionMessagePayload::WebsocketOk(WsSender(self.ws.clone())),
-                ),
-            ));
-        // If WS2PConductor is unrechable, close connection.
-        if result.is_err() {
-            debug!("Close ws2p connection because ws2p main thread is unrechable !");
-            self.ws.close(CloseCode::Normal)
+            Ok(())
         } else {
-            // Send CONNECT Message
-            self.ws.send(self.connect_message.clone())
-        }*/
-        Ok(())
+            fatal_error!("Dev error: Fail to sign own connect message !");
+        }
     }
 
     // `on_message` is roughly equivalent to the Handler closure. It takes a `Message`
@@ -243,7 +230,7 @@ impl Handler for Ws2pConnectionHandler {
         self.conn_datas.last_mess_time = SystemTime::now();
 
         if msg.is_binary() {
-            println!("DEBUG: Receive new message there is not a spam !");
+            debug!("Receive new message there is not a spam !");
             match WS2PMessage::parse_and_check_bin_message(&msg.into_data()) {
                 Ok(valid_msg) => match valid_msg {
                     WS2PMessage::V2(msg_v2) => {
@@ -260,9 +247,17 @@ impl Handler for Ws2pConnectionHandler {
                                     connect_msg,
                                 );
                             }
-                            WS2Pv2MessagePayload::Ack(_) => {}
+                            WS2Pv2MessagePayload::Ack {
+                                challenge: ack_msg_challenge,
+                            } => {
+                                // Process ack message
+                                ack_msg::process_ws2p_v2_ack_msg(self, ack_msg_challenge);
+                            }
                             WS2Pv2MessagePayload::SecretFlags(_) => {}
-                            WS2Pv2MessagePayload::Ok(_) => {}
+                            WS2Pv2MessagePayload::Ok(_) => {
+                                // Process ok message
+                                ok_msg::process_ws2p_v2_ok_msg(self);
+                            }
                             WS2Pv2MessagePayload::Ko(_) => {}
                             _ => {
                                 if let WS2PConnectionState::Established = self.conn_datas.state {
@@ -278,7 +273,7 @@ impl Handler for Ws2pConnectionHandler {
                     }
                 },
                 Err(ws2p_msg_err) => {
-                    println!("DEBUG: Message is invalid : {:?}", ws2p_msg_err);
+                    warn!("Message is invalid : {:?}", ws2p_msg_err);
                     self.count_invalid_msgs += 1;
                     if self.count_invalid_msgs >= *WS2P_INVALID_MSGS_LIMIT {
                         let _ = self.ws.0.close_with_reason(

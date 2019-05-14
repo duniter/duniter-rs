@@ -15,11 +15,11 @@
 
 //! WS2P outgoing connections controllers.
 
-use dubp_documents::CurrencyName;
-//use durs_module::ModuleReqId;
 use crate::controllers::handler::Ws2pConnectionHandler;
 use crate::controllers::*;
 use crate::services::*;
+use dubp_documents::CurrencyName;
+use durs_common_tools::fatal_error;
 use durs_network_documents::network_endpoint::EndpointEnum;
 use durs_network_documents::NodeFullId;
 use ws::connect;
@@ -47,19 +47,18 @@ pub fn connect_to_ws2p_v2_endpoint(
 
     // Log
     info!("Try connection to {} ...", ws_url);
-    println!("DEBUG: Try connection to {} ...", ws_url);
 
     // Connect to websocket
     connect(ws_url, move |ws| {
-        DeflateBuilder::new().build(
-            Ws2pConnectionHandler::try_new(
-                WsSender(ws),
-                service_sender.clone(),
-                currency.clone(),
-                self_node.clone(),
-                conn_meta_datas.clone(),
-            )
-            .expect("WS2P Service unrechable"),
-        )
+        match Ws2pConnectionHandler::try_new(
+            WsSender(ws),
+            service_sender.clone(),
+            currency.clone(),
+            self_node.clone(),
+            conn_meta_datas.clone(),
+        ) {
+            Ok(handler) => DeflateBuilder::new().build(handler),
+            Err(_e) => fatal_error!("WS2P Service unreachable"),
+        }
     })
 }

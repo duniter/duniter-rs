@@ -39,11 +39,10 @@ pub fn listen_on_ws2p_v2_endpoint(
 
     // Log
     info!("Listen on {} ...", ws_url);
-    println!("DEBUG: call function listen({}) ...", ws_url);
 
     // Connect to websocket
     listen(ws_url, move |ws| {
-        println!("DEBUG: Listen on host:port...");
+        info!("Listen on host:port...");
         DeflateBuilder::new().build(
             Ws2pConnectionHandler::try_new(
                 WsSender(ws),

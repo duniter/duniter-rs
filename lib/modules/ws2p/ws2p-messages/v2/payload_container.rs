@@ -38,7 +38,10 @@ pub enum WS2Pv2MessagePayload {
     /// CONNECT message
     Connect(Box<WS2Pv2ConnectMsg>),
     /// ACK message
-    Ack(Hash),
+    Ack {
+        /// Hash previously sent in CONNECT message
+        challenge: Hash,
+    },
     /// SECRET_FLAGS Message
     SecretFlags(WS2Pv2SecretFlagsMsg),
     /// OK Message
