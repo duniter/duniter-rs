@@ -271,6 +271,9 @@ impl Handler for Ws2pConnectionHandler {
                             }
                         }
                     }
+                    WS2PMessage::_V0 | WS2PMessage::_V1 => {
+                        fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
+                    }
                 },
                 Err(ws2p_msg_err) => {
                     warn!("Message is invalid : {:?}", ws2p_msg_err);

@@ -15,6 +15,7 @@
 
 //! Handles WebSocketToPeer API Messages.
 
+#![allow(clippy::large_enum_variant)]
 #![deny(
     missing_docs,
     missing_debug_implementations,
@@ -47,6 +48,10 @@ use durs_common_tools::fatal_error;
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 /// WS2Pv2Message
 pub enum WS2PMessage {
+    /// Old version not used
+    _V0,
+    /// Old version not used
+    _V1,
     /// Version 2
     V2(WS2Pv2Message),
 }
@@ -73,6 +78,9 @@ impl WS2PMessage {
     pub fn hash(&self) -> Option<Hash> {
         match *self {
             WS2PMessage::V2(ref msg_v2) => msg_v2.message_hash,
+            WS2PMessage::_V0 | WS2PMessage::_V1 => {
+                fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
+            }
         }
     }
 
@@ -111,31 +119,49 @@ impl<'de> BinSignable<'de> for WS2PMessage {
     fn issuer_pubkey(&self) -> PubKey {
         match *self {
             WS2PMessage::V2(ref msg_v2) => msg_v2.issuer_pubkey(),
+            WS2PMessage::_V0 | WS2PMessage::_V1 => {
+                fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
+            }
         }
     }
     fn store_hash(&self) -> bool {
         match *self {
             WS2PMessage::V2(ref msg_v2) => msg_v2.store_hash(),
+            WS2PMessage::_V0 | WS2PMessage::_V1 => {
+                fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
+            }
         }
     }
     fn hash(&self) -> Option<Hash> {
         match *self {
             WS2PMessage::V2(ref msg_v2) => msg_v2.hash(),
+            WS2PMessage::_V0 | WS2PMessage::_V1 => {
+                fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
+            }
         }
     }
     fn set_hash(&mut self, hash: Hash) {
         match *self {
             WS2PMessage::V2(ref mut msg_v2) => msg_v2.set_hash(hash),
+            WS2PMessage::_V0 | WS2PMessage::_V1 => {
+                fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
+            }
         }
     }
     fn signature(&self) -> Option<Sig> {
         match *self {
             WS2PMessage::V2(ref msg_v2) => msg_v2.signature(),
+            WS2PMessage::_V0 | WS2PMessage::_V1 => {
+                fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
+            }
         }
     }
     fn set_signature(&mut self, signature: Sig) {
         match *self {
             WS2PMessage::V2(ref mut msg_v2) => msg_v2.set_signature(signature),
+            WS2PMessage::_V0 | WS2PMessage::_V1 => {
+                fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
+            }
         }
     }
 }
