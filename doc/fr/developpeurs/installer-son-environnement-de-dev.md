@@ -128,7 +128,7 @@ Un exemple de fichier `launch.conf` pour VSCode :
 }
 ```
 
-## Paquets supplémentaires pour compiler duniter-rs
+## Paquets supplémentaires pour compiler durs
 
 Bien que cela soit de plus en plus rare, certaines crates rust dépendent encore de bibliothèques C/C++ et celles-ci doivent être installées sur votre ordinateur lors de la compilation. Sous Debian et dérivés, vous devez avoir `pkg-config` d'installé car le compilateur rust s'en sert pour trouver les bibliothèques C/C++ installées sur votre système.
 
@@ -217,3 +217,74 @@ Et si vous savez lire l'anglais, la référence des références que vous devez 
 
 Le Rust Book part vraiment de zéro et se lit très facilement même avec un faible niveau en anglais.
 
+## Exécuter les tests automatisés de Durs
+
+Référez vous a la section [tests automatisés](tests-auto.md).
+
+## Alias utiles pour gagner en éfficacité
+
+Personnellement j'utilise les alias suivants :
+
+    alias cc="cargo fmt && cargo check"
+    alias cddr="cd ~/dev/duniter/nodes/rust/duniter-rs"
+    alias clip="cargo clippy"
+    alias cbrf="cargo fmt && cargo build --release --manifest-path bin/durs-server/Cargo.toml --features ssl"
+    alias fmt="cargo fmt"
+    alias tc="cargo fmt && cargo test --package"
+    alias ta="cargo fmt && cargo test --all"
+    alias rsup="rustup update && cargo install-update -a"
+    alias dursd="./target/release/durs"
+
+Si vous utilisez bash ses alias sont a placer dans votre fichier `~/.bash_aliases` il vous faudra également décomenter la ligne incluant ce fichier dans votre `~/.bashrc`. Si vous utilisez un autre sheel, référez vous a la documentation de votre shell.
+
+Vous pouvez évidemment renommer ces alias comme bon vous semble tant que vous vous y retrouvez.
+
+### `cc="cargo fmt && cargo check"`
+
+Pour scanner votre code sans builder. C'est LA commande que j'utilise le plus en développement. Elle remonte toutes les erreurs de compilation mais effectuer le build, c'est donc considérablement plus rapide que `cargo build`.
+Exécutez toujours fmt avant de lancer le compilateur ! En effet il peut arriver que le compilateurt vous retourne plusieurs dizaines d'erreurs incompréhensibles juste a cause d'une simple erreur de syntaxe a un endroit qui fait que le code a été interprété d'une façon inattendu. Plutot que de perdre des heurs a chercher des erreurs qui n'existent pas, exécuter systématiquement fmt vous assurera que le compilateur reçoit toujours un code sans erreur de syntaxe et qu'il l'interprétera donc correctement.
+
+### `cddr="cd ~/chemin/vers/le/depot/duniter-rs"`
+
+Adaptez cet alias en fonction de la ou se trouve votre dépot sur votre poste de dev.
+
+### clip="cargo clippy"
+
+C'est juste plus court a taper.
+Attention clippy ne vas pas rechecker les crates déjà parcourues par cargo check, vous devez modifier uen crate bas niveau (par exemple `durs-common-tools`) pour vous assurer que clippy check toutes les crates.
+Lancez toujours clippy avant de pusher et corrigez tout les warning, en cas de souci avec un warning contactez un lead dev, dans certains cas très exceptionnels le lead dev pourra décider de skipper explicitement le warning en question, mais la plupart du temps il faudra le résoudre.
+Rassurez vous, la CI (Continious integration) de Gitlab passera clippy sur tout le projet dans tout les cas, donc en cas d'oubli vous vous en rendrez compte.
+
+### cbrf="cargo fmt && cargo build --release --manifest-path bin/durs-server/Cargo.toml --features ssl"
+
+Commande pour builder `durs-server`. Le dépot contiendra plusieurs binaires a terme (nottament la variante durs-desktop mais pas que). Il faut donc indiquer a cargo quel binaire builder avec l'option `--manifest-path`.
+
+De plus, pour utiliser durs vous aurez besoin de compiler en mode release, c'est long donc ne le fait que lorsqu'un `cargo check` ne vous retourne plus aucune erreur. Théoriquemetn il devrait etre possible d'utiliser durs en mode debug, c'est un probleme connu et qui sera réglé a terme ([#136](https://git.duniter.org/nodes/rust/duniter-rs/issues/136)).
+
+Enfin, vous aurez besoin d'activer la feature ssl, elle est nécessaire pour que votre neoud durs puisse contacter les endpoint WS2P en `wss://` (l'équivalent de `https://` mais pour le protocole websocket).
+La compilation de cette feature `ssl` nécessitera que vous ayez la lib opensssl pour développeurs sur votre machine.
+
+### tc="cargo fmt && cargo test --package"
+
+Pour exécuter les tests d'une crate en particulier. Par exemple pour exécuter les tests de la crate `dubp-documents` sasissez la commande suivante :
+
+    tc dubp-documents
+
+Le nom d'une crate est indiqué dans l'attribut `name` du fichier `Cargo.toml` situé a la racine de la crate en question.
+
+Par exemple pour la crate située dans `lib/tools/documents`, il faut regarder le fichier `lib/tools/documents/Cargo.toml`.
+
+### ta="cargo fmt && cargo test --all"
+
+Exécute tout les tests de toutes les crates, attention c'est long !
+
+### rsup="rustup update && cargo install-update -a"
+
+Permet de mettre a jours toutes vos toolchains rust ainsi que tout les binaires que vous avez installer via `cargo install`.
+Nécessite d'avoir installé au préalable [cargo-update](https://github.com/nabijaczleweli/cargo-update).
+
+### dursd="./target/release/durs"
+
+Lorsque vous avez compilé `durs-server` avec l'alias `cbrf`, le binaire final est un fichier exécutable qui se nomme `durs` et il se trouve dans le dossier `target/release`. Plutot que de volus déplacer dans ce dossier a chaque fois que vous souhaitez faire des tests manuels, cet alias vous permet de lancer durs en restant a la racine du dépot.
+
+Vous pouvez évidemment renommer ces alias comme bon vous semble tant que vous vous y retrouvez.
