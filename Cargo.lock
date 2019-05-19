@@ -561,6 +561,7 @@ dependencies = [
  "durs-network 0.1.0-a0.1",
  "durs-network-documents 0.3.1",
  "durs-ws2p-messages 0.1.0-a0.1",
+ "durs-ws2p-protocol 0.1.0-a0.1",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "maplit 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -586,6 +587,24 @@ dependencies = [
  "serde 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.38 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "durs-ws2p-protocol"
+version = "0.1.0-a0.1"
+dependencies = [
+ "dubp-documents 0.12.0",
+ "dup-crypto 0.6.0",
+ "durs-common-tools 0.1.0",
+ "durs-module 0.1.0-a0.1",
+ "durs-network-documents 0.3.1",
+ "durs-ws2p-messages 0.1.0-a0.1",
+ "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pretty_assertions 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unwrap 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
