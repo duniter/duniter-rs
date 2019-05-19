@@ -12,7 +12,7 @@ members = [
     "lib/modules/tui",
     "lib/modules/ws2p-v1-legacy",
     "lib/modules/ws2p/ws2p",
-    "lib/modules/ws2p/ws2p-messages",
+    "lib/modules/ws2p/ws2p-protocol",
     "lib/tests-tools/crypto-tests-tools",
     "lib/tests-tools/documents-tests-tools",
     "lib/tests-tools/common-tests-tools",

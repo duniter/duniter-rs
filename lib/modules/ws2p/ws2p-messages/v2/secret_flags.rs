@@ -33,14 +33,15 @@ impl WS2Pv2SecretFlags {
     pub fn _low_flow_demand(&self) -> bool {
         self.0[0] | 0b1111_1110 == 255u8
     }
-    /// Check flag MEMBER_PUBKEY
-    pub fn member_pubkey(&self) -> bool {
-        self.0[0] | 0b1111_1101 == 255u8
-    }
-    /// Check flag MEMBER_PROOF
-    pub fn member_proof(&self) -> bool {
-        self.0[0] | 0b1111_1011 == 255u8
-    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+/// Member proof
+pub struct MemberProof {
+    /// Member pubkey
+    pub pubkey: PubKey,
+    /// Proof that the sender node is a member (Signature of the challenge send by other node in their CONNECT message.)
+    pub sig: Sig,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -48,17 +49,14 @@ impl WS2Pv2SecretFlags {
 pub struct WS2Pv2SecretFlagsMsg {
     /// Secret flags
     pub secret_flags: WS2Pv2SecretFlags,
-    ///
-    pub member_pubkey: Option<PubKey>,
-    /// Proof that the sender node is a member (Signature of the challenge send by other node in their CONNECT message.)
-    pub member_proof: Option<Sig>,
+    /// Member proof
+    pub member_proof: Option<MemberProof>,
 }
 
 impl Default for WS2Pv2SecretFlagsMsg {
     fn default() -> Self {
         WS2Pv2SecretFlagsMsg {
             secret_flags: WS2Pv2SecretFlags(vec![]),
-            member_pubkey: None,
             member_proof: None,
         }
     }
@@ -75,9 +73,11 @@ mod tests {
         let keypair1 = keypair1();
         let challenge = Hash::random();
         let msg = WS2Pv2SecretFlagsMsg {
-            secret_flags: WS2Pv2SecretFlags(vec![6u8]),
-            member_pubkey: Some(PubKey::Ed25519(keypair1.public_key())),
-            member_proof: Some(Sig::Ed25519(keypair1.private_key().sign(&challenge.0))),
+            secret_flags: WS2Pv2SecretFlags(vec![]),
+            member_proof: Some(MemberProof {
+                pubkey: PubKey::Ed25519(keypair1.public_key()),
+                sig: Sig::Ed25519(keypair1.private_key().sign(&challenge.0)),
+            }),
         };
         test_ws2p_message(WS2Pv2MessagePayload::SecretFlags(msg));
     }

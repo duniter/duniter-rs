@@ -1,0 +1,28 @@
+[package]
+name = "durs-ws2p-protocol"
+version = "0.1.0-a0.1"
+authors = ["librelois <elois@ifee.fr>"]
+description = "WebSocketToPeer V2+ API Protocol."
+license = "AGPL-3.0"
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+dup-crypto = { path = "../../../tools/crypto" }
+durs-common-tools = { path = "../../../tools/common-tools" }
+dubp-documents= { path = "../../../tools/documents" }
+durs-module = { path = "../../../core/module" }
+durs-network-documents = { path = "../../../tools/network-documents" }
+durs-ws2p-messages = { path = "../ws2p-messages" }
+failure = "0.1.5"
+log = "0.4.*"
+serde = "1.0.*"
+serde_derive = "1.0.*"
+unwrap = "1.2.1"
+
+[dev-dependencies]
+pretty_assertions = "0.5.1"
+
+[features]

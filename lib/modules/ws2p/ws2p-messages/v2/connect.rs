@@ -48,15 +48,22 @@ impl WS2PConnectFlags {
     pub fn res_sync_chunk(&self) -> bool {
         0b1111_1011 | self.0[0] == 255u8
     }
+    /// Check flag CLIENT
+    pub fn client(&self) -> bool {
+        0b1111_0111 | self.0[0] == 255u8
+    }
 }
 
 impl From<WS2Pv2ConnectType> for WS2PConnectFlags {
     fn from(connect_type: WS2Pv2ConnectType) -> Self {
         match connect_type {
-            WS2Pv2ConnectType::Classic | WS2Pv2ConnectType::Incoming => WS2PConnectFlags(vec![]),
+            WS2Pv2ConnectType::Incoming | WS2Pv2ConnectType::OutgoingServer => {
+                WS2PConnectFlags(vec![])
+            }
+            WS2Pv2ConnectType::OutgoingClient => WS2PConnectFlags(vec![8u8]),
             WS2Pv2ConnectType::Sync(_) => WS2PConnectFlags(vec![1u8]),
-            WS2Pv2ConnectType::AskChunk(_) => WS2PConnectFlags(vec![3u8]),
-            WS2Pv2ConnectType::SendChunks => WS2PConnectFlags(vec![5u8]),
+            WS2Pv2ConnectType::SyncAskChunk(_) => WS2PConnectFlags(vec![3u8]),
+            WS2Pv2ConnectType::SyncSendChunks => WS2PConnectFlags(vec![5u8]),
         }
     }
 }
@@ -64,16 +71,18 @@ impl From<WS2Pv2ConnectType> for WS2PConnectFlags {
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 /// WS2Pv2ConnectType
 pub enum WS2Pv2ConnectType {
-    /// Classic outgoing connection
-    Classic,
     /// Incoming connection
     Incoming,
+    /// Client outgoing connection
+    OutgoingClient,
+    /// Server outgoing connection
+    OutgoingServer,
     /// Sync outgoing connection (from blockstamp, or from genesis block if blockstamp is none)
     Sync(Option<Blockstamp>),
     /// Sync outgoing connection to request chunk
-    AskChunk(Blockstamp),
+    SyncAskChunk(Blockstamp),
     /// Sync outgoing connection to send chunk
-    SendChunks,
+    SyncSendChunks,
 }
 
 impl WS2Pv2ConnectType {
@@ -84,14 +93,14 @@ impl WS2Pv2ConnectType {
     ) -> WS2Pv2ConnectType {
         if !flags.is_empty() && flags.sync() {
             if flags.ask_sync_chunk() && blockstamp.is_some() {
-                WS2Pv2ConnectType::AskChunk(blockstamp.expect("safe unwrap"))
+                WS2Pv2ConnectType::SyncAskChunk(blockstamp.expect("safe unwrap"))
             } else if flags.res_sync_chunk() {
-                WS2Pv2ConnectType::SendChunks
+                WS2Pv2ConnectType::SyncSendChunks
             } else {
                 WS2Pv2ConnectType::Sync(blockstamp)
             }
         } else {
-            WS2Pv2ConnectType::Classic
+            WS2Pv2ConnectType::OutgoingServer
         }
     }
 }
@@ -135,7 +144,7 @@ pub fn generate_connect_message(
     challenge: Hash,
     peer_card: Option<PeerCardV11>,
 ) -> WS2Pv2ConnectMsg {
-    let chunkstamp = if let WS2Pv2ConnectType::AskChunk(chunkstamp) = connect_type {
+    let chunkstamp = if let WS2Pv2ConnectType::SyncAskChunk(chunkstamp) = connect_type {
         Some(chunkstamp)
     } else {
         None
