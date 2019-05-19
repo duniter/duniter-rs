@@ -15,10 +15,14 @@
 
 //! WS2P outgoing Services
 
-use crate::services::*;
+use crate::services::WsError;
 use crate::*;
 use dubp_documents::CurrencyName;
-use durs_network_documents::NodeFullId;
+use durs_network_documents::{NodeFullId, NodeId};
+use durs_ws2p_protocol::connection_state::WS2PConnectionState;
+use durs_ws2p_protocol::controller::WebsocketActionOrder;
+use durs_ws2p_protocol::orchestrator::OrchestratorMsg;
+use durs_ws2p_protocol::MySelfWs2pNode;
 use std::collections::HashMap;
 use std::sync::mpsc;
 
@@ -28,7 +32,7 @@ pub struct OutgoingConnection {
     /// Endpoint
     pub endpoint: EndpointEnum,
     /// Controller channel
-    pub controller: mpsc::Sender<Ws2pControllerOrder>,
+    pub controller: mpsc::Sender<WebsocketActionOrder>,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -42,7 +46,7 @@ pub struct EndpointInError {
 
 #[derive(Debug)]
 /// Outgoing connection management service
-pub struct WS2POutgoingService {
+pub struct WS2POutgoingOrchestrator {
     /// Currency Name
     pub currency: CurrencyName,
     /// Local node datas
@@ -56,25 +60,22 @@ pub struct WS2POutgoingService {
     /// List of endpoints that have never been contacted
     pub never_try_endpoints: Vec<EndpointEnum>,
     /// Service receiver
-    pub receiver: mpsc::Receiver<Ws2pServiceSender>,
-    /// Service sender
-    pub sender: mpsc::Sender<Ws2pServiceSender>,
+    pub receiver: mpsc::Receiver<OrchestratorMsg<DursMsg>>,
+    /// Orchestrator sender
+    pub sender: mpsc::Sender<OrchestratorMsg<DursMsg>>,
 }
 
-impl WS2POutgoingService {
-    /// Instantiate WS2POutgoingService
+impl WS2POutgoingOrchestrator {
+    /// Instantiate WS2POutgoingOrchestrator
     pub fn new(
         currency: CurrencyName,
         ws2p_conf: &WS2PConf,
         self_node: MySelfWs2pNode,
-    ) -> WS2POutgoingService {
+    ) -> WS2POutgoingOrchestrator {
         // Create service channel
-        let (sender, receiver): (
-            mpsc::Sender<Ws2pServiceSender>,
-            mpsc::Receiver<Ws2pServiceSender>,
-        ) = mpsc::channel();
+        let (sender, receiver) = mpsc::channel();
 
-        WS2POutgoingService {
+        WS2POutgoingOrchestrator {
             currency,
             quota: ws2p_conf.outcoming_quota,
             connections: HashMap::with_capacity(ws2p_conf.outcoming_quota),

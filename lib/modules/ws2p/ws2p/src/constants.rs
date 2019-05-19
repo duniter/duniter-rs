@@ -20,13 +20,7 @@ pub static WS2P_DEFAULT_OUTCOMING_QUOTA: &'static usize = &10;
 
 /*pub static WS2P_OUTCOMING_INTERVAL_AT_STARTUP: &'static u64 = &75;
 pub static WS2P_OUTCOMING_INTERVAL: &'static u64 = &300;*/
-pub static WS2P_NEGOTIATION_TIMEOUT: &'static u64 = &15_000;
-pub static WS2P_EXPIRE_TIMEOUT_IN_SECS: &'static u64 = &120;
 pub static WS2P_RECV_SERVICE_FREQ_IN_MS: &'static u64 = &1_000;
-pub static WS2P_SPAM_INTERVAL_IN_MILLI_SECS: &'static u64 = &80;
-pub static WS2P_SPAM_LIMIT: &'static usize = &6;
-pub static WS2P_SPAM_SLEEP_TIME_IN_SEC: &'static u64 = &100;
-pub static WS2P_INVALID_MSGS_LIMIT: &'static usize = &5;
 /*
 pub static WS2P_REQUEST_TIMEOUT: &'static u64 = &30_000;
 pub static DURATION_BEFORE_RECORDING_ENDPOINT: &'static u64 = &180;

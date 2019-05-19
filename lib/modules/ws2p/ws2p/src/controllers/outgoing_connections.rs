@@ -17,11 +17,15 @@
 
 use crate::controllers::handler::Ws2pConnectionHandler;
 use crate::controllers::*;
-use crate::services::*;
 use dubp_documents::CurrencyName;
 use durs_common_tools::fatal_error;
+use durs_message::DursMsg;
 use durs_network_documents::network_endpoint::EndpointEnum;
 use durs_network_documents::NodeFullId;
+use durs_ws2p_protocol::controller::meta_datas::WS2PControllerMetaDatas;
+use durs_ws2p_protocol::controller::{WS2PController, WS2PControllerId};
+use durs_ws2p_protocol::orchestrator::OrchestratorMsg;
+use durs_ws2p_protocol::MySelfWs2pNode;
 use ws::connect;
 use ws::deflate::DeflateBuilder;
 //use durs_network::*;
@@ -31,7 +35,7 @@ use std::sync::mpsc;
 /// Connect to WSPv2 Endpoint
 pub fn connect_to_ws2p_v2_endpoint(
     currency: &CurrencyName,
-    service_sender: &mpsc::Sender<Ws2pServiceSender>,
+    orchestrator_sender: &mpsc::Sender<OrchestratorMsg<DursMsg>>,
     self_node: &MySelfWs2pNode,
     expected_remote_full_id: Option<NodeFullId>,
     endpoint: &EndpointEnum,
@@ -39,25 +43,28 @@ pub fn connect_to_ws2p_v2_endpoint(
     // Get endpoint url
     let ws_url = endpoint.get_url(true, false).expect("Endpoint unreachable");
 
-    // Create Ws2pConnectionDatas
-    let mut conn_meta_datas = Ws2pConnectionDatas::new(WS2Pv2ConnectType::Classic);
-
-    // Indicate expected remote_full_id
-    conn_meta_datas.remote_full_id = expected_remote_full_id;
-
     // Log
     info!("Try connection to {} ...", ws_url);
 
     // Connect to websocket
     connect(ws_url, move |ws| {
-        match Ws2pConnectionHandler::try_new(
-            WsSender(ws),
-            service_sender.clone(),
-            currency.clone(),
-            self_node.clone(),
-            conn_meta_datas.clone(),
+        match WS2PController::<DursMsg>::try_new(
+            WS2PControllerId::Outgoing {
+                expected_remote_full_id,
+            },
+            WS2PControllerMetaDatas::new(
+                Hash::random(),
+                WS2Pv2ConnectType::OutgoingServer,
+                currency.clone(),
+                self_node.clone(),
+            ),
+            orchestrator_sender.clone(),
         ) {
-            Ok(handler) => DeflateBuilder::new().build(handler),
+            Ok(controller) => DeflateBuilder::new().build(Ws2pConnectionHandler {
+                ws: WsSender(ws),
+                remote_addr_opt: None,
+                controller,
+            }),
             Err(_e) => fatal_error!("WS2P Service unreachable"),
         }
     })

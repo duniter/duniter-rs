@@ -15,14 +15,9 @@
 
 //! WS2P Services
 
-use crate::controllers::*;
 use dup_crypto::keys::KeyPairEnum;
-use durs_network::documents::BlockchainDocument;
-use durs_network_documents::network_head::NetworkHead;
-use durs_network_documents::network_peer::PeerCard;
 use durs_network_documents::*;
 use durs_ws2p_messages::v2::api_features::WS2PFeatures;
-use std::sync::mpsc;
 
 pub mod outgoing;
 
@@ -42,21 +37,4 @@ pub struct MySelfWs2pNode {
     pub my_key_pair: KeyPairEnum,
     /// Local node WWS2PFeatures
     pub my_features: WS2PFeatures,
-}
-
-/// Message for the ws2p service
-#[derive(Debug, Clone)]
-pub enum Ws2pServiceSender {
-    /// Controller sender
-    ControllerSender(mpsc::Sender<Ws2pControllerOrder>),
-    /// A new incoming connection has been established
-    NewIncomingConnection(NodeFullId),
-    /// A connection has changed status
-    ChangeConnectionState(NodeFullId, WS2PConnectionState),
-    /// A valid head has been received
-    ReceiveValidHead(NetworkHead),
-    /// A valid peer has been received
-    ReceiveValidPeer(Box<PeerCard>),
-    /// A valid blockchain document has been received
-    ReceiveValidDocument(BlockchainDocument),
 }
