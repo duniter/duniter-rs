@@ -15,6 +15,7 @@
 
 //! WebSocketToPeer API for the Durs project.
 
+#![allow(clippy::large_enum_variant)]
 #![deny(
     missing_debug_implementations,
     missing_copy_implementations,
@@ -42,7 +43,7 @@ mod ok_message;
 pub mod parsers;
 mod requests;
 mod responses;
-pub mod serializer;
+pub mod serializers;
 mod subcommands;
 pub mod ws2p_db;
 pub mod ws_connections;
@@ -51,11 +52,11 @@ use crate::ack_message::WS2PAckMessageV1;
 use crate::connect_message::WS2PConnectMessageV1;
 use crate::constants::*;
 use crate::ok_message::WS2POkMessageV1;
-use crate::parsers::blocks::parse_json_block;
 use crate::requests::sent::send_dal_request;
 use crate::subcommands::WS2PSubCommands;
 use crate::ws2p_db::DbEndpoint;
-use crate::ws_connections::messages::WS2PConnectionMessage;
+use crate::ws_connections::messages::WS2Pv1Msg;
+use crate::ws_connections::requests::{WS2Pv1ReqBody, WS2Pv1ReqFullId, WS2Pv1ReqId, WS2Pv1Request};
 use crate::ws_connections::states::WS2PConnectionState;
 use crate::ws_connections::*;
 use dubp_documents::{Blockstamp, CurrencyName};
@@ -185,13 +186,17 @@ pub enum WS2PSignal {
     ConnectionEstablished(NodeFullId),
     NegociationTimeout(NodeFullId),
     Timeout(NodeFullId),
-    DalRequest(NodeFullId, ModuleReqId, serde_json::Value),
+    Request {
+        from: NodeFullId,
+        req_id: WS2Pv1ReqId,
+        body: WS2Pv1ReqBody,
+    },
     PeerCard(NodeFullId, serde_json::Value, Vec<EndpointV1>),
     Heads(NodeFullId, Vec<NetworkHead>),
     Document(NodeFullId, BlockchainDocument),
     ReqResponse(
-        ModuleReqId,
-        OldNetworkRequest,
+        ModuleReqFullId,
+        WS2Pv1ReqBody,
         NodeFullId,
         serde_json::Value,
     ),
@@ -227,8 +232,8 @@ pub struct WS2Pv1Module {
     pub my_head: Option<NetworkHead>,
     pub next_receiver: usize,
     pub node_id: NodeId,
-    pub requests_awaiting_response:
-        HashMap<ModuleReqId, (OldNetworkRequest, NodeFullId, SystemTime)>,
+    pub pending_received_requests: HashMap<ModuleReqId, WS2Pv1ReqFullId>,
+    pub requests_awaiting_response: HashMap<WS2Pv1ReqId, WS2Pv1PendingReqInfos>,
     pub router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
     pub soft_name: &'static str,
     pub soft_version: &'static str,
@@ -236,6 +241,14 @@ pub struct WS2Pv1Module {
     pub websockets: HashMap<NodeFullId, WsSender>,
     pub ws2p_endpoints: HashMap<NodeFullId, DbEndpoint>,
     pub uids_cache: HashMap<PubKey, String>,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct WS2Pv1PendingReqInfos {
+    requester_module: ModuleReqFullId,
+    req_body: WS2Pv1ReqBody,
+    recipient_node: NodeFullId,
+    timestamp: SystemTime,
 }
 
 impl WS2Pv1Module {
@@ -259,6 +272,7 @@ impl WS2Pv1Module {
             node_id: NodeId(soft_meta_datas.conf.my_node_id()),
             main_thread_channel: mpsc::channel(),
             next_receiver: 0,
+            pending_received_requests: HashMap::new(),
             ws2p_endpoints: HashMap::new(),
             websockets: HashMap::new(),
             requests_awaiting_response: HashMap::new(),
@@ -273,7 +287,7 @@ impl WS2Pv1Module {
 #[derive(Debug)]
 pub enum WS2PThreadSignal {
     DursMsg(Box<DursMsg>),
-    WS2PConnectionMessage(WS2PConnectionMessage),
+    WS2Pv1Msg(WS2Pv1Msg),
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -390,14 +404,24 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
         let mut conf = WS2PConf::default();
 
         if global_conf.currency() == CurrencyName("g1-test".to_owned()) {
-            conf.sync_endpoints = vec![unwrap!(EndpointV1::parse_from_raw(
-                "WS2P 3eaab4c7 ts.gt.librelois.fr 443 /ws2p",
-                PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
-                    "CrznBiyq8G4RVUprH9jHmAw1n1iuzw8y9FdJbrESnaX7",
-                )),),
-                0,
-                0,
-            ))];
+            conf.sync_endpoints = vec![
+                unwrap!(EndpointV1::parse_from_raw(
+                    "WS2P 3eaab4c7 ts.gt.librelois.fr 443 /ws2p",
+                    PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+                        "CrznBiyq8G4RVUprH9jHmAw1n1iuzw8y9FdJbrESnaX7",
+                    )),),
+                    0,
+                    0,
+                )),
+                unwrap!(EndpointV1::parse_from_raw(
+                    "WS2P 9c659296 localhost 10901",
+                    PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+                        "BFhFZv7p6kUxVyVStCD26fuDDGQop2h9nbGbaeD55Mkj",
+                    )),),
+                    0,
+                    0,
+                )),
+            ];
         }
 
         if let Some(module_user_conf) = module_user_conf.clone() {
@@ -577,16 +601,15 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
 
         // Start
         connect_to_know_endpoints(&mut ws2p_module);
-        ws2p_module.main_loop(start_time, soft_meta_datas);
+        ws2p_module.main_loop(start_time);
 
         Ok(())
     }
 }
 
 impl WS2Pv1Module {
-    fn main_loop(mut self, start_time: SystemTime, soft_meta_datas: &SoftwareMetaDatas<DuRsConf>) {
+    fn main_loop(mut self, start_time: SystemTime) {
         // Initialize variables
-        let key_pair = self.key_pair;
         let mut last_ws2p_connecting_wave = SystemTime::now();
         let mut last_ws2p_state_print = SystemTime::now();
         let mut last_ws2p_endpoints_write = SystemTime::now();
@@ -600,8 +623,8 @@ impl WS2Pv1Module {
                 .recv_timeout(Duration::from_millis(200))
             {
                 Ok(message) => match message {
-                    WS2PThreadSignal::DursMsg(ref durs_mesage) => {
-                        match *durs_mesage.deref() {
+                    WS2PThreadSignal::DursMsg(durs_mesage) => {
+                        match durs_mesage.deref() {
                             DursMsg::Stop => break,
                             DursMsg::Request {
                                 ref req_content, ..
@@ -616,99 +639,40 @@ impl WS2Pv1Module {
                                 event_content,
                             ),
                             DursMsg::Response {
-                                ref res_content, ..
+                                req_id,
+                                res_content,
+                                ..
                             } => {
-                                if let DursResContent::BlockchainResponse(ref bc_res) = *res_content
-                                {
-                                    match *bc_res.deref() {
-                                        BlockchainResponse::CurrentBlockstamp(
-                                            ref current_blockstamp_,
-                                        ) => {
-                                            debug!(
-                                                "WS2Pv1Module : receive DALResBc::CurrentBlockstamp({})",
-                                                self.current_blockstamp
-                                            );
-                                            self.current_blockstamp = *current_blockstamp_;
-                                            if self.my_head.is_none() {
-                                                self.my_head = Some(heads::generate_my_head(
-                                                    &key_pair,
-                                                    NodeId(soft_meta_datas.conf.my_node_id()),
-                                                    soft_meta_datas.soft_name,
-                                                    soft_meta_datas.soft_version,
-                                                    &self.current_blockstamp,
-                                                    None,
-                                                ));
-                                            }
-                                            let event =
-                                                NetworkEvent::ReceiveHeads(vec![unwrap!(self
-                                                    .my_head
-                                                    .clone())]);
-                                            events::sent::send_network_event(&mut self, event);
-                                        }
-                                        BlockchainResponse::UIDs(ref uids) => {
-                                            // Add uids to heads
-                                            for head in self.heads_cache.values_mut() {
-                                                if let Some(uid_option) = uids.get(&head.pubkey()) {
-                                                    if let Some(ref uid) = *uid_option {
-                                                        head.set_uid(uid);
-                                                        self.uids_cache
-                                                            .insert(head.pubkey(), uid.to_string());
-                                                    } else {
-                                                        self.uids_cache.remove(&head.pubkey());
-                                                    }
-                                                }
-                                            }
-                                            // Resent heads to other modules
-                                            let event = NetworkEvent::ReceiveHeads(
-                                                self.heads_cache.values().cloned().collect(),
-                                            );
-                                            events::sent::send_network_event(&mut self, event);
-                                            // Resent to other modules connections that match receive uids
-                                            let events = self.ws2p_endpoints
-                                                .iter()
-                                                .filter_map(|(node_full_id, DbEndpoint { ep, state, .. })| {
-                                                    if let Some(uid_option) = uids.get(&node_full_id.1) {
-                                                        Some(NetworkEvent::ConnectionStateChange(
-                                                            *node_full_id,
-                                                            *state as u32,
-                                                            uid_option.clone(),
-                                                            ep.get_url(false, false)
-                                                                .expect("Endpoint unreachable !"),
-                                                        ))
-                                                    } else {
-                                                        None
-                                                    }
-                                                })
-                                                .collect();
-                                            events::sent::send_network_events(&mut self, events);
-                                        }
-                                        _ => {} // Others BlockchainResponse variants
-                                    }
-                                }
+                                responses::received::receive_response(
+                                    &mut self,
+                                    *req_id,
+                                    res_content,
+                                );
                             }
                             _ => {} // Others DursMsg variants
                         }
                     }
-                    WS2PThreadSignal::WS2PConnectionMessage(ws2p_conn_message) => {
-                        match crate::ws_connections::messages::ws2p_conn_message_pretreatment(
-                            &mut self,
-                            ws2p_conn_message,
+                    WS2PThreadSignal::WS2Pv1Msg(msg) => {
+                        match crate::ws_connections::messages::ws2p_recv_message_pretreatment(
+                            &mut self, msg,
                         ) {
                             WS2PSignal::NoConnection => {
                                 warn!("WS2PSignal::NoConnection");
                             }
                             WS2PSignal::ConnectionEstablished(ws2p_full_id) => {
-                                let req_id =
+                                let module_req_id =
                                     ModuleReqId(self.requests_awaiting_response.len() as u32);
                                 let module_id = WS2Pv1Module::name();
                                 debug!("WS2P: send req to: ({:?})", ws2p_full_id);
                                 let _current_request_result =
                                     ws_connections::requests::sent::send_request_to_specific_node(
                                         &mut self,
+                                        ModuleReqFullId(module_id, module_req_id),
                                         &ws2p_full_id,
-                                        &OldNetworkRequest::GetCurrent(ModuleReqFullId(
-                                            module_id, req_id,
-                                        )),
+                                        &WS2Pv1Request {
+                                            id: WS2Pv1ReqId::random(),
+                                            body: WS2Pv1ReqBody::GetCurrent,
+                                        },
                                     );
                                 if self.uids_cache.get(&ws2p_full_id.1).is_none() {
                                     send_dal_request(
@@ -827,68 +791,24 @@ impl WS2Pv1Module {
                                     NetworkEvent::ReceiveDocuments(vec![network_doc]),
                                 );
                             }
-                            WS2PSignal::ReqResponse(req_id, req, recipient_full_id, response) => {
-                                match req {
-                                    OldNetworkRequest::GetCurrent(ref _req_id) => {
-                                        info!(
-                                            "WS2PSignal::ReceiveCurrent({}, {:?})",
-                                            req_id.0, req
-                                        );
-                                        if let Some(block) = parse_json_block(&response) {
-                                            crate::responses::sent::send_network_req_response(
-                                                &self,
-                                                req.get_req_full_id().0,
-                                                req.get_req_full_id().1,
-                                                NetworkResponse::CurrentBlock(
-                                                    ModuleReqFullId(WS2Pv1Module::name(), req_id),
-                                                    recipient_full_id,
-                                                    Box::new(block),
-                                                ),
-                                            );
-                                        }
-                                    }
-                                    OldNetworkRequest::GetBlocks(ref _req_id, count, from) => {
-                                        info!(
-                                            "WS2PSignal::ReceiveChunk({}, {} blocks from {})",
-                                            req_id.0, count, from
-                                        );
-                                        if response.is_array() {
-                                            let mut chunk = Vec::new();
-                                            for json_block in unwrap!(response.as_array()) {
-                                                if let Some(block) = parse_json_block(json_block) {
-                                                    chunk.push(block);
-                                                } else {
-                                                    warn!("WS2Pv1Module: Error : fail to parse one json block !");
-                                                }
-                                            }
-                                            debug!("Send chunk to followers : {}", from);
-                                            events::sent::send_network_event(
-                                                &mut self,
-                                                NetworkEvent::ReceiveBlocks(chunk),
-                                            );
-                                        }
-                                    }
-                                    OldNetworkRequest::GetRequirementsPending(
-                                        _req_id,
-                                        min_cert,
-                                    ) => {
-                                        info!(
-                                            "WS2PSignal::ReceiveRequirementsPending({}, {})",
-                                            req_id.0, min_cert
-                                        );
-                                        debug!("----------------------------------------");
-                                        debug!("-      BEGIN IDENTITIES PENDING        -");
-                                        debug!("----------------------------------------");
-                                        debug!("{:#?}", response);
-                                        debug!("----------------------------------------");
-                                        debug!("-       END IDENTITIES PENDING         -");
-                                        debug!("----------------------------------------");
-                                    }
-                                    _ => {}
-                                }
+                            WS2PSignal::Request { from, req_id, body } => {
+                                ws_connections::requests::received::receive_ws2p_v1_request(
+                                    &mut self, from, req_id, body,
+                                );
                             }
+                            WS2PSignal::ReqResponse(
+                                module_req_full_id,
+                                ws2p_req_body,
+                                recipient_full_id,
+                                response,
+                            ) => ws_connections::responses::received::receive_response(
+                                &mut self,
+                                module_req_full_id,
+                                ws2p_req_body,
+                                recipient_full_id,
+                                response,
+                            ),
                             WS2PSignal::Empty => {}
-                            _ => {}
                         }
                     }
                 },
@@ -960,8 +880,9 @@ mod tests {
     use super::parsers::blocks::parse_json_block;
     use super::*;
     use crate::ws_connections::requests::sent::network_request_to_json;
+    use crate::ws_connections::requests::*;
     use dubp_documents::documents::block::BlockDocument;
-    use durs_module::DursModule;
+    use dubp_documents::BlockNumber;
 
     #[test]
     fn test_parse_json_block() {
@@ -1131,13 +1052,19 @@ mod tests {
 
     #[test]
     fn ws2p_requests() {
-        let module_id = WS2Pv1Module::name();
-        let request =
-            OldNetworkRequest::GetBlocks(ModuleReqFullId(module_id, ModuleReqId(58)), 50, 0);
+        let req_id_str = "fbcf0bfa-7e18-40cc-b300-5c797d27518e";
+        let req_id = WS2Pv1ReqId::from_str(req_id_str).expect("fail to parse req_id");
+        let request = WS2Pv1Request {
+            id: req_id,
+            body: WS2Pv1ReqBody::GetBlocks {
+                count: 50,
+                from_number: BlockNumber(0),
+            },
+        };
         assert_eq!(
             network_request_to_json(&request),
             json!({
-                "reqId": format!("{:x}", 58),
+                "reqId": req_id_str,
                 "body": {
                     "name": "BLOCKS_CHUNK",
                     "params": {
@@ -1149,7 +1076,7 @@ mod tests {
         );
         assert_eq!(
             network_request_to_json(&request).to_string(),
-            "{\"body\":{\"name\":\"BLOCKS_CHUNK\",\"params\":{\"count\":50,\"fromNumber\":0}},\"reqId\":\"3a\"}"
+            "{\"body\":{\"name\":\"BLOCKS_CHUNK\",\"params\":{\"count\":50,\"fromNumber\":0}},\"reqId\":\"fbcf0bfa-7e18-40cc-b300-5c797d27518e\"}"
         );
     }
 

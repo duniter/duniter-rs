@@ -15,25 +15,31 @@
 
 //! Sub-module managing the WS2Pv1 requests sent.
 
-use crate::WS2Pv1Module;
-use durs_common_tools::fatal_error;
-use durs_network::requests::OldNetworkRequest;
+use super::{WS2Pv1ReqBody, WS2Pv1Request};
+use crate::{WS2Pv1Module, WS2Pv1PendingReqInfos};
+use durs_module::ModuleReqFullId;
 use durs_network_documents::NodeFullId;
 use std::time::SystemTime;
 use ws::Message;
 
 pub fn send_request_to_specific_node(
     ws2p_module: &mut WS2Pv1Module,
+    module_req_full_id: ModuleReqFullId,
     ws2p_full_id: &NodeFullId,
-    ws2p_request: &OldNetworkRequest,
+    ws2p_request: &WS2Pv1Request,
 ) -> ws::Result<()> {
     if let Some(ws) = ws2p_module.websockets.get_mut(ws2p_full_id) {
         let json_req = network_request_to_json(ws2p_request).to_string();
         debug!("send request {} to {}", json_req, ws2p_full_id);
         ws.0.send(Message::text(json_req))?;
         ws2p_module.requests_awaiting_response.insert(
-            ws2p_request.get_req_id(),
-            (*ws2p_request, *ws2p_full_id, SystemTime::now()),
+            ws2p_request.id,
+            WS2Pv1PendingReqInfos {
+                req_body: ws2p_request.body,
+                requester_module: module_req_full_id,
+                recipient_node: *ws2p_full_id,
+                timestamp: SystemTime::now(),
+            },
         );
     } else {
         warn!("WS2P: Fail to get mut websocket !");
@@ -41,35 +47,25 @@ pub fn send_request_to_specific_node(
     Ok(())
 }
 
-pub fn network_request_to_json(request: &OldNetworkRequest) -> serde_json::Value {
-    let (request_id, request_type, request_params) = match *request {
-        OldNetworkRequest::GetCurrent(ref req_full_id) => (req_full_id.1, "CURRENT", json!({})),
-        OldNetworkRequest::GetBlocks(ref req_full_id, count, from_mumber) => (
-            req_full_id.1,
+pub fn network_request_to_json(request: &WS2Pv1Request) -> serde_json::Value {
+    let (request_type, request_params) = match request.body {
+        WS2Pv1ReqBody::GetCurrent => ("CURRENT", json!({})),
+        WS2Pv1ReqBody::GetBlock { ref number } => ("BLOCK_BY_NUMBER", json!({ "number": number })),
+        WS2Pv1ReqBody::GetBlocks { count, from_number } => (
             "BLOCKS_CHUNK",
             json!({
                 "count": count,
-                "fromNumber": from_mumber
+                "fromNumber": from_number
             }),
         ),
-        OldNetworkRequest::GetRequirementsPending(ref req_full_id, min_cert) => (
-            req_full_id.1,
+        WS2Pv1ReqBody::GetRequirementsPending { min_cert } => (
             "WOT_REQUIREMENTS_OF_PENDING",
             json!({ "minCert": min_cert }),
         ),
-        OldNetworkRequest::GetConsensus(_) => {
-            fatal_error!("GetConsensus() request must be not convert to json !");
-        }
-        OldNetworkRequest::GetHeadsCache(_) => {
-            fatal_error!("GetHeadsCache() request must be not convert to json !");
-        }
-        OldNetworkRequest::GetEndpoints(_) => {
-            fatal_error!("GetEndpoints() request must be not convert to json !");
-        }
     };
 
     json!({
-        "reqId": request_id,
+        "reqId": request.id.to_hyphenated_string(),
         "body" : {
             "name": request_type,
             "params": request_params

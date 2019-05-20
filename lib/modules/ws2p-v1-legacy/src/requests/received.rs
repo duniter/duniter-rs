@@ -16,15 +16,17 @@
 //! Sub-module managing the inter-modules requests received.
 
 use crate::ws2p_db::DbEndpoint;
+use crate::ws_connections::requests::{WS2Pv1ReqBody, WS2Pv1ReqId, WS2Pv1Request};
 use crate::ws_connections::states::WS2PConnectionState;
 use crate::WS2Pv1Module;
+use dubp_documents::BlockNumber;
 use durs_message::requests::DursReqContent;
 use durs_network::requests::OldNetworkRequest;
 
 pub fn receive_req(ws2p_module: &mut WS2Pv1Module, req_content: &DursReqContent) {
     if let DursReqContent::OldNetworkRequest(ref old_net_request) = *req_content {
         match *old_net_request {
-            OldNetworkRequest::GetBlocks(ref req_id, ref count, ref from) => {
+            OldNetworkRequest::GetBlocks(ref module_req_full_id, ref count, ref from) => {
                 let mut receiver_index = 0;
                 let mut real_receiver = None;
                 for (ws2p_full_id, DbEndpoint { state, .. }) in ws2p_module.ws2p_endpoints.clone() {
@@ -52,8 +54,15 @@ pub fn receive_req(ws2p_module: &mut WS2Pv1Module, req_content: &DursReqContent)
                     let _blocks_request_result =
                         crate::ws_connections::requests::sent::send_request_to_specific_node(
                             ws2p_module,
+                            *module_req_full_id,
                             &real_receiver,
-                            &OldNetworkRequest::GetBlocks(*req_id, *count, *from),
+                            &WS2Pv1Request {
+                                id: WS2Pv1ReqId::random(),
+                                body: WS2Pv1ReqBody::GetBlocks {
+                                    count: *count,
+                                    from_number: BlockNumber(*from),
+                                },
+                            },
                         );
                 } else {
                     warn!("WS2P: not found peer to send request !");

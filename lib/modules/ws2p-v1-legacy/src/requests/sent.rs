@@ -20,18 +20,23 @@ use durs_message::requests::{BlockchainRequest, DursReqContent};
 use durs_message::*;
 use durs_module::{DursModule, ModuleReqId, ModuleRole, RouterThreadMessage};
 
-pub fn send_dal_request(ws2p_module: &mut WS2Pv1Module, req: &BlockchainRequest) {
+pub fn send_dal_request(ws2p_module: &mut WS2Pv1Module, req: &BlockchainRequest) -> ModuleReqId {
     ws2p_module.count_dal_requests += 1;
     if ws2p_module.count_dal_requests == std::u32::MAX {
         ws2p_module.count_dal_requests = 0;
     }
+
+    let req_id = ModuleReqId(ws2p_module.count_dal_requests);
+
     ws2p_module
         .router_sender
         .send(RouterThreadMessage::ModuleMessage(DursMsg::Request {
             req_from: WS2Pv1Module::name(),
             req_to: ModuleRole::BlockchainDatas,
-            req_id: ModuleReqId(ws2p_module.count_dal_requests),
+            req_id,
             req_content: DursReqContent::BlockchainRequest(req.clone()),
         }))
         .expect("Fail to send message to router !");
+
+    req_id
 }

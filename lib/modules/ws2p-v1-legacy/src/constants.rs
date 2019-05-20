@@ -37,7 +37,7 @@ pub static WS2P_DEFAULT_OUTCOMING_QUOTA: &'static usize = &10;
 pub static WS2P_NEGOTIATION_TIMEOUT: &'static u64 = &15;
 
 /// Maximum waiting time for a response to a request
-//pub static WS2P_REQUEST_TIMEOUT : &'static u64 = &30;
+pub static WS2P_V1_REQUESTS_TIMEOUT_IN_SECS: &'static u64 = &30;
 
 /// Maximum duration of inactivity of a connection (the connection will be closed after this delay)
 pub static WS2P_EXPIRE_TIMEOUT: &'static u64 = &120;

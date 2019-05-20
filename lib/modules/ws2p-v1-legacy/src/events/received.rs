@@ -15,6 +15,7 @@
 
 //! Sub-module managing events received from other durs modules
 
+use crate::serializers::IntoWS2Pv1Json;
 use crate::*;
 use dubp_documents::Document;
 use durs_message::events::DursEvent;
@@ -47,7 +48,7 @@ pub fn receive_event(
                     NetworkEvent::ReceiveHeads(vec![unwrap!(ws2p_module.my_head.clone())]),
                 );
                 // Send my head to all connections
-                let my_json_head = serializer::serialize_head(unwrap!(ws2p_module.my_head.clone()));
+                let my_json_head = unwrap!(ws2p_module.my_head.clone()).into_ws2p_v1_json();
                 trace!("Send my HEAD: {:#?}", my_json_head);
                 let _results: Result<(), ws::Error> = ws2p_module
                     .websockets

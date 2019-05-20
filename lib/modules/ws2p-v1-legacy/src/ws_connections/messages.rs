@@ -16,16 +16,20 @@
 //! Define ws2p connections messages.
 
 use super::*;
+use crate::ws_connections::requests::WS2Pv1ReqBody;
 use durs_network_documents::NodeFullId;
 use ws::Message;
 
 #[derive(Debug)]
-/// WS2Pv1 connection Message
-pub struct WS2PConnectionMessage(pub NodeFullId, pub WS2PConnectionMessagePayload);
+/// WS2Pv1 Message
+pub struct WS2Pv1Msg {
+    pub from: NodeFullId,
+    pub payload: WS2Pv1MsgPayload,
+}
 
 #[derive(Debug)]
-/// WS2Pv1 connection Message payload
-pub enum WS2PConnectionMessagePayload {
+/// WS2Pv1 Message payload
+pub enum WS2Pv1MsgPayload {
     FailOpenWS,
     WrongUrl,
     FailToSplitWS,
@@ -36,11 +40,14 @@ pub enum WS2PConnectionMessagePayload {
     ValidConnectMessage(String, WS2PConnectionState),
     ValidAckMessage(String, WS2PConnectionState),
     ValidOk(WS2PConnectionState),
-    DalRequest(ModuleReqId, serde_json::Value),
+    Request {
+        req_id: WS2Pv1ReqId,
+        body: WS2Pv1ReqBody,
+    },
     PeerCard(serde_json::Value, Vec<EndpointV1>),
     Heads(Vec<serde_json::Value>),
     Document(BlockchainDocument),
-    ReqResponse(ModuleReqId, serde_json::Value),
+    ReqResponse(WS2Pv1ReqId, serde_json::Value),
     InvalidMessage,
     WrongFormatMessage,
     UnknowMessage,
@@ -66,15 +73,17 @@ pub fn generate_connect_message(
     )
 }
 
-pub fn ws2p_conn_message_pretreatment(
+pub fn ws2p_recv_message_pretreatment(
     ws2p_module: &mut WS2Pv1Module,
-    message: WS2PConnectionMessage,
+    message: WS2Pv1Msg,
 ) -> WS2PSignal {
-    let ws2p_full_id = message.0;
-    match message.1 {
-        WS2PConnectionMessagePayload::WrongUrl
-        | WS2PConnectionMessagePayload::FailOpenWS
-        | WS2PConnectionMessagePayload::FailToSplitWS => {
+    check_timeout_requests(ws2p_module);
+
+    let ws2p_full_id = message.from;
+    match message.payload {
+        WS2Pv1MsgPayload::WrongUrl
+        | WS2Pv1MsgPayload::FailOpenWS
+        | WS2Pv1MsgPayload::FailToSplitWS => {
             let dal_ep = ws2p_module
                 .ws2p_endpoints
                 .get_mut(&ws2p_full_id)
@@ -83,14 +92,14 @@ pub fn ws2p_conn_message_pretreatment(
             dal_ep.last_check = durs_common_tools::fns::time::current_timestamp();
             return WS2PSignal::WSError(ws2p_full_id);
         }
-        WS2PConnectionMessagePayload::TryToSendConnectMess => {
+        WS2Pv1MsgPayload::TryToSendConnectMess => {
             ws2p_module
                 .ws2p_endpoints
                 .get_mut(&ws2p_full_id)
                 .expect("WS2P: Fail to get mut ep !")
                 .state = WS2PConnectionState::TryToSendConnectMess;
         }
-        WS2PConnectionMessagePayload::FailSendConnectMess => {
+        WS2Pv1MsgPayload::FailSendConnectMess => {
             let dal_ep = ws2p_module
                 .ws2p_endpoints
                 .get_mut(&ws2p_full_id)
@@ -98,10 +107,10 @@ pub fn ws2p_conn_message_pretreatment(
             dal_ep.state = WS2PConnectionState::Unreachable;
             dal_ep.last_check = durs_common_tools::fns::time::current_timestamp();
         }
-        WS2PConnectionMessagePayload::WebsocketOk(sender) => {
+        WS2Pv1MsgPayload::WebsocketOk(sender) => {
             ws2p_module.websockets.insert(ws2p_full_id, sender);
         }
-        WS2PConnectionMessagePayload::ValidConnectMessage(response, new_con_state) => {
+        WS2Pv1MsgPayload::ValidConnectMessage(response, new_con_state) => {
             ws2p_module
                 .ws2p_endpoints
                 .get_mut(&ws2p_full_id)
@@ -122,7 +131,7 @@ pub fn ws2p_conn_message_pretreatment(
                 dal_ep.last_check = durs_common_tools::fns::time::current_timestamp();
             }
         }
-        WS2PConnectionMessagePayload::ValidAckMessage(response, new_con_state) => {
+        WS2Pv1MsgPayload::ValidAckMessage(response, new_con_state) => {
             ws2p_module
                 .ws2p_endpoints
                 .get_mut(&ws2p_full_id)
@@ -140,7 +149,7 @@ pub fn ws2p_conn_message_pretreatment(
                 }
             }
         }
-        WS2PConnectionMessagePayload::ValidOk(new_con_state) => {
+        WS2Pv1MsgPayload::ValidOk(new_con_state) => {
             ws2p_module
                 .ws2p_endpoints
                 .get_mut(&ws2p_full_id)
@@ -165,13 +174,17 @@ pub fn ws2p_conn_message_pretreatment(
 
             return signal;
         }
-        WS2PConnectionMessagePayload::DalRequest(req_id, req_body) => {
-            return WS2PSignal::DalRequest(ws2p_full_id, req_id, req_body);
+        WS2Pv1MsgPayload::Request { req_id, body } => {
+            return WS2PSignal::Request {
+                from: ws2p_full_id,
+                req_id,
+                body,
+            };
         }
-        WS2PConnectionMessagePayload::PeerCard(body, ws2p_endpoints) => {
+        WS2Pv1MsgPayload::PeerCard(body, ws2p_endpoints) => {
             return WS2PSignal::PeerCard(ws2p_full_id, body, ws2p_endpoints);
         }
-        WS2PConnectionMessagePayload::Heads(heads) => {
+        WS2Pv1MsgPayload::Heads(heads) => {
             let mut applied_heads = Vec::with_capacity(heads.len());
             for head in heads {
                 if let Ok(head) = NetworkHead::from_json_value(&head) {
@@ -191,24 +204,26 @@ pub fn ws2p_conn_message_pretreatment(
             }
             return WS2PSignal::Heads(ws2p_full_id, applied_heads);
         }
-        WS2PConnectionMessagePayload::Document(network_doc) => {
+        WS2Pv1MsgPayload::Document(network_doc) => {
             return WS2PSignal::Document(ws2p_full_id, network_doc);
         }
-        WS2PConnectionMessagePayload::ReqResponse(req_id, response) => {
-            if ws2p_module.requests_awaiting_response.len() > req_id.0 as usize {
-                if let Some((ref ws2p_request, ref recipient_fulld_id, ref _timestamp)) =
-                    ws2p_module.requests_awaiting_response.remove(&req_id)
-                {
-                    return WS2PSignal::ReqResponse(
-                        req_id,
-                        *ws2p_request,
-                        *recipient_fulld_id,
-                        response,
-                    );
-                }
+        WS2Pv1MsgPayload::ReqResponse(ws2p_req_id, response) => {
+            if let Some(WS2Pv1PendingReqInfos {
+                ref requester_module,
+                ref req_body,
+                ref recipient_node,
+                ..
+            }) = ws2p_module.requests_awaiting_response.remove(&ws2p_req_id)
+            {
+                return WS2PSignal::ReqResponse(
+                    *requester_module,
+                    *req_body,
+                    *recipient_node,
+                    response,
+                );
             }
         }
-        WS2PConnectionMessagePayload::NegociationTimeout => {
+        WS2Pv1MsgPayload::NegociationTimeout => {
             match ws2p_module.ws2p_endpoints[&ws2p_full_id].state {
                 WS2PConnectionState::AckMessOk | WS2PConnectionState::ConnectMessOk => {
                     ws2p_module
@@ -240,7 +255,7 @@ pub fn ws2p_conn_message_pretreatment(
             );
             return WS2PSignal::NegociationTimeout(ws2p_full_id);
         }
-        WS2PConnectionMessagePayload::Timeout => {
+        WS2Pv1MsgPayload::Timeout => {
             close_connection(
                 ws2p_module,
                 &ws2p_full_id,
@@ -248,15 +263,13 @@ pub fn ws2p_conn_message_pretreatment(
             );
             return WS2PSignal::Timeout(ws2p_full_id);
         }
-        WS2PConnectionMessagePayload::UnknowMessage => {
-            warn!("WS2P : Receive Unknow Message from {}.", &ws2p_full_id.1)
-        }
-        WS2PConnectionMessagePayload::WrongFormatMessage => warn!(
+        WS2Pv1MsgPayload::UnknowMessage => {}
+        WS2Pv1MsgPayload::WrongFormatMessage => warn!(
             "WS2P : Receive Wrong Format Message from {}.",
             &ws2p_full_id.1
         ),
-        WS2PConnectionMessagePayload::InvalidMessage => return WS2PSignal::Empty,
-        WS2PConnectionMessagePayload::Close => close_connection(
+        WS2Pv1MsgPayload::InvalidMessage => return WS2PSignal::Empty,
+        WS2Pv1MsgPayload::Close => close_connection(
             ws2p_module,
             &ws2p_full_id,
             WS2PCloseConnectionReason::AuthMessInvalidSig,
@@ -266,26 +279,26 @@ pub fn ws2p_conn_message_pretreatment(
     if connections_count == 0 {
         return WS2PSignal::NoConnection;
     }
+    WS2PSignal::Empty
+}
+
+fn check_timeout_requests(ws2p_module: &mut WS2Pv1Module) {
     // Detect timeout requests
     let mut requests_timeout = Vec::new();
-    for &(ref req, ref ws2p_full_id, ref timestamp) in
-        ws2p_module.requests_awaiting_response.clone().values()
-    {
-        if unwrap!(SystemTime::now().duration_since(*timestamp)) > Duration::new(20, 0) {
-            requests_timeout.push(req.get_req_full_id());
-            warn!("request timeout : {:?} (sent to {:?})", req, ws2p_full_id);
+
+    for (ws2p_req_id, pending_req_infos) in ws2p_module.requests_awaiting_response.iter() {
+        if unwrap!(SystemTime::now().duration_since(pending_req_infos.timestamp))
+            > Duration::from_secs(*WS2P_V1_REQUESTS_TIMEOUT_IN_SECS)
+        {
+            requests_timeout.push(*ws2p_req_id);
+            warn!(
+                "request timeout : {:?} (sent to {:?})",
+                pending_req_infos.req_body, pending_req_infos.recipient_node
+            );
         }
     }
-    // Delete (and resend) timeout requests
-    for req_id in requests_timeout {
-        //let ws2p_endpoints = ws2p_module.ws2p_endpoints.clone();
-        let _request_option = ws2p_module.requests_awaiting_response.remove(&req_id.1);
-        /*if let Some((request, _, _)) = request_option {
-            let _request_result = ws2p_module.send_request_to_specific_node(
-                &get_random_connection(&ws2p_endpoints),
-                &request,
-            );
-        }*/
+    // Delete timeout requests
+    for ws2p_req_id in requests_timeout {
+        let _request_option = ws2p_module.requests_awaiting_response.remove(&ws2p_req_id);
     }
-    WS2PSignal::Empty
 }

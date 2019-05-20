@@ -19,11 +19,11 @@ pub mod handler;
 pub mod messages;
 mod meta_datas;
 pub mod requests;
+pub mod responses;
 pub mod states;
 
 use crate::*;
 use dup_crypto::keys::*;
-use durs_module::ModuleReqId;
 use durs_network::documents::BlockchainDocument;
 use durs_network_documents::network_endpoint::EndpointV1;
 use rand::Rng;
@@ -170,19 +170,17 @@ pub fn close_connection(
 }
 
 pub fn get_random_connection<S: ::std::hash::BuildHasher>(
-    connections: &HashMap<NodeFullId, (EndpointV1, WS2PConnectionState), S>,
+    connections: HashSet<&NodeFullId, S>,
 ) -> NodeFullId {
     let mut rng = rand::thread_rng();
     let mut loop_count = 0;
     loop {
-        for (ws2p_full_id, (_ep, state)) in &(*connections) {
+        for ws2p_full_id in &connections {
             if loop_count > 10 {
-                return *ws2p_full_id;
+                return **ws2p_full_id;
             }
-            if let WS2PConnectionState::Established = state {
-                if rng.gen::<bool>() {
-                    return *ws2p_full_id;
-                }
+            if rng.gen::<bool>() {
+                return **ws2p_full_id;
             }
         }
         loop_count += 1;

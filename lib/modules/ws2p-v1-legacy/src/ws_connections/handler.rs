@@ -104,12 +104,10 @@ impl Handler for Client {
         // Send ws::Sender to WS2PConductor
         let result = self
             .conductor_sender
-            .send(WS2PThreadSignal::WS2PConnectionMessage(
-                WS2PConnectionMessage(
-                    self.conn_meta_datas.node_full_id(),
-                    WS2PConnectionMessagePayload::WebsocketOk(WsSender(self.ws.clone())),
-                ),
-            ));
+            .send(WS2PThreadSignal::WS2Pv1Msg(WS2Pv1Msg {
+                from: self.conn_meta_datas.node_full_id(),
+                payload: WS2Pv1MsgPayload::WebsocketOk(WsSender(self.ws.clone())),
+            }));
         // If WS2PConductor is unrechable, close connection.
         if result.is_err() {
             debug!("Close ws2p connection because ws2p main thread is unrechable !");
@@ -150,21 +148,19 @@ impl Handler for Client {
             let s: String = msg
                 .into_text()
                 .expect("WS2P: Fail to convert message payload to String !");
-            trace!("WS2P: receive mess: {}", s);
+            debug!("WS2P: receive mess: {}", s);
             let json_message: serde_json::Value = serde_json::from_str(&s)
                 .expect("WS2P: Fail to convert string message ton json value !");
             let result = self
                 .conductor_sender
-                .send(WS2PThreadSignal::WS2PConnectionMessage(
-                    WS2PConnectionMessage(
-                        self.conn_meta_datas.node_full_id(),
-                        self.conn_meta_datas.parse_and_check_incoming_message(
-                            &self.currency,
-                            self.key_pair,
-                            &json_message,
-                        ),
+                .send(WS2PThreadSignal::WS2Pv1Msg(WS2Pv1Msg {
+                    from: self.conn_meta_datas.node_full_id(),
+                    payload: self.conn_meta_datas.parse_and_check_incoming_message(
+                        &self.currency,
+                        self.key_pair,
+                        &json_message,
                     ),
-                ));
+                }));
             if result.is_err() {
                 info!("Close ws2p connection because ws2p main thread is unrechable !");
                 self.ws.close(CloseCode::Normal)?;
@@ -178,12 +174,10 @@ impl Handler for Client {
                 if self.conn_meta_datas.state != WS2PConnectionState::Established {
                     let _result =
                         self.conductor_sender
-                            .send(WS2PThreadSignal::WS2PConnectionMessage(
-                                WS2PConnectionMessage(
-                                    self.conn_meta_datas.node_full_id(),
-                                    WS2PConnectionMessagePayload::NegociationTimeout,
-                                ),
-                            ));
+                            .send(WS2PThreadSignal::WS2Pv1Msg(WS2Pv1Msg {
+                                from: self.conn_meta_datas.node_full_id(),
+                                payload: WS2Pv1MsgPayload::NegociationTimeout,
+                            }));
                     self.ws.close(CloseCode::Away)
                 } else {
                     Ok(())
@@ -192,12 +186,10 @@ impl Handler for Client {
             EXPIRE => {
                 let _result = self
                     .conductor_sender
-                    .send(WS2PThreadSignal::WS2PConnectionMessage(
-                        WS2PConnectionMessage(
-                            self.conn_meta_datas.node_full_id(),
-                            WS2PConnectionMessagePayload::Timeout,
-                        ),
-                    ));
+                    .send(WS2PThreadSignal::WS2Pv1Msg(WS2Pv1Msg {
+                        from: self.conn_meta_datas.node_full_id(),
+                        payload: WS2Pv1MsgPayload::Timeout,
+                    }));
                 self.ws.close(CloseCode::Away)
             }
             _ => Ok(()),
@@ -231,11 +223,9 @@ impl Handler for Client {
         }
         let _result = self
             .conductor_sender
-            .send(WS2PThreadSignal::WS2PConnectionMessage(
-                WS2PConnectionMessage(
-                    self.conn_meta_datas.node_full_id(),
-                    WS2PConnectionMessagePayload::Close,
-                ),
-            ));
+            .send(WS2PThreadSignal::WS2Pv1Msg(WS2Pv1Msg {
+                from: self.conn_meta_datas.node_full_id(),
+                payload: WS2Pv1MsgPayload::Close,
+            }));
     }
 }
