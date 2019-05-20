@@ -39,8 +39,9 @@ pub struct ValidBlockApplyReqs(
 #[derive(Debug, Copy, Clone)]
 /// ApplyValidBlockError
 pub enum ApplyValidBlockError {
-    ExcludeUnknowNodeId(),
-    RevokeUnknowNodeId(),
+    DBsCorrupted,
+    ExcludeUnknowNodeId,
+    RevokeUnknowNodeId,
 }
 
 pub fn apply_valid_block<W: WebOfTrust>(
@@ -119,7 +120,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
         let wot_id = if let Some(wot_id) = wot_index.get(&exclusion) {
             wot_id
         } else {
-            return Err(ApplyValidBlockError::ExcludeUnknowNodeId());
+            return Err(ApplyValidBlockError::ExcludeUnknowNodeId);
         };
         wot_db
             .write(|db| {
@@ -136,7 +137,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
         let wot_id = if let Some(wot_id) = wot_index.get(&compact_revoc.issuer) {
             wot_id
         } else {
-            return Err(ApplyValidBlockError::RevokeUnknowNodeId());
+            return Err(ApplyValidBlockError::RevokeUnknowNodeId);
         };
         wot_db
             .write(|db| {
@@ -152,11 +153,15 @@ pub fn apply_valid_block<W: WebOfTrust>(
     for certification in &block.certifications {
         trace!("stack_up_valid_block: apply cert...");
         let compact_cert = certification.to_compact_document();
-        let wot_node_from = wot_index[&compact_cert.issuer];
-        let wot_node_to = wot_index[&compact_cert.target];
+        let wot_node_from = wot_index
+            .get(&compact_cert.issuer)
+            .ok_or(ApplyValidBlockError::DBsCorrupted)?;
+        let wot_node_to = wot_index
+            .get(&compact_cert.target)
+            .ok_or(ApplyValidBlockError::DBsCorrupted)?;
         wot_db
             .write(|db| {
-                let result = db.add_link(wot_node_from, wot_node_to);
+                let result = db.add_link(*wot_node_from, *wot_node_to);
                 match result {
                     NewLinkResult::Ok(_) => {}
                     _ => fatal_error!(
@@ -170,8 +175,8 @@ pub fn apply_valid_block<W: WebOfTrust>(
             .expect("Fail to write in WotDB");
         wot_dbs_requests.push(WotsDBsWriteQuery::CreateCert(
             compact_cert.issuer,
-            wot_node_from,
-            wot_node_to,
+            *wot_node_from,
+            *wot_node_to,
             compact_cert.block_number,
             block.median_time,
         ));
