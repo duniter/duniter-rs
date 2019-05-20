@@ -233,7 +233,7 @@ mod tests {
             )
             .unwrap(),
             software: String::from("durs"),
-            soft_version: String::from("0.1.0-a0.1"),
+            soft_version: String::from("0.2.0-a"),
             signature: None,
             step: 0,
         };
