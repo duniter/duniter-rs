@@ -62,19 +62,19 @@ pub struct MembershipDocument {
 /// identity document for jsonification
 pub struct MembershipStringDocument {
     /// Currency.
-    currency: String,
+    pub currency: String,
     /// Document issuer
-    issuer: String,
+    pub issuer: String,
     /// Blockstamp
-    blockstamp: String,
+    pub blockstamp: String,
     /// Membership message.
-    membership: String,
+    pub membership: String,
     /// Unique ID
-    username: String,
+    pub username: String,
     /// Identity document blockstamp.
-    identity_blockstamp: String,
+    pub identity_blockstamp: String,
     /// Document signature
-    signature: String,
+    pub signature: String,
 }
 
 impl ToStringObject for MembershipDocument {

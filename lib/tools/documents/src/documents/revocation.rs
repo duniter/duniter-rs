@@ -46,9 +46,9 @@ impl CompactTextDocument for CompactRevocationDocument {
 /// Revocation document for jsonification
 pub struct CompactRevocationStringDocument {
     /// Document issuer
-    issuer: String,
+    pub issuer: String,
     /// Document signature
-    signature: String,
+    pub signature: String,
 }
 
 impl ToStringObject for CompactRevocationDocument {

@@ -544,25 +544,25 @@ pub struct TransactionDocument {
 /// Transaction document stringifed
 pub struct TransactionDocumentStringified {
     /// Currency.
-    currency: String,
+    pub currency: String,
     /// Blockstamp
-    blockstamp: String,
+    pub blockstamp: String,
     /// Locktime
-    locktime: u64,
+    pub locktime: u64,
     /// Document issuer (there should be only one).
-    issuers: Vec<String>,
+    pub issuers: Vec<String>,
     /// Transaction inputs.
-    inputs: Vec<String>,
+    pub inputs: Vec<String>,
     /// Inputs unlocks.
-    unlocks: Vec<String>,
+    pub unlocks: Vec<String>,
     /// Transaction outputs.
-    outputs: Vec<String>,
+    pub outputs: Vec<String>,
     /// Transaction comment
-    comment: String,
+    pub comment: String,
     /// Document signatures
-    signatures: Vec<String>,
+    pub signatures: Vec<String>,
     /// Transaction hash
-    hash: Option<String>,
+    pub hash: Option<String>,
 }
 
 impl ToStringObject for TransactionDocument {

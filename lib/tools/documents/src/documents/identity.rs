@@ -49,15 +49,15 @@ pub struct IdentityDocument {
 /// identity document for jsonification
 pub struct IdentityStringDocument {
     /// Currency.
-    currency: String,
+    pub currency: String,
     /// Unique ID
-    username: String,
+    pub username: String,
     /// Blockstamp
-    blockstamp: String,
+    pub blockstamp: String,
     /// Document issuer
-    issuer: String,
+    pub issuer: String,
     /// Document signature
-    signature: String,
+    pub signature: String,
 }
 
 impl ToStringObject for IdentityDocument {

@@ -52,13 +52,13 @@ impl CompactTextDocument for CompactCertificationDocument {
 /// identity document for jsonification
 pub struct CompactCertificationStringDocument {
     /// Document issuer
-    issuer: String,
+    pub issuer: String,
     /// issuer of target identity.
-    target: String,
+    pub target: String,
     /// Block number
-    block_number: u64,
+    pub block_number: u64,
     /// Document signature
-    signature: String,
+    pub signature: String,
 }
 
 impl ToStringObject for CompactCertificationDocument {
