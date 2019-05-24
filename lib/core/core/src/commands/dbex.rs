@@ -19,7 +19,7 @@ use crate::commands::DursExecutableCoreCommand;
 use crate::dbex;
 use crate::errors::DursCoreError;
 use crate::DursCore;
-use durs_blockchain::{DBExQuery, DBExTxQuery, DBExWotQuery};
+use durs_blockchain::dbex::{DbExBcQuery, DbExQuery, DbExTxQuery, DbExWotQuery};
 use durs_conf::DuRsConf;
 
 #[derive(StructOpt, Debug, Clone)]
@@ -70,6 +70,12 @@ pub enum DbExSubCommand {
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
     MembersOpt(MembersOpt),
+    /// BlocksOpt
+    #[structopt(
+        name = "blocks",
+        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+    )]
+    BlocksOpt(BlocksOpt),
 }
 
 #[derive(StructOpt, Debug, Copy, Clone)]
@@ -109,6 +115,10 @@ pub struct BalanceOpt {
     pub address: String,
 }
 
+#[derive(StructOpt, Debug, Copy, Clone)]
+/// BlocksOpt
+pub struct BlocksOpt {}
+
 impl DursExecutableCoreCommand for DbExOpt {
     fn execute(self, durs_core: DursCore<DuRsConf>) -> Result<(), DursCoreError> {
         let profile_path = durs_core.soft_meta_datas.profile_path;
@@ -122,7 +132,7 @@ impl DursExecutableCoreCommand for DbExOpt {
             DbExSubCommand::DistanceOpt(distance_opts) => dbex(
                 profile_path,
                 self.csv,
-                &DBExQuery::WotQuery(DBExWotQuery::AllDistances(distance_opts.reverse)),
+                &DbExQuery::WotQuery(DbExWotQuery::AllDistances(distance_opts.reverse)),
             ),
             DbExSubCommand::ForksOpt(_forks_opts) => {
                 dbex(profile_path, self.csv, &DBExQuery::ForkTreeQuery)
@@ -130,23 +140,28 @@ impl DursExecutableCoreCommand for DbExOpt {
             DbExSubCommand::MemberOpt(member_opts) => dbex(
                 profile_path,
                 self.csv,
-                &DBExQuery::WotQuery(DBExWotQuery::MemberDatas(member_opts.uid)),
+                &DbExQuery::WotQuery(DbExWotQuery::MemberDatas(member_opts.uid)),
             ),
             DbExSubCommand::MembersOpt(members_opts) => {
                 if members_opts.expire {
                     dbex(
                         profile_path,
                         self.csv,
-                        &DBExQuery::WotQuery(DBExWotQuery::ExpireMembers(members_opts.reverse)),
+                        &DbExQuery::WotQuery(DbExWotQuery::ExpireMembers(members_opts.reverse)),
                     );
                 } else {
                     dbex(
                         profile_path,
                         self.csv,
-                        &DBExQuery::WotQuery(DBExWotQuery::ListMembers(members_opts.reverse)),
+                        &DbExQuery::WotQuery(DbExWotQuery::ListMembers(members_opts.reverse)),
                     );
                 }
             }
+            DbExSubCommand::BlocksOpt(_blocks_opts) => dbex(
+                profile_path,
+                self.csv,
+                &DbExQuery::BcQuery(DbExBcQuery::CountBlocksPerIssuer),
+            ),
         }
 
         Ok(())

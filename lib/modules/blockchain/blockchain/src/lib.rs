@@ -34,7 +34,7 @@
 extern crate log;
 
 mod constants;
-mod dbex;
+pub mod dbex;
 mod dubp;
 mod dunp;
 mod events;
@@ -50,7 +50,7 @@ use std::sync::mpsc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::constants::*;
-pub use crate::dbex::{DBExQuery, DBExTxQuery, DBExWotQuery};
+use crate::dbex::DbExQuery;
 use crate::dubp::apply::ValidBlockApplyReqs;
 use crate::dubp::*;
 use crate::fork::*;

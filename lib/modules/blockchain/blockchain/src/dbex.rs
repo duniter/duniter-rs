@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Databases explorer
+
 use crate::*;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::BlockNumber;
@@ -27,9 +29,23 @@ use unwrap::unwrap;
 pub static EMPTY_BLOCKCHAIN: &'static str =
     "No blockchain, please sync your node to get a blockchain.";
 
+#[derive(Debug, Copy, Clone)]
+/// Query for blockchain databases explorer
+pub enum DbExBcQuery {
+    /// Count blocks per issuer
+    CountBlocksPerIssuer,
+}
+
+#[derive(Debug, Clone)]
+/// Query for tx databases explorer
+pub enum DbExTxQuery {
+    /// Ask balance of an address (pubkey or uid)
+    Balance(String),
+}
+
 #[derive(Debug, Clone)]
 /// Query for wot databases explorer
-pub enum DBExWotQuery {
+pub enum DbExWotQuery {
     /// Ask distance of all members
     AllDistances(bool),
     /// Show members expire date
@@ -41,29 +57,60 @@ pub enum DBExWotQuery {
 }
 
 #[derive(Debug, Clone)]
-/// Query for tx databases explorer
-pub enum DBExTxQuery {
-    /// Ask balance of an address (pubkey or uid)
-    Balance(String),
-}
-
-#[derive(Debug, Clone)]
 /// Query for databases explorer
-pub enum DBExQuery {
+pub enum DbExQuery {
+    /// Blockchain query
+    BcQuery(DbExBcQuery),
     /// Fork tree query
     ForkTreeQuery,
     /// Tx query
-    TxQuery(DBExTxQuery),
+    TxQuery(DbExTxQuery),
     /// Wot query
-    WotQuery(DBExWotQuery),
+    WotQuery(DbExWotQuery),
 }
 
+/// Execute DbExQuery
 pub fn dbex(profile_path: PathBuf, csv: bool, query: &DBExQuery) {
     match *query {
         DBExQuery::ForkTreeQuery => dbex_fork_tree(profile_path, csv),
+        DbExQuery::BcQuery(bc_query) => {
+            dbex_bc(profile_path, csv, bc_query).expect("Error: fail to open DB.")
+        }
         DBExQuery::TxQuery(ref tx_query) => dbex_tx(profile_path, csv, tx_query),
         DBExQuery::WotQuery(ref wot_query) => dbex_wot(profile_path, csv, wot_query),
     }
+}
+
+/// Execute DbExBcQuery
+pub fn dbex_bc<DC: DursConfTrait>(
+    profile_path: PathBuf,
+    conf: &DC,
+    _csv: bool,
+    _query: DbExBcQuery,
+) -> Result<(), DALError> {
+    // Get db path
+    let db_path = durs_conf::get_blockchain_db_path(profile_path, &conf.currency());
+
+    // Open databases
+    let load_dbs_begin = SystemTime::now();
+    let blocks_db = BlocksV10DBs::open(Some(&db_path));
+
+    let load_dbs_duration = SystemTime::now()
+        .duration_since(load_dbs_begin)
+        .expect("duration_since error !");
+    println!(
+        "Databases loaded in {}.{:03} seconds.",
+        load_dbs_duration.as_secs(),
+        load_dbs_duration.subsec_millis()
+    );
+
+    if let Some(current_blockstamp) =
+        durs_blockchain_dal::readers::block::get_current_blockstamp(&blocks_db)?
+    {
+        println!("Current block: #{}", current_blockstamp);
+    }
+
+    Ok(())
 }
 
 pub fn dbex_fork_tree(profile_path: PathBuf, _csv: bool) {
@@ -115,7 +162,7 @@ pub fn dbex_tx(profile_path: PathBuf, _csv: bool, query: &DBExTxQuery) {
     );
     let req_process_begin = SystemTime::now();
     match *query {
-        DBExTxQuery::Balance(ref address_str) => {
+        DbExTxQuery::Balance(ref address_str) => {
             let pubkey = if let Ok(ed25519_pubkey) = ed25519::PublicKey::from_base58(address_str) {
                 PubKey::Ed25519(ed25519_pubkey)
             } else if let Some(pubkey) =
@@ -214,7 +261,7 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DBExWotQuery) {
         .len();
 
     match *query {
-        DBExWotQuery::AllDistances(ref reverse) => {
+        DbExWotQuery::AllDistances(ref reverse) => {
             println!("compute distances...");
             let compute_distances_begin = SystemTime::now();
             let mut distances_datas: Vec<(NodeId, WotDistance)> = wot_db
@@ -269,7 +316,7 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DBExWotQuery) {
                 compute_distances_duration.subsec_millis()
             );
         }
-        DBExWotQuery::ExpireMembers(ref reverse) => {
+        DbExWotQuery::ExpireMembers(ref reverse) => {
             // Open blockchain database
             let blockchain_db = open_file_db::<LocalBlockchainV10Datas>(&db_path, "blockchain.db")
                 .expect("Fail to open blockchain db");
@@ -313,7 +360,7 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DBExWotQuery) {
                 println!("{}, {}", wot_uid_index[&node_id], expire_date);
             }
         }
-        DBExWotQuery::MemberDatas(ref uid) => {
+        DbExWotQuery::MemberDatas(ref uid) => {
             println!(" Members count = {}.", members_count);
             if let Some(pubkey) = durs_blockchain_dal::readers::identity::get_pubkey_from_uid(
                 &wot_databases.identities_db,
