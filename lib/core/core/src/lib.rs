@@ -43,7 +43,7 @@ use crate::commands::*;
 use crate::constants::DEFAULT_USER_PROFILE;
 use crate::errors::DursCoreError;
 use dubp_currency_params::CurrencyName;
-use durs_blockchain::{BlockchainModule, DBExQuery};
+use durs_blockchain::{dbex::DbExQuery, BlockchainModule};
 use durs_common_tools::fatal_error;
 pub use durs_conf::{
     constants::KEYPAIRS_FILENAME, keys::*, ChangeGlobalConf, DuRsConf, DuniterKeyPairs,
@@ -589,7 +589,7 @@ pub fn get_module_conf<M: DursModule<DuRsConf, DursMsg>>(
 }
 
 /// Launch databases explorer
-pub fn dbex(profile_path: PathBuf, csv: bool, query: &DBExQuery) {
+pub fn dbex(profile_path: PathBuf, csv: bool, query: &DbExQuery) {
     // Launch databases explorer
     BlockchainModule::dbex(profile_path, csv, query);
 }

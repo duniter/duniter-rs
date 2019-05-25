@@ -169,7 +169,6 @@ mod test {
             &mock_identities,
             &get_identities(&identities_db, filters, BlockNumber(5))?
         ));
-
         // Test by pubkey filter
         filters = IdentitiesFilter::by_pubkey(pubkey('A'));
         assert_eq!(

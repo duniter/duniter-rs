@@ -46,6 +46,12 @@ pub enum DbExSubCommand {
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
     BalanceOpt(BalanceOpt),
+    /// Display blocks current frame
+    #[structopt(
+        name = "blocks",
+        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+    )]
+    BlocksOpt(BlocksOpt),
     /// Web of Trust distances explorer
     #[structopt(
         name = "distance",
@@ -70,12 +76,6 @@ pub enum DbExSubCommand {
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
     MembersOpt(MembersOpt),
-    /// BlocksOpt
-    #[structopt(
-        name = "blocks",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
-    BlocksOpt(BlocksOpt),
 }
 
 #[derive(StructOpt, Debug, Copy, Clone)]
@@ -127,7 +127,7 @@ impl DursExecutableCoreCommand for DbExOpt {
             DbExSubCommand::BalanceOpt(balance_opts) => dbex(
                 profile_path,
                 self.csv,
-                &DBExQuery::TxQuery(DBExTxQuery::Balance(balance_opts.address)),
+                &DbExQuery::TxQuery(DbExTxQuery::Balance(balance_opts.address)),
             ),
             DbExSubCommand::DistanceOpt(distance_opts) => dbex(
                 profile_path,
@@ -135,7 +135,7 @@ impl DursExecutableCoreCommand for DbExOpt {
                 &DbExQuery::WotQuery(DbExWotQuery::AllDistances(distance_opts.reverse)),
             ),
             DbExSubCommand::ForksOpt(_forks_opts) => {
-                dbex(profile_path, self.csv, &DBExQuery::ForkTreeQuery)
+                dbex(profile_path, self.csv, &DbExQuery::ForkTreeQuery)
             }
             DbExSubCommand::MemberOpt(member_opts) => dbex(
                 profile_path,

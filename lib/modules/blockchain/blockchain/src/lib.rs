@@ -33,6 +33,9 @@
 #[macro_use]
 extern crate log;
 
+#[macro_use]
+extern crate prettytable;
+
 mod constants;
 pub mod dbex;
 mod dubp;
@@ -236,7 +239,7 @@ impl BlockchainModule {
         }
     }
     /// Databases explorer
-    pub fn dbex(profile_path: PathBuf, csv: bool, req: &DBExQuery) {
+    pub fn dbex(profile_path: PathBuf, csv: bool, req: &DbExQuery) {
         dbex::dbex(profile_path, csv, req);
     }
     /// Synchronize blockchain from local duniter json files

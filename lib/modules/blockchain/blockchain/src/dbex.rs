@@ -23,11 +23,17 @@ use dup_crypto::keys::*;
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::data::WebOfTrust;
 use durs_wot::operations::distance::{DistanceCalculator, WotDistance, WotDistanceParameters};
+use prettytable::Table;
 use std::time::*;
 use unwrap::unwrap;
 
+/// Error message for empty blockchain case
 pub static EMPTY_BLOCKCHAIN: &'static str =
     "No blockchain, please sync your node to get a blockchain.";
+
+static PUB_KEY: &'static str = "PUBKEY";
+static BLOCK: &'static str = "BLOCK";
+static USERNAME: &'static str = "USERNAME";
 
 #[derive(Debug, Copy, Clone)]
 /// Query for blockchain databases explorer
@@ -70,30 +76,27 @@ pub enum DbExQuery {
 }
 
 /// Execute DbExQuery
-pub fn dbex(profile_path: PathBuf, csv: bool, query: &DBExQuery) {
+pub fn dbex(profile_path: PathBuf, csv: bool, query: &DbExQuery) {
     match *query {
-        DBExQuery::ForkTreeQuery => dbex_fork_tree(profile_path, csv),
+        DbExQuery::ForkTreeQuery => dbex_fork_tree(profile_path, csv),
         DbExQuery::BcQuery(bc_query) => {
             dbex_bc(profile_path, csv, bc_query).expect("Error: fail to open DB.")
         }
-        DBExQuery::TxQuery(ref tx_query) => dbex_tx(profile_path, csv, tx_query),
-        DBExQuery::WotQuery(ref wot_query) => dbex_wot(profile_path, csv, wot_query),
+        DbExQuery::TxQuery(ref tx_query) => dbex_tx(profile_path, csv, tx_query),
+        DbExQuery::WotQuery(ref wot_query) => dbex_wot(profile_path, csv, wot_query),
     }
 }
 
 /// Execute DbExBcQuery
-pub fn dbex_bc<DC: DursConfTrait>(
-    profile_path: PathBuf,
-    conf: &DC,
-    _csv: bool,
-    _query: DbExBcQuery,
-) -> Result<(), DALError> {
+pub fn dbex_bc(profile_path: PathBuf, _csv: bool, _query: DbExBcQuery) -> Result<(), DALError> {
     // Get db path
-    let db_path = durs_conf::get_blockchain_db_path(profile_path, &conf.currency());
+    let db_path = durs_conf::get_blockchain_db_path(profile_path);
 
     // Open databases
     let load_dbs_begin = SystemTime::now();
     let blocks_db = BlocksV10DBs::open(Some(&db_path));
+    //let forks_dbs = ForksDBs::open(Some(&db_path));
+    let wot_databases = WotsV10DBs::open(Some(&db_path));
 
     let load_dbs_duration = SystemTime::now()
         .duration_since(load_dbs_begin)
@@ -107,12 +110,55 @@ pub fn dbex_bc<DC: DursConfTrait>(
     if let Some(current_blockstamp) =
         durs_blockchain_dal::readers::block::get_current_blockstamp(&blocks_db)?
     {
-        println!("Current block: #{}", current_blockstamp);
+        println!("Current block: #{}.", current_blockstamp);
+        if let Some(current_block) = durs_blockchain_dal::readers::block::get_block(
+            &blocks_db.blockchain_db,
+            None,
+            &current_blockstamp,
+        )? {
+            let map_pubkey = durs_blockchain_dal::readers::block::get_current_frame(
+                &current_block,
+                &blocks_db.blockchain_db,
+            )?;
+
+            let mut vec = map_pubkey.iter().collect::<Vec<(&PubKey, &usize)>>();
+            vec.sort_by(|a, b| b.1.cmp(&a.1));
+
+            if _csv {
+                println!("{},{},{}", &BLOCK, &USERNAME, &PUB_KEY);
+                for (pub_key, v) in &vec {
+                    if let Ok(Some(identity)) = durs_blockchain_dal::readers::identity::get_identity(
+                        &wot_databases.identities_db,
+                        &pub_key,
+                    ) {
+                        println!(
+                            "{},{},{}",
+                            v,
+                            identity.idty_doc.username(),
+                            pub_key.to_string()
+                        );
+                    }
+                }
+            } else {
+                let mut table = Table::new();
+                table.add_row(row![&BLOCK, &USERNAME, &PUB_KEY]);
+                for (pub_key, v) in &vec {
+                    if let Ok(Some(identity)) = durs_blockchain_dal::readers::identity::get_identity(
+                        &wot_databases.identities_db,
+                        &pub_key,
+                    ) {
+                        table.add_row(row![v, identity.idty_doc.username(), pub_key.to_string()]);
+                    }
+                }
+                table.printstd();
+            }
+        }
     }
 
     Ok(())
 }
 
+/// Print fork tree
 pub fn dbex_fork_tree(profile_path: PathBuf, _csv: bool) {
     // Get db path
     let db_path = durs_conf::get_blockchain_db_path(profile_path);
@@ -143,7 +189,8 @@ pub fn dbex_fork_tree(profile_path: PathBuf, _csv: bool) {
     }
 }
 
-pub fn dbex_tx(profile_path: PathBuf, _csv: bool, query: &DBExTxQuery) {
+/// Execute DbExTxQuery
+pub fn dbex_tx(profile_path: PathBuf, _csv: bool, query: &DbExTxQuery) {
     // Get db path
     let db_path = durs_conf::get_blockchain_db_path(profile_path);
 
@@ -202,7 +249,8 @@ pub fn dbex_tx(profile_path: PathBuf, _csv: bool, query: &DBExTxQuery) {
     );
 }
 
-pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DBExWotQuery) {
+/// Execute DbExWotQuery
+pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
     // Get db path
     let db_path = durs_conf::get_blockchain_db_path(profile_path.clone());
 
