@@ -29,3 +29,31 @@
 pub mod fns;
 pub mod macros;
 pub mod traits;
+
+/// Percent
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Percent(u8);
+
+/// Percent error
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PercentError {
+    /// Integer too large (greater than 100)
+    TooLarge(u8),
+}
+
+impl Percent {
+    /// New percent
+    pub fn new(percent: u8) -> Result<Percent, PercentError> {
+        if percent <= 100 {
+            Ok(Percent(percent))
+        } else {
+            Err(PercentError::TooLarge(percent))
+        }
+    }
+}
+
+impl Into<u8> for Percent {
+    fn into(self) -> u8 {
+        self.0
+    }
+}

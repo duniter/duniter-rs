@@ -34,6 +34,7 @@ pub fn send_network_event(ws2p_module: &mut WS2Pv1Module, event: NetworkEvent) {
         NetworkEvent::ConnectionStateChange(_, _, _, _) => {
             ModuleEvent::ConnectionsChangeNodeNetwork
         }
+        NetworkEvent::NewSelfPeer(_) => ModuleEvent::NewSelfPeer,
         NetworkEvent::ReceiveBlocks(_) => ModuleEvent::NewBlockFromNetwork,
         NetworkEvent::ReceiveDocuments(ref network_docs) => {
             if !network_docs.is_empty() {
@@ -48,7 +49,7 @@ pub fn send_network_event(ws2p_module: &mut WS2Pv1Module, event: NetworkEvent) {
         }
         NetworkEvent::ReceiveHeads(_) => ModuleEvent::NewValidHeadFromNetwork,
         NetworkEvent::ReceivePeers(_) => ModuleEvent::NewValidPeerFromNodeNetwork,
-        NetworkEvent::NewSelfPeer(_) => ModuleEvent::NewSelfPeer,
+        NetworkEvent::SyncEvent(_) => ModuleEvent::SyncEvent,
     };
     ws2p_module
         .router_sender

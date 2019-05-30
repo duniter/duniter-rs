@@ -36,7 +36,6 @@ use durs_network_documents::network_endpoint::ApiFeatures;
 use durs_network_documents::network_head::NetworkHead;
 use durs_network_documents::*;
 use failure::Fail;
-use std::fmt::Debug;
 use std::sync::mpsc;
 
 pub mod cli;
@@ -63,9 +62,6 @@ pub trait NetworkModule<DC: DursConfTrait, M: ModuleMessage>: ApiModule<DC, M> {
         sync_params: SyncOpt,
     ) -> Result<(), SyncError>;
 }
-
-/// Trait to be implemented by the configuration object of the module managing the inter-node network.
-pub trait NetworkConf: Debug + Copy + Clone + PartialEq {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// Type returned when the network module fails to determine the current network consensus

@@ -244,10 +244,24 @@ impl BlockchainModule {
         sync::local_sync(profile_path, conf, sync_opts);
     }
     /// Start blockchain module.
-    pub fn start_blockchain(&mut self, blockchain_receiver: &mpsc::Receiver<DursMsg>) {
+    pub fn start_blockchain(
+        &mut self,
+        blockchain_receiver: &mpsc::Receiver<DursMsg>,
+        sync_opts: Option<SyncOpt>,
+    ) {
         info!("BlockchainModule::start_blockchain()");
 
-        // Init datas
+        if let Some(_sync_opts) = sync_opts {
+            // TODO ...
+        } else {
+            // Start main loop
+            self.main_loop(blockchain_receiver);
+        }
+    }
+
+    /// Start blockchain main loop
+    pub fn main_loop(&mut self, blockchain_receiver: &mpsc::Receiver<DursMsg>) {
+        // Init main loop datas
         let mut last_get_stackables_blocks = UNIX_EPOCH;
         let mut last_request_blocks = UNIX_EPOCH;
 

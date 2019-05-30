@@ -10,6 +10,7 @@ edition = "2018"
 path = "lib.rs"
 
 [dependencies]
+durs-common-tools = { path = "../../tools/common-tools" }
 dup-crypto = { path = "../../tools/crypto" }
 dubp-documents= { path = "../../tools/documents" }
 durs-module = { path = "../module" }

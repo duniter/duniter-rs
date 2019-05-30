@@ -99,7 +99,7 @@ enum ServerMode {
     /// Start
     Start(),
     /// Sync (SyncEndpoint)
-    _Sync(SyncOpt),
+    Sync(SyncOpt),
     /// List modules
     ListModules(ListModulesOpt),
 }
@@ -197,7 +197,18 @@ impl DursCore<DuRsConf> {
                 durs_core.start()
             }
             DursCoreCommand::SyncOpt(opts) => match opts.source_type {
-                SyncSourceType::Network => unimplemented!(),
+                SyncSourceType::Network => {
+                    durs_core.server_command = Some(ServerMode::Sync(opts));
+
+                    durs_core.router_sender = Some(router::start_router(
+                        durs_core.run_duration_in_secs,
+                        profile_path.clone(),
+                        durs_core.soft_meta_datas.conf.clone(),
+                        external_followers,
+                    ));
+                    plug_modules(&mut durs_core)?;
+                    durs_core.start()
+                }
                 SyncSourceType::LocalDuniter => {
                     sync_ts(profile_path.clone(), &durs_core.soft_meta_datas.conf, opts);
                     Ok(())
@@ -289,7 +300,7 @@ impl DursCore<DuRsConf> {
                 static_name: BlockchainModule::name(),
                 sender: blockchain_sender,
                 roles: vec![ModuleRole::BlockchainDatas, ModuleRole::BlockValidation],
-                events_subscription: vec![ModuleEvent::NewBlockFromNetwork],
+                events_subscription: vec![ModuleEvent::NewBlockFromNetwork, ModuleEvent::SyncEvent],
                 reserved_apis_parts: vec![],
                 endpoints: vec![],
             })
@@ -309,8 +320,13 @@ impl DursCore<DuRsConf> {
 
         // Start blockchain module in thread
         let thread_builder = thread::Builder::new().name(BlockchainModule::name().0.into());
+        let sync_opts = if let Some(ServerMode::Sync(opts)) = self.server_command {
+            Some(opts)
+        } else {
+            None
+        };
         let blockchain_thread_handler = thread_builder
-            .spawn(move || blockchain_module.start_blockchain(&blockchain_receiver))
+            .spawn(move || blockchain_module.start_blockchain(&blockchain_receiver, sync_opts))
             .expect("Fatal error: fail to spawn module main thread !");
 
         // Wait until all modules threads are finished
@@ -346,15 +362,19 @@ impl DursCore<DuRsConf> {
         let enabled = enabled::<DuRsConf, DursMsg, NM>(&self.soft_meta_datas.conf);
         if enabled {
             self.network_modules_count += 1;
-            if let Some(ServerMode::_Sync(ref network_sync)) = self.server_command {
-                if NM::name().0
-                    == self
-                        .soft_meta_datas
-                        .conf
-                        .get_global_conf()
-                        .default_sync_module()
-                        .0
-                {
+            if let Some(ServerMode::Sync(ref network_sync)) = self.server_command {
+                let sync_module_name =
+                    if let Some(ref sync_module_name) = network_sync.sync_module_name {
+                        sync_module_name.clone()
+                    } else {
+                        self.soft_meta_datas
+                            .conf
+                            .get_global_conf()
+                            .default_sync_module()
+                            .0
+                    };
+
+                if NM::name().0 == sync_module_name {
                     // Start module in a new thread
                     let router_sender = self
                         .router_sender
@@ -433,7 +453,13 @@ impl DursCore<DuRsConf> {
     ) -> Result<(), PlugModuleError> {
         let enabled = enabled::<DuRsConf, DursMsg, M>(&self.soft_meta_datas.conf);
         if enabled {
-            if let Some(ServerMode::Start()) = self.server_command {
+            let (launch_module, sync_opts) = match self.server_command {
+                Some(ServerMode::Start()) => (true, None),
+                Some(ServerMode::Sync(ref opts)) => (M::launchable_as_sync(), Some(opts.clone())),
+                Some(_) | None => (false, None),
+            };
+
+            if launch_module {
                 // Start module in a new thread
                 let router_sender_clone = self
                     .router_sender
@@ -460,13 +486,25 @@ impl DursCore<DuRsConf> {
                     M::name(),
                     thread_builder
                         .spawn(move || {
-                            M::start(
-                                &soft_meta_datas,
-                                required_keys,
-                                module_conf,
-                                router_sender_clone,
-                            )
-                            .unwrap_or_else(|e| fatal_error!("Module '{}': {}", M::name(), e));
+                            if let Some(sync_opts) = sync_opts {
+                                M::start_at_sync(
+                                    &soft_meta_datas,
+                                    required_keys,
+                                    module_conf,
+                                    router_sender_clone,
+                                    sync_opts.cautious_mode,
+                                    sync_opts.unsafe_mode,
+                                )
+                                .unwrap_or_else(|e| fatal_error!("Module '{}': {}", M::name(), e));
+                            } else {
+                                M::start(
+                                    &soft_meta_datas,
+                                    required_keys,
+                                    module_conf,
+                                    router_sender_clone,
+                                )
+                                .unwrap_or_else(|e| fatal_error!("Module '{}': {}", M::name(), e));
+                            }
                         })
                         .map_err(|e| PlugModuleError::FailSpawnModuleThread {
                             module_name: M::name(),

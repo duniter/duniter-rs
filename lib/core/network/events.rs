@@ -20,6 +20,8 @@ use crate::network_head::NetworkHead;
 use crate::network_peer::PeerCard;
 use crate::NodeFullId;
 use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::Blockstamp;
+use durs_common_tools::Percent;
 
 #[derive(Debug, Clone)]
 /// Type containing a network event, each time a network event occurs it's relayed to all modules
@@ -36,4 +38,29 @@ pub enum NetworkEvent {
     ReceivePeers(Vec<PeerCard>),
     /// Receiving heads
     ReceiveHeads(Vec<NetworkHead>),
+    /// Synchronisation event
+    SyncEvent(SyncEvent),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// Sync event
+pub enum SyncEvent {
+    /// Target blockstamp
+    ReceiveTargetBlockstamp(Blockstamp),
+    /// Chunks size
+    ReceiveChunksSize(usize),
+    /// bars progression change
+    BarsProgressionChange {
+        /// Milestones percent
+        milestones: Percent,
+        /// Download percent
+        download: Percent,
+    },
+    /// Receive correct blocks chunk
+    ReceiveCorrectBlocksChunk {
+        /// Blocks
+        blocks: Vec<BlockDocument>,
+        /// Raw blocks (compressed and serialized)
+        raw_blocks: Option<Vec<u8>>,
+    },
 }

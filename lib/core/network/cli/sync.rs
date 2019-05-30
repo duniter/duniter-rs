@@ -24,20 +24,26 @@ use std::str::FromStr;
 )]
 /// Synchronization from network
 pub struct SyncOpt {
-    /// The source of datas (url of the node from which to synchronize OR path to local folder)
-    pub source: Option<String>,
-    /// The source type
-    #[structopt(short = "t", long = "type", default_value = "ts")]
-    pub source_type: SyncSourceType,
+    /// cautious mode (check all protocol rules, very slow)
+    #[structopt(long = "cautious")]
+    pub cautious_mode: bool,
     /// Currency
     #[structopt(short = "c", long = "currency")]
     pub currency: Option<String>,
     /// End block
     #[structopt(short = "e", long = "end")]
     pub end: Option<u32>,
-    /// cautious mode (check all protocol rules, very slow)
-    #[structopt(long = "cautious")]
-    pub cautious_mode: bool,
+    /// The source type
+    #[structopt(short = "t", long = "type", default_value = "ts")]
+    pub source_type: SyncSourceType,
+    /// Start node after sync (not yet implemented)
+    #[structopt(short = "s", long = "start", hidden = true)]
+    pub start: bool,
+    /// Sync module name
+    #[structopt(short = "m", long = "sync-module")]
+    pub sync_module_name: Option<String>,
+    /// The source of datas (url of the node from which to synchronize OR path to local folder)
+    pub source: Option<String>,
     /// unsafe mode (not check blocks inner hashs, very dangerous)
     #[structopt(short = "u", long = "unsafe", hidden = true)]
     pub unsafe_mode: bool,

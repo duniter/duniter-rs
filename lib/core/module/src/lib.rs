@@ -33,9 +33,11 @@ extern crate serde_derive;
 
 use dubp_documents::CurrencyName;
 use dup_crypto::keys::{KeyPair, KeyPairEnum};
+use durs_common_tools::fatal_error;
 use durs_common_tools::traits::merge::Merge;
 use durs_network_documents::network_endpoint::{ApiPart, EndpointEnum};
 use failure::Fail;
+use log::error;
 use serde::de::DeserializeOwned;
 use serde::ser::{Serialize, Serializer};
 use std::collections::HashSet;
@@ -222,6 +224,8 @@ pub enum ModuleEvent {
     NewSelfPeer,
     /// A new valid peer record has been received from the network
     NewValidPeerFromNodeNetwork,
+    /// Synchronisation event
+    SyncEvent,
 }
 
 #[derive(Debug, Clone)]
@@ -434,6 +438,10 @@ pub trait DursModule<DC: DursConfTrait, M: ModuleMessage> {
     ) -> Option<Self::ModuleUserConf> {
         None
     }
+    /// Module launchable as sync ?
+    fn launchable_as_sync() -> bool {
+        false
+    }
     /// Launch the module
     fn start(
         soft_meta_datas: &SoftwareMetaDatas<DC>,
@@ -441,4 +449,18 @@ pub trait DursModule<DC: DursConfTrait, M: ModuleMessage> {
         module_conf: Self::ModuleConf,
         main_sender: mpsc::Sender<RouterThreadMessage<M>>,
     ) -> Result<(), failure::Error>;
+    /// Launch the module in sync mode
+    fn start_at_sync(
+        _soft_meta_datas: &SoftwareMetaDatas<DC>,
+        _keys: RequiredKeysContent,
+        _module_conf: Self::ModuleConf,
+        _main_sender: mpsc::Sender<RouterThreadMessage<M>>,
+        _cautious_mode: bool,
+        _unsafe_mode: bool,
+    ) -> Result<(), failure::Error> {
+        fatal_error!(
+            "Dev error: Module '{}' can be launched in sync but don't reimplement the sync method!",
+            Self::name(),
+        )
+    }
 }
