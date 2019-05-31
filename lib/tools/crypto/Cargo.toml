@@ -24,4 +24,7 @@ serde_derive = "1.0.*"
 durs-common-tools = { path = "../common-tools" }
 log = "0.4.*"
 
+[target.'cfg(all(unix, any(target_arch = "x86", target_arch = "x86_64")))'.dependencies]
+sha2 = { version = "0.8.0", features = ["asm"] }
+
 [features]
