@@ -22,19 +22,19 @@ use serde::{Deserialize, Serialize};
 
 /// Signatureable in binary format
 pub trait BinSignable<'de>: Serialize + Deserialize<'de> {
-    /// Return message issuer pubkey
+    /// Return entity issuer pubkey
     fn issuer_pubkey(&self) -> PubKey;
-    /// Return true if message store is hash
+    /// Return true if entity store is hash
     fn store_hash(&self) -> bool {
         false
     }
-    /// Return message hash
+    /// Return entity hash
     fn hash(&self) -> Option<Hash> {
         None
     }
-    /// Change hash (redefinely by messages with hash field)
+    /// Change hash (redefinely by entities with hash field)
     fn set_hash(&mut self, _hash: Hash) {}
-    /// Return message signature
+    /// Return signature
     fn signature(&self) -> Option<Sig>;
     /// Change signature
     fn set_signature(&mut self, _signature: Sig);
@@ -57,7 +57,7 @@ pub trait BinSignable<'de>: Serialize + Deserialize<'de> {
         let hash = Hash::compute(&bin_msg);
         Ok((hash, bin_msg))
     }
-    /// Sign bin message
+    /// Sign entity with a private key
     fn sign(&mut self, priv_key: PrivKey) -> Result<Vec<u8>, SignError> {
         if self.signature().is_some() {
             return Err(SignError::AlreadySign());
@@ -92,7 +92,7 @@ pub trait BinSignable<'de>: Serialize + Deserialize<'de> {
             _ => Err(SignError::WrongAlgo()),
         }
     }
-    /// Check signature of bin message
+    /// Check signature of entity
     fn verify(&self) -> Result<(), SigError> {
         if let Some(signature) = self.signature() {
             match self.issuer_pubkey() {

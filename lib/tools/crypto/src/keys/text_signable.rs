@@ -21,13 +21,13 @@ use super::*;
 pub trait TextSignable: Debug + Clone {
     /// Return signable text
     fn as_signable_text(&self) -> String;
-    /// Return message issuer pubkey
+    /// Return entity issuer pubkey
     fn issuer_pubkey(&self) -> PubKey;
-    /// Return message signature
+    /// Return entity signature
     fn signature(&self) -> Option<Sig>;
     /// Change signature
     fn set_signature(&mut self, _signature: Sig);
-    /// Sign text message
+    /// Sign entity
     fn sign(&mut self, priv_key: PrivKey) -> Result<String, SignError> {
         if self.signature().is_some() {
             return Err(SignError::AlreadySign());
@@ -46,7 +46,7 @@ pub trait TextSignable: Debug + Clone {
             _ => Err(SignError::WrongAlgo()),
         }
     }
-    /// Check signature of text message
+    /// Check signature of entity
     fn verify(&self) -> Result<(), SigError> {
         if let Some(signature) = self.signature() {
             match self.issuer_pubkey() {
