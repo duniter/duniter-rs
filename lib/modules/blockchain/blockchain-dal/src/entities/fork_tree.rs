@@ -112,26 +112,39 @@ impl TreeNode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// Tree store all forks branchs
 pub struct ForkTree {
-    root: Option<TreeNodeId>,
-    nodes: Vec<Option<TreeNode>>,
     main_branch: HashMap<BlockNumber, TreeNodeId>,
-    sheets: HashSet<TreeNodeId>,
+    max_depth: usize,
+    nodes: Vec<Option<TreeNode>>,
     removed_blockstamps: Vec<Blockstamp>,
+    root: Option<TreeNodeId>,
+    sheets: HashSet<TreeNodeId>,
 }
 
 impl Default for ForkTree {
+    #[inline]
     fn default() -> Self {
-        ForkTree {
-            nodes: Vec::with_capacity((*crate::constants::FORK_WINDOW_SIZE) * 2),
-            root: None,
-            main_branch: HashMap::with_capacity(*crate::constants::FORK_WINDOW_SIZE + 1),
-            sheets: HashSet::new(),
-            removed_blockstamps: Vec::with_capacity(*crate::constants::FORK_WINDOW_SIZE),
-        }
+        ForkTree::new(*dup_currency_params::constants::DEFAULT_FORK_WINDOW_SIZE)
     }
 }
 
 impl ForkTree {
+    /// Instanciate new fork tree
+    #[inline]
+    pub fn new(max_depth: usize) -> Self {
+        ForkTree {
+            main_branch: HashMap::with_capacity(max_depth + 1),
+            max_depth,
+            nodes: Vec::with_capacity(max_depth * 2),
+            removed_blockstamps: Vec::with_capacity(max_depth),
+            root: None,
+            sheets: HashSet::new(),
+        }
+    }
+    /// Set max depth
+    #[inline]
+    pub fn set_max_depth(&mut self, max_depth: usize) {
+        self.max_depth = max_depth;
+    }
     /// Get tree size
     #[inline]
     pub fn size(&self) -> usize {
@@ -214,7 +227,7 @@ impl ForkTree {
     }
     /// Get fork branch nodes ids
     pub fn get_fork_branch_nodes_ids(&self, node_id: TreeNodeId) -> Vec<TreeNodeId> {
-        let mut branch = Vec::with_capacity(*crate::constants::FORK_WINDOW_SIZE);
+        let mut branch = Vec::with_capacity(self.max_depth);
 
         let node = self.get_ref_node(node_id);
         if !self.main_branch.contains_key(&node.data.id)
@@ -251,7 +264,7 @@ impl ForkTree {
     }
     /// Get fork branch
     pub fn get_fork_branch(&self, node_id: TreeNodeId) -> Vec<Blockstamp> {
-        let mut branch = Vec::with_capacity(*crate::constants::FORK_WINDOW_SIZE);
+        let mut branch = Vec::with_capacity(self.max_depth);
         let node = self.get_ref_node(node_id);
         branch.push(node.data);
 
@@ -364,7 +377,7 @@ impl ForkTree {
         self.removed_blockstamps.clear();
         if main_branch {
             self.main_branch.insert(data.id, new_node_id);
-            if self.main_branch.len() > *crate::constants::FORK_WINDOW_SIZE {
+            if self.main_branch.len() > self.max_depth {
                 self.pruning();
             }
         }
@@ -438,6 +451,7 @@ impl ForkTree {
 mod tests {
 
     use super::*;
+    use dup_currency_params::constants::DEFAULT_FORK_WINDOW_SIZE;
 
     #[test]
     fn insert_root_nodes() {
@@ -605,78 +619,74 @@ mod tests {
     #[test]
     fn insert_more_fork_window_size_nodes() {
         let mut tree = ForkTree::default();
-        let blockstamps: Vec<Blockstamp> = dubp_documents_tests_tools::mocks::generate_blockstamps(
-            *crate::constants::FORK_WINDOW_SIZE + 2,
-        );
+        let blockstamps: Vec<Blockstamp> =
+            dubp_documents_tests_tools::mocks::generate_blockstamps(*DEFAULT_FORK_WINDOW_SIZE + 2);
 
-        // Fill tree with FORK_WINDOW_SIZE nodes
+        // Fill tree with MAX_DEPTH nodes
         tree.insert_new_node(blockstamps[0], None, true);
-        for i in 1..*crate::constants::FORK_WINDOW_SIZE {
+        for i in 1..*DEFAULT_FORK_WINDOW_SIZE {
             tree.insert_new_node(blockstamps[i], Some(TreeNodeId(i - 1)), true);
         }
 
         // The tree-root must not have been shifted yet
-        assert_eq!(*crate::constants::FORK_WINDOW_SIZE, tree.size());
+        assert_eq!(*DEFAULT_FORK_WINDOW_SIZE, tree.size());
         assert_eq!(Some(TreeNodeId(0)), tree.get_root_id());
 
         // Inserting a node that exceeds FORK_WIN_SIZE,
         // the tree size must not be increased and the root must shift
         tree.insert_new_node(
-            blockstamps[*crate::constants::FORK_WINDOW_SIZE],
-            Some(TreeNodeId(*crate::constants::FORK_WINDOW_SIZE - 1)),
+            blockstamps[*DEFAULT_FORK_WINDOW_SIZE],
+            Some(TreeNodeId(*DEFAULT_FORK_WINDOW_SIZE - 1)),
             true,
         );
-        assert_eq!(*crate::constants::FORK_WINDOW_SIZE, tree.size());
+        assert_eq!(*DEFAULT_FORK_WINDOW_SIZE, tree.size());
         assert_eq!(Some(TreeNodeId(1)), tree.get_root_id());
 
         // Repeating the insertion of a node that exceeds FORK_WIN_SIZE,
         // the tree size must still not be increased and the root must still shift
         tree.insert_new_node(
-            blockstamps[*crate::constants::FORK_WINDOW_SIZE + 1],
-            Some(TreeNodeId(*crate::constants::FORK_WINDOW_SIZE)),
+            blockstamps[*DEFAULT_FORK_WINDOW_SIZE + 1],
+            Some(TreeNodeId(*DEFAULT_FORK_WINDOW_SIZE)),
             true,
         );
-        assert_eq!(*crate::constants::FORK_WINDOW_SIZE, tree.size());
+        assert_eq!(*DEFAULT_FORK_WINDOW_SIZE, tree.size());
         assert_eq!(Some(TreeNodeId(2)), tree.get_root_id());
     }
 
     #[test]
     fn test_change_main_branch() {
         let mut tree = ForkTree::default();
-        let blockstamps: Vec<Blockstamp> = dubp_documents_tests_tools::mocks::generate_blockstamps(
-            *crate::constants::FORK_WINDOW_SIZE + 2,
-        );
+        let blockstamps: Vec<Blockstamp> =
+            dubp_documents_tests_tools::mocks::generate_blockstamps(*DEFAULT_FORK_WINDOW_SIZE + 2);
 
-        // Fill tree with FORK_WINDOW_SIZE nodes
+        // Fill tree with MAX_DEPTH nodes
         tree.insert_new_node(blockstamps[0], None, true);
-        for i in 1..*crate::constants::FORK_WINDOW_SIZE {
+        for i in 1..*DEFAULT_FORK_WINDOW_SIZE {
             tree.insert_new_node(blockstamps[i], Some(TreeNodeId(i - 1)), true);
         }
 
-        // Insert 2 forks blocks after block (FORK_WINDOW_SIZE - 2)
+        // Insert 2 forks blocks after block (MAX_DEPTH - 2)
         let fork_blockstamp = Blockstamp {
-            id: BlockNumber(*crate::constants::FORK_WINDOW_SIZE as u32 - 1),
+            id: BlockNumber(*DEFAULT_FORK_WINDOW_SIZE as u32 - 1),
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
         };
         tree.insert_new_node(
             fork_blockstamp,
-            tree.get_main_branch_node_id(BlockNumber(
-                *crate::constants::FORK_WINDOW_SIZE as u32 - 2,
-            )),
+            tree.get_main_branch_node_id(BlockNumber(*DEFAULT_FORK_WINDOW_SIZE as u32 - 2)),
             false,
         );
         let fork_blockstamp_2 = Blockstamp {
-            id: BlockNumber(*crate::constants::FORK_WINDOW_SIZE as u32),
+            id: BlockNumber(*DEFAULT_FORK_WINDOW_SIZE as u32),
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
         };
         tree.insert_new_node(
             fork_blockstamp_2,
-            Some(TreeNodeId(*crate::constants::FORK_WINDOW_SIZE)),
+            Some(TreeNodeId(*DEFAULT_FORK_WINDOW_SIZE)),
             false,
         );
 
         // Check tree size
-        assert_eq!(*crate::constants::FORK_WINDOW_SIZE + 2, tree.size());
+        assert_eq!(*DEFAULT_FORK_WINDOW_SIZE + 2, tree.size());
 
         // Check that the root of the shaft has not shifted
         assert_eq!(Some(TreeNodeId(0)), tree.get_root_id());
@@ -688,13 +698,10 @@ mod tests {
         // Check sheets content
         let expected_sheets = vec![
             (
-                TreeNodeId(*crate::constants::FORK_WINDOW_SIZE - 1),
-                blockstamps[*crate::constants::FORK_WINDOW_SIZE - 1],
+                TreeNodeId(*DEFAULT_FORK_WINDOW_SIZE - 1),
+                blockstamps[*DEFAULT_FORK_WINDOW_SIZE - 1],
             ),
-            (
-                TreeNodeId(*crate::constants::FORK_WINDOW_SIZE + 1),
-                fork_blockstamp_2,
-            ),
+            (TreeNodeId(*DEFAULT_FORK_WINDOW_SIZE + 1), fork_blockstamp_2),
         ];
         println!("{:?}", sheets);
         assert!(durs_common_tests_tools::collections::slice_same_elems(
@@ -704,7 +711,7 @@ mod tests {
 
         // Switch to fork branch
         tree.change_main_branch(
-            blockstamps[*crate::constants::FORK_WINDOW_SIZE - 1],
+            blockstamps[*DEFAULT_FORK_WINDOW_SIZE - 1],
             fork_blockstamp_2,
         );
 
@@ -715,7 +722,7 @@ mod tests {
         ));
 
         // Check that tree size decrease
-        assert_eq!(*crate::constants::FORK_WINDOW_SIZE + 1, tree.size());
+        assert_eq!(*DEFAULT_FORK_WINDOW_SIZE + 1, tree.size());
 
         // Check that the root of the tree has shifted
         assert_eq!(Some(TreeNodeId(1)), tree.get_root_id());

@@ -57,7 +57,7 @@ use crate::fork::*;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::*;
 use dup_crypto::keys::*;
-use durs_blockchain_dal::entities::currency_params::CurrencyParameters;
+use dup_currency_params::CurrencyParameters;
 use durs_blockchain_dal::*;
 use durs_common_tools::fatal_error;
 use durs_message::events::*;
@@ -103,8 +103,8 @@ pub struct BlockchainModule {
     pub wot_databases: WotsV10DBs,
     /// Currency databases
     currency_databases: CurrencyV10DBs,
-    // Currency parameters
-    currency_params: CurrencyParameters,
+    /// Currency parameters
+    pub currency_params: CurrencyParameters,
     /// Current blockstamp
     pub current_blockstamp: Blockstamp,
     /// network consensus blockstamp

@@ -49,7 +49,12 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
             let blockstamp = dal_block.block.blockstamp();
             // Apply db requests
             bc_db_query
-                .apply(&bc.blocks_databases.blockchain_db, &bc.forks_dbs, None)
+                .apply(
+                    &bc.blocks_databases.blockchain_db,
+                    &bc.forks_dbs,
+                    bc.currency_params.fork_window_size,
+                    None,
+                )
                 .expect("Fatal error : Fail to apply DBWriteRequest !");
             for query in &wot_dbs_queries {
                 query
@@ -83,7 +88,12 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                 bc.current_blockstamp = *blockstamp;
                 // Apply db requests
                 bc_db_query
-                    .apply(&bc.blocks_databases.blockchain_db, &bc.forks_dbs, None)
+                    .apply(
+                        &bc.blocks_databases.blockchain_db,
+                        &bc.forks_dbs,
+                        bc.currency_params.fork_window_size,
+                        None,
+                    )
                     .expect("Fatal error : Fail to apply DBWriteRequest !");
                 for query in &wot_dbs_queries {
                     query

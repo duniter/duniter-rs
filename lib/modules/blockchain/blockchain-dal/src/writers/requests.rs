@@ -14,7 +14,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::entities::block::DALBlock;
-use crate::entities::currency_params::CurrencyParameters;
 use crate::entities::sources::SourceAmount;
 use crate::writers::transaction::DALTxV10;
 use crate::*;
@@ -23,6 +22,7 @@ use dubp_documents::documents::certification::CompactCertificationDocument;
 use dubp_documents::documents::identity::IdentityDocument;
 use dubp_documents::Blockstamp;
 use dup_crypto::keys::PubKey;
+use dup_currency_params::CurrencyParameters;
 use durs_wot::NodeId;
 use std::ops::Deref;
 
@@ -59,6 +59,7 @@ impl BlocksDBsWriteQuery {
         self,
         blockchain_db: &BinDB<LocalBlockchainV10Datas>,
         forks_db: &ForksDBs,
+        fork_window_size: usize,
         sync_target: Option<Blockstamp>,
     ) -> Result<(), DALError> {
         match self {
@@ -66,7 +67,7 @@ impl BlocksDBsWriteQuery {
                 let dal_block: DALBlock = dal_block;
                 trace!("BlocksDBsWriteQuery::WriteBlock...");
                 if sync_target.is_none()
-                    || dal_block.blockstamp().id.0 + *crate::constants::FORK_WINDOW_SIZE as u32
+                    || dal_block.blockstamp().id.0 + fork_window_size as u32
                         >= sync_target.expect("safe unwrap").id.0
                 {
                     super::block::insert_new_head_block(blockchain_db, forks_db, dal_block)?;

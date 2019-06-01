@@ -13,14 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/// Block
-pub mod block;
+//! Currency parameters constants.
 
-/// Forks tree
-pub mod fork_tree;
-
-/// Identities
-pub mod identity;
-
-/// Sources of currency
-pub mod sources;
+/// Default currency name
+pub const DEFAULT_CURRENCY: &str = "default_currency";
+/// Default value for sig_renew_period parameter
+pub static DEFAULT_SIG_RENEW_PERIOD: &'static u64 = &5_259_600;
+/// Default value for ms_period parameter
+pub static DEFAULT_MS_PERIOD: &'static u64 = &5_259_600;
+/// Default value for tx_window parameter
+pub static DEFAULT_TX_WINDOW: &'static u64 = &604_800;
+/// Default maximum roolback length
+pub static DEFAULT_FORK_WINDOW_SIZE: &'static usize = &200;

@@ -25,6 +25,7 @@ pub static ADVANCE_TIME: &'static u64 = &900;
 
 pub fn fork_resolution_algo(
     forks_dbs: &ForksDBs,
+    fork_window_size: usize,
     current_blockstamp: Blockstamp,
     invalid_blocks: &HashSet<Blockstamp>,
 ) -> Result<Option<Vec<Blockstamp>>, DALError> {
@@ -58,8 +59,7 @@ pub fn fork_resolution_algo(
             })?;
             if branch_head_blockstamp.id.0 >= current_blockstamp.id.0 + *ADVANCE_BLOCKS
                 && branch_head_median_time >= current_bc_time + *ADVANCE_TIME
-                && branch[0].id.0 + *durs_blockchain_dal::constants::FORK_WINDOW_SIZE as u32
-                    > current_blockstamp.id.0
+                && branch[0].id.0 + fork_window_size as u32 > current_blockstamp.id.0
             {
                 let mut valid_branch = true;
                 for blockstamp in &branch {
@@ -91,7 +91,7 @@ mod tests {
     #[test]
     fn test_fork_resolution_algo() -> Result<(), DALError> {
         // Get FORK_WINDOW_SIZE value
-        let fork_window_size = *durs_blockchain_dal::constants::FORK_WINDOW_SIZE;
+        let fork_window_size = *dup_currency_params::constants::DEFAULT_FORK_WINDOW_SIZE;
 
         // Open empty databases in memory mode
         let bc_dbs = BlocksV10DBs::open(None);
@@ -163,7 +163,12 @@ mod tests {
         // Must not fork
         assert_eq!(
             None,
-            fork_resolution_algo(&forks_dbs, current_blockstamp, &invalid_blocks)?
+            fork_resolution_algo(
+                &forks_dbs,
+                fork_window_size,
+                current_blockstamp,
+                &invalid_blocks
+            )?
         );
 
         // Add the determining fork block
@@ -194,7 +199,12 @@ mod tests {
                 fork_blocks[2].blockstamp(),
                 determining_blockstamp,
             ]),
-            fork_resolution_algo(&forks_dbs, current_blockstamp, &invalid_blocks)?
+            fork_resolution_algo(
+                &forks_dbs,
+                fork_window_size,
+                current_blockstamp,
+                &invalid_blocks
+            )?
         );
         current_blockstamp = determining_blockstamp;
 
@@ -220,7 +230,12 @@ mod tests {
         // Must refork
         assert_eq!(
             Some(new_main_blocks.iter().map(|b| b.blockstamp()).collect()),
-            fork_resolution_algo(&forks_dbs, current_blockstamp, &invalid_blocks)?
+            fork_resolution_algo(
+                &forks_dbs,
+                fork_window_size,
+                current_blockstamp,
+                &invalid_blocks
+            )?
         );
         //current_blockstamp = new_main_blocks.last().expect("safe unwrap").blockstamp();
 

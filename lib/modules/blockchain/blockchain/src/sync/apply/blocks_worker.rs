@@ -23,6 +23,7 @@ pub fn execute(
     recv: mpsc::Receiver<SyncJobsMess>,
     blocks_dbs: BlocksV10DBs,
     forks_db: ForksDBs,
+    fork_window_size: usize,
     target_blockstamp: Blockstamp,
     mut apply_pb: ProgressBar<std::io::Stdout>,
 ) {
@@ -41,6 +42,7 @@ pub fn execute(
             req.apply(
                 &blocks_dbs.blockchain_db,
                 &forks_db,
+                fork_window_size,
                 Some(target_blockstamp),
             )
             .expect("Fatal error : Fail to apply DBWriteRequest !");

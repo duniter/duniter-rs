@@ -46,7 +46,12 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                     bc.current_blockstamp = new_current_block.blockstamp();
                     // Apply db requests
                     bc_db_query
-                        .apply(&bc.blocks_databases.blockchain_db, &bc.forks_dbs, None)
+                        .apply(
+                            &bc.blocks_databases.blockchain_db,
+                            &bc.forks_dbs,
+                            bc.currency_params.fork_window_size,
+                            None,
+                        )
                         .expect("Fatal error : Fail to apply DBWriteRequest !");
                     for query in &wot_dbs_queries {
                         query
@@ -74,6 +79,7 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                     info!("new fork block({})", blockstamp);
                     if let Ok(Some(new_bc_branch)) = fork_algo::fork_resolution_algo(
                         &bc.forks_dbs,
+                        bc.currency_params.fork_window_size,
                         bc.current_blockstamp,
                         &bc.invalid_forks,
                     ) {

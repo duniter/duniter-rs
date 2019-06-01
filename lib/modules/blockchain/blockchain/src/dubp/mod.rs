@@ -109,7 +109,7 @@ pub fn check_and_apply_block(
     } else if !already_have_block
         && (block_doc.number.0 >= bc.current_blockstamp.id.0
             || (bc.current_blockstamp.id.0 - block_doc.number.0)
-                < *durs_blockchain_dal::constants::FORK_WINDOW_SIZE as u32)
+                < bc.currency_params.fork_window_size as u32)
     {
         debug!(
             "stackable_block : block {} not chainable, store this for future !",

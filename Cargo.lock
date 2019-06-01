@@ -342,6 +342,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "dup-currency-params"
+version = "0.1.0"
+dependencies = [
+ "dubp-documents 0.12.0",
+]
+
+[[package]]
 name = "durs"
 version = "0.2.0-a"
 dependencies = [
@@ -365,6 +372,7 @@ dependencies = [
  "dubp-documents-tests-tools 0.1.0",
  "dup-crypto 0.6.0",
  "dup-crypto-tests-tools 0.1.0",
+ "dup-currency-params 0.1.0",
  "durs-blockchain-dal 0.2.0-a",
  "durs-common-tools 0.1.0",
  "durs-conf 0.2.0-a",
@@ -392,6 +400,7 @@ dependencies = [
  "dubp-documents-tests-tools 0.1.0",
  "dup-crypto 0.6.0",
  "dup-crypto-tests-tools 0.1.0",
+ "dup-currency-params 0.1.0",
  "durs-common-tests-tools 0.1.0",
  "durs-common-tools 0.1.0",
  "durs-module 0.2.0-a",

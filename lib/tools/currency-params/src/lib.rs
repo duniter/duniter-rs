@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Durs Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,13 +13,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Duniter protocol currency parameters
+
+pub mod constants;
+
 use crate::constants::*;
-use crate::*;
 use dubp_documents::documents::block::BlockV10Parameters;
 use dubp_documents::CurrencyName;
 
 #[derive(Debug, Copy, Clone)]
-/// Curerncy parameters
+/// Currency parameters
 pub struct CurrencyParameters {
     /// Protocol version
     pub protocol_version: usize,
@@ -71,28 +74,36 @@ pub struct CurrencyParameters {
     pub ud_reeval_time0: u64,
     /// Time period between two re-evaluation of the UD.
     pub dt_reeval: u64,
+    /// Maximum roolback length
+    pub fork_window_size: usize,
 }
 
 impl From<(CurrencyName, BlockV10Parameters)> for CurrencyParameters {
     fn from(source: (CurrencyName, BlockV10Parameters)) -> CurrencyParameters {
         let (currency_name, block_params) = source;
         let sig_renew_period = match currency_name.0.as_str() {
-            "default_currency" => *DEFAULT_SIG_RENEW_PERIOD,
+            DEFAULT_CURRENCY => *DEFAULT_SIG_RENEW_PERIOD,
             "g1" => 5_259_600,
             "g1-test" => 5_259_600 / 5,
             _ => *DEFAULT_SIG_RENEW_PERIOD,
         };
         let ms_period = match currency_name.0.as_str() {
-            "default_currency" => *DEFAULT_MS_PERIOD,
+            DEFAULT_CURRENCY => *DEFAULT_MS_PERIOD,
             "g1" => 5_259_600,
             "g1-test" => 5_259_600 / 5,
             _ => *DEFAULT_MS_PERIOD,
         };
         let tx_window = match currency_name.0.as_str() {
-            "default_currency" => *DEFAULT_TX_WINDOW,
+            DEFAULT_CURRENCY => *DEFAULT_TX_WINDOW,
             "g1" => 604_800,
             "g1-test" => 604_800,
             _ => *DEFAULT_TX_WINDOW,
+        };
+        let fork_window_size = match currency_name.0.as_str() {
+            DEFAULT_CURRENCY => *DEFAULT_FORK_WINDOW_SIZE,
+            "g1" => 200,
+            "g1-test" => 200,
+            _ => *DEFAULT_FORK_WINDOW_SIZE,
         };
         CurrencyParameters {
             protocol_version: 10,
@@ -119,6 +130,7 @@ impl From<(CurrencyName, BlockV10Parameters)> for CurrencyParameters {
             ud_time0: block_params.ud_time0,
             ud_reeval_time0: block_params.ud_reeval_time0,
             dt_reeval: block_params.dt_reeval,
+            fork_window_size,
         }
     }
 }
@@ -126,7 +138,7 @@ impl From<(CurrencyName, BlockV10Parameters)> for CurrencyParameters {
 impl Default for CurrencyParameters {
     fn default() -> CurrencyParameters {
         CurrencyParameters::from((
-            CurrencyName(String::from("default_currency")),
+            CurrencyName(String::from(DEFAULT_CURRENCY)),
             BlockV10Parameters::default(),
         ))
     }

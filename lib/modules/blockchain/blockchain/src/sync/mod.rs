@@ -20,7 +20,7 @@ use crate::dubp::apply::apply_valid_block;
 use crate::*;
 use dubp_documents::{BlockHash, BlockNumber};
 use dup_crypto::keys::*;
-use durs_blockchain_dal::entities::currency_params::CurrencyParameters;
+use dup_currency_params::CurrencyParameters;
 use durs_blockchain_dal::writers::requests::*;
 use durs_common_tools::fatal_error;
 use durs_wot::NodeId;
@@ -226,6 +226,9 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
         current_blockstamp.id.0, target_blockstamp.id.0
     );
 
+    // Instantiate currency parameters
+    let mut currency_params = CurrencyParameters::default();
+
     // Createprogess bar
     let mut apply_pb = ProgressBar::new(count_chunks.into());
     apply_pb.format("╢▌▌░╟");
@@ -242,6 +245,7 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
         recv_blocks_thread,
         blocks_dbs,
         forks_dbs,
+        currency_params.fork_window_size,
         target_blockstamp,
         apply_pb,
     );
@@ -278,7 +282,6 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
     let mut last_block_expiring: isize = -1;
     let certs_db =
         BinDB::Mem(open_memory_db::<CertsExpirV10Datas>().expect("Fail to create memory certs_db"));
-    let mut currency_params = CurrencyParameters::default();
     let mut get_currency_params = false;
     let mut certs_count = 0;
 

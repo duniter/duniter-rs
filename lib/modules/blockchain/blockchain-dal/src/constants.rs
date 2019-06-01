@@ -13,14 +13,5 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/// Default value for sig_renew_period parameter
-pub static DEFAULT_SIG_RENEW_PERIOD: &'static u64 = &5_259_600;
-/// Default value for ms_period parameter
-pub static DEFAULT_MS_PERIOD: &'static u64 = &5_259_600;
-/// Default value for tx_window parameter
-pub static DEFAULT_TX_WINDOW: &'static u64 = &604_800;
-/// Maximum roolback length
-pub static FORK_WINDOW_SIZE: &'static usize = &200;
-
 /// Default page size for requests responses
 pub static DEFAULT_PAGE_SIZE: &'static usize = &50;

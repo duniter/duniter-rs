@@ -18,6 +18,7 @@ members = [
     "lib/tests-tools/common-tests-tools",
     "lib/tools/crypto",
     "lib/tools/common-tools",
+    "lib/tools/currency-params",
     "lib/tools/documents",
     "lib/tools/json-pest-parser",
     "lib/tools/network-documents",
