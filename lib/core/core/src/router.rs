@@ -156,7 +156,8 @@ fn start_broadcasting_thread(
                         reserved_apis_parts.insert(module_static_name, module_reserved_apis_parts);
                         // Add module endpoints to local node endpoints
                         local_node_endpoints.append(&mut module_endpoints);
-                        // Send endpoints to network module
+
+                        // If all modules registered
                         if expected_registrations_count.is_some()
                             && registrations_count == expected_registrations_count.unwrap()
                         {
@@ -165,7 +166,7 @@ fn start_broadcasting_thread(
                                 .get(&ModuleRole::InterNodesNetwork)
                                 .expect("Fatal error : no module with role InterNodesNetwork !")
                                 .to_vec();
-                            // Send endpoints to receivers
+                            // Send endpoints to network module
                             send_msg_to_several_receivers(
                                 DursMsg::ModulesEndpoints(local_node_endpoints.clone()),
                                 &receivers,
@@ -184,7 +185,7 @@ fn start_broadcasting_thread(
                         } => {
                             // the node to be started less than MAX_REGISTRATION_DELAY seconds ago,
                             // keep the message in memory to be able to send it back to modules not yet plugged
-                            store_msg_in_pool(start_time, msg.clone(), &mut pool_msgs);
+                            store_msg_in_pool(start_time, &msg, &mut pool_msgs);
                             // Get list of receivers
                             let receivers = events_subscriptions
                                 .get(&event_type)
@@ -199,7 +200,7 @@ fn start_broadcasting_thread(
                         DursMsg::Request { req_to: role, .. } => {
                             // If the node to be started less than MAX_REGISTRATION_DELAY seconds ago,
                             // keep the message in memory to be able to send it back to modules not yet plugged
-                            store_msg_in_pool(start_time, msg.clone(), &mut pool_msgs);
+                            store_msg_in_pool(start_time, &msg, &mut pool_msgs);
                             // Get list of receivers
                             let receivers =
                                 roles.get(&role).unwrap_or(&Vec::with_capacity(0)).to_vec();
@@ -284,7 +285,7 @@ fn send_msg_to_several_receivers(
 /// keep the message in memory to be able to send it back to modules not yet plugged
 fn store_msg_in_pool(
     start_time: SystemTime,
-    msg: DursMsg,
+    msg: &DursMsg,
     pool_msgs: &mut HashMap<DursMsgReceiver, Vec<DursMsg>>,
 ) {
     if SystemTime::now()
@@ -294,13 +295,16 @@ fn store_msg_in_pool(
         < *MAX_REGISTRATION_DELAY
     {
         let msg_recv = match msg {
-            DursMsg::Event { event_type, .. } => Some(DursMsgReceiver::Event(event_type)),
-            DursMsg::Request { req_to, .. } => Some(DursMsgReceiver::Role(req_to)),
-            DursMsg::Response { res_to, .. } => Some(DursMsgReceiver::One(res_to)),
+            DursMsg::Event { event_type, .. } => Some(DursMsgReceiver::Event(*event_type)),
+            DursMsg::Request { req_to, .. } => Some(DursMsgReceiver::Role(*req_to)),
+            DursMsg::Response { res_to, .. } => Some(DursMsgReceiver::One(*res_to)),
             _ => None,
         };
         if let Some(msg_recv) = msg_recv {
-            pool_msgs.entry(msg_recv).or_insert_with(Vec::new).push(msg);
+            pool_msgs
+                .entry(msg_recv)
+                .or_insert_with(Vec::new)
+                .push(msg.clone());
         }
     } else if !pool_msgs.is_empty() {
         // Clear pool_msgs

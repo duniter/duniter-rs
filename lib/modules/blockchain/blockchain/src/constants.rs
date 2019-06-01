@@ -27,3 +27,12 @@ pub static CHUNK_FILE_NAME_BEGIN: &'static str = "chunk_";
 
 /// Chunk file name end
 pub static CHUNK_FILE_NAME_END: &'static str = "-250.json";
+
+/// Low requency of request of main blocks
+pub static REQUEST_MAIN_BLOCKS_LOW_FREQUENCY_IN_SEC: &'static u64 = &90;
+
+/// High frequency of request of the main blocks
+pub static REQUEST_MAIN_BLOCKS_HIGH_FREQUENCY_IN_SEC: &'static u64 = &20;
+
+/// Blocks Delay threshold
+pub static BLOCKS_DELAY_THRESHOLD: &'static u32 = &5;

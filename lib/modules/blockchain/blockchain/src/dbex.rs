@@ -16,6 +16,7 @@
 use crate::*;
 use dubp_documents::documents::transaction::*;
 use dup_crypto::keys::*;
+use durs_blockchain_dal::constants::CURRENCY_PARAMS_DB_NAME;
 use durs_module::DursConfTrait;
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::data::WebOfTrust;
@@ -133,8 +134,9 @@ pub fn dbex_wot<DC: DursConfTrait>(
 
     // Open databases
     let load_dbs_begin = SystemTime::now();
-    let currency_params_db = open_file_db::<CurrencyParamsV10Datas>(&db_path, "params.db")
-        .expect("Fail to open params db");
+    let currency_params_db =
+        open_file_db::<CurrencyParamsV10Datas>(&db_path, CURRENCY_PARAMS_DB_NAME)
+            .expect("Fail to open params db");
     let wot_databases = WotsV10DBs::open(Some(&db_path));
     let load_dbs_duration = SystemTime::now()
         .duration_since(load_dbs_begin)
@@ -147,8 +149,13 @@ pub fn dbex_wot<DC: DursConfTrait>(
 
     // Get currency parameters
     let currency_params = currency_params_db
-        .read(|db| CurrencyParameters::from(db.clone()))
-        .expect("Fail to parse currency params !");
+        .read(|db| {
+            db.as_ref().map(|(currency_name, block_genesis_params)| {
+                CurrencyParameters::from((currency_name.clone(), *block_genesis_params))
+            })
+        })
+        .expect("Fail to parse currency params !")
+        .unwrap_or_default();
 
     // get wot_index
     let wot_index =

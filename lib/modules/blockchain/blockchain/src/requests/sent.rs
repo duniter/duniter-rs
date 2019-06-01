@@ -31,13 +31,40 @@ pub fn request_network_consensus(bc: &mut BlockchainModule) {
     bc.pending_network_requests.insert(req_id, req);
 }
 
-pub fn request_next_main_blocks(bc: &mut BlockchainModule) {
-    let to = match bc.consensus.id.0 {
-        0 => (bc.current_blockstamp.id.0 + *MAX_BLOCKS_REQUEST),
-        _ => bc.consensus.id.0,
-    };
-    let new_pending_network_requests = dunp::queries::request_blocks_to(bc, BlockNumber(to));
+pub fn request_orphan_previous(bc: &mut BlockchainModule, orphan_blockstamp: Blockstamp) {
+    let new_pending_network_requests =
+        dunp::queries::request_orphan_previous(bc, orphan_blockstamp.id);
     for (new_req_id, new_req) in new_pending_network_requests {
         bc.pending_network_requests.insert(new_req_id, new_req);
+    }
+}
+
+pub fn request_next_main_blocks(bc: &mut BlockchainModule) {
+    // Choose frequency
+    let frequency = if bc.consensus.id.0 == 0
+        || bc.consensus.id.0 > bc.current_blockstamp.id.0 + *BLOCKS_DELAY_THRESHOLD
+    {
+        *REQUEST_MAIN_BLOCKS_HIGH_FREQUENCY_IN_SEC
+    } else {
+        *REQUEST_MAIN_BLOCKS_LOW_FREQUENCY_IN_SEC
+    };
+
+    // Apply frequency
+    let now = SystemTime::now();
+    if now
+        .duration_since(bc.last_request_blocks)
+        .expect("duration_since error")
+        > Duration::from_secs(frequency)
+    {
+        bc.last_request_blocks = now;
+        // Request next main blocks
+        let to = match bc.consensus.id.0 {
+            0 => (bc.current_blockstamp.id.0 + *MAX_BLOCKS_REQUEST),
+            _ => bc.consensus.id.0,
+        };
+        let new_pending_network_requests = dunp::queries::request_blocks_to(bc, BlockNumber(to));
+        for (new_req_id, new_req) in new_pending_network_requests {
+            bc.pending_network_requests.insert(new_req_id, new_req);
+        }
     }
 }

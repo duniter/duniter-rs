@@ -56,7 +56,7 @@ pub fn request_blocks_to(
     bc: &BlockchainModule,
     to: BlockNumber,
 ) -> HashMap<ModuleReqId, OldNetworkRequest> {
-    let mut from = if bc.current_blockstamp == Blockstamp::default() {
+    let from = if bc.current_blockstamp == Blockstamp::default() {
         0
     } else {
         bc.current_blockstamp.id.0 + 1
@@ -66,24 +66,53 @@ pub fn request_blocks_to(
         bc.current_blockstamp.id.0 + 1,
         to
     );
-    let mut requests_ids = HashMap::new();
     if bc.current_blockstamp.id < to {
         let real_to = if (to.0 - bc.current_blockstamp.id.0) > *MAX_BLOCKS_REQUEST {
             bc.current_blockstamp.id.0 + *MAX_BLOCKS_REQUEST
         } else {
             to.0
         };
-        while from <= real_to {
-            let mut req_id = ModuleReqId(0);
-            while bc.pending_network_requests.contains_key(&req_id)
-                || requests_ids.contains_key(&req_id)
-            {
-                req_id = ModuleReqId(req_id.0 + 1);
-            }
-            let (req_id, req) = request_chunk(bc, req_id, from);
-            requests_ids.insert(req_id, req);
-            from += *CHUNK_SIZE;
+        request_blocks_from_to(bc, from, real_to)
+    } else {
+        HashMap::with_capacity(0)
+    }
+}
+
+/// Requets previous blocks from specific orphan block
+#[inline]
+pub fn request_orphan_previous(
+    _bc: &BlockchainModule,
+    _orphan_block_number: BlockNumber,
+) -> HashMap<ModuleReqId, OldNetworkRequest> {
+    /*if orphan_block_number.0
+        > bc.current_blockstamp.id.0 - *durs_blockchain_dal::constants::FORK_WINDOW_SIZE as u32
+        && orphan_block_number.0 <= bc.current_blockstamp.id.0 + *CHUNK_SIZE
+    {
+        request_blocks_from_to(
+            bc,
+            orphan_block_number.0 - *CHUNK_SIZE + 1,
+            orphan_block_number.0,
+        )
+    } else {*/
+    HashMap::with_capacity(0)
+}
+
+fn request_blocks_from_to(
+    bc: &BlockchainModule,
+    mut from: u32,
+    to: u32,
+) -> HashMap<ModuleReqId, OldNetworkRequest> {
+    let mut requests_ids = HashMap::new();
+    while from <= to {
+        let mut req_id = ModuleReqId(0);
+        while bc.pending_network_requests.contains_key(&req_id)
+            || requests_ids.contains_key(&req_id)
+        {
+            req_id = ModuleReqId(req_id.0 + 1);
         }
+        let (req_id, req) = request_chunk(bc, req_id, from);
+        requests_ids.insert(req_id, req);
+        from += *CHUNK_SIZE;
     }
     requests_ids
 }

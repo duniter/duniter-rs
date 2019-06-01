@@ -16,6 +16,7 @@
 //! Sub-module that finds and applies the orphaned blocks that have become stackable on the local blockchain.
 
 use crate::*;
+use unwrap::unwrap;
 
 pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
     'blockchain: loop {
@@ -33,7 +34,7 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                 let stackable_block_number = stackable_block.block.number;
                 let stackable_block_blockstamp = stackable_block.block.blockstamp();
 
-                if let Ok(CheckAndApplyBlockReturn::ValidBlock(ValidBlockApplyReqs(
+                if let Ok(CheckAndApplyBlockReturn::ValidMainBlock(ValidBlockApplyReqs(
                     bc_db_query,
                     wot_dbs_queries,
                     tx_dbs_queries,
@@ -46,13 +47,13 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                         .apply(
                             &bc.blocks_databases.blockchain_db,
                             &bc.forks_dbs,
-                            bc.currency_params.fork_window_size,
+                            unwrap!(bc.currency_params).fork_window_size,
                             None,
                         )
                         .expect("Fatal error : Fail to apply DBWriteRequest !");
                     for query in &wot_dbs_queries {
                         query
-                            .apply(&blockstamp, &bc.currency_params, &bc.wot_databases)
+                            .apply(&blockstamp, &unwrap!(bc.currency_params), &bc.wot_databases)
                             .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
                     }
                     for query in &tx_dbs_queries {

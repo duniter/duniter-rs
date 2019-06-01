@@ -104,7 +104,7 @@ pub struct BlockchainModule {
     /// Currency databases
     currency_databases: CurrencyV10DBs,
     /// Currency parameters
-    pub currency_params: CurrencyParameters,
+    pub currency_params: Option<CurrencyParameters>,
     /// Current blockstamp
     pub current_blockstamp: Blockstamp,
     /// network consensus blockstamp
@@ -115,6 +115,8 @@ pub struct BlockchainModule {
     pub invalid_forks: HashSet<Blockstamp>,
     /// pending network requests
     pub pending_network_requests: HashMap<ModuleReqId, OldNetworkRequest>,
+    /// Last request blocks
+    pub last_request_blocks: SystemTime,
 }
 
 #[derive(Debug, Clone)]
@@ -206,11 +208,9 @@ impl BlockchainModule {
                 .unwrap_or_default();
 
         // Get currency parameters
-        let currency_params = durs_blockchain_dal::readers::currency_params::get_currency_params(
-            &blocks_databases.blockchain_db,
-        )
-        .expect("Fatal error : fail to read Blockchain DB !")
-        .unwrap_or_default();
+        let currency_params =
+            durs_blockchain_dal::readers::currency_params::get_currency_params(&dbs_path)
+                .expect("Fatal error : fail to read Blockchain DB !");
 
         // Get wot index
         let wot_index: HashMap<PubKey, NodeId> =
@@ -233,6 +233,7 @@ impl BlockchainModule {
             pending_block: None,
             invalid_forks: HashSet::new(),
             pending_network_requests: HashMap::new(),
+            last_request_blocks: UNIX_EPOCH,
         }
     }
     /// Databases explorer
@@ -251,6 +252,11 @@ impl BlockchainModule {
     ) {
         info!("BlockchainModule::start_blockchain()");
 
+        // Send currency parameters to other modules
+        if let Some(currency_params) = self.currency_params {
+            events::sent::send_event(self, &BlockchainEvent::CurrencyParameters(currency_params));
+        }
+
         if let Some(_sync_opts) = sync_opts {
             // TODO ...
         } else {
@@ -263,22 +269,12 @@ impl BlockchainModule {
     pub fn main_loop(&mut self, blockchain_receiver: &mpsc::Receiver<DursMsg>) {
         // Init main loop datas
         let mut last_get_stackables_blocks = UNIX_EPOCH;
-        let mut last_request_blocks = UNIX_EPOCH;
 
         loop {
             // Request Consensus
             requests::sent::request_network_consensus(self);
-            // Request next main blocks every 20 seconds
-            let now = SystemTime::now();
-            if now
-                .duration_since(last_request_blocks)
-                .expect("duration_since error")
-                > Duration::new(20, 0)
-            {
-                last_request_blocks = now;
-                // Request next main blocks
-                requests::sent::request_next_main_blocks(self);
-            }
+            // Request next main blocks
+            requests::sent::request_next_main_blocks(self);
             match blockchain_receiver.recv_timeout(Duration::from_millis(1000)) {
                 Ok(durs_message) => {
                     match durs_message {

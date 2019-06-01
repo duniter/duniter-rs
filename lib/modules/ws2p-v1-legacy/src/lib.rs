@@ -562,6 +562,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
                     sender: proxy_sender_clone,
                     roles: vec![ModuleRole::InterNodesNetwork],
                     events_subscription: vec![
+                        ModuleEvent::CurrencyParameters,
                         ModuleEvent::NewValidBlock,
                         ModuleEvent::NewWotDocInPool,
                         ModuleEvent::NewTxinPool,

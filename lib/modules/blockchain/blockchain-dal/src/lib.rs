@@ -78,7 +78,7 @@ use crate::entities::sources::{SourceAmount, UTXOContentV10, UTXOIndexV10};
 use crate::writers::transaction::DALTxV10;
 
 /// Currency parameters (Protocol V10)
-pub type CurrencyParamsV10Datas = (CurrencyName, BlockV10Parameters);
+pub type CurrencyParamsV10Datas = Option<(CurrencyName, BlockV10Parameters)>;
 /// All blocks of local blockchain indexed by block number
 pub type LocalBlockchainV10Datas = FnvHashMap<BlockNumber, DALBlock>;
 /// Forks tree meta datas (block number and hash only)

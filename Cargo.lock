@@ -390,6 +390,7 @@ dependencies = [
  "serde 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.38 (registry+https://github.com/rust-lang/crates.io-index)",
  "threadpool 1.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unwrap 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -403,6 +404,7 @@ dependencies = [
  "dup-currency-params 0.1.0",
  "durs-common-tests-tools 0.1.0",
  "durs-common-tools 0.1.0",
+ "durs-conf 0.2.0-a",
  "durs-module 0.2.0-a",
  "durs-wot 0.8.0-a0.9",
  "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -478,6 +480,7 @@ version = "0.2.0-a"
 dependencies = [
  "dubp-documents 0.12.0",
  "dup-crypto 0.6.0",
+ "dup-currency-params 0.1.0",
  "durs-blockchain-dal 0.2.0-a",
  "durs-module 0.2.0-a",
  "durs-network 0.2.0-a",

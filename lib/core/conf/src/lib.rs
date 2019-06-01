@@ -109,7 +109,7 @@ pub struct DuRsConfV1 {
 impl Default for DuRsConfV1 {
     fn default() -> Self {
         DuRsConfV1 {
-            currency: CurrencyName(String::from(constants::DEFAULT_CURRRENCY)),
+            currency: CurrencyName(String::from(constants::DEFAULT_CURRENCY)),
             my_node_id: generate_random_node_id(),
             modules: ModulesConf::default(),
             disabled: HashSet::with_capacity(0),
@@ -174,7 +174,7 @@ pub struct DuRsConfV2 {
 impl Default for DuRsConfV2 {
     fn default() -> Self {
         DuRsConfV2 {
-            currency: CurrencyName(String::from(constants::DEFAULT_CURRRENCY)),
+            currency: CurrencyName(String::from(constants::DEFAULT_CURRENCY)),
             my_node_id: generate_random_node_id(),
             default_sync_module: ModuleName(String::from(constants::DEFAULT_DEFAULT_SYNC_MODULE)),
             ressources_usage: ResourcesUsage::default(),
@@ -455,7 +455,11 @@ pub fn datas_path(profile_path: PathBuf, currency: &CurrencyName) -> PathBuf {
     let mut datas_path = profile_path;
     datas_path.push(currency.to_string());
     if !datas_path.as_path().exists() {
-        fs::create_dir(datas_path.as_path()).expect("Impossible to create currency dir !");
+        if let Err(io_error) = fs::create_dir(datas_path.as_path()) {
+            if io_error.kind() != std::io::ErrorKind::AlreadyExists {
+                fatal_error!("Impossible to create currency dir !");
+            }
+        }
     }
     datas_path
 }
@@ -712,15 +716,7 @@ pub fn write_conf_file<DC: DursConfTrait>(
 
 /// Returns the path to the database containing the blockchain
 pub fn get_blockchain_db_path(profile_path: PathBuf, currency: &CurrencyName) -> PathBuf {
-    let mut db_path = profile_path;
-    db_path.push(&currency.0);
-    if !db_path.as_path().exists() {
-        if let Err(io_error) = fs::create_dir(db_path.as_path()) {
-            if io_error.kind() != std::io::ErrorKind::AlreadyExists {
-                fatal_error!("Impossible to create currency dir !");
-            }
-        }
-    }
+    let mut db_path = datas_path(profile_path, currency);
     db_path.push("blockchain/");
     if !db_path.as_path().exists() {
         if let Err(io_error) = fs::create_dir(db_path.as_path()) {
@@ -730,19 +726,6 @@ pub fn get_blockchain_db_path(profile_path: PathBuf, currency: &CurrencyName) ->
         }
     }
     db_path
-}
-
-/// Returns the path to the binary file containing the state of the web of trust
-pub fn get_wot_path(profile: String, currency: &CurrencyName) -> PathBuf {
-    let mut wot_path = match dirs::config_dir() {
-        Some(path) => path,
-        None => panic!("Impossible to get your home dir!"),
-    };
-    wot_path.push(constants::USER_DATAS_FOLDER);
-    wot_path.push(profile);
-    wot_path.push(currency.to_string());
-    wot_path.push("wot.bin");
-    wot_path
 }
 
 #[cfg(test)]

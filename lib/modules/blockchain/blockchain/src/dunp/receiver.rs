@@ -18,6 +18,7 @@
 
 use crate::*;
 use std::ops::Deref;
+use unwrap::unwrap;
 
 pub fn receive_bc_documents(bc: &mut BlockchainModule, network_documents: &[BlockchainDocument]) {
     for network_document in network_documents {
@@ -29,15 +30,16 @@ pub fn receive_bc_documents(bc: &mut BlockchainModule, network_documents: &[Bloc
 }
 
 pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
-    debug!("BlockchainModule : receive_blocks()");
+    debug!("BlockchainModule : receive_blocks({})", blocks.len());
     let mut save_blocks_dbs = false;
     let mut save_wots_dbs = false;
     let mut save_currency_dbs = false;
+    let mut first_orphan = true;
     for block in blocks.into_iter() {
         let blockstamp = block.blockstamp();
         match check_and_apply_block(bc, block) {
             Ok(check_block_return) => match check_block_return {
-                CheckAndApplyBlockReturn::ValidBlock(ValidBlockApplyReqs(
+                CheckAndApplyBlockReturn::ValidMainBlock(ValidBlockApplyReqs(
                     bc_db_query,
                     wot_dbs_queries,
                     tx_dbs_queries,
@@ -49,13 +51,13 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                         .apply(
                             &bc.blocks_databases.blockchain_db,
                             &bc.forks_dbs,
-                            bc.currency_params.fork_window_size,
+                            unwrap!(bc.currency_params).fork_window_size,
                             None,
                         )
                         .expect("Fatal error : Fail to apply DBWriteRequest !");
                     for query in &wot_dbs_queries {
                         query
-                            .apply(&blockstamp, &bc.currency_params, &bc.wot_databases)
+                            .apply(&blockstamp, &unwrap!(bc.currency_params), &bc.wot_databases)
                             .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
                     }
                     for query in &tx_dbs_queries {
@@ -76,10 +78,10 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                     );
                 }
                 CheckAndApplyBlockReturn::ForkBlock => {
-                    info!("new fork block({})", blockstamp);
+                    info!("new fork block(#{})", blockstamp);
                     if let Ok(Some(new_bc_branch)) = fork_algo::fork_resolution_algo(
                         &bc.forks_dbs,
-                        bc.currency_params.fork_window_size,
+                        unwrap!(bc.currency_params).fork_window_size,
                         bc.current_blockstamp,
                         &bc.invalid_forks,
                     ) {
@@ -87,24 +89,31 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                     }
                 }
                 CheckAndApplyBlockReturn::OrphanBlock => {
-                    debug!("new orphan block({})", blockstamp);
+                    if first_orphan {
+                        first_orphan = false;
+                        info!("new orphan block(#{})", blockstamp); // TODO debug
+                        crate::requests::sent::request_orphan_previous(bc, blockstamp);
+                    }
                 }
             },
             Err(e) => match e {
                 BlockError::VerifyBlockHashsError(_) | BlockError::InvalidBlock(_) => {
-                    warn!("InvalidBlock({})", blockstamp.id.0);
+                    warn!("InvalidBlock(#{})", blockstamp.id.0);
                     crate::events::sent::send_event(bc, &BlockchainEvent::RefusedBlock(blockstamp));
                 }
                 BlockError::ApplyValidBlockError(e2) => {
-                    error!("ApplyValidBlockError({}): {:?}", blockstamp.id.0, e2);
+                    error!("ApplyValidBlockError(#{}): {:?}", blockstamp, e2);
                     crate::events::sent::send_event(bc, &BlockchainEvent::RefusedBlock(blockstamp));
                 }
                 BlockError::DALError(e2) => {
-                    error!("BlockError::DALError({}): {:?}", blockstamp.id.0, e2);
+                    error!("BlockError::DALError(#{}): {:?}", blockstamp, e2);
                     crate::events::sent::send_event(bc, &BlockchainEvent::RefusedBlock(blockstamp));
                 }
-                BlockError::AlreadyHaveBlockOrOutForkWindow => {
-                    debug!("AlreadyHaveBlockOrOutForkWindow({})", blockstamp.id.0);
+                BlockError::AlreadyHaveBlock => {
+                    debug!("AlreadyHaveBlock(#{})", blockstamp.id);
+                }
+                BlockError::BlockOrOutForkWindow => {
+                    info!("BlockOrOutForkWindow(#{})", blockstamp); // TODO debug
                 }
             },
         }

@@ -25,7 +25,7 @@ pub static CONF_FILENAME: &'static str = "conf.json";
 pub static KEYPAIRS_FILENAME: &'static str = "keypairs.json";
 
 /// If no currency is specified by the user, is the currency will be chosen by default
-pub static DEFAULT_CURRRENCY: &'static str = "g1";
+pub static DEFAULT_CURRENCY: &'static str = "g1";
 
 /// Default value for `default_sync_module` conf field
 pub static DEFAULT_DEFAULT_SYNC_MODULE: &'static str = "ws2p";

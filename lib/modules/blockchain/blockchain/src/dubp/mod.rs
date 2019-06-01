@@ -25,17 +25,19 @@ use dubp_documents::Blockstamp;
 use dubp_documents::Document;
 use durs_blockchain_dal::entities::block::DALBlock;
 use durs_blockchain_dal::*;
+use unwrap::unwrap;
 
 #[derive(Debug, Clone)]
 pub enum CheckAndApplyBlockReturn {
-    ValidBlock(ValidBlockApplyReqs),
+    ValidMainBlock(ValidBlockApplyReqs),
     ForkBlock,
     OrphanBlock,
 }
 
 #[derive(Debug, Copy, Clone)]
 pub enum BlockError {
-    AlreadyHaveBlockOrOutForkWindow,
+    AlreadyHaveBlock,
+    BlockOrOutForkWindow,
     VerifyBlockHashsError(VerifyBlockHashsError),
     DALError(DALError),
     InvalidBlock(InvalidBlockError),
@@ -100,16 +102,29 @@ pub fn check_and_apply_block(
             &bc.wot_databases.wot_db,
         )?;
 
-        Ok(CheckAndApplyBlockReturn::ValidBlock(apply_valid_block(
+        // If we're in block genesis, get the currency parameters
+        if block_doc.number == BlockNumber(0) {
+            // Open currency_params_db
+            let dbs_path = durs_conf::get_blockchain_db_path(bc.profile_path.clone(), &bc.currency);
+            // Get and write currency params
+            bc.currency_params = Some(
+                durs_blockchain_dal::readers::currency_params::get_and_write_currency_params(
+                    &dbs_path, &block_doc,
+                ),
+            );
+        }
+
+        Ok(CheckAndApplyBlockReturn::ValidMainBlock(apply_valid_block(
             block_doc,
             &mut bc.wot_index,
             &bc.wot_databases.wot_db,
             &expire_certs,
         )?))
-    } else if !already_have_block
-        && (block_doc.number.0 >= bc.current_blockstamp.id.0
-            || (bc.current_blockstamp.id.0 - block_doc.number.0)
-                < bc.currency_params.fork_window_size as u32)
+    } else if already_have_block {
+        Err(BlockError::AlreadyHaveBlock)
+    } else if block_doc.number.0 >= bc.current_blockstamp.id.0
+        || (bc.current_blockstamp.id.0 - block_doc.number.0)
+            < unwrap!(bc.currency_params).fork_window_size as u32
     {
         debug!(
             "stackable_block : block {} not chainable, store this for future !",
@@ -133,6 +148,6 @@ pub fn check_and_apply_block(
             "stackable_block : block {} not chainable and already stored or out of forkWindowSize !",
             block_doc.blockstamp()
         );
-        Err(BlockError::AlreadyHaveBlockOrOutForkWindow)
+        Err(BlockError::BlockOrOutForkWindow)
     }
 }

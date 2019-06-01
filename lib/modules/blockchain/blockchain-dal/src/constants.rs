@@ -15,3 +15,6 @@
 
 /// Default page size for requests responses
 pub static DEFAULT_PAGE_SIZE: &'static usize = &50;
+
+/// Currency parameters DB name
+pub const CURRENCY_PARAMS_DB_NAME: &str = "params.db";

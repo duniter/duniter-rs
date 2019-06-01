@@ -84,26 +84,6 @@ fn get_json_files_path(source: Option<String>, currency: Option<String>) -> Path
     }
 }
 
-/// Get and write currency params
-fn get_and_write_currency_params(
-    currency_params_db: &BinDB<CurrencyParamsV10Datas>,
-    block_doc: &BlockDocument,
-) -> CurrencyParameters {
-    if block_doc.number.0 != 0 {
-        fatal_error!("The first block must have number equal to zero !");
-    } else if block_doc.parameters.is_none() {
-        fatal_error!("The genesis block must have parameters !");
-    } else {
-        currency_params_db
-            .write(|db| {
-                db.0 = block_doc.currency.clone();
-                db.1 = block_doc.parameters.unwrap();
-            })
-            .expect("fail to write in params DB");
-        CurrencyParameters::from((block_doc.currency.clone(), block_doc.parameters.unwrap()))
-    }
-}
-
 /// Sync from local json files
 pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts: SyncOpt) {
     let SyncOpt {
@@ -272,10 +252,6 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
 
     // Open currency_params_db
     let dbs_path = durs_conf::get_blockchain_db_path(profile_path, &conf.currency());
-    let currency_params_db = BinDB::File(
-        open_file_db::<CurrencyParamsV10Datas>(&dbs_path, "params.db")
-            .expect("Fail to open params db"),
-    );
 
     // Apply blocks
     let mut blocks_not_expiring = VecDeque::with_capacity(200_000);
@@ -303,7 +279,23 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
             .unwrap();
         // Get and write currency params
         if !get_currency_params {
-            currency_params = get_and_write_currency_params(&currency_params_db, &block_doc);
+            if block_doc.number == BlockNumber(0) {
+                currency_params =
+                    durs_blockchain_dal::readers::currency_params::get_and_write_currency_params(
+                        &dbs_path, &block_doc,
+                    );
+            } else {
+                currency_params =
+                    match durs_blockchain_dal::readers::currency_params::get_currency_params(
+                        &dbs_path,
+                    ) {
+                        Ok(Some(currency_params)) => currency_params,
+                        Ok(None) => {
+                            fatal_error!("Params db corrupted: please reset data and resync !")
+                        }
+                        Err(_) => fatal_error!("Fail to open params db"),
+                    }
+            }
             get_currency_params = true;
         }
         // Push block median_time in blocks_not_expiring
@@ -416,9 +408,6 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
         .send(SyncJobsMess::End())
         .expect("Sync : Fail to send End signal to writer worker !");
     info!("Sync : send End signal to tx job.");
-
-    // Save params db
-    currency_params_db.save().expect("Fail to save params db");
 
     // Save wot db
     wot_databases.wot_db.save().expect("Fail to save wot db");

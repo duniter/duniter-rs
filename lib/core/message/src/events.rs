@@ -46,6 +46,8 @@ pub enum MemPoolEvent {
 #[derive(Debug, Clone)]
 /// Blockchain module events
 pub enum BlockchainEvent {
+    /// Currency parameters
+    CurrencyParameters(dup_currency_params::CurrencyParameters),
     /// Stack up new valid block in local blockchain
     StackUpValidBlock(Box<BlockDocument>),
     /// Revert blocks in local blockchain

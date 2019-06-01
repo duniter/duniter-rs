@@ -17,6 +17,7 @@ use crate::fork::revert_block::ValidBlockRevertReqs;
 use crate::*;
 use dubp_documents::Blockstamp;
 use durs_common_tools::fatal_error;
+use unwrap::unwrap;
 
 pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>) {
     if new_bc_branch.is_empty() {
@@ -52,13 +53,13 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                 .apply(
                     &bc.blocks_databases.blockchain_db,
                     &bc.forks_dbs,
-                    bc.currency_params.fork_window_size,
+                    unwrap!(bc.currency_params).fork_window_size,
                     None,
                 )
                 .expect("Fatal error : Fail to apply DBWriteRequest !");
             for query in &wot_dbs_queries {
                 query
-                    .apply(&blockstamp, &bc.currency_params, &bc.wot_databases)
+                    .apply(&blockstamp, &unwrap!(bc.currency_params), &bc.wot_databases)
                     .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
             }
             for query in &tx_dbs_queries {
@@ -79,7 +80,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
             .fork_blocks_db
             .read(|db| db.get(&blockstamp).cloned())
         {
-            if let Ok(CheckAndApplyBlockReturn::ValidBlock(ValidBlockApplyReqs(
+            if let Ok(CheckAndApplyBlockReturn::ValidMainBlock(ValidBlockApplyReqs(
                 bc_db_query,
                 wot_dbs_queries,
                 tx_dbs_queries,
@@ -91,13 +92,13 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                     .apply(
                         &bc.blocks_databases.blockchain_db,
                         &bc.forks_dbs,
-                        bc.currency_params.fork_window_size,
+                        unwrap!(bc.currency_params).fork_window_size,
                         None,
                     )
                     .expect("Fatal error : Fail to apply DBWriteRequest !");
                 for query in &wot_dbs_queries {
                     query
-                        .apply(&blockstamp, &bc.currency_params, &bc.wot_databases)
+                        .apply(&blockstamp, &unwrap!(bc.currency_params), &bc.wot_databases)
                         .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
                 }
                 for query in &tx_dbs_queries {

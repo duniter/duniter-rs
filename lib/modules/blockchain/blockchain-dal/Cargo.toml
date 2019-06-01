@@ -13,6 +13,7 @@ path = "src/lib.rs"
 dup-crypto = { path = "../../../tools/crypto" }
 dup-currency-params = { path = "../../../tools/currency-params" }
 dubp-documents= { path = "../../../tools/documents" }
+durs-conf = { path = "../../../core/conf" }
 durs-module = { path = "../../../core/module" }
 durs-common-tools = { path = "../../../tools/common-tools" }
 durs-wot = { path = "../../../tools/wot" }
@@ -23,11 +24,11 @@ rustbreak = {version = "2.0.0-rc3", features = ["bin_enc"]}
 serde = "1.0.*"
 serde_derive = "1.0.*"
 serde_json = "1.0.*"
+unwrap = "1.2.1"
 
 [dev-dependencies]
 dup-crypto-tests-tools = { path = "../../../tests-tools/crypto-tests-tools" }
 dubp-documents-tests-tools = { path = "../../../tests-tools/documents-tests-tools" }
 durs-common-tests-tools = { path = "../../../tests-tools/common-tests-tools" }
-unwrap = "1.2.1"
 
 [features]
