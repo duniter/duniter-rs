@@ -13,9 +13,9 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-byteorder = "1.2.3"
 durs-common-tools = { path = "../common-tools" }
 dup-crypto = { path = "../crypto" }
+dup-currency-params = { path = "../currency-params" }
 failure = "0.1.5"
 json-pest-parser = { path = "../json-pest-parser" }
 pest = "2.1.0"

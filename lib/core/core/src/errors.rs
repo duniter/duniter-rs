@@ -16,6 +16,7 @@
 //! Manage Durs core errors.
 
 use crate::logger::InitLoggerError;
+use dup_currency_params::db::CurrencyParamsDbError;
 use durs_module::{ModuleStaticName, PlugModuleError};
 use failure::Fail;
 
@@ -25,6 +26,9 @@ pub enum DursCoreError {
     /// Error with configuration file
     #[fail(display = "Error with configuration file: {}", _0)]
     ConfFileError(durs_conf::DursConfFileError),
+    /// Fail to read currency params DB
+    #[fail(display = "Fail to read currency params DB: {}", _0)]
+    FailReadCurrencyParamsDb(CurrencyParamsDbError),
     /// Fail to remove configuration file
     #[fail(display = "Fail to remove configuration file: {}", _0)]
     FailRemoveConfFile(std::io::Error),

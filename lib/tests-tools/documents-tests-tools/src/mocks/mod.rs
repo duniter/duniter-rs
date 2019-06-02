@@ -20,6 +20,7 @@ pub mod identity;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::*;
 use dup_crypto::hashs::Hash;
+use dup_currency_params::CurrencyName;
 
 /// Generate n mock blockstamps
 pub fn generate_blockstamps(n: usize) -> Vec<Blockstamp> {
@@ -75,7 +76,7 @@ pub fn gen_empty_timed_block(
         issuers_count: 0,
         issuers_frame: 0,
         issuers_frame_var: 0,
-        currency: CurrencyName::default(),
+        currency: CurrencyName("test_currency".to_owned()),
         issuers: vec![],
         signatures: vec![],
         hash: Some(blockstamp.hash),

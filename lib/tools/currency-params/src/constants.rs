@@ -15,6 +15,9 @@
 
 //! Currency parameters constants.
 
+/// Currency params DB name
+pub const CURRENCY_PARAMS_DB_NAME: &str = "currency_params.db";
+
 /// Default currency name
 pub const DEFAULT_CURRENCY: &str = "default_currency";
 /// Default value for sig_renew_period parameter

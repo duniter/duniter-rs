@@ -46,10 +46,6 @@ pub fn process_ws2p_v2p_connect_msg<M: ModuleMessage>(
     };
 
     if let WS2PConnectionState::WaitingConnectMsg = controller.meta_datas.state {
-        log::info!(
-            "TMP DEBUG: my_connect_type={:?}",
-            controller.meta_datas.connect_type
-        );
         // Check remote node datas
         if let WS2Pv2ConnectType::Incoming = controller.meta_datas.connect_type {
             controller.meta_datas.remote_node = Some(remote_node_datas);
@@ -60,8 +56,6 @@ pub fn process_ws2p_v2p_connect_msg<M: ModuleMessage>(
             ));
         } else {
             let expected_full_id = unwrap!(controller.id.expected_remote_full_id());
-            log::info!("TMP DEBUG: remote_full_id={}", remote_full_id);
-            log::info!("TMP DEBUG: expected_full_id={}", expected_full_id);
             if remote_full_id == expected_full_id {
                 controller.meta_datas.remote_node = Some(remote_node_datas);
             } else {

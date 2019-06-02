@@ -30,10 +30,10 @@ pub mod secret_flags;
 
 use crate::v2::payload_container::*;
 use crate::WS2PMessage;
-use dubp_documents::CurrencyName;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::bin_signable::BinSignable;
 use dup_crypto::keys::*;
+use dup_currency_params::CurrencyName;
 use durs_network_documents::NodeId;
 
 /// WS2P v2 message metadata size

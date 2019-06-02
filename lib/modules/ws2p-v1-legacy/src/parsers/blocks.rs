@@ -2,14 +2,15 @@ use super::excluded::parse_exclusions_from_json_value;
 use super::identities::parse_compact_identity;
 use super::transactions::parse_transaction;
 use dubp_documents::documents::block::BlockDocument;
-use dubp_documents::documents::block::{BlockV10Parameters, TxDocOrTxHash};
+use dubp_documents::documents::block::TxDocOrTxHash;
 use dubp_documents::documents::membership::*;
 use dubp_documents::parsers::certifications::*;
 use dubp_documents::parsers::revoked::*;
-use dubp_documents::CurrencyName;
 use dubp_documents::{BlockHash, BlockNumber};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
+use dup_currency_params::genesis_block_params::v10::BlockV10Parameters;
+use dup_currency_params::CurrencyName;
 use std::str::FromStr;
 
 fn parse_previous_hash(block_number: BlockNumber, source: &serde_json::Value) -> Option<Hash> {

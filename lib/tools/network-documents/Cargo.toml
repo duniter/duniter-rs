@@ -16,6 +16,7 @@ log = "0.4.*"
 durs-common-tools = { path = "../common-tools" }
 base58 = "0.1.*"
 dup-crypto = { path = "../crypto" }
+dup-currency-params = { path = "../../tools/currency-params" }
 dubp-documents= { path = "../documents" }
 hex = "0.3.*"
 pest = "2.1.0"

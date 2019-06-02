@@ -16,12 +16,14 @@
 use crate::*;
 use dubp_documents::documents::transaction::*;
 use dup_crypto::keys::*;
-use durs_blockchain_dal::constants::CURRENCY_PARAMS_DB_NAME;
-use durs_module::DursConfTrait;
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::data::WebOfTrust;
 use durs_wot::operations::distance::{DistanceCalculator, WotDistance, WotDistanceParameters};
 use std::time::*;
+use unwrap::unwrap;
+
+pub static EMPTY_BLOCKCHAIN: &'static str =
+    "No blockchain, please sync your node to get a blockchain.";
 
 #[derive(Debug, Clone)]
 /// Query for wot databases explorer
@@ -52,21 +54,16 @@ pub enum DBExQuery {
     TxQuery(DBExTxQuery),
 }
 
-pub fn dbex<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, csv: bool, query: &DBExQuery) {
+pub fn dbex(profile_path: PathBuf, csv: bool, query: &DBExQuery) {
     match *query {
-        DBExQuery::WotQuery(ref wot_query) => dbex_wot(profile_path, conf, csv, wot_query),
-        DBExQuery::TxQuery(ref tx_query) => dbex_tx(profile_path, conf, csv, tx_query),
+        DBExQuery::WotQuery(ref wot_query) => dbex_wot(profile_path, csv, wot_query),
+        DBExQuery::TxQuery(ref tx_query) => dbex_tx(profile_path, csv, tx_query),
     }
 }
 
-pub fn dbex_tx<DC: DursConfTrait>(
-    profile_path: PathBuf,
-    conf: &DC,
-    _csv: bool,
-    query: &DBExTxQuery,
-) {
+pub fn dbex_tx(profile_path: PathBuf, _csv: bool, query: &DBExTxQuery) {
     // Get db path
-    let db_path = durs_conf::get_blockchain_db_path(profile_path, &conf.currency());
+    let db_path = durs_conf::get_blockchain_db_path(profile_path);
 
     // Open databases
     let load_dbs_begin = SystemTime::now();
@@ -123,20 +120,12 @@ pub fn dbex_tx<DC: DursConfTrait>(
     );
 }
 
-pub fn dbex_wot<DC: DursConfTrait>(
-    profile_path: PathBuf,
-    conf: &DC,
-    csv: bool,
-    query: &DBExWotQuery,
-) {
+pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DBExWotQuery) {
     // Get db path
-    let db_path = durs_conf::get_blockchain_db_path(profile_path, &conf.currency());
+    let db_path = durs_conf::get_blockchain_db_path(profile_path.clone());
 
     // Open databases
     let load_dbs_begin = SystemTime::now();
-    let currency_params_db =
-        open_file_db::<CurrencyParamsV10Datas>(&db_path, CURRENCY_PARAMS_DB_NAME)
-            .expect("Fail to open params db");
     let wot_databases = WotsV10DBs::open(Some(&db_path));
     let load_dbs_duration = SystemTime::now()
         .duration_since(load_dbs_begin)
@@ -148,14 +137,14 @@ pub fn dbex_wot<DC: DursConfTrait>(
     );
 
     // Get currency parameters
-    let currency_params = currency_params_db
-        .read(|db| {
-            db.as_ref().map(|(currency_name, block_genesis_params)| {
-                CurrencyParameters::from((currency_name.clone(), *block_genesis_params))
-            })
-        })
-        .expect("Fail to parse currency params !")
-        .unwrap_or_default();
+    let currency_params_db_datas =
+        dup_currency_params::db::get_currency_params(durs_conf::get_datas_path(profile_path))
+            .expect("Fail to parse currency params !");
+    if currency_params_db_datas.is_none() {
+        println!("{}", EMPTY_BLOCKCHAIN);
+        return;
+    }
+    let currency_params = unwrap!(currency_params_db_datas).1;
 
     // get wot_index
     let wot_index =

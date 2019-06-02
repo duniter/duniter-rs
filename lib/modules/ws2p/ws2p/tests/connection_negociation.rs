@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use dubp_documents::CurrencyName;
 use dup_crypto::keys::KeyPair;
 use dup_crypto::keys::*;
+use dup_currency_params::CurrencyName;
 //use durs_common_tests_tools::logger::init_logger_stdout;
 use durs_message::DursMsg;
 use durs_network_documents::network_endpoint::*;

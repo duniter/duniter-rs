@@ -35,8 +35,9 @@ extern crate serde_derive;
 pub mod constants;
 pub mod keys;
 
-use dubp_documents::CurrencyName;
+use crate::constants::MODULES_DATAS_FOLDER;
 use dup_crypto::keys::*;
+use dup_currency_params::CurrencyName;
 use durs_common_tools::fatal_error;
 use durs_module::{
     DursConfTrait, DursGlobalConfTrait, ModuleName, RequiredKeys, RequiredKeysContent,
@@ -221,12 +222,6 @@ pub enum DuRsGlobalConf {
 }
 
 impl DursGlobalConfTrait for DuRsGlobalConf {
-    fn currency(&self) -> CurrencyName {
-        match *self {
-            DuRsGlobalConf::V1(ref conf_v1) => conf_v1.currency.clone(),
-            DuRsGlobalConf::V2(ref conf_v2) => conf_v2.currency.clone(),
-        }
-    }
     fn my_node_id(&self) -> u32 {
         match *self {
             DuRsGlobalConf::V1(ref conf_v1) => conf_v1.my_node_id,
@@ -449,11 +444,11 @@ pub fn get_user_datas_folder() -> &'static str {
     constants::USER_DATAS_FOLDER
 }
 
-/// Returns the path to the folder containing the currency datas of the running profile
+/// Returns the path to the folder containing the modules datas of the running profile
 #[inline]
-pub fn datas_path(profile_path: PathBuf, currency: &CurrencyName) -> PathBuf {
+pub fn get_datas_path(profile_path: PathBuf) -> PathBuf {
     let mut datas_path = profile_path;
-    datas_path.push(currency.to_string());
+    datas_path.push(MODULES_DATAS_FOLDER);
     if !datas_path.as_path().exists() {
         if let Err(io_error) = fs::create_dir(datas_path.as_path()) {
             if io_error.kind() != std::io::ErrorKind::AlreadyExists {
@@ -512,17 +507,11 @@ pub fn keypairs_filepath(profiles_path: &Option<PathBuf>, profile: &str) -> Path
 
 /// Load configuration.
 pub fn load_conf(
-    mut profile_path: PathBuf,
+    profile_path: PathBuf,
     keypairs_file_path: &Option<PathBuf>,
 ) -> Result<(DuRsConf, DuniterKeyPairs), DursConfFileError> {
     // Load conf
     let (conf, keypairs) = load_conf_at_path(profile_path.clone(), keypairs_file_path)?;
-
-    // Create currency dir
-    profile_path.push(conf.currency().to_string());
-    if !profile_path.as_path().exists() {
-        fs::create_dir(profile_path.as_path()).expect("Impossible to create currency dir !");
-    }
 
     // Return conf and keypairs
     Ok((conf, keypairs))
@@ -715,8 +704,8 @@ pub fn write_conf_file<DC: DursConfTrait>(
 }
 
 /// Returns the path to the database containing the blockchain
-pub fn get_blockchain_db_path(profile_path: PathBuf, currency: &CurrencyName) -> PathBuf {
-    let mut db_path = datas_path(profile_path, currency);
+pub fn get_blockchain_db_path(profile_path: PathBuf) -> PathBuf {
+    let mut db_path = get_datas_path(profile_path);
     db_path.push("blockchain/");
     if !db_path.as_path().exists() {
         if let Err(io_error) = fs::create_dir(db_path.as_path()) {

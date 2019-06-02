@@ -57,7 +57,7 @@ use crate::fork::*;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::*;
 use dup_crypto::keys::*;
-use dup_currency_params::CurrencyParameters;
+use dup_currency_params::{CurrencyName, CurrencyParameters};
 use durs_blockchain_dal::*;
 use durs_common_tools::fatal_error;
 use durs_message::events::*;
@@ -92,7 +92,7 @@ pub struct BlockchainModule {
     ///Path to the user datas profile
     pub profile_path: PathBuf,
     /// Currency
-    pub currency: CurrencyName,
+    pub currency: Option<CurrencyName>,
     /// Blocks Databases
     pub blocks_databases: BlocksV10DBs,
     /// Forks Databases
@@ -186,14 +186,13 @@ impl BlockchainModule {
         ModuleStaticName(MODULE_NAME)
     }
     /// Loading blockchain configuration
-    pub fn load_blockchain_conf<DC: DursConfTrait>(
+    pub fn load_blockchain_conf(
         router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
         profile_path: PathBuf,
-        conf: &DC,
         _keys: RequiredKeysContent,
     ) -> BlockchainModule {
         // Get db path
-        let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone(), &conf.currency());
+        let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone());
 
         // Open databases
         let blocks_databases = BlocksV10DBs::open(Some(&dbs_path));
@@ -208,9 +207,16 @@ impl BlockchainModule {
                 .unwrap_or_default();
 
         // Get currency parameters
-        let currency_params =
-            durs_blockchain_dal::readers::currency_params::get_currency_params(&dbs_path)
-                .expect("Fatal error : fail to read Blockchain DB !");
+        let (currency_name, currency_params) = if let Some((currency_name, currency_params)) =
+            dup_currency_params::db::get_currency_params(durs_conf::get_datas_path(
+                profile_path.clone(),
+            ))
+            .expect("Fatal error : fail to read Blockchain DB !")
+        {
+            (Some(currency_name), Some(currency_params))
+        } else {
+            (None, None)
+        };
 
         // Get wot index
         let wot_index: HashMap<PubKey, NodeId> =
@@ -221,7 +227,7 @@ impl BlockchainModule {
         BlockchainModule {
             router_sender,
             profile_path,
-            currency: conf.currency(),
+            currency: currency_name,
             currency_params,
             current_blockstamp,
             consensus: Blockstamp::default(),
@@ -237,8 +243,8 @@ impl BlockchainModule {
         }
     }
     /// Databases explorer
-    pub fn dbex<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, csv: bool, req: &DBExQuery) {
-        dbex::dbex(profile_path, conf, csv, req);
+    pub fn dbex(profile_path: PathBuf, csv: bool, req: &DBExQuery) {
+        dbex::dbex(profile_path, csv, req);
     }
     /// Synchronize blockchain from local duniter json files
     pub fn sync_ts<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts: SyncOpt) {

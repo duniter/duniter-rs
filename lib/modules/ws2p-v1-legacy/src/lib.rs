@@ -59,8 +59,9 @@ use crate::ws_connections::messages::WS2Pv1Msg;
 use crate::ws_connections::requests::{WS2Pv1ReqBody, WS2Pv1ReqFullId, WS2Pv1ReqId, WS2Pv1Request};
 use crate::ws_connections::states::WS2PConnectionState;
 use crate::ws_connections::*;
-use dubp_documents::{Blockstamp, CurrencyName};
+use dubp_documents::Blockstamp;
 use dup_crypto::keys::*;
+use dup_currency_params::CurrencyName;
 use durs_common_tools::fatal_error;
 use durs_common_tools::traits::merge::Merge;
 use durs_conf::DuRsConf;
@@ -126,6 +127,8 @@ impl Merge for WS2PUserConf {
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// WS2P Configuration
 pub struct WS2PConf {
+    /// Currency name
+    pub currency: Option<CurrencyName>,
     /// Limit of outcoming connections
     pub outcoming_quota: usize,
     /// List of prefered public keys
@@ -137,6 +140,7 @@ pub struct WS2PConf {
 impl Default for WS2PConf {
     fn default() -> Self {
         WS2PConf {
+            currency: None,
             outcoming_quota: *WS2P_DEFAULT_OUTCOMING_QUOTA,
             prefered_pubkeys: HashSet::new(),
             sync_endpoints: vec![
@@ -220,7 +224,6 @@ pub enum SendRequestError {
 pub struct WS2Pv1Module {
     pub conf: WS2PConf,
     pub count_dal_requests: u32,
-    pub currency: Option<String>,
     pub current_blockstamp: Blockstamp,
     pub ep_file_path: PathBuf,
     pub heads_cache: HashMap<NodeFullId, NetworkHead>,
@@ -262,7 +265,6 @@ impl WS2Pv1Module {
         WS2Pv1Module {
             router_sender,
             key_pair,
-            currency: None,
             current_blockstamp: Blockstamp::default(),
             conf,
             ep_file_path,
@@ -398,12 +400,15 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
     }
 
     fn generate_module_conf(
-        global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
+        currency_name: Option<&CurrencyName>,
+        _global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
         module_user_conf: Option<Self::ModuleUserConf>,
     ) -> Result<(Self::ModuleConf, Option<Self::ModuleUserConf>), ModuleConfError> {
         let mut conf = WS2PConf::default();
+        conf.currency = currency_name.cloned();
 
-        if global_conf.currency() == CurrencyName("g1-test".to_owned()) {
+        if currency_name.is_some() && unwrap!(currency_name) == &CurrencyName("g1-test".to_owned())
+        {
             conf.sync_endpoints = vec![
                 unwrap!(EndpointV1::parse_from_raw(
                     "WS2P 3eaab4c7 ts.gt.librelois.fr 443 /ws2p",
@@ -502,10 +507,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
         }
 
         // Get endpoints file path
-        let mut ep_file_path = durs_conf::datas_path(
-            soft_meta_datas.profile_path.clone(),
-            &soft_meta_datas.conf.currency(),
-        );
+        let mut ep_file_path = durs_conf::get_datas_path(soft_meta_datas.profile_path.clone());
         ep_file_path.push("ws2pv1");
         if !ep_file_path.exists() {
             fs::create_dir(ep_file_path.as_path()).expect("Impossible to create ws2pv1 dir !");
@@ -520,14 +522,13 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
             key_pair,
             router_sender.clone(),
         );
-        ws2p_module.currency = Some(soft_meta_datas.conf.currency().to_string());
         ws2p_module.ws2p_endpoints = ws2p_endpoints;
 
         // Create ws2p main thread channel
         let ws2p_sender_clone = ws2p_module.main_thread_channel.0.clone();
 
         // Get ws2p endpoints in file
-        info!("TMP: WS2P SSL={}", ssl());
+        debug!("WS2P SSL={}", ssl());
         let count;
         match ws2p_db::get_endpoints(&ep_file_path) {
             Ok(ws2p_enpoints) => {

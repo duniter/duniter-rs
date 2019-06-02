@@ -31,8 +31,8 @@
 #[macro_use]
 extern crate serde_derive;
 
-use dubp_documents::CurrencyName;
 use dup_crypto::keys::{KeyPair, KeyPairEnum};
+use dup_currency_params::CurrencyName;
 use durs_common_tools::fatal_error;
 use durs_common_tools::traits::merge::Merge;
 use durs_network_documents::network_endpoint::{ApiPart, EndpointEnum};
@@ -107,8 +107,6 @@ impl ToString for ModuleReqFullId {
 pub trait DursGlobalConfTrait:
     Clone + Debug + PartialEq + Serialize + DeserializeOwned + Send + ToOwned
 {
-    /// Get currency
-    fn currency(&self) -> CurrencyName;
     /// Get node id
     fn my_node_id(&self) -> u32;
     /// Get default sync module
@@ -122,10 +120,6 @@ pub trait DursConfTrait:
     /// Durs configuration without modules configuration
     type GlobalConf: DursGlobalConfTrait;
 
-    /// Get currency
-    fn currency(&self) -> CurrencyName {
-        self.get_global_conf().currency()
-    }
     /// Disable a module
     fn disable(&mut self, module: ModuleName);
     /// Get disabled modules
@@ -424,6 +418,7 @@ pub trait DursModule<DC: DursConfTrait, M: ModuleMessage> {
     fn ask_required_keys() -> RequiredKeys;
     /// Generate module configuration
     fn generate_module_conf(
+        currency_name: Option<&CurrencyName>,
         global_conf: &DC::GlobalConf,
         module_user_conf: Option<Self::ModuleUserConf>,
     ) -> Result<(Self::ModuleConf, Option<Self::ModuleUserConf>), ModuleConfError>;

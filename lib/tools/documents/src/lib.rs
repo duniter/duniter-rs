@@ -38,13 +38,10 @@ extern crate pretty_assertions;
 extern crate serde_derive;
 
 pub mod blockstamp;
-mod currencies_codes;
 pub mod documents;
 pub mod parsers;
 pub mod text_document_traits;
 
-use crate::currencies_codes::*;
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use pest::iterators::Pair;
@@ -52,8 +49,6 @@ use pest::RuleType;
 use serde::Serialize;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Error, Formatter};
-use std::io::Cursor;
-use std::mem;
 
 pub use crate::blockstamp::{Blockstamp, PreviousBlockstamp};
 
@@ -87,71 +82,6 @@ pub enum TextDocumentParseError {
     #[fail(display = "TextDocumentParseError: UnknownType.")]
     /// Unknown type
     UnknownType,
-}
-
-/// Currency name
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize, Hash)]
-pub struct CurrencyName(pub String);
-
-impl Default for CurrencyName {
-    fn default() -> CurrencyName {
-        CurrencyName(String::from("default_currency"))
-    }
-}
-
-impl Display for CurrencyName {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "{}", self.0)
-    }
-}
-
-/// CurrencyCodeError
-#[derive(Debug)]
-pub enum CurrencyCodeError {
-    /// UnknowCurrencyCode
-    UnknowCurrencyCode(),
-    /// IoError
-    IoError(::std::io::Error),
-    /// UnknowCurrencyName
-    UnknowCurrencyName(),
-}
-
-impl From<::std::io::Error> for CurrencyCodeError {
-    fn from(error: ::std::io::Error) -> Self {
-        CurrencyCodeError::IoError(error)
-    }
-}
-
-impl CurrencyName {
-    /// Convert bytes to CurrencyName
-    pub fn from(currency_code: [u8; 2]) -> Result<Self, CurrencyCodeError> {
-        let mut currency_code_bytes = Cursor::new(currency_code.to_vec());
-        let currency_code = currency_code_bytes.read_u16::<BigEndian>()?;
-        Self::from_u16(currency_code)
-    }
-    /// Convert u16 to CurrencyName
-    pub fn from_u16(currency_code: u16) -> Result<Self, CurrencyCodeError> {
-        match currency_code {
-            tmp if tmp == *CURRENCY_NULL => Ok(CurrencyName(String::from(""))),
-            tmp if tmp == *CURRENCY_G1 => Ok(CurrencyName(String::from("g1"))),
-            tmp if tmp == *CURRENCY_G1_TEST => Ok(CurrencyName(String::from("g1-test"))),
-            _ => Err(CurrencyCodeError::UnknowCurrencyCode()),
-        }
-    }
-    /// Convert CurrencyName to bytes
-    pub fn to_bytes(&self) -> Result<[u8; 2], CurrencyCodeError> {
-        let currency_code = match self.0.as_str() {
-            "g1" => *CURRENCY_G1,
-            "g1-test" => *CURRENCY_G1_TEST,
-            _ => return Err(CurrencyCodeError::UnknowCurrencyName()),
-        };
-        let mut buffer = [0u8; mem::size_of::<u16>()];
-        buffer
-            .as_mut()
-            .write_u16::<BigEndian>(currency_code)
-            .expect("Unable to write");
-        Ok(buffer)
-    }
 }
 
 /// A block Id.

@@ -20,7 +20,7 @@ use crate::dubp::apply::apply_valid_block;
 use crate::*;
 use dubp_documents::{BlockHash, BlockNumber};
 use dup_crypto::keys::*;
-use dup_currency_params::CurrencyParameters;
+use dup_currency_params::{CurrencyName, CurrencyParameters};
 use durs_blockchain_dal::writers::requests::*;
 use durs_common_tools::fatal_error;
 use durs_wot::NodeId;
@@ -31,6 +31,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::SystemTime;
 use threadpool::ThreadPool;
+use unwrap::unwrap;
 
 /// Number of sync jobs
 pub static NB_SYNC_JOBS: &'static usize = &4;
@@ -152,7 +153,7 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
     conf.set_currency(currency.clone());
 
     // Get databases path
-    let db_path = durs_conf::get_blockchain_db_path(profile_path.clone(), &currency);
+    let db_path = durs_conf::get_blockchain_db_path(profile_path.clone());
 
     // Write new conf
     let mut conf_path = profile_path.clone();
@@ -207,7 +208,7 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
     );
 
     // Instantiate currency parameters
-    let mut currency_params = CurrencyParameters::default();
+    let mut currency_params = None;
 
     // Createprogess bar
     let mut apply_pb = ProgressBar::new(count_chunks.into());
@@ -225,7 +226,6 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
         recv_blocks_thread,
         blocks_dbs,
         forks_dbs,
-        currency_params.fork_window_size,
         target_blockstamp,
         apply_pb,
     );
@@ -234,7 +234,6 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
     apply::wot_worker::execute(
         &pool,
         profile_path.clone(),
-        currency.clone(),
         sender_sync_thread.clone(),
         recv_wot_thread,
     );
@@ -243,15 +242,11 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
     apply::txs_worker::execute(
         &pool,
         profile_path.clone(),
-        currency.clone(),
         sender_sync_thread.clone(),
         recv_tx_thread,
     );
 
     let main_job_begin = SystemTime::now();
-
-    // Open currency_params_db
-    let dbs_path = durs_conf::get_blockchain_db_path(profile_path, &conf.currency());
 
     // Apply blocks
     let mut blocks_not_expiring = VecDeque::with_capacity(200_000);
@@ -279,25 +274,25 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
             .unwrap();
         // Get and write currency params
         if !get_currency_params {
+            let datas_path = durs_conf::get_datas_path(profile_path.clone());
             if block_doc.number == BlockNumber(0) {
-                currency_params =
+                currency_params = Some(
                     durs_blockchain_dal::readers::currency_params::get_and_write_currency_params(
-                        &dbs_path, &block_doc,
-                    );
+                        &datas_path,
+                        &block_doc,
+                    ),
+                );
             } else {
-                currency_params =
-                    match durs_blockchain_dal::readers::currency_params::get_currency_params(
-                        &dbs_path,
-                    ) {
-                        Ok(Some(currency_params)) => currency_params,
-                        Ok(None) => {
-                            fatal_error!("Params db corrupted: please reset data and resync !")
-                        }
-                        Err(_) => fatal_error!("Fail to open params db"),
-                    }
+                currency_params = match dup_currency_params::db::get_currency_params(datas_path) {
+                    Ok(Some((_currency_name, currency_params))) => Some(currency_params),
+                    Ok(None) => fatal_error!("Params db corrupted: please reset data and resync !"),
+                    Err(_) => fatal_error!("Fail to open params db"),
+                }
             }
             get_currency_params = true;
         }
+        let currency_params = unwrap!(currency_params);
+
         // Push block median_time in blocks_not_expiring
         blocks_not_expiring.push_back(block_doc.median_time);
         // Get blocks_expiring

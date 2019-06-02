@@ -29,3 +29,6 @@ pub static DEFAULT_CURRENCY: &'static str = "g1";
 
 /// Default value for `default_sync_module` conf field
 pub static DEFAULT_DEFAULT_SYNC_MODULE: &'static str = "ws2p";
+
+/// Modules datas folder
+pub static MODULES_DATAS_FOLDER: &'static str = "datas";

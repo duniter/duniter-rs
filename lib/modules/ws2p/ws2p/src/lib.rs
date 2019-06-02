@@ -40,6 +40,7 @@ mod generate_peer;
 pub mod services;
 
 use crate::errors::WS2PError;
+use dup_currency_params::CurrencyName;
 use durs_common_tools::fatal_error;
 use durs_common_tools::traits::merge::Merge;
 use durs_conf::DuRsConf;
@@ -171,6 +172,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2PModule {
         true
     }
     fn generate_module_conf(
+        _currency_name: Option<&CurrencyName>,
         _global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
         module_user_conf: Option<Self::ModuleUserConf>,
     ) -> Result<(Self::ModuleConf, Option<Self::ModuleUserConf>), ModuleConfError> {

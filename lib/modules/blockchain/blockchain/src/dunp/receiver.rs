@@ -91,7 +91,7 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                 CheckAndApplyBlockReturn::OrphanBlock => {
                     if first_orphan {
                         first_orphan = false;
-                        info!("new orphan block(#{})", blockstamp); // TODO debug
+                        debug!("new orphan block(#{})", blockstamp);
                         crate::requests::sent::request_orphan_previous(bc, blockstamp);
                     }
                 }
@@ -113,7 +113,7 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                     debug!("AlreadyHaveBlock(#{})", blockstamp.id);
                 }
                 BlockError::BlockOrOutForkWindow => {
-                    info!("BlockOrOutForkWindow(#{})", blockstamp); // TODO debug
+                    debug!("BlockOrOutForkWindow(#{})", blockstamp);
                 }
             },
         }

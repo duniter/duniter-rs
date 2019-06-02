@@ -17,6 +17,7 @@ durs-conf = { path = "../../core/conf" }
 durs-module = { path = "../../core/module" }
 durs-network = { path = "../../core/network" }
 dup-crypto = { path = "../../tools/crypto" }
+dup-currency-params = { path = "../../tools/currency-params" }
 durs-network-documents = { path = "../../tools/network-documents" }
 durs-message =  { path = "../../core/message" }
 durs-common-tools = { path = "../../tools/common-tools" }

@@ -51,9 +51,7 @@ pub mod tools;
 /// Contains all write databases functions
 pub mod writers;
 
-use dubp_documents::documents::block::BlockV10Parameters;
 use dubp_documents::documents::transaction::*;
-use dubp_documents::CurrencyName;
 use dubp_documents::{BlockHash, BlockNumber, Blockstamp, PreviousBlockstamp};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
@@ -77,8 +75,6 @@ use crate::entities::identity::DALIdentity;
 use crate::entities::sources::{SourceAmount, UTXOContentV10, UTXOIndexV10};
 use crate::writers::transaction::DALTxV10;
 
-/// Currency parameters (Protocol V10)
-pub type CurrencyParamsV10Datas = Option<(CurrencyName, BlockV10Parameters)>;
 /// All blocks of local blockchain indexed by block number
 pub type LocalBlockchainV10Datas = FnvHashMap<BlockNumber, DALBlock>;
 /// Forks tree meta datas (block number and hash only)

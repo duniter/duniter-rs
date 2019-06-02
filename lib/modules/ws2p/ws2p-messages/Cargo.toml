@@ -13,6 +13,7 @@ path = "lib.rs"
 bincode = "1.0.*"
 byteorder = "1.2.3"
 dup-crypto = { path = "../../../tools/crypto" }
+dup-currency-params = { path = "../../../tools/currency-params" }
 dubp-documents= { path = "../../../tools/documents" }
 durs-network-documents = { path = "../../../tools/network-documents" }
 durs-common-tools = { path = "../../../tools/common-tools" }

@@ -105,11 +105,12 @@ pub fn check_and_apply_block(
         // If we're in block genesis, get the currency parameters
         if block_doc.number == BlockNumber(0) {
             // Open currency_params_db
-            let dbs_path = durs_conf::get_blockchain_db_path(bc.profile_path.clone(), &bc.currency);
+            let datas_path = durs_conf::get_datas_path(bc.profile_path.clone());
             // Get and write currency params
             bc.currency_params = Some(
                 durs_blockchain_dal::readers::currency_params::get_and_write_currency_params(
-                    &dbs_path, &block_doc,
+                    &datas_path,
+                    &block_doc,
                 ),
             );
         }

@@ -15,11 +15,36 @@
 
 //! Duniter protocol currency parameters
 
+#![deny(
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    trivial_casts,
+    trivial_numeric_casts,
+    unsafe_code,
+    unstable_features,
+    unused_import_braces
+)]
+
 pub mod constants;
+pub mod currencies_codes;
+pub mod db;
+pub mod genesis_block_params;
 
 use crate::constants::*;
-use dubp_documents::documents::block::BlockV10Parameters;
-use dubp_documents::CurrencyName;
+use genesis_block_params::v10::BlockV10Parameters;
+use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Error, Formatter};
+
+/// Currency name
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize, Hash)]
+pub struct CurrencyName(pub String);
+
+impl Display for CurrencyName {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[derive(Debug, Copy, Clone)]
 /// Currency parameters
@@ -78,8 +103,8 @@ pub struct CurrencyParameters {
     pub fork_window_size: usize,
 }
 
-impl From<(CurrencyName, BlockV10Parameters)> for CurrencyParameters {
-    fn from(source: (CurrencyName, BlockV10Parameters)) -> CurrencyParameters {
+impl From<(&CurrencyName, BlockV10Parameters)> for CurrencyParameters {
+    fn from(source: (&CurrencyName, BlockV10Parameters)) -> CurrencyParameters {
         let (currency_name, block_params) = source;
         let sig_renew_period = match currency_name.0.as_str() {
             DEFAULT_CURRENCY => *DEFAULT_SIG_RENEW_PERIOD,
@@ -132,15 +157,6 @@ impl From<(CurrencyName, BlockV10Parameters)> for CurrencyParameters {
             dt_reeval: block_params.dt_reeval,
             fork_window_size,
         }
-    }
-}
-
-impl Default for CurrencyParameters {
-    fn default() -> CurrencyParameters {
-        CurrencyParameters::from((
-            CurrencyName(String::from(DEFAULT_CURRENCY)),
-            BlockV10Parameters::default(),
-        ))
     }
 }
 

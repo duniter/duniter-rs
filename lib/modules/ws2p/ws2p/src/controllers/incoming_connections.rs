@@ -17,7 +17,7 @@
 
 use crate::controllers::handler::Ws2pConnectionHandler;
 use crate::controllers::*;
-use dubp_documents::CurrencyName;
+use dup_currency_params::CurrencyName;
 use durs_common_tools::fatal_error;
 use durs_message::DursMsg;
 use durs_ws2p_messages::v2::connect::WS2Pv2ConnectType;

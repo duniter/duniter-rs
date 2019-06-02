@@ -17,7 +17,7 @@
 
 use crate::services::WsError;
 use crate::*;
-use dubp_documents::CurrencyName;
+use dup_currency_params::CurrencyName;
 use durs_network_documents::{NodeFullId, NodeId};
 use durs_ws2p_protocol::connection_state::WS2PConnectionState;
 use durs_ws2p_protocol::controller::WebsocketActionOrder;

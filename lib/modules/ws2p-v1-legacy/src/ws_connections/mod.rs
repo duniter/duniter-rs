@@ -134,13 +134,13 @@ pub fn connect_to_without_checking_quotas(
     let endpoint = unwrap!(ws2p_module.ws2p_endpoints.get(&node_full_id));
     let endpoint_copy = endpoint.ep.clone();
     let conductor_sender_copy = ws2p_module.main_thread_channel.0.clone();
-    let currency_copy = ws2p_module.currency.clone();
+    let currency_copy = ws2p_module.conf.currency.clone();
     let key_pair_copy = ws2p_module.key_pair;
     thread::spawn(move || {
         let _result = crate::ws_connections::handler::connect_to_ws2p_endpoint(
             &endpoint_copy,
             &conductor_sender_copy,
-            &currency_copy.expect("WS2PError : No currency !"),
+            &currency_copy.expect("WS2PError : No currency !").0,
             key_pair_copy,
         );
     });

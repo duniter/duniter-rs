@@ -106,13 +106,11 @@ impl DursExecutableCoreCommand for DbExOpt {
         match self.subcommand {
             DbExSubCommand::DistanceOpt(distance_opts) => dbex(
                 profile_path,
-                &durs_core.soft_meta_datas.conf,
                 self.csv,
                 &DBExQuery::WotQuery(DBExWotQuery::AllDistances(distance_opts.reverse)),
             ),
             DbExSubCommand::MemberOpt(member_opts) => dbex(
                 profile_path,
-                &durs_core.soft_meta_datas.conf,
                 self.csv,
                 &DBExQuery::WotQuery(DBExWotQuery::MemberDatas(member_opts.uid)),
             ),
@@ -120,14 +118,12 @@ impl DursExecutableCoreCommand for DbExOpt {
                 if members_opts.expire {
                     dbex(
                         profile_path,
-                        &durs_core.soft_meta_datas.conf,
                         self.csv,
                         &DBExQuery::WotQuery(DBExWotQuery::ExpireMembers(members_opts.reverse)),
                     );
                 } else {
                     dbex(
                         profile_path,
-                        &durs_core.soft_meta_datas.conf,
                         self.csv,
                         &DBExQuery::WotQuery(DBExWotQuery::ListMembers(members_opts.reverse)),
                     );
@@ -135,7 +131,6 @@ impl DursExecutableCoreCommand for DbExOpt {
             }
             DbExSubCommand::BalanceOpt(balance_opts) => dbex(
                 profile_path,
-                &durs_core.soft_meta_datas.conf,
                 self.csv,
                 &DBExQuery::TxQuery(DBExTxQuery::Balance(balance_opts.address)),
             ),

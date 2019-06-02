@@ -13,13 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::documents::block::{BlockDocument, BlockV10Parameters, TxDocOrTxHash};
+use crate::documents::block::{BlockDocument, TxDocOrTxHash};
 use crate::documents::membership::MembershipType;
 use crate::parsers::DefaultHasher;
 use crate::*;
 use dup_crypto::bases::BaseConvertionError;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
+use dup_currency_params::genesis_block_params::v10::BlockV10Parameters;
+use dup_currency_params::CurrencyName;
 use failure::Error;
 use json_pest_parser::*;
 use std::str::FromStr;

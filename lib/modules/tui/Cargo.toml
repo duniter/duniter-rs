@@ -12,6 +12,7 @@ path = "lib.rs"
 [dependencies]
 durs-conf = { path = "../../core/conf" }
 dup-crypto = { path = "../../tools/crypto" }
+dup-currency-params = { path = "../../tools/currency-params" }
 dubp-documents= { path = "../../tools/documents" }
 durs-common-tools = { path = "../../tools/common-tools" }
 durs-message =  { path = "../../core/message" }
