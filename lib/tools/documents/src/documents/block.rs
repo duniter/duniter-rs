@@ -172,11 +172,21 @@ impl BlockDocument {
     pub fn verify_hash(&self) -> bool {
         match self.hash {
             Some(hash) => {
-                hash == BlockHash(Hash::compute_str(&format!(
+                let datas = format!(
                     "{}{}\n",
                     self.generate_will_hashed_string(),
                     self.signatures[0]
-                )))
+                );
+                let expected_hash = BlockHash(Hash::compute_str(&datas));
+                if hash == expected_hash {
+                    true
+                } else {
+                    warn!(
+                        "Block #{} have invalid hash (expected='{}', actual='{}', datas='{}').",
+                        self.number.0, expected_hash, hash, datas
+                    );
+                    false
+                }
             }
             None => false,
         }

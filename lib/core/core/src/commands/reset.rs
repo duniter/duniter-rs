@@ -61,13 +61,13 @@ impl DursExecutableCoreCommand for ResetOpt {
         match self.reset_type {
             ResetType::Datas => {
                 let mut currency_datas_path = profile_path;
-                currency_datas_path.push("g1");
+                currency_datas_path.push(durs_conf::constants::MODULES_DATAS_FOLDER);
                 fs::remove_dir_all(currency_datas_path.as_path())
                     .map_err(DursCoreError::FailRemoveDatasDir)
             }
             ResetType::Conf => {
                 let mut conf_file_path = profile_path.clone();
-                conf_file_path.push("conf.json");
+                conf_file_path.push(durs_conf::constants::CONF_FILENAME);
                 fs::remove_file(conf_file_path.as_path()).map_err(DursCoreError::FailRemoveConfFile)
             }
             ResetType::All => fs::remove_dir_all(profile_path.as_path())

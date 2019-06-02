@@ -40,6 +40,7 @@ use failure::Error;
 use pest::iterators::Pair;
 use pest::Parser;
 use std::collections::HashMap;
+use std::str::FromStr;
 
 #[derive(Parser)]
 #[grammar = "json_grammar.pest"]
@@ -50,9 +51,15 @@ pub enum JSONValue<'a, S: std::hash::BuildHasher> {
     Object(HashMap<&'a str, JSONValue<'a, S>, S>),
     Array(Vec<JSONValue<'a, S>>),
     String(&'a str),
-    Number(f64),
+    Number(Number),
     Boolean(bool),
     Null,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Number {
+    F64(f64),
+    U64(u64),
 }
 
 type JsonObject<'a, S> = HashMap<&'a str, JSONValue<'a, S>, S>;
@@ -114,9 +121,24 @@ impl<'a, S: std::hash::BuildHasher> JSONValue<'a, S> {
         }
     }
 
-    pub fn to_number(&self) -> Option<f64> {
+    pub fn to_f64(&self) -> Option<f64> {
         if let JSONValue::Number(number) = self {
-            Some(*number)
+            match number {
+                Number::F64(f64_) => Some(*f64_),
+                Number::U64(u64_) => Some(*u64_ as f64),
+            }
+        } else {
+            None
+        }
+    }
+
+    pub fn to_u64(&self) -> Option<u64> {
+        if let JSONValue::Number(number) = self {
+            if let Number::U64(u64_) = number {
+                Some(*u64_)
+            } else {
+                None
+            }
         } else {
             None
         }
@@ -162,7 +184,10 @@ impl<'a, S: std::hash::BuildHasher> ToString for JSONValue<'a, S> {
                 format!("[{}]", contents.join(","))
             }
             JSONValue::String(s) => format!("\"{}\"", s),
-            JSONValue::Number(n) => format!("{}", n),
+            JSONValue::Number(n) => match n {
+                Number::F64(f64_) => format!("{}", f64_),
+                Number::U64(u64_) => format!("{}", u64_),
+            },
             JSONValue::Boolean(b) => format!("{}", b),
             JSONValue::Null => "null".to_owned(),
         }
@@ -217,7 +242,13 @@ fn parse_value<S: std::hash::BuildHasher + Default>(pair: Pair<Rule>) -> JSONVal
         ),
         Rule::array => JSONValue::Array(pair.into_inner().map(parse_value).collect()),
         Rule::string => JSONValue::String(pair.into_inner().next().unwrap().as_str()),
-        Rule::number => JSONValue::Number(pair.as_str().parse().unwrap()),
+        Rule::number => {
+            if let Ok(number_u64) = u64::from_str(pair.as_str()) {
+                JSONValue::Number(Number::U64(number_u64))
+            } else {
+                JSONValue::Number(Number::F64(pair.as_str().parse().unwrap()))
+            }
+        }
         Rule::boolean => JSONValue::Boolean(pair.as_str().parse().unwrap()),
         Rule::null => JSONValue::Null,
         Rule::json
@@ -239,7 +270,7 @@ pub fn get_optional_usize<S: std::hash::BuildHasher>(
             if !value.is_null() {
                 Some(
                     value
-                        .to_number()
+                        .to_f64()
                         .ok_or_else(|| ParseJsonError {
                             cause: format!(
                                 "Fail to parse json : field '{}' must be a number !",
@@ -290,6 +321,21 @@ pub fn get_optional_str<'a, S: std::hash::BuildHasher>(
     })
 }
 
+pub fn get_u64<S: std::hash::BuildHasher>(
+    json_block: &HashMap<&str, JSONValue<S>, S>,
+    field: &str,
+) -> Result<u64, Error> {
+    Ok(json_block
+        .get(field)
+        .ok_or_else(|| ParseJsonError {
+            cause: format!("Fail to parse json : field '{}' must exist !", field),
+        })?
+        .to_u64()
+        .ok_or_else(|| ParseJsonError {
+            cause: format!("Fail to parse json : field '{}' must be a number !", field),
+        })?)
+}
+
 pub fn get_number<S: std::hash::BuildHasher>(
     json_block: &HashMap<&str, JSONValue<S>, S>,
     field: &str,
@@ -299,7 +345,7 @@ pub fn get_number<S: std::hash::BuildHasher>(
         .ok_or_else(|| ParseJsonError {
             cause: format!("Fail to parse json : field '{}' must exist !", field),
         })?
-        .to_number()
+        .to_f64()
         .ok_or_else(|| ParseJsonError {
             cause: format!("Fail to parse json : field '{}' must be a number !", field),
         })?)
@@ -372,6 +418,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_parse_too_large_number() {
+        assert_eq!(
+            Ok(100_010_200_000_006_940),
+            u64::from_str("100010200000006940"),
+        );
+
+        let json_string = "{
+            \"nonce\": 100010200000006940
+        }";
+
+        let json_value = parse_json_string(json_string).expect("Fail to parse json string !");
+
+        assert!(json_value.is_object());
+
+        let json_object = json_value.to_object().expect("safe unwrap");
+
+        assert_eq!(
+            json_object.get("nonce"),
+            Some(&JSONValue::Number(Number::U64(100_010_200_000_006_940)))
+        );
+    }
+
+    #[test]
     fn test_parse_json_string() {
         let json_string = "{
             \"name\": \"toto\",
@@ -389,7 +458,10 @@ mod tests {
         let json_object = json_value.to_object().expect("safe unwrap");
 
         assert_eq!(json_object.get("name"), Some(&JSONValue::String("toto")));
-        assert_eq!(json_object.get("age"), Some(&JSONValue::Number(25f64)));
+        assert_eq!(
+            json_object.get("age"),
+            Some(&JSONValue::Number(Number::U64(25u64)))
+        );
 
         let friends = json_object
             .get("friends")

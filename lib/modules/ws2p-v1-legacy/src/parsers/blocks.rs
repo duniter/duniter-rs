@@ -119,7 +119,7 @@ pub fn parse_json_block(source: &serde_json::Value) -> Option<BlockDocument> {
         )?)));
     }
     Some(BlockDocument {
-        nonce: source.get("nonce")?.as_i64()? as u64,
+        nonce: source.get("nonce")?.as_u64()? as u64,
         version: source.get("version")?.as_u64()? as u32,
         number: BlockNumber(source.get("number")?.as_u64()? as u32),
         pow_min: source.get("powMin")?.as_u64()? as usize,

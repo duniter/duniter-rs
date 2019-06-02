@@ -92,7 +92,7 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
         currency,
         end,
         cautious_mode: cautious,
-        unsafe_mode: verif_inner_hash,
+        unsafe_mode,
         ..
     } = sync_opts;
 
@@ -265,7 +265,7 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
 
         // Verify block hashs
         let verif_block_hashs_begin = SystemTime::now();
-        if verif_inner_hash {
+        if !unsafe_mode {
             dubp::check::hashs::verify_block_hashs(&block_doc)
                 .expect("Receive wrong block, please reset data and resync !");
         }

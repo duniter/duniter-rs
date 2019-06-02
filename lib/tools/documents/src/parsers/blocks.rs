@@ -42,7 +42,7 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
 
     Ok(BlockDocument {
         version: get_number(json_block, "version")?.trunc() as u32,
-        nonce: get_number(json_block, "nonce")?.trunc() as u64,
+        nonce: get_u64(json_block, "nonce")?,
         number: BlockNumber(block_number),
         pow_min: get_number(json_block, "powMin")?.trunc() as usize,
         time: get_number(json_block, "time")?.trunc() as u64,
