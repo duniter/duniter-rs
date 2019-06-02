@@ -19,8 +19,8 @@ use crate::network_endpoint::*;
 use crate::*;
 use base58::ToBase58;
 use dubp_documents::blockstamp::Blockstamp;
+use dubp_documents::BlockNumber;
 use dubp_documents::ToStringObject;
-use dubp_documents::{BlockHash, BlockNumber};
 use dup_crypto::keys::text_signable::TextSignable;
 use dup_crypto::keys::*;
 use dup_currency_params::CurrencyName;
@@ -47,8 +47,8 @@ pub struct PeerCardV11 {
     pub issuer: PubKey,
     /// Issuer node id
     pub node_id: NodeId,
-    /// Peer card Blockstamp
-    pub blockstamp: Blockstamp,
+    /// Block number when the peer record was created
+    pub created_on: BlockNumber,
     /// Peer card binary endpoints
     pub endpoints: Vec<EndpointV2>,
     /// Peer card string endpoints
@@ -66,8 +66,8 @@ pub struct PeerCardV11Stringified {
     pub issuer: String,
     /// Issuer node id
     pub node_id: String,
-    /// Peer card Blockstamp
-    pub blockstamp: String,
+    /// Block number when the peer record was created
+    pub created_on: u32,
     /// Peer card string endpoints
     pub endpoints: Vec<String>,
     /// Signature
@@ -85,7 +85,7 @@ impl ToStringObject for PeerCardV11 {
             currency_name: self.currency_name.0.clone(),
             issuer: format!("{}", self.issuer),
             node_id: format!("{}", self.node_id),
-            blockstamp: format!("{}", self.blockstamp),
+            created_on: self.created_on.0,
             endpoints,
             sig: if let Some(sig) = self.sig {
                 format!("{}", sig)
@@ -99,11 +99,11 @@ impl ToStringObject for PeerCardV11 {
 impl TextSignable for PeerCardV11 {
     fn as_signable_text(&self) -> String {
         format!(
-            "11:{currency}:{node_id}:{pubkey}:{blockstamp}\n{endpoinds}\n{endpoints_str}{nl}",
+            "11:{currency}:{node_id}:{pubkey}:{created_on}\n{endpoinds}\n{endpoints_str}{nl}",
             currency = self.currency_name.0,
             node_id = format!("{}", self.node_id),
             pubkey = self.issuer.to_base58(),
-            blockstamp = self.blockstamp.to_string(),
+            created_on = self.created_on.0,
             endpoinds = self
                 .endpoints
                 .iter()
@@ -145,7 +145,7 @@ impl TextDocumentParser<Rule> for PeerCardV11 {
         let mut currency_str = "";
         let mut node_id = NodeId(0);
         let mut issuer = None;
-        let mut blockstamp = None;
+        let mut created_on = None;
         let mut endpoints = Vec::new();
         let mut sig = None;
         for field in pair.into_inner() {
@@ -157,15 +157,8 @@ impl TextDocumentParser<Rule> for PeerCardV11 {
                         ed25519::PublicKey::from_base58(field.as_str()).unwrap(),
                     ))
                 }
-                Rule::blockstamp => {
-                    let mut inner_rules = field.into_inner(); // { block_id ~ "-" ~ hash }
-
-                    let block_id: &str = inner_rules.next().unwrap().as_str();
-                    let block_hash: &str = inner_rules.next().unwrap().as_str();
-                    blockstamp = Some(Blockstamp {
-                        id: BlockNumber(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
-                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
-                    });
+                Rule::block_id => {
+                    created_on = Some(BlockNumber(field.as_str().parse().unwrap())); // Grammar ensures that we have a digits string.
                 }
                 Rule::endpoint_v2 => endpoints.push(EndpointV2::from_pest_pair(field)),
                 Rule::ed25519_sig => {
@@ -181,8 +174,8 @@ impl TextDocumentParser<Rule> for PeerCardV11 {
             currency_name: CurrencyName(currency_str.to_owned()),
             issuer: issuer.expect("Grammar must ensure that peer v11 have valid issuer pubkey !"),
             node_id,
-            blockstamp: blockstamp
-                .expect("Grammar must ensure that peer v11 have valid blockstamp!"),
+            created_on: created_on
+                .expect("Grammar must ensure that peer v11 have valid field created_on !"),
             endpoints,
             endpoints_str: Vec::with_capacity(endpoints_len),
             sig,
@@ -199,7 +192,7 @@ impl PeerCardV11 {
             node_id: self.node_id,
             algorithm: self.issuer.algo(),
             pubkey: self.issuer.to_base58(),
-            blockstamp: self.blockstamp.to_string(),
+            created_on: self.created_on.0,
             endpoints: self.endpoints.iter().map(EndpointV2::to_string).collect(),
             signature: if let Some(sig) = self.sig {
                 Some(sig.to_base64())
@@ -224,7 +217,7 @@ pub struct JsonPeerCardV11<'a> {
     /// Issuer pubkey
     pub pubkey: String,
     /// Peer card creation blockstamp
-    pub blockstamp: String,
+    pub created_on: u32,
     /// Endpoints
     pub endpoints: Vec<String>,
     /// Signature
@@ -248,11 +241,11 @@ impl PeerCard {
             PeerCard::V11(ref _peer_v11) => 11,
         }
     }
-    /// Get peer card blockstamp
-    pub fn blockstamp(&self) -> Blockstamp {
+    /// Get peer card created_on field
+    pub fn created_on(&self) -> BlockNumber {
         match *self {
-            PeerCard::V10(ref peer_v10) => peer_v10.blockstamp,
-            PeerCard::V11(ref peer_v11) => peer_v11.blockstamp,
+            PeerCard::V10(ref peer_v10) => peer_v10.blockstamp.id,
+            PeerCard::V11(ref peer_v11) => peer_v11.created_on,
         }
     }
     /// Get peer card issuer
@@ -305,10 +298,7 @@ mod tests {
             currency_name: CurrencyName(String::from("g1")),
             issuer: PubKey::Ed25519(keypair1.public_key()),
             node_id: NodeId(0),
-            blockstamp: Blockstamp::from_string(
-                "50-000005B1CEB4EC5245EF7E33101A330A1C9A358EC45A25FC13F78BB58C9E7370",
-            )
-            .unwrap(),
+            created_on: BlockNumber(50),
             endpoints: vec![create_endpoint_v2(), create_second_endpoint_v2()],
             endpoints_str: vec![],
             sig: None,

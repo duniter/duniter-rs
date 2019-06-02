@@ -16,8 +16,9 @@
 //! Generate self peer card
 
 use bincode;
-use dubp_documents::Blockstamp;
-use dup_crypto::keys::PubKey;
+use dubp_documents::BlockNumber;
+use dup_crypto::keys::text_signable::TextSignable;
+use dup_crypto::keys::{KeyPair, KeyPairEnum, SignError};
 use dup_currency_params::CurrencyName;
 use durs_common_tools::fatal_error;
 use durs_network_documents::network_endpoint::*;
@@ -26,9 +27,10 @@ use durs_network_documents::*;
 
 pub fn _self_peer_update_endpoints(
     self_peer: PeerCardV11,
-    blockstamp: Blockstamp,
+    issuer_keys: KeyPairEnum,
+    created_on: BlockNumber,
     new_endpoints: Vec<EndpointEnum>,
-) -> PeerCardV11 {
+) -> Result<PeerCardV11, SignError> {
     let max_eps = self_peer.endpoints.len() + self_peer.endpoints_str.len() + new_endpoints.len();
     let apis: Vec<ApiName> = new_endpoints
         .iter()
@@ -74,24 +76,26 @@ pub fn _self_peer_update_endpoints(
         }
     }
 
-    PeerCardV11 {
-        currency_name: self_peer.currency_name,
-        issuer: self_peer.issuer,
-        node_id: self_peer.node_id,
-        blockstamp,
+    let mut new_self_peer = PeerCardV11 {
+        created_on,
         endpoints: new_endpoints_bin,
         endpoints_str: new_endpoints_str,
         sig: None,
-    }
+        ..self_peer
+    };
+
+    new_self_peer.sign(issuer_keys.private_key())?;
+
+    Ok(new_self_peer)
 }
 
 pub fn _generate_self_peer(
     currency_name: CurrencyName,
-    issuer: PubKey,
+    issuer_keys: KeyPairEnum,
     node_id: NodeId,
-    blockstamp: Blockstamp,
+    created_on: BlockNumber,
     endpoints: Vec<EndpointEnum>,
-) -> PeerCardV11 {
+) -> Result<PeerCardV11, SignError> {
     let mut endpoints_bin = Vec::with_capacity(endpoints.len());
     let mut endpoints_str = Vec::with_capacity(endpoints.len());
 
@@ -114,13 +118,17 @@ pub fn _generate_self_peer(
         }
     }
 
-    PeerCardV11 {
+    let mut self_peer = PeerCardV11 {
         currency_name,
-        issuer,
+        issuer: issuer_keys.public_key(),
         node_id,
-        blockstamp,
+        created_on,
         endpoints: endpoints_bin,
         endpoints_str,
         sig: None,
-    }
+    };
+
+    self_peer.sign(issuer_keys.private_key())?;
+
+    Ok(self_peer)
 }

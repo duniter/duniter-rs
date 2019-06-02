@@ -74,7 +74,7 @@ path = _{ " " ~ path_inner }
 endpoint_v2 = ${ api_name ~ " " ~ (api_version)? ~ (network_features)? ~ (api_features)? ~ host_v2? ~ ip4? ~ ip6? ~ port ~ path? }
 
 // Peer v11 rules
-peer_v11 = ${ "11:" ~ currency ~ ":" ~ node_id ~ ":" ~ pubkey ~ ":" ~ blockstamp ~ nl ~ (endpoint_v2 ~ nl)+ ~ ed25519_sig? }
+peer_v11 = ${ "11:" ~ currency ~ ":" ~ node_id ~ ":" ~ pubkey ~ ":" ~ block_id ~ nl ~ (endpoint_v2 ~ nl)+ ~ ed25519_sig? }
 
 // HEADv3 rules
 api_outgoing_conf = @{ u8 }

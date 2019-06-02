@@ -173,7 +173,7 @@ mod tests {
     use bincode;
     use bincode::{deserialize, serialize};
     use dubp_documents::documents::certification::*;
-    use dubp_documents::Blockstamp;
+    use dubp_documents::{BlockNumber, Blockstamp};
     use dup_crypto::keys::bin_signable::BinSignable;
     use dup_crypto::keys::*;
     use dup_currency_params::CurrencyName;
@@ -222,10 +222,7 @@ mod tests {
             currency_name: CurrencyName(String::from("g1")),
             issuer: PubKey::Ed25519(keypair1().pubkey),
             node_id: NodeId(0),
-            blockstamp: Blockstamp::from_string(
-                "50-000005B1CEB4EC5245EF7E33101A330A1C9A358EC45A25FC13F78BB58C9E7370",
-            )
-            .unwrap(),
+            created_on: BlockNumber(50),
             endpoints: vec![create_endpoint_v11(), create_second_endpoint_v11()],
             endpoints_str: vec![],
             sig: None,
