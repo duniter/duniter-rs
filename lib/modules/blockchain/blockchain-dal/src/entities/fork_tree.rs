@@ -303,7 +303,7 @@ impl ForkTree {
         // // Delete the part of the old branch at same level to the new branch
         if !selected_fork_branch.is_empty() {
             let selected_fork_branch_first_node_id =
-                selected_fork_branch.get(0).cloned().expect("safe unwrap");
+                selected_fork_branch.get(0).copied().expect("safe unwrap");
             let first_fork_block_id = self.nodes[selected_fork_branch_first_node_id.0]
                 .clone()
                 .expect("Dev error: node must exist !")
@@ -398,7 +398,7 @@ impl ForkTree {
         let root_node_main_child_id = self
             .main_branch
             .get(&BlockNumber(root_node_block_id.0 + 1))
-            .cloned()
+            .copied()
             .expect("safe unwrap");
         let mut children_to_remove = Vec::new();
         for child_id in root_node.children() {

@@ -297,7 +297,7 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
         blocks_not_expiring.push_back(block_doc.median_time);
         // Get blocks_expiring
         let mut blocks_expiring = Vec::new();
-        while blocks_not_expiring.front().cloned()
+        while blocks_not_expiring.front().copied()
             < Some(block_doc.median_time - currency_params.sig_validity)
         {
             last_block_expiring += 1;

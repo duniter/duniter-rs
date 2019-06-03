@@ -76,7 +76,7 @@ pub fn insert_new_fork_block(forks_dbs: &ForksDBs, dal_block: DALBlock) -> Resul
     } else {
         let previous_blockstamp = dal_block.previous_blockstamp();
 
-        // Get orphinBlocks vector
+        // Get orphanBlocks vector
         let mut orphan_blocks = if let Some(orphan_blocks) = forks_dbs
             .orphan_blocks_db
             .read(|db| db.get(&previous_blockstamp).cloned())?
