@@ -2,7 +2,7 @@
 # Cargo Build Stage
 # ------------------------------------------------------------------------------
 
-FROM registry.duniter.org/docker/duniter-rs-ci:v1.34.0 as build
+FROM registry.duniter.org/docker/duniter-rs-ci:v1.35.0 as build
 
 LABEL maintainer="elois <elois@ifee.fr>"
 LABEL version="0.1.1"
