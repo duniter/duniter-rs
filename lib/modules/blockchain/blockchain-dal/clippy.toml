@@ -1,2 +1,2 @@
-cyclomatic-complexity-threshold = 35
+cognitive-complexity-threshold = 35
 too-many-arguments-threshold = 10

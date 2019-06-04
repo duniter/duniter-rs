@@ -15,7 +15,7 @@
 
 //! WebSocketToPeer API for the Durs project.
 
-#![allow(clippy::large_enum_variant)]
+#![allow(clippy::large_enum_variant, clippy::identity_conversion)]
 #![deny(
     missing_debug_implementations,
     missing_copy_implementations,
