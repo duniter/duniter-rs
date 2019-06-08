@@ -90,12 +90,29 @@ Une fois vscode installé nous aurons besoin des 3 plugins suivants :
 
 * BetterTOML
 * CodeLLDB
-* Rust (rls)
+* Rust
 
-Après avoir installé les plugins, relancez votre IDE, il devrait vous proposer spontanément d'installer RLS, dites oui.
-Si cela échoue pour RLS, vous devrez l'installer manuellement avec la commande suivante :
+Configuration du plugin Rust:
 
-    rustup component add rls-preview rust-analysis rust-src
+Cela ce fait en modifiant le fichier settings.json qui se trouve par défaut dans `~/.config/code/User/settings.json`.
+
+1. Passez un mode legacy pour désactiver RLS (=Rust Language Server) qui ne fonctionne pas sur le projet durs et va occuper votre cpu a 100% inutilement.
+
+    "rust.mode": "legacy",
+
+2. Sauvegardez le fichier `settings.json` puis fermez vscode afin de couper définitivemetn RLS.
+
+3. Installez racer (pour l'auto-complétion) et sym (pour "go to definition" via ctrl+clic).
+
+    cargo +nightly install racer
+    cargo install sym
+
+4. Indiquez dans le `settings.json` le chemin vers racer et rustsym :
+
+    "rust.racerPath": "/home/elois/.cargo/bin/racer",
+    "rust.rustsymPath": "/home/elois/.cargo/bin/rustsym",
+
+5. Sauvegardez le fichier `settings.json` puis redémarrez vscode.
 
 ### Débugger LLDB pour VSCode
 
