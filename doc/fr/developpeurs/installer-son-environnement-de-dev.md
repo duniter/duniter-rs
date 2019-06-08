@@ -114,7 +114,7 @@ Cela ce fait en modifiant le fichier settings.json qui se trouve par défaut dan
 
 5. Sauvegardez le fichier `settings.json` puis redémarrez vscode.
 
-### Débugger LLDB pour VSCode
+### VSCode : Débuggeur LLDB
 
 [Instructions d'installation de LLDB pour vscode](https://github.com/vadimcn/vscode-lldb/wiki/Installing-on-Linux)
 
@@ -144,6 +144,33 @@ Un exemple de fichier `launch.conf` pour VSCode :
     ]
 }
 ```
+
+### Vscode: mouse navigation like Intellij
+
+Intellij permet par défaut de naviguer dans le code avec les touches suivant/précédent de la sourie, une fonctionnalité au combien indispensable et hélas pas implémentée dans vscode. Il existe cependant un moyen de contournement pour obtenir cette fonctionnalité.
+
+1. Dans vscode, définissez des raccourcies clavier pour les actions `navigate back` et `navigate forward` (par exemple Ctrl+Left et Ctrl+Right).
+2. Installez `xbindkeys` et `xdotool`.
+3. Créez le fichier de configuration de xbindkeys a la racine de votre home avec les commandes suivantes
+
+    cd
+    xbindkeys --defaults > .xbindkeysrc
+
+4. Ajoutez les lignes suivantes dans le fichier `~/.xbindkeysrc`
+
+    ```bash
+    ## Navigate back
+    "xdotool key ctrl+Left"
+            b:8
+
+    ## Navigate forward
+    "xdotool key ctrl+Right"
+            b:9
+    ```
+
+5. Pour vérifier que tout est bien configuré, lancez la commande `xbindkeys -v` pusi cliquez sur les touches suivant/précédent de votre sourie. Vous devez voir se printer dans la console la commande correspondant au bouton sur lequel vous cliquez (`xdotool key ctrl+Left` ou `xdotool key ctrl+Right`). Vérifiez que vscode réagit comme attendu.
+
+6. Configurez votre système pour lancer la commande `xbindkeys` au démarrage.
 
 ## Paquets supplémentaires pour compiler durs
 
