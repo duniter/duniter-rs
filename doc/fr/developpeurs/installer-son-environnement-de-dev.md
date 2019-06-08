@@ -109,8 +109,8 @@ Cela ce fait en modifiant le fichier settings.json qui se trouve par défaut dan
 
 4. Indiquez dans le `settings.json` le chemin vers racer et rustsym :
 
-    "rust.racerPath": "/home/elois/.cargo/bin/racer",
-    "rust.rustsymPath": "/home/elois/.cargo/bin/rustsym",
+    "rust.racerPath": "/home/YOUR_USERuser/.cargo/bin/racer",
+    "rust.rustsymPath": "/home/YOUR_USERuser/.cargo/bin/rustsym"
 
 5. Sauvegardez le fichier `settings.json` puis redémarrez vscode.
 
