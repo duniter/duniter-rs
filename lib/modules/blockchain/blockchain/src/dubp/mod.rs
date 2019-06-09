@@ -78,9 +78,10 @@ pub fn check_and_apply_block(
     dubp::check::hashs::verify_block_hashs(&block_doc)?;
 
     // Check block chainability
-    if (block_doc.number.0 == bc.current_blockstamp.id.0 + 1
-        && block_doc.previous_hash.to_string() == bc.current_blockstamp.hash.0.to_string())
-        || (block_doc.number.0 == 0 && bc.current_blockstamp == Blockstamp::default())
+    if (block_doc.number.0 == 0 && bc.current_blockstamp == Blockstamp::default())
+        || (block_doc.number.0 == bc.current_blockstamp.id.0 + 1
+            && unwrap!(block_doc.previous_hash).to_string()
+                == bc.current_blockstamp.hash.0.to_string())
     {
         debug!(
             "stackable_block : block {} chainable !",

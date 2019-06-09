@@ -21,6 +21,7 @@ use dup_currency_params::genesis_block_params::v10::BlockV10Parameters;
 use dup_currency_params::CurrencyName;
 use durs_common_tools::fatal_error;
 use std::ops::Deref;
+use unwrap::unwrap;
 
 use crate::blockstamp::Blockstamp;
 use crate::documents::certification::CertificationDocument;
@@ -106,7 +107,7 @@ pub struct BlockDocument {
     /// Currency parameters (only in genesis block)
     pub parameters: Option<BlockV10Parameters>,
     /// Hash of the previous block
-    pub previous_hash: Hash,
+    pub previous_hash: Option<Hash>,
     /// Issuer of the previous block
     pub previous_issuer: Option<PubKey>,
     /// Hash of the deterministic content of the block
@@ -139,7 +140,7 @@ impl BlockDocument {
         if self.number.0 > 0 {
             Blockstamp {
                 id: BlockNumber(self.number.0 - 1),
-                hash: BlockHash(self.previous_hash),
+                hash: BlockHash(unwrap!(self.previous_hash)),
             }
         } else {
             Blockstamp::default()
@@ -298,7 +299,7 @@ impl BlockDocument {
         let mut previous_hash_str = String::from("");
         if self.number.0 > 0 {
             previous_hash_str.push_str("PreviousHash: ");
-            previous_hash_str.push_str(&self.previous_hash.to_string());
+            previous_hash_str.push_str(&unwrap!(self.previous_hash).to_string());
             previous_hash_str.push_str("\n");
         }
         let mut previous_issuer_str = String::from("");
@@ -468,7 +469,7 @@ pub struct BlockDocumentStringified {
     /// Currency parameters (only in genesis block)
     pub parameters: Option<String>,
     /// Hash of the previous block
-    pub previous_hash: String,
+    pub previous_hash: Option<String>,
     /// Issuer of the previous block
     pub previous_issuer: Option<String>,
     /// Hash of the deterministic content of the block
@@ -515,7 +516,7 @@ impl ToStringObject for BlockDocument {
             signatures: self.signatures.iter().map(ToString::to_string).collect(),
             hash: self.hash.map(|hash| hash.to_string()),
             parameters: self.parameters.map(|parameters| parameters.to_string()),
-            previous_hash: self.previous_hash.to_string(),
+            previous_hash: self.previous_hash.map(|hash| hash.to_string()),
             previous_issuer: self.previous_issuer.map(|p| p.to_string()),
             inner_hash: self.inner_hash.map(|hash| hash.to_string()),
             dividend: self.dividend.map(|dividend| dividend as u64),
@@ -605,7 +606,7 @@ mod tests {
             signatures: vec![Sig::Ed25519(ed25519::Signature::from_base64("lqXrNOopjM39oM7hgB7Vq13uIohdCuLlhh/q8RVVEZ5UVASphow/GXikCdhbWID19Bn0XrXzTbt/R7akbE9xAg==").unwrap())],
             hash: None,
             parameters: None,
-            previous_hash: Hash::from_hex("0000A7D4361B9EBF4CE974A521149A73E8A5DE9B73907AB3BC918726AED7D40A").expect("fail to parse previous_hash"),
+            previous_hash: Some(Hash::from_hex("0000A7D4361B9EBF4CE974A521149A73E8A5DE9B73907AB3BC918726AED7D40A").expect("fail to parse previous_hash")),
             previous_issuer: Some(PubKey::Ed25519(ed25519::PublicKey::from_base58("EPKuZA1Ek5y8S1AjAmAPtGrVCMFqUGzUEAa7Ei62CY2L").unwrap())),
             inner_hash: None,
             dividend: None,
@@ -707,7 +708,7 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
             signatures: vec![Sig::Ed25519(ed25519::Signature::from_base64("92id58VmkhgVNee4LDqBGSm8u/ooHzAD67JM6fhAE/CV8LCz7XrMF1DvRl+eRpmlaVkp6I+Iy8gmZ1WUM5C8BA==").unwrap())],
             hash: None,
             parameters: None,
-            previous_hash: Hash::from_hex("000001144968D0C3516BE6225E4662F182E28956AF46DD7FB228E3D0F9413FEB").expect("fail to parse previous_hash"),
+            previous_hash: Some(Hash::from_hex("000001144968D0C3516BE6225E4662F182E28956AF46DD7FB228E3D0F9413FEB").expect("fail to parse previous_hash")),
             previous_issuer: Some(PubKey::Ed25519(ed25519::PublicKey::from_base58("D3krfq6J9AmfpKnS3gQVYoy7NzGCc61vokteTS8LJ4YH").unwrap())),
             inner_hash: None,
             dividend: None,
@@ -888,7 +889,7 @@ nxr4exGrt16jteN9ZX3XZPP9l+X0OUbZ1o/QjE1hbWQNtVU3HhH9SJoEvNj2iVl3gCRr9u2OA9uj9vCy
             signatures: vec![Sig::Ed25519(ed25519::Signature::from_base64("2Z/+9ADdZvHXs19YR8+qDzgfl8WJlBG5PcbFvBG9TOuUJbjAdxhcgxrFrSRIABGWcCrIgLkB805fZVLP8jOjBA==").unwrap())],
             hash: None,
             parameters: None,
-            previous_hash: Hash::from_hex("000003E78FA4133F2C13B416F330C8DFB5A41EB87E37190615DB334F2C914A51").expect("fail to parse previous_hash"),
+            previous_hash: Some(Hash::from_hex("000003E78FA4133F2C13B416F330C8DFB5A41EB87E37190615DB334F2C914A51").expect("fail to parse previous_hash")),
             previous_issuer: Some(PubKey::Ed25519(ed25519::PublicKey::from_base58("8NmGZmGjL1LUgJQRg282yQF7KTdQuRNAg8QfSa2qvd65").unwrap())),
             inner_hash: None,//Some(Hash::from_hex("3B49ECC1475549CFD94CA7B399311548A0FD0EC93C8EDD5670DAA5A958A41846").expect("fail to parse inner_hash")),
             dividend: None,

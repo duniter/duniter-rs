@@ -312,7 +312,8 @@ pub fn apply_and_write_tx(
         for (conditions, (amount_consumed, adress_consumed_sources)) in consumed_adress {
             if let Some((balance, sources)) = db.get(&conditions) {
                 let mut new_balance = *balance - amount_consumed;
-                if new_balance.0 < TxAmount(100) {
+                if (new_balance.1 == TxBase(0) && new_balance.0 < TxAmount(100))
+                    || (new_balance.1 == TxBase(1) && new_balance.0 < TxAmount(10)) {
                     sources_destroyed = sources.union(&sources_destroyed).cloned().collect();
                     new_balance = SourceAmount(TxAmount(0), new_balance.1);
                 }

@@ -17,6 +17,7 @@ use crate::entities::block::DALBlock;
 use crate::*;
 use crate::{BinDB, DALError, LocalBlockchainV10Datas};
 use dubp_documents::Document;
+use unwrap::unwrap;
 
 /// Insert new head Block in databases
 pub fn insert_new_head_block(
@@ -55,7 +56,7 @@ pub fn insert_new_fork_block(forks_dbs: &ForksDBs, dal_block: DALBlock) -> Resul
     if crate::writers::fork_tree::insert_new_fork_block(
         &forks_dbs.fork_tree_db,
         dal_block.block.blockstamp(),
-        dal_block.block.previous_hash,
+        unwrap!(dal_block.block.previous_hash),
     )? {
         // Insert in ForksBlocks
         forks_dbs.fork_blocks_db.write(|db| {

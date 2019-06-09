@@ -52,7 +52,7 @@ pub mod tools;
 pub mod writers;
 
 use dubp_documents::documents::transaction::*;
-use dubp_documents::{BlockHash, BlockNumber, Blockstamp, PreviousBlockstamp};
+use dubp_documents::{BlockNumber, Blockstamp, PreviousBlockstamp};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;

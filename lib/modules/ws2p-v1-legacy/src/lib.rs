@@ -40,7 +40,6 @@ pub mod constants;
 mod events;
 mod heads;
 mod ok_message;
-pub mod parsers;
 mod requests;
 mod responses;
 pub mod serializers;
@@ -409,24 +408,14 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
 
         if currency_name.is_some() && unwrap!(currency_name) == &CurrencyName("g1-test".to_owned())
         {
-            conf.sync_endpoints = vec![
-                unwrap!(EndpointV1::parse_from_raw(
-                    "WS2P 3eaab4c7 ts.gt.librelois.fr 443 /ws2p",
-                    PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
-                        "CrznBiyq8G4RVUprH9jHmAw1n1iuzw8y9FdJbrESnaX7",
-                    )),),
-                    0,
-                    0,
-                )),
-                unwrap!(EndpointV1::parse_from_raw(
-                    "WS2P 9c659296 localhost 10901",
-                    PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
-                        "BFhFZv7p6kUxVyVStCD26fuDDGQop2h9nbGbaeD55Mkj",
-                    )),),
-                    0,
-                    0,
-                )),
-            ];
+            conf.sync_endpoints = vec![unwrap!(EndpointV1::parse_from_raw(
+                "WS2P 3eaab4c7 ts.gt.librelois.fr 443 /ws2p",
+                PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+                    "CrznBiyq8G4RVUprH9jHmAw1n1iuzw8y9FdJbrESnaX7",
+                )),),
+                0,
+                0,
+            ))];
         }
 
         if let Some(module_user_conf) = module_user_conf.clone() {
@@ -879,11 +868,11 @@ impl WS2Pv1Module {
 
 #[cfg(test)]
 mod tests {
-    use super::parsers::blocks::parse_json_block;
     use super::*;
     use crate::ws_connections::requests::sent::network_request_to_json;
     use crate::ws_connections::requests::*;
     use dubp_documents::documents::block::BlockDocument;
+    use dubp_documents::parsers::blocks::parse_json_block_from_serde_value;
     use dubp_documents::BlockNumber;
 
     #[test]
@@ -1032,8 +1021,8 @@ mod tests {
                 }
             ],
         });
-        let mut block: BlockDocument =
-            parse_json_block(&json_block).expect("Fail to parse test json block !");
+        let mut block: BlockDocument = parse_json_block_from_serde_value(&json_block)
+            .expect("Fail to parse test json block !");
         assert_eq!(
             block
                 .inner_hash

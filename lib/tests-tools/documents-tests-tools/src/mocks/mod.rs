@@ -81,7 +81,7 @@ pub fn gen_empty_timed_block(
         signatures: vec![],
         hash: Some(blockstamp.hash),
         parameters: None,
-        previous_hash,
+        previous_hash: Some(previous_hash),
         previous_issuer: None,
         dividend: None,
         identities: vec![],

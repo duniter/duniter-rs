@@ -38,9 +38,6 @@ impl DALBlock {
     }
     /// Get previous blockstamp
     pub fn previous_blockstamp(&self) -> PreviousBlockstamp {
-        Blockstamp {
-            id: BlockNumber(self.block.number.0 - 1),
-            hash: BlockHash(self.block.previous_hash),
-        }
+        self.block.previous_blockstamp()
     }
 }

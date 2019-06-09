@@ -19,6 +19,7 @@ use dubp_documents::Document;
 use dubp_documents::{BlockHash, BlockNumber, Blockstamp};
 use dup_crypto::keys::*;
 use std::collections::HashMap;
+use unwrap::unwrap;
 
 /// get current blockstamp
 pub fn get_current_blockstamp(blocks_db: &BlocksV10DBs) -> Result<Option<Blockstamp>, DALError> {
@@ -52,11 +53,15 @@ pub fn already_have_block(
     blockchain_db: &BinDB<LocalBlockchainV10Datas>,
     forks_dbs: &ForksDBs,
     blockstamp: Blockstamp,
-    previous_hash: Hash,
+    previous_hash: Option<Hash>,
 ) -> Result<bool, DALError> {
-    let previous_blockstamp = Blockstamp {
-        id: BlockNumber(blockstamp.id.0 - 1),
-        hash: BlockHash(previous_hash),
+    let previous_blockstamp = if blockstamp.id.0 > 0 {
+        Blockstamp {
+            id: BlockNumber(blockstamp.id.0 - 1),
+            hash: BlockHash(unwrap!(previous_hash)),
+        }
+    } else {
+        Blockstamp::default()
     };
 
     if forks_dbs

@@ -17,9 +17,9 @@
 
 use super::messages::WS2Pv1MsgPayload;
 use super::states::WS2PConnectionState;
-use crate::parsers::blocks::parse_json_block;
 use crate::ws_connections::requests::{WS2Pv1ReqBody, WS2Pv1ReqId};
 use crate::*;
+use dubp_documents::parsers::blocks::parse_json_block_from_serde_value;
 use dup_crypto::keys::*;
 use durs_network::documents::BlockchainDocument;
 use durs_network_documents::network_endpoint::{ApiName, EndpointV1};
@@ -225,15 +225,14 @@ impl WS2PConnectionMetaDatas {
                     if s.is_string() {
                         match s.as_str().unwrap_or("") {
                             "BLOCK" => match body.get("block") {
-                                Some(block) => {
-                                    if let Some(block_doc) = parse_json_block(&block) {
+                                Some(block) => match parse_json_block_from_serde_value(&block) {
+                                    Ok(block_doc) => {
                                         return WS2Pv1MsgPayload::Document(
                                             BlockchainDocument::Block(Box::new(block_doc)),
-                                        );
-                                    } else {
-                                        info!("WS2PSignal: receive invalid block (wrong format).");
-                                    };
-                                }
+                                        )
+                                    }
+                                    Err(e) => info!("WS2Pv1Signal: receive invalid block: {}", e),
+                                },
                                 None => return WS2Pv1MsgPayload::WrongFormatMessage,
                             },
                             "HEAD" => match body.get("heads") {

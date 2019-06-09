@@ -15,7 +15,7 @@
 
 use crate::documents::block::{BlockDocument, TxDocOrTxHash};
 use crate::documents::membership::MembershipType;
-use crate::parsers::DefaultHasher;
+use crate::parsers::{serde_json_value_to_pest_json_value, DefaultHasher};
 use crate::*;
 use dup_crypto::bases::BaseConvertionError;
 use dup_crypto::hashs::Hash;
@@ -25,6 +25,12 @@ use dup_currency_params::CurrencyName;
 use failure::Error;
 use json_pest_parser::*;
 use std::str::FromStr;
+
+pub fn parse_json_block_from_serde_value(
+    serde_json_value: &serde_json::Value,
+) -> Result<BlockDocument, Error> {
+    parse_json_block(&serde_json_value_to_pest_json_value(serde_json_value)?)
+}
 
 pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDocument, Error> {
     if !json_block.is_object() {
@@ -70,9 +76,9 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
             None
         },
         previous_hash: if block_number == 0 {
-            Hash::default()
+            None
         } else {
-            Hash::from_hex(get_str(json_block, "previousHash")?)?
+            Some(Hash::from_hex(get_str(json_block, "previousHash")?)?)
         },
         previous_issuer: if block_number == 0 {
             None
@@ -202,10 +208,10 @@ mod tests {
                     .expect("Fail to parse hash !")
                 )),
                 parameters: None,
-                previous_hash: Hash::from_hex(
+                previous_hash: Some(Hash::from_hex(
                     "0000379BBE6ABC18DCFD6E4733F9F76CB06593D10FAEDF722BE190C277AC16EA"
                 )
-                .expect("Fail to parse previous_hash !"),
+                .expect("Fail to parse previous_hash !")),
                 previous_issuer: Some(PubKey::Ed25519(
                     ed25519::PublicKey::from_base58("2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ")
                         .expect("Fail to parse previous issuer !")
@@ -324,10 +330,10 @@ mod tests {
                     .expect("Fail to parse hash !")
                 )),
                 parameters: None,
-                previous_hash: Hash::from_hex(
+                previous_hash: Some(Hash::from_hex(
                     "00000FEDA61240DD125A26886FEB2E6995B52A94778C71224CAF8492FF257D47"
                 )
-                .expect("Fail to parse previous_hash !"),
+                .expect("Fail to parse previous_hash !")),
                 previous_issuer: Some(PubKey::Ed25519(
                     ed25519::PublicKey::from_base58("2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ")
                         .expect("Fail to parse previous issuer !")

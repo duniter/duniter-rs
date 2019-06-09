@@ -15,8 +15,8 @@
 
 //! Sub-module managing the WS2Pv1 responses received.
 
-use crate::parsers::blocks::parse_json_block;
 use crate::*;
+use dubp_documents::parsers::blocks::parse_json_block_from_serde_value;
 use durs_module::ModuleReqFullId;
 use durs_network::requests::*;
 use durs_network_documents::NodeFullId;
@@ -35,17 +35,20 @@ pub fn receive_response(
                 (module_req_full_id.1).0,
                 ws2p_req_body
             );
-            if let Some(block) = parse_json_block(&response) {
-                crate::responses::sent::send_network_req_response(
-                    ws2p_module,
-                    module_req_full_id.0,
-                    module_req_full_id.1,
-                    NetworkResponse::CurrentBlock(
-                        ModuleReqFullId(WS2Pv1Module::name(), module_req_full_id.1),
-                        recipient_full_id,
-                        Box::new(block),
-                    ),
-                );
+            match parse_json_block_from_serde_value(&response) {
+                Ok(block) => {
+                    crate::responses::sent::send_network_req_response(
+                        ws2p_module,
+                        module_req_full_id.0,
+                        module_req_full_id.1,
+                        NetworkResponse::CurrentBlock(
+                            ModuleReqFullId(WS2Pv1Module::name(), module_req_full_id.1),
+                            recipient_full_id,
+                            Box::new(block),
+                        ),
+                    );
+                }
+                Err(e) => warn!("WS2Pv1: receive invalid block: {}.", e),
             }
         }
         WS2Pv1ReqBody::GetBlocks {
@@ -54,10 +57,9 @@ pub fn receive_response(
             if response.is_array() {
                 let mut chunk = Vec::new();
                 for json_block in unwrap!(response.as_array()) {
-                    if let Some(block) = parse_json_block(json_block) {
-                        chunk.push(block);
-                    } else {
-                        warn!("WS2Pv1Module: Error : fail to parse one json block !");
+                    match parse_json_block_from_serde_value(json_block) {
+                        Ok(block) => chunk.push(block),
+                        Err(e) => warn!("WS2Pv1Module: Error : fail to parse json block: {}", e),
                     }
                 }
                 info!(
