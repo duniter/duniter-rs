@@ -413,6 +413,7 @@ pub fn start_router(
                             trace!("Router thread receive ModuleMessage({:?})", msg);
                             match msg {
                                 DursMsg::Stop => {
+                                    info!("TMP: Router: RECEIVE STOP MESSAGE !");
                                     // Relay stop signal to broadcasting thread
                                     broadcasting_sender
                                         .send(RouterThreadMessage::ModuleMessage(msg))

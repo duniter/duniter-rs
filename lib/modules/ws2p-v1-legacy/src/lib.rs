@@ -89,7 +89,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use unwrap::unwrap;
-use ws::Message;
+use ws::{CloseCode, Message};
 
 #[inline]
 #[cfg(not(feature = "ssl"))]
@@ -616,7 +616,14 @@ impl WS2Pv1Module {
                 Ok(message) => match message {
                     WS2PThreadSignal::DursMsg(durs_mesage) => {
                         match durs_mesage.deref() {
-                            DursMsg::Stop => break,
+                            DursMsg::Stop => {
+                                // Close all connections
+                                for ws in self.websockets.values() {
+                                    let _ = ws.0.close(CloseCode::Normal);
+                                }
+                                // Break main loop
+                                break;
+                            }
                             DursMsg::Request {
                                 ref req_content, ..
                             } => requests::received::receive_req(&mut self, req_content),

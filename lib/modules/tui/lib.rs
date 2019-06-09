@@ -48,7 +48,7 @@ use durs_network_documents::NodeFullId;
 use std::collections::HashMap;
 use std::io::{stdout, Write};
 use std::ops::Deref;
-use std::sync::mpsc;
+use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender};
 use std::thread;
 use std::time::{Duration, SystemTime};
 use termion::event::*;
@@ -108,7 +108,7 @@ pub struct Connection {
 /// Data that the Tui module needs to cache
 pub struct TuiModuleDatas {
     /// Sender of all other modules
-    pub followers: Vec<mpsc::Sender<DursMsg>>,
+    pub router_sender: Sender<RouterThreadMessage<DursMsg>>,
     /// HEADs cache content
     pub heads_cache: HashMap<NodeFullId, NetworkHead>,
     /// Position of the 1st head displayed on the screen
@@ -373,6 +373,10 @@ impl TuiModuleDatas {
         // Flush stdout (i.e. make the output appear).
         stdout.flush().unwrap();
     }
+    /// Restore Terminal
+    fn restore_term<W: Write>(stdout: &RawTerminal<W>) {
+        let _ = stdout.suspend_raw_mode();
+    }
 }
 
 impl Default for TuiModule {
@@ -406,13 +410,13 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
         _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
         _conf: Self::ModuleConf,
-        main_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
+        router_sender: Sender<RouterThreadMessage<DursMsg>>,
     ) -> Result<(), failure::Error> {
         let start_time = SystemTime::now(); //: DateTime<Utc> = Utc::now();
 
         // Instanciate Tui module datas
         let mut tui = TuiModuleDatas {
-            followers: Vec::new(),
+            router_sender: router_sender.clone(),
             heads_cache: HashMap::new(),
             heads_index: 0,
             connections_status: HashMap::new(),
@@ -420,18 +424,16 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
         };
 
         // Create tui main thread channel
-        let (tui_sender, tui_receiver): (mpsc::Sender<TuiMess>, mpsc::Receiver<TuiMess>) =
-            mpsc::channel();
+        let (tui_sender, tui_receiver): (Sender<TuiMess>, Receiver<TuiMess>) = channel();
 
         // Create proxy channel
-        let (proxy_sender, proxy_receiver): (mpsc::Sender<DursMsg>, mpsc::Receiver<DursMsg>) =
-            mpsc::channel();
+        let (proxy_sender, proxy_receiver): (Sender<DursMsg>, Receiver<DursMsg>) = channel();
 
         // Launch a proxy thread that transform DursMsg() to TuiMess::DursMsg(DursMsg())
         let tui_sender_clone = tui_sender.clone();
         thread::spawn(move || {
             // Send proxy sender to main
-            main_sender
+            router_sender
                 .send(RouterThreadMessage::ModuleRegistration {
                     static_name: TuiModule::name(),
                     sender: proxy_sender,
@@ -462,12 +464,13 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
                                 };
                             }
                             Err(_) => {
-                                debug!("tui proxy : fail to relay DursMsg to tui main thread !")
+                                debug!("tui proxy : fail to relay DursMsg to tui main thread !");
+                                break;
                             }
                         }
                     }
                     Err(e) => {
-                        warn!("{}", e);
+                        warn!("Tui: {}", e);
                         break;
                     }
                 }
@@ -513,7 +516,7 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
                 Ok(ref message) => match *message {
                     TuiMess::DursMsg(ref durs_message) => match durs_message.deref() {
                         DursMsg::Stop => {
-                            writeln!(
+                            let _ = writeln!(
                                 stdout,
                                 "{}{}{}{}{}",
                                 color::Fg(color::Reset),
@@ -521,13 +524,7 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
                                 color::Bg(color::Reset),
                                 cursor::Show,
                                 clear::All,
-                            )
-                            .unwrap();
-                            let _result_stop_propagation: Result<(), mpsc::SendError<DursMsg>> =
-                                tui.followers
-                                    .iter()
-                                    .map(|f| f.send(DursMsg::Stop))
-                                    .collect();
+                            );
                             break;
                         }
                         DursMsg::Event {
@@ -585,7 +582,7 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
                     TuiMess::TermionEvent(ref term_event) => match *term_event {
                         Event::Key(Key::Char('q')) => {
                             // Exit
-                            writeln!(
+                            let _ = writeln!(
                                 stdout,
                                 "{}{}{}{}{}",
                                 color::Fg(color::Reset),
@@ -593,13 +590,15 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
                                 color::Bg(color::Reset),
                                 cursor::Show,
                                 clear::All,
-                            )
-                            .unwrap();
-                            let _result_stop_propagation: Result<(), mpsc::SendError<DursMsg>> =
-                                tui.followers
-                                    .iter()
-                                    .map(|f| f.send(DursMsg::Stop))
-                                    .collect();
+                            );
+                            TuiModuleDatas::restore_term(&stdout);
+                            if tui
+                                .router_sender
+                                .send(RouterThreadMessage::ModuleMessage(DursMsg::Stop))
+                                .is_err()
+                            {
+                                warn!("Tui: Fail to send STOP message to router !");
+                            }
                             break;
                         }
                         Event::Mouse(ref me) => match *me {
@@ -640,10 +639,10 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
                     },
                 },
                 Err(e) => match e {
-                    mpsc::RecvTimeoutError::Disconnected => {
+                    RecvTimeoutError::Disconnected => {
                         fatal_error!("Disconnected tui module !");
                     }
-                    mpsc::RecvTimeoutError::Timeout => {}
+                    RecvTimeoutError::Timeout => {}
                 },
             }
             let now = SystemTime::now();

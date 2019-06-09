@@ -16,7 +16,6 @@
 //! Sub-module that sends requests to the inter-node network layer.
 
 use crate::*;
-use durs_common_tools::fatal_error;
 use durs_message::*;
 use durs_module::ModuleReqId;
 use durs_network::requests::OldNetworkRequest;
@@ -27,14 +26,18 @@ pub fn request_network(
     req_id: ModuleReqId,
     request: &OldNetworkRequest,
 ) -> ModuleReqId {
-    bc.router_sender
+    if bc
+        .router_sender
         .send(RouterThreadMessage::ModuleMessage(DursMsg::Request {
             req_from: BlockchainModule::name(),
             req_to: ModuleRole::InterNodesNetwork,
             req_id,
             req_content: DursReqContent::OldNetworkRequest(*request),
         }))
-        .unwrap_or_else(|_| fatal_error!("Fail to send OldNetworkRequest to router"));
+        .is_err()
+    {
+        debug!("Fail to send OldNetworkRequest to router");
+    }
     request.get_req_id()
 }
 
