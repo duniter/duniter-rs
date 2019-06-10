@@ -88,39 +88,47 @@ Enfin installez le plugin pour rust en tapant "Rust" dans le moteur de recherche
 
 Une fois vscode installé nous aurons besoin des 3 plugins suivants :
 
-* BetterTOML
-* CodeLLDB
-* Rust
+* [BetterTOML](https://github.com/bungcip/better-toml)
+* [CodeLLDB](https://github.com/vadimcn/vscode-lldb)
+* [Rust](https://github.com/editor-rs/vscode-rust) (attention, pas "Rust (rls)")
 
 Configuration du plugin Rust:
 
-Cela ce fait en modifiant le fichier settings.json qui se trouve par défaut dans `~/.config/code/User/settings.json`.
+Dans les paramètres de l'extension Rust, vous avez le choix entre modifier les paramètres dans l'interface graphique ou directement dans le fichier `.json`. Nous indiquons ici les lignes à ajouter dans le fichier `settings.json` (qui se trouve par défaut dans `~/.config/Code/User/settings.json`).
 
-1. Passez un mode legacy pour désactiver RLS (=Rust Language Server) qui ne fonctionne pas sur le projet durs et va occuper votre cpu a 100% inutilement.
+1. Passez en mode legacy pour désactiver RLS (=Rust Language Server) qui ne fonctionne pas sur le projet durs (il monopolise inutilement 100% du CPU).
 
-    "rust.mode": "legacy",
+```json
+"rust.mode": "legacy",
+```
 
-2. Sauvegardez le fichier `settings.json` puis fermez vscode afin de couper définitivemetn RLS.
+2. Installez racer (pour l'auto-complétion) et sym (pour aller à la définition via Ctrl+clic).
 
-3. Installez racer (pour l'auto-complétion) et sym (pour "go to definition" via ctrl+clic).
+```bash
+cargo +nightly install racer
+cargo install rustsym
+```
 
-    cargo +nightly install racer
-    cargo install sym
+3. Indiquez dans le fichier `settings.json` le chemin vers racer et rustsym :
 
-4. Indiquez dans le `settings.json` le chemin vers racer et rustsym :
+```json
+"rust.racerPath": "/home/YOUR_USERuser/.cargo/bin/racer",
+"rust.rustsymPath": "/home/YOUR_USERuser/.cargo/bin/rustsym"
+```
 
-    "rust.racerPath": "/home/YOUR_USERuser/.cargo/bin/racer",
-    "rust.rustsymPath": "/home/YOUR_USERuser/.cargo/bin/rustsym"
-
-5. Sauvegardez le fichier `settings.json` puis redémarrez vscode.
+4. Sauvegardez le fichier `settings.json` puis redémarrez vscode pour appliquer les changements et arrêter rls.
 
 ### VSCode : Débuggeur LLDB
 
 [Instructions d'installation de LLDB pour vscode](https://github.com/vadimcn/vscode-lldb/wiki/Installing-on-Linux)
 
-Ensuite relancez votre IDE.
+Sélectionnez "LLDB adapter type: native" dans les paramètres LLDB ou ajoutez dans le fichier `settings.json` 
 
-Un exemple de fichier `launch.conf` pour VSCode :
+```json
+"lldb.adapterType": "native",
+```
+
+Pour paramétrer et démarrer le débugger, consultez [la doc vscode](https://code.visualstudio.com/docs/editor/debugging#_launch-configurations). Voici un exemple de fichier `launch.json` pour VSCode :
 
 ```json
 {
@@ -145,13 +153,13 @@ Un exemple de fichier `launch.conf` pour VSCode :
 }
 ```
 
-### Vscode: mouse navigation like Intellij
+### Vscode: navigation à la souris comme dans Intellij
 
-Intellij permet par défaut de naviguer dans le code avec les touches suivant/précédent de la sourie, une fonctionnalité au combien indispensable et hélas pas implémentée dans vscode. Il existe cependant un moyen de contournement pour obtenir cette fonctionnalité.
+Intellij permet par défaut de naviguer dans le code avec les touches suivant/précédent de la souris, une fonctionnalité ô combien indispensable et hélas pas implémentée dans vscode. Il existe cependant un moyen de contournement pour obtenir cette fonctionnalité.
 
-1. Dans vscode, définissez des raccourcies clavier pour les actions `navigate back` et `navigate forward` (par exemple Ctrl+Left et Ctrl+Right).
+1. Dans vscode, définissez des raccourcis clavier pour les actions `navigate back` et `navigate forward` (par exemple Ctrl+Left et Ctrl+Right).
 2. Installez `xbindkeys` et `xdotool`.
-3. Créez le fichier de configuration de xbindkeys a la racine de votre home avec les commandes suivantes
+3. Créez le fichier de configuration de xbindkeys à la racine de votre home avec les commandes suivantes
 
     cd
     xbindkeys --defaults > .xbindkeysrc
@@ -168,7 +176,7 @@ Intellij permet par défaut de naviguer dans le code avec les touches suivant/pr
             b:9
     ```
 
-5. Pour vérifier que tout est bien configuré, lancez la commande `xbindkeys -v` pusi cliquez sur les touches suivant/précédent de votre sourie. Vous devez voir se printer dans la console la commande correspondant au bouton sur lequel vous cliquez (`xdotool key ctrl+Left` ou `xdotool key ctrl+Right`). Vérifiez que vscode réagit comme attendu.
+5. Pour vérifier que tout est bien configuré, lancez la commande `xbindkeys -v` puis cliquez sur les touches suivant/précédent de votre souris. Vous devez voir se printer dans la console la commande correspondant au bouton sur lequel vous cliquez (`xdotool key ctrl+Left` ou `xdotool key ctrl+Right`). Vérifiez que vscode réagit comme attendu.
 
 6. Configurez votre système pour lancer la commande `xbindkeys` au démarrage.
 
