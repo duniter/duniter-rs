@@ -66,14 +66,51 @@ Clippy will then inform you in a very educational way about everything that need
 
 Once vscode is installed we will need the following 3 plugins :
 
-* BetterTOML
-* CodeLLDB
-* Rust (rls)
+* [BetterTOML](https://github.com/bungcip/better-toml)
+* [CodeLLDB](https://github.com/vadimcn/vscode-lldb)
+* [Rust](https://github.com/editor-rs/vscode-rust) (attention, not "Rust (rls)")
 
-An example of a `launch.conf` file for VSCode :
+Configuration of the Rust plugin:
+
+In the parameters of the Rust extension, you have the choice between modifying the parameters in the GUI or manually in the `.json` file. We provide here the ligns to be added in the `settings.json` file (which is by default in `~/.config/Code/User/settings.json`).
+
+1. Switch to legacy mode to deactivate RLS (=Rust Language Server) which does not work on the durs project (it requires 100% of CPU).
+
+```json
+"rust.mode": "legacy",
+```
+
+1. Install the racer (for auto-completion) and sym (to get "go-to-definition" via Ctrl+clic).
+
+```bash
+cargo +nightly install racer
+cargo install rustsym
+```
+
+1. In the `settings.json` file, provide the racer and rustsym paths:
+
+```json
+"rust.racerPath": "/home/YOUR_USERuser/.cargo/bin/racer",
+"rust.rustsymPath": "/home/YOUR_USERuser/.cargo/bin/rustsym"
+```
+
+1. Save the `settings.json` file and restart vscode to apply the changes and definitely stop rls.
+
+### VSCode: LLDB debugger
+
+[Instructions to install LLDB for vscode](https://github.com/vadimcn/vscode-lldb/wiki/Installing-on-Linux)
+
+Select "LLDB adapter type: native" in the LLDB parameters or add the following in the `settings.json` file: 
+
+```json
+"lldb.adapterType": "native",
+```
+
+To setup and start the debugger, refer to [the vscode doc](https://code.visualstudio.com/docs/editor/debugging#_launch-configurations). Here is a `launch.json` file example for VSCode:
 
 ```json
 {
+    // https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
@@ -92,16 +129,34 @@ An example of a `launch.conf` file for VSCode :
 }
 ```
 
-## RLS et LLDB
+### Vscode: mouse navigation like Intellij
 
-There is still to install RLS (Rust Language Server) and LLDB (debugger), the first one allows you to compile your code on the fly to highlight errors in red directly in your IDE/Editor, the second one is a debugger.
+Intellij allows to navigate in the code with the next/previous keys of the mouse. Here is how to replicate this behavior in vscode:
 
-LLDB Installation Instructions : [https://github.com/vadimcn/vscode-lldb/wiki/Installing-on-Linux](https://github.com/vadimcn/vscode-lldb/wiki/Installing-on-Linux)
+1. In vscode, define the keyboard shortcuts for the `navigate back` and `navigate forward` actions (Ctrl+Left and Ctrl+Right for example).
+2. Install `xbindkeys` and `xdotool`.
+3. Create the xbindkeys configuration file at the root of your home as follows:
 
-Then restart vscode (after installing the plugins indicate if above), it should spontaneously offer you to install RLS, say yes.  
-If this fails for RLS, you will need to install it manually with the following command:
+```
+cd ~
+xbindkeys --defaults > .xbindkeysrc
+```
 
-    rustup component add rls-preview rust-analysis rust-src
+4. Add the following lines in the `~/.xbindkeysrc` file:
+
+```bash
+## Navigate back
+"xdotool key ctrl+Left"
+        b:8
+
+## Navigate forward
+"xdotool key ctrl+Right"
+        b:9
+```
+
+1. To verify that everything is well configured, launch the `xbindkeys -v` command and click on your mouse next/previous buttons. The command corresponding to the button you clicked should appear in the console (`xdotool key ctrl+Left` or `xdotool key ctrl+Right`). Check that vscode reacts as expected.
+
+2. Configure your system to start `xbindkeys` on startup.
 
 ## Additional packages to compile durs
 
