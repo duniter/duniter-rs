@@ -107,40 +107,40 @@ impl TextDocumentParser<Rule> for DUBPDocument {
 
     fn parse(doc: &str) -> Result<DUBPDocument, TextDocumentParseError> {
         match DocumentsParser::parse(Rule::document, doc) {
-            Ok(mut doc_pairs) => Ok(DUBPDocument::from_pest_pair(doc_pairs.next().unwrap())), // get and unwrap the `document` rule; never fails
-            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
+            Ok(mut doc_pairs) => Ok(DUBPDocument::from_pest_pair(doc_pairs.next().unwrap())?), // get and unwrap the `document` rule; never fails
+            Err(pest_error) => Err(pest_error.into()),
         }
     }
-    fn from_pest_pair(pair: Pair<Rule>) -> Self::DocumentType {
+    fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
         let doc_vx_pair = pair.into_inner().next().unwrap(); // get and unwrap the `document_vX` rule; never fails
 
         match doc_vx_pair.as_rule() {
-            Rule::document_v10 => DUBPDocument::from_pest_pair_v10(doc_vx_pair),
+            Rule::document_v10 => Ok(DUBPDocument::from_pest_pair_v10(doc_vx_pair)?),
             _ => fatal_error!("unexpected rule: {:?}", doc_vx_pair.as_rule()), // Grammar ensures that we never reach this line
         }
     }
 }
 
 impl DUBPDocument {
-    pub fn from_pest_pair_v10(pair: Pair<Rule>) -> DUBPDocument {
+    pub fn from_pest_pair_v10(pair: Pair<Rule>) -> Result<DUBPDocument, TextDocumentParseError> {
         let doc_type_v10_pair = pair.into_inner().next().unwrap(); // get and unwrap the `{DOC_TYPE}_v10` rule; never fails
 
         match doc_type_v10_pair.as_rule() {
-            Rule::idty_v10 => DUBPDocument::Identity(
-                identity::IdentityDocumentParser::from_pest_pair(doc_type_v10_pair),
-            ),
-            Rule::membership_v10 => DUBPDocument::Membership(
-                membership::MembershipDocumentParser::from_pest_pair(doc_type_v10_pair),
-            ),
-            Rule::cert_v10 => DUBPDocument::Certification(Box::new(
-                certification::CertificationDocumentParser::from_pest_pair(doc_type_v10_pair),
+            Rule::idty_v10 => Ok(DUBPDocument::Identity(
+                identity::IdentityDocumentParser::from_pest_pair(doc_type_v10_pair)?,
             )),
-            Rule::revoc_v10 => DUBPDocument::Revocation(Box::new(
-                revocation::RevocationDocumentParser::from_pest_pair(doc_type_v10_pair),
+            Rule::membership_v10 => Ok(DUBPDocument::Membership(
+                membership::MembershipDocumentParser::from_pest_pair(doc_type_v10_pair)?,
             )),
-            Rule::tx_v10 => DUBPDocument::Transaction(Box::new(
-                transaction::TransactionDocumentParser::from_pest_pair(doc_type_v10_pair),
-            )),
+            Rule::cert_v10 => Ok(DUBPDocument::Certification(Box::new(
+                certification::CertificationDocumentParser::from_pest_pair(doc_type_v10_pair)?,
+            ))),
+            Rule::revoc_v10 => Ok(DUBPDocument::Revocation(Box::new(
+                revocation::RevocationDocumentParser::from_pest_pair(doc_type_v10_pair)?,
+            ))),
+            Rule::tx_v10 => Ok(DUBPDocument::Transaction(Box::new(
+                transaction::TransactionDocumentParser::from_pest_pair(doc_type_v10_pair)?,
+            ))),
             _ => fatal_error!("unexpected rule: {:?}", doc_type_v10_pair.as_rule()), // Grammar ensures that we never reach this line
         }
     }

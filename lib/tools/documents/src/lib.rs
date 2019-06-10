@@ -49,6 +49,7 @@ use pest::RuleType;
 use serde::Serialize;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Error, Formatter};
+use std::net::AddrParseError;
 
 pub use crate::blockstamp::{Blockstamp, PreviousBlockstamp};
 
@@ -64,24 +65,56 @@ pub trait TextDocumentParser<R: RuleType> {
     /// Parse text document from raw format
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError>;
     /// Parse text document from pest pairs
-    fn from_pest_pair(pairs: Pair<R>) -> Self::DocumentType;
+    fn from_pest_pair(pairs: Pair<R>) -> Result<Self::DocumentType, TextDocumentParseError>;
 }
 
-/// List of possible errors while parsing.
-#[derive(Debug, Clone, Fail)]
+/// Error with pest parser (grammar)
+#[derive(Debug, Clone, Eq, Fail, PartialEq)]
+#[fail(display = "Grammar error: {}", _0)]
+pub struct PestError(pub String);
+
+impl<T: pest::RuleType> From<pest::error::Error<T>> for PestError {
+    fn from(e: pest::error::Error<T>) -> Self {
+        PestError(format!("{}", e))
+    }
+}
+
+/// List of possible errors while parsing a text document.
+#[derive(Debug, Clone, Eq, Fail, PartialEq)]
 pub enum TextDocumentParseError {
     /// The given source don't have a valid specific document format (document type).
     #[fail(display = "TextDocumentParseError: Invalid inner format: {}", _0)]
     InvalidInnerFormat(String),
+    /// Ip address parse error
+    #[fail(display = "TextDocumentParseError: invalid ip: {}", _0)]
+    IpAddrError(AddrParseError),
     /// Error with pest parser
-    #[fail(display = "TextDocumentParseError: PestError.")]
-    PestError(String),
-    #[fail(display = "TextDocumentParseError: UnexpectedVersion.")]
-    /// UnexpectedVersion
+    #[fail(display = "TextDocumentParseError: {}", _0)]
+    PestError(PestError),
+    /// Unexpected version
+    #[fail(display = "TextDocumentParseError: UnexpectedVersion: {}", _0)]
     UnexpectedVersion(String),
-    #[fail(display = "TextDocumentParseError: UnknownType.")]
     /// Unknown type
+    #[fail(display = "TextDocumentParseError: UnknownType.")]
     UnknownType,
+}
+
+impl From<AddrParseError> for TextDocumentParseError {
+    fn from(e: AddrParseError) -> Self {
+        TextDocumentParseError::IpAddrError(e)
+    }
+}
+
+impl From<PestError> for TextDocumentParseError {
+    fn from(e: PestError) -> Self {
+        TextDocumentParseError::PestError(e)
+    }
+}
+
+impl<T: pest::RuleType> From<pest::error::Error<T>> for TextDocumentParseError {
+    fn from(e: pest::error::Error<T>) -> Self {
+        TextDocumentParseError::PestError(e.into())
+    }
 }
 
 /// A block Id.

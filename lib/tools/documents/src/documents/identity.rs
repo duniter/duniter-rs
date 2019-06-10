@@ -233,23 +233,19 @@ impl TextDocumentParser<Rule> for IdentityDocumentParser {
     type DocumentType = IdentityDocument;
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
-        match DocumentsParser::parse(Rule::idty, doc) {
-            Ok(mut doc_pairs) => {
-                let idty_pair = doc_pairs.next().unwrap(); // get and unwrap the `idty` rule; never fails
-                let idty_vx_pair = idty_pair.into_inner().next().unwrap(); // get and unwrap the `idty_vx` rule; never fails
+        let mut doc_pairs = DocumentsParser::parse(Rule::idty, doc)?;
+        let idty_pair = doc_pairs.next().unwrap(); // get and unwrap the `idty` rule; never fails
+        let idty_vx_pair = idty_pair.into_inner().next().unwrap(); // get and unwrap the `idty_vx` rule; never fails
 
-                match idty_vx_pair.as_rule() {
-                    Rule::idty_v10 => Ok(IdentityDocumentParser::from_pest_pair(idty_vx_pair)),
-                    _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
-                        "{:#?}",
-                        idty_vx_pair.as_rule()
-                    ))),
-                }
-            }
-            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
+        match idty_vx_pair.as_rule() {
+            Rule::idty_v10 => Ok(IdentityDocumentParser::from_pest_pair(idty_vx_pair)?),
+            _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
+                "{:#?}",
+                idty_vx_pair.as_rule()
+            ))),
         }
     }
-    fn from_pest_pair(pair: Pair<Rule>) -> Self::DocumentType {
+    fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
         let doc = pair.as_str();
         let mut currency = "";
         let mut pubkey_str = "";
@@ -276,7 +272,8 @@ impl TextDocumentParser<Rule> for IdentityDocumentParser {
                 _ => fatal_error!("unexpected rule"), // Grammar ensures that we never reach this line
             }
         }
-        IdentityDocument {
+
+        Ok(IdentityDocument {
             text: Some(doc.to_owned()),
             currency: currency.to_owned(),
             username: uid.to_owned(),
@@ -287,7 +284,7 @@ impl TextDocumentParser<Rule> for IdentityDocumentParser {
             signatures: vec![Sig::Ed25519(
                 ed25519::Signature::from_base64(sig_str).unwrap(),
             )], // Grammar ensures that we have a base64 string.
-        }
+        })
     }
 }
 

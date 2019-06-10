@@ -246,23 +246,19 @@ impl TextDocumentParser<Rule> for RevocationDocumentParser {
     type DocumentType = RevocationDocument;
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
-        match DocumentsParser::parse(Rule::revoc, doc) {
-            Ok(mut revoc_pairs) => {
-                let revoc_pair = revoc_pairs.next().unwrap(); // get and unwrap the `revoc` rule; never fails
-                let revoc_vx_pair = revoc_pair.into_inner().next().unwrap(); // get and unwrap the `revoc_vX` rule; never fails
+        let mut revoc_pairs = DocumentsParser::parse(Rule::revoc, doc)?;
+        let revoc_pair = revoc_pairs.next().unwrap(); // get and unwrap the `revoc` rule; never fails
+        let revoc_vx_pair = revoc_pair.into_inner().next().unwrap(); // get and unwrap the `revoc_vX` rule; never fails
 
-                match revoc_vx_pair.as_rule() {
-                    Rule::revoc_v10 => Ok(RevocationDocumentParser::from_pest_pair(revoc_vx_pair)),
-                    _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
-                        "{:#?}",
-                        revoc_vx_pair.as_rule()
-                    ))),
-                }
-            }
-            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
+        match revoc_vx_pair.as_rule() {
+            Rule::revoc_v10 => Ok(RevocationDocumentParser::from_pest_pair(revoc_vx_pair)?),
+            _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
+                "{:#?}",
+                revoc_vx_pair.as_rule()
+            ))),
         }
     }
-    fn from_pest_pair(pair: Pair<Rule>) -> Self::DocumentType {
+    fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
         let doc = pair.as_str();
         let mut currency = "";
         let mut pubkeys = Vec::with_capacity(1);
@@ -297,7 +293,7 @@ impl TextDocumentParser<Rule> for RevocationDocumentParser {
                 _ => fatal_error!("unexpected rule"), // Grammar ensures that we never reach this line
             }
         }
-        RevocationDocument {
+        Ok(RevocationDocument {
             text: doc.to_owned(),
             issuers: vec![pubkeys[0]],
             currency: currency.to_owned(),
@@ -305,7 +301,7 @@ impl TextDocumentParser<Rule> for RevocationDocumentParser {
             identity_blockstamp: blockstamps[0],
             identity_sig: sigs[0],
             signatures: vec![sigs[1]],
-        }
+        })
     }
 }
 

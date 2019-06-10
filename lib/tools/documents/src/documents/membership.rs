@@ -291,25 +291,19 @@ impl TextDocumentParser<Rule> for MembershipDocumentParser {
     type DocumentType = MembershipDocument;
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
-        match DocumentsParser::parse(Rule::membership, doc) {
-            Ok(mut ms_pairs) => {
-                let ms_pair = ms_pairs.next().unwrap(); // get and unwrap the `membership` rule; never fails
-                let ms_vx_pair = ms_pair.into_inner().next().unwrap(); // get and unwrap the `membership_vX` rule; never fails
+        let mut ms_pairs = DocumentsParser::parse(Rule::membership, doc)?;
+        let ms_pair = ms_pairs.next().unwrap(); // get and unwrap the `membership` rule; never fails
+        let ms_vx_pair = ms_pair.into_inner().next().unwrap(); // get and unwrap the `membership_vX` rule; never fails
 
-                match ms_vx_pair.as_rule() {
-                    Rule::membership_v10 => {
-                        Ok(MembershipDocumentParser::from_pest_pair(ms_vx_pair))
-                    }
-                    _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
-                        "{:#?}",
-                        ms_vx_pair.as_rule()
-                    ))),
-                }
-            }
-            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
+        match ms_vx_pair.as_rule() {
+            Rule::membership_v10 => Ok(MembershipDocumentParser::from_pest_pair(ms_vx_pair)?),
+            _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
+                "{:#?}",
+                ms_vx_pair.as_rule()
+            ))),
         }
     }
-    fn from_pest_pair(pair: Pair<Rule>) -> Self::DocumentType {
+    fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
         let doc = pair.as_str();
         let mut currency = "";
         let mut pubkey_str = "";
@@ -339,7 +333,8 @@ impl TextDocumentParser<Rule> for MembershipDocumentParser {
                 _ => fatal_error!("unexpected rule"), // Grammar ensures that we never reach this line
             }
         }
-        MembershipDocument {
+
+        Ok(MembershipDocument {
             text: Some(doc.to_owned()),
             issuers: vec![PubKey::Ed25519(
                 ed25519::PublicKey::from_base58(pubkey_str).unwrap(),
@@ -352,7 +347,7 @@ impl TextDocumentParser<Rule> for MembershipDocumentParser {
             signatures: vec![Sig::Ed25519(
                 ed25519::Signature::from_base64(sig_str).unwrap(),
             )], // Grammar ensures that we have a base64 string.
-        }
+        })
     }
 }
 

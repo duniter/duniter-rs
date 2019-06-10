@@ -133,15 +133,11 @@ impl TextDocumentParser<Rule> for PeerCardV11 {
     type DocumentType = PeerCardV11;
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
-        match NetworkDocsParser::parse(Rule::peer_v11, doc) {
-            Ok(mut peer_v11_pairs) => {
-                Ok(PeerCardV11::from_pest_pair(peer_v11_pairs.next().unwrap()))
-            }
-            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
-        }
+        let mut peer_v11_pairs = NetworkDocsParser::parse(Rule::peer_v11, doc)?;
+        Ok(PeerCardV11::from_pest_pair(peer_v11_pairs.next().unwrap())?)
     }
 
-    fn from_pest_pair(pair: Pair<Rule>) -> PeerCardV11 {
+    fn from_pest_pair(pair: Pair<Rule>) -> Result<PeerCardV11, TextDocumentParseError> {
         let mut currency_str = "";
         let mut node_id = NodeId(0);
         let mut issuer = None;
@@ -160,7 +156,7 @@ impl TextDocumentParser<Rule> for PeerCardV11 {
                 Rule::block_id => {
                     created_on = Some(BlockNumber(field.as_str().parse().unwrap())); // Grammar ensures that we have a digits string.
                 }
-                Rule::endpoint_v2 => endpoints.push(EndpointV2::from_pest_pair(field)),
+                Rule::endpoint_v2 => endpoints.push(EndpointV2::from_pest_pair(field)?),
                 Rule::ed25519_sig => {
                     sig = Some(Sig::Ed25519(
                         ed25519::Signature::from_base64(field.as_str()).unwrap(),
@@ -170,7 +166,8 @@ impl TextDocumentParser<Rule> for PeerCardV11 {
             }
         }
         let endpoints_len = endpoints.len();
-        PeerCardV11 {
+
+        Ok(PeerCardV11 {
             currency_name: CurrencyName(currency_str.to_owned()),
             issuer: issuer.expect("Grammar must ensure that peer v11 have valid issuer pubkey !"),
             node_id,
@@ -179,7 +176,7 @@ impl TextDocumentParser<Rule> for PeerCardV11 {
             endpoints,
             endpoints_str: Vec::with_capacity(endpoints_len),
             sig,
-        }
+        })
     }
 }
 
@@ -272,7 +269,7 @@ mod tests {
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: None,
-            host: Some(String::from("g1.durs.ifee.fr")),
+            domain: Some(String::from("g1.durs.ifee.fr")),
             port: 443u16,
             path: Some(String::from("ws2p")),
         }
@@ -285,7 +282,7 @@ mod tests {
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("84.16.72.210").unwrap()),
             ip_v6: None,
-            host: None,
+            domain: None,
             port: 443u16,
             path: Some(String::from("ws2p")),
         }

@@ -33,6 +33,7 @@ extern crate pretty_assertions;
 #[macro_use]
 extern crate log;
 
+pub mod host;
 pub mod network_endpoint;
 pub mod network_head;
 pub mod network_head_v2;
@@ -51,6 +52,7 @@ use pest::iterators::Pair;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Error, Formatter};
+use std::net::AddrParseError;
 
 #[derive(Parser)]
 #[grammar = "network_documents.pest"]
@@ -70,32 +72,24 @@ impl TextDocumentParser<Rule> for NetworkDocument {
     type DocumentType = NetworkDocument;
 
     fn parse(doc: &str) -> Result<NetworkDocument, TextDocumentParseError> {
-        match NetworkDocsParser::parse(Rule::network_document, doc) {
-            Ok(mut net_doc_pairs) => Ok(NetworkDocument::from_pest_pair(
-                net_doc_pairs.next().unwrap().into_inner().next().unwrap(),
-            )), // get and unwrap the `network_document` rule; never fails
-            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
-        }
+        let mut net_doc_pairs = NetworkDocsParser::parse(Rule::network_document, doc)?;
+        Ok(NetworkDocument::from_pest_pair(
+            net_doc_pairs.next().unwrap().into_inner().next().unwrap(), // get and unwrap the `network_document` rule; never fails
+        )?)
     }
-    fn from_pest_pair(pair: Pair<Rule>) -> NetworkDocument {
-        match pair.as_rule() {
+    fn from_pest_pair(pair: Pair<Rule>) -> Result<NetworkDocument, TextDocumentParseError> {
+        Ok(match pair.as_rule() {
             Rule::peer_v11 => {
-                NetworkDocument::Peer(Box::new(PeerCard::V11(PeerCardV11::from_pest_pair(pair))))
+                NetworkDocument::Peer(Box::new(PeerCard::V11(PeerCardV11::from_pest_pair(pair)?)))
             }
             Rule::head_v3 => NetworkDocument::Head(NetworkHead::V3(Box::new(
-                NetworkHeadV3::from_pest_pair(pair),
+                NetworkHeadV3::from_pest_pair(pair)?,
             ))),
             _ => fatal_error!("unexpected rule: {:?}", pair.as_rule()), // Grammar ensures that we never reach this line
-        }
+        })
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-/// ParseError
-pub enum ParseError {
-    /// Pest grammar error
-    PestError(String),
-}
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Random identifier with which several Duniter nodes with the same network keypair can be differentiated
 pub struct NodeId(pub u32);

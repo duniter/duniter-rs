@@ -855,23 +855,19 @@ impl TextDocumentParser<Rule> for TransactionDocumentParser {
     type DocumentType = TransactionDocument;
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
-        match DocumentsParser::parse(Rule::tx, doc) {
-            Ok(mut tx_pairs) => {
-                let tx_pair = tx_pairs.next().unwrap(); // get and unwrap the `tx` rule; never fails
-                let tx_vx_pair = tx_pair.into_inner().next().unwrap(); // get and unwrap the `tx_vX` rule; never fails
+        let mut tx_pairs = DocumentsParser::parse(Rule::tx, doc)?;
+        let tx_pair = tx_pairs.next().unwrap(); // get and unwrap the `tx` rule; never fails
+        let tx_vx_pair = tx_pair.into_inner().next().unwrap(); // get and unwrap the `tx_vX` rule; never fails
 
-                match tx_vx_pair.as_rule() {
-                    Rule::tx_v10 => Ok(TransactionDocumentParser::from_pest_pair(tx_vx_pair)),
-                    _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
-                        "{:#?}",
-                        tx_vx_pair.as_rule()
-                    ))),
-                }
-            }
-            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
+        match tx_vx_pair.as_rule() {
+            Rule::tx_v10 => Ok(TransactionDocumentParser::from_pest_pair(tx_vx_pair)?),
+            _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
+                "{:#?}",
+                tx_vx_pair.as_rule()
+            ))),
         }
     }
-    fn from_pest_pair(pair: Pair<Rule>) -> Self::DocumentType {
+    fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
         let doc = pair.as_str();
         let mut currency = "";
         let mut blockstamp = Blockstamp::default();
@@ -917,7 +913,8 @@ impl TextDocumentParser<Rule> for TransactionDocumentParser {
                 _ => fatal_error!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
             }
         }
-        TransactionDocument {
+
+        Ok(TransactionDocument {
             text: Some(doc.to_owned()),
             currency: currency.to_owned(),
             blockstamp,
@@ -929,7 +926,7 @@ impl TextDocumentParser<Rule> for TransactionDocumentParser {
             comment: comment.to_owned(),
             signatures: sigs,
             hash: None,
-        }
+        })
     }
 }
 

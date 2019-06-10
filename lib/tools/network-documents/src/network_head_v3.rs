@@ -111,15 +111,13 @@ impl TextDocumentParser<Rule> for NetworkHeadV3 {
     type DocumentType = NetworkHeadV3;
 
     fn parse(doc: &str) -> Result<NetworkHeadV3, TextDocumentParseError> {
-        match NetworkDocsParser::parse(Rule::head_v3, doc) {
-            Ok(mut head_v3_pairs) => {
-                Ok(NetworkHeadV3::from_pest_pair(head_v3_pairs.next().unwrap()))
-            }
-            Err(pest_error) => Err(TextDocumentParseError::PestError(format!("{}", pest_error))),
-        }
+        let mut head_v3_pairs = NetworkDocsParser::parse(Rule::head_v3, doc)?;
+        Ok(NetworkHeadV3::from_pest_pair(
+            head_v3_pairs.next().unwrap(),
+        )?)
     }
 
-    fn from_pest_pair(pair: Pair<Rule>) -> NetworkHeadV3 {
+    fn from_pest_pair(pair: Pair<Rule>) -> Result<NetworkHeadV3, TextDocumentParseError> {
         let mut currency_str = "";
         let mut api_outgoing_conf = 0;
         let mut api_incoming_conf = 0;
@@ -166,7 +164,8 @@ impl TextDocumentParser<Rule> for NetworkHeadV3 {
                 _ => fatal_error!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
             }
         }
-        NetworkHeadV3 {
+
+        Ok(NetworkHeadV3 {
             currency_name: CurrencyName(currency_str.to_owned()),
             api_outgoing_conf,
             api_incoming_conf,
@@ -180,7 +179,7 @@ impl TextDocumentParser<Rule> for NetworkHeadV3 {
             soft_version: soft_version.to_owned(),
             signature,
             step,
-        }
+        })
     }
 }
 

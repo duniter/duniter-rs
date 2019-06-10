@@ -198,7 +198,7 @@ mod tests {
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: None,
-            host: Some(String::from("g1.durs.ifee.fr")),
+            domain: Some(String::from("g1.durs.ifee.fr")),
             port: 443u16,
             path: Some(String::from("ws2p")),
         }
@@ -211,7 +211,7 @@ mod tests {
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("84.16.72.210").unwrap()),
             ip_v6: None,
-            host: None,
+            domain: None,
             port: 443u16,
             path: Some(String::from("ws2p")),
         }

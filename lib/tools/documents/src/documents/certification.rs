@@ -296,7 +296,9 @@ impl TextDocumentParser<Rule> for CertificationDocumentParser {
                 let cert_vx_pair = cert_pair.into_inner().next().unwrap(); // get and unwrap the `cert_vX` rule; never fails
 
                 match cert_vx_pair.as_rule() {
-                    Rule::cert_v10 => Ok(CertificationDocumentParser::from_pest_pair(cert_vx_pair)),
+                    Rule::cert_v10 => {
+                        Ok(CertificationDocumentParser::from_pest_pair(cert_vx_pair)?)
+                    }
                     _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
                         "{:#?}",
                         cert_vx_pair.as_rule()
@@ -306,7 +308,7 @@ impl TextDocumentParser<Rule> for CertificationDocumentParser {
             Err(pest_error) => fatal_error!("{}", pest_error), //Err(TextDocumentParseError::PestError()),
         }
     }
-    fn from_pest_pair(pair: Pair<Rule>) -> Self::DocumentType {
+    fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
         let doc = pair.as_str();
         let mut currency = "";
         let mut pubkeys = Vec::with_capacity(2);
@@ -341,7 +343,8 @@ impl TextDocumentParser<Rule> for CertificationDocumentParser {
                 _ => fatal_error!("unexpected rule"), // Grammar ensures that we never reach this line
             }
         }
-        CertificationDocument {
+
+        Ok(CertificationDocument {
             text: doc.to_owned(),
             issuers: vec![pubkeys[0]],
             currency: currency.to_owned(),
@@ -351,7 +354,7 @@ impl TextDocumentParser<Rule> for CertificationDocumentParser {
             identity_sig: sigs[0],
             blockstamp: blockstamps[1],
             signatures: vec![sigs[1]],
-        }
+        })
     }
 }
 

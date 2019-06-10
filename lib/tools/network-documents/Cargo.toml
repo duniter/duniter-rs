@@ -1,6 +1,6 @@
 [package]
 name = "durs-network-documents"
-version = "0.3.1"
+version = "0.4.0"
 authors = ["librelois <elois@duniter.org>"]
 description = "Network documents for DUNP (DUniter Network Protocol)"
 repository = "https://git.duniter.org/nodes/rust/duniter-rs"
@@ -12,13 +12,14 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-log = "0.4.*"
-durs-common-tools = { path = "../common-tools" }
 base58 = "0.1.*"
+durs-common-tools = { path = "../common-tools" }
 dup-crypto = { path = "../crypto" }
 dup-currency-params = { path = "../../tools/currency-params" }
 dubp-documents= { path = "../documents" }
+failure = "0.1.5"
 hex = "0.3.*"
+log = "0.4.*"
 pest = "2.1.0"
 pest_derive = "2.1.0"
 serde = { version = "1.0.*", features = ["derive"] }

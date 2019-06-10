@@ -1,4 +1,3 @@
-//r"^(?P<api>[A-Z0-9_]+) (?P<version>[1-9][0-9]*)? ?(?P<uuid>[a-f0-9]{6,8})? ?(?P<host>[a-z_][a-z0-9-_.]*|[0-9.]+|[0-9a-f:]+) (?P<port>[0-9]+)(?: /?(?P<path>.+)?)? *$"
 WHITESPACE = _{ "" }
 
 // Single character rules
@@ -8,6 +7,7 @@ hexa_lower = @{ ASCII_DIGIT | 'a'..'f' }
 hexa_upper = @{ ASCII_DIGIT | 'A'..'F' }
 base58 = { !("O" | "I" | "l") ~ ASCII_ALPHANUMERIC }
 base64 = { ASCII_ALPHANUMERIC | "+" | "/" }
+alphanum_lower = { ASCII_DIGIT | ASCII_ALPHA_LOWER }
 
 // Numbers rules
 tens = @{ '1'..'9' ~ ASCII_DIGIT }
@@ -27,7 +27,7 @@ ed25519_sig = @{ base64{88} | (base64{87} ~ "=") | (base64{86} ~ "==") }
 // Endpoint v1 rules
 api_name = @{ (ASCII_ALPHA_UPPER | ASCII_DIGIT | "_")+ }
 node_id = @{ hexa_lower{1,8} }
-host = @{ ASCII_ALPHA_LOWER ~ (ASCII_ALPHA_LOWER | ASCII_DIGIT | "-" | "_" | ".")* }
+host = @{ ASCII_ALPHA_LOWER ~ (alphanum_lower | "-" | "_" | ".")* }
 port = @{ u_int }
 path_inner = @{ (ASCII_ALPHANUMERIC | "-" | "_" | ".")+ }
 
@@ -66,12 +66,16 @@ tor = @{ "TOR " }
 network_features = _{ http? ~ ws? ~ tls? ~ tor? }
 api_features_inner = @{ (hexa_lower{2})+ | no_zero_hexa_lower }
 api_features = _{ "0x" ~ api_features_inner ~ " " }
-host_v2_inner = @{ ASCII_ALPHA_LOWER ~ (ASCII_ALPHA_LOWER | ASCII_DIGIT | "-" | "_" | ".")* }
-host_v2 = _{ host_v2_inner ~ " " }
+domain_name_part = @{ ASCII_ALPHA_LOWER ~ (alphanum_lower | "-" | "_")* }
+domain_name_ext = @{ alphanum_lower+ }
+domain_name_parts = @{ (domain_name_part ~ ".")+ ~ domain_name_ext }
+domain_name_onion = @{ alphanum_lower{16} ~ ".onion" }
+domain_name_inner = @{ domain_name_parts | domain_name_onion | domain_name_part }
+domain_name = _{ domain_name_inner ~ " " }
 ip4_inner = { u8 ~ "." ~ u8 ~ "." ~ u8 ~ "." ~ u8 }
 ip4 = _{ ip4_inner ~ " " }
 path = _{ " " ~ path_inner }
-endpoint_v2 = ${ api_name ~ " " ~ (api_version)? ~ (network_features)? ~ (api_features)? ~ host_v2? ~ ip4? ~ ip6? ~ port ~ path? }
+endpoint_v2 = ${ api_name ~ " " ~ (api_version)? ~ (network_features)? ~ (api_features)? ~ ip4? ~ ip6? ~ domain_name? ~ port ~ path? }
 
 // Peer v11 rules
 peer_v11 = ${ "11:" ~ currency ~ ":" ~ node_id ~ ":" ~ pubkey ~ ":" ~ block_id ~ nl ~ (endpoint_v2 ~ nl)+ ~ ed25519_sig? }

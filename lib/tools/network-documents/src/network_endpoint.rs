@@ -199,16 +199,14 @@ impl EndpointV1 {
         issuer: PubKey,
         status: u32,
         last_check: u64,
-    ) -> Result<EndpointV1, ParseError> {
-        match NetworkDocsParser::parse(Rule::endpoint_v1, raw_endpoint) {
-            Ok(mut ep_v1_pairs) => Ok(EndpointV1::from_pest_pair(
-                ep_v1_pairs.next().unwrap(),
-                issuer,
-                status,
-                last_check,
-            )),
-            Err(pest_error) => Err(ParseError::PestError(format!("{}", pest_error))),
-        }
+    ) -> Result<EndpointV1, TextDocumentParseError> {
+        let mut ep_v1_pairs = NetworkDocsParser::parse(Rule::endpoint_v1, raw_endpoint)?;
+        Ok(EndpointV1::from_pest_pair(
+            ep_v1_pairs.next().unwrap(),
+            issuer,
+            status,
+            last_check,
+        ))
     }
 }
 
@@ -274,7 +272,7 @@ impl EndpointV2NetworkFeatures {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-/// Endpoint v2
+/// Endpoint
 pub struct Endpoint {
     /// Endpoint content
     pub content: EndpointEnum,
@@ -295,12 +293,12 @@ pub struct EndpointV2 {
     pub network_features: EndpointV2NetworkFeatures,
     /// API features
     pub api_features: ApiFeatures,
+    /// Domain name
+    pub domain: Option<String>,
     /// IPv4
     pub ip_v4: Option<Ipv4Addr>,
     /// IPv6
     pub ip_v6: Option<Ipv6Addr>,
-    /// hostname
-    pub host: Option<String>,
     /// port number
     pub port: u16,
     /// Optional path
@@ -309,8 +307,8 @@ pub struct EndpointV2 {
 
 impl ToString for EndpointV2 {
     fn to_string(&self) -> String {
-        let host: String = if let Some(ref host) = self.host {
-            format!("{} ", host)
+        let domain: String = if let Some(ref domain) = self.domain {
+            format!("{} ", domain)
         } else {
             String::from("")
         };
@@ -330,7 +328,7 @@ impl ToString for EndpointV2 {
             "".to_owned()
         };
         format!(
-            "{api} {version}{nf}{af}{host}{ip4}{ip6}{port}{path}",
+            "{api} {version}{nf}{af}{ip4}{ip6}{domain}{port}{path}",
             api = self.api.0,
             version = if self.api_version > 0 {
                 format!("V{} ", self.api_version)
@@ -340,7 +338,7 @@ impl ToString for EndpointV2 {
             nf = self.network_features.to_string(),
             af = self.api_features.to_string(),
             port = self.port,
-            host = host,
+            domain = domain,
             ip4 = ip4,
             ip6 = ip6,
             path = path,
@@ -360,8 +358,8 @@ impl EndpointV2 {
             443 => "s",
             _ => "",
         };
-        let host = if let Some(ref host) = self.host {
-            host.clone()
+        let domain = if let Some(ref domain) = self.domain {
+            domain.clone()
         } else if supported_ip_v6 && self.ip_v6.is_some() {
             let ip_v6 = self.ip_v6.unwrap();
             format!("{}", ip_v6)
@@ -380,21 +378,21 @@ impl EndpointV2 {
         if get_protocol {
             Some(format!(
                 "{}{}://{}:{}/{}",
-                protocol, tls, host, self.port, path
+                protocol, tls, domain, self.port, path
             ))
         } else {
-            Some(format!("{}:{}/{}", host, self.port, path))
+            Some(format!("{}:{}/{}", domain, self.port, path))
         }
     }
     /// Generate from pest pair
-    pub fn from_pest_pair(pair: Pair<Rule>) -> EndpointV2 {
+    pub fn from_pest_pair(pair: Pair<Rule>) -> Result<EndpointV2, AddrParseError> {
         let mut api_str = "";
         let mut api_version = 0;
         let mut network_features = EndpointV2NetworkFeatures(vec![0u8]);
         let mut api_features = ApiFeatures(vec![]);
         let mut ip_v4 = None;
         let mut ip_v6 = None;
-        let mut host = None;
+        let mut domain = None;
         let mut port = 0;
         let mut path = None;
         for field in pair.into_inner() {
@@ -413,9 +411,9 @@ impl EndpointV2 {
                     };
                 }
                 Rule::port => port = field.as_str().parse().unwrap(),
-                Rule::host_v2_inner => host = Some(String::from(field.as_str())),
-                Rule::ip4_inner => ip_v4 = Some(Ipv4Addr::from_str(field.as_str()).unwrap()),
-                Rule::ip6_inner => ip_v6 = Some(Ipv6Addr::from_str(field.as_str()).unwrap()),
+                Rule::domain_name_inner => domain = Some(String::from(field.as_str())),
+                Rule::ip4_inner => ip_v4 = Some(Ipv4Addr::from_str(field.as_str())?),
+                Rule::ip6_inner => ip_v6 = Some(Ipv6Addr::from_str(field.as_str())?),
                 Rule::path_inner => path = Some(String::from(field.as_str())),
                 _ => fatal_error!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
             }
@@ -423,26 +421,25 @@ impl EndpointV2 {
         if network_features.is_empty() {
             network_features = EndpointV2NetworkFeatures(vec![]);
         }
-        EndpointV2 {
+
+        Ok(EndpointV2 {
             api: ApiName(String::from(api_str)),
             api_version,
             network_features,
             api_features,
+            domain,
             ip_v4,
             ip_v6,
-            host,
             port,
             path,
-        }
+        })
     }
     /// parse from raw ascii format
-    pub fn parse_from_raw(raw_endpoint: &str) -> Result<EndpointEnum, ParseError> {
-        match NetworkDocsParser::parse(Rule::endpoint_v2, raw_endpoint) {
-            Ok(mut ep_v2_pairs) => Ok(EndpointEnum::V2(EndpointV2::from_pest_pair(
-                ep_v2_pairs.next().unwrap(),
-            ))),
-            Err(pest_error) => Err(ParseError::PestError(format!("{}", pest_error))),
-        }
+    pub fn parse_from_raw(raw_endpoint: &str) -> Result<EndpointEnum, TextDocumentParseError> {
+        let mut ep_v2_pairs = NetworkDocsParser::parse(Rule::endpoint_v2, raw_endpoint)?;
+        Ok(EndpointEnum::V2(EndpointV2::from_pest_pair(
+            ep_v2_pairs.next().unwrap(),
+        )?))
     }
 }
 
@@ -674,7 +671,7 @@ mod tests {
             api_features: ApiFeatures(vec![]),
             ip_v4: None,
             ip_v6: None,
-            host: None,
+            domain: None,
             port: 8080u16,
             path: None,
         };
@@ -691,7 +688,7 @@ mod tests {
             api_features: ApiFeatures(vec![]),
             ip_v4: None,
             ip_v6: None,
-            host: Some(String::from("localhost")),
+            domain: Some(String::from("localhost")),
             port: 10900u16,
             path: None,
         };
@@ -713,7 +710,7 @@ mod tests {
             api_features: ApiFeatures(vec![]),
             ip_v4: None,
             ip_v6: None,
-            host: Some(String::from("g1.data.duniter.fr")),
+            domain: Some(String::from("g1.data.duniter.fr")),
             port: 443u16,
             path: None,
         };
@@ -730,7 +727,7 @@ mod tests {
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: None,
-            host: Some(String::from("g1.durs.ifee.fr")),
+            domain: Some(String::from("g1.durs.ifee.fr")),
             port: 443u16,
             path: Some(String::from("ws2p")),
         };
@@ -752,7 +749,7 @@ mod tests {
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("84.16.72.210").unwrap()),
             ip_v6: None,
-            host: None,
+            domain: None,
             port: 443u16,
             path: Some(String::from("ws2p")),
         };
@@ -769,7 +766,7 @@ mod tests {
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
             ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
-            host: None,
+            domain: None,
             port: 443u16,
             path: Some(String::from("ws2p")),
         };
@@ -786,7 +783,7 @@ mod tests {
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("5.135.188.170").unwrap()),
             ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
-            host: None,
+            domain: None,
             port: 443u16,
             path: Some(String::from("ws2p")),
         };
@@ -796,7 +793,7 @@ mod tests {
     #[test]
     fn test_parse_and_read_endpoint_with_all_fields() {
         let str_endpoint =
-            "WS2P V2 S 0x7 g1.durs.info 5.135.188.170 [2001:41d0:8:c5aa::1] 443 ws2p";
+            "WS2P V2 S 0x7 5.135.188.170 [2001:41d0:8:c5aa::1] g1.durs.info 443 ws2p";
         let endpoint = EndpointV2 {
             api: ApiName(String::from("WS2P")),
             api_version: 2,
@@ -804,7 +801,7 @@ mod tests {
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("5.135.188.170").unwrap()),
             ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
-            host: Some(String::from("g1.durs.info")),
+            domain: Some(String::from("g1.durs.info")),
             port: 443u16,
             path: Some(String::from("ws2p")),
         };
