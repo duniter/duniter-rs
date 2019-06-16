@@ -62,42 +62,18 @@ pub enum SyncJobsMess {
     End(),
 }
 
-/// Get json files path
-fn get_json_files_path(source: Option<String>, currency: Option<String>) -> PathBuf {
-    if let Some(ref path) = source {
-        PathBuf::from(path)
-    } else {
-        let mut json_chunks_path = match dirs::config_dir() {
-            Some(path) => path,
-            None => fatal_error!("Impossible to get user config directory !"),
-        };
-        json_chunks_path.push("duniter/");
-        json_chunks_path.push("duniter_default");
-
-        let currency = if let Some(currency) = &currency {
-            currency
-        } else {
-            DEFAULT_CURRENCY
-        };
-
-        json_chunks_path.push(currency);
-        json_chunks_path
-    }
-}
-
 /// Sync from local json files
 pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts: SyncOpt) {
     let SyncOpt {
-        source,
-        currency,
-        end,
         cautious_mode: cautious,
+        end,
+        local_path,
         unsafe_mode,
         ..
     } = sync_opts;
 
     // get json_files_path
-    let json_files_path = get_json_files_path(source, currency);
+    let json_files_path = unwrap!(local_path);
     if !json_files_path.as_path().exists() {
         fatal_error!("duniter json chunks folder don't exist !");
     }

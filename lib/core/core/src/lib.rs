@@ -50,7 +50,6 @@ pub use durs_conf::{
 };
 use durs_message::*;
 use durs_module::*;
-use durs_network::cli::sync::*;
 use durs_network::NetworkModule;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -200,8 +199,11 @@ impl DursCore<DuRsConf> {
                 plug_modules(&mut durs_core)?;
                 durs_core.start()
             }
-            DursCoreCommand::SyncOpt(opts) => match opts.source_type {
-                SyncSourceType::Network => {
+            DursCoreCommand::SyncOpt(opts) => {
+                if opts.local_path.is_some() {
+                    sync_ts(profile_path.clone(), &durs_core.soft_meta_datas.conf, opts);
+                    Ok(())
+                } else if opts.source.is_some() {
                     durs_core.server_command = Some(ServerMode::Sync(opts));
 
                     durs_core.router_sender = Some(router::start_router(
@@ -212,12 +214,10 @@ impl DursCore<DuRsConf> {
                     ));
                     plug_modules(&mut durs_core)?;
                     durs_core.start()
+                } else {
+                    Err(DursCoreError::SyncWithoutSource)
                 }
-                SyncSourceType::LocalDuniter => {
-                    sync_ts(profile_path.clone(), &durs_core.soft_meta_datas.conf, opts);
-                    Ok(())
-                }
-            },
+            }
             DursCoreCommand::DbExOpt(opts) => opts.execute(durs_core),
             DursCoreCommand::ResetOpt(opts) => opts.execute(durs_core),
             DursCoreCommand::KeysOpt(opts) => opts.execute(durs_core),

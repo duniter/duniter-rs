@@ -15,14 +15,11 @@
 
 //! Define host type
 
-use crate::*;
-use dubp_documents::PestError;
-use failure::Fail;
-use pest::Parser;
-use std::net::{AddrParseError, IpAddr};
-use std::str::FromStr;
+use url::Host as UrlHost;
 
-#[derive(Clone, Debug, Hash)]
+pub type Host = UrlHost<String>;
+
+/*#[derive(Clone, Debug, Hash)]
 /// Domain name
 pub struct DomainName(String);
 
@@ -47,9 +44,9 @@ impl ToString for DomainName {
     fn to_string(&self) -> String {
         self.0.clone()
     }
-}
+}*/
 
-#[derive(Clone, Debug, Hash)]
+/*#[derive(Clone, Debug, Hash)]
 /// Host
 pub enum Host {
     /// Domain name
@@ -81,4 +78,4 @@ impl FromStr for Host {
             },
         }
     }
-}
+}*/

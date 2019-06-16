@@ -55,6 +55,9 @@ pub enum DursCoreError {
         /// Error details
         error: PlugModuleError,
     },
+    /// Sync without source and without option local
+    #[fail(display = "Please specify the url of a trusted node or use the --local option.")]
+    SyncWithoutSource,
 }
 
 impl From<InitLoggerError> for DursCoreError {

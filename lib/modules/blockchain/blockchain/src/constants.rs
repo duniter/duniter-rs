@@ -16,9 +16,6 @@
 /// Module name
 pub static MODULE_NAME: &'static str = "blockchain";
 
-/// Default currency
-pub static DEFAULT_CURRENCY: &'static str = "g1";
-
 /// Chunk size (in blocks)
 pub static CHUNK_SIZE: &'static usize = &250;
 

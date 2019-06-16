@@ -39,6 +39,7 @@ pub mod network_head;
 pub mod network_head_v2;
 pub mod network_head_v3;
 pub mod network_peer;
+pub mod url;
 
 use crate::network_head::NetworkHead;
 use crate::network_head_v3::NetworkHeadV3;

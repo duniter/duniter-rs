@@ -15,7 +15,8 @@
 
 //! Durs network cli : sync subcommands.
 
-use std::str::FromStr;
+use durs_network_documents::url::Url;
+use std::path::PathBuf;
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(
@@ -33,39 +34,19 @@ pub struct SyncOpt {
     /// End block
     #[structopt(short = "e", long = "end")]
     pub end: Option<u32>,
-    /// The source type
-    #[structopt(short = "t", long = "type", default_value = "ts")]
-    pub source_type: SyncSourceType,
+    /// Path to directory that contain blockchain json files
+    #[structopt(short = "l", long = "local")]
+    #[structopt(parse(from_os_str))]
+    pub local_path: Option<PathBuf>,
+    /// The source of datas (url of the node from which to synchronize)
+    pub source: Option<Url>,
     /// Start node after sync (not yet implemented)
     #[structopt(short = "s", long = "start", hidden = true)]
     pub start: bool,
     /// Sync module name
     #[structopt(short = "m", long = "sync-module")]
     pub sync_module_name: Option<String>,
-    /// The source of datas (url of the node from which to synchronize OR path to local folder)
-    pub source: Option<String>,
     /// unsafe mode (not check blocks inner hashs, very dangerous)
     #[structopt(short = "u", long = "unsafe", hidden = true)]
     pub unsafe_mode: bool,
-}
-
-/// The source of blocks datas
-#[derive(Debug, Copy, Clone)]
-pub enum SyncSourceType {
-    /// Sync from network
-    Network,
-    /// Sync from local Duniter json blocks in files
-    LocalDuniter,
-}
-
-impl FromStr for SyncSourceType {
-    type Err = String;
-
-    fn from_str(source: &str) -> Result<Self, Self::Err> {
-        match source {
-            "n" | "network" => Ok(SyncSourceType::Network),
-            "ts" | "duniter" => Ok(SyncSourceType::LocalDuniter),
-            &_ => Err("Unknown source type".to_owned()),
-        }
-    }
 }
