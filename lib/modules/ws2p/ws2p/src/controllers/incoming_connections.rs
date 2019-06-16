@@ -25,24 +25,21 @@ use durs_ws2p_protocol::controller::meta_datas::WS2PControllerMetaDatas;
 use durs_ws2p_protocol::controller::{WS2PController, WS2PControllerId};
 use durs_ws2p_protocol::orchestrator::OrchestratorMsg;
 use durs_ws2p_protocol::MySelfWs2pNode;
+use std::fmt::Debug;
+use std::net::ToSocketAddrs;
 use std::sync::mpsc;
 use ws::deflate::DeflateBuilder;
 use ws::listen;
 
 /// Listen on WSPv2 host:port
-pub fn listen_on_ws2p_v2_endpoint(
+pub fn listen_on_ws2p_v2_endpoint<A: ToSocketAddrs + Debug>(
     currency: &CurrencyName,
     orchestrator_sender: &mpsc::Sender<OrchestratorMsg<DursMsg>>,
     self_node: &MySelfWs2pNode,
-    host: &str,
-    port: u16,
+    addr: A,
 ) -> ws::Result<()> {
-    // Get endpoint url
-    let ws_url = format!("{}:{}", host, port);
-
     // Connect to websocket
-    listen(ws_url, move |ws| {
-        info!("Listen on {}:{} ...", host, port);
+    listen(addr, move |ws| {
         match WS2PController::<DursMsg>::try_new(
             WS2PControllerId::Incoming,
             WS2PControllerMetaDatas::new(

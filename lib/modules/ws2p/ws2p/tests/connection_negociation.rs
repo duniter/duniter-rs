@@ -92,8 +92,7 @@ fn test_connection_negociation_denial() {
             &currency(),
             &server_service_sender,
             &server_node_clone,
-            "localhost",
-            *PORT + 1,
+            format!("localhost:{}", *PORT + 1),
         )
     });
 
@@ -170,8 +169,7 @@ fn test_connection_negociation_success() {
             &currency(),
             &server_service_sender,
             &server_node_clone,
-            "localhost",
-            *PORT,
+            format!("localhost:{}", *PORT),
         )
     });
 
