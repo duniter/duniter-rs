@@ -61,7 +61,7 @@ pub enum DUBPDocument {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DUBPDocumentStr {
     /// Block document (not yet implemented)
-    Block(),
+    Block(Box<BlockDocumentStringified>),
 
     /// Transaction document.
     Transaction(Box<TransactionDocumentStringified>),
@@ -84,7 +84,9 @@ impl ToStringObject for DUBPDocument {
     /// Transforms an object into a json object
     fn to_string_object(&self) -> Self::StringObject {
         match *self {
-            DUBPDocument::Block(_) => unimplemented!(),
+            DUBPDocument::Block(ref doc) => {
+                DUBPDocumentStr::Block(Box::new(doc.to_string_object()))
+            }
             DUBPDocument::Identity(ref doc) => DUBPDocumentStr::Identity(doc.to_string_object()),
             DUBPDocument::Membership(ref doc) => {
                 DUBPDocumentStr::Membership(doc.to_string_object())

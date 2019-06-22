@@ -431,7 +431,7 @@ impl IntoSpecializedDocument<DUBPDocument> for BlockDocument {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct BlockDocumentStringified {
     /// Version
     pub version: u64,
