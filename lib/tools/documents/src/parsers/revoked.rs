@@ -13,19 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::documents::revocation::{CompactRevocationDocument, RevocationDocument};
+use crate::documents::revocation::{CompactRevocationDocumentV10, RevocationDocumentV10};
 use crate::text_document_traits::TextDocumentFormat;
 use dup_crypto::keys::*;
 
-/// Parse array of revocations json documents into vector of `CompactRevocationDocument`
+/// Parse array of revocations json documents into vector of `CompactRevocationDocumentV10`
 pub fn parse_revocations_into_compact(
     str_revocations: &[&str],
-) -> Vec<TextDocumentFormat<RevocationDocument>> {
-    let mut revocations: Vec<TextDocumentFormat<RevocationDocument>> = Vec::new();
+) -> Vec<TextDocumentFormat<RevocationDocumentV10>> {
+    let mut revocations: Vec<TextDocumentFormat<RevocationDocumentV10>> = Vec::new();
     for revocation in str_revocations {
         let revocations_datas: Vec<&str> = revocation.split(':').collect();
         if revocations_datas.len() == 2 {
-            revocations.push(TextDocumentFormat::Compact(CompactRevocationDocument {
+            revocations.push(TextDocumentFormat::Compact(CompactRevocationDocumentV10 {
                 issuer: PubKey::Ed25519(
                     ed25519::PublicKey::from_base58(revocations_datas[0])
                         .expect("Receive block in wrong format !"),

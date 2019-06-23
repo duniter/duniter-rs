@@ -88,7 +88,7 @@ pub enum UserDocumentDUBPStr {
     Certification(Box<CertificationDocumentStringified>),
 
     /// Revocation document.
-    Revocation(Box<RevocationStringDocument>),
+    Revocation(Box<RevocationDocumentStringified>),
 }
 
 impl ToStringObject for DocumentDUBP {
@@ -182,7 +182,7 @@ impl UserDocumentDUBP {
                 )?),
             ))),
             Rule::revoc_v10 => Ok(UserDocumentDUBP::Revocation(Box::new(
-                revocation::RevocationDocumentParser::from_pest_pair(doc_type_v10_pair)?,
+                RevocationDocumentParser::from_pest_pair(doc_type_v10_pair)?,
             ))),
             Rule::tx_v10 => Ok(UserDocumentDUBP::Transaction(Box::new(
                 transaction::TransactionDocumentParser::from_pest_pair(doc_type_v10_pair)?,

@@ -28,7 +28,8 @@ use crate::blockstamp::Blockstamp;
 use crate::documents::certification::v10::CompactCertificationDocumentV10Stringified;
 use crate::documents::identity::IdentityDocumentV10;
 use crate::documents::membership::v10::{MembershipDocumentV10, MembershipDocumentV10Stringified};
-use crate::documents::revocation::RevocationDocument;
+use crate::documents::revocation::v10::CompactRevocationDocumentV10Stringified;
+use crate::documents::revocation::RevocationDocumentV10;
 use crate::documents::transaction::TransactionDocument;
 use crate::documents::*;
 use crate::text_document_traits::*;
@@ -124,7 +125,7 @@ pub struct BlockDocumentV10 {
     /// Leavers
     pub leavers: Vec<MembershipDocumentV10>,
     /// Revokeds
-    pub revoked: Vec<TextDocumentFormat<RevocationDocument>>,
+    pub revoked: Vec<TextDocumentFormat<RevocationDocumentV10>>,
     /// Excludeds
     pub excluded: Vec<PubKey>,
     /// Certifications
@@ -503,7 +504,7 @@ pub struct BlockDocumentV10Stringified {
     /// Leavers
     pub leavers: Vec<MembershipDocumentV10Stringified>,
     /// Revokeds
-    pub revoked: Vec<CompactRevocationStringDocument>,
+    pub revoked: Vec<CompactRevocationDocumentV10Stringified>,
     /// Excludeds
     pub excluded: Vec<String>,
     /// Certifications

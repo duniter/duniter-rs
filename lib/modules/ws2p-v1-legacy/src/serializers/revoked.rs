@@ -13,12 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Sub-module that serialize CompactRevocationStringDocument into WS2Pv1 json format
+//! Sub-module that serialize CompactRevocationDocumentV10Stringified into WS2Pv1 json format
 
 use super::IntoWS2Pv1Json;
-use dubp_documents::documents::revocation::CompactRevocationStringDocument;
+use dubp_documents::documents::revocation::CompactRevocationDocumentV10Stringified;
 
-impl IntoWS2Pv1Json for CompactRevocationStringDocument {
+impl IntoWS2Pv1Json for CompactRevocationDocumentV10Stringified {
     fn into_ws2p_v1_json(self) -> serde_json::Value {
         format!("{}:{}", self.issuer, self.signature,).into()
     }

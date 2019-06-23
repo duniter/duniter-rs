@@ -15,265 +15,80 @@
 
 //! Wrappers around Revocation documents.
 
-use dup_crypto::keys::*;
-use durs_common_tools::fatal_error;
-use pest::Parser;
+pub mod v10;
+
+pub use v10::{
+    CompactRevocationDocumentV10, CompactRevocationDocumentV10Stringified, RevocationDocumentV10,
+    RevocationDocumentV10Stringified,
+};
 
 use crate::blockstamp::Blockstamp;
 use crate::documents::*;
-use crate::text_document_traits::*;
 
-#[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq)]
-/// Wrap an Compact Revocation document (in block content)
-pub struct CompactRevocationDocument {
-    /// Issuer
-    pub issuer: PubKey,
-    /// Signature
-    pub signature: Sig,
-}
-
-impl CompactTextDocument for CompactRevocationDocument {
-    fn as_compact_text(&self) -> String {
-        format!(
-            "{issuer}:{signature}",
-            issuer = self.issuer,
-            signature = self.signature,
-        )
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
-/// Revocation document for jsonification
-pub struct CompactRevocationStringDocument {
-    /// Document issuer
-    pub issuer: String,
-    /// Document signature
-    pub signature: String,
-}
-
-impl ToStringObject for CompactRevocationDocument {
-    type StringObject = CompactRevocationStringDocument;
-    /// Transforms an object into a json object
-    fn to_string_object(&self) -> CompactRevocationStringDocument {
-        CompactRevocationStringDocument {
-            issuer: format!("{}", self.issuer),
-            signature: format!("{}", self.signature),
-        }
-    }
-}
+use dup_crypto::keys::*;
+use pest::Parser;
 
 /// Wrap an Revocation document.
 ///
 /// Must be created by parsing a text document or using a builder.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub struct RevocationDocument {
-    /// Document as text.
-    ///
-    /// Is used to check signatures, and other values mut be extracted from it.
-    text: String,
-
-    /// Name of the currency.
-    currency: String,
-    /// Document issuer (there should be only one).
-    issuers: Vec<PubKey>,
-    /// Username of target identity
-    identity_username: String,
-    /// Target Identity document blockstamp.
-    identity_blockstamp: Blockstamp,
-    /// Target Identity document signature.
-    identity_sig: Sig,
-    /// Document signature (there should be only one).
-    signatures: Vec<Sig>,
+pub enum RevocationDocument {
+    /// Revocation document v10
+    V10(RevocationDocumentV10),
 }
 
-#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
-/// Revocation document for jsonification
-pub struct RevocationStringDocument {
-    /// Name of the currency.
-    currency: String,
-    /// Document issuer
-    issuer: String,
-    /// Username of target identity
-    identity_username: String,
-    /// Target Identity document blockstamp.
-    identity_blockstamp: String,
-    /// Target Identity document signature.
-    identity_sig: String,
-    /// Document signature
-    signature: String,
-}
-
-impl ToStringObject for RevocationDocument {
-    type StringObject = RevocationStringDocument;
-    /// Transforms an object into a json object
-    fn to_string_object(&self) -> RevocationStringDocument {
-        RevocationStringDocument {
-            currency: self.currency.clone(),
-            issuer: format!("{}", self.issuers[0]),
-            identity_username: self.identity_username.clone(),
-            identity_blockstamp: format!("{}", self.identity_blockstamp),
-            identity_sig: format!("{}", self.identity_sig),
-            signature: format!("{}", self.signatures[0]),
-        }
-    }
-}
-
-impl RevocationDocument {
-    /// Username of target identity
-    pub fn identity_username(&self) -> &str {
-        &self.identity_username
-    }
-    /// From pest parser pair
-    pub fn from_pest_pair(pair: Pair<Rule>) -> Result<RevocationDocument, TextDocumentParseError> {
-        let doc = pair.as_str();
-        let mut currency = "";
-        let mut pubkeys = Vec::with_capacity(1);
-        let mut uid = "";
-        let mut sigs = Vec::with_capacity(2);
-        let mut blockstamps = Vec::with_capacity(1);
-        for field in pair.into_inner() {
-            match field.as_rule() {
-                Rule::currency => currency = field.as_str(),
-                Rule::pubkey => pubkeys.push(PubKey::Ed25519(
-                    ed25519::PublicKey::from_base58(field.as_str()).unwrap(), // Grammar ensures that we have a base58 string.
-                )),
-                Rule::uid => {
-                    uid = field.as_str();
-                }
-                Rule::blockstamp => {
-                    let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
-
-                    let block_id: &str = inner_rules.next().unwrap().as_str();
-                    let block_hash: &str = inner_rules.next().unwrap().as_str();
-                    blockstamps.push(Blockstamp {
-                        id: BlockNumber(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
-                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
-                    });
-                }
-                Rule::ed25519_sig => {
-                    sigs.push(Sig::Ed25519(
-                        ed25519::Signature::from_base64(field.as_str()).unwrap(), // Grammar ensures that we have a base64 string.
-                    ));
-                }
-                Rule::EOI => (),
-                _ => fatal_error!("unexpected rule"), // Grammar ensures that we never reach this line
-            }
-        }
-        Ok(RevocationDocument {
-            text: doc.to_owned(),
-            issuers: vec![pubkeys[0]],
-            currency: currency.to_owned(),
-            identity_username: uid.to_owned(),
-            identity_blockstamp: blockstamps[0],
-            identity_sig: sigs[0],
-            signatures: vec![sigs[1]],
-        })
-    }
+/// Wrap an Compact Revocation document.
+///
+/// Must be created by a revocation document.
+#[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub enum CompactRevocationDocument {
+    /// Compact revocation document v10
+    V10(CompactRevocationDocumentV10),
 }
 
 impl Document for RevocationDocument {
     type PublicKey = PubKey;
 
+    #[inline]
     fn version(&self) -> u16 {
-        10
+        match self {
+            RevocationDocument::V10(_) => 10u16,
+        }
     }
 
+    #[inline]
     fn currency(&self) -> &str {
-        &self.currency
+        match self {
+            RevocationDocument::V10(revoc_v10) => revoc_v10.currency(),
+        }
     }
 
+    #[inline]
     fn blockstamp(&self) -> Blockstamp {
-        unimplemented!()
+        match self {
+            RevocationDocument::V10(revoc_v10) => revoc_v10.blockstamp(),
+        }
     }
 
+    #[inline]
     fn issuers(&self) -> &Vec<PubKey> {
-        &self.issuers
+        match self {
+            RevocationDocument::V10(revoc_v10) => revoc_v10.issuers(),
+        }
     }
 
+    #[inline]
     fn signatures(&self) -> &Vec<Sig> {
-        &self.signatures
+        match self {
+            RevocationDocument::V10(revoc_v10) => revoc_v10.signatures(),
+        }
     }
 
+    #[inline]
     fn as_bytes(&self) -> &[u8] {
-        self.as_text_without_signature().as_bytes()
-    }
-}
-
-impl TextDocument for RevocationDocument {
-    type CompactTextDocument_ = CompactRevocationDocument;
-
-    fn as_text(&self) -> &str {
-        &self.text
-    }
-
-    fn to_compact_document(&self) -> Self::CompactTextDocument_ {
-        CompactRevocationDocument {
-            issuer: self.issuers[0],
-            signature: self.signatures[0],
+        match self {
+            RevocationDocument::V10(revoc_v10) => revoc_v10.as_bytes(),
         }
-    }
-}
-
-/// Revocation document builder.
-#[derive(Debug, Copy, Clone)]
-pub struct RevocationDocumentBuilder<'a> {
-    /// Document currency.
-    pub currency: &'a str,
-    /// Revocation issuer.
-    pub issuer: &'a PubKey,
-    /// Username of target Identity.
-    pub identity_username: &'a str,
-    /// Blockstamp of target Identity.
-    pub identity_blockstamp: &'a Blockstamp,
-    /// Signature of target Identity.
-    pub identity_sig: &'a Sig,
-}
-
-impl<'a> RevocationDocumentBuilder<'a> {
-    fn build_with_text_and_sigs(self, text: String, signatures: Vec<Sig>) -> RevocationDocument {
-        RevocationDocument {
-            text,
-            currency: self.currency.to_string(),
-            issuers: vec![*self.issuer],
-            identity_username: self.identity_username.to_string(),
-            identity_blockstamp: *self.identity_blockstamp,
-            identity_sig: *self.identity_sig,
-            signatures,
-        }
-    }
-}
-
-impl<'a> DocumentBuilder for RevocationDocumentBuilder<'a> {
-    type Document = RevocationDocument;
-    type PrivateKey = PrivKey;
-
-    fn build_with_signature(&self, signatures: Vec<Sig>) -> RevocationDocument {
-        self.build_with_text_and_sigs(self.generate_text(), signatures)
-    }
-
-    fn build_and_sign(&self, private_keys: Vec<PrivKey>) -> RevocationDocument {
-        let (text, signatures) = self.build_signed_text(private_keys);
-        self.build_with_text_and_sigs(text, signatures)
-    }
-}
-
-impl<'a> TextDocumentBuilder for RevocationDocumentBuilder<'a> {
-    fn generate_text(&self) -> String {
-        format!(
-            "Version: 10
-Type: Revocation
-Currency: {currency}
-Issuer: {issuer}
-IdtyUniqueID: {idty_uid}
-IdtyTimestamp: {idty_blockstamp}
-IdtySignature: {idty_sig}
-",
-            currency = self.currency,
-            issuer = self.issuer,
-            idty_uid = self.identity_username,
-            idty_blockstamp = self.identity_blockstamp,
-            idty_sig = self.identity_sig,
-        )
     }
 }
 
@@ -294,7 +109,7 @@ impl TextDocumentParser<Rule> for RevocationDocumentParser {
         let revoc_vx_pair = pair.into_inner().next().unwrap(); // get and unwrap the `revoc_vX` rule; never fails
 
         match revoc_vx_pair.as_rule() {
-            Rule::revoc_v10 => Ok(RevocationDocument::from_pest_pair(revoc_vx_pair)?),
+            Rule::revoc_v10 => Self::from_versioned_pest_pair(10, revoc_vx_pair),
             _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
                 "{:#?}",
                 revoc_vx_pair.as_rule()
@@ -307,7 +122,9 @@ impl TextDocumentParser<Rule> for RevocationDocumentParser {
         pair: Pair<Rule>,
     ) -> Result<Self::DocumentType, TextDocumentParseError> {
         match version {
-            10 => Ok(RevocationDocument::from_pest_pair(pair)?),
+            10 => Ok(RevocationDocument::V10(
+                RevocationDocumentV10::from_pest_pair(pair)?,
+            )),
             v => Err(TextDocumentParseError::UnexpectedVersion(format!(
                 "Unsupported version: {}",
                 v
@@ -316,72 +133,36 @@ impl TextDocumentParser<Rule> for RevocationDocumentParser {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::VerificationResult;
-    use dup_crypto::keys::{PrivateKey, PublicKey, Signature};
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum RevocationDocumentStringified {
+    V10(RevocationDocumentV10Stringified),
+}
 
-    #[test]
-    fn generate_real_document() {
-        let pubkey = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
-                .unwrap(),
-        );
+impl ToStringObject for RevocationDocument {
+    type StringObject = RevocationDocumentStringified;
 
-        let prikey = PrivKey::Ed25519(
-            ed25519::PrivateKey::from_base58(
-                "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5G\
-                 iERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
-            )
-            .unwrap(),
-        );
-
-        let sig = Sig::Ed25519(ed25519::Signature::from_base64(
-            "XXOgI++6qpY9O31ml/FcfbXCE6aixIrgkT5jL7kBle3YOMr+8wrp7Rt+z9hDVjrNfYX2gpeJsuMNfG4T/fzVDQ==",
-        ).unwrap());
-
-        let identity_blockstamp = Blockstamp::from_string(
-            "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
-        )
-        .unwrap();
-
-        let identity_sig = Sig::Ed25519(ed25519::Signature::from_base64(
-            "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
-        ).unwrap());
-
-        let builder = RevocationDocumentBuilder {
-            currency: "g1",
-            issuer: &pubkey,
-            identity_username: "tic",
-            identity_blockstamp: &identity_blockstamp,
-            identity_sig: &identity_sig,
-        };
-
-        assert_eq!(
-            builder.build_with_signature(vec![sig]).verify_signatures(),
-            VerificationResult::Valid()
-        );
-
-        assert_eq!(
-            builder.build_and_sign(vec![prikey]).verify_signatures(),
-            VerificationResult::Valid()
-        );
+    fn to_string_object(&self) -> Self::StringObject {
+        match self {
+            RevocationDocument::V10(idty) => {
+                RevocationDocumentStringified::V10(idty.to_string_object())
+            }
+        }
     }
+}
 
-    #[test]
-    fn revocation_document() {
-        let doc = "Version: 10
-Type: Revocation
-Currency: g1
-Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
-IdtyUniqueID: tic
-IdtyTimestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
-IdtySignature: 1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==
-XXOgI++6qpY9O31ml/FcfbXCE6aixIrgkT5jL7kBle3YOMr+8wrp7Rt+z9hDVjrNfYX2gpeJsuMNfG4T/fzVDQ==";
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum CompactRevocationDocumentStringified {
+    V10(CompactRevocationDocumentV10Stringified),
+}
 
-        let doc = RevocationDocumentParser::parse(doc).unwrap();
-        println!("Doc : {:?}", doc);
-        assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+impl ToStringObject for CompactRevocationDocument {
+    type StringObject = CompactRevocationDocumentStringified;
+
+    fn to_string_object(&self) -> Self::StringObject {
+        match self {
+            CompactRevocationDocument::V10(doc) => {
+                CompactRevocationDocumentStringified::V10(doc.to_string_object())
+            }
+        }
     }
 }

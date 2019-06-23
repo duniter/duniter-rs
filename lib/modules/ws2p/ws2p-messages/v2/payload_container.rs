@@ -22,7 +22,7 @@ use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::documents::certification::CertificationDocument;
 use dubp_documents::documents::identity::IdentityDocument;
 use dubp_documents::documents::membership::MembershipDocument;
-use dubp_documents::documents::revocation::RevocationDocument;
+use dubp_documents::documents::revocation::RevocationDocumentV10;
 use dubp_documents::documents::transaction::TransactionDocument;
 use dup_crypto::hashs::Hash;
 use durs_network_documents::network_head_v2::NetworkHeadV2;
@@ -67,7 +67,7 @@ pub enum WS2Pv2MessagePayload {
     /// PENDING_CERTS Message
     PendingCerts(Vec<CertificationDocument>),
     /// PENDING_REVOCATIONS Message
-    PendingRevocations(Vec<RevocationDocument>),
+    PendingRevocations(Vec<RevocationDocumentV10>),
     /// PENDING_TXS Message
     PendingTxs(Vec<TransactionDocument>),
 }

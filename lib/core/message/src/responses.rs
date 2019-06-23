@@ -17,7 +17,7 @@ use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::documents::certification::CertificationDocument;
 use dubp_documents::documents::identity::IdentityDocument;
 use dubp_documents::documents::membership::MembershipDocument;
-use dubp_documents::documents::revocation::RevocationDocument;
+use dubp_documents::documents::revocation::RevocationDocumentV10;
 use dubp_documents::BlockNumber;
 use dubp_documents::Blockstamp;
 use dup_crypto::hashs::Hash;
@@ -51,7 +51,7 @@ pub struct PendingIdtyDatas {
     /// Certifications documents
     pub certs: Vec<CertificationDocument>,
     /// Revocation document (None if identity has not been revoked)
-    pub revocation: Option<RevocationDocument>,
+    pub revocation: Option<RevocationDocumentV10>,
 }
 
 #[derive(Debug, Clone)]
