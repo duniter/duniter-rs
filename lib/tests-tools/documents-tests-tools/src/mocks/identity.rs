@@ -15,14 +15,15 @@
 
 //! Mocks for projects use dubp-documents
 
+use dubp_documents::documents::identity::v10::IdentityDocumentV10Builder;
 use dubp_documents::documents::identity::*;
 use dubp_documents::*;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::PubKey;
 
 /// Generate mock identity document
-pub fn gen_mock_idty(pubkey: PubKey, created_on: BlockNumber) -> IdentityDocument {
-    let idty_builder = IdentityDocumentBuilder {
+pub fn gen_mock_idty(pubkey: PubKey, created_on: BlockNumber) -> IdentityDocumentV10 {
+    let idty_builder = IdentityDocumentV10Builder {
         currency: "",
         username: "",
         blockstamp: &Blockstamp {

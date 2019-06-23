@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::documents::identity::*;
+use crate::documents::identity::v10::*;
 use crate::Blockstamp;
 use crate::DocumentBuilder;
 use dup_crypto::keys::*;
@@ -28,7 +28,7 @@ pub struct ParseIdentityError {
 pub fn parse_compact_identities(
     currency: &str,
     str_identities: Vec<&str>,
-) -> Result<Vec<IdentityDocument>, ParseIdentityError> {
+) -> Result<Vec<IdentityDocumentV10>, ParseIdentityError> {
     let mut identities = Vec::with_capacity(str_identities.len());
 
     for str_identity in str_identities {
@@ -58,7 +58,7 @@ pub fn parse_compact_identities(
             }
         };
         let username = idty_elements[3];
-        let idty_doc_builder = IdentityDocumentBuilder {
+        let idty_doc_builder = IdentityDocumentV10Builder {
             currency,
             username,
             blockstamp: &blockstamp,

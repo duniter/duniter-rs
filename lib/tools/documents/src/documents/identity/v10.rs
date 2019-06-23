@@ -1,0 +1,349 @@
+//  Copyright (C) 2018  The Duniter Project Developers.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+//! Wrappers around Identity documents V10.
+
+use durs_common_tools::fatal_error;
+use pest::Parser;
+
+use crate::documents::*;
+use crate::text_document_traits::*;
+use crate::Blockstamp;
+
+/// Wrap an Identity document.
+///
+/// Must be created by parsing a text document or using a builder.
+#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
+pub struct IdentityDocumentV10 {
+    /// Document as text.
+    ///
+    /// Is used to check signatures, and other values
+    /// must be extracted from it.
+    text: Option<String>,
+
+    /// Currency.
+    currency: String,
+    /// Unique ID
+    username: String,
+    /// Blockstamp
+    blockstamp: Blockstamp,
+    /// Document issuer (there should be only one).
+    issuers: Vec<PubKey>,
+    /// Document signature (there should be only one).
+    signatures: Vec<Sig>,
+}
+
+#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
+/// identity document for jsonification
+pub struct IdentityDocumentV10Stringified {
+    /// Currency.
+    pub currency: String,
+    /// Unique ID
+    pub username: String,
+    /// Blockstamp
+    pub blockstamp: String,
+    /// Document issuer
+    pub issuer: String,
+    /// Document signature
+    pub signature: String,
+}
+
+impl ToStringObject for IdentityDocumentV10 {
+    type StringObject = IdentityDocumentV10Stringified;
+    /// Transforms an object into a json object
+    fn to_string_object(&self) -> IdentityDocumentV10Stringified {
+        IdentityDocumentV10Stringified {
+            currency: self.currency.clone(),
+            username: self.username.clone(),
+            blockstamp: format!("{}", self.blockstamp),
+            issuer: format!("{}", self.issuers[0]),
+            signature: format!("{}", self.signatures[0]),
+        }
+    }
+}
+
+impl IdentityDocumentV10 {
+    /// Unique ID
+    pub fn username(&self) -> &str {
+        &self.username
+    }
+
+    /// Lightens the membership (for example to store it while minimizing the space required)
+    pub fn reduce(&mut self) {
+        self.text = None;
+    }
+}
+
+impl Document for IdentityDocumentV10 {
+    type PublicKey = PubKey;
+
+    fn version(&self) -> u16 {
+        10
+    }
+
+    fn currency(&self) -> &str {
+        &self.currency
+    }
+
+    fn blockstamp(&self) -> Blockstamp {
+        self.blockstamp
+    }
+
+    fn issuers(&self) -> &Vec<PubKey> {
+        &self.issuers
+    }
+
+    fn signatures(&self) -> &Vec<Sig> {
+        &self.signatures
+    }
+
+    fn as_bytes(&self) -> &[u8] {
+        self.as_text_without_signature().as_bytes()
+    }
+}
+
+/// CompactIdentityDocumentV10
+#[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
+pub struct CompactIdentityDocumentV10 {
+    /// Unique ID
+    username: String,
+    /// Blockstamp
+    blockstamp: Blockstamp,
+    /// Document issuer
+    pubkey: PubKey,
+    /// Document signature
+    signature: Sig,
+}
+
+impl CompactTextDocument for CompactIdentityDocumentV10 {
+    fn as_compact_text(&self) -> String {
+        format!(
+            "{issuer}:{signature}:{blockstamp}:{username}",
+            issuer = self.pubkey,
+            signature = self.signature,
+            blockstamp = self.blockstamp,
+            username = self.username,
+        )
+    }
+}
+
+impl TextDocument for IdentityDocumentV10 {
+    type CompactTextDocument_ = CompactIdentityDocumentV10;
+
+    fn as_text(&self) -> &str {
+        if let Some(ref text) = self.text {
+            text
+        } else {
+            fatal_error!("Try to get text of reduce identity !")
+        }
+    }
+
+    fn to_compact_document(&self) -> Self::CompactTextDocument_ {
+        CompactIdentityDocumentV10 {
+            username: self.username.clone(),
+            blockstamp: self.blockstamp,
+            pubkey: self.issuers[0],
+            signature: self.signatures[0],
+        }
+    }
+}
+
+/// Identity document builder.
+#[derive(Debug, Copy, Clone)]
+pub struct IdentityDocumentV10Builder<'a> {
+    /// Document currency.
+    pub currency: &'a str,
+    /// Identity unique id.
+    pub username: &'a str,
+    /// Reference blockstamp.
+    pub blockstamp: &'a Blockstamp,
+    /// Document/identity issuer.
+    pub issuer: &'a PubKey,
+}
+
+impl<'a> IdentityDocumentV10Builder<'a> {
+    fn build_with_text_and_sigs(self, text: String, signatures: Vec<Sig>) -> IdentityDocumentV10 {
+        IdentityDocumentV10 {
+            text: Some(text),
+            currency: self.currency.to_string(),
+            username: self.username.to_string(),
+            blockstamp: *self.blockstamp,
+            issuers: vec![*self.issuer],
+            signatures,
+        }
+    }
+}
+
+impl<'a> DocumentBuilder for IdentityDocumentV10Builder<'a> {
+    type Document = IdentityDocumentV10;
+    type PrivateKey = PrivKey;
+
+    fn build_with_signature(&self, signatures: Vec<Sig>) -> IdentityDocumentV10 {
+        self.build_with_text_and_sigs(self.generate_text(), signatures)
+    }
+
+    fn build_and_sign(&self, private_keys: Vec<PrivKey>) -> IdentityDocumentV10 {
+        let (text, signatures) = self.build_signed_text(private_keys);
+        self.build_with_text_and_sigs(text, signatures)
+    }
+}
+
+impl<'a> TextDocumentBuilder for IdentityDocumentV10Builder<'a> {
+    fn generate_text(&self) -> String {
+        format!(
+            "Version: 10
+Type: Identity
+Currency: {currency}
+Issuer: {issuer}
+UniqueID: {username}
+Timestamp: {blockstamp}
+",
+            currency = self.currency,
+            issuer = self.issuer,
+            username = self.username,
+            blockstamp = self.blockstamp
+        )
+    }
+}
+
+/// Identity document parser
+#[derive(Debug, Clone, Copy)]
+pub struct IdentityDocumentV10Parser;
+
+impl TextDocumentParser<Rule> for IdentityDocumentV10Parser {
+    type DocumentType = IdentityDocumentV10;
+
+    fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
+        let mut doc_pairs = DocumentsParser::parse(Rule::idty, doc)?;
+        let idty_pair = doc_pairs.next().unwrap(); // get and unwrap the `idty` rule; never fails
+        let idty_vx_pair = idty_pair.into_inner().next().unwrap(); // get and unwrap the `idty_vx` rule; never fails
+
+        match idty_vx_pair.as_rule() {
+            Rule::idty_v10 => Ok(IdentityDocumentV10Parser::from_pest_pair(idty_vx_pair)?),
+            _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
+                "{:#?}",
+                idty_vx_pair.as_rule()
+            ))),
+        }
+    }
+    fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
+        let doc = pair.as_str();
+        let mut currency = "";
+        let mut pubkey_str = "";
+        let mut uid = "";
+        let mut blockstamp = Blockstamp::default();
+        let mut sig_str = "";
+        for field in pair.into_inner() {
+            match field.as_rule() {
+                Rule::currency => currency = field.as_str(),
+                Rule::pubkey => pubkey_str = field.as_str(),
+                Rule::uid => uid = field.as_str(),
+                Rule::blockstamp => {
+                    let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
+
+                    let block_id: &str = inner_rules.next().unwrap().as_str();
+                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                    blockstamp = Blockstamp {
+                        id: BlockNumber(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
+                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                    };
+                }
+                Rule::ed25519_sig => sig_str = field.as_str(),
+                Rule::EOI => (),
+                _ => fatal_error!("unexpected rule"), // Grammar ensures that we never reach this line
+            }
+        }
+
+        Ok(IdentityDocumentV10 {
+            text: Some(doc.to_owned()),
+            currency: currency.to_owned(),
+            username: uid.to_owned(),
+            blockstamp,
+            issuers: vec![PubKey::Ed25519(
+                ed25519::PublicKey::from_base58(pubkey_str).unwrap(),
+            )], // Grammar ensures that we have a base58 string.
+            signatures: vec![Sig::Ed25519(
+                ed25519::Signature::from_base64(sig_str).unwrap(),
+            )], // Grammar ensures that we have a base64 string.
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Document, VerificationResult};
+    use dup_crypto::keys::{PrivateKey, PublicKey, Signature};
+
+    #[test]
+    fn generate_real_document() {
+        let pubkey = PubKey::Ed25519(
+            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
+                .unwrap(),
+        );
+
+        let prikey = PrivKey::Ed25519(
+            ed25519::PrivateKey::from_base58(
+                "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5G\
+                 iERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
+            )
+            .unwrap(),
+        );
+
+        let sig = Sig::Ed25519(
+            ed25519::Signature::from_base64(
+                "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGM\
+                 MmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
+            )
+            .unwrap(),
+        );
+
+        let block = Blockstamp::from_string(
+            "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        )
+        .unwrap();
+
+        let builder = IdentityDocumentV10Builder {
+            currency: "duniter_unit_test_currency",
+            username: "tic",
+            blockstamp: &block,
+            issuer: &pubkey,
+        };
+
+        assert_eq!(
+            builder.build_with_signature(vec![sig]).verify_signatures(),
+            VerificationResult::Valid()
+        );
+        assert_eq!(
+            builder.build_and_sign(vec![prikey]).verify_signatures(),
+            VerificationResult::Valid()
+        );
+    }
+
+    #[test]
+    fn parse_identity_document() {
+        let doc = "Version: 10
+Type: Identity
+Currency: duniter_unit_test_currency
+Issuer: DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV
+UniqueID: tic
+Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==";
+
+        let doc = IdentityDocumentV10Parser::parse(doc).expect("Fail to parse idty doc !");
+        println!("Doc : {:?}", doc);
+        assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+    }
+}

@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use dubp_documents::documents::identity::IdentityDocument;
+use dubp_documents::documents::identity::IdentityDocumentV10;
 use dubp_documents::{BlockNumber, Blockstamp};
 use durs_wot::NodeId;
 
@@ -46,7 +46,7 @@ pub struct DALIdentity {
     /// Blockstamp the identity was revoked
     pub revoked_on: Option<Blockstamp>,
     /// Identity document
-    pub idty_doc: IdentityDocument,
+    pub idty_doc: IdentityDocumentV10,
     /// Identity wot id
     pub wot_id: NodeId,
     /// Membership created block number

@@ -166,7 +166,7 @@ pub fn receive_req(
                 )
                 .expect("Fatal error : get_identities: Fail to read IdentitiesDB !")
                 .into_iter()
-                .map(|dal_idty| dal_idty.idty_doc)
+                .map(|dal_idty| IdentityDocument::V10(dal_idty.idty_doc))
                 .collect::<Vec<IdentityDocument>>();
                 responses::sent::send_req_response(
                     bc,

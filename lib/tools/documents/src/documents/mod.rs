@@ -17,6 +17,7 @@
 
 use crate::documents::block::*;
 use crate::documents::certification::*;
+use crate::documents::identity::v10::IdentityDocumentV10Parser;
 use crate::documents::identity::*;
 use crate::documents::membership::*;
 use crate::documents::revocation::*;
@@ -79,7 +80,7 @@ pub enum UserDocumentDUBPStr {
     Transaction(Box<TransactionDocumentStringified>),
 
     /// Identity document.
-    Identity(IdentityStringDocument),
+    Identity(IdentityDocumentStringified),
 
     /// Membership document.
     Membership(MembershipStringDocument),
@@ -156,9 +157,9 @@ impl UserDocumentDUBP {
         let doc_type_v10_pair = pair.into_inner().next().unwrap(); // get and unwrap the `{DOC_TYPE}_v10` rule; never fails
 
         match doc_type_v10_pair.as_rule() {
-            Rule::idty_v10 => Ok(UserDocumentDUBP::Identity(
-                identity::IdentityDocumentParser::from_pest_pair(doc_type_v10_pair)?,
-            )),
+            Rule::idty_v10 => Ok(UserDocumentDUBP::Identity(IdentityDocument::V10(
+                IdentityDocumentV10Parser::from_pest_pair(doc_type_v10_pair)?,
+            ))),
             Rule::membership_v10 => Ok(UserDocumentDUBP::Membership(
                 membership::MembershipDocumentParser::from_pest_pair(doc_type_v10_pair)?,
             )),
@@ -182,7 +183,7 @@ mod tests {
     use crate::*;
 
     use super::certification::CertificationDocumentParser;
-    use super::identity::IdentityDocumentParser;
+    use super::identity::v10::IdentityDocumentV10Parser;
     use super::membership::MembershipDocumentParser;
     use super::revocation::RevocationDocumentParser;
     use super::transaction::TransactionDocumentParser;
@@ -324,7 +325,7 @@ UniqueID: elois
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 Ydnclvw76/JHcKSmU9kl9Ie0ne5/X8NYOqPqbGnufIK3eEPRYYdEYaQh+zffuFhbtIRjv6m/DkVLH5cLy/IyAg==";
 
-        let doc = IdentityDocumentParser::parse(text).unwrap();
+        let doc = IdentityDocumentV10Parser::parse(text).unwrap();
         println!("Doc : {:?}", doc);
         assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
     }

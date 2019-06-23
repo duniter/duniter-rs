@@ -15,7 +15,7 @@
 
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::documents::certification::CompactCertificationDocument;
-use dubp_documents::documents::identity::CompactIdentityDocument;
+use dubp_documents::documents::identity::v10::CompactIdentityDocumentV10;
 use dubp_documents::documents::membership::CompactPoolMembershipDoc;
 use dubp_documents::Blockstamp;
 use dup_crypto::hashs::Hash;
@@ -51,7 +51,7 @@ pub enum WS2Pv2ReqResBody {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WotPoolFolder {
     /// Pending identity
-    pub idty: CompactIdentityDocument,
+    pub idty: CompactIdentityDocumentV10,
     /// Pending first membership
     pub membership: CompactPoolMembershipDoc,
     /// Pending certs

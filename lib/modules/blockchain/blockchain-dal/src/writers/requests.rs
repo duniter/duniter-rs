@@ -19,7 +19,7 @@ use crate::writers::transaction::DALTxV10;
 use crate::*;
 use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
 use dubp_documents::documents::certification::CompactCertificationDocument;
-use dubp_documents::documents::identity::IdentityDocument;
+use dubp_documents::documents::identity::IdentityDocumentV10;
 use dubp_documents::Blockstamp;
 use dup_crypto::keys::PubKey;
 use dup_currency_params::CurrencyParameters;
@@ -95,7 +95,13 @@ impl BlocksDBsWriteQuery {
 /// Contain a pending write request for wots databases
 pub enum WotsDBsWriteQuery {
     /// Newcomer (wot_id, blockstamp, current_bc_time, idty_doc, ms_created_block_id)
-    CreateIdentity(NodeId, Blockstamp, u64, Box<IdentityDocument>, BlockNumber),
+    CreateIdentity(
+        NodeId,
+        Blockstamp,
+        u64,
+        Box<IdentityDocumentV10>,
+        BlockNumber,
+    ),
     /// Revert newcomer event (wot_id, blockstamp, current_bc_time, idty_doc, ms_created_block_id)
     RevertCreateIdentity(PubKey),
     /// Active (pubKey, idty_wot_id, current_bc_time, ms_created_block_id)

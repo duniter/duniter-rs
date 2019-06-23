@@ -15,7 +15,7 @@
 
 use crate::entities::identity::{DALIdentity, DALIdentityState};
 use crate::{BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
-use dubp_documents::documents::identity::IdentityDocument;
+use dubp_documents::documents::identity::IdentityDocumentV10;
 use dubp_documents::Document;
 use dubp_documents::{BlockNumber, Blockstamp};
 use dup_crypto::keys::PubKey;
@@ -55,7 +55,7 @@ pub fn create_identity(
     currency_params: &CurrencyParameters,
     identities_db: &BinDB<IdentitiesV10Datas>,
     ms_db: &BinDB<MsExpirV10Datas>,
-    idty_doc: &IdentityDocument,
+    idty_doc: &IdentityDocumentV10,
     ms_created_block_id: BlockNumber,
     wot_id: NodeId,
     current_blockstamp: Blockstamp,

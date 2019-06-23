@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Wrappers around Block document v10.
+//! Wrappers around Block document V10.
 
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
@@ -26,7 +26,7 @@ use unwrap::unwrap;
 use super::BlockDocumentTrait;
 use crate::blockstamp::Blockstamp;
 use crate::documents::certification::CertificationDocument;
-use crate::documents::identity::IdentityDocument;
+use crate::documents::identity::IdentityDocumentV10;
 use crate::documents::membership::MembershipDocument;
 use crate::documents::revocation::RevocationDocument;
 use crate::documents::transaction::TransactionDocument;
@@ -116,7 +116,7 @@ pub struct BlockDocumentV10 {
     /// Amount of new dividend created at this block, None if no dividend is created at this block
     pub dividend: Option<usize>,
     /// Identities
-    pub identities: Vec<IdentityDocument>,
+    pub identities: Vec<IdentityDocumentV10>,
     /// joiners
     pub joiners: Vec<MembershipDocument>,
     /// Actives (=renewals)
@@ -495,7 +495,7 @@ pub struct BlockDocumentV10Stringified {
     /// Amount of new dividend created at this block, None if no dividend is created at this block
     pub dividend: Option<u64>,
     /// Identities
-    pub identities: Vec<IdentityStringDocument>,
+    pub identities: Vec<IdentityDocumentV10Stringified>,
     /// joiners
     pub joiners: Vec<MembershipStringDocument>,
     /// Actives (=renewals)
