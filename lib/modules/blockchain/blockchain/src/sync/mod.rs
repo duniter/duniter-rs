@@ -18,6 +18,7 @@ mod download;
 
 use crate::dubp::apply::apply_valid_block;
 use crate::*;
+use dubp_documents::documents::block::BlockDocumentTrait;
 use dubp_documents::{BlockHash, BlockNumber};
 use dup_crypto::keys::*;
 use dup_currency_params::{CurrencyName, CurrencyParameters};
@@ -251,7 +252,7 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
         // Get and write currency params
         if !get_currency_params {
             let datas_path = durs_conf::get_datas_path(profile_path.clone());
-            if block_doc.number == BlockNumber(0) {
+            if block_doc.number() == BlockNumber(0) {
                 currency_params = Some(
                     durs_blockchain_dal::readers::currency_params::get_and_write_currency_params(
                         &datas_path,
@@ -270,11 +271,11 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
         let currency_params = unwrap!(currency_params);
 
         // Push block median_time in blocks_not_expiring
-        blocks_not_expiring.push_back(block_doc.median_time);
+        blocks_not_expiring.push_back(block_doc.common_time());
         // Get blocks_expiring
         let mut blocks_expiring = Vec::new();
         while blocks_not_expiring.front().copied()
-            < Some(block_doc.median_time - currency_params.sig_validity)
+            < Some(block_doc.common_time() - currency_params.sig_validity)
         {
             last_block_expiring += 1;
             blocks_expiring.push(BlockNumber(last_block_expiring as u32));

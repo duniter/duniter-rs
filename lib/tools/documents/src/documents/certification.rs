@@ -159,7 +159,6 @@ impl CertificationDocument {
 
 impl Document for CertificationDocument {
     type PublicKey = PubKey;
-    type CurrencyType = str;
 
     fn version(&self) -> u16 {
         10

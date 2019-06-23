@@ -57,7 +57,7 @@ impl<D: TextDocument> CompactTextDocument for TextDocumentFormat<D> {
 }
 
 /// Trait for a V10 document.
-pub trait TextDocument: Document<PublicKey = PubKey, CurrencyType = str> {
+pub trait TextDocument: Document<PublicKey = PubKey> {
     /// Type of associated compact document.
     type CompactTextDocument_: CompactTextDocument;
 

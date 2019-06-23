@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
-use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
+use dubp_documents::Document;
 use dup_currency_params::db::write_currency_params;
 use dup_currency_params::genesis_block_params::GenesisBlockParams;
 use dup_currency_params::CurrencyParameters;
@@ -25,17 +26,26 @@ pub fn get_and_write_currency_params(
     db_path: &PathBuf,
     genesis_block: &BlockDocument,
 ) -> CurrencyParameters {
-    if genesis_block.number.0 != 0 {
+    if genesis_block.number().0 != 0 {
         fatal_error!("The genesis block must have number equal to zero !");
-    } else if genesis_block.parameters.is_none() {
-        fatal_error!("The genesis block must have parameters !");
-    } else if let Err(e) = write_currency_params(
-        db_path.clone(),
-        genesis_block.currency.clone(),
-        GenesisBlockParams::V10(unwrap!(genesis_block.parameters)),
-    ) {
-        fatal_error!("Fail to write currency parameters: {}", e);
-    } else {
-        CurrencyParameters::from((&genesis_block.currency, unwrap!(genesis_block.parameters)))
+    }
+
+    match genesis_block {
+        BlockDocument::V10(genesis_block_v10) => {
+            if genesis_block_v10.parameters.is_none() {
+                fatal_error!("The genesis block must have parameters !");
+            } else if let Err(e) = write_currency_params(
+                db_path.clone(),
+                genesis_block_v10.currency().into(),
+                GenesisBlockParams::V10(unwrap!(genesis_block_v10.parameters)),
+            ) {
+                fatal_error!("Fail to write currency parameters: {}", e);
+            } else {
+                CurrencyParameters::from((
+                    &genesis_block_v10.currency().into(),
+                    unwrap!(genesis_block_v10.parameters),
+                ))
+            }
+        }
     }
 }

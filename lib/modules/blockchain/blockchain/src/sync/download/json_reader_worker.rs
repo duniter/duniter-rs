@@ -87,7 +87,7 @@ pub fn json_reader_worker(
         // Send TargetBlockcstamp
         sender_sync_thread
             .send(MessForSyncThread::Target(
-                last_block.currency.clone(),
+                last_block.currency().into(),
                 last_block.blockstamp(),
             ))
             .expect("Fatal error : sync_thread unrechable !");

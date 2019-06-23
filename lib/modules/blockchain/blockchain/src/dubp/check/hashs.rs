@@ -16,28 +16,21 @@
 //! Verify block inner hash and block hash
 
 use crate::VerifyBlockHashsError;
-use dubp_documents::documents::block::BlockDocument;
-use durs_common_tools::fatal_error;
+use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
 
 /// Verify block hashs
 pub fn verify_block_hashs(block_doc: &BlockDocument) -> Result<(), VerifyBlockHashsError> {
-    trace!("complete_block #{}...", block_doc.number);
-
-    if block_doc.inner_hash.is_none() {
-        fatal_error!(
-            "BlockchainModule : verify_block_hashs() : fatal error : block.inner_hash = None",
-        );
-    }
+    trace!("complete_block #{}...", block_doc.number());
 
     if block_doc.verify_inner_hash() {
         if block_doc.verify_hash() {
-            trace!("Succes to verify_block_hashs #{}", block_doc.number.0);
+            trace!("Succes to verify_block_hashs #{}", block_doc.number().0);
             Ok(())
         } else {
             warn!("BlockchainModule : Refuse Bloc : invalid hash !");
             Err(VerifyBlockHashsError::InvalidHash(
-                block_doc.number,
-                block_doc.hash,
+                block_doc.number(),
+                block_doc.hash(),
             ))
         }
     } else {

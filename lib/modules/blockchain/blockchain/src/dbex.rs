@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
+use dubp_documents::documents::block::BlockDocumentTrait;
 use dubp_documents::documents::transaction::*;
 use dup_crypto::keys::*;
 use durs_wot::data::rusty::RustyWebOfTrust;
@@ -242,9 +243,9 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DBExWotQuery) {
             let (current_bc_time, blocks_times): (u64, HashMap<BlockNumber, u64>) = blockchain_db
                 .read(|db| {
                     (
-                        db[&BlockNumber(db.len() as u32 - 1)].block.median_time,
+                        db[&BlockNumber(db.len() as u32 - 1)].block.common_time(),
                         db.iter()
-                            .map(|(block_id, dal_block)| (*block_id, dal_block.block.median_time))
+                            .map(|(block_id, dal_block)| (*block_id, dal_block.block.common_time()))
                             .collect(),
                     )
                 })

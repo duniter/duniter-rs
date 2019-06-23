@@ -18,7 +18,7 @@
 pub mod hashs;
 
 use crate::dubp::BlockError;
-use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
 use dubp_documents::*;
 use dup_crypto::keys::PubKey;
 use durs_blockchain_dal::*;
@@ -39,11 +39,11 @@ pub fn verify_block_validity<W: WebOfTrust>(
     _wot_db: &BinDB<W>,
 ) -> Result<(), BlockError> {
     // Rules that do not concern genesis block
-    if block.number.0 > 0 {
+    if block.number().0 > 0 {
         // Get previous block
         let previous_block_opt = readers::block::get_block_in_local_blockchain(
             blockchain_db,
-            BlockNumber(block.number.0 - 1),
+            BlockNumber(block.number().0 - 1),
         )?;
 
         // Previous block must exist
@@ -53,7 +53,7 @@ pub fn verify_block_validity<W: WebOfTrust>(
         let previous_block = previous_block_opt.expect("safe unwrap");
 
         // Block version must not decrease
-        if previous_block.version > block.version {
+        if previous_block.version() > block.version() {
             return Err(BlockError::InvalidBlock(InvalidBlockError::VersionDecrease));
         }
     }

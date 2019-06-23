@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::documents::block::{BlockDocument, TxDocOrTxHash};
+use crate::documents::block::{v10::TxDocOrTxHash, BlockDocument, BlockDocumentV10};
 use crate::documents::membership::MembershipType;
 use crate::parsers::{serde_json_value_to_pest_json_value, DefaultHasher};
 use crate::*;
@@ -46,7 +46,7 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
 
     let block_number = get_number(json_block, "number")?.trunc() as u32;
 
-    Ok(BlockDocument {
+    Ok(BlockDocument::V10(BlockDocumentV10 {
         version: get_number(json_block, "version")?.trunc() as u32,
         nonce: get_u64(json_block, "nonce")?,
         number: BlockNumber(block_number),
@@ -59,7 +59,7 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
             .trunc() as usize,
         unit_base: get_number(json_block, "unitbase")?.trunc() as usize,
         issuers_count: get_number(json_block, "issuersCount")?.trunc() as usize,
-        issuers_frame: get_number(json_block, "issuersFrame")?.trunc() as isize,
+        issuers_frame: get_number(json_block, "issuersFrame")?.trunc() as usize,
         issuers_frame_var: get_number(json_block, "issuersFrameVar")?.trunc() as isize,
         currency: CurrencyName(currency.to_owned()),
         issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58(get_str(
@@ -134,13 +134,13 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
             .map(|tx| crate::parsers::transactions::parse_json_transaction(tx))
             .map(|tx_result| tx_result.map(|tx_doc| TxDocOrTxHash::TxDoc(Box::new(tx_doc))))
             .collect::<Result<Vec<TxDocOrTxHash>, Error>>()?,
-        inner_hash_and_nonce_str: "".to_owned(),
-    })
+    }))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::documents::block::BlockDocumentTrait;
 
     #[test]
     fn parse_empty_json_block() {
@@ -180,7 +180,7 @@ mod tests {
         let block_json_value = json_pest_parser::parse_json_string(block_json_str)
             .expect("Fail to parse json block !");
         assert_eq!(
-            BlockDocument {
+            BlockDocument::V10(BlockDocumentV10 {
                 version: 10,
                 nonce: 10200000037108,
                 number: BlockNumber(7),
@@ -231,8 +231,7 @@ mod tests {
                 excluded: vec![],
                 certifications: vec![],
                 transactions: vec![],
-                inner_hash_and_nonce_str: "".to_owned(),
-            },
+            }),
             parse_json_block(&block_json_value).expect("Fail to parse block_json_value !")
         );
     }
@@ -302,7 +301,7 @@ mod tests {
         let block_json_value = json_pest_parser::parse_json_string(block_json_str)
             .expect("Fail to parse json block !");
 
-        let expected_block = BlockDocument {
+        let expected_block = BlockDocument::V10(BlockDocumentV10 {
                 version: 10,
                 nonce: 10100000033688,
                 number: BlockNumber(52),
@@ -353,8 +352,7 @@ mod tests {
                 excluded: vec![],
                 certifications: vec![],
                 transactions: vec![TxDocOrTxHash::TxDoc(Box::new(crate::parsers::tests::first_g1_tx_doc()))],
-                inner_hash_and_nonce_str: "".to_owned(),
-            };
+            });
         assert_eq!(
             expected_block,
             parse_json_block(&block_json_value).expect("Fail to parse block_json_value !")

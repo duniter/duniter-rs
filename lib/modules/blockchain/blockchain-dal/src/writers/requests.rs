@@ -17,7 +17,7 @@ use crate::entities::block::DALBlock;
 use crate::entities::sources::SourceAmount;
 use crate::writers::transaction::DALTxV10;
 use crate::*;
-use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
 use dubp_documents::documents::certification::CompactCertificationDocument;
 use dubp_documents::documents::identity::IdentityDocument;
 use dubp_documents::Blockstamp;
@@ -74,7 +74,7 @@ impl BlocksDBsWriteQuery {
                 } else {
                     // Insert block in blockchain
                     blockchain_db.write(|db| {
-                        db.insert(dal_block.block.number, dal_block);
+                        db.insert(dal_block.block.number(), dal_block);
                     })?;
                 }
             }
@@ -82,7 +82,7 @@ impl BlocksDBsWriteQuery {
                 trace!("BlocksDBsWriteQuery::WriteBlock...");
                 // Remove block in blockchain
                 blockchain_db.write(|db| {
-                    db.remove(&dal_block.block.number);
+                    db.remove(&dal_block.block.number());
                 })?;
                 trace!("BlocksDBsWriteQuery::WriteBlock...finish");
             }

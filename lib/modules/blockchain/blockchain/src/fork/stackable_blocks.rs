@@ -16,6 +16,7 @@
 //! Sub-module that finds and applies the orphaned blocks that have become stackable on the local blockchain.
 
 use crate::*;
+use dubp_documents::documents::block::BlockDocumentTrait;
 use unwrap::unwrap;
 
 pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
@@ -29,9 +30,9 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
             break 'blockchain;
         } else {
             for stackable_block in stackable_blocks {
-                debug!("stackable_block({})", stackable_block.block.number);
+                debug!("stackable_block({})", stackable_block.block.number());
 
-                let stackable_block_number = stackable_block.block.number;
+                let stackable_block_number = stackable_block.block.number();
                 let stackable_block_blockstamp = stackable_block.block.blockstamp();
 
                 if let Ok(CheckAndApplyBlockReturn::ValidMainBlock(ValidBlockApplyReqs(

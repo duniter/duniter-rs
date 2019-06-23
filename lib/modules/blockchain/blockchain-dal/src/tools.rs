@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::entities::block::DALBlock;
+use dubp_documents::documents::block::BlockDocumentTrait;
 use dup_crypto::keys::PubKey;
 use durs_common_tools::fatal_error;
 use durs_wot::operations::centrality::{CentralitiesCalculator, UlrikBrandesCentralityCalculator};
@@ -151,12 +152,12 @@ pub fn compute_median_issuers_frame<S: std::hash::BuildHasher>(
         current_frame_vec.sort_unstable();
 
         // Calculate median
-        let mut median_index = match current_block.block.issuers_count % 2 {
-            1 => (current_block.block.issuers_count / 2) + 1,
-            _ => current_block.block.issuers_count / 2,
+        let mut median_index = match current_block.block.issuers_count() % 2 {
+            1 => (current_block.block.issuers_count() / 2) + 1,
+            _ => current_block.block.issuers_count() / 2,
         };
-        if median_index >= current_block.block.issuers_count {
-            median_index = current_block.block.issuers_count - 1;
+        if median_index >= current_block.block.issuers_count() {
+            median_index = current_block.block.issuers_count() - 1;
         }
         current_frame_vec[median_index]
 

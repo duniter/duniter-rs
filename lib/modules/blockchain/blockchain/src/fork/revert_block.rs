@@ -15,9 +15,10 @@
 
 //! Sub-module that applies a block backwards.
 
-use dubp_documents::documents::block::TxDocOrTxHash;
+use dubp_documents::documents::block::v10::TxDocOrTxHash;
+use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait, BlockDocumentV10};
 use dubp_documents::documents::transaction::{TxAmount, TxBase};
-use dubp_documents::Document;
+use dubp_documents::{BlockNumber, Document};
 use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::block::DALBlock;
 use durs_blockchain_dal::entities::sources::SourceAmount;
@@ -28,6 +29,7 @@ use durs_common_tools::fatal_error;
 use durs_wot::data::{NewLinkResult, RemLinkResult};
 use durs_wot::{NodeId, WebOfTrust};
 use std::collections::HashMap;
+use unwrap::unwrap;
 
 #[derive(Debug)]
 /// Stores all queries to apply in database to "apply" the block
@@ -52,18 +54,29 @@ impl From<DALError> for RevertValidBlockError {
 }
 
 pub fn revert_block<W: WebOfTrust>(
-    dal_block: &DALBlock,
+    dal_block: DALBlock,
     wot_index: &mut HashMap<PubKey, NodeId>,
     wot_db: &BinDB<W>,
     txs_db: &BinDB<TxV10Datas>,
 ) -> Result<ValidBlockRevertReqs, RevertValidBlockError> {
-    // Revert DALBlock
-    let mut block = dal_block.block.clone();
-    let expire_certs = dal_block
-        .expire_certs
-        .clone()
-        .expect("Try to get expire_certs of an uncompleted block !");
+    match dal_block.block {
+        BlockDocument::V10(block_v10) => revert_block_v10(
+            block_v10,
+            unwrap!(dal_block.expire_certs),
+            wot_index,
+            wot_db,
+            txs_db,
+        ),
+    }
+}
 
+pub fn revert_block_v10<W: WebOfTrust>(
+    mut block: BlockDocumentV10,
+    expire_certs: HashMap<(NodeId, NodeId), BlockNumber>,
+    wot_index: &mut HashMap<PubKey, NodeId>,
+    wot_db: &BinDB<W>,
+    txs_db: &BinDB<TxV10Datas>,
+) -> Result<ValidBlockRevertReqs, RevertValidBlockError> {
     // Get transactions
     let dal_txs: Vec<DALTxV10> = block
         .transactions
@@ -81,7 +94,7 @@ pub fn revert_block<W: WebOfTrust>(
         .collect();
 
     // Revert reduce block
-    block.compute_inner_hash();
+    block.generate_inner_hash();
     debug!(
         "BlockchainModule : revert_valid_block({})",
         block.blockstamp()
@@ -116,10 +129,10 @@ pub fn revert_block<W: WebOfTrust>(
     let mut wot_dbs_requests = Vec::new();
     // Revert expire_certs
     if !expire_certs.is_empty() {
-        for ((source, target), created_block_id) in expire_certs {
+        for ((source, target), created_block_id) in &expire_certs {
             wot_db
                 .write(|db| {
-                    let result = db.add_link(source, target);
+                    let result = db.add_link(*source, *target);
                     match result {
                         NewLinkResult::Ok(_) => {}
                         _ => fatal_error!(
@@ -132,9 +145,9 @@ pub fn revert_block<W: WebOfTrust>(
                 })
                 .expect("Fail to write in WotDB");
             wot_dbs_requests.push(WotsDBsWriteQuery::RevertExpireCert(
-                source,
-                target,
-                created_block_id,
+                *source,
+                *target,
+                *created_block_id,
             ));
         }
     }
@@ -247,14 +260,17 @@ pub fn revert_block<W: WebOfTrust>(
             wot_dbs_requests.push(WotsDBsWriteQuery::RevertRenewalIdentity(
                 joiner.issuers()[0],
                 wot_id,
-                block.median_time,
+                block.common_time(),
                 joiner.blockstamp().id,
             ));
         }
     }
     // Return DBs requests
     Ok(ValidBlockRevertReqs(
-        BlocksDBsWriteQuery::RevertBlock(dal_block.clone()),
+        BlocksDBsWriteQuery::RevertBlock(DALBlock {
+            block: BlockDocument::V10(block),
+            expire_certs: Some(expire_certs),
+        }),
         wot_dbs_requests,
         currency_dbs_requests,
     ))

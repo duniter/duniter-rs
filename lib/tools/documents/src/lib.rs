@@ -152,26 +152,46 @@ impl Debug for BlockHash {
 pub trait Document: Debug + Clone + PartialEq + Eq {
     /// Type of the `PublicKey` used by the document.
     type PublicKey: PublicKey;
-    /// Data type of the currency code used by the document.
-    type CurrencyType: ?Sized;
 
-    /// Get document version.
-    fn version(&self) -> u16;
-
-    /// Get document currency.
-    fn currency(&self) -> &Self::CurrencyType;
+    /// Get document as bytes for signature verification.
+    fn as_bytes(&self) -> &[u8];
 
     /// Get document blockstamp
     fn blockstamp(&self) -> Blockstamp;
 
+    /// Get document currency name.
+    fn currency(&self) -> &str;
+
     /// Iterate over document issuers.
     fn issuers(&self) -> &Vec<Self::PublicKey>;
+
+    /// Some documents do not directly store the sequence of bytes that will be signed but generate
+    // it on request, so these types of documents cannot provide a reference to the signed bytes.
+    fn no_as_bytes(&self) -> bool {
+        false
+    }
+
+    /// Get document to bytes for signature verification.
+    fn to_bytes(&self) -> Vec<u8> {
+        self.as_bytes().to_vec()
+    }
 
     /// Iterate over document signatures.
     fn signatures(&self) -> &Vec<<Self::PublicKey as PublicKey>::Signature>;
 
-    /// Get document as bytes for signature verification.
-    fn as_bytes(&self) -> &[u8];
+    /// Verify one signature
+    #[inline]
+    fn verify_one_signature(
+        &self,
+        public_key: &Self::PublicKey,
+        signature: &<Self::PublicKey as PublicKey>::Signature,
+    ) -> bool {
+        if self.no_as_bytes() {
+            public_key.verify(&self.to_bytes(), signature)
+        } else {
+            public_key.verify(self.as_bytes(), signature)
+        }
+    }
 
     /// Verify signatures of document content (as text format)
     fn verify_signatures(&self) -> VerificationResult {
@@ -183,11 +203,12 @@ pub trait Document: Debug + Clone + PartialEq + Eq {
         } else {
             let issuers = self.issuers();
             let signatures = self.signatures();
+
             let mismatches: Vec<_> = issuers
                 .iter()
                 .zip(signatures)
                 .enumerate()
-                .filter(|&(_, (key, signature))| !key.verify(self.as_bytes(), signature))
+                .filter(|&(_, (key, signature))| !self.verify_one_signature(key, signature))
                 .map(|(i, _)| i)
                 .collect();
 
@@ -198,6 +219,9 @@ pub trait Document: Debug + Clone + PartialEq + Eq {
             }
         }
     }
+
+    /// Get document version.
+    fn version(&self) -> u16;
 }
 
 /// List of possible results for signature verification.

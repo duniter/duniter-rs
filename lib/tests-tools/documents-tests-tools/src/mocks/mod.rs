@@ -17,7 +17,7 @@
 
 pub mod identity;
 
-use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::block::{BlockDocument, BlockDocumentV10};
 use dubp_documents::*;
 use dup_crypto::hashs::Hash;
 use dup_currency_params::CurrencyName;
@@ -35,10 +35,10 @@ pub fn generate_blockstamps(n: usize) -> Vec<Blockstamp> {
 }
 
 /// Generate n empty timed block document
-pub fn gen_empty_timed_blocks(n: usize, time_step: u64) -> Vec<BlockDocument> {
+pub fn gen_empty_timed_blocks_v10(n: usize, time_step: u64) -> Vec<BlockDocument> {
     (0..n)
         .map(|i| {
-            gen_empty_timed_block(
+            BlockDocument::V10(gen_empty_timed_block_v10(
                 Blockstamp {
                     id: BlockNumber(i as u32),
                     hash: BlockHash(dup_crypto_tests_tools::mocks::hash_from_byte(
@@ -51,19 +51,19 @@ pub fn gen_empty_timed_blocks(n: usize, time_step: u64) -> Vec<BlockDocument> {
                 } else {
                     dup_crypto_tests_tools::mocks::hash_from_byte(((i - 1) % 255) as u8)
                 },
-            )
+            ))
         })
         .collect()
 }
 
 /// Generate empty timed block document
 /// (usefull for tests that only need blockstamp and median_time fields)
-pub fn gen_empty_timed_block(
+pub fn gen_empty_timed_block_v10(
     blockstamp: Blockstamp,
     time: u64,
     previous_hash: Hash,
-) -> BlockDocument {
-    BlockDocument {
+) -> BlockDocumentV10 {
+    BlockDocumentV10 {
         version: 10,
         nonce: 0,
         number: blockstamp.id,
@@ -93,6 +93,5 @@ pub fn gen_empty_timed_block(
         certifications: vec![],
         transactions: vec![],
         inner_hash: None,
-        inner_hash_and_nonce_str: "".to_owned(),
     }
 }

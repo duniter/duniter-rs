@@ -21,6 +21,7 @@ pub mod check;
 use crate::*;
 use apply::*;
 use check::*;
+use dubp_documents::documents::block::BlockDocumentTrait;
 use dubp_documents::Blockstamp;
 use dubp_documents::Document;
 use durs_blockchain_dal::entities::block::DALBlock;
@@ -71,16 +72,16 @@ pub fn check_and_apply_block(
         &bc.blocks_databases.blockchain_db,
         &bc.forks_dbs,
         block_doc.blockstamp(),
-        block_doc.previous_hash,
+        block_doc.previous_hash(),
     )?;
 
     // Verify block hashs
     dubp::check::hashs::verify_block_hashs(&block_doc)?;
 
     // Check block chainability
-    if (block_doc.number.0 == 0 && bc.current_blockstamp == Blockstamp::default())
-        || (block_doc.number.0 == bc.current_blockstamp.id.0 + 1
-            && unwrap!(block_doc.previous_hash).to_string()
+    if (block_doc.number().0 == 0 && bc.current_blockstamp == Blockstamp::default())
+        || (block_doc.number().0 == bc.current_blockstamp.id.0 + 1
+            && unwrap!(block_doc.previous_hash()).to_string()
                 == bc.current_blockstamp.hash.0.to_string())
     {
         debug!(
@@ -104,7 +105,7 @@ pub fn check_and_apply_block(
         )?;
 
         // If we're in block genesis, get the currency parameters
-        if block_doc.number == BlockNumber(0) {
+        if block_doc.number() == BlockNumber(0) {
             // Open currency_params_db
             let datas_path = durs_conf::get_datas_path(bc.profile_path.clone());
             // Get and write currency params
@@ -124,8 +125,8 @@ pub fn check_and_apply_block(
         )?))
     } else if already_have_block {
         Err(BlockError::AlreadyHaveBlock)
-    } else if block_doc.number.0 >= bc.current_blockstamp.id.0
-        || (bc.current_blockstamp.id.0 - block_doc.number.0)
+    } else if block_doc.number().0 >= bc.current_blockstamp.id.0
+        || (bc.current_blockstamp.id.0 - block_doc.number().0)
             < unwrap!(bc.currency_params).fork_window_size as u32
     {
         debug!(

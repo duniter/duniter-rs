@@ -878,7 +878,7 @@ mod tests {
     use super::*;
     use crate::ws_connections::requests::sent::network_request_to_json;
     use crate::ws_connections::requests::*;
-    use dubp_documents::documents::block::BlockDocument;
+    use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
     use dubp_documents::parsers::blocks::parse_json_block_from_serde_value;
     use dubp_documents::BlockNumber;
 
@@ -1028,19 +1028,19 @@ mod tests {
                 }
             ],
         });
-        let mut block: BlockDocument = parse_json_block_from_serde_value(&json_block)
+        let block: BlockDocument = parse_json_block_from_serde_value(&json_block)
             .expect("Fail to parse test json block !");
         assert_eq!(
             block
-                .inner_hash
+                .inner_hash()
                 .expect("Try to get inner_hash of an uncompleted or reduce block !")
                 .to_hex(),
             "61F02B1A6AE2E4B9A1FD66CE673258B4B21C0076795571EE3C9DC440DD06C46C"
         );
-        block.compute_hash();
+        //block.generate_hash();
         assert_eq!(
             block
-                .hash
+                .hash()
                 .expect("Try to get hash of an uncompleted or reduce block !")
                 .0
                 .to_hex(),

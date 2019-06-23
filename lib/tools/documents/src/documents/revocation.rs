@@ -127,7 +127,6 @@ impl RevocationDocument {
 
 impl Document for RevocationDocument {
     type PublicKey = PubKey;
-    type CurrencyType = str;
 
     fn version(&self) -> u16 {
         10

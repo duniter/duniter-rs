@@ -15,7 +15,7 @@
 
 //! Sub-module that applies the content of a block to the indexes of the local blockchain.
 
-use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait, BlockDocumentV10};
 use dubp_documents::documents::transaction::{TxAmount, TxBase};
 use dubp_documents::{BlockNumber, Document};
 use dup_crypto::keys::*;
@@ -44,8 +44,22 @@ pub enum ApplyValidBlockError {
     RevokeUnknowNodeId,
 }
 
+#[inline]
 pub fn apply_valid_block<W: WebOfTrust>(
-    mut block: BlockDocument,
+    block: BlockDocument,
+    wot_index: &mut HashMap<PubKey, NodeId>,
+    wot_db: &BinDB<W>,
+    expire_certs: &HashMap<(NodeId, NodeId), BlockNumber>,
+) -> Result<ValidBlockApplyReqs, ApplyValidBlockError> {
+    match block {
+        BlockDocument::V10(block_v10) => {
+            apply_valid_block_v10(block_v10, wot_index, wot_db, expire_certs)
+        }
+    }
+}
+
+pub fn apply_valid_block_v10<W: WebOfTrust>(
+    mut block: BlockDocumentV10,
     wot_index: &mut HashMap<PubKey, NodeId>,
     wot_db: &BinDB<W>,
     expire_certs: &HashMap<(NodeId, NodeId), BlockNumber>,
@@ -270,7 +284,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
     // Create DALBlock
     block.reduce();
     let dal_block = DALBlock {
-        block,
+        block: BlockDocument::V10(block),
         expire_certs: Some(expire_certs.clone()),
     };
     // Return DBs requests

@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
-use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
 use dubp_documents::Document;
 use dubp_documents::{BlockNumber, Blockstamp};
 use durs_wot::NodeId;

@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use dubp_documents::documents::block::BlockDocumentTrait;
 use dubp_documents::Blockstamp;
 use durs_blockchain_dal::entities::fork_tree::ForkTree;
 use durs_blockchain_dal::{DALError, ForksDBs};
@@ -33,7 +34,7 @@ pub fn fork_resolution_algo(
         db.get(&current_blockstamp)
             .expect("safe unwrap")
             .block
-            .median_time
+            .common_time()
     })?;
 
     let mut sheets = forks_dbs.fork_tree_db.read(ForkTree::get_sheets)?;
@@ -55,7 +56,7 @@ pub fn fork_resolution_algo(
                 db.get(&branch_head_blockstamp)
                     .expect("safe unwrap")
                     .block
-                    .median_time
+                    .common_time()
             })?;
             if branch_head_blockstamp.id.0 >= current_blockstamp.id.0 + *ADVANCE_BLOCKS
                 && branch_head_median_time >= current_bc_time + *ADVANCE_TIME
@@ -102,7 +103,10 @@ mod tests {
 
         // Generate `FORK_WINDOW_SIZE + 2` mock blocks
         let main_branch: Vec<BlockDocument> =
-            dubp_documents_tests_tools::mocks::gen_empty_timed_blocks(fork_window_size + 2, 0u64);
+            dubp_documents_tests_tools::mocks::gen_empty_timed_blocks_v10(
+                fork_window_size + 2,
+                0u64,
+            );
 
         // Insert mock blocks in forks_dbs
         for block in &main_branch {
@@ -136,17 +140,19 @@ mod tests {
         let fork_point = &main_branch[main_branch.len() - 2];
         let fork_blocks: Vec<BlockDocument> = (0..3)
             .map(|i| {
-                dubp_documents_tests_tools::mocks::gen_empty_timed_block(
-                    Blockstamp {
-                        id: BlockNumber(fork_point.number.0 + i + 1),
-                        hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
-                    },
-                    ADVANCE_TIME - 1,
-                    if i == 0 {
-                        fork_point.hash.expect("safe unwrap").0
-                    } else {
-                        dup_crypto_tests_tools::mocks::hash('A')
-                    },
+                BlockDocument::V10(
+                    dubp_documents_tests_tools::mocks::gen_empty_timed_block_v10(
+                        Blockstamp {
+                            id: BlockNumber(fork_point.number().0 + i + 1),
+                            hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
+                        },
+                        ADVANCE_TIME - 1,
+                        if i == 0 {
+                            fork_point.hash().expect("safe unwrap").0
+                        } else {
+                            dup_crypto_tests_tools::mocks::hash('A')
+                        },
+                    ),
                 )
             })
             .collect();
@@ -173,7 +179,7 @@ mod tests {
 
         // Add the determining fork block
         let determining_blockstamp = Blockstamp {
-            id: BlockNumber(fork_point.number.0 + 4),
+            id: BlockNumber(fork_point.number().0 + 4),
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
         };
         assert_eq!(
@@ -181,10 +187,12 @@ mod tests {
             durs_blockchain_dal::writers::block::insert_new_fork_block(
                 &forks_dbs,
                 DALBlock {
-                    block: dubp_documents_tests_tools::mocks::gen_empty_timed_block(
-                        determining_blockstamp,
-                        *ADVANCE_TIME,
-                        dup_crypto_tests_tools::mocks::hash('A'),
+                    block: BlockDocument::V10(
+                        dubp_documents_tests_tools::mocks::gen_empty_timed_block_v10(
+                            determining_blockstamp,
+                            *ADVANCE_TIME,
+                            dup_crypto_tests_tools::mocks::hash('A'),
+                        )
                     ),
                     expire_certs: None,
                 },
@@ -211,17 +219,19 @@ mod tests {
         // The old main branch catches up and overlaps with the fork
         let new_main_blocks: Vec<BlockDocument> = (0..7)
             .map(|i| {
-                dubp_documents_tests_tools::mocks::gen_empty_timed_block(
-                    Blockstamp {
-                        id: BlockNumber(fork_point.number.0 + i + 1),
-                        hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
-                    },
-                    ADVANCE_TIME * 2,
-                    if i == 0 {
-                        fork_point.hash.expect("safe unwrap").0
-                    } else {
-                        dup_crypto_tests_tools::mocks::hash('B')
-                    },
+                BlockDocument::V10(
+                    dubp_documents_tests_tools::mocks::gen_empty_timed_block_v10(
+                        Blockstamp {
+                            id: BlockNumber(fork_point.number().0 + i + 1),
+                            hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
+                        },
+                        ADVANCE_TIME * 2,
+                        if i == 0 {
+                            fork_point.hash().expect("safe unwrap").0
+                        } else {
+                            dup_crypto_tests_tools::mocks::hash('B')
+                        },
+                    ),
                 )
             })
             .collect();

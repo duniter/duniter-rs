@@ -648,7 +648,6 @@ impl TransactionDocument {
 
 impl Document for TransactionDocument {
     type PublicKey = PubKey;
-    type CurrencyType = str;
 
     fn version(&self) -> u16 {
         10

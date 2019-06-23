@@ -46,6 +46,12 @@ impl Display for CurrencyName {
     }
 }
 
+impl From<&str> for CurrencyName {
+    fn from(s: &str) -> Self {
+        CurrencyName(s.to_owned())
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 /// Currency parameters
 pub struct CurrencyParameters {

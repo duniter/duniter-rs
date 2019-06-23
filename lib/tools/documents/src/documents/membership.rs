@@ -141,7 +141,6 @@ impl MembershipDocument {
 
 impl Document for MembershipDocument {
     type PublicKey = PubKey;
-    type CurrencyType = str;
 
     fn version(&self) -> u16 {
         10

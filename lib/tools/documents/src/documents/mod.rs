@@ -39,7 +39,7 @@ pub mod transaction;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DUBPDocument {
     /// Block document.
-    Block(Box<BlockDocument>),
+    Block(Box<BlockDocumentV10>),
 
     /// Transaction document.
     Transaction(Box<TransactionDocument>),
@@ -61,7 +61,7 @@ pub enum DUBPDocument {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DUBPDocumentStr {
     /// Block document (not yet implemented)
-    Block(Box<BlockDocumentStringified>),
+    Block(Box<BlockDocumentV10Stringified>),
 
     /// Transaction document.
     Transaction(Box<TransactionDocumentStringified>),
@@ -172,7 +172,6 @@ mod tests {
 
     impl Document for PlainTextDocument {
         type PublicKey = PubKey;
-        type CurrencyType = str;
 
         fn version(&self) -> u16 {
             unimplemented!()

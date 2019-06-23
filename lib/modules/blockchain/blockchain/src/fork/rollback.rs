@@ -37,9 +37,10 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                 fatal_error!("revert block {} fail !", bc.current_blockstamp);
             })
         {
+            let blockstamp = dal_block.block.blockstamp();
             let ValidBlockRevertReqs(bc_db_query, wot_dbs_queries, tx_dbs_queries) =
                 super::revert_block::revert_block(
-                    &dal_block,
+                    dal_block,
                     &mut bc.wot_index,
                     &bc.wot_databases.wot_db,
                     &bc.currency_databases.tx_db,
@@ -47,7 +48,6 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                 .unwrap_or_else(|_| {
                     fatal_error!("revert block {} fail !", bc.current_blockstamp);
                 });
-            let blockstamp = dal_block.block.blockstamp();
             // Apply db requests
             bc_db_query
                 .apply(

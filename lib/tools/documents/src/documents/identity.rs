@@ -88,7 +88,6 @@ impl IdentityDocument {
 
 impl Document for IdentityDocument {
     type PublicKey = PubKey;
-    type CurrencyType = str;
 
     fn version(&self) -> u16 {
         10

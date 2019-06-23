@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
-use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
 use dubp_documents::Document;
 use dubp_documents::{BlockHash, BlockNumber, Blockstamp};
 use dup_crypto::keys::*;
@@ -42,7 +42,7 @@ pub fn get_block_hash(
 ) -> Result<Option<BlockHash>, DALError> {
     Ok(db.read(|db| {
         if let Some(dal_block) = db.get(&block_number) {
-            dal_block.block.hash
+            dal_block.block.hash()
         } else {
             None
         }
@@ -86,7 +86,7 @@ pub fn already_have_block(
     } else {
         return Ok(blockchain_db.read(|db| {
             if let Some(dal_block) = db.get(&blockstamp.id) {
-                if dal_block.block.hash.unwrap_or_default() == blockstamp.hash {
+                if dal_block.block.hash().unwrap_or_default() == blockstamp.hash {
                     return true;
                 }
             }
@@ -151,10 +151,11 @@ pub fn get_current_frame(
     current_block: &DALBlock,
     db: &BinDB<LocalBlockchainV10Datas>,
 ) -> Result<HashMap<PubKey, usize>, DALError> {
-    let frame_begin = current_block.block.number.0 - current_block.block.issuers_frame as u32;
+    let frame_begin =
+        current_block.block.number().0 - current_block.block.current_frame_size() as u32;
     Ok(db.read(|db| {
         let mut current_frame: HashMap<PubKey, usize> = HashMap::new();
-        for block_number in frame_begin..current_block.block.number.0 {
+        for block_number in frame_begin..current_block.block.number().0 {
             let issuer = db
                 .get(&BlockNumber(block_number))
                 .unwrap_or_else(|| fatal_error!("Fail to get block #{} !", block_number))
