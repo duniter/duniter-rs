@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{BinDB, CertsExpirV10Datas, DALError, IdentitiesV10Datas};
-use dubp_documents::documents::certification::CompactCertificationDocument;
+use dubp_documents::documents::certification::CompactCertificationDocumentV10;
 use dubp_documents::BlockNumber;
 use dup_crypto::keys::*;
 use dup_currency_params::CurrencyParameters;
@@ -58,7 +58,7 @@ pub fn write_certification(
 pub fn revert_write_cert(
     identities_db: &BinDB<IdentitiesV10Datas>,
     certs_db: &BinDB<CertsExpirV10Datas>,
-    compact_doc: CompactCertificationDocument,
+    compact_doc: CompactCertificationDocumentV10,
     source: NodeId,
     target: NodeId,
 ) -> Result<(), DALError> {

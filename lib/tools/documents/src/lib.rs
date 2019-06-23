@@ -66,6 +66,11 @@ pub trait TextDocumentParser<R: RuleType> {
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError>;
     /// Parse text document from pest pairs
     fn from_pest_pair(pairs: Pair<R>) -> Result<Self::DocumentType, TextDocumentParseError>;
+    /// Parse text document from versioned pest pairs
+    fn from_versioned_pest_pair(
+        version: u16,
+        pairs: Pair<R>,
+    ) -> Result<Self::DocumentType, TextDocumentParseError>;
 }
 
 /// Error with pest parser (grammar)
@@ -91,8 +96,11 @@ pub enum TextDocumentParseError {
     /// Error with pest parser
     #[fail(display = "TextDocumentParseError: {}", _0)]
     PestError(PestError),
+    /// Unexpected rule
+    #[fail(display = "TextDocumentParseError: Unexpected rule: '{}'", _0)]
+    UnexpectedRule(String),
     /// Unexpected version
-    #[fail(display = "TextDocumentParseError: UnexpectedVersion: {}", _0)]
+    #[fail(display = "TextDocumentParseError: Unexpected version: '{}'", _0)]
     UnexpectedVersion(String),
     /// Unknown type
     #[fail(display = "TextDocumentParseError: UnknownType.")]

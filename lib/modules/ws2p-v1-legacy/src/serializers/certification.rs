@@ -13,12 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Sub-module that serialize CompactCertificationStringDocument into WS2Pv1 json format
+//! Sub-module that serialize CompactCertificationDocumentV10Stringified into WS2Pv1 json format
 
 use super::IntoWS2Pv1Json;
-use dubp_documents::documents::certification::CompactCertificationStringDocument;
+use dubp_documents::documents::certification::v10::CompactCertificationDocumentV10Stringified;
 
-impl IntoWS2Pv1Json for CompactCertificationStringDocument {
+impl IntoWS2Pv1Json for CompactCertificationDocumentV10Stringified {
     fn into_ws2p_v1_json(self) -> serde_json::Value {
         format!(
             "{issuer}:{target}:{block_number}:{signature}",

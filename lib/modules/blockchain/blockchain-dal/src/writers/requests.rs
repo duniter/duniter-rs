@@ -18,7 +18,7 @@ use crate::entities::sources::SourceAmount;
 use crate::writers::transaction::DALTxV10;
 use crate::*;
 use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
-use dubp_documents::documents::certification::CompactCertificationDocument;
+use dubp_documents::documents::certification::CompactCertificationDocumentV10;
 use dubp_documents::documents::identity::IdentityDocumentV10;
 use dubp_documents::Blockstamp;
 use dup_crypto::keys::PubKey;
@@ -119,7 +119,7 @@ pub enum WotsDBsWriteQuery {
     /// Certification (source_pubkey, source, target, created_block_id, median_time)
     CreateCert(PubKey, NodeId, NodeId, BlockNumber, u64),
     /// Revert certification (source_pubkey, source, target, created_block_id, median_time)
-    RevertCert(CompactCertificationDocument, NodeId, NodeId),
+    RevertCert(CompactCertificationDocumentV10, NodeId, NodeId),
     /// Certification expiry (source, target, created_block_id)
     ExpireCerts(BlockNumber),
     /// Revert certification expiry event (source, target, created_block_id)

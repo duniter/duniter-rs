@@ -16,7 +16,6 @@
 //! Wrappers around Identity documents V10.
 
 use durs_common_tools::fatal_error;
-use pest::Parser;
 
 use crate::documents::*;
 use crate::text_document_traits::*;
@@ -83,6 +82,48 @@ impl IdentityDocumentV10 {
     /// Lightens the membership (for example to store it while minimizing the space required)
     pub fn reduce(&mut self) {
         self.text = None;
+    }
+    /// From pest parser pair
+    pub fn from_pest_pair(pair: Pair<Rule>) -> Result<IdentityDocumentV10, TextDocumentParseError> {
+        let doc = pair.as_str();
+        let mut currency = "";
+        let mut pubkey_str = "";
+        let mut uid = "";
+        let mut blockstamp = Blockstamp::default();
+        let mut sig_str = "";
+        for field in pair.into_inner() {
+            match field.as_rule() {
+                Rule::currency => currency = field.as_str(),
+                Rule::pubkey => pubkey_str = field.as_str(),
+                Rule::uid => uid = field.as_str(),
+                Rule::blockstamp => {
+                    let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
+
+                    let block_id: &str = inner_rules.next().unwrap().as_str();
+                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                    blockstamp = Blockstamp {
+                        id: BlockNumber(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
+                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                    };
+                }
+                Rule::ed25519_sig => sig_str = field.as_str(),
+                Rule::EOI => (),
+                _ => fatal_error!("unexpected rule"), // Grammar ensures that we never reach this line
+            }
+        }
+
+        Ok(IdentityDocumentV10 {
+            text: Some(doc.to_owned()),
+            currency: currency.to_owned(),
+            username: uid.to_owned(),
+            blockstamp,
+            issuers: vec![PubKey::Ed25519(
+                ed25519::PublicKey::from_base58(pubkey_str).unwrap(),
+            )], // Grammar ensures that we have a base58 string.
+            signatures: vec![Sig::Ed25519(
+                ed25519::Signature::from_base64(sig_str).unwrap(),
+            )], // Grammar ensures that we have a base64 string.
+        })
     }
 }
 
@@ -218,69 +259,6 @@ Timestamp: {blockstamp}
     }
 }
 
-/// Identity document parser
-#[derive(Debug, Clone, Copy)]
-pub struct IdentityDocumentV10Parser;
-
-impl TextDocumentParser<Rule> for IdentityDocumentV10Parser {
-    type DocumentType = IdentityDocumentV10;
-
-    fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
-        let mut doc_pairs = DocumentsParser::parse(Rule::idty, doc)?;
-        let idty_pair = doc_pairs.next().unwrap(); // get and unwrap the `idty` rule; never fails
-        let idty_vx_pair = idty_pair.into_inner().next().unwrap(); // get and unwrap the `idty_vx` rule; never fails
-
-        match idty_vx_pair.as_rule() {
-            Rule::idty_v10 => Ok(IdentityDocumentV10Parser::from_pest_pair(idty_vx_pair)?),
-            _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
-                "{:#?}",
-                idty_vx_pair.as_rule()
-            ))),
-        }
-    }
-    fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
-        let doc = pair.as_str();
-        let mut currency = "";
-        let mut pubkey_str = "";
-        let mut uid = "";
-        let mut blockstamp = Blockstamp::default();
-        let mut sig_str = "";
-        for field in pair.into_inner() {
-            match field.as_rule() {
-                Rule::currency => currency = field.as_str(),
-                Rule::pubkey => pubkey_str = field.as_str(),
-                Rule::uid => uid = field.as_str(),
-                Rule::blockstamp => {
-                    let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
-
-                    let block_id: &str = inner_rules.next().unwrap().as_str();
-                    let block_hash: &str = inner_rules.next().unwrap().as_str();
-                    blockstamp = Blockstamp {
-                        id: BlockNumber(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
-                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
-                    };
-                }
-                Rule::ed25519_sig => sig_str = field.as_str(),
-                Rule::EOI => (),
-                _ => fatal_error!("unexpected rule"), // Grammar ensures that we never reach this line
-            }
-        }
-
-        Ok(IdentityDocumentV10 {
-            text: Some(doc.to_owned()),
-            currency: currency.to_owned(),
-            username: uid.to_owned(),
-            blockstamp,
-            issuers: vec![PubKey::Ed25519(
-                ed25519::PublicKey::from_base58(pubkey_str).unwrap(),
-            )], // Grammar ensures that we have a base58 string.
-            signatures: vec![Sig::Ed25519(
-                ed25519::Signature::from_base64(sig_str).unwrap(),
-            )], // Grammar ensures that we have a base64 string.
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -342,7 +320,7 @@ UniqueID: tic
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==";
 
-        let doc = IdentityDocumentV10Parser::parse(doc).expect("Fail to parse idty doc !");
+        let doc = IdentityDocumentParser::parse(doc).expect("Fail to parse idty doc !");
         println!("Doc : {:?}", doc);
         assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
     }

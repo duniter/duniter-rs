@@ -25,7 +25,7 @@ use unwrap::unwrap;
 
 use super::BlockDocumentTrait;
 use crate::blockstamp::Blockstamp;
-use crate::documents::certification::CertificationDocument;
+use crate::documents::certification::v10::CompactCertificationDocumentV10Stringified;
 use crate::documents::identity::IdentityDocumentV10;
 use crate::documents::membership::v10::{MembershipDocumentV10, MembershipDocumentV10Stringified};
 use crate::documents::revocation::RevocationDocument;
@@ -128,7 +128,7 @@ pub struct BlockDocumentV10 {
     /// Excludeds
     pub excluded: Vec<PubKey>,
     /// Certifications
-    pub certifications: Vec<TextDocumentFormat<CertificationDocument>>,
+    pub certifications: Vec<TextDocumentFormat<CertificationDocumentV10>>,
     /// Transactions
     pub transactions: Vec<TxDocOrTxHash>,
 }
@@ -507,7 +507,7 @@ pub struct BlockDocumentV10Stringified {
     /// Excludeds
     pub excluded: Vec<String>,
     /// Certifications
-    pub certifications: Vec<CompactCertificationStringDocument>,
+    pub certifications: Vec<CompactCertificationDocumentV10Stringified>,
     /// Transactions
     pub transactions: Vec<TransactionDocumentStringified>,
 }
@@ -673,6 +673,9 @@ IdtyTimestamp: 97401-0000003821911909F98519CC773D2D3E5CFE3D5DBB39F4F4FF33B96B4D4
 IdtySignature: QncUVXxZ2NfARjdJOn6luILvDuG1NuK9qSoaU4CST2Ij8z7oeVtEgryHl+EXOjSe6XniALsCT0gU8wtadcA/Cw==
 CertTimestamp: 106669-000003682E6FE38C44433DCE92E8B2A26C69B6D7867A2BAED231E788DDEF4251
 UmseG2XKNwKcY8RFi6gUCT91udGnnNmSh7se10J1jeRVlwf+O2Tyb2Cccot9Dt7BO4+Kx2P6vFJB3oVGGHMxBA==").expect("Fail to parse cert1");
+        let cert1 = match cert1 {
+            CertificationDocument::V10(cert_v10) => cert_v10,
+        };
 
         let tx1 = TransactionDocumentParser::parse("Version: 10
 Type: Transaction
@@ -809,7 +812,7 @@ Nonce: "
 
     #[test]
     fn generate_and_verify_block_2() {
-        let ms1 = MembershipDocumentV10Parser::parse(
+        let ms1 = MembershipDocumentParser::parse(
             "Version: 10
 Type: Membership
 Currency: g1
@@ -821,6 +824,9 @@ CertTS: 74077-0000022816648B2F7801E059F67CCD0C023FF0ED84459D52C70494D74DDCC6F6
 gvaZ1QnJf8FjjRDJ0cYusgpBgQ8r0NqEz39BooH6DtIrgX+WTeXuLSnjZDl35VCBjokvyjry+v0OkTT8FKpABA==",
         )
         .expect("Fail to parse ms1");
+        let ms1 = match ms1 {
+            MembershipDocument::V10(ms_v10) => ms_v10,
+        };
 
         let tx1 = TransactionDocumentParser::parse(
             "Version: 10

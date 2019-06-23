@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use dubp_documents::documents::block::BlockDocument;
-use dubp_documents::documents::certification::CompactCertificationDocument;
+use dubp_documents::documents::certification::CompactCertificationDocumentV10;
 use dubp_documents::documents::identity::v10::CompactIdentityDocumentV10;
 use dubp_documents::documents::membership::v10::CompactPoolMembershipDoc;
 use dubp_documents::Blockstamp;
@@ -44,7 +44,7 @@ pub enum WS2Pv2ReqResBody {
     /// Chunk of blocks.
     Chunk(Vec<BlockDocument>),
     /// Wot pool datas
-    WotPool(Vec<CompactCertificationDocument>, Vec<WotPoolFolder>),
+    WotPool(Vec<CompactCertificationDocumentV10>, Vec<WotPoolFolder>),
 }
 
 ///WotPoolFolder
@@ -55,7 +55,7 @@ pub struct WotPoolFolder {
     /// Pending first membership
     pub membership: CompactPoolMembershipDoc,
     /// Pending certs
-    pub certs: Vec<CompactCertificationDocument>,
+    pub certs: Vec<CompactCertificationDocumentV10>,
 }
 
 #[cfg(test)]

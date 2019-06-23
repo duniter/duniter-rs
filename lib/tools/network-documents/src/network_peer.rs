@@ -57,6 +57,51 @@ pub struct PeerCardV11 {
     pub sig: Option<Sig>,
 }
 
+impl PeerCardV11 {
+    /// From pest parser pair
+    pub fn from_pest_pair(pair: Pair<Rule>) -> Result<PeerCardV11, TextDocumentParseError> {
+        let mut currency_str = "";
+        let mut node_id = NodeId(0);
+        let mut issuer = None;
+        let mut created_on = None;
+        let mut endpoints = Vec::new();
+        let mut sig = None;
+        for field in pair.into_inner() {
+            match field.as_rule() {
+                Rule::currency => currency_str = field.as_str(),
+                Rule::node_id => node_id = NodeId(field.as_str().parse().unwrap()),
+                Rule::pubkey => {
+                    issuer = Some(PubKey::Ed25519(
+                        ed25519::PublicKey::from_base58(field.as_str()).unwrap(),
+                    ))
+                }
+                Rule::block_id => {
+                    created_on = Some(BlockNumber(field.as_str().parse().unwrap())); // Grammar ensures that we have a digits string.
+                }
+                Rule::endpoint_v2 => endpoints.push(EndpointV2::from_pest_pair(field)?),
+                Rule::ed25519_sig => {
+                    sig = Some(Sig::Ed25519(
+                        ed25519::Signature::from_base64(field.as_str()).unwrap(),
+                    ))
+                }
+                _ => fatal_error!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
+            }
+        }
+        let endpoints_len = endpoints.len();
+
+        Ok(PeerCardV11 {
+            currency_name: CurrencyName(currency_str.to_owned()),
+            issuer: issuer.expect("Grammar must ensure that peer v11 have valid issuer pubkey !"),
+            node_id,
+            created_on: created_on
+                .expect("Grammar must ensure that peer v11 have valid field created_on !"),
+            endpoints,
+            endpoints_str: Vec::with_capacity(endpoints_len),
+            sig,
+        })
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
 /// identity document for jsonification
 pub struct PeerCardV11Stringified {
@@ -129,54 +174,34 @@ impl TextSignable for PeerCardV11 {
     }
 }
 
-impl TextDocumentParser<Rule> for PeerCardV11 {
-    type DocumentType = PeerCardV11;
+impl TextDocumentParser<Rule> for PeerCard {
+    type DocumentType = PeerCard;
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
         let mut peer_v11_pairs = NetworkDocsParser::parse(Rule::peer_v11, doc)?;
-        Ok(PeerCardV11::from_pest_pair(peer_v11_pairs.next().unwrap())?)
+        Ok(Self::from_versioned_pest_pair(
+            11,
+            peer_v11_pairs.next().unwrap(),
+        )?)
     }
 
-    fn from_pest_pair(pair: Pair<Rule>) -> Result<PeerCardV11, TextDocumentParseError> {
-        let mut currency_str = "";
-        let mut node_id = NodeId(0);
-        let mut issuer = None;
-        let mut created_on = None;
-        let mut endpoints = Vec::new();
-        let mut sig = None;
-        for field in pair.into_inner() {
-            match field.as_rule() {
-                Rule::currency => currency_str = field.as_str(),
-                Rule::node_id => node_id = NodeId(field.as_str().parse().unwrap()),
-                Rule::pubkey => {
-                    issuer = Some(PubKey::Ed25519(
-                        ed25519::PublicKey::from_base58(field.as_str()).unwrap(),
-                    ))
-                }
-                Rule::block_id => {
-                    created_on = Some(BlockNumber(field.as_str().parse().unwrap())); // Grammar ensures that we have a digits string.
-                }
-                Rule::endpoint_v2 => endpoints.push(EndpointV2::from_pest_pair(field)?),
-                Rule::ed25519_sig => {
-                    sig = Some(Sig::Ed25519(
-                        ed25519::Signature::from_base64(field.as_str()).unwrap(),
-                    ))
-                }
-                _ => fatal_error!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
-            }
-        }
-        let endpoints_len = endpoints.len();
+    #[inline]
+    fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
+        Self::from_versioned_pest_pair(11, pair)
+    }
 
-        Ok(PeerCardV11 {
-            currency_name: CurrencyName(currency_str.to_owned()),
-            issuer: issuer.expect("Grammar must ensure that peer v11 have valid issuer pubkey !"),
-            node_id,
-            created_on: created_on
-                .expect("Grammar must ensure that peer v11 have valid field created_on !"),
-            endpoints,
-            endpoints_str: Vec::with_capacity(endpoints_len),
-            sig,
-        })
+    #[inline]
+    fn from_versioned_pest_pair(
+        version: u16,
+        pair: Pair<Rule>,
+    ) -> Result<Self::DocumentType, TextDocumentParseError> {
+        match version {
+            11 => Ok(PeerCard::V11(PeerCardV11::from_pest_pair(pair)?)),
+            v => Err(TextDocumentParseError::UnexpectedVersion(format!(
+                "Unsupported version: {}",
+                v
+            ))),
+        }
     }
 }
 
@@ -305,8 +330,8 @@ mod tests {
         if let Ok(peer_card_v11_raw) = sign_result {
             println!("{}", peer_card_v11_raw);
             assert_eq!(
-                peer_card_v11,
-                PeerCardV11::parse(&peer_card_v11_raw).expect("Fail to parse peer card v11 !")
+                PeerCard::V11(peer_card_v11.clone()),
+                PeerCard::parse(&peer_card_v11_raw).expect("Fail to parse peer card v11 !")
             )
         } else {
             panic!("fail to sign peer card : {:?}", sign_result.err().unwrap())

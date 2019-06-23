@@ -89,6 +89,12 @@ impl TextDocumentParser<Rule> for NetworkDocument {
             _ => fatal_error!("unexpected rule: {:?}", pair.as_rule()), // Grammar ensures that we never reach this line
         })
     }
+    fn from_versioned_pest_pair(
+        _version: u16,
+        _pair: Pair<Rule>,
+    ) -> Result<NetworkDocument, TextDocumentParseError> {
+        fatal_error!("Network document Network documents are not versioned together, please use from_pest_pair() instead.")
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

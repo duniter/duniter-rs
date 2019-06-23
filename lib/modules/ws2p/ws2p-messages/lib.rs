@@ -270,7 +270,7 @@ mod tests {
         }
     }
 
-    pub fn create_cert_doc() -> CompactCertificationDocument {
+    pub fn create_cert_doc() -> CompactCertificationDocumentV10 {
         let sig = Sig::Ed25519(ed25519::Signature::from_base64(
             "qfR6zqT1oJbqIsppOi64gC9yTtxb6g6XA9RYpulkq9ehMvqg2VYVigCbR0yVpqKFsnYiQTrnjgFuFRSJCJDfCw==",
         ).unwrap());
@@ -285,7 +285,7 @@ mod tests {
         )
         .unwrap();
 
-        CompactCertificationDocument {
+        CompactCertificationDocumentV10 {
             issuer: PubKey::Ed25519(
                 ed25519::PublicKey::from_base58("4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR")
                     .unwrap(),

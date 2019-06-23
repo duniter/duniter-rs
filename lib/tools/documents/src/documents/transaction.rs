@@ -644,6 +644,68 @@ impl TransactionDocument {
             output.reduce()
         }
     }
+    /// from pest parser pair
+    pub fn from_pest_pair(pair: Pair<Rule>) -> Result<TransactionDocument, TextDocumentParseError> {
+        let doc = pair.as_str();
+        let mut currency = "";
+        let mut blockstamp = Blockstamp::default();
+        let mut locktime = 0;
+        let mut issuers = Vec::new();
+        let mut inputs = Vec::new();
+        let mut unlocks = Vec::new();
+        let mut outputs = Vec::new();
+        let mut comment = "";
+        let mut sigs = Vec::new();
+
+        for field in pair.into_inner() {
+            match field.as_rule() {
+                Rule::currency => currency = field.as_str(),
+                Rule::blockstamp => {
+                    let mut inner_rules = field.into_inner(); // ${ block_id ~ "-" ~ hash }
+
+                    let block_id: &str = inner_rules.next().unwrap().as_str();
+                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                    blockstamp = Blockstamp {
+                        id: BlockNumber(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
+                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                    };
+                }
+                Rule::tx_locktime => locktime = field.as_str().parse().unwrap(), // Grammar ensures that we have digits characters.
+                Rule::pubkey => issuers.push(PubKey::Ed25519(
+                    ed25519::PublicKey::from_base58(field.as_str()).unwrap(), // Grammar ensures that we have a base58 string.
+                )),
+                Rule::tx_input => inputs.push(TransactionInput::from_pest_pair(field.into_inner())),
+                Rule::tx_unlock => {
+                    unlocks.push(TransactionInputUnlocks::from_pest_pair(field.into_inner()))
+                }
+                Rule::tx_output => {
+                    outputs.push(TransactionOutput::from_pest_pair(field.into_inner()))
+                }
+                Rule::tx_comment => comment = field.as_str(),
+                Rule::ed25519_sig => {
+                    sigs.push(Sig::Ed25519(
+                        ed25519::Signature::from_base64(field.as_str()).unwrap(), // Grammar ensures that we have a base64 string.
+                    ));
+                }
+                Rule::EOI => (),
+                _ => fatal_error!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
+            }
+        }
+
+        Ok(TransactionDocument {
+            text: Some(doc.to_owned()),
+            currency: currency.to_owned(),
+            blockstamp,
+            locktime,
+            issuers,
+            inputs,
+            unlocks,
+            outputs,
+            comment: comment.to_owned(),
+            signatures: sigs,
+            hash: None,
+        })
+    }
 }
 
 impl Document for TransactionDocument {
@@ -850,76 +912,32 @@ impl TextDocumentParser<Rule> for TransactionDocumentParser {
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
         let mut tx_pairs = DocumentsParser::parse(Rule::tx, doc)?;
         let tx_pair = tx_pairs.next().unwrap(); // get and unwrap the `tx` rule; never fails
-        let tx_vx_pair = tx_pair.into_inner().next().unwrap(); // get and unwrap the `tx_vX` rule; never fails
+        Self::from_pest_pair(tx_pair)
+    }
+    #[inline]
+    fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
+        let tx_vx_pair = pair.into_inner().next().unwrap(); // get and unwrap the `tx_vX` rule; never fails
 
         match tx_vx_pair.as_rule() {
-            Rule::tx_v10 => Ok(TransactionDocumentParser::from_pest_pair(tx_vx_pair)?),
-            _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
+            Rule::tx_v10 => Ok(TransactionDocument::from_pest_pair(tx_vx_pair)?),
+            _ => Err(TextDocumentParseError::UnexpectedRule(format!(
                 "{:#?}",
                 tx_vx_pair.as_rule()
             ))),
         }
     }
-    fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
-        let doc = pair.as_str();
-        let mut currency = "";
-        let mut blockstamp = Blockstamp::default();
-        let mut locktime = 0;
-        let mut issuers = Vec::new();
-        let mut inputs = Vec::new();
-        let mut unlocks = Vec::new();
-        let mut outputs = Vec::new();
-        let mut comment = "";
-        let mut sigs = Vec::new();
-
-        for field in pair.into_inner() {
-            match field.as_rule() {
-                Rule::currency => currency = field.as_str(),
-                Rule::blockstamp => {
-                    let mut inner_rules = field.into_inner(); // ${ block_id ~ "-" ~ hash }
-
-                    let block_id: &str = inner_rules.next().unwrap().as_str();
-                    let block_hash: &str = inner_rules.next().unwrap().as_str();
-                    blockstamp = Blockstamp {
-                        id: BlockNumber(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
-                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
-                    };
-                }
-                Rule::tx_locktime => locktime = field.as_str().parse().unwrap(), // Grammar ensures that we have digits characters.
-                Rule::pubkey => issuers.push(PubKey::Ed25519(
-                    ed25519::PublicKey::from_base58(field.as_str()).unwrap(), // Grammar ensures that we have a base58 string.
-                )),
-                Rule::tx_input => inputs.push(TransactionInput::from_pest_pair(field.into_inner())),
-                Rule::tx_unlock => {
-                    unlocks.push(TransactionInputUnlocks::from_pest_pair(field.into_inner()))
-                }
-                Rule::tx_output => {
-                    outputs.push(TransactionOutput::from_pest_pair(field.into_inner()))
-                }
-                Rule::tx_comment => comment = field.as_str(),
-                Rule::ed25519_sig => {
-                    sigs.push(Sig::Ed25519(
-                        ed25519::Signature::from_base64(field.as_str()).unwrap(), // Grammar ensures that we have a base64 string.
-                    ));
-                }
-                Rule::EOI => (),
-                _ => fatal_error!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
-            }
+    #[inline]
+    fn from_versioned_pest_pair(
+        version: u16,
+        pair: Pair<Rule>,
+    ) -> Result<Self::DocumentType, TextDocumentParseError> {
+        match version {
+            10 => Ok(TransactionDocument::from_pest_pair(pair)?),
+            v => Err(TextDocumentParseError::UnexpectedVersion(format!(
+                "Unsupported version: {}",
+                v
+            ))),
         }
-
-        Ok(TransactionDocument {
-            text: Some(doc.to_owned()),
-            currency: currency.to_owned(),
-            blockstamp,
-            locktime,
-            issuers,
-            inputs,
-            unlocks,
-            outputs,
-            comment: comment.to_owned(),
-            signatures: sigs,
-            hash: None,
-        })
     }
 }
 
