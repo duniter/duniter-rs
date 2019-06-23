@@ -743,12 +743,6 @@ impl TextDocument for TransactionDocument {
     }
 }
 
-impl IntoSpecializedDocument<DUBPDocument> for TransactionDocument {
-    fn into_specialized(self) -> DUBPDocument {
-        DUBPDocument::Transaction(Box::new(self))
-    }
-}
-
 /// Transaction document builder.
 #[derive(Debug, Copy, Clone)]
 pub struct TransactionDocumentBuilder<'a> {

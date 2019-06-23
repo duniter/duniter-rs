@@ -17,10 +17,10 @@
 
 use crate::constants;
 use crate::WS2Pv1Module;
+use dubp_documents::documents::UserDocumentDUBP;
 use durs_message::events::DursEvent;
 use durs_message::*;
 use durs_module::{ModuleEvent, ModuleStaticName, RouterThreadMessage};
-use durs_network::documents::BlockchainDocument;
 use durs_network::events::NetworkEvent;
 
 pub fn send_network_events(ws2p_module: &mut WS2Pv1Module, events: Vec<NetworkEvent>) {
@@ -39,8 +39,7 @@ pub fn send_network_event(ws2p_module: &mut WS2Pv1Module, event: NetworkEvent) {
         NetworkEvent::ReceiveDocuments(ref network_docs) => {
             if !network_docs.is_empty() {
                 match network_docs[0] {
-                    BlockchainDocument::Block(_) => ModuleEvent::NewBlockFromNetwork,
-                    BlockchainDocument::Transaction(_) => ModuleEvent::NewTxFromNetwork,
+                    UserDocumentDUBP::Transaction(_) => ModuleEvent::NewTxFromNetwork,
                     _ => ModuleEvent::NewWotDocFromNetwork,
                 }
             } else {

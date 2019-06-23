@@ -39,7 +39,6 @@ use failure::Fail;
 use std::sync::mpsc;
 
 pub mod cli;
-pub mod documents;
 pub mod events;
 pub mod requests;
 

@@ -237,16 +237,6 @@ pub enum VerificationResult {
     Invalid(Vec<usize>),
 }
 
-/// Trait allowing access to the document through it's proper protocol version.
-///
-/// This trait is generic over `P` providing all supported protocol version variants.
-///
-/// A lifetime is specified to allow enum variants to hold references to the document.
-pub trait IntoSpecializedDocument<P> {
-    /// Get a protocol-specific document wrapped in an enum variant.
-    fn into_specialized(self) -> P;
-}
-
 /// Trait helper for building new documents.
 pub trait DocumentBuilder {
     /// Type of the builded document.
@@ -299,7 +289,7 @@ impl<T: ToStringObject> ToJsonObject for T {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::documents::DUBPDocument;
+    use crate::documents::UserDocumentDUBP;
 
     #[test]
     fn parse_dubp_document() {
@@ -311,7 +301,7 @@ UniqueID: elois
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 Ydnclvw76/JHcKSmU9kl9Ie0ne5/X8NYOqPqbGnufIK3eEPRYYdEYaQh+zffuFhbtIRjv6m/DkVLH5cLy/IyAg==";
 
-        let doc = DUBPDocument::parse(text).expect("Fail to parse DUBPDocument !");
+        let doc = UserDocumentDUBP::parse(text).expect("Fail to parse UserDocumentDUBP !");
         println!("Doc : {:?}", doc);
     }
 }

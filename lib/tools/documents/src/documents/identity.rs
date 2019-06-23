@@ -160,12 +160,6 @@ impl TextDocument for IdentityDocument {
     }
 }
 
-impl IntoSpecializedDocument<DUBPDocument> for IdentityDocument {
-    fn into_specialized(self) -> DUBPDocument {
-        DUBPDocument::Identity(self)
-    }
-}
-
 /// Identity document builder.
 #[derive(Debug, Copy, Clone)]
 pub struct IdentityDocumentBuilder<'a> {

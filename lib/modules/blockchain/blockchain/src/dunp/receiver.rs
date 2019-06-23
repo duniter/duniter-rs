@@ -17,14 +17,17 @@
 //! (received by the intermediaries of events transmitted by the network module).
 
 use crate::*;
-use std::ops::Deref;
+use dubp_documents::documents::UserDocumentDUBP;
 use unwrap::unwrap;
 
-pub fn receive_bc_documents(bc: &mut BlockchainModule, network_documents: &[BlockchainDocument]) {
+pub fn receive_user_documents(_bc: &mut BlockchainModule, network_documents: &[UserDocumentDUBP]) {
     for network_document in network_documents {
-        if let BlockchainDocument::Block(ref block_doc) = network_document {
-            let block_doc = block_doc.deref();
-            receive_blocks(bc, vec![block_doc.deref().clone()]);
+        match network_document {
+            UserDocumentDUBP::Certification(_) => {}
+            UserDocumentDUBP::Identity(_) => {}
+            UserDocumentDUBP::Membership(_) => {}
+            UserDocumentDUBP::Revocation(_) => {}
+            UserDocumentDUBP::Transaction(_) => {}
         }
     }
 }

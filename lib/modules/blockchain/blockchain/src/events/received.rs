@@ -28,7 +28,7 @@ pub fn receive_event(
     match event_content {
         DursEvent::NetworkEvent(network_event) => match network_event {
             NetworkEvent::ReceiveDocuments(network_docs) => {
-                dunp::receiver::receive_bc_documents(bc, &network_docs);
+                dunp::receiver::receive_user_documents(bc, &network_docs);
             }
             NetworkEvent::ReceiveBlocks(blocks) => {
                 dunp::receiver::receive_blocks(bc, blocks);

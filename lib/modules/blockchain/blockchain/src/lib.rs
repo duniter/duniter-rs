@@ -67,7 +67,6 @@ use durs_message::*;
 use durs_module::*;
 use durs_network::{
     cli::sync::SyncOpt,
-    documents::BlockchainDocument,
     events::NetworkEvent,
     requests::{NetworkResponse, OldNetworkRequest},
 };

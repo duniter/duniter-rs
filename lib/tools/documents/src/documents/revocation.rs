@@ -168,12 +168,6 @@ impl TextDocument for RevocationDocument {
     }
 }
 
-impl IntoSpecializedDocument<DUBPDocument> for RevocationDocument {
-    fn into_specialized(self) -> DUBPDocument {
-        DUBPDocument::Revocation(Box::new(self))
-    }
-}
-
 /// Revocation document builder.
 #[derive(Debug, Copy, Clone)]
 pub struct RevocationDocumentBuilder<'a> {

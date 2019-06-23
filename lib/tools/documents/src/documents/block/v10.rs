@@ -449,12 +449,6 @@ impl TextDocument for BlockDocumentV10 {
     }
 }
 
-impl IntoSpecializedDocument<DUBPDocument> for BlockDocumentV10 {
-    fn into_specialized(self) -> DUBPDocument {
-        DUBPDocument::Block(Box::new(self))
-    }
-}
-
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct BlockDocumentV10Stringified {
     /// Version

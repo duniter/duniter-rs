@@ -205,12 +205,6 @@ impl TextDocument for MembershipDocument {
     }
 }
 
-impl IntoSpecializedDocument<DUBPDocument> for MembershipDocument {
-    fn into_specialized(self) -> DUBPDocument {
-        DUBPDocument::Membership(self)
-    }
-}
-
 /// Membership document builder.
 #[derive(Debug, Copy, Clone)]
 pub struct MembershipDocumentBuilder<'a> {

@@ -15,9 +15,9 @@
 
 //! Defined network requests.
 
-use crate::documents::*;
 use crate::*;
 use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::UserDocumentDUBP;
 use dubp_documents::Blockstamp;
 
 #[derive(Debug, Copy, Clone)]
@@ -79,7 +79,7 @@ pub enum NetworkResponse {
     /// Chunk
     Chunk(ModuleReqFullId, NodeFullId, Vec<BlockDocument>),
     /// PendingDocuments
-    PendingDocuments(ModuleReqFullId, Vec<BlockchainDocument>),
+    PendingDocuments(ModuleReqFullId, Vec<UserDocumentDUBP>),
     /// Consensus
     Consensus(ModuleReqFullId, Result<Blockstamp, NetworkConsensusError>),
     /// HeadsCache

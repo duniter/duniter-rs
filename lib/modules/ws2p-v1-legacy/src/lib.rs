@@ -58,6 +58,8 @@ use crate::ws_connections::messages::WS2Pv1Msg;
 use crate::ws_connections::requests::{WS2Pv1ReqBody, WS2Pv1ReqFullId, WS2Pv1ReqId, WS2Pv1Request};
 use crate::ws_connections::states::WS2PConnectionState;
 use crate::ws_connections::*;
+use dubp_documents::documents::block::BlockDocument;
+use dubp_documents::documents::UserDocumentDUBP;
 use dubp_documents::Blockstamp;
 use dup_crypto::keys::*;
 use dup_currency_params::CurrencyName;
@@ -70,7 +72,6 @@ use durs_message::responses::*;
 use durs_message::*;
 use durs_module::*;
 use durs_network::cli::sync::SyncOpt;
-use durs_network::documents::*;
 use durs_network::events::*;
 use durs_network::requests::*;
 use durs_network::*;
@@ -183,28 +184,29 @@ impl Default for WS2PConf {
 #[derive(Debug)]
 /// Store a Signal receive from network (after message treatment)
 pub enum WS2PSignal {
-    /// Receive a websocket error from a connextion. `NodeFullId` store the identifier of connection.
-    WSError(NodeFullId),
+    Blocks(NodeFullId, Vec<BlockDocument>),
     /// A new connection is successfully established with `NodeFullId`.
     ConnectionEstablished(NodeFullId),
-    NegociationTimeout(NodeFullId),
-    Timeout(NodeFullId),
-    Request {
-        from: NodeFullId,
-        req_id: WS2Pv1ReqId,
-        body: WS2Pv1ReqBody,
-    },
-    PeerCard(NodeFullId, serde_json::Value, Vec<EndpointV1>),
+    Empty,
     Heads(NodeFullId, Vec<NetworkHead>),
-    Document(NodeFullId, BlockchainDocument),
+    NegociationTimeout(NodeFullId),
+    NoConnection,
+    PeerCard(NodeFullId, serde_json::Value, Vec<EndpointV1>),
     ReqResponse(
         ModuleReqFullId,
         WS2Pv1ReqBody,
         NodeFullId,
         serde_json::Value,
     ),
-    Empty,
-    NoConnection,
+    Request {
+        from: NodeFullId,
+        req_id: WS2Pv1ReqId,
+        body: WS2Pv1ReqBody,
+    },
+    Timeout(NodeFullId),
+    UserDocuments(NodeFullId, Vec<UserDocumentDUBP>),
+    /// Receive a websocket error from a connextion. `NodeFullId` store the identifier of connection.
+    WSError(NodeFullId),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -782,11 +784,18 @@ impl WS2Pv1Module {
                                 );
                                 events::sent::send_network_event(&mut self, event);
                             }
-                            WS2PSignal::Document(ws2p_full_id, network_doc) => {
-                                trace!("WS2PSignal::Document({})", ws2p_full_id);
+                            WS2PSignal::Blocks(ws2p_full_id, blocks) => {
+                                trace!("WS2PSignal::Blocks({})", ws2p_full_id);
                                 events::sent::send_network_event(
                                     &mut self,
-                                    NetworkEvent::ReceiveDocuments(vec![network_doc]),
+                                    NetworkEvent::ReceiveBlocks(blocks),
+                                );
+                            }
+                            WS2PSignal::UserDocuments(ws2p_full_id, user_documents) => {
+                                trace!("WS2PSignal::UserDocuments({})", ws2p_full_id);
+                                events::sent::send_network_event(
+                                    &mut self,
+                                    NetworkEvent::ReceiveDocuments(user_documents),
                                 );
                             }
                             WS2PSignal::Request { from, req_id, body } => {

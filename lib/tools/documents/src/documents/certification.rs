@@ -202,12 +202,6 @@ impl TextDocument for CertificationDocument {
     }
 }
 
-impl IntoSpecializedDocument<DUBPDocument> for CertificationDocument {
-    fn into_specialized(self) -> DUBPDocument {
-        DUBPDocument::Certification(Box::new(self))
-    }
-}
-
 /// Certification document builder.
 #[derive(Debug, Copy, Clone)]
 pub struct CertificationDocumentBuilder<'a> {

@@ -15,7 +15,7 @@
 
 use crate::*;
 use dubp_documents::documents::block::BlockDocument;
-use dubp_documents::documents::DUBPDocument;
+use dubp_documents::documents::UserDocumentDUBP;
 use dubp_documents::Blockstamp;
 use durs_network::events::NetworkEvent;
 
@@ -31,7 +31,7 @@ pub enum DursEvent {
     /// Network event
     NetworkEvent(NetworkEvent),
     /// Client API event
-    ReceiveValidDocsFromClient(Vec<DUBPDocument>),
+    ReceiveValidDocsFromClient(Vec<UserDocumentDUBP>),
 }
 
 #[derive(Debug, Clone)]
@@ -40,7 +40,7 @@ pub enum MemPoolEvent {
     /// FindNextBlock (local node find next block)
     FindNextBlock(Box<BlockDocument>),
     /// Store new Blockhain Document in Pool
-    StoreNewDocInPool(Box<DUBPDocument>),
+    StoreNewDocInPool(Box<UserDocumentDUBP>),
 }
 
 #[derive(Debug, Clone)]
@@ -53,9 +53,9 @@ pub enum BlockchainEvent {
     /// Revert blocks in local blockchain
     RevertBlocks(Vec<BlockDocument>),
     /// Receive new valid pending document
-    NewValidPendingDoc(DUBPDocument),
+    NewValidPendingDoc(UserDocumentDUBP),
     /// Receive new refused pending document
-    RefusedPendingDoc(DUBPDocument),
+    RefusedPendingDoc(UserDocumentDUBP),
     /// Receive new refused pending block
     RefusedBlock(Blockstamp),
 }

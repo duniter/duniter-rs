@@ -17,6 +17,7 @@
 
 use super::*;
 use crate::ws_connections::requests::WS2Pv1ReqBody;
+use dubp_documents::documents::DocumentDUBP;
 use durs_network_documents::NodeFullId;
 use ws::Message;
 
@@ -46,7 +47,7 @@ pub enum WS2Pv1MsgPayload {
     },
     PeerCard(serde_json::Value, Vec<EndpointV1>),
     Heads(Vec<serde_json::Value>),
-    Document(BlockchainDocument),
+    Document(DocumentDUBP),
     ReqResponse(WS2Pv1ReqId, serde_json::Value),
     InvalidMessage,
     WrongFormatMessage,
@@ -204,9 +205,14 @@ pub fn ws2p_recv_message_pretreatment(
             }
             return WS2PSignal::Heads(ws2p_full_id, applied_heads);
         }
-        WS2Pv1MsgPayload::Document(network_doc) => {
-            return WS2PSignal::Document(ws2p_full_id, network_doc);
-        }
+        WS2Pv1MsgPayload::Document(doc) => match doc {
+            DocumentDUBP::Block(block_doc) => {
+                return WS2PSignal::Blocks(ws2p_full_id, vec![block_doc.deref().clone()])
+            }
+            DocumentDUBP::UserDocument(user_doc) => {
+                return WS2PSignal::UserDocuments(ws2p_full_id, vec![user_doc]);
+            }
+        },
         WS2Pv1MsgPayload::ReqResponse(ws2p_req_id, response) => {
             if let Some(WS2Pv1PendingReqInfos {
                 ref requester_module,

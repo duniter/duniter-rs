@@ -24,7 +24,6 @@ pub mod states;
 
 use crate::*;
 use dup_crypto::keys::*;
-use durs_network::documents::BlockchainDocument;
 use durs_network_documents::network_endpoint::EndpointV1;
 use rand::Rng;
 use states::WS2PConnectionState;

@@ -19,9 +19,9 @@ use super::messages::WS2Pv1MsgPayload;
 use super::states::WS2PConnectionState;
 use crate::ws_connections::requests::{WS2Pv1ReqBody, WS2Pv1ReqId};
 use crate::*;
+use dubp_documents::documents::DocumentDUBP;
 use dubp_documents::parsers::blocks::parse_json_block_from_serde_value;
 use dup_crypto::keys::*;
-use durs_network::documents::BlockchainDocument;
 use durs_network_documents::network_endpoint::{ApiName, EndpointV1};
 use durs_network_documents::NodeId;
 use std::convert::TryFrom;
@@ -227,9 +227,9 @@ impl WS2PConnectionMetaDatas {
                             "BLOCK" => match body.get("block") {
                                 Some(block) => match parse_json_block_from_serde_value(&block) {
                                     Ok(block_doc) => {
-                                        return WS2Pv1MsgPayload::Document(
-                                            BlockchainDocument::Block(Box::new(block_doc)),
-                                        )
+                                        return WS2Pv1MsgPayload::Document(DocumentDUBP::Block(
+                                            Box::new(block_doc),
+                                        ))
                                     }
                                     Err(e) => info!("WS2Pv1Signal: receive invalid block: {}", e),
                                 },

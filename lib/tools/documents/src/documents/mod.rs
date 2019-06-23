@@ -37,10 +37,16 @@ pub mod transaction;
 
 /// Document of DUBP (DUniter Blockhain Protocol)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum DUBPDocument {
+pub enum DocumentDUBP {
     /// Block document.
-    Block(Box<BlockDocumentV10>),
+    Block(Box<BlockDocument>),
+    /// User document of DUBP (DUniter Blockhain Protocol)
+    UserDocument(UserDocumentDUBP),
+}
 
+/// User document of DUBP (DUniter Blockhain Protocol)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum UserDocumentDUBP {
     /// Transaction document.
     Transaction(Box<TransactionDocument>),
 
@@ -59,10 +65,16 @@ pub enum DUBPDocument {
 
 /// List of stringified document types.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum DUBPDocumentStr {
+pub enum DocumentDUBPStr {
     /// Block document (not yet implemented)
-    Block(Box<BlockDocumentV10Stringified>),
+    Block(Box<BlockDocumentStringified>),
+    /// Stringified user document.
+    UserDocument(UserDocumentDUBPStr),
+}
 
+/// List of stringified user document types.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum UserDocumentDUBPStr {
     /// Transaction document.
     Transaction(Box<TransactionDocumentStringified>),
 
@@ -79,37 +91,51 @@ pub enum DUBPDocumentStr {
     Revocation(Box<RevocationStringDocument>),
 }
 
-impl ToStringObject for DUBPDocument {
-    type StringObject = DUBPDocumentStr;
-    /// Transforms an object into a json object
+impl ToStringObject for DocumentDUBP {
+    type StringObject = DocumentDUBPStr;
+
     fn to_string_object(&self) -> Self::StringObject {
         match *self {
-            DUBPDocument::Block(ref doc) => {
-                DUBPDocumentStr::Block(Box::new(doc.to_string_object()))
+            DocumentDUBP::Block(ref doc) => {
+                DocumentDUBPStr::Block(Box::new(doc.to_string_object()))
             }
-            DUBPDocument::Identity(ref doc) => DUBPDocumentStr::Identity(doc.to_string_object()),
-            DUBPDocument::Membership(ref doc) => {
-                DUBPDocumentStr::Membership(doc.to_string_object())
-            }
-            DUBPDocument::Certification(ref doc) => {
-                DUBPDocumentStr::Certification(Box::new(doc.to_string_object()))
-            }
-            DUBPDocument::Revocation(ref doc) => {
-                DUBPDocumentStr::Revocation(Box::new(doc.to_string_object()))
-            }
-            DUBPDocument::Transaction(ref doc) => {
-                DUBPDocumentStr::Transaction(Box::new(doc.to_string_object()))
+            DocumentDUBP::UserDocument(ref user_doc) => {
+                DocumentDUBPStr::UserDocument(user_doc.to_string_object())
             }
         }
     }
 }
 
-impl TextDocumentParser<Rule> for DUBPDocument {
-    type DocumentType = DUBPDocument;
+impl ToStringObject for UserDocumentDUBP {
+    type StringObject = UserDocumentDUBPStr;
 
-    fn parse(doc: &str) -> Result<DUBPDocument, TextDocumentParseError> {
+    fn to_string_object(&self) -> Self::StringObject {
+        match *self {
+            UserDocumentDUBP::Identity(ref doc) => {
+                UserDocumentDUBPStr::Identity(doc.to_string_object())
+            }
+            UserDocumentDUBP::Membership(ref doc) => {
+                UserDocumentDUBPStr::Membership(doc.to_string_object())
+            }
+            UserDocumentDUBP::Certification(ref doc) => {
+                UserDocumentDUBPStr::Certification(Box::new(doc.to_string_object()))
+            }
+            UserDocumentDUBP::Revocation(ref doc) => {
+                UserDocumentDUBPStr::Revocation(Box::new(doc.to_string_object()))
+            }
+            UserDocumentDUBP::Transaction(ref doc) => {
+                UserDocumentDUBPStr::Transaction(Box::new(doc.to_string_object()))
+            }
+        }
+    }
+}
+
+impl TextDocumentParser<Rule> for UserDocumentDUBP {
+    type DocumentType = UserDocumentDUBP;
+
+    fn parse(doc: &str) -> Result<UserDocumentDUBP, TextDocumentParseError> {
         match DocumentsParser::parse(Rule::document, doc) {
-            Ok(mut doc_pairs) => Ok(DUBPDocument::from_pest_pair(doc_pairs.next().unwrap())?), // get and unwrap the `document` rule; never fails
+            Ok(mut doc_pairs) => Ok(UserDocumentDUBP::from_pest_pair(doc_pairs.next().unwrap())?), // get and unwrap the `document` rule; never fails
             Err(pest_error) => Err(pest_error.into()),
         }
     }
@@ -117,30 +143,32 @@ impl TextDocumentParser<Rule> for DUBPDocument {
         let doc_vx_pair = pair.into_inner().next().unwrap(); // get and unwrap the `document_vX` rule; never fails
 
         match doc_vx_pair.as_rule() {
-            Rule::document_v10 => Ok(DUBPDocument::from_pest_pair_v10(doc_vx_pair)?),
+            Rule::document_v10 => Ok(UserDocumentDUBP::from_pest_pair_v10(doc_vx_pair)?),
             _ => fatal_error!("unexpected rule: {:?}", doc_vx_pair.as_rule()), // Grammar ensures that we never reach this line
         }
     }
 }
 
-impl DUBPDocument {
-    pub fn from_pest_pair_v10(pair: Pair<Rule>) -> Result<DUBPDocument, TextDocumentParseError> {
+impl UserDocumentDUBP {
+    pub fn from_pest_pair_v10(
+        pair: Pair<Rule>,
+    ) -> Result<UserDocumentDUBP, TextDocumentParseError> {
         let doc_type_v10_pair = pair.into_inner().next().unwrap(); // get and unwrap the `{DOC_TYPE}_v10` rule; never fails
 
         match doc_type_v10_pair.as_rule() {
-            Rule::idty_v10 => Ok(DUBPDocument::Identity(
+            Rule::idty_v10 => Ok(UserDocumentDUBP::Identity(
                 identity::IdentityDocumentParser::from_pest_pair(doc_type_v10_pair)?,
             )),
-            Rule::membership_v10 => Ok(DUBPDocument::Membership(
+            Rule::membership_v10 => Ok(UserDocumentDUBP::Membership(
                 membership::MembershipDocumentParser::from_pest_pair(doc_type_v10_pair)?,
             )),
-            Rule::cert_v10 => Ok(DUBPDocument::Certification(Box::new(
+            Rule::cert_v10 => Ok(UserDocumentDUBP::Certification(Box::new(
                 certification::CertificationDocumentParser::from_pest_pair(doc_type_v10_pair)?,
             ))),
-            Rule::revoc_v10 => Ok(DUBPDocument::Revocation(Box::new(
+            Rule::revoc_v10 => Ok(UserDocumentDUBP::Revocation(Box::new(
                 revocation::RevocationDocumentParser::from_pest_pair(doc_type_v10_pair)?,
             ))),
-            Rule::tx_v10 => Ok(DUBPDocument::Transaction(Box::new(
+            Rule::tx_v10 => Ok(UserDocumentDUBP::Transaction(Box::new(
                 transaction::TransactionDocumentParser::from_pest_pair(doc_type_v10_pair)?,
             ))),
             _ => fatal_error!("unexpected rule: {:?}", doc_type_v10_pair.as_rule()), // Grammar ensures that we never reach this line
