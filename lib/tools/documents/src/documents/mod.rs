@@ -19,6 +19,7 @@ use crate::documents::block::*;
 use crate::documents::certification::*;
 use crate::documents::identity::v10::IdentityDocumentV10Parser;
 use crate::documents::identity::*;
+use crate::documents::membership::v10::MembershipDocumentV10Parser;
 use crate::documents::membership::*;
 use crate::documents::revocation::*;
 use crate::documents::transaction::*;
@@ -83,7 +84,7 @@ pub enum UserDocumentDUBPStr {
     Identity(IdentityDocumentStringified),
 
     /// Membership document.
-    Membership(MembershipStringDocument),
+    Membership(MembershipDocumentStringified),
 
     /// Certification document.
     Certification(Box<CertificationStringDocument>),
@@ -160,9 +161,9 @@ impl UserDocumentDUBP {
             Rule::idty_v10 => Ok(UserDocumentDUBP::Identity(IdentityDocument::V10(
                 IdentityDocumentV10Parser::from_pest_pair(doc_type_v10_pair)?,
             ))),
-            Rule::membership_v10 => Ok(UserDocumentDUBP::Membership(
-                membership::MembershipDocumentParser::from_pest_pair(doc_type_v10_pair)?,
-            )),
+            Rule::membership_v10 => Ok(UserDocumentDUBP::Membership(MembershipDocument::V10(
+                MembershipDocumentV10Parser::from_pest_pair(doc_type_v10_pair)?,
+            ))),
             Rule::cert_v10 => Ok(UserDocumentDUBP::Certification(Box::new(
                 certification::CertificationDocumentParser::from_pest_pair(doc_type_v10_pair)?,
             ))),
@@ -184,7 +185,7 @@ mod tests {
 
     use super::certification::CertificationDocumentParser;
     use super::identity::v10::IdentityDocumentV10Parser;
-    use super::membership::MembershipDocumentParser;
+    use super::membership::v10::MembershipDocumentV10Parser;
     use super::revocation::RevocationDocumentParser;
     use super::transaction::TransactionDocumentParser;
     use super::*;
@@ -342,7 +343,7 @@ UserID: elois
 CertTS: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 FFeyrvYio9uYwY5aMcDGswZPNjGLrl8THn9l3EPKSNySD3SDSHjCljSfFEwb87sroyzJQoVzPwER0sW/cbZMDg==";
 
-        let doc = MembershipDocumentParser::parse(text).unwrap();
+        let doc = MembershipDocumentV10Parser::parse(text).unwrap();
         println!("Doc : {:?}", doc);
         assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
     }

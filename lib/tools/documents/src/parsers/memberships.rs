@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::documents::membership::*;
+use crate::documents::membership::v10::*;
 use crate::Blockstamp;
 use crate::DocumentBuilder;
 use dup_crypto::keys::*;
@@ -30,14 +30,14 @@ pub fn parse_compact_memberships(
     currency: &str,
     membership_type: MembershipType,
     array_memberships: &[&str],
-) -> Result<Vec<MembershipDocument>, Error> {
-    //let memberships: Vec<MembershipDocument> = Vec::new();
+) -> Result<Vec<MembershipDocumentV10>, Error> {
+    //let memberships: Vec<MembershipDocumentV10> = Vec::new();
     array_memberships
         .iter()
         .map(|membership| {
             let membership_datas: Vec<&str> = membership.split(':').collect();
             if membership_datas.len() == 5 {
-                let membership_doc_builder = MembershipDocumentBuilder {
+                let membership_doc_builder = MembershipDocumentV10Builder {
                     currency,
                     issuer: &PubKey::Ed25519(ed25519::PublicKey::from_base58(membership_datas[0])?),
                     blockstamp: &Blockstamp::from_string(membership_datas[2])?,

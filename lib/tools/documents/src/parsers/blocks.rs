@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::documents::block::{v10::TxDocOrTxHash, BlockDocument, BlockDocumentV10};
-use crate::documents::membership::MembershipType;
+use crate::documents::membership::v10::MembershipType;
 use crate::parsers::{serde_json_value_to_pest_json_value, DefaultHasher};
 use crate::*;
 use dup_crypto::bases::BaseConvertionError;

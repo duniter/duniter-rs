@@ -16,7 +16,7 @@
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::documents::certification::CompactCertificationDocument;
 use dubp_documents::documents::identity::v10::CompactIdentityDocumentV10;
-use dubp_documents::documents::membership::CompactPoolMembershipDoc;
+use dubp_documents::documents::membership::v10::CompactPoolMembershipDoc;
 use dubp_documents::Blockstamp;
 use dup_crypto::hashs::Hash;
 use std::str;

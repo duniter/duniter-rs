@@ -27,7 +27,7 @@ use super::BlockDocumentTrait;
 use crate::blockstamp::Blockstamp;
 use crate::documents::certification::CertificationDocument;
 use crate::documents::identity::IdentityDocumentV10;
-use crate::documents::membership::MembershipDocument;
+use crate::documents::membership::v10::{MembershipDocumentV10, MembershipDocumentV10Stringified};
 use crate::documents::revocation::RevocationDocument;
 use crate::documents::transaction::TransactionDocument;
 use crate::documents::*;
@@ -118,11 +118,11 @@ pub struct BlockDocumentV10 {
     /// Identities
     pub identities: Vec<IdentityDocumentV10>,
     /// joiners
-    pub joiners: Vec<MembershipDocument>,
+    pub joiners: Vec<MembershipDocumentV10>,
     /// Actives (=renewals)
-    pub actives: Vec<MembershipDocument>,
+    pub actives: Vec<MembershipDocumentV10>,
     /// Leavers
-    pub leavers: Vec<MembershipDocument>,
+    pub leavers: Vec<MembershipDocumentV10>,
     /// Revokeds
     pub revoked: Vec<TextDocumentFormat<RevocationDocument>>,
     /// Excludeds
@@ -497,11 +497,11 @@ pub struct BlockDocumentV10Stringified {
     /// Identities
     pub identities: Vec<IdentityDocumentV10Stringified>,
     /// joiners
-    pub joiners: Vec<MembershipStringDocument>,
+    pub joiners: Vec<MembershipDocumentV10Stringified>,
     /// Actives (=renewals)
-    pub actives: Vec<MembershipStringDocument>,
+    pub actives: Vec<MembershipDocumentV10Stringified>,
     /// Leavers
-    pub leavers: Vec<MembershipStringDocument>,
+    pub leavers: Vec<MembershipDocumentV10Stringified>,
     /// Revokeds
     pub revoked: Vec<CompactRevocationStringDocument>,
     /// Excludeds
@@ -809,7 +809,7 @@ Nonce: "
 
     #[test]
     fn generate_and_verify_block_2() {
-        let ms1 = MembershipDocumentParser::parse(
+        let ms1 = MembershipDocumentV10Parser::parse(
             "Version: 10
 Type: Membership
 Currency: g1
