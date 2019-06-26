@@ -16,21 +16,20 @@
 mod apply;
 mod download;
 
-use crate::dubp::apply::apply_valid_block;
 use crate::*;
-use dubp_documents::documents::block::BlockDocumentTrait;
+use apply::BlockApplicator;
 use dubp_documents::{BlockHash, BlockNumber};
 use dup_crypto::keys::*;
 use dup_currency_params::{CurrencyName, CurrencyParameters};
 use durs_blockchain_dal::writers::requests::*;
+use durs_blockchain_dal::{open_memory_db, CertsExpirV10Datas};
 use durs_common_tools::fatal_error;
 use durs_wot::NodeId;
 use pbr::ProgressBar;
 use std::collections::{HashMap, VecDeque};
-use std::fs;
 use std::sync::mpsc;
-use std::thread;
 use std::time::SystemTime;
+use std::{fs, thread};
 use threadpool::ThreadPool;
 use unwrap::unwrap;
 
@@ -57,6 +56,7 @@ pub enum MessForSyncThread {
 #[derive(Debug)]
 /// Message for a job thread
 pub enum SyncJobsMess {
+    ForkWindowSize(usize), // informs block worker of fork window size
     BlocksDBsWriteQuery(BlocksDBsWriteQuery),
     WotsDBsWriteQuery(Blockstamp, Box<CurrencyParameters>, WotsDBsWriteQuery),
     CurrencyDBsWriteQuery(Blockstamp, CurrencyDBsWriteQuery),
@@ -69,6 +69,7 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
         cautious_mode: cautious,
         end,
         local_path,
+        source,
         unsafe_mode,
         ..
     } = sync_opts;
@@ -81,11 +82,9 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
 
     // Get verification level
     let _verif_level = if cautious {
-        println!("Start cautious sync...");
         info!("Start cautious sync...");
         SyncVerificationLevel::Cautious()
     } else {
-        println!("Start fast sync...");
         info!("Start fast sync...");
         SyncVerificationLevel::FastSync()
     };
@@ -103,7 +102,6 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
     let pool = ThreadPool::new(nb_workers);
 
     if !json_files_path.is_dir() {
-        error!("json_files_path must be a directory");
         fatal_error!("json_files_path must be a directory");
     }
 
@@ -148,7 +146,7 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
 
     // Get local current blockstamp
     debug!("Get local current blockstamp...");
-    let mut current_blockstamp: Blockstamp =
+    let current_blockstamp: Blockstamp =
         durs_blockchain_dal::readers::block::get_current_blockstamp(&blocks_dbs)
             .expect("DALError : fail to get current blockstamp !")
             .unwrap_or_default();
@@ -161,7 +159,7 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
     }
 
     // Get wot index
-    let mut wot_index: HashMap<PubKey, NodeId> =
+    let wot_index: HashMap<PubKey, NodeId> =
         readers::identity::get_wot_index(&wot_databases.identities_db)
             .expect("Fatal eror : get_wot_index : Fail to read blockchain databases");
 
@@ -183,9 +181,6 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
         "Sync from #{} to #{} :",
         current_blockstamp.id.0, target_blockstamp.id.0
     );
-
-    // Instantiate currency parameters
-    let mut currency_params = None;
 
     // Createprogess bar
     let mut apply_pb = ProgressBar::new(count_chunks.into());
@@ -225,167 +220,67 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
 
     let main_job_begin = SystemTime::now();
 
-    // Apply blocks
-    let mut blocks_not_expiring = VecDeque::with_capacity(200_000);
-    let mut last_block_expiring: isize = -1;
+    // Open databases
+    let dbs_path = durs_conf::get_blockchain_db_path(profile_path);
     let certs_db =
         BinDB::Mem(open_memory_db::<CertsExpirV10Datas>().expect("Fail to create memory certs_db"));
-    let mut get_currency_params = false;
-    let mut certs_count = 0;
 
-    let mut all_wait_duration = Duration::from_millis(0);
-    let mut wait_begin = SystemTime::now();
-    let mut all_verif_block_hashs_duration = Duration::from_millis(0);
-    let mut all_apply_valid_block_duration = Duration::from_millis(0);
+    // initialise le BlockApplicator
+    let mut block_applicator = BlockApplicator {
+        got_currency_params: false,
+        source,
+        currency,
+        currency_params: None,
+        dbs_path,
+        verif_inner_hash: !unsafe_mode,
+        target_blockstamp,
+        current_blockstamp,
+        sender_blocks_thread,
+        sender_wot_thread,
+        sender_tx_thread,
+        wot_index,
+        wot_databases,
+        certs_count: 0,
+        blocks_not_expiring: VecDeque::with_capacity(200_000),
+        last_block_expiring: -1,
+        certs_db,
+        wait_begin: SystemTime::now(),
+        all_wait_duration: Duration::from_millis(0),
+        all_verif_block_hashs_duration: Duration::from_millis(0),
+        all_apply_valid_block_duration: Duration::from_millis(0),
+    };
+
+    // main loop
     while let Ok(MessForSyncThread::BlockDocument(block_doc)) = recv_sync_thread.recv() {
-        all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
-
-        // Verify block hashs
-        let verif_block_hashs_begin = SystemTime::now();
-        if !unsafe_mode {
-            dubp::check::hashs::verify_block_hashs(&block_doc)
-                .expect("Receive wrong block, please reset data and resync !");
-        }
-        all_verif_block_hashs_duration += SystemTime::now()
-            .duration_since(verif_block_hashs_begin)
-            .unwrap();
-        // Get and write currency params
-        if !get_currency_params {
-            let datas_path = durs_conf::get_datas_path(profile_path.clone());
-            if block_doc.number() == BlockNumber(0) {
-                currency_params = Some(
-                    durs_blockchain_dal::readers::currency_params::get_and_write_currency_params(
-                        &datas_path,
-                        &block_doc,
-                    ),
-                );
-            } else {
-                currency_params = match dup_currency_params::db::get_currency_params(datas_path) {
-                    Ok(Some((_currency_name, currency_params))) => Some(currency_params),
-                    Ok(None) => fatal_error!("Params db corrupted: please reset data and resync !"),
-                    Err(_) => fatal_error!("Fail to open params db"),
-                }
-            }
-            get_currency_params = true;
-        }
-        let currency_params = unwrap!(currency_params);
-
-        // Push block median_time in blocks_not_expiring
-        blocks_not_expiring.push_back(block_doc.common_time());
-        // Get blocks_expiring
-        let mut blocks_expiring = Vec::new();
-        while blocks_not_expiring.front().copied()
-            < Some(block_doc.common_time() - currency_params.sig_validity)
-        {
-            last_block_expiring += 1;
-            blocks_expiring.push(BlockNumber(last_block_expiring as u32));
-            blocks_not_expiring.pop_front();
-        }
-        // Find expire_certs
-        let expire_certs =
-            durs_blockchain_dal::readers::certs::find_expire_certs(&certs_db, blocks_expiring)
-                .expect("find_expire_certs() : DALError");
-        // Get block blockstamp
-        let blockstamp = block_doc.blockstamp();
-        // Apply block
-        let apply_valid_block_begin = SystemTime::now();
-        if let Ok(ValidBlockApplyReqs(block_req, wot_db_reqs, currency_db_reqs)) =
-            apply_valid_block::<RustyWebOfTrust>(
-                block_doc,
-                &mut wot_index,
-                &wot_databases.wot_db,
-                &expire_certs,
-            )
-        {
-            all_apply_valid_block_duration += SystemTime::now()
-                .duration_since(apply_valid_block_begin)
-                .unwrap();
-            current_blockstamp = blockstamp;
-            debug!("Apply db requests...");
-            // Send block request to blocks worker thread
-            sender_blocks_thread
-                .send(SyncJobsMess::BlocksDBsWriteQuery(block_req.clone()))
-                .expect(
-                    "Fail to communicate with blocks worker thread, please reset data & resync !",
-                );
-            // Send wot requests to wot worker thread
-            for req in wot_db_reqs {
-                if let WotsDBsWriteQuery::CreateCert(
-                    ref _source_pubkey,
-                    ref source,
-                    ref target,
-                    ref created_block_id,
-                    ref _median_time,
-                ) = req
-                {
-                    certs_count += 1;
-                    // Add cert in certs_db
-                    certs_db
-                        .write(|db| {
-                            let mut created_certs =
-                                db.get(&created_block_id).cloned().unwrap_or_default();
-                            created_certs.insert((*source, *target));
-                            db.insert(*created_block_id, created_certs);
-                        })
-                        .expect("RustBreakError : please reset data and resync !");
-                }
-                sender_wot_thread
-                    .send(SyncJobsMess::WotsDBsWriteQuery(
-                        current_blockstamp,
-                        Box::new(currency_params),
-                        req.clone(),
-                    ))
-                    .expect(
-                        "Fail to communicate with tx worker thread, please reset data & resync !",
-                    )
-            }
-            // Send blocks and wot requests to wot worker thread
-            for req in currency_db_reqs {
-                sender_tx_thread
-                    .send(SyncJobsMess::CurrencyDBsWriteQuery(
-                        current_blockstamp,
-                        req.clone(),
-                    ))
-                    .expect(
-                        "Fail to communicate with tx worker thread, please reset data & resync !",
-                    );
-            }
-            debug!("Success to apply block #{}", current_blockstamp.id.0);
-            if current_blockstamp.id.0 >= target_blockstamp.id.0 {
-                if current_blockstamp == target_blockstamp {
-                    // Sync completed
-                    break;
-                } else {
-                    fatal_error!("Fatal Error : we get a fork, please reset data and sync again !");
-                }
-            }
-        } else {
-            fatal_error!(
-                "Fatal error : fail to stack up block #{}",
-                current_blockstamp.id.0 + 1
-            )
-        }
-        wait_begin = SystemTime::now();
+        block_applicator.apply(block_doc);
     }
+
     // Send end signal to workers threads
-    sender_blocks_thread
+    block_applicator
+        .sender_blocks_thread
         .send(SyncJobsMess::End())
         .expect("Sync : Fail to send End signal to blocks worker !");
     info!("Sync : send End signal to blocks job.");
-    sender_wot_thread
+    block_applicator
+        .sender_wot_thread
         .send(SyncJobsMess::End())
         .expect("Sync : Fail to send End signal to wot worker !");
     info!("Sync : send End signal to wot job.");
-    sender_tx_thread
+    block_applicator
+        .sender_tx_thread
         .send(SyncJobsMess::End())
         .expect("Sync : Fail to send End signal to writer worker !");
     info!("Sync : send End signal to tx job.");
 
     // Save wot db
-    wot_databases.wot_db.save().expect("Fail to save wot db");
+    block_applicator
+        .wot_databases
+        .wot_db
+        .save()
+        .expect("Fail to save wot db");
 
-    let main_job_duration =
-        SystemTime::now().duration_since(main_job_begin).unwrap() - all_wait_duration;
+    let main_job_duration = SystemTime::now().duration_since(main_job_begin).unwrap()
+        - block_applicator.all_wait_duration;
     info!(
         "main_job_duration={},{:03} seconds.",
         main_job_duration.as_secs(),
@@ -393,13 +288,17 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
     );
     info!(
         "all_verif_block_hashs_duration={},{:03} seconds.",
-        all_verif_block_hashs_duration.as_secs(),
-        all_verif_block_hashs_duration.subsec_millis()
+        block_applicator.all_verif_block_hashs_duration.as_secs(),
+        block_applicator
+            .all_verif_block_hashs_duration
+            .subsec_millis()
     );
     info!(
         "all_apply_valid_block_duration={},{:03} seconds.",
-        all_apply_valid_block_duration.as_secs(),
-        all_apply_valid_block_duration.subsec_millis()
+        block_applicator.all_apply_valid_block_duration.as_secs(),
+        block_applicator
+            .all_apply_valid_block_duration
+            .subsec_millis()
     );
 
     // Wait recv two finish signals
@@ -414,7 +313,7 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
     info!("All sync jobs finish.");
 
     // Log sync duration
-    debug!("certs_count={}", certs_count);
+    debug!("certs_count={}", block_applicator.certs_count);
     let sync_duration = SystemTime::now().duration_since(sync_start_time).unwrap();
     println!(
         "Sync {} blocks in {}.{:03} seconds.",

@@ -34,24 +34,29 @@ pub fn execute(
         let mut chunk_index = 0;
         let mut all_wait_duration = Duration::from_millis(0);
         let mut wait_begin = SystemTime::now();
-        while let Ok(SyncJobsMess::BlocksDBsWriteQuery(req)) = recv.recv() {
-            all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
 
-            // Apply db request
-            req.apply(
-                &blocks_dbs.blockchain_db,
-                &forks_db,
-                200, // TODO replace by fork_window_size
-                Some(target_blockstamp),
-            )
-            .expect("Fatal error : Fail to apply DBWriteRequest !");
+        if let Ok(SyncJobsMess::ForkWindowSize(fork_window_size)) = recv.recv() {
+            while let Ok(SyncJobsMess::BlocksDBsWriteQuery(req)) = recv.recv() {
+                all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
 
-            chunk_index += 1;
-            if chunk_index == 250 {
-                chunk_index = 0;
-                apply_pb.inc();
+                // Apply db request
+                req.apply(
+                    &blocks_dbs.blockchain_db,
+                    &forks_db,
+                    fork_window_size,
+                    Some(target_blockstamp),
+                )
+                .expect("Fatal error : Fail to apply DBWriteRequest !");
+
+                chunk_index += 1;
+                if chunk_index == 250 {
+                    chunk_index = 0;
+                    apply_pb.inc();
+                }
+                wait_begin = SystemTime::now();
             }
-            wait_begin = SystemTime::now();
+        } else {
+            fatal_error!("Dev error: block worker must first receive fork window size")
         }
 
         // Increment progress bar (last chunk)

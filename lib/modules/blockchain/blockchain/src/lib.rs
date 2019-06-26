@@ -70,7 +70,7 @@ use durs_network::{
     events::NetworkEvent,
     requests::{NetworkResponse, OldNetworkRequest},
 };
-use durs_wot::data::rusty::RustyWebOfTrust;
+// use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::operations::distance::RustyDistanceCalculator;
 use durs_wot::NodeId;
 
