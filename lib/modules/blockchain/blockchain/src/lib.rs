@@ -73,6 +73,7 @@ use durs_network::{
 // use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::operations::distance::RustyDistanceCalculator;
 use durs_wot::NodeId;
+use failure::Error;
 
 /// The blocks are requested by packet groups. This constant sets the block packet size.
 pub static CHUNK_SIZE: &'static u32 = &50;
@@ -246,8 +247,18 @@ impl BlockchainModule {
         dbex::dbex(profile_path, csv, req);
     }
     /// Synchronize blockchain from local duniter json files
-    pub fn sync_ts<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts: SyncOpt) {
-        sync::local_sync(profile_path, conf, sync_opts);
+    pub fn local_sync<DC: DursConfTrait>(
+        conf: &DC,
+        currency_name: Option<&CurrencyName>,
+        profile_path: PathBuf,
+        sync_opts: SyncOpt,
+    ) -> Result<(), Error> {
+        Ok(sync::local_sync(
+            conf,
+            currency_name,
+            profile_path,
+            sync_opts,
+        )?)
     }
     /// Start blockchain module.
     pub fn start_blockchain(

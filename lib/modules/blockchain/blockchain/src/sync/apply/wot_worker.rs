@@ -39,7 +39,7 @@ pub fn execute(
                 SyncJobsMess::WotsDBsWriteQuery(blockstamp, currency_params, req) => req
                     .apply(&blockstamp, &currency_params.deref(), &databases)
                     .expect("Fatal error : Fail to apply DBWriteRequest !"),
-                SyncJobsMess::End() => break,
+                SyncJobsMess::End => break,
                 _ => {}
             }
             wait_begin = SystemTime::now();

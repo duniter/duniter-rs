@@ -25,7 +25,6 @@ use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
 use dubp_documents::{BlockNumber, Blockstamp, Document};
 use dup_crypto::keys::PubKey;
 use dup_currency_params::{CurrencyName, CurrencyParameters};
-use durs_blockchain_dal::readers::currency_params::get_and_write_currency_params;
 use durs_blockchain_dal::writers::requests::WotsDBsWriteQuery;
 use durs_blockchain_dal::{BinDB, CertsExpirV10Datas, WotsV10DBs};
 use durs_common_tools::fatal_error;
@@ -40,8 +39,6 @@ use unwrap::unwrap;
 
 // récupérer les métadonnées entre deux utilisation
 pub struct BlockApplicator {
-    // flag
-    pub got_currency_params: bool,
     // options
     pub source: Option<Url>,
     pub currency: CurrencyName,
@@ -82,18 +79,6 @@ impl BlockApplicator {
         self.all_verif_block_hashs_duration += SystemTime::now()
             .duration_since(verif_block_hashs_begin)
             .unwrap();
-
-        // Get and write currency params
-        if !self.got_currency_params {
-            self.currency_params = Some(get_and_write_currency_params(&self.dbs_path, &block_doc));
-            self.sender_blocks_thread
-                .send(SyncJobsMess::ForkWindowSize(
-                    // sends fork window size to block worker
-                    unwrap!(self.currency_params).fork_window_size,
-                ))
-                .expect("Fail to communicate with blocks worker thread!");
-            self.got_currency_params = true;
-        }
 
         // Push block common_time in blocks_not_expiring
         self.blocks_not_expiring.push_back(block_doc.common_time());

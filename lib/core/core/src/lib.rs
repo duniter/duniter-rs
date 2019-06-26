@@ -201,7 +201,14 @@ impl DursCore<DuRsConf> {
             }
             DursCoreCommand::SyncOpt(opts) => {
                 if opts.local_path.is_some() {
-                    sync_ts(profile_path.clone(), &durs_core.soft_meta_datas.conf, opts);
+                    // Launch local sync
+                    BlockchainModule::local_sync(
+                        &durs_core.soft_meta_datas.conf,
+                        durs_core.currency_name.as_ref(),
+                        profile_path.clone(),
+                        opts,
+                    )
+                    .map_err(DursCoreError::Error)?;
                     Ok(())
                 } else if opts.source.is_some() {
                     durs_core.server_command = Some(ServerMode::Sync(opts));
@@ -579,12 +586,6 @@ pub fn get_module_conf<M: DursModule<DuRsConf, DursMsg>>(
     } else {
         M::generate_module_conf(currency_name, global_conf, None)
     }
-}
-
-/// Launch synchronisation from a duniter-ts database
-pub fn sync_ts<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts: SyncOpt) {
-    // Launch sync-ts
-    BlockchainModule::sync_ts(profile_path, conf, sync_opts);
 }
 
 /// Launch databases explorer

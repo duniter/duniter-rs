@@ -18,7 +18,7 @@
 use crate::logger::InitLoggerError;
 use dup_currency_params::db::CurrencyParamsDbError;
 use durs_module::{ModuleStaticName, PlugModuleError};
-use failure::Fail;
+use failure::{Error, Fail};
 
 #[derive(Debug, Fail)]
 /// Durs server error
@@ -26,6 +26,9 @@ pub enum DursCoreError {
     /// Error with configuration file
     #[fail(display = "Error with configuration file: {}", _0)]
     ConfFileError(durs_conf::DursConfFileError),
+    /// Generic error that impl Fail
+    #[fail(display = "{}", _0)]
+    Error(Error),
     /// Fail to read currency params DB
     #[fail(display = "Fail to read currency params DB: {}", _0)]
     FailReadCurrencyParamsDb(CurrencyParamsDbError),

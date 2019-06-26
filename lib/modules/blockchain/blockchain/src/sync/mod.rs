@@ -18,6 +18,7 @@ mod download;
 
 use crate::*;
 use apply::BlockApplicator;
+use dubp_documents::documents::block::BlockDocumentTrait;
 use dubp_documents::{BlockHash, BlockNumber};
 use dup_crypto::keys::*;
 use dup_currency_params::{CurrencyName, CurrencyParameters};
@@ -25,6 +26,7 @@ use durs_blockchain_dal::writers::requests::*;
 use durs_blockchain_dal::{open_memory_db, CertsExpirV10Datas};
 use durs_common_tools::fatal_error;
 use durs_wot::NodeId;
+use failure::Fail;
 use pbr::ProgressBar;
 use std::collections::{HashMap, VecDeque};
 use std::sync::mpsc;
@@ -60,11 +62,32 @@ pub enum SyncJobsMess {
     BlocksDBsWriteQuery(BlocksDBsWriteQuery),
     WotsDBsWriteQuery(Blockstamp, Box<CurrencyParameters>, WotsDBsWriteQuery),
     CurrencyDBsWriteQuery(Blockstamp, CurrencyDBsWriteQuery),
-    End(),
+    End,
+}
+
+#[derive(Clone, Debug, Fail)]
+/// Local sync error
+pub enum LocalSyncError {
+    #[fail(
+        display = "The folder you specified contains the blockchain of currency {}, \
+        and your node already contains the blockchain of another currency {}. If you \
+        wish to change currency you must reset your data ('reset data' command) or use a different profile (-p option).",
+        found, expected
+    )]
+    /// Target currency and local currency are different
+    InvalidTargetCurrency {
+        expected: CurrencyName,
+        found: CurrencyName,
+    },
 }
 
 /// Sync from local json files
-pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts: SyncOpt) {
+pub fn local_sync<DC: DursConfTrait>(
+    conf: &DC,
+    currency: Option<&CurrencyName>,
+    profile_path: PathBuf,
+    sync_opts: SyncOpt,
+) -> Result<(), LocalSyncError> {
     let SyncOpt {
         cautious_mode: cautious,
         end,
@@ -114,14 +137,29 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
         end,
     );
 
-    // Get target blockstamp
-    let (currency, target_blockstamp) =
-        if let Ok(MessForSyncThread::Target(currency, target_blockstamp)) = recv_sync_thread.recv()
+    // Get target blockstamp and target currency
+    let (target_currency, target_blockstamp) =
+        if let Ok(MessForSyncThread::Target(target_currency, target_blockstamp)) =
+            recv_sync_thread.recv()
         {
-            (currency, target_blockstamp)
+            (target_currency, target_blockstamp)
         } else {
             fatal_error!("Fatal error : no target blockstamp !");
         };
+
+    // Check the consistency between currency and target_currency
+    let currency = if let Some(currency) = currency {
+        if currency == &target_currency {
+            target_currency
+        } else {
+            return Err(LocalSyncError::InvalidTargetCurrency {
+                expected: currency.clone(),
+                found: target_currency,
+            });
+        }
+    } else {
+        target_currency
+    };
 
     // Update DursConf
     let mut conf = conf.clone();
@@ -155,7 +193,7 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
     // Node is already synchronized ?
     if target_blockstamp.id.0 <= current_blockstamp.id.0 {
         println!("Your durs node is already synchronized.");
-        return;
+        return Ok(());
     }
 
     // Get wot index
@@ -221,13 +259,12 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
     let main_job_begin = SystemTime::now();
 
     // Open databases
-    let dbs_path = durs_conf::get_blockchain_db_path(profile_path);
+    let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone());
     let certs_db =
         BinDB::Mem(open_memory_db::<CertsExpirV10Datas>().expect("Fail to create memory certs_db"));
 
     // initialise le BlockApplicator
     let mut block_applicator = BlockApplicator {
-        got_currency_params: false,
         source,
         currency,
         currency_params: None,
@@ -251,24 +288,59 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
     };
 
     // main loop
+    let mut got_currency_params = false;
     while let Ok(MessForSyncThread::BlockDocument(block_doc)) = recv_sync_thread.recv() {
+        // Get and write currency params
+        if !got_currency_params {
+            let datas_path = durs_conf::get_datas_path(profile_path.clone());
+            if block_doc.number() == BlockNumber(0) {
+                block_applicator.currency_params = Some(
+                    durs_blockchain_dal::readers::currency_params::get_and_write_currency_params(
+                        &datas_path,
+                        &block_doc,
+                    ),
+                );
+            } else {
+                block_applicator.currency_params =
+                    match dup_currency_params::db::get_currency_params(datas_path) {
+                        Ok(Some((_currency_name, currency_params))) => Some(currency_params),
+                        Ok(None) => {
+                            fatal_error!("Params db corrupted: please reset data and resync !")
+                        }
+                        Err(_) => fatal_error!("Fail to open params db"),
+                    }
+            }
+            got_currency_params = true;
+
+            // Sends fork_window_size to block worker
+            if block_applicator
+                .sender_blocks_thread
+                .send(SyncJobsMess::ForkWindowSize(
+                    unwrap!(block_applicator.currency_params).fork_window_size,
+                ))
+                .is_err()
+            {
+                fatal_error!("Fail to communicate with blocks worker thread!");
+            }
+        }
+
         block_applicator.apply(block_doc);
     }
 
     // Send end signal to workers threads
     block_applicator
         .sender_blocks_thread
-        .send(SyncJobsMess::End())
+        .send(SyncJobsMess::End)
         .expect("Sync : Fail to send End signal to blocks worker !");
     info!("Sync : send End signal to blocks job.");
     block_applicator
         .sender_wot_thread
-        .send(SyncJobsMess::End())
+        .send(SyncJobsMess::End)
         .expect("Sync : Fail to send End signal to wot worker !");
     info!("Sync : send End signal to wot job.");
     block_applicator
         .sender_tx_thread
-        .send(SyncJobsMess::End())
+        .send(SyncJobsMess::End)
         .expect("Sync : Fail to send End signal to writer worker !");
     info!("Sync : send End signal to tx job.");
 
@@ -327,4 +399,5 @@ pub fn local_sync<DC: DursConfTrait>(profile_path: PathBuf, conf: &DC, sync_opts
         sync_duration.as_secs(),
         sync_duration.subsec_millis(),
     );
+    Ok(())
 }

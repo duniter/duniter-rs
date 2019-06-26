@@ -36,24 +36,40 @@ pub fn execute(
         let mut wait_begin = SystemTime::now();
 
         if let Ok(SyncJobsMess::ForkWindowSize(fork_window_size)) = recv.recv() {
-            while let Ok(SyncJobsMess::BlocksDBsWriteQuery(req)) = recv.recv() {
-                all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
+            log::info!(
+                "Block worker receive fork_window_size={}.",
+                fork_window_size
+            );
+            loop {
+                match recv.recv() {
+                    Ok(SyncJobsMess::BlocksDBsWriteQuery(req)) => {
+                        all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
 
-                // Apply db request
-                req.apply(
-                    &blocks_dbs.blockchain_db,
-                    &forks_db,
-                    fork_window_size,
-                    Some(target_blockstamp),
-                )
-                .expect("Fatal error : Fail to apply DBWriteRequest !");
+                        // Apply db request
+                        req.apply(
+                            &blocks_dbs.blockchain_db,
+                            &forks_db,
+                            fork_window_size,
+                            Some(target_blockstamp),
+                        )
+                        .expect("Fatal error : Fail to apply DBWriteRequest !");
 
-                chunk_index += 1;
-                if chunk_index == 250 {
-                    chunk_index = 0;
-                    apply_pb.inc();
+                        chunk_index += 1;
+                        if chunk_index == 250 {
+                            chunk_index = 0;
+                            apply_pb.inc();
+                        }
+                        wait_begin = SystemTime::now();
+                    }
+                    Ok(SyncJobsMess::End) | Err(_) => {
+                        log::info!("Sync: block worker channel closed.");
+                        break;
+                    }
+                    Ok(msg) => fatal_error!(
+                        "Dev error: block worker receive unexpected message: {:?}",
+                        msg
+                    ),
                 }
-                wait_begin = SystemTime::now();
             }
         } else {
             fatal_error!("Dev error: block worker must first receive fork window size")
