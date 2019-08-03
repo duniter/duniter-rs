@@ -212,13 +212,15 @@ package:test:docker-test-image:
       - dev
       - tags
   when: manual
-  image: docker:git
+  image: docker:19.03
   tags:
     - dunitrust
   services:
-    - docker:dind
+    - docker:19.03-dind
   variables:
-    LAST_COMMIT_HASH: $CI_COMMIT_SHORT_SHA 
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_DRIVER: overlay2
+    LAST_COMMIT_HASH: $CI_COMMIT_SHORT_SHA
   script:
     - docker build -f release/docker/Dockerfile .
     - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" $CI_REGISTRY
@@ -236,12 +238,14 @@ package:test:docker:
     <<: *ci_except_conditions
     refs:
       - tags
-  image: docker:git
+  image: docker:19.03
   tags:
     - dunitrust
   services:
-    - docker:dind
+    - docker:19.03-dind
   variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_DRIVER: overlay2
     LAST_COMMIT_HASH: $CI_COMMIT_SHORT_SHA
   script:
     - docker build -f release/docker/Dockerfile .
