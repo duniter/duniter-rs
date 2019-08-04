@@ -72,7 +72,7 @@ skip_ci:
     <<: *ci_only_conditions
   except:
     <<: *ci_except_conditions
-  image: registry.duniter.org/docker/rust/armv7-builder:v1.35.0
+  image: registry.duniter.org/docker/rust/armv7-builder:latest
   tags:
     - axiom-dev
   before_script:
