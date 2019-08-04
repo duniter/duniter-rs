@@ -47,7 +47,7 @@ skip_ci:
     <<: *ci_only_conditions
   except:
     <<: *ci_except_conditions
-  image: registry.duniter.org/docker/duniter-rs-ci:v1.35.0
+  image: registry.duniter.org/docker/dunitrust/dunitrust-ci-lin64:latest
   tags:
     - axiom-dev
   before_script:
