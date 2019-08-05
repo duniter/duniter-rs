@@ -50,4 +50,4 @@ De plus, le Gitlab est configuré de tel façon a ce qu'il soit impossible d'acc
 Afin d'éviter les regressions, les tests doivent couvrir le plus de cas possible (idéalement tous mais il est impossible de penser a tout les cas).
 Pour vérifier la couverture des tests d'une crate, **(en cours de rédaction)**.
 
-L'intégration d'un outils de coverage au projets est un chantier en cours, les outils Rust dédiés au coverage arrivent tout juste a maturité et devrait donc etre intégrés au projet Durs dans les prochains mois.
+L'intégration d'un outils de coverage au projets est un chantier en cours, les outils Rust dédiés au coverage arrivent tout juste a maturité et devrait donc etre intégrés au projet Dunitrust dans les prochains mois.

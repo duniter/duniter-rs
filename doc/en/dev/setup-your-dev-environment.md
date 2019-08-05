@@ -117,7 +117,7 @@ To setup and start the debugger, refer to [the vscode doc](https://code.visualst
             "name": "Debug",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/target/debug/durs",
+            "program": "${workspaceFolder}/target/debug/dunitrust",
             "cwd": "${workspaceRoot}",
             "terminal": "integrated",
             "args": ["start"],

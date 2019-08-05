@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Dunitrust Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -103,7 +103,7 @@ impl ToString for ModuleReqFullId {
     }
 }
 
-/// Durs global configuration trait
+/// Dunitrust global configuration trait
 pub trait DursGlobalConfTrait:
     Clone + Debug + PartialEq + Serialize + DeserializeOwned + Send + ToOwned
 {
@@ -113,11 +113,11 @@ pub trait DursGlobalConfTrait:
     fn default_sync_module(&self) -> ModuleName;
 }
 
-/// Durs configuration trait
+/// Dunitrust configuration trait
 pub trait DursConfTrait:
     Clone + Debug + Default + PartialEq + Serialize + DeserializeOwned + Send + ToOwned
 {
-    /// Durs configuration without modules configuration
+    /// Dunitrust configuration without modules configuration
     type GlobalConf: DursGlobalConfTrait;
 
     /// Disable a module

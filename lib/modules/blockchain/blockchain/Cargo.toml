@@ -2,7 +2,7 @@
 name = "durs-blockchain"
 version = "0.2.0-a"
 authors = ["librelois <elois@ifee.fr>"]
-description = "Blockchain module for the Durs project."
+description = "Blockchain module for the Dunitrust project."
 license = "AGPL-3.0"
 edition = "2018"
 

@@ -8,21 +8,21 @@ In any case, you will have to:
 2. which version number you want
 3. select the release corresponding to your operating system and processor architecture
 
-### `durs-server` or `durs-desktop`
+### `dunitrust-server` or `durs-desktop`
 
 `durs-desktop` comes with a graphic user interface and is made for people who want to install it in their desktop computer
 
-`durs-server` is much lighter but only has a terminal user interface. It's recommended for:
+`dunitrust-server` is much lighter but only has a terminal user interface. It's recommended for:
 
 * Installing on a remote server
 * Installing on a low performance computer
 * For users who are confortable with command line interfaces
 
-Note: it's possible to remotely control `durs-server` via a graphic user interface (see [durs remote admin]).
+Note: it's possible to remotely control `dunitrust-server` via a graphic user interface (see [durs remote admin]).
 
 ## Choose the durs version to install
 
-<s>You can get the last stable version on [the official Durs website](durs.info)</s>
+<s>You can get the last stable version on [the official Dunitrust website](dunitrust.org)</s>
 
 If you have any question about which version to install, ask it on the [duniter forum](https://forum.duniter.org/).
 
@@ -43,24 +43,24 @@ If no release has been made for you, fall back to the manual installation below.
 
 ## Manual installation
 
-To install Durs manually, you must first [install Rust](https://www.rust-lang.org/tools/install).
+To install Dunitrust manually, you must first [install Rust](https://www.rust-lang.org/tools/install).
 
-Then install Durs dependencies. Here is how to do on Debian based systems:
+Then install Dunitrust dependencies. Here is how to do on Debian based systems:
 
     apt-get install pkg-config libssl-dev # install required packages
-    git clone https://git.duniter.org/nodes/rust/duniter-rs.git # clone the Durs repository
+    git clone https://git.duniter.org/nodes/rust/duniter-rs.git # clone the Dunitrust repository
 
 Change your current directory to the folder correspondig to the variant you want to build:
 
-* For `durs-server`, go into `bin/durs-server`
+* For `dunitrust-server`, go into `bin/dunitrust-server`
 
-    cd bin/durs-server
+    cd bin/dunitrust-server
 
-* For `durs-desktop`, go into `bin/durs-desktop`
+* For `durs-desktop`, go into `bin/dunitrust-desktop`
 
-    cd bin/durs-desktop
+    cd bin/dunitrust-desktop
 
-Then build Durs with the command:
+Then build Dunitrust with the command:
 
     cargo build --release --features ssl
 

@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Durs Project Developers.
+//  Copyright (C) 2018  The Dunitrust Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Manage Durs core errors.
+//! Manage Dunitrust core errors.
 
 use crate::logger::InitLoggerError;
 use dup_currency_params::db::CurrencyParamsDbError;
@@ -21,7 +21,7 @@ use durs_module::{ModuleStaticName, PlugModuleError};
 use failure::{Error, Fail};
 
 #[derive(Debug, Fail)]
-/// Durs server error
+/// Dunitrust server error
 pub enum DursCoreError {
     /// Error with configuration file
     #[fail(display = "Error with configuration file: {}", _0)]

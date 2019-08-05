@@ -8,7 +8,7 @@ Cette fonctionnalitée n'est pas encore intégrée à Durs.
 
 Assurez vous d'avoir un noeud Duniter synchronisé sur la même machine.
 
-Vous devez indiquer a Durs le chemin vers le répertoire contenant la blockchain brute sous forme de fichiers JSON. Elle se trouve dans `~/.config/duniter/<profile>/<currency>`.
+Vous devez indiquer a Dunitrust le chemin vers le répertoire contenant la blockchain brute sous forme de fichiers JSON. Elle se trouve dans `~/.config/duniter/<profile>/<currency>`.
 
 Exemple:
 

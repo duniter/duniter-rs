@@ -1,4 +1,4 @@
-//  Copyright (C) 2017  The Duniter Project Developers.
+//  Copyright (C) 2017  The Dunitrust Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -793,7 +793,7 @@ mod tests {
     #[test]
     fn test_parse_and_read_endpoint_with_all_fields() {
         let str_endpoint =
-            "WS2P V2 S 0x7 5.135.188.170 [2001:41d0:8:c5aa::1] g1.durs.info 443 ws2p";
+            "WS2P V2 S 0x7 5.135.188.170 [2001:41d0:8:c5aa::1] g1.dunitrust.org 443 ws2p";
         let endpoint = EndpointV2 {
             api: ApiName(String::from("WS2P")),
             api_version: 2,
@@ -801,7 +801,7 @@ mod tests {
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: Some(Ipv4Addr::from_str("5.135.188.170").unwrap()),
             ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
-            domain: Some(String::from("g1.durs.info")),
+            domain: Some(String::from("g1.dunitrust.org")),
             port: 443u16,
             path: Some(String::from("ws2p")),
         };

@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Dunitrust Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Durs configuration files properties module
+//! Dunitrust configuration files properties module
 
 #![deny(
     missing_docs,
@@ -199,11 +199,11 @@ impl From<DuRsConfV1> for DuRsConfV2 {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-/// Durs node configuration
+/// Dunitrust node configuration
 pub enum DuRsConf {
-    /// Durs node configuration v1
+    /// Dunitrust node configuration v1
     V1(DuRsConfV1),
-    /// Durs node configuration v2
+    /// Dunitrust node configuration v2
     V2 {
         /// Global configuration
         global_conf: DuRsConfV2,
@@ -213,11 +213,11 @@ pub enum DuRsConf {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-/// Durs global configuration (without modules configuration)
+/// Dunitrust global configuration (without modules configuration)
 pub enum DuRsGlobalConf {
-    /// Durs global configuration v1
+    /// Dunitrust global configuration v1
     V1(DuRsConfV1),
-    /// Durs global configuration v2
+    /// Dunitrust global configuration v2
     V2(DuRsConfV2),
 }
 

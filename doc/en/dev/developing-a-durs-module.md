@@ -1,27 +1,27 @@
-# How to write your Durs module
+# How to write your Dunitrust module
 
 Date: 2018-11-20
 Authors: elois
 
-In this tutorial we'll see how to develop a new module for Durs, the Rust implementation of [Duniter](https://duniter.org).
+In this tutorial we'll see how to develop a new module for Dunitrust, the Rust implementation of [Duniter](https://duniter.org).
 
 You are expected to have [setup your development environment](setup-your-dev-environment.md).
 
 ## General architecture
 
-The Durs repository is composed of two types of crates: binaries and libraries.
+The Dunitrust repository is composed of two types of crates: binaries and libraries.
 
 There are two binary crates in the `bin/` directory:
 
-* `durs-server`: builds an executable for the command line, targetting a server install,
+* `dunitrust-server`: builds an executable for the command line, targetting a server install,
 * `durs-desktop`: builds a Graphical User Interface (GUI), for the desktop, also in the form of one executable. This one doesn't exist yet.
 
-A Durs module is a library crate. You must then create your crate in the `lib/` directory.
+A Dunitrust module is a library crate. You must then create your crate in the `lib/` directory.
 
 The `lib/` directory has 4 sub-directories which correspond to 4 types of libraries:
 
 1. `tools`: utilities that could be useful to all crates.
-2. `modules`: libraries forming a Durs module.
+2. `modules`: libraries forming a Dunitrust module.
 3. `modules-lib`: libraries dedicated to a subset of modules.
 4. `core`: libraries structuring the architecture, linking modules between them.
 
@@ -251,7 +251,7 @@ If it is `false`, you must run your module, and this is done in the following st
 5. run the main loop, in which you'll listen to the incoming messages to your channel
 
 If the router doesn't receive all the modules' registration in less than 20 seconds, it stops the program. You must then register it before any intensive action.
-If you think 20 seconds is large anyway, keep in mind that Durs is aimed to run on low-performance micro-computers, that could even busy with other tasks. It is possible to not include your module into the arm build.
+If you think 20 seconds is large anyway, keep in mind that Dunitrust is aimed to run on low-performance micro-computers, that could even busy with other tasks. It is possible to not include your module into the arm build.
 
 In short: if your module takes more than 3 seconds to register on your pc, it's already too much.
 
@@ -259,13 +259,13 @@ In short: if your module takes more than 3 seconds to register on your pc, it's 
 
 First, you must add your module to the binary crates' dependencies. They are declared in the `Cargo.toml`.
 
-To add `toto`, add the following line to `bin/durs-server/Cargo.toml`:
+To add `toto`, add the following line to `bin/dunitrust-server/Cargo.toml`:
 
     durs-toto = { path = "../../lib/modules/toto" }
 
-## Injecting your module into `durs-server`
+## Injecting your module into `dunitrust-server`
 
-Once you added your module in `durs-server` dependencies as shown above, you'll want to use it from the main.rs:
+Once you added your module in `dunitrust-server` dependencies as shown above, you'll want to use it from the main.rs:
 
 1. use the struct that implements `DursModule`:
 

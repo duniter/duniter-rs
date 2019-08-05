@@ -50,7 +50,7 @@ create_desc() {
 # 1. Building directory.
 build_extra_server() {
 	mkdir -p "${1}/lib/systemd/system" || exit 1
-	cp "${ROOT}/release/extra/systemd/durs.service" "${1}/lib/systemd/system" || exit 1
+	cp "${ROOT}/release/extra/systemd/dunitrust.service" "${1}/lib/systemd/system" || exit 1
 }
 
 # Debian package building.
@@ -58,7 +58,7 @@ build_extra_server() {
 # Parameters:
 # 1. Building type (either “desktop” or “server”).
 build_deb_pack() {
-	cd "${ROOT}/bin/durs-${1}"
+	cd "${ROOT}/bin/dunitrust-${1}"
 	cargo deb --output "${BIN}/duniter-rust-${1}-${DURS_TAG}-linux-x64.deb"
 	create_desc "${BIN}/duniter-rust-${1}-${DURS_TAG}-linux-x64.deb" "${1}" "Linux (Ubuntu/Debian)"
 }
@@ -90,8 +90,8 @@ mkdir -p "${RELEASES}/server_" || exit 1
 #mkdir -p "${RELEASES}/desktop_" || exit 1
 
 # Copy binary (build by cargo deb)
-cp "${ROOT}/target/release/durs" "${RELEASES}/server_/" || exit 1
-#cp "${ROOT}/target/release/durs" "${RELEASES}/desktop_" || exit 1
+cp "${ROOT}/target/release/dunitrust" "${RELEASES}/server_/" || exit 1
+#cp "${ROOT}/target/release/dunitrust" "${RELEASES}/desktop_" || exit 1
 
 # Copy logo
 cp "${ROOT}/images/duniter-rs.png" "${RELEASES}/server_/" || exit 1

@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Dunitrust Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Crate containing Durs core.
+//! Crate containing Dunitrust core.
 
 //#![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
 #![deny(
@@ -71,11 +71,11 @@ macro_rules! durs_plug {
     };
 }
 
-/// Durs Core Datas
+/// Dunitrust Core Datas
 pub struct DursCore<DC: DursConfTrait> {
     /// Currency name
     pub currency_name: Option<CurrencyName>,
-    /// Durs core options
+    /// Dunitrust core options
     pub options: DursCoreOptions,
     /// Does the entered command require to launch server ?
     server_command: Option<ServerMode>,
@@ -230,7 +230,7 @@ impl DursCore<DuRsConf> {
             DursCoreCommand::KeysOpt(opts) => opts.execute(durs_core),
         }
     }
-    /// Initialize Durs core
+    /// Initialize Dunitrust core
     fn init(
         soft_name: &'static str,
         soft_version: &'static str,

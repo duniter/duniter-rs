@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Durs Project Developers.
+//  Copyright (C) 2018  The Dunitrust Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -44,10 +44,10 @@ use crate::events::*;
 use crate::requests::*;
 use crate::responses::*;
 
-/// Message exchanged between Durs modules
+/// Message exchanged between Dunitrust modules
 #[derive(Debug, Clone)]
 pub enum DursMsg {
-    /// Durs module event
+    /// Dunitrust module event
     Event {
         /// The module that issued the event
         event_from: ModuleStaticName,
@@ -56,7 +56,7 @@ pub enum DursMsg {
         /// Event content
         event_content: DursEvent,
     },
-    /// Durs modules requests
+    /// Dunitrust modules requests
     Request {
         /// The requester
         req_from: ModuleStaticName,
@@ -67,7 +67,7 @@ pub enum DursMsg {
         /// Request content
         req_content: DursReqContent,
     },
-    /// Durs modules request response
+    /// Dunitrust modules request response
     Response {
         /// The module that answers the request
         res_from: ModuleStaticName,

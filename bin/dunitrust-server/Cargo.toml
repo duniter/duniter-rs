@@ -1,8 +1,8 @@
 [package]
-name = "durs"
+name = "dunitrust"
 version = "0.2.0-a"
 authors = ["librelois <elois@duniter.org>","nanocryk <nanocryk@duniter.org>","inso <inso@tuta.io>"]
-description = "DURS (Dividende Universel RuSt) is a new implementation of Duniter protocol and software in Rust, a safe, concurrent, practical language"
+description = "Dunitrust (Dividende Universel Rust) is a new implementation of Duniter protocol and software in Rust, a safe, concurrent, practical language"
 license = "AGPL-3.0"
 repository = "https://git.duniter.org/nodes/rust/duniter-rs"
 homepage = "https://git.duniter.org/nodes/rust/duniter-rs"
@@ -34,14 +34,14 @@ depends = "$auto"
 section = "misc"
 priority = "optional"
 assets = [
-    ["../../target/release/durs", "usr/bin/", "755"],
-    ["../../images/duniter-rs.png", "usr/share/durs/", "644"],
+    ["../../target/release/dunitrust", "usr/bin/", "755"],
+    ["../../images/duniter-rs.png", "usr/share/dunitrust/", "644"],
 ]
 features = ["ssl"]
 
 [package.metadata.deb.variants.arm]
 assets = [
-    ["../../target/armv7-unknown-linux-gnueabihf/release/durs", "usr/bin/", "755"],
-    ["../../images/duniter-rs.png", "usr/share/durs/", "644"],
+    ["../../target/armv7-unknown-linux-gnueabihf/release/dunitrust", "usr/bin/", "755"],
+    ["../../images/duniter-rs.png", "usr/share/dunitrust/", "644"],
 ]
 features = ["ssl"]

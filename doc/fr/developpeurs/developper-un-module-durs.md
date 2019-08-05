@@ -1,9 +1,9 @@
-# Développer votre module Durs
+# Développer votre module Dunitrust
 
 Date: 2018-11-20
 Authors: elois
 
-Dans ce tutoriel nous allons voir comment développer un module pour [Durs](https://forum.duniter.org/t/etat-davancement-de-durs-dividende-universel-rust/4777), l'implémentation [Rust](https://www.rust-lang.org) de [Duniter](https://duniter.org).
+Dans ce tutoriel nous allons voir comment développer un module pour [Dunitrust](https://forum.duniter.org/t/etat-davancement-de-durs-dividende-universel-rust/4777), l'implémentation [Rust](https://www.rust-lang.org) de [Duniter](https://duniter.org).
 
 Si ce n'est pas déjà fait, vous devez au préalable [préparer votre environnement de développement](installer-son-environnement-de-dev.md).
 
@@ -13,7 +13,7 @@ Le dépôt durs est constitué de deux types de crates : les binaires et les bib
 
 Les crates binaires sont regroupés dans le dossier `bin` et sont au nombre de deux :
 
-* durs-server : produit un exécutable de durs en ligne de commande, donc installable sur un serveur.
+* dunitrust-server : produit un exécutable de durs en ligne de commande, donc installable sur un serveur.
 * durs-desktop : produit un exécutable de durs en application graphique de bureau (n'existe pas encore).
 
 Les modules durs sont des crates de type bibliothèques, vous devez donc placer la crate de votre module dans le dossier `lib`.
@@ -267,7 +267,7 @@ En revanche, si `load_conf_only` vaut `false` c'est qu'il vous faut réellement 
 
 Si jamais le router n'a pas reçu l'enregistrement de tous les modules au bout de 20 secondes, il interrompt le programme.
 Le plus important est donc d'enregistrer votre module auprès du router AVANT tout traitement lourd ou coûteux.
-20 secondes peut vous sembler énorme, mais gardez en tête que Durs peut être amené à s'exécuter dans n'importe quel contexte, y compris sur un micro-pc aux performances très très réduites. De plus, Durs n'est pas seul sur la machine de l'utilisateur final, le délai de 20 secondes doit être respecté même dans le pire des scénarios (micro-pc déjà très occupé à d'autres taches).
+20 secondes peut vous sembler énorme, mais gardez en tête que Dunitrust peut être amené à s'exécuter dans n'importe quel contexte, y compris sur un micro-pc aux performances très très réduites. De plus, Dunitrust n'est pas seul sur la machine de l'utilisateur final, le délai de 20 secondes doit être respecté même dans le pire des scénarios (micro-pc déjà très occupé à d'autres taches).
 
 Si vous prévoyez de réaliser des traitements lourds ou/et coûteux dans votre module, il peut être pertinent de ne pas l'inclure dans la release pour micro-pc (architecture arm), n'hésitez pas à poser la question aux développeurs principaux du projet en cas de doute.
 En gros, lorsque votre poste de développement ne fait rien de coûteux en même temps, votre module doit s'être enregistré en moins de 3 secondes, si ça dépasse c'est que vous faites trop de choses à l'initialisation.
@@ -276,15 +276,15 @@ En gros, lorsque votre poste de développement ne fait rien de coûteux en même
 
 Tout d'abord, il faut ajouter votre module aux dépendances des crates binaires. Les dépendances d'une crate sont déclarées dans son fichier `Cargo.toml`.
 
-Par exemple, pour ajouter le module `toto` à la crate binaire `durs-server` il faut ajouter la ligne suivante dans la section `[dependencies]` du fichier `bin/durs-server/Cargo.toml` :
+Par exemple, pour ajouter le module `toto` à la crate binaire `dunitrust-server` il faut ajouter la ligne suivante dans la section `[dependencies]` du fichier `bin/dunitrust-server/Cargo.toml` :
 
     durs-toto = { path = "../../lib/modules/toto" }
 
 Vous pouvez modifier une copie de la ligne du module skeleton pour être sûr de ne pas vous tromper.
 
-### Injecter votre module dans `durs-server`
+### Injecter votre module dans `dunitrust-server`
 
-Une fois que vous avez ajouté votre module en dépendance dans le Cargo.toml de `durs-server`, il va falloir utiliser votre module dans le main.rs :
+Une fois que vous avez ajouté votre module en dépendance dans le Cargo.toml de `dunitrust-server`, il va falloir utiliser votre module dans le main.rs :
 
 1. Utilisez votre structure implémentant le trait DursModule :
 

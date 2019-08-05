@@ -62,19 +62,19 @@ cd "${DOWNLOADS}"
 # -----------
 
 # Prepare sources
-mkdir -p "${RELEASES}/durs" || exit 1
-cp -r $(find "${ROOT}" -mindepth 1 -maxdepth 1 ! -name "${WORK_NAME}") "${RELEASES}/durs" || exit 1
-cd "${RELEASES}/durs"
+mkdir -p "${RELEASES}/dunitrust" || exit 1
+cp -r $(find "${ROOT}" -mindepth 1 -maxdepth 1 ! -name "${WORK_NAME}") "${RELEASES}/dunitrust" || exit 1
+cd "${RELEASES}/dunitrust"
 rm -Rf .gitignore .git || exit 1 # Remove git files
 
 # Build binary
 echo ">> Building binary..."
-cd "${ROOT}/bin/durs-server"
+cd "${ROOT}/bin/dunitrust-server"
 cargo build --release --target=${TARGET} || exit 1
 
 mkdir -p "${RELEASES}/server_" || exit 1
-cp "${ROOT}/target/${TARGET}/release/durs.exe" "${RELEASES}/server_/" || exit 1
-#cp "${ROOT}/target/${TARGET}/release/durs" "${RELEASES}/desktop_" || exit 1
+cp "${ROOT}/target/${TARGET}/release/dunitrust.exe" "${RELEASES}/server_/" || exit 1
+#cp "${ROOT}/target/${TARGET}/release/dunitrust" "${RELEASES}/desktop_" || exit 1
 
 # Copy logo
 #cp "${ROOT}/images/duniter-rs.png" "${RELEASES}/server_/" || exit 1

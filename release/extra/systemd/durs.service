@@ -3,10 +3,10 @@ Description=Duniter-Rust node
 After=network.target
 
 [Service]
-Environment="DURS_HOME=/var/lib/durs/.config/durs-dev"
+Environment="DURS_HOME=/var/lib/dunitrust/.config/dunitrust-dev"
 Environment="PROFILE=default"
 # If using a key file, DURS_OPTS can be defined like so:
-#Environment="DURS_OPTS=--keyfile /etc/durs/keys.yml"
+#Environment="DURS_OPTS=--keyfile /etc/dunitrust/keys.yml"
 Environment="DURS_OPTS="
 Group=durs
 User=durs

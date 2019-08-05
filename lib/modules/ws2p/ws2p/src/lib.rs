@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Durs Project Developers.
+//  Copyright (C) 2018  The Dunitrust Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -84,7 +84,7 @@ impl Default for WS2PConf {
         WS2PConf {
             outcoming_quota: *constants::WS2P_DEFAULT_OUTCOMING_QUOTA,
             sync_endpoints: vec![
-                EndpointV2::parse_from_raw("WS2P 2 g1.durs.info 443 ws2p").unwrap(),
+                EndpointV2::parse_from_raw("WS2P 2 g1.dunitrust.org 443 ws2p").unwrap(),
                 EndpointV2::parse_from_raw("WS2P 2 rs.g1.librelois.fr 443 ws2p").unwrap(),
             ],
         }

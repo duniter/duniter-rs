@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Durs Project Developers.
+//  Copyright (C) 2018  The Dunitrust Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -26,7 +26,7 @@ use durs_module::ModuleReqId;
 use durs_network::requests::NetworkResponse;
 use std::collections::HashMap;
 
-/// Durs request response message
+/// Dunitrust request response message
 #[derive(Debug, Clone)]
 pub enum DursResContent {
     /// BlockchainResponse

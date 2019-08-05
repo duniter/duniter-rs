@@ -2,7 +2,7 @@
 name = "durs-blockchain-dal"
 version = "0.2.0-a"
 authors = ["librelois <elois@ifee.fr>"]
-description = "Data Access Layer for Durs Blockchain module."
+description = "Data Access Layer for Dunitrust Blockchain module."
 license = "AGPL-3.0"
 edition = "2018"
 

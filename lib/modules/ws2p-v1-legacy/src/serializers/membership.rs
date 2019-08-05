@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Durs Project Developers.
+//  Copyright (C) 2018  The Dunitrust Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as

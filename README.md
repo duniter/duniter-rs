@@ -3,7 +3,7 @@
 # Duniter Rust (durs)
 
 [![Latest Version](https://img.shields.io/badge/latest-v0.1.1--a1-orange.svg)](https://git.duniter.org/nodes/rust/duniter-rs/tags/v0.1.1-a1)
-[![docs](https://librelois.fr/img/docs-read%20now-green.svg)](https://nodes.duniter.io/rust/duniter-rs/durs/)
+[![docs](https://librelois.fr/img/docs-read%20now-green.svg)](https://nodes.duniter.io/rust/duniter-rs/dunitrust/)
 [![build status](https://git.duniter.org/nodes/rust/duniter-rs/badges/dev/build.svg)](https://git.duniter.org/nodes/rust/duniter-rs/commits/dev)
 [![Minimum rustc version](https://img.shields.io/badge/rustc-1.35.0+-yellow.svg)](https://github.com/rust-lang/rust/blob/master/RELEASES.md)
 
@@ -25,7 +25,7 @@ It's in active developpement but is not usable yet.
 
 ## License
 
-Copyright (C) 2017  The Duniter Project Developers.
+Copyright (C) 2017  The Dunitrust Project Developers.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as

@@ -2,7 +2,7 @@
 name = "durs-network"
 version = "0.2.0-a"
 authors = ["librelois <elois@duniter.org>"]
-description = "Network model for the Durs project."
+description = "Network model for the Dunitrust project."
 license = "AGPL-3.0"
 edition = "2018"
 

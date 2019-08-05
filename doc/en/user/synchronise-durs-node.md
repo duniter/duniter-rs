@@ -1,14 +1,14 @@
-# Synchronise your Durs node
+# Synchronise your Dunitrust node
 
 ## Synchronise from the network
 
-This feature is not yet available in Durs.
+This feature is not yet available in Dunitrust.
 
 ## Synchronise from a local Duniter node
 
 Make sure you have a Duniter node (duniter-ts) syncronised on the same computer.
 
-You must tell Durs the path of the raw blockchain in JSON format.
+You must tell Dunitrust the path of the raw blockchain in JSON format.
 It is usually located in  `~/.config/duniter/<profile>/<currency>`.
 
 Example:

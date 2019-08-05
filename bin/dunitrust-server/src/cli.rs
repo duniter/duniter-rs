@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Durs Project Developers.
+//  Copyright (C) 2018  The Dunitrust Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Command line options for classic Durs nodes (no specialization).
+//! Command line options for classic Dunitrust nodes (no specialization).
 
 use durs_core::commands::dbex::DbExOpt;
 use durs_core::commands::keys::KeysOpt;
@@ -36,9 +36,9 @@ use structopt::StructOpt;
     name = "durs",
     raw(setting = "structopt::clap::AppSettings::ColoredHelp")
 )]
-/// Durs command line options
+/// Dunitrust command line options
 pub struct DursCliOpt {
-    /// Durs subcommand
+    /// Dunitrust subcommand
     #[structopt(subcommand)]
     cmd: DursCliSubCommand,
     /// Path where user profiles are persisted
@@ -77,7 +77,7 @@ impl ExecutableModuleCommand for DursCliOpt {
 }
 
 impl DursCliOpt {
-    /// Into Durs command
+    /// Into Dunitrust command
     pub fn into_durs_command(self) -> DursCommand<DursCliOpt> {
         let options = DursCoreOptions {
             keypairs_file: self.keypairs_file.clone(),
@@ -129,7 +129,7 @@ impl DursCliOpt {
 }
 
 #[derive(StructOpt, Debug, Clone)]
-/// Classic Durs nodes subcommand
+/// Classic Dunitrust nodes subcommand
 pub enum DursCliSubCommand {
     /// Database explorer
     #[structopt(

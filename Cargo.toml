@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "bin/durs-server",
+    "bin/dunitrust-server",
     "lib/core/conf",
     "lib/core/core",
     "lib/core/message",

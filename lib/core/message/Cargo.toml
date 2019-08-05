@@ -2,7 +2,7 @@
 name = "durs-message"
 version = "0.2.0-a"
 authors = ["librelois <elois@ifee.fr>"]
-description = "message model for the Durs project."
+description = "message model for the Dunitrust project."
 license = "AGPL-3.0"
 edition = "2018"
 

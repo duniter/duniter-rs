@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Durs Project Developers.
+//  Copyright (C) 2018  The Dunitrust Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Main function for classic Durs nodes (no specialization).
+//! Main function for classic Dunitrust nodes (no specialization).
 
 #![deny(
     missing_docs,
@@ -42,7 +42,7 @@ pub use durs_tui::TuiModule;
 pub use durs_ws2p::WS2PModule;
 pub use durs_ws2p_v1_legacy::WS2Pv1Module;
 
-/// Durs cli main macro
+/// Dunitrust cli main macro
 macro_rules! durs_cli_main {
     ( $closure_plug:expr ) => {{
         init();
@@ -57,7 +57,7 @@ macro_rules! durs_cli_main {
     }};
 }
 
-/// Durs command line edition, main function
+/// Dunitrust command line edition, main function
 #[cfg(unix)]
 #[cfg(not(target_arch = "arm"))]
 fn main() {

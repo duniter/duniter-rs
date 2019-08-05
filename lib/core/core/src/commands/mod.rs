@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Duniter Project Developers.
+//  Copyright (C) 2018  The Dunitrust Project Developers.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -33,7 +33,7 @@ pub use reset::*;
 pub use start::*;
 use std::path::PathBuf;
 
-/// Durs core options
+/// Dunitrust core options
 pub struct DursCoreOptions {
     /// Keypairs file path
     pub keypairs_file: Option<PathBuf>,
@@ -47,9 +47,9 @@ pub struct DursCoreOptions {
     pub profiles_path: Option<PathBuf>,
 }
 
-/// Durs executable command
+/// Dunitrust executable command
 pub trait DursExecutableCoreCommand {
-    /// Execute Durs command
+    /// Execute Dunitrust command
     fn execute(self, durs_core: DursCore<DuRsConf>) -> Result<(), DursCoreError>;
 }
 
@@ -59,15 +59,15 @@ pub trait ExecutableModuleCommand {
     fn execute_module_command(self, options: DursCoreOptions) -> Result<(), DursCoreError>;
 }
 
-/// Durs command with options
+/// Dunitrust command with options
 pub struct DursCommand<T: ExecutableModuleCommand> {
-    /// Durs core options
+    /// Dunitrust core options
     pub options: DursCoreOptions,
-    /// Durs command
+    /// Dunitrust command
     pub command: DursCommandEnum<T>,
 }
 
-/// Durs command
+/// Dunitrust command
 pub enum DursCommandEnum<T: ExecutableModuleCommand> {
     /// Core command
     Core(DursCoreCommand),
@@ -76,7 +76,7 @@ pub enum DursCommandEnum<T: ExecutableModuleCommand> {
 }
 
 impl<T: ExecutableModuleCommand> DursCommand<T> {
-    /// Execute Durs command
+    /// Execute Dunitrust command
     pub fn execute<PlugFunc>(
         self,
         soft_name: &'static str,

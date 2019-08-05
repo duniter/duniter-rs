@@ -141,7 +141,7 @@ Pour paramétrer et démarrer le débugger, consultez [la doc vscode](https://co
             "name": "Debug",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/target/debug/durs",
+            "program": "${workspaceFolder}/target/debug/dunitrust",
             "cwd": "${workspaceRoot}",
             "terminal": "integrated",
             "args": ["start"],
@@ -190,9 +190,9 @@ Bien que cela soit de plus en plus rare, certaines crates rust dépendent encore
 
 En Rust, les "features" sont des options de compilation.
 
-Durs peut être compilé avec la feature `ssl`, cela lui permet de contacter les endpoints WS2P en ws**s**://.
+Dunitrust peut être compilé avec la feature `ssl`, cela lui permet de contacter les endpoints WS2P en ws**s**://.
 Par défaut les endpoints WS2P sont accesible en ws://, mais certains utilisateurs choississent de placer un reverse proxy avec une couche TLS devant leur endpoint.
-Pour compiler Durs avec la feature `ssl`, vous aurez besoin du paquet supplémentaire suivant :
+Pour compiler Dunitrust avec la feature `ssl`, vous aurez besoin du paquet supplémentaire suivant :
 
     sudo apt-get install libssl-dev
 
@@ -280,12 +280,12 @@ Personnellement j'utilise les alias suivants :
     alias cc="cargo fmt && cargo check"
     alias cddr="cd ~/dev/duniter/nodes/rust/duniter-rs"
     alias clip="cargo clippy"
-    alias cbrf="cargo fmt && cargo build --release --manifest-path bin/durs-server/Cargo.toml --features ssl"
+    alias cbrf="cargo fmt && cargo build --release --manifest-path bin/dunitrust-server/Cargo.toml --features ssl"
     alias fmt="cargo fmt"
     alias tc="cargo fmt && cargo test --package"
     alias ta="cargo fmt && cargo test --all"
     alias rsup="rustup update && cargo install-update -a"
-    alias dursd="./target/release/durs"
+    alias dursd="./target/release/dunitrust"
 
 Si vous utilisez bash ses alias sont a placer dans votre fichier `~/.bash_aliases` il vous faudra également décomenter la ligne incluant ce fichier dans votre `~/.bashrc`. Si vous utilisez un autre sheel, référez vous a la documentation de votre shell.
 
@@ -307,9 +307,9 @@ Attention clippy ne vas pas rechecker les crates déjà parcourues par cargo che
 Lancez toujours clippy avant de pusher et corrigez tout les warning, en cas de souci avec un warning contactez un lead dev, dans certains cas très exceptionnels le lead dev pourra décider de skipper explicitement le warning en question, mais la plupart du temps il faudra le résoudre.
 Rassurez vous, la CI (Continious integration) de Gitlab passera clippy sur tout le projet dans tout les cas, donc en cas d'oubli vous vous en rendrez compte.
 
-### cbrf="cargo fmt && cargo build --release --manifest-path bin/durs-server/Cargo.toml --features ssl"
+### cbrf="cargo fmt && cargo build --release --manifest-path bin/dunitrust-server/Cargo.toml --features ssl"
 
-Commande pour builder `durs-server`. Le dépot contiendra plusieurs binaires a terme (nottament la variante durs-desktop mais pas que). Il faut donc indiquer a cargo quel binaire builder avec l'option `--manifest-path`.
+Commande pour builder `dunitrust-server`. Le dépot contiendra plusieurs binaires a terme (nottament la variante durs-desktop mais pas que). Il faut donc indiquer a cargo quel binaire builder avec l'option `--manifest-path`.
 
 De plus, pour utiliser durs vous aurez besoin de compiler en mode release, c'est long donc ne le fait que lorsqu'un `cargo check` ne vous retourne plus aucune erreur. Théoriquemetn il devrait etre possible d'utiliser durs en mode debug, c'est un probleme connu et qui sera réglé a terme ([#136](https://git.duniter.org/nodes/rust/duniter-rs/issues/136)).
 
@@ -335,8 +335,8 @@ Exécute tout les tests de toutes les crates, attention c'est long !
 Permet de mettre a jours toutes vos toolchains rust ainsi que tout les binaires que vous avez installer via `cargo install`.
 Nécessite d'avoir installé au préalable [cargo-update](https://github.com/nabijaczleweli/cargo-update).
 
-### dursd="./target/release/durs"
+### dursd="./target/release/dunitrust"
 
-Lorsque vous avez compilé `durs-server` avec l'alias `cbrf`, le binaire final est un fichier exécutable qui se nomme `durs` et il se trouve dans le dossier `target/release`. Plutot que de volus déplacer dans ce dossier a chaque fois que vous souhaitez faire des tests manuels, cet alias vous permet de lancer durs en restant a la racine du dépot.
+Lorsque vous avez compilé `dunitrust-server` avec l'alias `cbrf`, le binaire final est un fichier exécutable qui se nomme `durs` et il se trouve dans le dossier `target/release`. Plutot que de volus déplacer dans ce dossier a chaque fois que vous souhaitez faire des tests manuels, cet alias vous permet de lancer durs en restant a la racine du dépot.
 
 Vous pouvez évidemment renommer ces alias comme bon vous semble tant que vous vous y retrouvez.

@@ -4,27 +4,27 @@
 
 Dans tout les cas vous aurez 3 choix a faire :
 
-1. Choisir entre durs-server ou durs-desktop
-2. Choisir la version de Durs que vous souhaitez installer
+1. Choisir entre dunitrust-server ou dunitrust-desktop
+2. Choisir la version de Dunitrust que vous souhaitez installer
 3. Choisir le livrable correspondant votre système d'exploitation et votre processeur.
 
-### `durs-server` ou `durs-desktop`
+### `dunitrust-server` ou `dunitrust-desktop`
 
-`durs-desktop` est destiné aux utilisateurs souhaitant installer Durs sur leur ordinateur personnel et administrer leur noeud Durs via une interface graphique.
+`dunitrust-desktop` est destiné aux utilisateurs souhaitant installer Dunitrust sur leur ordinateur personnel et administrer leur noeud Dunitrust via une interface graphique.
 
-`durs-server` est beaucoup plus léger et se manipule via la ligne de commande. Il est notamment utile dans les cas suivants :
+`dunitrust-server` est beaucoup plus léger et se manipule via la ligne de commande. Il est notamment utile dans les cas suivants :
 
 * Installation de durs sur serveur dédié
 * Installation de durs sur micro pc (raspberry pi, brique internet, etc)
 * Pour les utilisateurs avancé qui préfèrent la ligne de commande.
 
-Notez bien : il est possible d'administrer `durs-server` a distance via une interface graphique (voir [administrer un noeud durs a distance]).
+Notez bien : il est possible d'administrer `dunitrust-server` a distance via une interface graphique (voir [administrer un noeud durs a distance]).
 
-### Choisir la version de Durs a installer
+### Choisir la version de Dunitrust a installer
 
-<s>Rendez vous sur [le site officiel de Durs](durs.info), vous y trouverez un lien direct vers la dernière version stable.</s>
+<s>Rendez vous sur [le site officiel de Dunitrust](dunitrust.org), vous y trouverez un lien direct vers la dernière version stable.</s>
 
-Le site web de Durs n'existe pas encore, en attendant vous devrez vous renseigenr sur le [forum duniter](https://forum.duniter.org) pour savoir quelle version installer.
+Le site web de Dunitrust n'existe pas encore, en attendant vous devrez vous renseigenr sur le [forum duniter](https://forum.duniter.org) pour savoir quelle version installer.
 
 Vous trouverez toute les versions disponibles au téléchargement sur [cette page du gitlab](https://git.duniter.org/nodes/rust/duniter-rs/tags).
 
@@ -59,23 +59,23 @@ Ensuite configurez votre noeud durs via un fichier de variables d'environnement
 
 Vous devrez nottament définir la variable d'environnement DURS_SYNC_URL qui indiquera a durs sur quel url il devra se synchroniser au démarrage.
 
-Enfin lancez votre conteneur Durs comme suit :
+Enfin lancez votre conteneur Dunitrust comme suit :
 
     docker run -it --env-file path/to/your/env/file --name durs registry.duniter.org/nodes/rust/duniter-rs:TAG
 
 ### Externaliser les données utilisateur (config, bases de données, logs, trousseaux de clés)
 
-Vous pouvez externaliser les données utilisateurs en montant un volume dans /var/lib/durs, via l'option `-v`  de `docker run`.
+Vous pouvez externaliser les données utilisateurs en montant un volume dans /var/lib/dunitrust, via l'option `-v`  de `docker run`.
 
 L'option `-v` de la commande `docker run` indique quel dossier de la machine hôte doit etre monté dans le conteneur et a quel endroint. La syntaxe générale est `-v HOST_PATH:CONTAINER_PATH`.
 
-il faut alors indiquer a durs que vous souhaitez stocker les données dans `/var/lib/durs` via l'option `--profiles-path`
+il faut alors indiquer a durs que vous souhaitez stocker les données dans `/var/lib/dunitrust` via l'option `--profiles-path`
 
-Exemple, pour stocker les donnes dans le dossier `/home/you/durs-datas` de votre machien hôte :
+Exemple, pour stocker les donnes dans le dossier `/home/you/dunitrust-datas` de votre machien hôte :
 
-    docker run -it -v /home/you/durs-datas:/var/lib/durs registry.duniter.org/nodes/rust/duniter-rs:TAG durs --profiles-path /var/lib/durs
+    docker run -it -v /home/you/dunitrust-datas:/var/lib/dunitrust registry.duniter.org/nodes/rust/duniter-rs:TAG durs --profiles-path /var/lib/dunitrust
 
-Astuce : vous pourrez alors injecter un trousseau de clé personnalisé dans `/home/you/durs-datas/default/keypairs.json`.
+Astuce : vous pourrez alors injecter un trousseau de clé personnalisé dans `/home/you/dunitrust-datas/default/keypairs.json`.
 
 ### Docker secrets
 
@@ -97,15 +97,15 @@ Ensuite, clonez le dépot git :
 
 Rendez vous dans le dossier `duniter-rs` ainsi créé puis dans le sous-dossier correspondant à la variante que vous souhaitez installer :
 
-* Pour `durs-server`, rendez-vous dans `bin/durs-server`
+* Pour `dunitrust-server`, rendez-vous dans `bin/dunitrust-server`
 
-    cd bin/durs-server
+    cd bin/dunitrust-server
 
-* Pour `durs-desktop`, rendez-vous dans `bin/durs-desktop`
+* Pour `dunitrust-desktop`, rendez-vous dans `bin/dunitrust-desktop`
 
-    cd bin/durs-desktop
+    cd bin/dunitrust-desktop
 
-Enfin lancez la compilation de Durs avec la commande suivante :
+Enfin lancez la compilation de Dunitrust avec la commande suivante :
 
     cargo build --release --features ssl
 
@@ -116,5 +116,5 @@ Si vous avez des problèmes avec `openssl` lors de la compilation, vous pouvez e
 Cela implique juste que votre noeud ne pourra pas contacter les endpoint WS2P qui sont derrière une couche SSL/TLS.  
 Votre noeud devrait tout de même fonctionner normalement s'il ya suffisamment de endpoint WS2P accesibles en clair.
 
-Si la compilation réussie, votre exécutable se trouve dans `duniter-rs/target/release` et se nomme `durs` ou `durs-desktop`.
+Si la compilation réussie, votre exécutable se trouve dans `duniter-rs/target/release` et se nomme `durs` ou `dunitrust-desktop`.
 Vous pouvez le déplacer ou bon vous semble sur votre disque puis l'exécuter directement.

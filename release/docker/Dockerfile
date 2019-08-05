@@ -4,15 +4,15 @@
 
 FROM registry.duniter.org/docker/dunitrust/dunitrust-ci-lin64:latest as build
 
-LABEL maintainer="elois <elois@ifee.fr>"
-LABEL version="0.1.2"
-LABEL description="Durs server (Divende Universel RuSt)"
+LABEL maintainer="elois <elois@duniter.org>>"
+LABEL version="0.1.3"
+LABEL description="Dunitrust server (Divende Universel Rust)"
 
 # copy source tree
 COPY ./ ./
 
-# build durs-server in release with features
-RUN cargo build --release --manifest-path bin/durs-server/Cargo.toml --features ssl
+# build dunitrust-server in release with features
+RUN cargo build --release --manifest-path bin/dunitrust-server/Cargo.toml --features ssl
 
 # ------------------------------------------------------------------------------
 # Final Stage
@@ -27,16 +27,16 @@ RUN apt-get update && \
 
 RUN useradd -s /bin/sh -u 1000 -U user
 
-RUN mkdir -p /home/user/.config /var/lib/durs && chown -R user:user /home/user /var/lib/durs
+RUN mkdir -p /home/user/.config /var/lib/dunitrust && chown -R user:user /home/user /var/lib/dunitrust
 
 # copy the build artifact from the build stage
-COPY --from=build --chown=user:user /target/release/durs /usr/bin/
+COPY --from=build --chown=user:user /target/release/dunitrust /usr/bin/
 
-VOLUME /var/lib/durs
+VOLUME /var/lib/dunitrust
 
 USER user
 WORKDIR /home/user
 
-CMD ["durs", "start"]
+CMD ["dunitrust", "start"]
 
 #run whith `docker run -it IMAGE`
