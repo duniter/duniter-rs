@@ -49,7 +49,7 @@ skip_ci:
     <<: *ci_except_conditions
   image: registry.duniter.org/docker/dunitrust/dunitrust-ci-lin64:latest
   tags:
-    - axiom-dev
+    - redshift-docker-runner
   before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
     - rustup show
@@ -62,7 +62,7 @@ skip_ci:
     <<: *ci_except_conditions
   image: rustlang/rust:nightly
   tags:
-    - axiom-dev
+    - redshift-docker-runner
   before_script:
     - export PATH="$HOME/.cargo/bin:$PATH"
     - rustc --version && cargo --version
@@ -74,7 +74,7 @@ skip_ci:
     <<: *ci_except_conditions
   image: registry.duniter.org/docker/rust/armv7-builder:latest
   tags:
-    - axiom-dev
+    - redshift-docker-runner
   before_script:
     - rustc --version && cargo --version
 
@@ -85,7 +85,7 @@ skip_ci:
     <<: *ci_except_conditions
   image: registry.duniter.org/docker/rust/win64-builder:v1.35.0
   tags:
-    - axiom-dev
+    - redshift-docker-runner
   before_script:
     - rustc --version && cargo --version
 
@@ -101,7 +101,7 @@ tests:linux64:stable:
   <<: *rust_stable_lin64
   stage: tests
   tags:
-    - axiom-dev
+    - redshift-docker-runner
   script: 
     - cd bin/durs-server
     - RUSTFLAGS="-D warnings" cargo build --features=ssl
@@ -140,7 +140,7 @@ tests:win64:stable:
   script: 
     - cd bin/durs-server
     - RUSTFLAGS="-D warnings" cargo build --target=x86_64-pc-windows-gnu
-    - cargo test --package durs --target=x86_64-pc-windows-gnu
+    - cargo test --package dunitrust --target=x86_64-pc-windows-gnu
     - cargo test --package durs-conf --target=x86_64-pc-windows-gnu
     - cargo test --package durs-core --target=x86_64-pc-windows-gnu
     - cargo test --package durs-message --target=x86_64-pc-windows-gnu
@@ -210,7 +210,7 @@ package:test:docker-test-image:
   when: manual
   image: docker:18.06
   tags:
-    - axiom-dev
+    - redshift-docker-runner
   services:
     - docker:18.06-dind
   variables:
@@ -237,7 +237,7 @@ package:test:docker:
       - tags
   image: docker:18.06
   tags:
-    - axiom-dev
+    - redshift-docker-runner
   services:
     - docker:18.06-dind
   variables:
@@ -302,7 +302,7 @@ package:prod:docker:
     - tags
   image: docker:18.06
   tags:
-    - axiom-dev
+    - redshift-docker-runner
   services:
     - docker:18.06-dind
   variables:
@@ -341,7 +341,7 @@ package:prod:win64:
     - tags
   image: rdadev/jinja2:py3.6
   tags:
-    - axiom-dev
+    - redshift-docker-runner
   script:
     - python3 .gitlab/releaser
 
