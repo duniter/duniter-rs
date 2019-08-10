@@ -1,6 +1,6 @@
 ![Duniter-Rust logo](https://git.duniter.org/nodes/rust/duniter-rs/raw/dev/images/duniter-rs.png)
 
-# Duniter Rust (durs)
+# Duniter Rust (Dunitrust)
 
 [![Latest Version](https://img.shields.io/badge/latest-v0.1.1--a1-orange.svg)](https://git.duniter.org/nodes/rust/duniter-rs/tags/v0.1.1-a1)
 [![docs](https://librelois.fr/img/docs-read%20now-green.svg)](https://nodes.duniter.io/rust/duniter-rs/dunitrust/)
@@ -13,9 +13,9 @@ Duniter is a libre software allowing to create a new kind of P2P crypto-currenci
 
 it's inspired by [Bitcoin] and [OpenUDC] projects.
 
-## What is `duniter-rs`
+## What is `dunitrust`
 
-`duniter-rs` is a new implementation of Duniter protocol and software in [Rust], a "safe, concurrent, practical language".
+`dunitrust` is a new implementation of Duniter protocol and software in [Rust], a "safe, concurrent, practical language".
 
 It's in active developpement but is not usable yet.
 
