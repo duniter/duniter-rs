@@ -1,4 +1,4 @@
-//  Copyright (C) 2018  The Dunitrust Project Developers.
+//  Copyright (C) 2017-2019  The AXIOM TEAM Association.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Wrappers around Revocation documents V//  Copyright (C) 2018  The Dunitrust Project Developers.
+//! Wrappers around Revocation documents V//  Copyright (C) 2017-2019  The AXIOM TEAM Association.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as

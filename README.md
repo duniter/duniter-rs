@@ -25,7 +25,7 @@ It's in active developpement but is not usable yet.
 
 ## License
 
-Copyright (C) 2017  The Dunitrust Project Developers.
+Copyright (C) 2017-2019  The AXIOM TEAM Association.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as

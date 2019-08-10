@@ -30,7 +30,7 @@ ssl = ["durs-ws2p-v1-legacy/ssl"]
 
 [package.metadata.deb]
 maintainer = "librelois <contact@dunitrust.org>"
-copyright = "2019, AXIOM TEAM Association <contact@axiom-team.fr>"
+copyright = "2017-2019, AXIOM TEAM Association <contact@axiom-team.fr>"
 license-file = ["LICENSE", "4"]
 depends = "$auto"
 section = "misc"
@@ -43,7 +43,7 @@ features = ["ssl"]
 
 [package.metadata.deb.variants.arm]
 maintainer = "librelois <contact@dunitrust.org>"
-copyright = "2019, AXIOM TEAM Association <contact@axiom-team.fr>"
+copyright = "2017-2019, AXIOM TEAM Association <contact@axiom-team.fr>"
 license-file = ["LICENSE", "4"]
 section = "misc"
 priority = "optional"
