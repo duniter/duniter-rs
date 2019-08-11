@@ -944,7 +944,7 @@ impl TextDocumentParser<Rule> for TransactionDocumentParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Document, VerificationResult};
+    use crate::Document;
 
     #[test]
     fn generate_real_document() {
@@ -999,14 +999,14 @@ mod tests {
             "Signature = {:?}",
             builder.build_and_sign(vec![prikey]).signatures()
         );
-        assert_eq!(
-            builder.build_with_signature(vec![sig]).verify_signatures(),
-            VerificationResult::Valid()
-        );
-        assert_eq!(
-            builder.build_and_sign(vec![prikey]).verify_signatures(),
-            VerificationResult::Valid()
-        );
+        assert!(builder
+            .build_with_signature(vec![sig])
+            .verify_signatures()
+            .is_ok());
+        assert!(builder
+            .build_and_sign(vec![prikey])
+            .verify_signatures()
+            .is_ok());
     }
 
     #[test]
@@ -1055,7 +1055,7 @@ mod tests {
         };
         let mut tx_doc = builder.build_with_signature(vec![sig]);
         tx_doc.hash = None;
-        assert_eq!(tx_doc.verify_signatures(), VerificationResult::Valid());
+        assert!(tx_doc.verify_signatures().is_ok());
         assert_eq!(
             tx_doc.get_hash(),
             Hash::from_hex("876D2430E0B66E2CE4467866D8F923D68896CACD6AA49CDD8BDD0096B834DEF1")
@@ -1101,7 +1101,7 @@ w69bYgiQxDmCReB0Dugt9BstXlAKnwJkKCdWvCeZ9KnUCv0FJys6klzYk/O/b9t74tYhWZSX0bhETWHi
             .expect("fail to parse test transaction document !");
         //println!("Doc : {:?}", doc);
         println!("{}", doc.generate_compact_text());
-        assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
+        assert!(doc.verify_signatures().is_ok());
         assert_eq!(
             doc.generate_compact_text(),
             "TX:10:3:6:6:3:1:0

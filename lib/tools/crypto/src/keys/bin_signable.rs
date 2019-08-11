@@ -16,7 +16,6 @@
 //! Generic code for signing data in binary format
 
 use super::*;
-use crate::hashs::Hash;
 use bincode;
 use serde::{Deserialize, Serialize};
 
@@ -24,16 +23,6 @@ use serde::{Deserialize, Serialize};
 pub trait BinSignable<'de>: Serialize + Deserialize<'de> {
     /// Return entity issuer pubkey
     fn issuer_pubkey(&self) -> PubKey;
-    /// Return true if entity store is hash
-    fn store_hash(&self) -> bool {
-        false
-    }
-    /// Return entity hash
-    fn hash(&self) -> Option<Hash> {
-        None
-    }
-    /// Change hash (redefinely by entities with hash field)
-    fn set_hash(&mut self, _hash: Hash) {}
     /// Return signature
     fn signature(&self) -> Option<Sig>;
     /// Change signature
@@ -47,49 +36,27 @@ pub trait BinSignable<'de>: Serialize + Deserialize<'de> {
         bin_msg.truncate(bin_msg_len - (sig_size as usize));
         Ok(bin_msg)
     }
-    /// Compute hash
-    fn compute_hash(&self) -> Result<(Hash, Vec<u8>), bincode::Error> {
-        let mut bin_msg = self.get_bin_without_sig()?;
-        if self.store_hash() {
-            bin_msg.pop(); // Delete hash: None
-        }
-        // Compute hash of binary datas without signature
-        let hash = Hash::compute(&bin_msg);
-        Ok((hash, bin_msg))
-    }
     /// Sign entity with a private key
     fn sign(&mut self, priv_key: PrivKey) -> Result<Vec<u8>, SignError> {
         if self.signature().is_some() {
-            return Err(SignError::AlreadySign());
+            return Err(SignError::AlreadySign);
         }
         match self.issuer_pubkey() {
             PubKey::Ed25519(_) => match priv_key {
                 PrivKey::Ed25519(priv_key) => {
-                    let (mut bin_msg, sig) = if self.store_hash() {
-                        let (hash, mut bin_msg) =
-                            self.compute_hash().expect("Fail to compute hash !");
-                        self.set_hash(hash);
-                        if self.hash().is_some() {
-                            bin_msg.extend_from_slice(
-                                &bincode::serialize(&Some(hash)).expect("Fail to binarize hash !"),
-                            );
-                        }
-                        (bin_msg, Sig::Ed25519(priv_key.sign(&hash.0)))
-                    } else {
-                        let mut bin_msg = bincode::serialize(&self)?;
-                        bin_msg.pop(); // Remove sig field (1 byte: None)
-                        let bin_sig = priv_key.sign(&bin_msg);
-                        (bin_msg, Sig::Ed25519(bin_sig))
-                    };
+                    let mut bin_msg = bincode::serialize(&self)
+                        .map_err(|e| SignError::SerdeError(format!("{}", e)))?;
+                    bin_msg.pop(); // Remove sig field (1 byte: None)
+                    let sig = Sig::Ed25519(priv_key.sign(&bin_msg));
                     self.set_signature(sig);
                     bin_msg.extend_from_slice(
                         &bincode::serialize(&Some(sig)).expect("Fail to binarize sig !"),
                     );
                     Ok(bin_msg)
                 }
-                _ => Err(SignError::WrongAlgo()),
+                _ => Err(SignError::WrongAlgo),
             },
-            _ => Err(SignError::WrongAlgo()),
+            _ => Err(SignError::WrongAlgo),
         }
     }
     /// Check signature of entity
@@ -98,27 +65,76 @@ pub trait BinSignable<'de>: Serialize + Deserialize<'de> {
             match self.issuer_pubkey() {
                 PubKey::Ed25519(pubkey) => match signature {
                     Sig::Ed25519(sig) => {
-                        let signed_part: Vec<u8> = if self.store_hash() {
-                            if let Some(hash) = self.hash() {
-                                hash.0.to_vec()
-                            } else {
-                                (self.compute_hash()?.0).0.to_vec()
-                            }
-                        } else {
-                            self.get_bin_without_sig()?
-                        };
+                        let signed_part: Vec<u8> = self
+                            .get_bin_without_sig()
+                            .map_err(|e| SigError::SerdeError(format!("{}", e)))?;
+                        pubkey.verify(&signed_part, &sig)
+                        /*
                         if pubkey.verify(&signed_part, &sig) {
                             Ok(())
                         } else {
                             Err(SigError::InvalidSig())
                         }
+                        */
                     }
-                    _ => Err(SigError::NotSameAlgo()),
+                    _ => Err(SigError::NotSameAlgo),
                 },
-                _ => Err(SigError::NotSameAlgo()),
+                _ => Err(SigError::NotSameAlgo),
             }
         } else {
-            Err(SigError::NotSig())
+            Err(SigError::NotSig)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[derive(Deserialize, Serialize)]
+    struct BinSignableTestImpl {
+        datas: Vec<u8>,
+        issuer: PubKey,
+        sig: Option<Sig>,
+    }
+
+    impl BinSignable<'_> for BinSignableTestImpl {
+        fn issuer_pubkey(&self) -> PubKey {
+            self.issuer
+        }
+        fn signature(&self) -> Option<Sig> {
+            self.sig
+        }
+        fn set_signature(&mut self, new_signature: Sig) {
+            self.sig = Some(new_signature);
+        }
+    }
+
+    #[test]
+    fn name() {
+        let key_pair = ed25519::KeyPairFromSeedGenerator::generate(&[
+            0u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+            10, 11, 12, 13, 14, 15,
+        ]);
+
+        let mut bin_signable_datas = BinSignableTestImpl {
+            datas: vec![0, 1, 2, 3],
+            issuer: PubKey::Ed25519(key_pair.pubkey),
+            sig: None,
+        };
+
+        assert_eq!(Err(SigError::NotSig), bin_signable_datas.verify());
+
+        let _bin_msg = bin_signable_datas
+            .sign(PrivKey::Ed25519(key_pair.privkey))
+            .expect("Fail to sign datas !");
+
+        assert_eq!(
+            Err(SignError::AlreadySign),
+            bin_signable_datas.sign(PrivKey::Ed25519(key_pair.privkey))
+        );
+
+        assert_eq!(Ok(()), bin_signable_datas.verify())
     }
 }

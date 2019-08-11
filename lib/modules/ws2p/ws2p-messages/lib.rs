@@ -124,30 +124,6 @@ impl<'de> BinSignable<'de> for WS2PMessage {
             }
         }
     }
-    fn store_hash(&self) -> bool {
-        match *self {
-            WS2PMessage::V2(ref msg_v2) => msg_v2.store_hash(),
-            WS2PMessage::_V0 | WS2PMessage::_V1 => {
-                fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
-            }
-        }
-    }
-    fn hash(&self) -> Option<Hash> {
-        match *self {
-            WS2PMessage::V2(ref msg_v2) => msg_v2.hash(),
-            WS2PMessage::_V0 | WS2PMessage::_V1 => {
-                fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
-            }
-        }
-    }
-    fn set_hash(&mut self, hash: Hash) {
-        match *self {
-            WS2PMessage::V2(ref mut msg_v2) => msg_v2.set_hash(hash),
-            WS2PMessage::_V0 | WS2PMessage::_V1 => {
-                fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
-            }
-        }
-    }
     fn signature(&self) -> Option<Sig> {
         match *self {
             WS2PMessage::V2(ref msg_v2) => msg_v2.signature(),

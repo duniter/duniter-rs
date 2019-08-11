@@ -82,6 +82,7 @@ impl Hash {
         Hash::compute(str_datas.as_bytes())
     }
     #[cfg(not(all(unix, any(target_arch = "x86", target_arch = "x86_64"))))]
+    #[cfg_attr(tarpaulin, skip)]
     /// Compute hash of any binary datas
     pub fn compute(datas: &[u8]) -> Hash {
         let mut sha = Sha256::new();
@@ -91,6 +92,7 @@ impl Hash {
         Hash(hash_buffer)
     }
     #[cfg(not(all(unix, any(target_arch = "x86", target_arch = "x86_64"))))]
+    #[cfg_attr(tarpaulin, skip)]
     /// Compute hash of a string
     pub fn compute_str(str_datas: &str) -> Hash {
         let mut sha256 = Sha256::new();
@@ -117,5 +119,81 @@ impl Hash {
     #[inline]
     pub fn from_hex(text: &str) -> Result<Hash, BaseConvertionError> {
         Ok(Hash(b16::str_hex_to_32bytes(text)?))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_hash_random() {
+        let hash1 = Hash::random();
+        let hash2 = Hash::random();
+        assert_ne!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_hash_debug() {
+        assert_eq!(
+            "Hash(0000000000000000000000000000000000000000000000000000000000000000)".to_owned(),
+            format!("{:?}", Hash::default()),
+        );
+    }
+
+    #[test]
+    fn test_hash_to_bytes() {
+        assert_eq!(
+            vec![
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0
+            ],
+            Hash::default().to_bytes_vector(),
+        );
+    }
+
+    #[test]
+    fn test_hash_computation() {
+        assert_eq!(
+            Hash::from_hex("2CF24DBA5FB0A30E26E83B2AC5B9E29E1B161E5C1FA7425E73043362938B9824")
+                .expect("dev err"),
+            Hash::compute(b"hello"),
+        );
+
+        assert_eq!(
+            Hash::from_hex("2CF24DBA5FB0A30E26E83B2AC5B9E29E1B161E5C1FA7425E73043362938B9824")
+                .expect("dev err"),
+            Hash::compute_str("hello"),
+        );
+    }
+
+    #[test]
+    fn test_hash_from_hex() {
+        assert_eq!(
+            Ok(Hash::default()),
+            Hash::from_hex("0000000000000000000000000000000000000000000000000000000000000000")
+        );
+        assert_eq!(
+            Err(BaseConvertionError::InvalidLength {
+                expected: 64,
+                found: 65,
+            }),
+            Hash::from_hex("00000000000000000000000000000000000000000000000000000000000000000")
+        );
+        assert_eq!(
+            Err(BaseConvertionError::InvalidCharacter {
+                character: '_',
+                offset: 0,
+            }),
+            Hash::from_hex("_000000000000000000000000000000000000000000000000000000000000000")
+        );
+        assert_eq!(
+            Err(BaseConvertionError::InvalidCharacter {
+                character: '_',
+                offset: 1,
+            }),
+            Hash::from_hex("0_00000000000000000000000000000000000000000000000000000000000000")
+        );
     }
 }

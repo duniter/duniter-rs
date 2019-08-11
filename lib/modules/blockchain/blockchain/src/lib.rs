@@ -169,17 +169,6 @@ pub enum SyncVerificationLevel {
     Cautious(),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-/// Error returned by function verify_block_hashs()
-pub enum VerifyBlockHashsError {
-    /// Invalid block inner hash
-    InvalidInnerHash(),
-    /// Invalid block hash
-    InvalidHash(BlockNumber, Option<BlockHash>),
-    /// Invalid block version
-    InvalidVersion(),
-}
-
 impl BlockchainModule {
     /// Return module identifier
     pub fn name() -> ModuleStaticName {

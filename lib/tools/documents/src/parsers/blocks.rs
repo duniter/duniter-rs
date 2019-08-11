@@ -236,8 +236,10 @@ mod tests {
         );
     }
 
+    use crate::documents::block::VerifyBlockHashError;
+
     #[test]
-    fn parse_json_block_with_one_tx() {
+    fn parse_json_block_with_one_tx() -> Result<(), VerifyBlockHashError> {
         let block_json_str = r#"{
    "version": 10,
    "nonce": 10100000033688,
@@ -357,6 +359,8 @@ mod tests {
             expected_block,
             parse_json_block(&block_json_value).expect("Fail to parse block_json_value !")
         );
-        assert!(expected_block.verify_inner_hash());
+
+        expected_block.verify_inner_hash()?;
+        Ok(())
     }
 }

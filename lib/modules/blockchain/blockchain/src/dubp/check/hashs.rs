@@ -15,31 +15,25 @@
 
 //! Verify block inner hash and block hash
 
-use crate::VerifyBlockHashsError;
-use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
+use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait, VerifyBlockHashError};
 
 /// Verify block hashs
-pub fn verify_block_hashs(block_doc: &BlockDocument) -> Result<(), VerifyBlockHashsError> {
+pub fn verify_block_hashs(block_doc: &BlockDocument) -> Result<(), VerifyBlockHashError> {
     trace!("complete_block #{}...", block_doc.number());
 
-    if block_doc.verify_inner_hash() {
-        if block_doc.verify_hash() {
-            trace!("Succes to verify_block_hashs #{}", block_doc.number().0);
-            Ok(())
-        } else {
+    match block_doc.verify_inner_hash() {
+        Ok(()) => block_doc.verify_hash().map_err(|e| {
             warn!("BlockchainModule : Refuse Bloc : invalid hash !");
-            Err(VerifyBlockHashsError::InvalidHash(
-                block_doc.number(),
-                block_doc.hash(),
-            ))
+            e
+        }),
+        Err(e) => {
+            warn!("BlockchainModule : Refuse Bloc : invalid inner hash !");
+            warn!("BlockDocument=\"{:?}\"", block_doc);
+            warn!(
+                "BlockInnerFormat=\"{}\"",
+                block_doc.generate_compact_inner_text()
+            );
+            Err(e)
         }
-    } else {
-        warn!("BlockchainModule : Refuse Bloc : invalid inner hash !");
-        warn!("BlockDocument=\"{:?}\"", block_doc);
-        warn!(
-            "BlockInnerFormat=\"{}\"",
-            block_doc.generate_compact_inner_text()
-        );
-        Err(VerifyBlockHashsError::InvalidInnerHash())
     }
 }

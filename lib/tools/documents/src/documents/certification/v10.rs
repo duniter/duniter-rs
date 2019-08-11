@@ -332,7 +332,6 @@ CertTimestamp: {blockstamp}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::VerificationResult;
     use dup_crypto::keys::{PrivateKey, PublicKey, Signature};
 
     #[test]
@@ -379,15 +378,15 @@ mod tests {
             blockstamp: &blockstamp,
         };
 
-        assert_eq!(
-            builder.build_with_signature(vec![sig]).verify_signatures(),
-            VerificationResult::Valid()
-        );
+        assert!(builder
+            .build_with_signature(vec![sig])
+            .verify_signatures()
+            .is_ok());
 
-        assert_eq!(
-            builder.build_and_sign(vec![prikey]).verify_signatures(),
-            VerificationResult::Valid()
-        );
+        assert!(builder
+            .build_and_sign(vec![prikey])
+            .verify_signatures()
+            .is_ok());
     }
 
     #[test]
@@ -405,7 +404,7 @@ wqZxPEGxLrHGv8VdEIfUGvUcf+tDdNTMXjLzVRCQ4UhlhDRahOMjfcbP7byNYr5OfIl83S1MBxF7VJgu
 
         let doc = CertificationDocumentParser::parse(doc).unwrap();
         println!("Doc : {:?}", doc);
-        assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
+        assert!(doc.verify_signatures().is_ok());
         /*assert_eq!(
             doc.generate_compact_text(),
             "2sZF6j2PkxBDNAqUde7Dgo5x3crkerZpQ4rBqqJGn8QT:\

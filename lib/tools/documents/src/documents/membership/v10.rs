@@ -328,7 +328,6 @@ CertTS: {ity_blockstamp}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::VerificationResult;
     use dup_crypto::keys::{PrivateKey, PublicKey, Signature};
 
     #[test]
@@ -368,14 +367,14 @@ mod tests {
             identity_blockstamp: &block,
         };
 
-        assert_eq!(
-            builder.build_with_signature(vec![sig]).verify_signatures(),
-            VerificationResult::Valid()
-        );
-        assert_eq!(
-            builder.build_and_sign(vec![prikey]).verify_signatures(),
-            VerificationResult::Valid()
-        );
+        assert!(builder
+            .build_with_signature(vec![sig])
+            .verify_signatures()
+            .is_ok());
+        assert!(builder
+            .build_and_sign(vec![prikey])
+            .verify_signatures()
+            .is_ok());
     }
 
     #[test]
@@ -392,7 +391,7 @@ s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrD
 
         let doc = MembershipDocumentParser::parse(doc).unwrap();
         println!("Doc : {:?}", doc);
-        assert_eq!(doc.verify_signatures(), VerificationResult::Valid());
+        assert!(doc.verify_signatures().is_ok());
         assert_eq!(
             doc.generate_compact_text(),
                 "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV:\

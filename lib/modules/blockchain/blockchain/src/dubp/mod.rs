@@ -21,7 +21,7 @@ pub mod check;
 use crate::*;
 use apply::*;
 use check::*;
-use dubp_documents::documents::block::BlockDocumentTrait;
+use dubp_documents::documents::block::{BlockDocumentTrait, VerifyBlockHashError};
 use dubp_documents::Blockstamp;
 use dubp_documents::Document;
 use durs_blockchain_dal::entities::block::DALBlock;
@@ -39,15 +39,15 @@ pub enum CheckAndApplyBlockReturn {
 pub enum BlockError {
     AlreadyHaveBlock,
     BlockOrOutForkWindow,
-    VerifyBlockHashsError(VerifyBlockHashsError),
+    VerifyBlockHashError(VerifyBlockHashError),
     DALError(DALError),
     InvalidBlock(InvalidBlockError),
     ApplyValidBlockError(ApplyValidBlockError),
 }
 
-impl From<VerifyBlockHashsError> for BlockError {
-    fn from(err: VerifyBlockHashsError) -> Self {
-        BlockError::VerifyBlockHashsError(err)
+impl From<VerifyBlockHashError> for BlockError {
+    fn from(err: VerifyBlockHashError) -> Self {
+        BlockError::VerifyBlockHashError(err)
     }
 }
 

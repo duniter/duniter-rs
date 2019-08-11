@@ -23,7 +23,7 @@ use durs_common_tools::fatal_error;
 use std::ops::Deref;
 use unwrap::unwrap;
 
-use super::BlockDocumentTrait;
+use super::{BlockDocumentTrait, VerifyBlockHashError};
 use crate::blockstamp::Blockstamp;
 use crate::documents::certification::v10::CompactCertificationDocumentV10Stringified;
 use crate::documents::identity::IdentityDocumentV10;
@@ -344,30 +344,49 @@ Transactions:{transactions}
     fn sign(&mut self, privkey: PrivKey) {
         self.signatures = vec![privkey.sign(self.compute_will_signed_string().as_bytes())];
     }
-    fn verify_inner_hash(&self) -> bool {
+    fn verify_inner_hash(&self) -> Result<(), VerifyBlockHashError> {
         match self.inner_hash {
-            Some(inner_hash) => inner_hash == self.compute_inner_hash(),
-            None => false,
+            Some(inner_hash) => {
+                let computed_hash = self.compute_inner_hash();
+                if inner_hash == computed_hash {
+                    Ok(())
+                } else {
+                    Err(VerifyBlockHashError::InvalidHash {
+                        block_number: self.number,
+                        expected_hash: computed_hash,
+                        actual_hash: inner_hash,
+                    })
+                }
+            }
+            None => Err(VerifyBlockHashError::MissingHash {
+                block_number: self.number,
+            }),
         }
     }
-    fn verify_hash(&self) -> bool {
+    fn verify_hash(&self) -> Result<(), VerifyBlockHashError> {
         match self.hash {
-            Some(hash) => {
+            Some(actual_hash) => {
                 let expected_hash = self.compute_hash();
-                if hash == expected_hash {
-                    true
+                if actual_hash == expected_hash {
+                    Ok(())
                 } else {
                     warn!(
                         "Block #{} have invalid hash (expected='{}', actual='{}', datas='{}').",
                         self.number.0,
                         expected_hash,
-                        hash,
+                        actual_hash,
                         self.compute_will_hashed_string()
                     );
-                    false
+                    Err(VerifyBlockHashError::InvalidHash {
+                        block_number: self.number,
+                        expected_hash: expected_hash.0,
+                        actual_hash: actual_hash.0,
+                    })
                 }
             }
-            None => false,
+            None => Err(VerifyBlockHashError::MissingHash {
+                block_number: self.number,
+            }),
         }
     }
 }
@@ -603,7 +622,7 @@ mod tests {
     use super::certification::CertificationDocumentParser;
     use super::transaction::TransactionDocumentParser;
     use super::*;
-    use crate::{Document, VerificationResult};
+    use crate::Document;
 
     #[test]
     fn generate_and_verify_empty_block() {
@@ -649,7 +668,7 @@ mod tests {
             "58E4865A47A46E0DF1449AABC449B5406A12047C413D61B5E17F86BE6641E7B0"
         );
         // Test signature validity
-        assert_eq!(block.verify_signatures(), VerificationResult::Valid());
+        assert!(block.verify_signatures().is_ok());
         // Test hash computation
         block.generate_hash();
         assert_eq!(
@@ -798,7 +817,7 @@ InnerHash: C8AB69E33ECE2612EADC7AB30D069B1F1A3D8C95EBBFD50DE583AC8E3666CCA1
 Nonce: "
         );
         // Test signature validity
-        assert_eq!(block.verify_signatures(), VerificationResult::Valid());
+        assert!(block.verify_signatures().is_ok());
         // Test hash computation
         block.generate_hash();
         assert_eq!(
@@ -940,7 +959,7 @@ nxr4exGrt16jteN9ZX3XZPP9l+X0OUbZ1o/QjE1hbWQNtVU3HhH9SJoEvNj2iVl3gCRr9u2OA9uj9vCy
             "Version: 10\nType: Block\nCurrency: g1\nNumber: 165647\nPoWMin: 90\nTime: 1540633175\nMedianTime: 1540627811\nUnitBase: 0\nIssuer: A4pc9Uuk4NXkWG8CibicjjPpEPdiup1mhjMoRWUZsonq\nIssuersFrame: 186\nIssuersFrameVar: 0\nDifferentIssuersCount: 37\nPreviousHash: 000003E78FA4133F2C13B416F330C8DFB5A41EB87E37190615DB334F2C914A51\nPreviousIssuer: 8NmGZmGjL1LUgJQRg282yQF7KTdQuRNAg8QfSa2qvd65\nMembersCount: 1402\nIdentities:\nJoiners:\nActives:\n4VZkro3N7VonygybESHngKUABA6gSrbW77Ktb94zE969:gvaZ1QnJf8FjjRDJ0cYusgpBgQ8r0NqEz39BooH6DtIrgX+WTeXuLSnjZDl35VCBjokvyjry+v0OkTT8FKpABA==:165645-000002D30130881939961A38D51CA233B3C696AA604439036DB1AAA4ED5046D2:74077-0000022816648B2F7801E059F67CCD0C023FF0ED84459D52C70494D74DDCC6F6:piaaf31\nLeavers:\nRevoked:\nExcluded:\nCertifications:\nTransactions:\nTX:10:1:7:7:2:1:0\n165645-000002D30130881939961A38D51CA233B3C696AA604439036DB1AAA4ED5046D2\n51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2\n1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:163766\n1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:164040\n1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:164320\n1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:164584\n1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:164849\n1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:165118\n1004:0:D:51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2:165389\n0:SIG(0)\n1:SIG(0)\n2:SIG(0)\n3:SIG(0)\n4:SIG(0)\n5:SIG(0)\n6:SIG(0)\n7000:0:SIG(98wxzS683Tc1WWm1YxpL5WpxS7wBa1mZBccKSsYpaant)\n28:0:SIG(51EFVNZwpfmTXU7BSLpeh3PZFgfdmm5hq5MzCDopdH2)\nPanier mixte plus 40 pommes merci\n7o/yIh0BNSAv5pNmHz04uUBl8TuP2s4HRFMtKeGFQfXNYJPUyJTP/dj6hdrgKtJkm5dCfbxT4KRy6wJf+dj1Cw==\nTX:10:1:6:6:2:1:0\n165645-000002D30130881939961A38D51CA233B3C696AA604439036DB1AAA4ED5046D2\n3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX\n1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:148827\n1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:149100\n1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:149370\n1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:149664\n1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:149943\n1002:0:D:3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX:150222\n0:SIG(0)\n1:SIG(0)\n2:SIG(0)\n3:SIG(0)\n4:SIG(0)\n5:SIG(0)\n6000:0:SIG(AopwTfXhj8VqZReFJYGGWnoWnXNj3RgaqFcGGywXpZrD)\n12:0:SIG(3Uwq4qNp2A97P1XQueEBCxmnvgtAKMdfrEq6VB7Ph2qX)\nEn reglement de tes bons bocaux de fruits et legumes\nnxr4exGrt16jteN9ZX3XZPP9l+X0OUbZ1o/QjE1hbWQNtVU3HhH9SJoEvNj2iVl3gCRr9u2OA9uj9vCyUDyjAg==\nInnerHash: 3B49ECC1475549CFD94CA7B399311548A0FD0EC93C8EDD5670DAA5A958A41846\nNonce: "
         );
         // Test signature validity
-        assert_eq!(block.verify_signatures(), VerificationResult::Valid());
+        assert!(block.verify_signatures().is_ok());
         // Test hash computation
         block.generate_hash();
         assert_eq!(

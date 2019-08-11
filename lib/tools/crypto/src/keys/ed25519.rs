@@ -26,7 +26,6 @@ use base64;
 use crypto;
 use serde::de::{Deserialize, Deserializer, Error, SeqAccess, Visitor};
 use serde::ser::{Serialize, SerializeTuple, Serializer};
-use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
@@ -42,9 +41,8 @@ pub static SIG_SIZE_IN_BYTES: &'static usize = &64;
 pub struct Signature(pub [u8; 64]);
 
 impl Hash for Signature {
-    fn hash<H: Hasher>(&self, _state: &mut H) {
-        let mut hasher = DefaultHasher::new();
-        Hash::hash_slice(&self.0, &mut hasher);
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
     }
 }
 
@@ -73,6 +71,7 @@ impl<'de> Deserialize<'de> for Signature {
         impl<'de> Visitor<'de> for ArrayVisitor {
             type Value = Signature;
 
+            #[cfg_attr(tarpaulin, skip)]
             fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
                 formatter.write_str(concat!("an array of length ", 64))
             }
@@ -164,6 +163,8 @@ impl Debug for PublicKey {
     }
 }
 
+use crate::keys::SigError;
+
 impl super::PublicKey for PublicKey {
     type Signature = Signature;
 
@@ -176,8 +177,12 @@ impl super::PublicKey for PublicKey {
         self.0.to_vec()
     }
 
-    fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool {
-        crypto::ed25519::verify(message, &self.0, &signature.0)
+    fn verify(&self, message: &[u8], signature: &Self::Signature) -> Result<(), SigError> {
+        if crypto::ed25519::verify(message, &self.0, &signature.0) {
+            Ok(())
+        } else {
+            Err(SigError::InvalidSig)
+        }
     }
 }
 
@@ -269,7 +274,7 @@ impl super::KeyPair for KeyPair {
         self.private_key().sign(message)
     }
 
-    fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool {
+    fn verify(&self, message: &[u8], signature: &Self::Signature) -> Result<(), SigError> {
         self.public_key().verify(message, signature)
     }
 }
@@ -351,8 +356,10 @@ impl KeyPairFromSaltedPasswordGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::keys::{KeyPair, Signature};
+    use crate::keys::{KeyPair, Sig, Signature};
     use base58::FromBase58;
+    use bincode;
+    use std::collections::hash_map::DefaultHasher;
 
     #[test]
     fn base58_private_key() {
@@ -360,18 +367,35 @@ mod tests {
             "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9r\
              qnXuW3iAfZACm7";
         let private_key = super::PrivateKey::from_base58(private58).unwrap();
-        let private_raw = private58.from_base58().unwrap();
 
+        // Test base58 encoding/decoding (loop for every bytes)
+        assert_eq!(private_key.to_base58(), private58);
+        let private_raw = private58.from_base58().unwrap();
         for (key, raw) in private_key.0.iter().zip(private_raw.iter()) {
             assert_eq!(key, raw);
         }
 
-        assert_eq!(private_key.to_base58(), private58);
+        // Test privkey display and debug
         assert_eq!(
-            private_key,
-            super::PrivateKey::from_base58(private58).unwrap()
+            "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7".to_owned(),
+            format!("{}", private_key)
+        );
+        assert_eq!(
+            "PrivateKey { 468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7 }".to_owned(),
+            format!("{:?}", private_key)
         );
 
+        // Test privkey equality
+        let same_private_key = private_key.clone();
+        let other_private_key = PrivateKey([
+            0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+        ]);
+        assert!(private_key.eq(&same_private_key));
+        assert!(!private_key.eq(&other_private_key));
+
+        // Test privkey parsing
         assert_eq!(
             super::PrivateKey::from_base58(
                 "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iA\
@@ -399,20 +423,37 @@ mod tests {
                 offset: 73
             }
         );
+        assert_eq!(
+            super::PrivateKey::from_base58(
+                "\
+                 468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9\
+                 468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9\
+                 468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9\
+                 ",
+            )
+            .unwrap_err(),
+            BaseConvertionError::InvalidBaseConverterLength,
+        );
     }
 
     #[test]
     fn base58_public_key() {
         let public58 = "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV";
         let public_key = super::PublicKey::from_base58(public58).unwrap();
-        let public_raw = public58.from_base58().unwrap();
 
+        // Test base58 encoding/decoding (loop for every bytes)
+        assert_eq!(public_key.to_base58(), public58);
+        let public_raw = public58.from_base58().unwrap();
+        assert_eq!(public_raw, public_key.to_bytes_vector());
         for (key, raw) in public_key.0.iter().zip(public_raw.iter()) {
             assert_eq!(key, raw);
         }
 
-        assert_eq!(public_key.to_base58(), public58);
-        assert_eq!(public_key, super::PublicKey::from_base58(public58).unwrap());
+        // Test pubkey debug
+        assert_eq!(
+            "PublicKey { DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV }".to_owned(),
+            format!("{:?}", public_key)
+        );
 
         assert_eq!(
             super::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLVdjq")
@@ -438,6 +479,19 @@ mod tests {
                 offset: 42
             }
         );
+        assert_eq!(
+            super::PublicKey::from_base58(
+                "\
+                 DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV\
+                 DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV\
+                 DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV\
+                 DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV\
+                 DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV\
+                 "
+            )
+            .unwrap_err(),
+            BaseConvertionError::InvalidBaseConverterLength
+        );
     }
 
     #[test]
@@ -445,12 +499,47 @@ mod tests {
         let signature64 = "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FG\
                            MMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==";
         let signature = super::Signature::from_base64(signature64).unwrap();
-        let signature_raw = base64::decode(signature64).unwrap();
 
+        // Test signature base64 encoding/decoding (loop for every bytes)
+        assert_eq!(signature.to_base64(), signature64);
+        let signature_raw = base64::decode(signature64).unwrap();
         for (sig, raw) in signature.0.iter().zip(signature_raw.iter()) {
             assert_eq!(sig, raw);
         }
 
+        // Test signature display and debug
+        assert_eq!(
+            "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==".to_owned(),
+            format!("{}", signature)
+        );
+        assert_eq!(
+            "Signature { 1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg== }".to_owned(),
+            format!("{:?}", signature)
+        );
+
+        // Test signature hash
+        let mut hasher = DefaultHasher::new();
+        signature.hash(&mut hasher);
+        let hash1 = hasher.finish();
+        let mut hasher = DefaultHasher::new();
+        let signature_copy = signature.clone();
+        signature_copy.hash(&mut hasher);
+        let hash2 = hasher.finish();
+        assert_eq!(hash1, hash2);
+
+        // Test signature serialization/deserialization
+        let mut bin_sig = bincode::serialize(&signature).expect("Fail to serialize signature !");
+        assert_eq!(*SIG_SIZE_IN_BYTES, bin_sig.len());
+        assert_eq!(signature.to_bytes_vector(), bin_sig);
+        assert_eq!(
+            signature,
+            bincode::deserialize(&bin_sig).expect("Fail to deserialize signature !"),
+        );
+        bin_sig.push(0); // add on byte to simulate invalid length
+        bincode::deserialize::<Sig>(&bin_sig)
+            .expect_err("Deserialization must be fail because length is invalid !");
+
+        // Test signature parsing
         assert_eq!(
             super::Signature::from_base64("YmhlaW9iaHNlcGlvaGVvaXNlcGl2ZXBvdm5pc2U=").unwrap_err(),
             BaseConvertionError::InvalidLength {
@@ -480,6 +569,14 @@ mod tests {
                 offset: 89
             }
         );
+        assert_eq!(
+            super::Signature::from_base64(
+                "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FG\
+                 MMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg===",
+            )
+            .unwrap_err(),
+            BaseConvertionError::InvalidBaseConverterLength,
+        );
     }
 
     #[test]
@@ -508,22 +605,49 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 ";
 
         let sig = prikey.sign(message.as_bytes());
+        let wrong_sig = Signature([
+            0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+        ]);
 
         assert_eq!(sig, expected_signature);
-        assert!(pubkey.verify(message.as_bytes(), &sig));
+        assert_eq!(Ok(()), pubkey.verify(message.as_bytes(), &sig));
+        assert_eq!(
+            Err(SigError::InvalidSig),
+            pubkey.verify(message.as_bytes(), &wrong_sig)
+        );
     }
 
     #[test]
-    fn keypair_generate_() {
-        let keypair = KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(
+    fn keypair_generate() {
+        let key_pair1 = KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(
             "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV".as_bytes(),
             "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV_".as_bytes(),
         );
 
         assert_eq!(
-            keypair.pubkey.to_string(),
+            key_pair1.pubkey.to_string(),
             "7iMV3b6j2hSj5WtrfchfvxivS9swN3opDgxudeHq64fb"
         );
+
+        let key_pair2 = KeyPairFromSaltedPasswordGenerator::with_parameters(12u8, 16, 1)
+            .generate(b"toto", b"toto");
+
+        // Test signature display and debug
+        assert_eq!(
+            "(EA7Dsw39ShZg4SpURsrgMaMqrweJPUFPYHwZA8e92e3D, hidden)".to_owned(),
+            format!("{}", key_pair2)
+        );
+
+        // Test key_pair equality
+        let same_key_pair = key_pair2.clone();
+        let other_key_pair = KeyPairFromSeedGenerator::generate(&[
+            0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0,
+        ]);
+        assert!(key_pair2.eq(&same_key_pair));
+        assert!(!key_pair2.eq(&other_key_pair));
     }
 
     #[test]
@@ -540,6 +664,6 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 ";
 
         let sig = keypair.sign(message.as_bytes());
-        assert!(keypair.verify(message.as_bytes(), &sig));
+        assert!(keypair.verify(message.as_bytes(), &sig).is_ok());
     }
 }

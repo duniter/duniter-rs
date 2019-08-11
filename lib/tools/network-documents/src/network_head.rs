@@ -144,9 +144,11 @@ impl NetworkHead {
             NetworkHead::V2(ref head_v2) => {
                 self.pubkey()
                     .verify(head_v2.message.to_string().as_bytes(), &head_v2.sig)
+                    .is_ok()
                     && self
                         .pubkey()
                         .verify(head_v2.message_v2.to_string().as_bytes(), &head_v2.sig_v2)
+                        .is_ok()
             }
             _ => fatal_error!("This HEAD version is not supported !"),
         }

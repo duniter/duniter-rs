@@ -32,6 +32,19 @@ pub enum BlockDocument {
     V10(BlockDocumentV10),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+/// Error when verifying a hash of a block
+pub enum VerifyBlockHashError {
+    /// The hash is missing
+    MissingHash { block_number: BlockNumber },
+    /// Hash is invalid
+    InvalidHash {
+        block_number: BlockNumber,
+        expected_hash: Hash,
+        actual_hash: Hash,
+    },
+}
+
 pub trait BlockDocumentTrait {
     /// Common time in block (also known as 'blockchain time')
     fn common_time(&self) -> u64;
@@ -70,9 +83,9 @@ pub trait BlockDocumentTrait {
     /// Lightens the block (for example to store it while minimizing the space required)
     fn reduce(&mut self);
     /// Verify inner hash
-    fn verify_inner_hash(&self) -> bool;
+    fn verify_inner_hash(&self) -> Result<(), VerifyBlockHashError>;
     /// Verify block hash
-    fn verify_hash(&self) -> bool;
+    fn verify_hash(&self) -> Result<(), VerifyBlockHashError>;
     /// Sign block
     fn sign(&mut self, privkey: PrivKey);
 }
@@ -175,13 +188,13 @@ impl BlockDocumentTrait for BlockDocument {
         }
     }
     #[inline]
-    fn verify_inner_hash(&self) -> bool {
+    fn verify_inner_hash(&self) -> Result<(), VerifyBlockHashError> {
         match self {
             BlockDocument::V10(block) => block.verify_inner_hash(),
         }
     }
     #[inline]
-    fn verify_hash(&self) -> bool {
+    fn verify_hash(&self) -> Result<(), VerifyBlockHashError> {
         match self {
             BlockDocument::V10(block) => block.verify_hash(),
         }

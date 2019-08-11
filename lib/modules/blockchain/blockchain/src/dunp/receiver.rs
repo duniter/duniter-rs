@@ -100,7 +100,7 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                 }
             },
             Err(e) => match e {
-                BlockError::VerifyBlockHashsError(_) | BlockError::InvalidBlock(_) => {
+                BlockError::VerifyBlockHashError(_) | BlockError::InvalidBlock(_) => {
                     warn!("InvalidBlock(#{})", blockstamp.id.0);
                     crate::events::sent::send_event(bc, &BlockchainEvent::RefusedBlock(blockstamp));
                 }

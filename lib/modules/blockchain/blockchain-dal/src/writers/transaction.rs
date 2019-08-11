@@ -425,7 +425,7 @@ pub fn apply_and_write_tx(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dubp_documents::{Document, DocumentBuilder, VerificationResult};
+    use dubp_documents::{Document, DocumentBuilder};
     use std::str::FromStr;
     use unwrap::unwrap;
 
@@ -473,7 +473,7 @@ mod tests {
     fn apply_and_revert_one_tx() {
         // Get document of first g1 transaction
         let tx_doc = build_first_tx_of_g1();
-        assert_eq!(tx_doc.verify_signatures(), VerificationResult::Valid());
+        assert_eq!(tx_doc.verify_signatures(), Ok(()));
         // Get pubkey of receiver
         let tortue_pubkey = PubKey::Ed25519(
             ed25519::PublicKey::from_base58("Com8rJukCozHZyFao6AheSsfDQdPApxQRnz7QYFf64mm")

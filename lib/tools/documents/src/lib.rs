@@ -193,7 +193,7 @@ pub trait Document: Debug + Clone + PartialEq + Eq {
         &self,
         public_key: &Self::PublicKey,
         signature: &<Self::PublicKey as PublicKey>::Signature,
-    ) -> bool {
+    ) -> Result<(), SigError> {
         if self.no_as_bytes() {
             public_key.verify(&self.to_bytes(), signature)
         } else {
@@ -202,28 +202,35 @@ pub trait Document: Debug + Clone + PartialEq + Eq {
     }
 
     /// Verify signatures of document content (as text format)
-    fn verify_signatures(&self) -> VerificationResult {
+    fn verify_signatures(&self) -> Result<(), DocumentSigsErr> {
         let issuers_count = self.issuers().len();
         let signatures_count = self.signatures().len();
 
         if issuers_count != signatures_count {
-            VerificationResult::IncompletePairs(issuers_count, signatures_count)
+            Err(DocumentSigsErr::IncompletePairs(
+                issuers_count,
+                signatures_count,
+            ))
         } else {
             let issuers = self.issuers();
             let signatures = self.signatures();
-
-            let mismatches: Vec<_> = issuers
+            let mismatches: HashMap<usize, SigError> = issuers
                 .iter()
                 .zip(signatures)
                 .enumerate()
-                .filter(|&(_, (key, signature))| !self.verify_one_signature(key, signature))
-                .map(|(i, _)| i)
+                .filter_map(|(i, (key, signature))| {
+                    if let Err(e) = self.verify_one_signature(key, signature) {
+                        Some((i, e))
+                    } else {
+                        None
+                    }
+                })
                 .collect();
 
             if mismatches.is_empty() {
-                VerificationResult::Valid()
+                Ok(())
             } else {
-                VerificationResult::Invalid(mismatches)
+                Err(DocumentSigsErr::Invalid(mismatches))
             }
         }
     }
@@ -232,17 +239,21 @@ pub trait Document: Debug + Clone + PartialEq + Eq {
     fn version(&self) -> u16;
 }
 
-/// List of possible results for signature verification.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum VerificationResult {
-    /// All signatures are valid.
-    Valid(),
+use std::collections::HashMap;
+
+// todo: à mon avis faudrait pas que y ait de Valid() dans cette enum
+// et du coup faudrait que les fonctions qui renvoient un DocumentSigsErr renvoie Result<(), DocumentSigsErr>
+// du coup SignatureError dans la local verif sert plus à rien.
+
+/// List of possible errors for document signatures verification.
+#[derive(Debug, Eq, PartialEq)]
+pub enum DocumentSigsErr {
     /// Not same amount of issuers and signatures.
     /// (issuers count, signatures count)
     IncompletePairs(usize, usize),
     /// Signatures don't match.
     /// List of mismatching pairs indexes.
-    Invalid(Vec<usize>),
+    Invalid(HashMap<usize, SigError>),
 }
 
 /// Trait helper for building new documents.

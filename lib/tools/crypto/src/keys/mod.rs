@@ -35,7 +35,7 @@
 //!
 //! let signature = keypair.sign(&message.as_bytes());
 //!
-//! assert!(keypair.pubkey.verify(&message.as_bytes(), &signature));
+//! assert!(keypair.pubkey.verify(&message.as_bytes(), &signature).is_ok());
 //! ```
 //!
 //! # Format
@@ -50,6 +50,7 @@ use crate::bases::BaseConvertionError;
 use base58::ToBase58;
 use bincode;
 use durs_common_tools::fatal_error;
+use failure::Fail;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Error;
@@ -77,41 +78,37 @@ pub trait GetKeysAlgo: Clone + Debug + PartialEq + Eq {
 }
 
 /// Errors enumeration for signature verification.
-#[derive(Debug)]
+#[derive(Debug, Eq, Fail, PartialEq)]
 pub enum SigError {
     /// Signature and pubkey are not the same algo
-    NotSameAlgo(),
+    #[fail(display = "Signature and pubkey are not the same algo.")]
+    NotSameAlgo,
     /// Invalid signature
-    InvalidSig(),
+    #[fail(display = "Invalid signature.")]
+    InvalidSig,
     /// Absence of signature
-    NotSig(),
+    #[fail(display = "Absence of signature.")]
+    NotSig,
     /// Serialization error
-    SerdeError(bincode::Error),
-}
-
-impl From<bincode::Error> for SigError {
-    fn from(e: bincode::Error) -> Self {
-        SigError::SerdeError(e)
-    }
+    #[fail(display = "Serialization error: {}", _0)]
+    SerdeError(String),
 }
 
 /// SignError
-#[derive(Debug)]
+#[derive(Debug, Eq, Fail, PartialEq)]
 pub enum SignError {
     /// WrongAlgo
-    WrongAlgo(),
+    #[fail(display = "Wrong algo.")]
+    WrongAlgo,
     /// WrongPrivkey
-    WrongPrivkey(),
+    #[fail(display = "Wrong private key.")]
+    WrongPrivkey,
     /// AlreadySign
-    AlreadySign(),
+    #[fail(display = "Already signed.")]
+    AlreadySign,
     /// Serialization error
-    SerdeError(bincode::Error),
-}
-
-impl From<bincode::Error> for SignError {
-    fn from(e: bincode::Error) -> Self {
-        SignError::SerdeError(e)
-    }
+    #[fail(display = "Serialization error: {}", _0)]
+    SerdeError(String),
 }
 
 /// Define the operations that can be performed on a cryptographic signature.
@@ -176,6 +173,7 @@ impl GetKeysAlgo for Sig {
 }
 
 impl Signature for Sig {
+    #[cfg_attr(tarpaulin, skip)]
     fn from_base64(_base64_string: &str) -> Result<Self, BaseConvertionError> {
         unimplemented!()
     }
@@ -219,7 +217,7 @@ pub trait PublicKey: Clone + Display + Debug + PartialEq + Eq + Hash + ToBase58 
     fn to_bytes_vector(&self) -> Vec<u8>;
 
     /// Verify a signature with this public key.
-    fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool;
+    fn verify(&self, message: &[u8], signature: &Self::Signature) -> Result<(), SigError>;
 }
 
 /// Store a cryptographic public key.
@@ -243,7 +241,10 @@ impl PubKey {
 
 impl Default for PubKey {
     fn default() -> Self {
-        PubKey::Schnorr()
+        PubKey::Ed25519(ed25519::PublicKey([
+            0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0,
+        ]))
     }
 }
 
@@ -282,6 +283,7 @@ impl FromStr for PubKey {
 impl PublicKey for PubKey {
     type Signature = Sig;
 
+    #[cfg_attr(tarpaulin, skip)]
     fn from_base58(_base58_string: &str) -> Result<Self, BaseConvertionError> {
         unimplemented!()
     }
@@ -291,7 +293,7 @@ impl PublicKey for PubKey {
             PubKey::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
-    fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool {
+    fn verify(&self, message: &[u8], signature: &Self::Signature) -> Result<(), SigError> {
         match *self {
             PubKey::Ed25519(ed25519_pubkey) => {
                 if let Sig::Ed25519(ed25519_sig) = signature {
@@ -366,6 +368,8 @@ impl Display for PrivKey {
 
 impl PrivateKey for PrivKey {
     type Signature = Sig;
+
+    #[cfg_attr(tarpaulin, skip)]
     fn from_base58(_base58_string: &str) -> Result<Self, BaseConvertionError> {
         unimplemented!()
     }
@@ -396,7 +400,7 @@ pub trait KeyPair: Clone + Display + Debug + PartialEq + Eq {
     fn sign(&self, message: &[u8]) -> Self::Signature;
 
     /// Verify a signature with public key.
-    fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool;
+    fn verify(&self, message: &[u8], signature: &Self::Signature) -> Result<(), SigError>;
 }
 
 /// Store a cryptographic key pair.
@@ -447,13 +451,13 @@ impl KeyPair for KeyPairEnum {
             KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
-    fn verify(&self, message: &[u8], signature: &Sig) -> bool {
+    fn verify(&self, message: &[u8], signature: &Sig) -> Result<(), SigError> {
         match *self {
             KeyPairEnum::Ed25519(ed25519_keypair) => {
                 if let Sig::Ed25519(ed25519_sig) = signature {
                     ed25519_keypair.verify(message, ed25519_sig)
                 } else {
-                    fatal_error!("Try to verify a signature with key pair of a different algorithm !\nSignature={:?}\nKeyPair={:?}", signature, self)
+                    fatal_error!("Try to verify a signature with key pair of a different algorithm !\nSignature={:?}\nKeyPair={}", signature, self)
                 }
             }
             KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
@@ -464,5 +468,279 @@ impl KeyPair for KeyPairEnum {
             KeyPairEnum::Ed25519(ed25519_keypair) => Sig::Ed25519(ed25519_keypair.sign(message)),
             KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    pub fn valid_key_pair_1() -> KeyPairEnum {
+        let kp = KeyPairEnum::Ed25519(ed25519::KeyPair {
+            pubkey: ed25519::PublicKey([
+                59u8, 106, 39, 188, 206, 182, 164, 45, 98, 163, 168, 208, 42, 111, 13, 115, 101,
+                50, 21, 119, 29, 226, 67, 166, 58, 192, 72, 161, 139, 89, 218, 41,
+            ]),
+            privkey: ed25519::PrivateKey([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 59, 106, 39, 188, 206, 182, 164, 45, 98, 163, 168, 208, 42, 111, 13,
+                115, 101, 50, 21, 119, 29, 226, 67, 166, 58, 192, 72, 161, 139, 89, 218, 41,
+            ]),
+        });
+        println!("kp.pub={:?}", kp.public_key().to_bytes_vector());
+        if let PrivKey::Ed25519(ed_pk) = kp.private_key() {
+            println!("kp.priv={:?}", ed_pk.0.to_vec());
+        }
+        kp
+    }
+
+    #[test]
+    fn sig() {
+        let sig_bytes = [
+            0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+        ];
+        let sig_str_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==".to_owned();
+        let sig = Sig::Ed25519(ed25519::Signature(sig_bytes));
+
+        assert_eq!(sig.size_in_bytes(), *ed25519::SIG_SIZE_IN_BYTES + 2);
+        assert_eq!(sig_str_b64, format!("{}", sig));
+
+        assert_eq!(KeysAlgo::Ed25519, sig.algo());
+        assert_eq!(KeysAlgo::Schnorr, Sig::Schnorr().algo());
+
+        assert_eq!(sig_bytes.to_vec(), sig.to_bytes_vector());
+
+        assert_eq!(sig_str_b64, sig.to_base64());
+    }
+
+    #[test]
+    fn pubkey() {
+        let pubkey_default = PubKey::default();
+        let pubkey_bytes = [
+            0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0,
+        ];
+        let pubkey_str_b58 = "11111111111111111111111111111111".to_owned();
+        let pubkey = PubKey::Ed25519(ed25519::PublicKey(pubkey_bytes));
+
+        assert_eq!(pubkey_default, pubkey);
+        assert_eq!(
+            pubkey_default,
+            PubKey::from_str(&pubkey_str_b58).expect("Fail to parse pubkey !")
+        );
+
+        assert_eq!(pubkey.size_in_bytes(), *ed25519::PUBKEY_SIZE_IN_BYTES + 3);
+        assert_eq!(pubkey_str_b58, format!("{}", pubkey));
+
+        assert_eq!(KeysAlgo::Ed25519, pubkey.algo());
+        assert_eq!(KeysAlgo::Schnorr, PubKey::Schnorr().algo());
+
+        assert_eq!(pubkey_bytes.to_vec(), pubkey.to_bytes_vector());
+
+        assert_eq!(pubkey_str_b58, pubkey.to_base58());
+
+        assert_eq!(
+            Err(SigError::InvalidSig),
+            pubkey.verify(
+                b"message",
+                &Sig::Ed25519(ed25519::Signature([
+                    0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                ]))
+            )
+        )
+    }
+
+    #[test]
+    fn privkey() {
+        let privkey_bytes = [
+            0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+        ];
+        let privkey_str_b58 =
+            "1111111111111111111111111111111111111111111111111111111111111111".to_owned();
+        let privkey = PrivKey::Ed25519(ed25519::PrivateKey(privkey_bytes));
+
+        assert_eq!(privkey_str_b58, format!("{}", privkey));
+
+        assert_eq!(KeysAlgo::Ed25519, privkey.algo());
+        assert_eq!(KeysAlgo::Schnorr, PrivKey::Schnorr().algo());
+
+        assert_eq!(privkey_str_b58, privkey.to_base58());
+
+        assert_eq!(
+            Sig::Ed25519(ed25519::Signature::from_base64("JPurBgnHExHND1woow9nB7xVQjKkdHGs1znQbgv0ttboJXueHKd4SOvxuNWmw4w07F4CT//olYMEBw51Cy0SDA==").unwrap()),
+            privkey.sign(b"message")
+        );
+    }
+
+    fn false_key_pair_ed25519() -> ed25519::KeyPair {
+        ed25519::KeyPair {
+            pubkey: ed25519::PublicKey([
+                0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0,
+            ]),
+            privkey: ed25519::PrivateKey([
+                0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ]),
+        }
+    }
+
+    #[test]
+    fn key_pair() {
+        let false_key_pair_ed25519 = false_key_pair_ed25519();
+        let false_key_pair = KeyPairEnum::Ed25519(false_key_pair_ed25519);
+
+        assert_eq!(KeysAlgo::Ed25519, false_key_pair.algo());
+        assert_eq!(KeysAlgo::Schnorr, KeyPairEnum::Schnorr().algo());
+        assert_eq!(
+            "(11111111111111111111111111111111, hidden)".to_owned(),
+            format!("{}", false_key_pair)
+        );
+        assert_eq!(
+            PubKey::Ed25519(false_key_pair_ed25519.pubkey),
+            false_key_pair.public_key()
+        );
+        assert_eq!(
+            PrivKey::Ed25519(false_key_pair_ed25519.privkey),
+            false_key_pair.private_key()
+        );
+        assert_eq!(
+            Err(SigError::InvalidSig),
+            false_key_pair.verify(
+                b"message",
+                &Sig::Ed25519(ed25519::Signature([
+                    0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                ]))
+            )
+        );
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "Try to verify a signature with key pair of a different algorithm !\n\
+                    Signature=Schnorr\nKeyPair=(11111111111111111111111111111111, hidden)"
+    )]
+    fn key_pair_verify_wrong_sig_algo() {
+        let false_key_pair_ed25519 = false_key_pair_ed25519();
+        let false_key_pair = KeyPairEnum::Ed25519(false_key_pair_ed25519);
+        let _ = false_key_pair.verify(b"message", &Sig::Schnorr());
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn sig_schnorr_size() {
+        let sig = Sig::Schnorr();
+        sig.size_in_bytes();
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn sig_schnorr_to_bytes() {
+        let sig = Sig::Schnorr();
+        sig.to_bytes_vector();
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn sig_schnorr_to_base64() {
+        let sig = Sig::Schnorr();
+        sig.to_base64();
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn pubkey_schnorr_size() {
+        let pubkey = PubKey::Schnorr();
+        pubkey.size_in_bytes();
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn pubkey_schnorr_base58() {
+        let pubkey = PubKey::Schnorr();
+        pubkey.to_base58();
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn pubkey_schnorr_to_bytes() {
+        let pubkey = PubKey::Schnorr();
+        pubkey.to_bytes_vector();
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn pubkey_schnorr_verify() {
+        let pubkey = PubKey::Schnorr();
+        let _ = pubkey.verify(b"message", &Sig::Schnorr());
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "Try to verify a signature with public key of a different algorithm !\n\
+        Signature=Schnorr\nPublickey=Ed25519(PublicKey { 11111111111111111111111111111111 })"
+    )]
+    fn pubkey_verify_sig_wrong_algo() {
+        let pubkey = PubKey::default();
+        let _ = pubkey.verify(b"message", &Sig::Schnorr());
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn privkey_schnorr_base58() {
+        let privkey = PrivKey::Schnorr();
+        privkey.to_base58();
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn privkey_schnorr_sign() {
+        let privkey = PrivKey::Schnorr();
+        privkey.sign(b"message");
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn key_pair_schnorr_display() {
+        let key_pair = KeyPairEnum::Schnorr();
+        format!("{}", key_pair);
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn key_pair_schnorr_get_pubkey() {
+        let key_pair = KeyPairEnum::Schnorr();
+        key_pair.public_key();
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn key_pair_schnorr_get_privkey() {
+        let key_pair = KeyPairEnum::Schnorr();
+        key_pair.private_key();
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn key_pair_schnorr_verify() {
+        let key_pair = KeyPairEnum::Schnorr();
+        let _ = key_pair.verify(b"message", &Sig::Schnorr());
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn key_pair_schnorr_sign() {
+        let key_pair = KeyPairEnum::Schnorr();
+        key_pair.sign(b"message");
     }
 }

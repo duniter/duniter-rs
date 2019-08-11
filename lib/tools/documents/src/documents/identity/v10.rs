@@ -262,7 +262,7 @@ Timestamp: {blockstamp}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Document, VerificationResult};
+    use crate::Document;
     use dup_crypto::keys::{PrivateKey, PublicKey, Signature};
 
     #[test]
@@ -300,14 +300,14 @@ mod tests {
             issuer: &pubkey,
         };
 
-        assert_eq!(
-            builder.build_with_signature(vec![sig]).verify_signatures(),
-            VerificationResult::Valid()
-        );
-        assert_eq!(
-            builder.build_and_sign(vec![prikey]).verify_signatures(),
-            VerificationResult::Valid()
-        );
+        assert!(builder
+            .build_with_signature(vec![sig])
+            .verify_signatures()
+            .is_ok());
+        assert!(builder
+            .build_and_sign(vec![prikey])
+            .verify_signatures()
+            .is_ok());
     }
 
     #[test]
@@ -322,6 +322,6 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 
         let doc = IdentityDocumentParser::parse(doc).expect("Fail to parse idty doc !");
         println!("Doc : {:?}", doc);
-        assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+        assert!(doc.verify_signatures().is_ok())
     }
 }

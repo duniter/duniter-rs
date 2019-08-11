@@ -295,7 +295,6 @@ IdtySignature: {idty_sig}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::VerificationResult;
     use dup_crypto::keys::{PrivateKey, PublicKey, Signature};
 
     #[test]
@@ -334,15 +333,15 @@ mod tests {
             identity_sig: &identity_sig,
         };
 
-        assert_eq!(
-            builder.build_with_signature(vec![sig]).verify_signatures(),
-            VerificationResult::Valid()
-        );
+        assert!(builder
+            .build_with_signature(vec![sig])
+            .verify_signatures()
+            .is_ok());
 
-        assert_eq!(
-            builder.build_and_sign(vec![prikey]).verify_signatures(),
-            VerificationResult::Valid()
-        );
+        assert!(builder
+            .build_and_sign(vec![prikey])
+            .verify_signatures()
+            .is_ok());
     }
 
     #[test]
@@ -358,6 +357,6 @@ XXOgI++6qpY9O31ml/FcfbXCE6aixIrgkT5jL7kBle3YOMr+8wrp7Rt+z9hDVjrNfYX2gpeJsuMNfG4T
 
         let doc = RevocationDocumentParser::parse(doc).unwrap();
         println!("Doc : {:?}", doc);
-        assert_eq!(doc.verify_signatures(), VerificationResult::Valid())
+        assert!(doc.verify_signatures().is_ok())
     }
 }

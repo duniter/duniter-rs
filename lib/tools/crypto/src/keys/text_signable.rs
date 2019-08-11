@@ -30,20 +30,20 @@ pub trait TextSignable: Debug + Clone {
     /// Sign entity
     fn sign(&mut self, priv_key: PrivKey) -> Result<String, SignError> {
         if self.signature().is_some() {
-            return Err(SignError::AlreadySign());
+            return Err(SignError::AlreadySign);
         }
-        let text = self.as_signable_text();
         match self.issuer_pubkey() {
             PubKey::Ed25519(_) => match priv_key {
                 PrivKey::Ed25519(priv_key) => {
+                    let text = self.as_signable_text();
                     let sig = priv_key.sign(&text.as_bytes());
                     self.set_signature(Sig::Ed25519(sig));
                     let str_sig = sig.to_base64();
                     Ok(format!("{}{}", text, str_sig))
                 }
-                _ => Err(SignError::WrongAlgo()),
+                _ => Err(SignError::WrongAlgo),
             },
-            _ => Err(SignError::WrongAlgo()),
+            _ => Err(SignError::WrongAlgo),
         }
     }
     /// Check signature of entity
@@ -52,18 +52,86 @@ pub trait TextSignable: Debug + Clone {
             match self.issuer_pubkey() {
                 PubKey::Ed25519(pubkey) => match signature {
                     Sig::Ed25519(sig) => {
+                        pubkey.verify(&self.as_signable_text().as_bytes(), &sig)
+                        /*
                         if pubkey.verify(&self.as_signable_text().as_bytes(), &sig) {
                             Ok(())
                         } else {
                             Err(SigError::InvalidSig())
                         }
+                        */
                     }
-                    _ => Err(SigError::NotSameAlgo()),
+                    _ => Err(SigError::NotSameAlgo),
                 },
-                _ => Err(SigError::NotSameAlgo()),
+                _ => Err(SigError::NotSameAlgo),
             }
         } else {
-            Err(SigError::NotSig())
+            Err(SigError::NotSig)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[derive(Debug, Clone)]
+    struct TextSignableTestImpl {
+        issuer: PubKey,
+        text: String,
+        sig: Option<Sig>,
+    }
+
+    impl TextSignable for TextSignableTestImpl {
+        fn as_signable_text(&self) -> String {
+            format!("{}:{}", self.issuer, self.text)
+        }
+        fn issuer_pubkey(&self) -> PubKey {
+            self.issuer
+        }
+        fn signature(&self) -> Option<Sig> {
+            self.sig
+        }
+        fn set_signature(&mut self, new_signature: Sig) {
+            self.sig = Some(new_signature);
+        }
+    }
+
+    #[test]
+    fn test_text_signable() {
+        let key_pair = super::super::tests::valid_key_pair_1();
+
+        let mut text_signable = TextSignableTestImpl {
+            issuer: key_pair.public_key(),
+            text: "toto".to_owned(),
+            sig: None,
+        };
+
+        assert_eq!(Err(SigError::NotSig), text_signable.verify());
+        assert_eq!(
+            Err(SignError::WrongAlgo),
+            text_signable.sign(PrivKey::Schnorr())
+        );
+        text_signable.issuer = PubKey::Schnorr();
+        assert_eq!(
+            Err(SignError::WrongAlgo),
+            text_signable.sign(key_pair.private_key())
+        );
+        text_signable.issuer = key_pair.public_key();
+        assert_eq!(
+            Ok("4zvwRjXUKGfvwnParsHAS3HuSVzV5cA4McphgmoCtajS:totoe53bEIYLX3IK7p0IBm60jAZfrQWxrBpinvzJqGxvD3kAzoe+zp2FGIXuxHMobrImu/Au33sB9k/6yOhtFz/YAw==".to_owned()),
+            text_signable.sign(key_pair.private_key())
+        );
+        assert_eq!(
+            Err(SignError::AlreadySign),
+            text_signable.sign(key_pair.private_key())
+        );
+        assert_eq!(Ok(()), text_signable.verify());
+        let old_sig = text_signable.sig.replace(Sig::Schnorr());
+        assert_eq!(Err(SigError::NotSameAlgo), text_signable.verify());
+        text_signable.sig = old_sig;
+        text_signable.issuer = PubKey::Schnorr();
+        assert_eq!(Err(SigError::NotSameAlgo), text_signable.verify());
     }
 }

@@ -37,7 +37,7 @@ impl WS2PMessage for WS2POkMessageV1 {
     }
     fn verify(&self) -> bool {
         if let Some(sig) = self.signature {
-            self.pubkey.verify(self.to_raw().as_bytes(), &sig)
+            self.pubkey.verify(self.to_raw().as_bytes(), &sig).is_ok()
         } else {
             false
         }
