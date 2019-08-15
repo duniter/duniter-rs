@@ -58,8 +58,7 @@ build_extra_server() {
 # Parameters:
 # 1. Building type (either “desktop” or “server”).
 build_deb_pack() {
-	cd "${ROOT}/bin/dunitrust-${1}"
-	cargo deb --output "${BIN}/duniter-rust-${1}-${DURS_TAG}-linux-x64.deb"
+	cargo deb --manifest-path "${ROOT}/bin/dunitrust-${1}/Cargo.toml" --output "${BIN}/dunitrust-server-${1}-${DURS_TAG}-linux-x64.deb"
 	create_desc "${BIN}/duniter-rust-${1}-${DURS_TAG}-linux-x64.deb" "${1}" "Linux (Ubuntu/Debian)"
 }
 
