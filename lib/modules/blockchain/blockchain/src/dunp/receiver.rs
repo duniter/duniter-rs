@@ -81,20 +81,22 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                     );
                 }
                 CheckAndApplyBlockReturn::ForkBlock => {
-                    info!("new fork block(#{})", blockstamp);
+                    info!("blockchain: new fork block(#{})", blockstamp);
+                    bc.forks_dbs.save_dbs();
                     if let Ok(Some(new_bc_branch)) = fork_algo::fork_resolution_algo(
                         &bc.forks_dbs,
                         unwrap!(bc.currency_params).fork_window_size,
                         bc.current_blockstamp,
                         &bc.invalid_forks,
                     ) {
+                        info!("blockchain: apply_rollback({:?})", new_bc_branch);
                         rollback::apply_rollback(bc, new_bc_branch);
                     }
                 }
                 CheckAndApplyBlockReturn::OrphanBlock => {
                     if first_orphan {
                         first_orphan = false;
-                        debug!("new orphan block(#{})", blockstamp);
+                        debug!("blockchain: new orphan block(#{})", blockstamp);
                         crate::requests::sent::request_orphan_previous(bc, blockstamp);
                     }
                 }
