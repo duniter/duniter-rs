@@ -136,18 +136,6 @@ impl Ord for NetworkHeadV3 {
     }
 }
 
-/*impl<'de> BinSignable<'de> for NetworkHeadV3 {
-    fn issuer_pubkey(&self) -> PubKey {
-        self.pubkey
-    }
-    fn signature(&self) -> Option<Sig> {
-        self.signature
-    }
-    fn set_signature(&mut self, signature: Sig) {
-        self.signature = Some(signature);
-    }
-}*/
-
 impl TextSignable for NetworkHeadV3 {
     fn as_signable_text(&self) -> String {
         format!(

@@ -83,6 +83,20 @@ impl WS2Pv2Message {
 }
 
 impl<'de> BinSignable<'de> for WS2Pv2Message {
+    #[inline]
+    fn add_sig_to_bin_datas(&self, bin_datas: &mut Vec<u8>) {
+        bin_datas.extend_from_slice(
+            &bincode::serialize(&self.signature).expect("Fail to binarize sig !"),
+        );
+    }
+    #[inline]
+    fn get_bin_without_sig(&self) -> Result<Vec<u8>, failure::Error> {
+        let mut bin_msg = bincode::serialize(&self)?;
+        let sig_size = bincode::serialized_size(&self.signature())?;
+        let bin_msg_len = bin_msg.len();
+        bin_msg.truncate(bin_msg_len - (sig_size as usize));
+        Ok(bin_msg)
+    }
     fn issuer_pubkey(&self) -> PubKey {
         self.issuer_pubkey
     }

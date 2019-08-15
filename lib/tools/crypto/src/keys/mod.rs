@@ -48,7 +48,6 @@
 
 use crate::bases::BaseConvertionError;
 use base58::ToBase58;
-use bincode;
 use durs_common_tools::fatal_error;
 use failure::Fail;
 use std::fmt::Debug;

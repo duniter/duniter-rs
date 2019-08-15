@@ -16,7 +16,6 @@
 //! Generic code for signing data in binary format
 
 use super::*;
-use bincode;
 use serde::{Deserialize, Serialize};
 
 /// Signatureable in binary format
@@ -28,14 +27,9 @@ pub trait BinSignable<'de>: Serialize + Deserialize<'de> {
     /// Change signature
     fn set_signature(&mut self, _signature: Sig);
     /// Get binary datas without signature
-    #[inline]
-    fn get_bin_without_sig(&self) -> Result<Vec<u8>, bincode::Error> {
-        let mut bin_msg = bincode::serialize(&self)?;
-        let sig_size = bincode::serialized_size(&self.signature())?;
-        let bin_msg_len = bin_msg.len();
-        bin_msg.truncate(bin_msg_len - (sig_size as usize));
-        Ok(bin_msg)
-    }
+    fn get_bin_without_sig(&self) -> Result<Vec<u8>, failure::Error>;
+    /// Add signature to bin datas
+    fn add_sig_to_bin_datas(&self, bin_datas: &mut Vec<u8>);
     /// Sign entity with a private key
     fn sign(&mut self, priv_key: PrivKey) -> Result<Vec<u8>, SignError> {
         if self.signature().is_some() {
@@ -44,14 +38,12 @@ pub trait BinSignable<'de>: Serialize + Deserialize<'de> {
         match self.issuer_pubkey() {
             PubKey::Ed25519(_) => match priv_key {
                 PrivKey::Ed25519(priv_key) => {
-                    let mut bin_msg = bincode::serialize(&self)
-                        .map_err(|e| SignError::SerdeError(format!("{}", e)))?;
-                    bin_msg.pop(); // Remove sig field (1 byte: None)
+                    let mut bin_msg = self
+                        .get_bin_without_sig()
+                        .map_err(|e| SignError::SerdeError(e.to_string()))?;
                     let sig = Sig::Ed25519(priv_key.sign(&bin_msg));
                     self.set_signature(sig);
-                    bin_msg.extend_from_slice(
-                        &bincode::serialize(&Some(sig)).expect("Fail to binarize sig !"),
-                    );
+                    self.add_sig_to_bin_datas(&mut bin_msg);
                     Ok(bin_msg)
                 }
                 _ => Err(SignError::WrongAlgo),
@@ -91,6 +83,7 @@ pub trait BinSignable<'de>: Serialize + Deserialize<'de> {
 mod tests {
 
     use super::*;
+    use bincode;
 
     #[derive(Deserialize, Serialize)]
     struct BinSignableTestImpl {
@@ -100,6 +93,19 @@ mod tests {
     }
 
     impl BinSignable<'_> for BinSignableTestImpl {
+        #[inline]
+        fn add_sig_to_bin_datas(&self, bin_datas: &mut Vec<u8>) {
+            bin_datas
+                .extend_from_slice(&bincode::serialize(&self.sig).expect("Fail to binarize sig !"));
+        }
+        #[inline]
+        fn get_bin_without_sig(&self) -> Result<Vec<u8>, failure::Error> {
+            let mut bin_msg = bincode::serialize(&self)?;
+            let sig_size = bincode::serialized_size(&self.signature())?;
+            let bin_msg_len = bin_msg.len();
+            bin_msg.truncate(bin_msg_len - (sig_size as usize));
+            Ok(bin_msg)
+        }
         fn issuer_pubkey(&self) -> PubKey {
             self.issuer
         }

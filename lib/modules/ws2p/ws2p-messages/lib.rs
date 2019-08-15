@@ -116,6 +116,24 @@ impl WS2PMessage {
 }
 
 impl<'de> BinSignable<'de> for WS2PMessage {
+    #[inline]
+    fn add_sig_to_bin_datas(&self, bin_datas: &mut Vec<u8>) {
+        match *self {
+            WS2PMessage::V2(ref msg_v2) => msg_v2.add_sig_to_bin_datas(bin_datas),
+            WS2PMessage::_V0 | WS2PMessage::_V1 => {
+                fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
+            }
+        }
+    }
+    #[inline]
+    fn get_bin_without_sig(&self) -> Result<Vec<u8>, failure::Error> {
+        match *self {
+            WS2PMessage::V2(ref msg_v2) => msg_v2.get_bin_without_sig(),
+            WS2PMessage::_V0 | WS2PMessage::_V1 => {
+                fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
+            }
+        }
+    }
     fn issuer_pubkey(&self) -> PubKey {
         match *self {
             WS2PMessage::V2(ref msg_v2) => msg_v2.issuer_pubkey(),
