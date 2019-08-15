@@ -7,25 +7,15 @@ Dans ce tutoriel nous allons voir comment développer un module pour [Dunitrust]
 
 Si ce n'est pas déjà fait, vous devez au préalable [préparer votre environnement de développement](installer-son-environnement-de-dev.md).
 
-## Architecture générale du dépôt durs
+## Architecture générale du projet
 
-Le dépôt durs est constitué de deux types de crates : les binaires et les bibliothèques (nommées librairies par abus de langage).
+Référez vous a la page décrivant [l'architecture du projet](architecture-projet.md).
 
-Les crates binaires sont regroupés dans le dossier `bin` et sont au nombre de deux :
+### Ou placer le code de mon module
 
-* dunitrust-server : produit un exécutable de durs en ligne de commande, donc installable sur un serveur.
-* durs-desktop : produit un exécutable de durs en application graphique de bureau (n'existe pas encore).
+Les modules dunitrust sont des crates de type bibliothèques, vous devez donc placer la/les crate(s) de votre module dans le dossier `lib/modules`.
 
-Les modules durs sont des crates de type bibliothèques, vous devez donc placer la crate de votre module dans le dossier `lib`.
-
-Le dossier `lib` est organisé en 4 sous-dossiers correspondant à 4 types de bibliothèques :
-
-1. `tools` : les bibliothèques outils, pouvant potentiellement servir à toutes les crates.
-2. `modules` : les bibliothèques représentant un module durs.
-3. `modules-lib` : les bibliothèques dédiées uniquement à certains modules.
-4. `core` :  les bibliothèques structurantes du cœur et de l'interphasage avec les modules.
-
-Pour développer votre module, vous devez créer une crate dans le dossier `modules/{your-module-name}`.
+Si votre module ne comporte qu'une seule crate, vous devez créer cette crate dans le dossier `lib/modules/{your-module-name}`.
 Le nom de votre crate tel que décrit dans le Cargo.toml devra être préfixé par `durs-`. En revanche, le dossier dans lequel se trouvera votre module aura le nom de votre module **sans le préfixe** `durs-`.
 
 Exemple : si vous souhaitez créer un module nommé `toto`, vous placerez la crate contenant le code de votre module dans le dossier `lib/modules/toto` et dans le Cargo.toml de votre crate vous indiquerez comme nom `durs-toto`.

@@ -14,7 +14,7 @@ path = "lib.rs"
 
 [dependencies]
 log = "0.4.*"
-durs-common-tools = { path = "../common-tools" }
+durs-common-tools = { path = "../../tools/common-tools" }
 serde = "1.0.*"
 serde_derive = "1.0.*"
 bincode = "1.0.*"

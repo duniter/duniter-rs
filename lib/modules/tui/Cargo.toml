@@ -11,14 +11,14 @@ path = "lib.rs"
 
 [dependencies]
 durs-conf = { path = "../../core/conf" }
-dup-crypto = { path = "../../tools/crypto" }
-dup-currency-params = { path = "../../tools/currency-params" }
-dubp-documents= { path = "../../tools/documents" }
+dup-crypto = { path = "../../crypto" }
+dup-currency-params = { path = "../../dubp/currency-params" }
+dubp-documents= { path = "../../dubp/documents" }
 durs-common-tools = { path = "../../tools/common-tools" }
 durs-message =  { path = "../../core/message" }
 durs-module = { path = "../../core/module" }
 durs-network = { path = "../../core/network" }
-durs-network-documents = { path = "../../tools/network-documents" }
+durs-network-documents = { path = "../../dunp/network-documents" }
 failure = "0.1.5"
 log = "0.4.*"
 serde = "1.0.*"

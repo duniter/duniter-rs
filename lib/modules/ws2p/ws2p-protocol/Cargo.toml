@@ -10,12 +10,12 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-dup-crypto = { path = "../../../tools/crypto" }
-dup-currency-params = { path = "../../../tools/currency-params" }
+dup-crypto = { path = "../../../crypto" }
+dup-currency-params = { path = "../../../dubp/currency-params" }
 durs-common-tools = { path = "../../../tools/common-tools" }
-dubp-documents= { path = "../../../tools/documents" }
+dubp-documents= { path = "../../../dubp/documents" }
 durs-module = { path = "../../../core/module" }
-durs-network-documents = { path = "../../../tools/network-documents" }
+durs-network-documents = { path = "../../../dunp/network-documents" }
 durs-ws2p-messages = { path = "../ws2p-messages" }
 failure = "0.1.5"
 log = "0.4.*"

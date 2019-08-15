@@ -9,23 +9,11 @@ You are expected to have [setup your development environment](setup-your-dev-env
 
 ## General architecture
 
-The Dunitrust repository is composed of two types of crates: binaries and libraries.
+Refer to the page describing the [project architecture](project-archi.md).
 
-There are two binary crates in the `bin/` directory:
+### Where to place the code of my module
 
-* `dunitrust-server`: builds an executable for the command line, targetting a server install,
-* `durs-desktop`: builds a Graphical User Interface (GUI), for the desktop, also in the form of one executable. This one doesn't exist yet.
-
-A Dunitrust module is a library crate. You must then create your crate in the `lib/` directory.
-
-The `lib/` directory has 4 sub-directories which correspond to 4 types of libraries:
-
-1. `tools`: utilities that could be useful to all crates.
-2. `modules`: libraries forming a Dunitrust module.
-3. `modules-lib`: libraries dedicated to a subset of modules.
-4. `core`: libraries structuring the architecture, linking modules between them.
-
-As such, create a new crate in a directory called `modules/{your-module-name}`.
+As such, create a new crate in a directory called `lib/modules/{your-module-name}`.
 The name of your crate to put in the `Cargo.toml` file must be prefixed by `durs-`. The folder in which lies your module doesn't have this prefix.
 
 For example: you create a new module named "toto". You put the crate, which contains your module's code, int `lib/modules/toto`. In `Cargo.toml` you add `durs-toto`.

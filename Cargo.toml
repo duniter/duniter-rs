@@ -6,6 +6,11 @@ members = [
     "lib/core/message",
     "lib/core/module",
     "lib/core/network",
+    "lib/crypto",
+    "lib/dubp/currency-params",
+    "lib/dubp/documents",
+    "lib/dubp/wot",
+    "lib/dunp/network-documents",
     "lib/modules/blockchain/blockchain",
     "lib/modules/blockchain/blockchain-dal",
     "lib/modules/skeleton",
@@ -16,14 +21,9 @@ members = [
     "lib/tests-tools/crypto-tests-tools",
     "lib/tests-tools/documents-tests-tools",
     "lib/tests-tools/common-tests-tools",
-    "lib/tools/crypto",
     "lib/tools/common-tools",
-    "lib/tools/currency-params",
-    "lib/tools/documents",
     "lib/tools/json-pest-parser",
-    "lib/tools/network-documents",
     "lib/tools/rules-engine",
-    "lib/tools/wot",
 ]
 
 [profile.dev]

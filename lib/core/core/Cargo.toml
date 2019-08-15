@@ -14,12 +14,12 @@ dirs = "1.0.2"
 durs-blockchain = { path = "../../modules/blockchain/blockchain" }
 durs-common-tools = { path = "../../tools/common-tools" }
 durs-conf = { path = "../conf" }
-dup-crypto = { path = "../../tools/crypto" }
-dup-currency-params = { path = "../../tools/currency-params" }
+dup-crypto = { path = "../../crypto" }
+dup-currency-params = { path = "../../dubp/currency-params" }
 durs-message =  { path = "../message" }
 durs-module = { path = "../module" }
 durs-network = { path = "../network" }
-durs-network-documents = { path = "../../tools/network-documents" }
+durs-network-documents = { path = "../../dunp/network-documents" }
 failure = "0.1.5"
 log = "0.4.*"
 serde = "1.0.*"

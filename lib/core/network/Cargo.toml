@@ -11,10 +11,10 @@ path = "lib.rs"
 
 [dependencies]
 durs-common-tools = { path = "../../tools/common-tools" }
-dup-crypto = { path = "../../tools/crypto" }
-dubp-documents= { path = "../../tools/documents" }
+dup-crypto = { path = "../../crypto" }
+dubp-documents= { path = "../../dubp/documents" }
 durs-module = { path = "../module" }
-durs-network-documents = { path = "../../tools/network-documents" }
+durs-network-documents = { path = "../../dunp/network-documents" }
 failure = "0.1.5"
 serde = "1.0.*"
 serde_derive = "1.0.*"

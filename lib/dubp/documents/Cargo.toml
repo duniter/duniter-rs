@@ -13,11 +13,11 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-durs-common-tools = { path = "../common-tools" }
-dup-crypto = { path = "../crypto" }
+durs-common-tools = { path = "../../tools/common-tools" }
+dup-crypto = { path = "../../crypto" }
 dup-currency-params = { path = "../currency-params" }
 failure = "0.1.5"
-json-pest-parser = { path = "../json-pest-parser" }
+json-pest-parser = { path = "../../tools/json-pest-parser" }
 pest = "2.1.0"
 pest_derive = "2.1.0"
 serde = "1.0.*"

@@ -10,13 +10,13 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-dup-crypto = { path = "../../../tools/crypto" }
-dup-currency-params = { path = "../../../tools/currency-params" }
-dubp-documents= { path = "../../../tools/documents" }
+dup-crypto = { path = "../../../crypto" }
+dup-currency-params = { path = "../../../dubp/currency-params" }
+dubp-documents= { path = "../../../dubp/documents" }
 durs-conf = { path = "../../../core/conf" }
 durs-module = { path = "../../../core/module" }
 durs-common-tools = { path = "../../../tools/common-tools" }
-durs-wot = { path = "../../../tools/wot" }
+durs-wot = { path = "../../../dubp/wot" }
 fnv = "1.0.6"
 id_tree = "1.3.0"
 log = "0.4.*"

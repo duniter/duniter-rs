@@ -13,6 +13,6 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-dup-crypto = { path = "../../tools/crypto" }
+dup-crypto = { path = "../../crypto" }
 
 [dev-dependencies]

@@ -13,10 +13,10 @@ path = "src/lib.rs"
 
 [dependencies]
 base58 = "0.1.*"
-durs-common-tools = { path = "../common-tools" }
-dup-crypto = { path = "../crypto" }
-dup-currency-params = { path = "../../tools/currency-params" }
-dubp-documents= { path = "../documents" }
+durs-common-tools = { path = "../../tools/common-tools" }
+dup-crypto = { path = "../../crypto" }
+dup-currency-params = { path = "../../dubp/currency-params" }
+dubp-documents= { path = "../../dubp/documents" }
 failure = "0.1.5"
 hex = "0.3.*"
 log = "0.4.*"
