@@ -25,6 +25,12 @@ variables:
     variables:
       - $CI_COMMIT_MESSAGE =~ /^wip*/i
 
+.ci_conditions:
+  only:
+    <<: *ci_only_conditions
+  except:
+    <<: *ci_except_conditions
+
 block_ci:
   only:
     <<: *ci_except_conditions
@@ -42,11 +48,8 @@ skip_ci:
   script:
     - echo 1
 
-.rust_stable_lin64: &rust_stable_lin64
-  only:
-    <<: *ci_only_conditions
-  except:
-    <<: *ci_except_conditions
+.rust_stable_lin64:
+  extends: .ci_conditions
   image: registry.duniter.org/docker/dunitrust/dunitrust-ci-lin64:latest
   tags:
     - redshift-docker-runner
@@ -55,34 +58,16 @@ skip_ci:
     - rustup show
     - rustc --version && cargo --version
 
-.rust_nightly_lin64: &rust_nightly_lin64
-  only:
-    <<: *ci_only_conditions
-  except:
-    <<: *ci_except_conditions
-  image: rustlang/rust:nightly
-  tags:
-    - redshift-docker-runner
-  before_script:
-    - export PATH="$HOME/.cargo/bin:$PATH"
-    - rustc --version && cargo --version
-
-.rust_stable_armv7: &rust_stable_armv7
-  only:
-    <<: *ci_only_conditions
-  except:
-    <<: *ci_except_conditions
+.rust_stable_armv7:
+  extends: .ci_conditions
   image: registry.duniter.org/docker/rust/armv7-builder:latest
   tags:
     - redshift-docker-runner
   before_script:
     - rustc --version && cargo --version
 
-.rust_stable_win64: &rust_stable_win64
-  only:
-    <<: *ci_only_conditions
-  except:
-    <<: *ci_except_conditions
+.rust_stable_win64:
+  extends: .ci_conditions
   image: registry.duniter.org/docker/rust/win64-builder:v1.35.0
   tags:
     - redshift-docker-runner
@@ -90,7 +75,7 @@ skip_ci:
     - rustc --version && cargo --version
 
 fmt:
-  <<: *rust_stable_lin64
+  extends: .rust_stable_lin64
   stage: fmt
   before_script:
     - cargo fmt -- --version
@@ -98,7 +83,7 @@ fmt:
     - cargo fmt -- --check
     
 tests:linux64:stable:
-  <<: *rust_stable_lin64
+  extends: .rust_stable_lin64
   stage: tests
   tags:
     - redshift-docker-runner
@@ -109,14 +94,11 @@ tests:linux64:stable:
     - cargo test --all -- --ignored
 
 tests:arm-v7-:stable:
-  <<: *rust_stable_armv7
+  extends: .rust_stable_armv7
   stage: tests
   allow_failure: true
   when: manual
-  only:
-    <<: *ci_only_conditions
   except:
-    <<: *ci_except_conditions
     refs:
       - tags
   script: 
@@ -125,7 +107,7 @@ tests:arm-v7-:stable:
     - cargo test --all --target=armv7-unknown-linux-gnueabihf
 
 tests:arm-v7:stable:
-  <<: *rust_stable_armv7
+  extends: .rust_stable_armv7
   stage: tests
   only:
     - tags
@@ -135,7 +117,7 @@ tests:arm-v7:stable:
     - cargo test --all --target=armv7-unknown-linux-gnueabihf
 
 tests:win64:stable:
-  <<: *rust_stable_win64
+  extends: .rust_stable_win64
   stage: tests
   script: 
     - cd bin/dunitrust-server
@@ -161,7 +143,7 @@ tests:win64:stable:
     - cargo test --package durs-wot --target=x86_64-pc-windows-gnu
 
 clippy:
-  <<: *rust_stable_lin64
+  extends: .rust_stable_lin64
   before_script:
     - cargo clippy -- -V
   stage: clippy
@@ -169,7 +151,7 @@ clippy:
     - cargo clippy --all -- -D warnings --verbose
 
 publish:crate:
-  <<: *rust_stable_lin64
+  extends: .rust_stable_lin64
   stage: publish_crate
   when: manual
   allow_failure: true
@@ -182,13 +164,10 @@ publish:crate:
     - cargo publish
 
 package:test:linux64:
-  <<: *rust_stable_lin64
+  extends: .rust_stable_lin64
   stage: package
   when: manual
-  only:
-    <<: *ci_only_conditions
   except:
-    <<: *ci_except_conditions
     refs:
       - tags
   script:
@@ -198,16 +177,9 @@ package:test:linux64:
       - work/bin/
     expire_in: 1 weeks
 
-package:test:docker-test-image:
+.docker-build-app-image:
+  extends: .ci_conditions
   stage: package
-  only:
-    <<: *ci_only_conditions
-  except:
-    <<: *ci_except_conditions
-    refs:
-      - dev
-      - tags
-  when: manual
   image: docker:18.06
   tags:
     - redshift-docker-runner
@@ -220,44 +192,37 @@ package:test:docker-test-image:
   before_script:
     - docker info
   script:
-    - docker pull $CI_REGISTRY_IMAGE:test-image || true
-    - docker build --cache-from $CI_REGISTRY_IMAGE:test-image --pull -t "$CI_REGISTRY_IMAGE:test-image" -f release/docker/Dockerfile .
+    - docker pull $CI_REGISTRY_IMAGE:$IMAGE_TAG || true
+    - docker build --cache-from $CI_REGISTRY_IMAGE:$IMAGE_TAG --pull -t "$CI_REGISTRY_IMAGE:$IMAGE_TAG" -f release/docker/Dockerfile .
     - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" $CI_REGISTRY
-    - docker push "$CI_REGISTRY_IMAGE:test-image"
+    - docker push "$CI_REGISTRY_IMAGE:$IMAGE_TAG"
+
+package:test:docker-test-image:
+  extends: .docker-build-app-image
+  except:
+    refs:
+      - dev
+      - tags
+  when: manual
+  variables:
+    IMAGE_TAG: "test-image"
 
 package:test:docker:
-  stage: package
+  extends: .docker-build-app-image
   only:
-    <<: *ci_only_conditions
     refs:
       - dev
   except:
-    <<: *ci_except_conditions
     refs:
       - tags
-  image: docker:18.06
-  tags:
-    - redshift-docker-runner
-  services:
-    - docker:18.06-dind
   variables:
-    #DOCKER_TLS_CERTDIR: "/certs"
-    #DOCKER_DRIVER: overlay2
-    LAST_COMMIT_HASH: $CI_COMMIT_SHORT_SHA
-  script:
-    - docker pull $CI_REGISTRY_IMAGE:dev || true
-    - docker build --cache-from $CI_REGISTRY_IMAGE:dev --pull -t "$CI_REGISTRY_IMAGE:dev" -f release/docker/Dockerfile .
-    - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" $CI_REGISTRY
-    - docker push "$CI_REGISTRY_IMAGE:dev"
+    IMAGE_TAG: "dev"
 
 package:test:armv7:
-  <<: *rust_stable_armv7
+  extends: .rust_stable_armv7
   stage: package
   when: manual
-  only:
-    <<: *ci_only_conditions
   except:
-    <<: *ci_except_conditions
     refs:
       - tags
   script:
@@ -268,13 +233,10 @@ package:test:armv7:
     expire_in: 1 weeks
 
 package:test:win64:
-  <<: *rust_stable_win64
+  extends: .rust_stable_win64
   stage: package
   when: manual
-  only:
-    <<: *ci_only_conditions
   except:
-    <<: *ci_except_conditions
     refs:
       - tags
   script:
@@ -285,7 +247,7 @@ package:test:win64:
     expire_in: 1 weeks
 
 package:prod:linux64:
-  <<: *rust_stable_lin64
+  extends: .rust_stable_lin64
   stage: package
   only:
     - tags
@@ -313,7 +275,7 @@ package:prod:docker:
     - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG"
 
 package:prod:armv7:
-  <<: *rust_stable_armv7
+  extends: .rust_stable_armv7
   stage: package
   only:
     - tags
@@ -325,7 +287,7 @@ package:prod:armv7:
     expire_in: 2 weeks
 
 package:prod:win64:
-  <<: *rust_stable_win64
+  extends: .rust_stable_win64
   only:
     - tags
   stage: package
@@ -336,24 +298,13 @@ package:prod:win64:
       - work/bin/
     expire_in: 2 weeks
 
-.release_jobs: &release_jobs
-  only:
-    - tags
-  image: rdadev/jinja2:py3.6
-  tags:
-    - redshift-docker-runner
-  script:
-    - python3 .gitlab/releaser
-
 pages:
-  <<: *rust_stable_lin64
+  extends: .rust_stable_lin64
   stage: publish_doc
   only:
-    <<: *ci_only_conditions
     refs:
       - dev
   except:
-    <<: *ci_except_conditions
     refs:
       - tags
   script:
@@ -365,15 +316,24 @@ pages:
     paths:
       - public
 
+.release_jobs:
+  only:
+    - tags
+  image: rdadev/jinja2:py3.6
+  tags:
+    - redshift-docker-runner
+  script:
+    - python3 .gitlab/releaser
+
 prerelease:
-  <<: *release_jobs
+  extends: .release_jobs
   stage: prerelease
   variables:
     RELEASE_BIN_DIR: work/bin/
     SOURCE_EXT: '["tar.gz", "zip"]'
 
 release:
-  <<: *release_jobs
+  extends: .release_jobs
   stage: release
   allow_failure: false
   when: manual
