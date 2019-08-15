@@ -13,3 +13,6 @@
 # Ignore tests generated files
 *.db
 *.wot
+
+# Ignore coverage report
+*-report.html
