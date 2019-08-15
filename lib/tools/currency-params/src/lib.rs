@@ -132,8 +132,8 @@ impl From<(&CurrencyName, BlockV10Parameters)> for CurrencyParameters {
         };
         let fork_window_size = match currency_name.0.as_str() {
             DEFAULT_CURRENCY => *DEFAULT_FORK_WINDOW_SIZE,
-            "g1" => 200,
-            "g1-test" => 200,
+            "g1" => 100,
+            "g1-test" => 100,
             _ => *DEFAULT_FORK_WINDOW_SIZE,
         };
         CurrencyParameters {

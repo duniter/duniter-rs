@@ -27,4 +27,4 @@ pub static DEFAULT_MS_PERIOD: &'static u64 = &5_259_600;
 /// Default value for tx_window parameter
 pub static DEFAULT_TX_WINDOW: &'static u64 = &604_800;
 /// Default maximum roolback length
-pub static DEFAULT_FORK_WINDOW_SIZE: &'static usize = &200;
+pub static DEFAULT_FORK_WINDOW_SIZE: &'static usize = &100;
