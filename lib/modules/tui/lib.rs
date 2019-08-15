@@ -289,7 +289,7 @@ impl TuiModuleDatas {
         line += 1;
         write!(
             stdout,
-            "{}{}Step NodeId-Pubkey BlockId-BlockHash    Soft:Ver            Pre [ Api ] MeR:MiR uid",
+            "{}{}Step NodeId-Pubkey BlockId-BlockHash      Soft:Ver            Pre [ Api ] MeR:MiR uid",
             cursor::Goto(1, line),
             color::Fg(color::White)
         ).unwrap();

@@ -70,7 +70,7 @@ impl NetworkHeadMessageV2 {
 
         if max_len > 85 && uid.is_some() {
             format!(
-                "{node_id:8}-{pubkey:.8} {blockstamp:.16} {soft:7}:{ver:14} {pre:3} [{api:5}]  {mer:02}:{mir:02} {uid}",
+                "{node_id:8}-{pubkey:.8} {blockstamp:.16} {soft:9}:{ver:14} {pre:3} [{api:5}]  {mer:02}:{mir:02} {uid}",
                 node_id = self.node_uuid.to_string(),
                 pubkey = self.pubkey.to_string(),
                 blockstamp = self.blockstamp.to_string(),
@@ -84,7 +84,7 @@ impl NetworkHeadMessageV2 {
             )
         } else if max_len > 75 {
             format!(
-                "{node_id:8}-{pubkey:.8} {blockstamp:.16} {soft:7}:{ver:14} {pre:3} [{api:5}]  {mer:02}:{mir:02}",
+                "{node_id:8}-{pubkey:.8} {blockstamp:.16} {soft:9}:{ver:14} {pre:3} [{api:5}]  {mer:02}:{mir:02}",
                 node_id = self.node_uuid.to_string(),
                 pubkey = self.pubkey.to_string(),
                 blockstamp = self.blockstamp.to_string(),
@@ -97,7 +97,7 @@ impl NetworkHeadMessageV2 {
             )
         } else if max_len > 70 {
             format!(
-                "{node_id:8}-{pubkey:.8} {blockstamp:.16} {soft:7}:{ver:14} [{api:5}]  {mer:02}:{mir:02}",
+                "{node_id:8}-{pubkey:.8} {blockstamp:.16} {soft:9}:{ver:14} [{api:5}]  {mer:02}:{mir:02}",
                 node_id = self.node_uuid.to_string(),
                 pubkey = self.pubkey.to_string(),
                 blockstamp = self.blockstamp.to_string(),
