@@ -39,7 +39,31 @@ pub fn request_orphan_previous(bc: &mut BlockchainModule, orphan_blockstamp: Blo
     }
 }
 
-pub fn request_next_main_blocks(bc: &mut BlockchainModule) {
+pub fn request_fork_blocks(bc: &mut BlockchainModule, now: SystemTime) {
+    if now
+        .duration_since(bc.last_request_fork_blocks)
+        .expect("duration_since error")
+        > Duration::from_secs(*REQUEST_FORK_BLOCKS_FREQUENCY_IN_SEC)
+    {
+        bc.last_request_fork_blocks = now;
+        // Request all blocks in fork window size
+        if let Some(currency_params) = bc.currency_params {
+            let fork_window_size = currency_params.fork_window_size as u32;
+            let from = if bc.current_blockstamp.id.0 > fork_window_size {
+                BlockNumber(bc.current_blockstamp.id.0 - fork_window_size)
+            } else {
+                BlockNumber(0)
+            };
+            let to = bc.current_blockstamp.id;
+            let new_pending_network_requests = dunp::queries::request_blocks_from_to(bc, from, to);
+            for (new_req_id, new_req) in new_pending_network_requests {
+                bc.pending_network_requests.insert(new_req_id, new_req);
+            }
+        }
+    }
+}
+
+pub fn request_next_main_blocks(bc: &mut BlockchainModule, now: SystemTime) {
     // Choose frequency
     let frequency = if bc.consensus.id.0 == 0
         || bc.consensus.id.0 > bc.current_blockstamp.id.0 + *BLOCKS_DELAY_THRESHOLD
@@ -50,7 +74,6 @@ pub fn request_next_main_blocks(bc: &mut BlockchainModule) {
     };
 
     // Apply frequency
-    let now = SystemTime::now();
     if now
         .duration_since(bc.last_request_blocks)
         .expect("duration_since error")

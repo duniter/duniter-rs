@@ -26,10 +26,13 @@ pub static CHUNK_FILE_NAME_BEGIN: &'static str = "chunk_";
 pub static CHUNK_FILE_NAME_END: &'static str = "-250.json";
 
 /// Low requency of request of main blocks
-pub static REQUEST_MAIN_BLOCKS_LOW_FREQUENCY_IN_SEC: &'static u64 = &90;
+pub static REQUEST_MAIN_BLOCKS_LOW_FREQUENCY_IN_SEC: &'static u64 = &240;
 
 /// High frequency of request of the main blocks
-pub static REQUEST_MAIN_BLOCKS_HIGH_FREQUENCY_IN_SEC: &'static u64 = &20;
+pub static REQUEST_MAIN_BLOCKS_HIGH_FREQUENCY_IN_SEC: &'static u64 = &30;
+
+/// Frequency of request fork blocks (=request all blocks on fork window)
+pub static REQUEST_FORK_BLOCKS_FREQUENCY_IN_SEC: &'static u64 = &180;
 
 /// Blocks Delay threshold
 pub static BLOCKS_DELAY_THRESHOLD: &'static u32 = &5;

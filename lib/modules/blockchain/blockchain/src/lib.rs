@@ -117,6 +117,8 @@ pub struct BlockchainModule {
     pub pending_network_requests: HashMap<ModuleReqId, OldNetworkRequest>,
     /// Last request blocks
     pub last_request_blocks: SystemTime,
+    /// Last request fork blocks (=all blocks in fork window size)
+    last_request_fork_blocks: SystemTime,
 }
 
 #[derive(Debug, Clone)]
@@ -229,6 +231,7 @@ impl BlockchainModule {
             invalid_forks: HashSet::new(),
             pending_network_requests: HashMap::new(),
             last_request_blocks: UNIX_EPOCH,
+            last_request_fork_blocks: UNIX_EPOCH,
         }
     }
     /// Databases explorer
@@ -276,10 +279,15 @@ impl BlockchainModule {
         let mut last_get_stackables_blocks = UNIX_EPOCH;
 
         loop {
+            let now = SystemTime::now();
             // Request Consensus
             requests::sent::request_network_consensus(self);
             // Request next main blocks
-            requests::sent::request_next_main_blocks(self);
+            requests::sent::request_next_main_blocks(self, now);
+            // Request fork blocks
+            requests::sent::request_fork_blocks(self, now);
+
+            // Listen received messages
             match blockchain_receiver.recv_timeout(Duration::from_millis(1000)) {
                 Ok(durs_message) => {
                     match durs_message {

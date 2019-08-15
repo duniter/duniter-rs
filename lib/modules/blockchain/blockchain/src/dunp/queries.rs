@@ -75,7 +75,7 @@ pub fn request_blocks_to(
         } else {
             to.0
         };
-        request_blocks_from_to(bc, from, real_to)
+        request_blocks_from_to(bc, BlockNumber(from), BlockNumber(real_to))
     } else {
         HashMap::with_capacity(0)
     }
@@ -100,11 +100,15 @@ pub fn request_orphan_previous(
     HashMap::with_capacity(0)
 }
 
-fn request_blocks_from_to(
+/// Requests blocks from `from` to `to`
+pub fn request_blocks_from_to(
     bc: &BlockchainModule,
-    mut from: u32,
-    to: u32,
+    from: BlockNumber,
+    to: BlockNumber,
 ) -> HashMap<ModuleReqId, OldNetworkRequest> {
+    info!("BlockchainModule : request_blocks_from_to({}-{})", from, to);
+    let mut from = from.0;
+    let to = to.0;
     let mut requests_ids = HashMap::new();
     while from <= to {
         let mut req_id = ModuleReqId(0);
