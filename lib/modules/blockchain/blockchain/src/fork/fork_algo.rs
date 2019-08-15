@@ -37,6 +37,11 @@ pub fn fork_resolution_algo(
             .common_time()
     })?;
 
+    debug!(
+        "fork_resolution_algo({}, {})",
+        fork_window_size, current_bc_time
+    );
+
     let mut sheets = forks_dbs.fork_tree_db.read(ForkTree::get_sheets)?;
 
     sheets.sort_unstable_by(|s1, s2| s2.1.id.cmp(&s1.1.id));
@@ -58,10 +63,15 @@ pub fn fork_resolution_algo(
                     .block
                     .common_time()
             })?;
+
             if branch_head_blockstamp.id.0 >= current_blockstamp.id.0 + *ADVANCE_BLOCKS
                 && branch_head_median_time >= current_bc_time + *ADVANCE_TIME
                 && branch[0].id.0 + fork_window_size as u32 > current_blockstamp.id.0
             {
+                debug!(
+                    "fork_resolution_algo() found eligible fork branch #{}:",
+                    branch_head_blockstamp
+                );
                 let mut valid_branch = true;
                 for blockstamp in &branch {
                     if invalid_blocks.contains(blockstamp) {
@@ -71,12 +81,17 @@ pub fn fork_resolution_algo(
                 }
 
                 if valid_branch {
+                    debug!(
+                        "fork_resolution_algo() found valid fork branch #{}:",
+                        branch_head_blockstamp
+                    );
                     return Ok(Some(branch));
                 }
             }
         }
     }
 
+    debug!("fork_resolution_algo() return Ok(None)");
     Ok(None)
 }
 
