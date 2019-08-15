@@ -25,7 +25,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
     }
 
     let old_current_blockstamp = bc.current_blockstamp;
-    let last_common_block_number = new_bc_branch[0].id.0;
+    let last_common_block_number = new_bc_branch[0].id.0 - 1;
 
     // Rollback (revert old branch)
     while bc.current_blockstamp.id.0 > last_common_block_number {
@@ -38,18 +38,25 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
             })
         {
             let blockstamp = dal_block.block.blockstamp();
-            let ValidBlockRevertReqs(bc_db_query, wot_dbs_queries, tx_dbs_queries) =
-                super::revert_block::revert_block(
-                    dal_block,
-                    &mut bc.wot_index,
-                    &bc.wot_databases.wot_db,
-                    &bc.currency_databases.tx_db,
-                )
-                .unwrap_or_else(|_| {
-                    fatal_error!("revert block {} fail !", bc.current_blockstamp);
-                });
+            debug!("try to revert block #{}", blockstamp);
+            let ValidBlockRevertReqs {
+                new_current_blockstamp,
+                block_query,
+                wot_queries,
+                currency_queries,
+            } = super::revert_block::revert_block(
+                dal_block,
+                &mut bc.wot_index,
+                &bc.wot_databases.wot_db,
+                &bc.currency_databases.tx_db,
+            )
+            .unwrap_or_else(|_| {
+                fatal_error!("revert block {} fail !", bc.current_blockstamp);
+            });
+            // Update current blockstamp
+            bc.current_blockstamp = new_current_blockstamp;
             // Apply db requests
-            bc_db_query
+            block_query
                 .apply(
                     &bc.blocks_databases.blockchain_db,
                     &bc.forks_dbs,
@@ -57,16 +64,17 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                     None,
                 )
                 .expect("Fatal error : Fail to apply DBWriteRequest !");
-            for query in &wot_dbs_queries {
+            for query in &wot_queries {
                 query
                     .apply(&blockstamp, &unwrap!(bc.currency_params), &bc.wot_databases)
                     .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
             }
-            for query in &tx_dbs_queries {
+            for query in &currency_queries {
                 query
                     .apply(&blockstamp, &bc.currency_databases)
                     .expect("Fatal error : Fail to apply CurrencyDBsWriteRequest !");
             }
+            debug!("Successfully revert block #{}", blockstamp);
         } else {
             fatal_error!("apply_rollback(): Not found current block in forks blocks DB !");
         }

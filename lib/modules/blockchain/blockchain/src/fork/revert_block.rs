@@ -18,7 +18,7 @@
 use dubp_documents::documents::block::v10::TxDocOrTxHash;
 use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait, BlockDocumentV10};
 use dubp_documents::documents::transaction::{TxAmount, TxBase};
-use dubp_documents::{BlockNumber, Document};
+use dubp_documents::{BlockNumber, Blockstamp, Document};
 use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::block::DALBlock;
 use durs_blockchain_dal::entities::sources::SourceAmount;
@@ -32,12 +32,13 @@ use std::collections::HashMap;
 use unwrap::unwrap;
 
 #[derive(Debug)]
-/// Stores all queries to apply in database to "apply" the block
-pub struct ValidBlockRevertReqs(
-    pub BlocksDBsWriteQuery,
-    pub Vec<WotsDBsWriteQuery>,
-    pub Vec<CurrencyDBsWriteQuery>,
-);
+/// Stores all queries to apply in database to "revert" the block
+pub struct ValidBlockRevertReqs {
+    pub new_current_blockstamp: Blockstamp,
+    pub block_query: BlocksDBsWriteQuery,
+    pub wot_queries: Vec<WotsDBsWriteQuery>,
+    pub currency_queries: Vec<CurrencyDBsWriteQuery>,
+}
 
 #[derive(Debug, Copy, Clone)]
 /// RevertValidBlockError
@@ -95,10 +96,7 @@ pub fn revert_block_v10<W: WebOfTrust>(
 
     // Revert reduce block
     block.generate_inner_hash();
-    debug!(
-        "BlockchainModule : revert_valid_block({})",
-        block.blockstamp()
-    );
+    debug!("blockchain: revert_valid_block({})", block.blockstamp());
 
     // REVERT_CURRENCY_EVENTS
     let mut currency_dbs_requests = Vec::new();
@@ -266,12 +264,13 @@ pub fn revert_block_v10<W: WebOfTrust>(
         }
     }
     // Return DBs requests
-    Ok(ValidBlockRevertReqs(
-        BlocksDBsWriteQuery::RevertBlock(DALBlock {
+    Ok(ValidBlockRevertReqs {
+        new_current_blockstamp: block.previous_blockstamp(),
+        block_query: BlocksDBsWriteQuery::RevertBlock(DALBlock {
             block: BlockDocument::V10(block),
             expire_certs: Some(expire_certs),
         }),
-        wot_dbs_requests,
-        currency_dbs_requests,
-    ))
+        wot_queries: wot_dbs_requests,
+        currency_queries: currency_dbs_requests,
+    })
 }
