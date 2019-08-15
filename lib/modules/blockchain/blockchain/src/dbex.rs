@@ -49,16 +49,49 @@ pub enum DBExTxQuery {
 #[derive(Debug, Clone)]
 /// Query for databases explorer
 pub enum DBExQuery {
-    /// Wot query
-    WotQuery(DBExWotQuery),
+    /// Fork tree query
+    ForkTreeQuery,
     /// Tx query
     TxQuery(DBExTxQuery),
+    /// Wot query
+    WotQuery(DBExWotQuery),
 }
 
 pub fn dbex(profile_path: PathBuf, csv: bool, query: &DBExQuery) {
     match *query {
-        DBExQuery::WotQuery(ref wot_query) => dbex_wot(profile_path, csv, wot_query),
+        DBExQuery::ForkTreeQuery => dbex_fork_tree(profile_path, csv),
         DBExQuery::TxQuery(ref tx_query) => dbex_tx(profile_path, csv, tx_query),
+        DBExQuery::WotQuery(ref wot_query) => dbex_wot(profile_path, csv, wot_query),
+    }
+}
+
+pub fn dbex_fork_tree(profile_path: PathBuf, _csv: bool) {
+    // Get db path
+    let db_path = durs_conf::get_blockchain_db_path(profile_path);
+
+    // Open forks databases
+    let load_dbs_begin = SystemTime::now();
+    let forks_dbs = ForksDBs::open(Some(&db_path));
+    let load_dbs_duration = SystemTime::now()
+        .duration_since(load_dbs_begin)
+        .expect("duration_since error !");
+    println!(
+        "Databases loaded in {}.{:03} seconds.",
+        load_dbs_duration.as_secs(),
+        load_dbs_duration.subsec_millis()
+    );
+    let fork_tree_db = forks_dbs.fork_tree_db;
+    let fork_tree = fork_tree_db
+        .read(|fork_tree| fork_tree.clone())
+        .expect("Fail to read fork tree DB !");
+
+    // Print all fork branches
+    for (tree_node_id, blockstamp) in fork_tree.get_sheets() {
+        let branch = fork_tree.get_fork_branch(tree_node_id);
+        if !branch.is_empty() {
+            println!("Fork branch #{}:", blockstamp);
+            println!("{:#?}", branch);
+        }
     }
 }
 

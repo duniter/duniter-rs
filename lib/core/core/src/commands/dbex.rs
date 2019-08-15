@@ -40,30 +40,36 @@ pub struct DbExOpt {
 #[derive(StructOpt, Debug, Clone)]
 /// dbex subcommands
 pub enum DbExSubCommand {
-    #[structopt(
-        name = "distance",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
-    /// Web of Trust distances explorer
-    DistanceOpt(DistanceOpt),
-    #[structopt(
-        name = "members",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
-    /// Members explorer
-    MembersOpt(MembersOpt),
-    #[structopt(
-        name = "member",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
-    /// Member explorer
-    MemberOpt(MemberOpt),
+    /// Pubkeys’ balances explorer
     #[structopt(
         name = "balance",
         raw(setting = "structopt::clap::AppSettings::ColoredHelp")
     )]
-    /// Pubkeys’ balances explorer
     BalanceOpt(BalanceOpt),
+    /// Web of Trust distances explorer
+    #[structopt(
+        name = "distance",
+        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+    )]
+    DistanceOpt(DistanceOpt),
+    /// Forks tree explorer
+    #[structopt(
+        name = "forks",
+        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+    )]
+    ForksOpt(ForksOpt),
+    /// Member explorer
+    #[structopt(
+        name = "member",
+        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+    )]
+    MemberOpt(MemberOpt),
+    /// Members explorer
+    #[structopt(
+        name = "members",
+        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+    )]
+    MembersOpt(MembersOpt),
 }
 
 #[derive(StructOpt, Debug, Copy, Clone)]
@@ -73,6 +79,10 @@ pub struct DistanceOpt {
     /// reverse order
     pub reverse: bool,
 }
+
+#[derive(StructOpt, Debug, Copy, Clone)]
+/// ForksOpt
+pub struct ForksOpt {}
 
 #[derive(StructOpt, Debug, Copy, Clone)]
 /// MembersOpt
@@ -104,11 +114,19 @@ impl DursExecutableCoreCommand for DbExOpt {
         let profile_path = durs_core.soft_meta_datas.profile_path;
 
         match self.subcommand {
+            DbExSubCommand::BalanceOpt(balance_opts) => dbex(
+                profile_path,
+                self.csv,
+                &DBExQuery::TxQuery(DBExTxQuery::Balance(balance_opts.address)),
+            ),
             DbExSubCommand::DistanceOpt(distance_opts) => dbex(
                 profile_path,
                 self.csv,
                 &DBExQuery::WotQuery(DBExWotQuery::AllDistances(distance_opts.reverse)),
             ),
+            DbExSubCommand::ForksOpt(_forks_opts) => {
+                dbex(profile_path, self.csv, &DBExQuery::ForkTreeQuery)
+            }
             DbExSubCommand::MemberOpt(member_opts) => dbex(
                 profile_path,
                 self.csv,
@@ -129,11 +147,6 @@ impl DursExecutableCoreCommand for DbExOpt {
                     );
                 }
             }
-            DbExSubCommand::BalanceOpt(balance_opts) => dbex(
-                profile_path,
-                self.csv,
-                &DBExQuery::TxQuery(DBExTxQuery::Balance(balance_opts.address)),
-            ),
         }
 
         Ok(())
