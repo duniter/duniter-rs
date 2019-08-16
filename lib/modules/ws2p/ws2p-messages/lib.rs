@@ -118,25 +118,21 @@ impl WS2PMessage {
 impl<'de> BinSignable<'de> for WS2PMessage {
     #[inline]
     fn add_sig_to_bin_datas(&self, bin_datas: &mut Vec<u8>) {
-        match *self {
-            WS2PMessage::V2(ref msg_v2) => msg_v2.add_sig_to_bin_datas(bin_datas),
-            WS2PMessage::_V0 | WS2PMessage::_V1 => {
-                fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
-            }
-        }
+        bin_datas.extend_from_slice(
+            &bincode::serialize(&self.signature()).expect("Fail to binarize sig !"),
+        );
     }
     #[inline]
     fn get_bin_without_sig(&self) -> Result<Vec<u8>, failure::Error> {
-        match *self {
-            WS2PMessage::V2(ref msg_v2) => msg_v2.get_bin_without_sig(),
-            WS2PMessage::_V0 | WS2PMessage::_V1 => {
-                fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
-            }
-        }
+        let mut bin_msg = bincode::serialize(&self)?;
+        let sig_size = bincode::serialized_size(&self.signature())?;
+        let bin_msg_len = bin_msg.len();
+        bin_msg.truncate(bin_msg_len - (sig_size as usize));
+        Ok(bin_msg)
     }
     fn issuer_pubkey(&self) -> PubKey {
         match *self {
-            WS2PMessage::V2(ref msg_v2) => msg_v2.issuer_pubkey(),
+            WS2PMessage::V2(ref msg_v2) => msg_v2.issuer_pubkey,
             WS2PMessage::_V0 | WS2PMessage::_V1 => {
                 fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
             }
@@ -144,7 +140,7 @@ impl<'de> BinSignable<'de> for WS2PMessage {
     }
     fn signature(&self) -> Option<Sig> {
         match *self {
-            WS2PMessage::V2(ref msg_v2) => msg_v2.signature(),
+            WS2PMessage::V2(ref msg_v2) => msg_v2.signature,
             WS2PMessage::_V0 | WS2PMessage::_V1 => {
                 fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
             }
@@ -152,7 +148,7 @@ impl<'de> BinSignable<'de> for WS2PMessage {
     }
     fn set_signature(&mut self, signature: Sig) {
         match *self {
-            WS2PMessage::V2(ref mut msg_v2) => msg_v2.set_signature(signature),
+            WS2PMessage::V2(ref mut msg_v2) => msg_v2.signature = Some(signature),
             WS2PMessage::_V0 | WS2PMessage::_V1 => {
                 fatal_error!("Dev error: must not use WS2PMessage version < 2 in WS2Pv2+ !")
             }
