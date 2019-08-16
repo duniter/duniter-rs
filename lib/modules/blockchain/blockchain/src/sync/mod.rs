@@ -18,10 +18,10 @@ mod download;
 
 use crate::*;
 use apply::BlockApplicator;
+use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use dubp_documents::documents::block::BlockDocumentTrait;
 use dubp_documents::{BlockHash, BlockNumber};
 use dup_crypto::keys::*;
-use dup_currency_params::{CurrencyName, CurrencyParameters};
 use durs_blockchain_dal::writers::requests::*;
 use durs_blockchain_dal::{open_memory_db, CertsExpirV10Datas};
 use durs_common_tools::fatal_error;
@@ -302,7 +302,7 @@ pub fn local_sync<DC: DursConfTrait>(
                 );
             } else {
                 block_applicator.currency_params =
-                    match dup_currency_params::db::get_currency_params(datas_path) {
+                    match dubp_currency_params::db::get_currency_params(datas_path) {
                         Ok(Some((_currency_name, currency_params))) => Some(currency_params),
                         Ok(None) => {
                             fatal_error!("Params db corrupted: please reset data and resync !")

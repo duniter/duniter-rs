@@ -123,7 +123,7 @@ pub struct ForkTree {
 impl Default for ForkTree {
     #[inline]
     fn default() -> Self {
-        ForkTree::new(*dup_currency_params::constants::DEFAULT_FORK_WINDOW_SIZE)
+        ForkTree::new(*dubp_currency_params::constants::DEFAULT_FORK_WINDOW_SIZE)
     }
 }
 
@@ -451,7 +451,7 @@ impl ForkTree {
 mod tests {
 
     use super::*;
-    use dup_currency_params::constants::DEFAULT_FORK_WINDOW_SIZE;
+    use dubp_currency_params::constants::DEFAULT_FORK_WINDOW_SIZE;
 
     #[test]
     fn insert_root_nodes() {

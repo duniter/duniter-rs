@@ -16,10 +16,10 @@
 //! Generate self peer card
 
 use bincode;
+use dubp_currency_params::CurrencyName;
 use dubp_documents::BlockNumber;
 use dup_crypto::keys::text_signable::TextSignable;
 use dup_crypto::keys::{KeyPair, KeyPairEnum, SignError};
-use dup_currency_params::CurrencyName;
 use durs_common_tools::fatal_error;
 use durs_network_documents::network_endpoint::*;
 use durs_network_documents::network_peer::*;

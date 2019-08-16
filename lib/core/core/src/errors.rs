@@ -16,7 +16,7 @@
 //! Manage Dunitrust core errors.
 
 use crate::logger::InitLoggerError;
-use dup_currency_params::db::CurrencyParamsDbError;
+use dubp_currency_params::db::CurrencyParamsDbError;
 use durs_module::{ModuleStaticName, PlugModuleError};
 use failure::{Error, Fail};
 

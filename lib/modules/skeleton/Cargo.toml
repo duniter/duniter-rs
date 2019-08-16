@@ -16,7 +16,7 @@ durs-message =  { path = "../../core/message" }
 durs-module = { path = "../../core/module" }
 durs-network = { path = "../../core/network" }
 dup-crypto = { path = "../../crypto" }
-dup-currency-params = { path = "../../dubp/currency-params" }
+dubp-currency-params = { path = "../../dubp/currency-params" }
 durs-common-tools = { path = "../../tools/common-tools" }
 failure = "0.1.5"
 log = "0.4.*"

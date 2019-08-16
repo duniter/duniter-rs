@@ -42,7 +42,7 @@ mod router;
 use crate::commands::*;
 use crate::constants::DEFAULT_USER_PROFILE;
 use crate::errors::DursCoreError;
-use dup_currency_params::CurrencyName;
+use dubp_currency_params::CurrencyName;
 use durs_blockchain::{BlockchainModule, DBExQuery};
 use durs_common_tools::fatal_error;
 pub use durs_conf::{
@@ -261,7 +261,7 @@ impl DursCore<DuRsConf> {
         info!("Success to load global conf.");
 
         // Get currency name
-        let currency_name = dup_currency_params::db::get_currency_name(durs_conf::get_datas_path(
+        let currency_name = dubp_currency_params::db::get_currency_name(durs_conf::get_datas_path(
             profile_path.clone(),
         ))
         .map_err(DursCoreError::FailReadCurrencyParamsDb)?;

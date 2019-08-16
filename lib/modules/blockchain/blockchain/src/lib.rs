@@ -54,10 +54,10 @@ pub use crate::dbex::{DBExQuery, DBExTxQuery, DBExWotQuery};
 use crate::dubp::apply::ValidBlockApplyReqs;
 use crate::dubp::*;
 use crate::fork::*;
+use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::*;
 use dup_crypto::keys::*;
-use dup_currency_params::{CurrencyName, CurrencyParameters};
 use durs_blockchain_dal::*;
 use durs_common_tools::fatal_error;
 use durs_message::events::*;
@@ -199,7 +199,7 @@ impl BlockchainModule {
 
         // Get currency parameters
         let (currency_name, currency_params) = if let Some((currency_name, currency_params)) =
-            dup_currency_params::db::get_currency_params(durs_conf::get_datas_path(
+            dubp_currency_params::db::get_currency_params(durs_conf::get_datas_path(
                 profile_path.clone(),
             ))
             .expect("Fatal error : fail to read Blockchain DB !")

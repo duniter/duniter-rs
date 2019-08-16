@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn test_fork_resolution_algo() -> Result<(), DALError> {
         // Get FORK_WINDOW_SIZE value
-        let fork_window_size = *dup_currency_params::constants::DEFAULT_FORK_WINDOW_SIZE;
+        let fork_window_size = *dubp_currency_params::constants::DEFAULT_FORK_WINDOW_SIZE;
 
         // Open empty databases in memory mode
         let bc_dbs = BlocksV10DBs::open(None);

@@ -90,7 +90,7 @@ mod test {
 
     use super::*;
     use crate::entities::fork_tree::TreeNodeId;
-    use dup_currency_params::constants::DEFAULT_FORK_WINDOW_SIZE;
+    use dubp_currency_params::constants::DEFAULT_FORK_WINDOW_SIZE;
 
     #[test]
     fn test_insert_new_head_block() -> Result<(), DALError> {

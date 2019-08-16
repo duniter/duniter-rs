@@ -172,7 +172,7 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DBExWotQuery) {
 
     // Get currency parameters
     let currency_params_db_datas =
-        dup_currency_params::db::get_currency_params(durs_conf::get_datas_path(profile_path))
+        dubp_currency_params::db::get_currency_params(durs_conf::get_datas_path(profile_path))
             .expect("Fail to parse currency params !");
     if currency_params_db_datas.is_none() {
         println!("{}", EMPTY_BLOCKCHAIN);

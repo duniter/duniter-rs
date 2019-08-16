@@ -15,11 +15,11 @@
 
 use crate::entities::identity::{DALIdentity, DALIdentityState};
 use crate::{BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
+use dubp_currency_params::CurrencyParameters;
 use dubp_documents::documents::identity::IdentityDocumentV10;
 use dubp_documents::Document;
 use dubp_documents::{BlockNumber, Blockstamp};
 use dup_crypto::keys::PubKey;
-use dup_currency_params::CurrencyParameters;
 use durs_common_tools::fatal_error;
 use durs_wot::NodeId;
 

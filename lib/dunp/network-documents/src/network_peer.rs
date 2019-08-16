@@ -18,12 +18,12 @@
 use crate::network_endpoint::*;
 use crate::*;
 use base58::ToBase58;
+use dubp_currency_params::CurrencyName;
 use dubp_documents::blockstamp::Blockstamp;
 use dubp_documents::BlockNumber;
 use dubp_documents::ToStringObject;
 use dup_crypto::keys::text_signable::TextSignable;
 use dup_crypto::keys::*;
-use dup_currency_params::CurrencyName;
 use pest::iterators::Pair;
 use pest::Parser;
 

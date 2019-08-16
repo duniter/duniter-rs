@@ -40,7 +40,7 @@ mod generate_peer;
 pub mod services;
 
 use crate::errors::WS2PError;
-use dup_currency_params::CurrencyName;
+use dubp_currency_params::CurrencyName;
 use durs_common_tools::fatal_error;
 use durs_common_tools::traits::merge::Merge;
 use durs_conf::DuRsConf;

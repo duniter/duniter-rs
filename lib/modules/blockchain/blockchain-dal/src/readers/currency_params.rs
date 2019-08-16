@@ -14,11 +14,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
+use dubp_currency_params::db::write_currency_params;
+use dubp_currency_params::genesis_block_params::GenesisBlockParams;
+use dubp_currency_params::CurrencyParameters;
 use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
 use dubp_documents::Document;
-use dup_currency_params::db::write_currency_params;
-use dup_currency_params::genesis_block_params::GenesisBlockParams;
-use dup_currency_params::CurrencyParameters;
 use unwrap::unwrap;
 
 /// Get and write currency params

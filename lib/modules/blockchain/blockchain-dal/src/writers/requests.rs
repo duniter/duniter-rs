@@ -17,12 +17,12 @@ use crate::entities::block::DALBlock;
 use crate::entities::sources::SourceAmount;
 use crate::writers::transaction::DALTxV10;
 use crate::*;
+use dubp_currency_params::CurrencyParameters;
 use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
 use dubp_documents::documents::certification::CompactCertificationDocumentV10;
 use dubp_documents::documents::identity::IdentityDocumentV10;
 use dubp_documents::Blockstamp;
 use dup_crypto::keys::PubKey;
-use dup_currency_params::CurrencyParameters;
 use durs_wot::NodeId;
 use std::ops::Deref;
 

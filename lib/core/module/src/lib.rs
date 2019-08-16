@@ -31,8 +31,8 @@
 #[macro_use]
 extern crate serde_derive;
 
+use dubp_currency_params::CurrencyName;
 use dup_crypto::keys::{KeyPair, KeyPairEnum};
-use dup_currency_params::CurrencyName;
 use durs_common_tools::fatal_error;
 use durs_common_tools::traits::merge::Merge;
 use durs_network_documents::network_endpoint::{ApiPart, EndpointEnum};

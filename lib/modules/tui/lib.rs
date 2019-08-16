@@ -35,7 +35,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate structopt;
 
-use dup_currency_params::CurrencyName;
+use dubp_currency_params::CurrencyName;
 use durs_common_tools::fatal_error;
 use durs_common_tools::traits::merge::Merge;
 use durs_conf::DuRsConf;

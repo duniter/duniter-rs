@@ -14,7 +14,7 @@ path = "src/lib.rs"
 
 [dependencies]
 dup-crypto = { path = "../../crypto" }
-dup-currency-params = { path = "../../dubp/currency-params" }
+dubp-currency-params = { path = "../../dubp/currency-params" }
 dubp-documents = { path = "../../dubp/documents" }
 dup-crypto-tests-tools = { path = "../crypto-tests-tools" }
 

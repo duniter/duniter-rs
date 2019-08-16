@@ -15,7 +15,7 @@ path = "src/lib.rs"
 base58 = "0.1.*"
 durs-common-tools = { path = "../../tools/common-tools" }
 dup-crypto = { path = "../../crypto" }
-dup-currency-params = { path = "../../dubp/currency-params" }
+dubp-currency-params = { path = "../../dubp/currency-params" }
 dubp-documents= { path = "../../dubp/documents" }
 failure = "0.1.5"
 hex = "0.3.*"

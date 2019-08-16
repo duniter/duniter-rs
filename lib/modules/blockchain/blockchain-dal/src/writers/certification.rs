@@ -14,10 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{BinDB, CertsExpirV10Datas, DALError, IdentitiesV10Datas};
+use dubp_currency_params::CurrencyParameters;
 use dubp_documents::documents::certification::CompactCertificationDocumentV10;
 use dubp_documents::BlockNumber;
 use dup_crypto::keys::*;
-use dup_currency_params::CurrencyParameters;
 use durs_wot::NodeId;
 
 /// Apply "certification" event in databases

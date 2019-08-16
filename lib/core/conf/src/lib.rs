@@ -36,8 +36,8 @@ pub mod constants;
 pub mod keys;
 
 use crate::constants::MODULES_DATAS_FOLDER;
+use dubp_currency_params::CurrencyName;
 use dup_crypto::keys::*;
-use dup_currency_params::CurrencyName;
 use durs_common_tools::fatal_error;
 use durs_module::{
     DursConfTrait, DursGlobalConfTrait, ModuleName, RequiredKeys, RequiredKeysContent,
