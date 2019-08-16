@@ -1,6 +1,6 @@
 [package]
-name = "dup-currency-params"
-version = "0.1.0"
+name = "dubp-currency-params"
+version = "0.2.0"
 authors = ["elois <elois@ifee.fr>"]
 description = "Duniter protocol currency parameters"
 repository = "https://git.duniter.org/nodes/rust/duniter-rs"
@@ -13,6 +13,6 @@ path = "src/lib.rs"
 
 [dependencies]
 bincode = "1.0.1"
-durs-common-tools = { path = "../../tools/common-tools" }
+durs-common-tools = { path = "../../tools/common-tools", version = "0.2.0" }
 failure = "0.1.5"
 serde = { version = "1.0.*", features = ["derive"] }
