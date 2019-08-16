@@ -21,9 +21,10 @@ use crate::dubp;
 use crate::dubp::apply::apply_valid_block;
 use crate::dubp::apply::ValidBlockApplyReqs;
 use crate::sync::SyncJobsMess;
+use dubp_common_doc::traits::Document;
+use dubp_common_doc::{BlockNumber, Blockstamp};
 use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
-use dubp_documents::{BlockNumber, Blockstamp, Document};
 use dup_crypto::keys::PubKey;
 use durs_blockchain_dal::writers::requests::WotsDBsWriteQuery;
 use durs_blockchain_dal::{BinDB, CertsExpirV10Datas, WotsV10DBs};
@@ -136,7 +137,7 @@ impl BlockApplicator {
                     self.certs_db
                         .write(|db| {
                             let mut created_certs =
-                                db.get(&created_block_id).cloned().unwrap_or_default();
+                                db.get(&created_block_id.0).cloned().unwrap_or_default();
                             created_certs.insert((*source, *target));
                             db.insert(*created_block_id, created_certs);
                         })

@@ -51,8 +51,8 @@ pub mod tools;
 /// Contains all write databases functions
 pub mod writers;
 
+use dubp_common_doc::{BlockNumber, Blockstamp, PreviousBlockstamp};
 use dubp_documents::documents::transaction::*;
-use dubp_documents::{BlockNumber, Blockstamp, PreviousBlockstamp};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;

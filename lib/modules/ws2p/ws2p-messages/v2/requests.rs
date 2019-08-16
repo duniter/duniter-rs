@@ -13,7 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use dubp_documents::{BlockNumber, Blockstamp};
+use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::BlockNumber;
 
 /// WS2Pv2Request
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -75,7 +76,7 @@ mod tests {
     use super::super::*;
     use super::*;
     use crate::tests::*;
-    use dubp_documents::Blockstamp;
+    use dubp_common_doc::Blockstamp;
 
     #[test]
     fn test_ws2p_message_request() {

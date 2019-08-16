@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::documents::revocation::{CompactRevocationDocumentV10, RevocationDocumentV10};
-use crate::text_document_traits::TextDocumentFormat;
+use dubp_common_doc::traits::text::TextDocumentFormat;
 use dup_crypto::keys::*;
 
 /// Parse array of revocations json documents into vector of `CompactRevocationDocumentV10`

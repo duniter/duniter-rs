@@ -45,7 +45,7 @@ use crate::network_head::NetworkHead;
 use crate::network_head_v3::NetworkHeadV3;
 use crate::network_peer::PeerCard;
 use crate::network_peer::PeerCardV11;
-use dubp_documents::{TextDocumentParseError, TextDocumentParser};
+use dubp_common_doc::parser::{TextDocumentParseError, TextDocumentParser};
 use dup_crypto::hashs::*;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;

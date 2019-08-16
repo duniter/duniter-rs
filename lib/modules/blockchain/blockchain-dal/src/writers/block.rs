@@ -16,8 +16,8 @@
 use crate::entities::block::DALBlock;
 use crate::*;
 use crate::{BinDB, DALError, LocalBlockchainV10Datas};
+use dubp_common_doc::traits::Document;
 use dubp_documents::documents::block::BlockDocumentTrait;
-use dubp_documents::Document;
 use unwrap::unwrap;
 
 /// Insert new head Block in databases

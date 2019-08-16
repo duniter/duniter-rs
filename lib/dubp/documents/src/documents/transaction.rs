@@ -15,7 +15,14 @@
 
 //! Wrappers around Transaction documents.
 
+use crate::documents::*;
+use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::parser::{DocumentsParser, TextDocumentParseError, TextDocumentParser};
+use dubp_common_doc::traits::text::*;
+use dubp_common_doc::traits::{Document, DocumentBuilder, ToStringObject};
+use dubp_common_doc::{BlockHash, BlockNumber};
 use dup_crypto::hashs::*;
+use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
 use pest::iterators::Pair;
 use pest::iterators::Pairs;
@@ -23,10 +30,6 @@ use pest::Parser;
 use std::ops::{Add, Deref, Sub};
 use std::str::FromStr;
 use unwrap::unwrap;
-
-use crate::blockstamp::Blockstamp;
-use crate::documents::*;
-use crate::text_document_traits::*;
 
 /// Wrap a transaction amount
 #[derive(Debug, Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Deserialize, Hash, Serialize)]
@@ -944,7 +947,7 @@ impl TextDocumentParser<Rule> for TransactionDocumentParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Document;
+    use dubp_common_doc::traits::Document;
 
     #[test]
     fn generate_real_document() {

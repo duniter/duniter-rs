@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use dubp_common_doc::Blockstamp;
 use dubp_documents::documents::block::BlockDocumentTrait;
-use dubp_documents::Blockstamp;
 use durs_blockchain_dal::entities::fork_tree::ForkTree;
 use durs_blockchain_dal::{DALError, ForksDBs};
 use std::collections::HashSet;
@@ -100,8 +100,8 @@ mod tests {
 
     use super::*;
     use crate::*;
+    use dubp_common_doc::{BlockHash, BlockNumber};
     use dubp_documents::documents::block::BlockDocument;
-    use dubp_documents::BlockHash;
     use durs_blockchain_dal::entities::block::DALBlock;
 
     #[test]

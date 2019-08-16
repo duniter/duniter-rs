@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use dubp_common_doc::{BlockNumber, Blockstamp};
 use dubp_documents::documents::identity::IdentityDocumentV10;
-use dubp_documents::{BlockNumber, Blockstamp};
 use durs_wot::NodeId;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]

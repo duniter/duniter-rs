@@ -13,11 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use dubp_common_doc::blockstamp::Blockstamp;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::documents::certification::CompactCertificationDocumentV10;
 use dubp_documents::documents::identity::v10::CompactIdentityDocumentV10;
 use dubp_documents::documents::membership::v10::CompactPoolMembershipDoc;
-use dubp_documents::Blockstamp;
 use dup_crypto::hashs::Hash;
 use std::str;
 
@@ -63,7 +63,7 @@ mod tests {
     use super::super::*;
     use super::*;
     use crate::tests::*;
-    use dubp_documents::Blockstamp;
+    use dubp_common_doc::Blockstamp;
 
     #[test]
     fn test_ws2p_message_req_res_none() {

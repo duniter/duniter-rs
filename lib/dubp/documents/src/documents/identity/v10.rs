@@ -18,8 +18,13 @@
 use durs_common_tools::fatal_error;
 
 use crate::documents::*;
-use crate::text_document_traits::*;
-use crate::Blockstamp;
+use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::parser::TextDocumentParseError;
+use dubp_common_doc::traits::text::*;
+use dubp_common_doc::traits::{Document, DocumentBuilder, ToStringObject};
+use dubp_common_doc::{BlockHash, BlockNumber};
+use dup_crypto::hashs::Hash;
+use dup_crypto::keys::*;
 
 /// Wrap an Identity document.
 ///
@@ -262,7 +267,7 @@ Timestamp: {blockstamp}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Document;
+    use dubp_common_doc::traits::Document;
     use dup_crypto::keys::{PrivateKey, PublicKey, Signature};
 
     #[test]

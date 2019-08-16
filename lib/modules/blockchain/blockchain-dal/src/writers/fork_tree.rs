@@ -15,7 +15,7 @@
 
 use crate::entities::fork_tree::ForkTree;
 use crate::*;
-use dubp_documents::*;
+use dubp_common_doc::BlockHash;
 
 /// Insert new head Block in fork tree,
 /// return vector of removed blockstamps

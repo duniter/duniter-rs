@@ -12,11 +12,12 @@ path = "lib.rs"
 [dependencies]
 bincode = "1.0.*"
 byteorder = "1.2.3"
-dup-crypto = { path = "../../../crypto" }
+dubp-common-doc = { path = "../../../dubp/common-doc"} #, version = "0.1.0" }
 dubp-currency-params = { path = "../../../dubp/currency-params" }
 dubp-documents= { path = "../../../dubp/documents" }
 durs-network-documents = { path = "../../../dunp/network-documents" }
 durs-common-tools = { path = "../../../tools/common-tools" }
+dup-crypto = { path = "../../../crypto" }
 failure = "0.1.5"
 log = "0.4.*"
 serde = "1.0.*"

@@ -15,8 +15,10 @@
 
 use crate::documents::transaction::*;
 use crate::parsers::DefaultHasher;
-use crate::TextDocumentParseError;
 use crate::*;
+use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::parser::TextDocumentParseError;
+use dubp_common_doc::traits::DocumentBuilder;
 use dup_crypto::bases::BaseConvertionError;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;

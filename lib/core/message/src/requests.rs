@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
-use dubp_documents::BlockNumber;
+use dubp_common_doc::BlockNumber;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_blockchain_dal::filters::identities::IdentitiesFilter;

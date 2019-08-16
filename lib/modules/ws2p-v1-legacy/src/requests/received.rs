@@ -19,7 +19,7 @@ use crate::ws2p_db::DbEndpoint;
 use crate::ws_connections::requests::{WS2Pv1ReqBody, WS2Pv1ReqId, WS2Pv1Request};
 use crate::ws_connections::states::WS2PConnectionState;
 use crate::WS2Pv1Module;
-use dubp_documents::BlockNumber;
+use dubp_common_doc::BlockNumber;
 use durs_message::requests::DursReqContent;
 use durs_network::requests::OldNetworkRequest;
 

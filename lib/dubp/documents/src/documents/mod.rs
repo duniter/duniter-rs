@@ -21,9 +21,8 @@ use crate::documents::identity::*;
 use crate::documents::membership::*;
 use crate::documents::revocation::*;
 use crate::documents::transaction::*;
-use crate::Rule;
-use crate::*;
-
+use dubp_common_doc::parser::{DocumentsParser, Rule, TextDocumentParseError, TextDocumentParser};
+use dubp_common_doc::traits::ToStringObject;
 use durs_common_tools::fatal_error;
 use pest::iterators::Pair;
 use pest::Parser;
@@ -194,8 +193,9 @@ impl UserDocumentDUBP {
 
 #[cfg(test)]
 mod tests {
-    use crate::blockstamp::Blockstamp;
-    use crate::*;
+    use dubp_common_doc::parser::TextDocumentParser;
+    use dubp_common_doc::traits::Document;
+    use dubp_common_doc::Blockstamp;
 
     use super::certification::CertificationDocumentParser;
     use super::identity::IdentityDocumentParser;

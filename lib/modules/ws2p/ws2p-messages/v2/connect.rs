@@ -15,7 +15,7 @@
 
 //use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use super::api_features::WS2PFeatures;
-use dubp_documents::Blockstamp;
+use dubp_common_doc::blockstamp::Blockstamp;
 use dup_crypto::hashs::Hash;
 use durs_network_documents::network_peer::PeerCardV11;
 
@@ -163,7 +163,7 @@ mod tests {
     use super::super::*;
     use super::*;
     use crate::tests::*;
-    use dubp_documents::Blockstamp;
+    use dubp_common_doc::Blockstamp;
     use dup_crypto::keys::text_signable::TextSignable;
 
     #[test]

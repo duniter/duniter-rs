@@ -15,9 +15,11 @@
 
 //! Mocks for projects use dubp-documents
 
+use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::traits::DocumentBuilder;
+use dubp_common_doc::{BlockHash, BlockNumber};
 use dubp_documents::documents::identity::v10::IdentityDocumentV10Builder;
 use dubp_documents::documents::identity::*;
-use dubp_documents::*;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::PubKey;
 

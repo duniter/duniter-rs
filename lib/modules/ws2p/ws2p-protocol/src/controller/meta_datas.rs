@@ -17,8 +17,8 @@
 
 use crate::connection_state::WS2PConnectionState;
 use crate::MySelfWs2pNode;
+use dubp_common_doc::Blockstamp;
 use dubp_currency_params::CurrencyName;
-use dubp_documents::Blockstamp;
 use dup_crypto::hashs::Hash;
 use durs_network_documents::network_peer::PeerCardV11;
 use durs_network_documents::NodeFullId;

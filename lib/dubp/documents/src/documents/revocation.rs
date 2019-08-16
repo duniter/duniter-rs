@@ -17,16 +17,17 @@
 
 pub mod v10;
 
+use crate::documents::*;
+use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::parser::{DocumentsParser, TextDocumentParseError, TextDocumentParser};
+use dubp_common_doc::traits::{Document, ToStringObject};
+use dup_crypto::keys::*;
+use pest::Parser;
+
 pub use v10::{
     CompactRevocationDocumentV10, CompactRevocationDocumentV10Stringified, RevocationDocumentV10,
     RevocationDocumentV10Stringified,
 };
-
-use crate::blockstamp::Blockstamp;
-use crate::documents::*;
-
-use dup_crypto::keys::*;
-use pest::Parser;
 
 /// Wrap an Revocation document.
 ///

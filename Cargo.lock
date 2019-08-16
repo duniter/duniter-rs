@@ -290,14 +290,45 @@ dependencies = [
 ]
 
 [[package]]
-name = "dubp-documents"
-version = "0.13.0"
+name = "dubp-common-doc"
+version = "0.1.0"
 dependencies = [
- "dup-crypto 0.6.0",
- "dup-currency-params 0.1.0",
- "durs-common-tools 0.1.0",
+ "dup-crypto 0.7.0",
+ "durs-common-tools 0.2.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "json-pest-parser 0.1.0",
+ "json-pest-parser 0.2.0",
+ "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pest 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pest_derive 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pretty_assertions 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "shrinkwraprs 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unwrap 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "dubp-currency-params"
+version = "0.2.0"
+dependencies = [
+ "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dubp-common-doc 0.1.0",
+ "durs-common-tools 0.2.0",
+ "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "dubp-documents"
+version = "0.14.0"
+dependencies = [
+ "dubp-common-doc 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dup-crypto 0.7.0",
+ "durs-common-tools 0.2.0",
+ "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "json-pest-parser 0.2.0",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "pest 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "pest_derive 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -312,10 +343,11 @@ dependencies = [
 name = "dubp-documents-tests-tools"
 version = "0.1.0"
 dependencies = [
- "dubp-documents 0.13.0",
- "dup-crypto 0.6.0",
+ "dubp-common-doc 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-documents 0.14.0",
+ "dup-crypto 0.7.0",
  "dup-crypto-tests-tools 0.1.0",
- "dup-currency-params 0.1.0",
 ]
 
 [[package]]
@@ -335,12 +367,12 @@ dependencies = [
 
 [[package]]
 name = "dup-crypto"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "base58 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "base64 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "durs-common-tools 0.1.0",
+ "durs-common-tools 0.2.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -354,17 +386,7 @@ dependencies = [
 name = "dup-crypto-tests-tools"
 version = "0.1.0"
 dependencies = [
- "dup-crypto 0.6.0",
-]
-
-[[package]]
-name = "dup-currency-params"
-version = "0.1.0"
-dependencies = [
- "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "durs-common-tools 0.1.0",
- "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.7.0",
 ]
 
 [[package]]
@@ -372,13 +394,14 @@ name = "durs-blockchain"
 version = "0.2.0-a"
 dependencies = [
  "dirs 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "dubp-documents 0.13.0",
+ "dubp-common-doc 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-documents 0.14.0",
  "dubp-documents-tests-tools 0.1.0",
- "dup-crypto 0.6.0",
+ "dup-crypto 0.7.0",
  "dup-crypto-tests-tools 0.1.0",
- "dup-currency-params 0.1.0",
  "durs-blockchain-dal 0.2.0-a",
- "durs-common-tools 0.1.0",
+ "durs-common-tools 0.2.0",
  "durs-conf 0.2.0-a",
  "durs-message 0.2.0-a",
  "durs-module 0.2.0-a",
@@ -386,7 +409,7 @@ dependencies = [
  "durs-network-documents 0.4.0",
  "durs-wot 0.8.0-a0.9",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "json-pest-parser 0.1.0",
+ "json-pest-parser 0.2.0",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 1.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "pbr 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -401,13 +424,14 @@ dependencies = [
 name = "durs-blockchain-dal"
 version = "0.2.0-a"
 dependencies = [
- "dubp-documents 0.13.0",
+ "dubp-common-doc 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-documents 0.14.0",
  "dubp-documents-tests-tools 0.1.0",
- "dup-crypto 0.6.0",
+ "dup-crypto 0.7.0",
  "dup-crypto-tests-tools 0.1.0",
- "dup-currency-params 0.1.0",
  "durs-common-tests-tools 0.1.0",
- "durs-common-tools 0.1.0",
+ "durs-common-tools 0.2.0",
  "durs-conf 0.2.0-a",
  "durs-module 0.2.0-a",
  "durs-wot 0.8.0-a0.9",
@@ -431,7 +455,7 @@ dependencies = [
 
 [[package]]
 name = "durs-common-tools"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "pretty_assertions 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -441,10 +465,10 @@ name = "durs-conf"
 version = "0.2.0-a"
 dependencies = [
  "dirs 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "dubp-documents 0.13.0",
- "dup-crypto 0.6.0",
- "dup-currency-params 0.1.0",
- "durs-common-tools 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-documents 0.14.0",
+ "dup-crypto 0.7.0",
+ "durs-common-tools 0.2.0",
  "durs-module 0.2.0-a",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -460,10 +484,10 @@ name = "durs-core"
 version = "0.2.0-a"
 dependencies = [
  "dirs 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "dup-crypto 0.6.0",
- "dup-currency-params 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dup-crypto 0.7.0",
  "durs-blockchain 0.2.0-a",
- "durs-common-tools 0.1.0",
+ "durs-common-tools 0.2.0",
  "durs-conf 0.2.0-a",
  "durs-message 0.2.0-a",
  "durs-module 0.2.0-a",
@@ -484,9 +508,10 @@ dependencies = [
 name = "durs-message"
 version = "0.2.0-a"
 dependencies = [
- "dubp-documents 0.13.0",
- "dup-crypto 0.6.0",
- "dup-currency-params 0.1.0",
+ "dubp-common-doc 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-documents 0.14.0",
+ "dup-crypto 0.7.0",
  "durs-blockchain-dal 0.2.0-a",
  "durs-module 0.2.0-a",
  "durs-network 0.2.0-a",
@@ -500,10 +525,10 @@ dependencies = [
 name = "durs-module"
 version = "0.2.0-a"
 dependencies = [
- "dubp-documents 0.13.0",
- "dup-crypto 0.6.0",
- "dup-currency-params 0.1.0",
- "durs-common-tools 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-documents 0.14.0",
+ "dup-crypto 0.7.0",
+ "durs-common-tools 0.2.0",
  "durs-network-documents 0.4.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -517,9 +542,10 @@ dependencies = [
 name = "durs-network"
 version = "0.2.0-a"
 dependencies = [
- "dubp-documents 0.13.0",
- "dup-crypto 0.6.0",
- "durs-common-tools 0.1.0",
+ "dubp-common-doc 0.1.0",
+ "dubp-documents 0.14.0",
+ "dup-crypto 0.7.0",
+ "durs-common-tools 0.2.0",
  "durs-module 0.2.0-a",
  "durs-network-documents 0.4.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -535,10 +561,11 @@ version = "0.4.0"
 dependencies = [
  "base58 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "dubp-documents 0.13.0",
- "dup-crypto 0.6.0",
- "dup-currency-params 0.1.0",
- "durs-common-tools 0.1.0",
+ "dubp-common-doc 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-documents 0.14.0",
+ "dup-crypto 0.7.0",
+ "durs-common-tools 0.2.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -556,10 +583,10 @@ dependencies = [
 name = "durs-skeleton"
 version = "0.1.0"
 dependencies = [
- "dubp-documents 0.13.0",
- "dup-crypto 0.6.0",
- "dup-currency-params 0.1.0",
- "durs-common-tools 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-documents 0.14.0",
+ "dup-crypto 0.7.0",
+ "durs-common-tools 0.2.0",
  "durs-conf 0.2.0-a",
  "durs-message 0.2.0-a",
  "durs-module 0.2.0-a",
@@ -576,10 +603,10 @@ dependencies = [
 name = "durs-tui"
 version = "0.2.0-a"
 dependencies = [
- "dubp-documents 0.13.0",
- "dup-crypto 0.6.0",
- "dup-currency-params 0.1.0",
- "durs-common-tools 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-documents 0.14.0",
+ "dup-crypto 0.7.0",
+ "durs-common-tools 0.2.0",
  "durs-conf 0.2.0-a",
  "durs-message 0.2.0-a",
  "durs-module 0.2.0-a",
@@ -600,7 +627,7 @@ version = "0.8.0-a0.9"
 dependencies = [
  "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "durs-common-tools 0.1.0",
+ "durs-common-tools 0.2.0",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -612,11 +639,12 @@ name = "durs-ws2p"
 version = "0.2.0-a"
 dependencies = [
  "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "dubp-documents 0.13.0",
- "dup-crypto 0.6.0",
- "dup-currency-params 0.1.0",
+ "dubp-common-doc 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-documents 0.14.0",
+ "dup-crypto 0.7.0",
  "durs-common-tests-tools 0.1.0",
- "durs-common-tools 0.1.0",
+ "durs-common-tools 0.2.0",
  "durs-conf 0.2.0-a",
  "durs-message 0.2.0-a",
  "durs-module 0.2.0-a",
@@ -640,10 +668,11 @@ version = "0.2.0-a"
 dependencies = [
  "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "dubp-documents 0.13.0",
- "dup-crypto 0.6.0",
- "dup-currency-params 0.1.0",
- "durs-common-tools 0.1.0",
+ "dubp-common-doc 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-documents 0.14.0",
+ "dup-crypto 0.7.0",
+ "durs-common-tools 0.2.0",
  "durs-network-documents 0.4.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -657,10 +686,11 @@ dependencies = [
 name = "durs-ws2p-protocol"
 version = "0.2.0-a"
 dependencies = [
- "dubp-documents 0.13.0",
- "dup-crypto 0.6.0",
- "dup-currency-params 0.1.0",
- "durs-common-tools 0.1.0",
+ "dubp-common-doc 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-documents 0.14.0",
+ "dup-crypto 0.7.0",
+ "durs-common-tools 0.2.0",
  "durs-module 0.2.0-a",
  "durs-network-documents 0.4.0",
  "durs-ws2p-messages 0.2.0-a",
@@ -678,10 +708,11 @@ version = "0.2.0-a"
 dependencies = [
  "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "dubp-documents 0.13.0",
- "dup-crypto 0.6.0",
- "dup-currency-params 0.1.0",
- "durs-common-tools 0.1.0",
+ "dubp-common-doc 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-documents 0.14.0",
+ "dup-crypto 0.7.0",
+ "durs-common-tools 0.2.0",
  "durs-conf 0.2.0-a",
  "durs-message 0.2.0-a",
  "durs-module 0.2.0-a",
@@ -855,13 +886,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.7.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "either 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "itoa"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "json-pest-parser"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "pest 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1122,10 +1161,26 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "unicode-xid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "proc-macro2"
 version = "0.4.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "unicode-xid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "quote"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "proc-macro2 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1485,6 +1540,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "shrinkwraprs"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "itertools 0.7.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 0.12.15 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "simplelog"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1535,6 +1601,16 @@ dependencies = [
  "proc-macro2 0.4.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 0.6.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.15.26 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "syn"
+version = "0.12.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "proc-macro2 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-xid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1868,6 +1944,7 @@ dependencies = [
 "checksum id_tree 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0c265a4e397174ac4e22b5e923ad2905858aa5f1512e3b5b4942ee4ff56d146f"
 "checksum idna 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "38f09e0f0b1fb55fdee1f17470ad800da77af5186a1a76c026b679358b7e844e"
 "checksum iovec 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "dbe6e417e7d0975db6512b90796e8ce223145ac4e33c377e4a42882a0e88bb08"
+"checksum itertools 0.7.11 (registry+https://github.com/rust-lang/crates.io-index)" = "0d47946d458e94a1b7bcabbf6521ea7c037062c81f534615abcad76e84d4970d"
 "checksum itoa 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "1306f3464951f30e30d12373d31c79fbd52d236e5e896fd92f96ec7babbbe60b"
 "checksum kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7507624b29483431c0ba2d82aece8ca6cdba9382bff4ddd0f7490560c056098d"
 "checksum lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a374c89b9db55895453a74c1e38861d9deec0b01b405a82516e9d5de4820dea1"
@@ -1900,7 +1977,9 @@ dependencies = [
 "checksum pest_meta 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f5a3492a4ed208ffc247adcdcc7ba2a95be3104f58877d0d02f0df39bf3efb5e"
 "checksum pkg-config 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)" = "676e8eb2b1b4c9043511a9b7bea0915320d7e502b0a079fb03f9635a5252b18c"
 "checksum pretty_assertions 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "3a029430f0d744bc3d15dd474d591bed2402b645d024583082b9f63bb936dac6"
+"checksum proc-macro2 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "cd07deb3c6d1d9ff827999c7f9b04cdfd66b1b17ae508e14fe47b620f2282ae0"
 "checksum proc-macro2 0.4.27 (registry+https://github.com/rust-lang/crates.io-index)" = "4d317f9caece796be1980837fd5cb3dfec5613ebdb04ad0956deea83ce168915"
+"checksum quote 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "1eca14c727ad12702eb4b6bfb5a232287dcf8385cb8ca83a3eeaf6519c44c408"
 "checksum quote 0.6.11 (registry+https://github.com/rust-lang/crates.io-index)" = "cdd8e04bd9c52e0342b406469d494fcb033be4bdbe5c606016defbb1681411e1"
 "checksum rand 0.3.23 (registry+https://github.com/rust-lang/crates.io-index)" = "64ac302d8f83c0c1974bf758f6b041c6c8ada916fbb44a609158ca8b064cc76c"
 "checksum rand 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)" = "552840b97013b1a26992c11eac34bdd778e464601a4c2054b5f0bff7c6761293"
@@ -1940,6 +2019,7 @@ dependencies = [
 "checksum sha1 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2579985fda508104f7587689507983eadd6a6e84dd35d6d115361f530916fa0d"
 "checksum sha2 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7b4d8bfd0e469f417657573d8451fb33d16cfe0989359b93baf3a1ffc639543d"
 "checksum sha2-asm 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "8aba8afb8bba3f5d433ede1d036c46e122a7b75a67c92a6b7b5f11d87e2e4478"
+"checksum shrinkwraprs 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7d5f047b90b2ca2d1526ff73d67cba61f86f4cf9a8afddc99dd96702ded8e684"
 "checksum simplelog 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "2e95345f185d5adeb8ec93459d2dc99654e294cc6ccf5b75414d8ea262de9a13"
 "checksum slab 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "c111b5bd5695e56cffe5129854aa230b39c93a305372fdbb2668ca2394eea9f8"
 "checksum smallvec 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)" = "88aea073965ab29f6edb5493faf96ad662fb18aa9eeb186a3b7057951605ed15"
@@ -1947,6 +2027,7 @@ dependencies = [
 "checksum strsim 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bb4f380125926a99e52bc279241539c018323fab05ad6368b56f93d9369ff550"
 "checksum structopt 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)" = "670ad348dc73012fcf78c71f06f9d942232cdd4c859d4b6975e27836c3efc0c3"
 "checksum structopt-derive 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)" = "ef98172b1a00b0bec738508d3726540edcbd186d50dfd326f2b1febbb3559f04"
+"checksum syn 0.12.15 (registry+https://github.com/rust-lang/crates.io-index)" = "c97c05b8ebc34ddd6b967994d5c6e9852fa92f8b82b3858c39451f97346dcce5"
 "checksum syn 0.15.26 (registry+https://github.com/rust-lang/crates.io-index)" = "f92e629aa1d9c827b2bb8297046c1ccffc57c99b947a680d3ccff1f136a3bee9"
 "checksum synstructure 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)" = "73687139bf99285483c96ac0add482c3776528beac1d97d444f6e91f203a2015"
 "checksum tempdir 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)" = "15f2b5fb00ccdf689e0149d1b1b3c03fead81c2b37735d812fa8bddbbf41b6d8"

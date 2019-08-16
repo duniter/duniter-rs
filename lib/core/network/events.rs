@@ -18,9 +18,9 @@
 use crate::network_head::NetworkHead;
 use crate::network_peer::PeerCard;
 use crate::NodeFullId;
+use dubp_common_doc::blockstamp::Blockstamp;
 use dubp_documents::documents::block::BlockDocument;
 use dubp_documents::documents::UserDocumentDUBP;
-use dubp_documents::Blockstamp;
 use durs_common_tools::Percent;
 
 #[derive(Debug, Clone)]

@@ -16,6 +16,7 @@
 //! Sub-module that sends requests to the inter-node network layer.
 
 use crate::*;
+use dubp_common_doc::BlockNumber;
 use durs_message::*;
 use durs_module::ModuleReqId;
 use durs_network::requests::OldNetworkRequest;

@@ -17,9 +17,10 @@
 
 pub mod identity;
 
+use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::{BlockHash, BlockNumber};
 use dubp_currency_params::CurrencyName;
 use dubp_documents::documents::block::{BlockDocument, BlockDocumentV10};
-use dubp_documents::*;
 use dup_crypto::hashs::Hash;
 
 /// Generate n mock blockstamps

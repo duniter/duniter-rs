@@ -15,12 +15,15 @@
 
 //! Wrappers around Certification documents V10.
 
+use crate::documents::*;
+use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::parser::TextDocumentParseError;
+use dubp_common_doc::traits::text::*;
+use dubp_common_doc::traits::{Document, DocumentBuilder, ToStringObject};
+use dubp_common_doc::{BlockHash, BlockNumber};
+use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
-
-use crate::blockstamp::Blockstamp;
-use crate::documents::*;
-use crate::text_document_traits::*;
 
 #[derive(Copy, Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 /// Wrap an Compact Revocation document (in block content)

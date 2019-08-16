@@ -16,7 +16,7 @@
 //! Module defining the format of network heads v2 and how to handle them.
 
 use crate::NodeId;
-use dubp_documents::blockstamp::*;
+use dubp_common_doc::blockstamp::*;
 use dup_crypto::bases::BaseConvertionError;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;

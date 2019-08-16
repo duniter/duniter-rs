@@ -15,7 +15,8 @@
 
 use crate::fork::revert_block::ValidBlockRevertReqs;
 use crate::*;
-use dubp_documents::Blockstamp;
+use dubp_common_doc::traits::Document;
+use dubp_common_doc::Blockstamp;
 use durs_common_tools::fatal_error;
 use unwrap::unwrap;
 

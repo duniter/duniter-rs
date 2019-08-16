@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use dubp_documents::Blockstamp;
+use dubp_common_doc::blockstamp::Blockstamp;
 use dup_crypto::hashs::Hash;
 use std::num::NonZeroU16;
 
@@ -49,7 +49,7 @@ mod tests {
     use super::super::*;
     use super::*;
     use crate::tests::*;
-    use dubp_documents::Blockstamp;
+    use dubp_common_doc::Blockstamp;
     use std::num::NonZeroU16;
 
     #[test]

@@ -18,7 +18,7 @@
 use crate::network_head_v2::*;
 use crate::network_head_v3::*;
 use crate::{NodeFullId, NodeId};
-use dubp_documents::blockstamp::*;
+use dubp_common_doc::blockstamp::*;
 use dup_crypto::bases::BaseConvertionError;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;

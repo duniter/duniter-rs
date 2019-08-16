@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
+use dubp_common_doc::BlockNumber;
 use dubp_documents::documents::block::BlockDocumentTrait;
 use dubp_documents::documents::transaction::*;
 use dup_crypto::keys::*;
@@ -290,7 +291,7 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DBExWotQuery) {
                 .read(|db| {
                     let mut expire_dates = Vec::new();
                     for (block_id, nodes_ids) in db {
-                        let created_ms_time = blocks_times[&block_id];
+                        let created_ms_time = blocks_times[&block_id.0];
                         if created_ms_time > min_created_ms_time {
                             for node_id in nodes_ids {
                                 expire_dates.push((

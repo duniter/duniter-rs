@@ -15,7 +15,7 @@
 
 pub mod identities;
 
-use dubp_documents::BlockNumber;
+use dubp_common_doc::BlockNumber;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// Pagination parameters

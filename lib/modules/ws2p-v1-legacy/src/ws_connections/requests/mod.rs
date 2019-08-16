@@ -18,7 +18,7 @@
 pub mod received;
 pub mod sent;
 
-use dubp_documents::BlockNumber;
+use dubp_common_doc::BlockNumber;
 use durs_network_documents::NodeFullId;
 use serde::Serialize;
 use std::convert::TryFrom;

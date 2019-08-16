@@ -425,7 +425,7 @@ pub fn apply_and_write_tx(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dubp_documents::{Document, DocumentBuilder};
+    use dubp_common_doc::traits::{Document, DocumentBuilder};
     use std::str::FromStr;
     use unwrap::unwrap;
 

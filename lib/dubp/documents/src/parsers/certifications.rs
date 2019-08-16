@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::documents::certification::{CertificationDocumentV10, CompactCertificationDocumentV10};
-use crate::text_document_traits::TextDocumentFormat;
-use crate::BlockNumber;
+use dubp_common_doc::traits::text::TextDocumentFormat;
+use dubp_common_doc::BlockNumber;
 use dup_crypto::keys::*;
 
 /// Parse array of certification json documents into vector of `CompactCertificationDocument`

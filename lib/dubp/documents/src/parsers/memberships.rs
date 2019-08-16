@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::documents::membership::v10::*;
-use crate::Blockstamp;
-use crate::DocumentBuilder;
+use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::traits::DocumentBuilder;
 use dup_crypto::keys::*;
 use failure::Error;
 

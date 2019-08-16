@@ -15,10 +15,11 @@
 
 //! Define the Text Document Traits.
 
+use super::{Document, DocumentBuilder};
 use crate::*;
 use dup_crypto::keys::*;
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 /// Contains a document in full or compact format
 pub enum TextDocumentFormat<D: TextDocument> {
     /// Complete format (Allows to check the validity of the signature)
@@ -56,7 +57,7 @@ impl<D: TextDocument> CompactTextDocument for TextDocumentFormat<D> {
     }
 }
 
-/// Trait for a V10 document.
+/// Trait for a text document.
 pub trait TextDocument: Document<PublicKey = PubKey> {
     /// Type of associated compact document.
     type CompactTextDocument_: CompactTextDocument;

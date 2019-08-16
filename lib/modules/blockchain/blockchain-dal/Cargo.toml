@@ -10,6 +10,7 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
+dubp-common-doc = { path = "../../../dubp/common-doc"} #, version = "0.1.0" }
 dup-crypto = { path = "../../../crypto" }
 dubp-currency-params = { path = "../../../dubp/currency-params" }
 dubp-documents= { path = "../../../dubp/documents" }

@@ -15,16 +15,7 @@
 
 //! Wrappers around Block document V10.
 
-use dubp_currency_params::genesis_block_params::v10::BlockV10Parameters;
-use dubp_currency_params::CurrencyName;
-use dup_crypto::hashs::Hash;
-use dup_crypto::keys::*;
-use durs_common_tools::fatal_error;
-use std::ops::Deref;
-use unwrap::unwrap;
-
 use super::{BlockDocumentTrait, VerifyBlockHashError};
-use crate::blockstamp::Blockstamp;
 use crate::documents::certification::v10::CompactCertificationDocumentV10Stringified;
 use crate::documents::identity::IdentityDocumentV10;
 use crate::documents::membership::v10::{MembershipDocumentV10, MembershipDocumentV10Stringified};
@@ -32,7 +23,17 @@ use crate::documents::revocation::v10::CompactRevocationDocumentV10Stringified;
 use crate::documents::revocation::RevocationDocumentV10;
 use crate::documents::transaction::TransactionDocument;
 use crate::documents::*;
-use crate::text_document_traits::*;
+use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::traits::text::*;
+use dubp_common_doc::traits::{Document, ToStringObject};
+use dubp_common_doc::{BlockHash, BlockNumber};
+use dubp_currency_params::genesis_block_params::v10::BlockV10Parameters;
+use dubp_currency_params::CurrencyName;
+use dup_crypto::hashs::Hash;
+use dup_crypto::keys::*;
+use durs_common_tools::fatal_error;
+use std::ops::Deref;
+use unwrap::unwrap;
 
 /// Store a transaction document or just its hash.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -622,7 +623,7 @@ mod tests {
     use super::certification::CertificationDocumentParser;
     use super::transaction::TransactionDocumentParser;
     use super::*;
-    use crate::Document;
+    use dubp_common_doc::traits::Document;
 
     #[test]
     fn generate_and_verify_empty_block() {

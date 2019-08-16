@@ -166,9 +166,9 @@ mod tests {
     use crate::v2::WS2Pv2Message;
     use bincode;
     use bincode::{deserialize, serialize};
+    use dubp_common_doc::{BlockNumber, Blockstamp};
     use dubp_currency_params::CurrencyName;
     use dubp_documents::documents::certification::*;
-    use dubp_documents::{BlockNumber, Blockstamp};
     use dup_crypto::keys::bin_signable::BinSignable;
     use dup_crypto::keys::*;
     use durs_network_documents::network_endpoint::*;

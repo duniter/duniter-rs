@@ -15,12 +15,15 @@
 
 //! Wrappers around Membership documents v10.
 
+use crate::documents::*;
+use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::parser::TextDocumentParseError;
+use dubp_common_doc::traits::text::*;
+use dubp_common_doc::traits::{Document, DocumentBuilder, ToStringObject};
+use dubp_common_doc::{BlockHash, BlockNumber};
+use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
-
-use crate::blockstamp::Blockstamp;
-use crate::documents::*;
-use crate::text_document_traits::*;
 
 /// Type of a Membership.
 #[derive(Debug, Deserialize, Clone, Copy, Hash, Serialize, PartialEq, Eq)]

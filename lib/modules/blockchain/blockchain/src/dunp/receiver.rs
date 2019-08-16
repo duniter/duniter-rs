@@ -17,6 +17,7 @@
 //! (received by the intermediaries of events transmitted by the network module).
 
 use crate::*;
+use dubp_common_doc::traits::Document;
 use dubp_documents::documents::UserDocumentDUBP;
 use unwrap::unwrap;
 

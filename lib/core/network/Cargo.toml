@@ -10,9 +10,10 @@ edition = "2018"
 path = "lib.rs"
 
 [dependencies]
-durs-common-tools = { path = "../../tools/common-tools" }
-dup-crypto = { path = "../../crypto" }
+dubp-common-doc = { path = "../../dubp/common-doc"} #, version = "0.1.0" }
 dubp-documents= { path = "../../dubp/documents" }
+dup-crypto = { path = "../../crypto" }
+durs-common-tools = { path = "../../tools/common-tools" }
 durs-module = { path = "../module" }
 durs-network-documents = { path = "../../dunp/network-documents" }
 failure = "0.1.5"

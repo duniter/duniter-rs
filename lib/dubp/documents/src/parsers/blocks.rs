@@ -17,6 +17,7 @@ use crate::documents::block::{v10::TxDocOrTxHash, BlockDocument, BlockDocumentV1
 use crate::documents::membership::v10::MembershipType;
 use crate::parsers::{serde_json_value_to_pest_json_value, DefaultHasher};
 use crate::*;
+use dubp_common_doc::{BlockHash, BlockNumber};
 use dubp_currency_params::genesis_block_params::v10::BlockV10Parameters;
 use dubp_currency_params::CurrencyName;
 use dup_crypto::bases::BaseConvertionError;

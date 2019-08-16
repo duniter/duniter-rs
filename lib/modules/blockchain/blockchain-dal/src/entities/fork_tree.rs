@@ -15,7 +15,7 @@
 
 //! Describe fork tree
 
-use dubp_documents::{BlockHash, BlockNumber, Blockstamp};
+use dubp_common_doc::{BlockHash, BlockNumber, Blockstamp};
 use serde::de::{self, Deserialize, Deserializer, Visitor};
 use serde::{Serialize, Serializer};
 use std::collections::{HashMap, HashSet};

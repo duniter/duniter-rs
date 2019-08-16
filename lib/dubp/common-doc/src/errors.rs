@@ -13,20 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::*;
-use dubp_common_doc::Blockstamp;
+//! Define DUBP Documents errors types.
 
-/// Get stackables blocks
-pub fn get_stackables_blocks(
-    forks_dbs: &ForksDBs,
-    current_blockstamp: &Blockstamp,
-) -> Result<Vec<DALBlock>, DALError> {
-    if let Some(stackables_blocks) = forks_dbs
-        .orphan_blocks_db
-        .read(|db| db.get(&current_blockstamp).cloned())?
-    {
-        Ok(stackables_blocks)
-    } else {
-        Ok(vec![])
-    }
+use dup_crypto::keys::SigError;
+use std::collections::HashMap;
+
+/// List of possible errors for document signatures verification.
+#[derive(Debug, Eq, PartialEq)]
+pub enum DocumentSigsErr {
+    /// Not same amount of issuers and signatures.
+    /// (issuers count, signatures count)
+    IncompletePairs(usize, usize),
+    /// Signatures don't match.
+    /// List of mismatching pairs indexes.
+    Invalid(HashMap<usize, SigError>),
 }

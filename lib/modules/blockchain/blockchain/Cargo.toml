@@ -12,9 +12,10 @@ path = "src/lib.rs"
 [dependencies]
 dirs = "1.0.2"
 durs-conf = { path = "../../../core/conf" }
-dup-crypto = { path = "../../../crypto" }
+dubp-common-doc = { path = "../../../dubp/common-doc"} #, version = "0.1.0" }
 dubp-currency-params = { path = "../../../dubp/currency-params" }
 durs-blockchain-dal = { path = "../blockchain-dal" }
+dup-crypto = { path = "../../../crypto" }
 dubp-documents= { path = "../../../dubp/documents" }
 durs-common-tools = { path = "../../../tools/common-tools" }
 durs-network-documents = { path = "../../../dunp/network-documents" }

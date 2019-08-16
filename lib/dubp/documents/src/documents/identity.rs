@@ -17,9 +17,13 @@
 
 pub mod v10;
 
-pub use v10::{IdentityDocumentV10, IdentityDocumentV10Stringified};
-
 use crate::documents::*;
+use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::parser::{DocumentsParser, TextDocumentParseError, TextDocumentParser};
+use dubp_common_doc::traits::{Document, ToStringObject};
+use dup_crypto::keys::*;
+
+pub use v10::{IdentityDocumentV10, IdentityDocumentV10Stringified};
 
 /// Identity document
 #[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]

@@ -17,16 +17,17 @@
 
 pub mod v10;
 
-pub use v10::{
-    CertificationDocumentV10, CertificationDocumentV10Stringified, CompactCertificationDocumentV10,
-};
-
-use crate::blockstamp::Blockstamp;
 use crate::documents::*;
-
+use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::parser::{DocumentsParser, TextDocumentParseError, TextDocumentParser};
+use dubp_common_doc::traits::{Document, ToStringObject};
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
 use pest::Parser;
+
+pub use v10::{
+    CertificationDocumentV10, CertificationDocumentV10Stringified, CompactCertificationDocumentV10,
+};
 
 /// Wrap an Certification document.
 ///

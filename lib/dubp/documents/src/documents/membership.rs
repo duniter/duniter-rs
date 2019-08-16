@@ -17,10 +17,14 @@
 
 pub mod v10;
 
-pub use v10::{MembershipDocumentV10, MembershipDocumentV10Stringified};
-
 use crate::documents::*;
-use crate::text_document_traits::{CompactTextDocument, TextDocument};
+use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::parser::{DocumentsParser, TextDocumentParseError, TextDocumentParser};
+use dubp_common_doc::traits::text::*;
+use dubp_common_doc::traits::{Document, ToStringObject};
+use dup_crypto::keys::*;
+
+pub use v10::{MembershipDocumentV10, MembershipDocumentV10Stringified};
 
 /// Wrap an Membership document.
 ///

@@ -14,8 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::sync::*;
+use dubp_common_doc::traits::Document;
+use dubp_common_doc::Blockstamp;
 use dubp_documents::parsers::blocks::parse_json_block;
-use dubp_documents::Blockstamp;
 use durs_common_tools::fatal_error;
 use failure::Error;
 use rayon::prelude::*;

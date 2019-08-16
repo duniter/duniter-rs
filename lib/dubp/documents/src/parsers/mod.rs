@@ -80,9 +80,10 @@ fn serde_json_value_to_pest_json_value(
 
 #[cfg(test)]
 mod tests {
-    use crate::blockstamp::Blockstamp;
     use crate::documents::transaction::*;
-    use crate::*;
+    use dubp_common_doc::traits::DocumentBuilder;
+    use dubp_common_doc::Blockstamp;
+    use dup_crypto::keys::*;
     use std::str::FromStr;
 
     pub fn first_g1_tx_doc() -> TransactionDocument {

@@ -10,9 +10,10 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-dup-crypto = { path = "../../crypto" }
+dubp-common-doc = { path = "../../dubp/common-doc"} #, version = "0.1.0" }
 dubp-currency-params = { path = "../../dubp/currency-params" }
 dubp-documents= { path = "../../dubp/documents" }
+dup-crypto = { path = "../../crypto" }
 durs-module = { path = "../module" }
 durs-network = { path = "../network" }
 durs-blockchain-dal = { path = "../../modules/blockchain/blockchain-dal" }

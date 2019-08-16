@@ -16,7 +16,8 @@
 use crate::entities::identity::DALIdentity;
 use crate::filters::identities::IdentitiesFilter;
 use crate::{BinDB, DALError, IdentitiesV10Datas};
-use dubp_documents::{BlockNumber, Document};
+use dubp_common_doc::traits::Document;
+use dubp_common_doc::BlockNumber;
 use dup_crypto::keys::*;
 use durs_wot::NodeId;
 use std::collections::HashMap;
@@ -120,7 +121,7 @@ mod test {
     use crate::entities::identity::*;
     use crate::filters::PagingFilter;
     use crate::*;
-    use dubp_documents::Blockstamp;
+    use dubp_common_doc::Blockstamp;
     use dup_crypto_tests_tools::mocks::pubkey;
     use durs_common_tests_tools::collections::slice_same_elems;
 

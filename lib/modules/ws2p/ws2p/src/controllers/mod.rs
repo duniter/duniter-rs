@@ -16,7 +16,7 @@
 //! WS2P connections controllers.
 
 //use constants::*;
-use dubp_documents::Blockstamp;
+use dubp_common_doc::Blockstamp;
 use dup_crypto::hashs::Hash;
 use ws::Sender;
 //use dup_crypto::keys::*;

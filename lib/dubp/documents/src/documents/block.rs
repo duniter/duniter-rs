@@ -17,12 +17,13 @@
 
 pub mod v10;
 
-pub use v10::{BlockDocumentV10, BlockDocumentV10Stringified};
-
-use crate::blockstamp::Blockstamp;
-use crate::{BlockHash, BlockNumber, Document, ToStringObject};
+use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::traits::{Document, ToStringObject};
+use dubp_common_doc::{BlockHash, BlockNumber};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::{PrivKey, PubKey, PublicKey};
+
+pub use v10::{BlockDocumentV10, BlockDocumentV10Stringified};
 
 /// Wrap a Block document.
 ///

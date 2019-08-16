@@ -14,9 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{BinDB, CertsExpirV10Datas, DALError, IdentitiesV10Datas};
+use dubp_common_doc::BlockNumber;
 use dubp_currency_params::CurrencyParameters;
 use dubp_documents::documents::certification::CompactCertificationDocumentV10;
-use dubp_documents::BlockNumber;
 use dup_crypto::keys::*;
 use durs_wot::NodeId;
 

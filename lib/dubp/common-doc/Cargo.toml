@@ -1,11 +1,11 @@
 [package]
-name = "dubp-documents"
-version = "0.14.0"
-authors = ["nanocryk <nanocryk@duniter.org>", "elois <elois@ifee.fr>"]
-description = "Handles DUBP documents (DUBP: DUniter Blockhain Protocol)"
+name = "dubp-common-doc"
+version = "0.1.0"
+authors = ["elois <elois@ifee.fr>"]
+description = "Provide common tools for DUBP (DUniter Blockhain Protocol)."
 repository = "https://git.duniter.org/nodes/rust/duniter-rs"
 readme = "README.md"
-keywords = ["duniter", "blockchain", "cryptocurrency", "document"]
+keywords = ["duniter", "dunitrust", "blockchain", "cryptocurrency"]
 license = "AGPL-3.0"
 edition = "2018"
 
@@ -13,8 +13,6 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-dubp-common-doc = { path = "../common-doc"} #, version = "0.1.0" }
-dubp-currency-params = { path = "../currency-params", version = "0.2.0" }
 dup-crypto = { path = "../../crypto", version = "0.7.0" }
 durs-common-tools = { path = "../../tools/common-tools", version = "0.2.0" }
 failure = "0.1.5"
@@ -24,6 +22,7 @@ pest_derive = "2.1.0"
 serde = "1.0.*"
 serde_derive = "1.0.*"
 serde_json = "1.0.*"
+shrinkwraprs = "0.2.*"
 log = "0.4.*"
 unwrap = "1.2.1"
 

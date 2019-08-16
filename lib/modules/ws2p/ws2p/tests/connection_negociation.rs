@@ -16,7 +16,7 @@
 use dubp_currency_params::CurrencyName;
 use dup_crypto::keys::KeyPair;
 use dup_crypto::keys::*;
-//use durs_common_tests_tools::logger::init_logger_stdout;
+use durs_common_tests_tools::logger::init_logger_stdout;
 use durs_message::DursMsg;
 use durs_network_documents::network_endpoint::*;
 use durs_network_documents::*;
@@ -150,7 +150,7 @@ fn test_connection_negociation_denial() {
 #[test]
 #[cfg(unix)]
 fn test_connection_negociation_success() {
-    //init_logger_stdout();
+    init_logger_stdout();
 
     // ===== initialization =====
     // client and server are initialized and launched in separate threads

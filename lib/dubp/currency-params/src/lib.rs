@@ -27,30 +27,12 @@
 )]
 
 pub mod constants;
-pub mod currencies_codes;
 pub mod db;
 pub mod genesis_block_params;
 
 use crate::constants::*;
+pub use dubp_common_doc::CurrencyName;
 use genesis_block_params::v10::BlockV10Parameters;
-use serde::{Deserialize, Serialize};
-use std::fmt::{Display, Error, Formatter};
-
-/// Currency name
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize, Hash)]
-pub struct CurrencyName(pub String);
-
-impl Display for CurrencyName {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<&str> for CurrencyName {
-    fn from(s: &str) -> Self {
-        CurrencyName(s.to_owned())
-    }
-}
 
 #[derive(Debug, Copy, Clone)]
 /// Currency parameters

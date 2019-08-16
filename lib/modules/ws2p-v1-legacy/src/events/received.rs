@@ -17,7 +17,7 @@
 
 use crate::serializers::IntoWS2Pv1Json;
 use crate::*;
-use dubp_documents::Document;
+use dubp_common_doc::traits::Document;
 use durs_message::events::DursEvent;
 use durs_module::*;
 use std::ops::Deref;

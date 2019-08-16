@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{BinDB, CertsExpirV10Datas, DALError};
-use dubp_documents::BlockNumber;
+use dubp_common_doc::BlockNumber;
 use durs_wot::NodeId;
 use std::collections::HashMap;
 

@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
-use dubp_documents::Blockstamp;
+use dubp_common_doc::Blockstamp;
 use durs_network_documents::network_head_v2::*;
 
 pub fn generate_my_head(

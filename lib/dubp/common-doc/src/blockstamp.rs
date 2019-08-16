@@ -15,11 +15,17 @@
 
 //! Wrapper for blockstamp
 
-use crate::*;
+use crate::{BlockHash, BlockNumber};
+use dup_crypto::bases::BaseConvertionError;
+use dup_crypto::hashs::Hash;
+use failure::Fail;
+use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
+use std::fmt::{Debug, Display, Error, Formatter};
 
-/// Type of errors for [`BlockUId`] parsing.
+/// Type of errors for [`Blockstamp`] parsing.
 ///
-/// [`BlockUId`]: struct.BlockUId.html
+/// [`Blockstamp`]: struct.Blockstamp.html
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Fail)]
 pub enum BlockstampParseError {
     /// Given string have invalid format
@@ -30,7 +36,13 @@ pub enum BlockstampParseError {
     InvalidBlockNumber(),
     /// [`BlockHash`](struct.BlockHash.html) part is not a valid hex number.
     #[fail(display = "BlockHash part is not a valid hex number.")]
-    InvalidBlockHash(),
+    InvalidBlockHash(BaseConvertionError),
+}
+
+impl From<BaseConvertionError> for BlockstampParseError {
+    fn from(e: BaseConvertionError) -> Self {
+        BlockstampParseError::InvalidBlockHash(e)
+    }
 }
 
 /// A blockstamp (Unique ID).
@@ -105,17 +117,17 @@ pub enum ReadBytesBlockstampError {
     /// Bytes vector is too long
     TooLong(),
     /// IoError
-    IoError(::std::io::Error),
+    IoError(std::io::Error),
 }
 
-impl From<::std::io::Error> for ReadBytesBlockstampError {
-    fn from(e: ::std::io::Error) -> Self {
+impl From<std::io::Error> for ReadBytesBlockstampError {
+    fn from(e: std::io::Error) -> Self {
         ReadBytesBlockstampError::IoError(e)
     }
 }
 
 impl Blockstamp {
-    /// Create a `BlockUId` from a text.
+    /// Create a `Blockstamp` from a text.
     pub fn from_string(src: &str) -> Result<Blockstamp, BlockstampParseError> {
         let mut split = src.split('-');
 
@@ -123,18 +135,14 @@ impl Blockstamp {
             Err(BlockstampParseError::InvalidFormat())
         } else {
             let id = split.next().unwrap().parse::<u32>();
-            let hash = Hash::from_hex(split.next().unwrap());
+            let hash = Hash::from_hex(split.next().unwrap())?;
 
             if id.is_err() {
                 Err(BlockstampParseError::InvalidBlockNumber())
-            } else if hash.is_err() {
-                Err(BlockstampParseError::InvalidBlockHash())
             } else {
                 Ok(Blockstamp {
                     id: BlockNumber(id.unwrap()),
-                    hash: BlockHash(
-                        hash.expect("Try to get hash of an uncompleted or reduce block !"),
-                    ),
+                    hash: BlockHash(hash),
                 })
             }
         }

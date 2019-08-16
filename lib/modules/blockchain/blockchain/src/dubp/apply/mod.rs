@@ -15,9 +15,10 @@
 
 //! Sub-module that applies the content of a block to the indexes of the local blockchain.
 
+use dubp_common_doc::traits::Document;
+use dubp_common_doc::BlockNumber;
 use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait, BlockDocumentV10};
 use dubp_documents::documents::transaction::{TxAmount, TxBase};
-use dubp_documents::{BlockNumber, Document};
 use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::block::DALBlock;
 use durs_blockchain_dal::entities::sources::SourceAmount;
