@@ -1,6 +1,6 @@
 [package]
 name = "json-pest-parser"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["elois <elois@duniter.org>"]
 description = "Parse JSON with pest grammar."
 repository = "https://git.duniter.org/nodes/rust/duniter-rs"
