@@ -16,7 +16,7 @@
 //! Sub-module managing the inter-modules requests received.
 
 use crate::*;
-use dubp_documents::documents::identity::IdentityDocument;
+use dubp_user_docs::documents::identity::IdentityDocument;
 use durs_message::requests::*;
 use durs_module::*;
 

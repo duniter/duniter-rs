@@ -136,7 +136,7 @@ tests:win64:stable:
     - cargo test --package durs-ws2p-messages --target=x86_64-pc-windows-gnu
     - cargo test --package dup-crypto --target=x86_64-pc-windows-gnu
     - cargo test --package durs-common-tools --target=x86_64-pc-windows-gnu
-    - cargo test --package dubp-documents --target=x86_64-pc-windows-gnu
+    - cargo test --package dubp-user-docs --target=x86_64-pc-windows-gnu
     - cargo test --package json-pest-parser --target=x86_64-pc-windows-gnu
     - cargo test --package durs-network-documents --target=x86_64-pc-windows-gnu
     - cargo test --package rules-engine --target=x86_64-pc-windows-gnu

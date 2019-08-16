@@ -160,11 +160,12 @@ impl<'de> BinSignable<'de> for WS2PMessage {
 mod tests {
     use crate::v2::payload_container::WS2Pv2MessagePayload;
     use crate::v2::WS2Pv2Message;
+    use crate::WS2PMessage;
     use bincode;
     use bincode::{deserialize, serialize};
     use dubp_common_doc::{BlockNumber, Blockstamp};
     use dubp_currency_params::CurrencyName;
-    use dubp_documents::documents::certification::*;
+    use dubp_user_docs::documents::certification::*;
     use dup_crypto::keys::bin_signable::BinSignable;
     use dup_crypto::keys::*;
     use durs_network_documents::network_endpoint::*;
@@ -221,14 +222,14 @@ mod tests {
 
     pub fn test_ws2p_message(payload: WS2Pv2MessagePayload) {
         let keypair1 = keypair1();
-        let mut ws2p_message = WS2Pv2Message {
+        let mut ws2p_message = WS2PMessage::V2(WS2Pv2Message {
             currency_name: CurrencyName(String::from("g1")),
             issuer_node_id: NodeId(0),
             issuer_pubkey: PubKey::Ed25519(keypair1.public_key()),
             payload,
             message_hash: None,
             signature: None,
-        };
+        });
 
         let sign_result = ws2p_message.sign(PrivKey::Ed25519(keypair1.private_key()));
         if let Ok(bin_msg) = sign_result {
@@ -242,8 +243,7 @@ mod tests {
                 .verify()
                 .expect("WS2Pv2Message : Invalid signature !");
             // Test debinarization
-            let debinarization_result: Result<WS2Pv2Message, bincode::Error> =
-                deserialize(&bin_msg);
+            let debinarization_result: Result<WS2PMessage, bincode::Error> = deserialize(&bin_msg);
             if let Ok(ws2p_message2) = debinarization_result {
                 assert_eq!(ws2p_message, ws2p_message2);
             } else {

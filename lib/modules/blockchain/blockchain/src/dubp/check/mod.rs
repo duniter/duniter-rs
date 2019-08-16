@@ -18,9 +18,9 @@
 pub mod hashs;
 
 use crate::dubp::BlockError;
+use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
-use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
 use dup_crypto::keys::PubKey;
 use durs_blockchain_dal::*;
 use durs_wot::*;

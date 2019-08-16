@@ -58,10 +58,10 @@ use crate::ws_connections::messages::WS2Pv1Msg;
 use crate::ws_connections::requests::{WS2Pv1ReqBody, WS2Pv1ReqFullId, WS2Pv1ReqId, WS2Pv1Request};
 use crate::ws_connections::states::WS2PConnectionState;
 use crate::ws_connections::*;
+use dubp_block_doc::BlockDocument;
 use dubp_common_doc::Blockstamp;
 use dubp_currency_params::CurrencyName;
-use dubp_documents::documents::block::BlockDocument;
-use dubp_documents::documents::UserDocumentDUBP;
+use dubp_user_docs::documents::UserDocumentDUBP;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
 use durs_common_tools::traits::merge::Merge;
@@ -887,9 +887,9 @@ mod tests {
     use super::*;
     use crate::ws_connections::requests::sent::network_request_to_json;
     use crate::ws_connections::requests::*;
+    use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
+    use dubp_block_doc::parser::parse_json_block_from_serde_value;
     use dubp_common_doc::BlockNumber;
-    use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
-    use dubp_documents::parsers::blocks::parse_json_block_from_serde_value;
 
     #[test]
     fn test_parse_json_block() {

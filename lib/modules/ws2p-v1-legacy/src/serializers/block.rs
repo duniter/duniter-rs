@@ -16,7 +16,7 @@
 //! Sub-module that serialize BlockDocument into WS2Pv1 json format
 
 use super::IntoWS2Pv1Json;
-use dubp_documents::documents::block::{BlockDocumentStringified, BlockDocumentV10Stringified};
+use dubp_block_doc::block::{BlockDocumentStringified, BlockDocumentV10Stringified};
 
 impl IntoWS2Pv1Json for BlockDocumentStringified {
     fn into_ws2p_v1_json(self) -> serde_json::Value {

@@ -16,7 +16,7 @@
 use crate::{BinDB, CertsExpirV10Datas, DALError, IdentitiesV10Datas};
 use dubp_common_doc::BlockNumber;
 use dubp_currency_params::CurrencyParameters;
-use dubp_documents::documents::certification::CompactCertificationDocumentV10;
+use dubp_user_docs::documents::certification::CompactCertificationDocumentV10;
 use dup_crypto::keys::*;
 use durs_wot::NodeId;
 

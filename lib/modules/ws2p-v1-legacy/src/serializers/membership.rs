@@ -16,7 +16,7 @@
 //! Sub-module that serialize MembershipDocumentV10Stringified into WS2Pv1 json format
 
 use super::IntoWS2Pv1Json;
-use dubp_documents::documents::membership::MembershipDocumentV10Stringified;
+use dubp_user_docs::documents::membership::MembershipDocumentV10Stringified;
 
 impl IntoWS2Pv1Json for MembershipDocumentV10Stringified {
     fn into_ws2p_v1_json(self) -> serde_json::Value {

@@ -12,7 +12,7 @@ path = "src/lib.rs"
 [dependencies]
 dup-crypto = { path = "../../crypto" }
 dubp-currency-params = { path = "../../dubp/currency-params" }
-dubp-documents = { path = "../../dubp/documents" }
+dubp-user-docs = { path = "../../dubp/user-docs" }
 durs-common-tools = { path = "../../tools/common-tools" }
 durs-network-documents = { path = "../../dunp/network-documents" }
 failure = "0.1.5"

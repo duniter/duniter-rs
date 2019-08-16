@@ -18,7 +18,7 @@ use crate::{BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use dubp_currency_params::CurrencyParameters;
-use dubp_documents::documents::identity::IdentityDocumentV10;
+use dubp_user_docs::documents::identity::IdentityDocumentV10;
 use dup_crypto::keys::PubKey;
 use durs_common_tools::fatal_error;
 use durs_wot::NodeId;

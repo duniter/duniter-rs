@@ -13,13 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Mocks for projects use dubp-documents
+//! Mocks for projects use dubp-user-docs
 
 use dubp_common_doc::blockstamp::Blockstamp;
 use dubp_common_doc::traits::DocumentBuilder;
 use dubp_common_doc::{BlockHash, BlockNumber};
-use dubp_documents::documents::identity::v10::IdentityDocumentV10Builder;
-use dubp_documents::documents::identity::*;
+use dubp_user_docs::documents::identity::v10::IdentityDocumentV10Builder;
+use dubp_user_docs::documents::identity::*;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::PubKey;
 

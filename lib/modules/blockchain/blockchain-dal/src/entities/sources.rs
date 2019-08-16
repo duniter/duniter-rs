@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use dubp_common_doc::BlockNumber;
-use dubp_documents::documents::transaction::*;
+use dubp_user_docs::documents::transaction::*;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::PubKey;
 use durs_common_tools::fatal_error;

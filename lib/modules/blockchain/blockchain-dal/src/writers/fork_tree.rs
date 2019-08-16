@@ -96,7 +96,7 @@ mod test {
     fn test_insert_new_head_block() -> Result<(), DALError> {
         // Create mock datas
         let blockstamps =
-            dubp_documents_tests_tools::mocks::generate_blockstamps(*DEFAULT_FORK_WINDOW_SIZE + 2);
+            dubp_user_docs_tests_tools::mocks::generate_blockstamps(*DEFAULT_FORK_WINDOW_SIZE + 2);
         let fork_tree_db = open_db::<ForksTreeV10Datas>(None, "")?;
 
         // Insert genesis block
@@ -150,7 +150,7 @@ mod test {
     fn test_insert_new_fork_block() -> Result<(), DALError> {
         // Create mock datas
         let blockstamps =
-            dubp_documents_tests_tools::mocks::generate_blockstamps(*DEFAULT_FORK_WINDOW_SIZE + 3);
+            dubp_user_docs_tests_tools::mocks::generate_blockstamps(*DEFAULT_FORK_WINDOW_SIZE + 3);
         let fork_tree_db = open_db::<ForksTreeV10Datas>(None, "")?;
 
         // Insert 4 main blocks

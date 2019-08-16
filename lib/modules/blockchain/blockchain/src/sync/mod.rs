@@ -18,10 +18,10 @@ mod download;
 
 use crate::*;
 use apply::BlockApplicator;
+use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::Blockstamp;
 use dubp_common_doc::{BlockHash, BlockNumber};
 use dubp_currency_params::{CurrencyName, CurrencyParameters};
-use dubp_documents::documents::block::BlockDocumentTrait;
 use dup_crypto::keys::*;
 use durs_blockchain_dal::writers::requests::*;
 use durs_blockchain_dal::{open_memory_db, CertsExpirV10Datas};

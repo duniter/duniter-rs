@@ -533,7 +533,7 @@ mod tests {
         // Fill tree with 10 nodes
         let mut tree = ForkTree::default();
         let blockstamps: Vec<Blockstamp> =
-            dubp_documents_tests_tools::mocks::generate_blockstamps(10);
+            dubp_user_docs_tests_tools::mocks::generate_blockstamps(10);
         tree.insert_new_node(blockstamps[0], None, true);
         for i in 1..10 {
             tree.insert_new_node(blockstamps[i], Some(TreeNodeId(i - 1)), true);
@@ -620,7 +620,7 @@ mod tests {
     fn insert_more_fork_window_size_nodes() {
         let mut tree = ForkTree::default();
         let blockstamps: Vec<Blockstamp> =
-            dubp_documents_tests_tools::mocks::generate_blockstamps(*DEFAULT_FORK_WINDOW_SIZE + 2);
+            dubp_user_docs_tests_tools::mocks::generate_blockstamps(*DEFAULT_FORK_WINDOW_SIZE + 2);
 
         // Fill tree with MAX_DEPTH nodes
         tree.insert_new_node(blockstamps[0], None, true);
@@ -657,7 +657,7 @@ mod tests {
     fn test_change_main_branch() {
         let mut tree = ForkTree::default();
         let blockstamps: Vec<Blockstamp> =
-            dubp_documents_tests_tools::mocks::generate_blockstamps(*DEFAULT_FORK_WINDOW_SIZE + 2);
+            dubp_user_docs_tests_tools::mocks::generate_blockstamps(*DEFAULT_FORK_WINDOW_SIZE + 2);
 
         // Fill tree with MAX_DEPTH nodes
         tree.insert_new_node(blockstamps[0], None, true);

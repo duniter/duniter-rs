@@ -14,9 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
+use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockHash, BlockNumber, Blockstamp};
-use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait};
 use dup_crypto::keys::*;
 use std::collections::HashMap;
 use unwrap::unwrap;

@@ -10,10 +10,11 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
+dubp-block-doc = { path = "../../../dubp/block-doc"} #, version = "0.1.0" }
 dubp-common-doc = { path = "../../../dubp/common-doc"} #, version = "0.1.0" }
 dup-crypto = { path = "../../../crypto" }
 dubp-currency-params = { path = "../../../dubp/currency-params" }
-dubp-documents= { path = "../../../dubp/documents" }
+dubp-user-docs= { path = "../../../dubp/user-docs" }
 durs-conf = { path = "../../../core/conf" }
 durs-module = { path = "../../../core/module" }
 durs-common-tools = { path = "../../../tools/common-tools" }
@@ -29,7 +30,7 @@ unwrap = "1.2.1"
 
 [dev-dependencies]
 dup-crypto-tests-tools = { path = "../../../tests-tools/crypto-tests-tools" }
-dubp-documents-tests-tools = { path = "../../../tests-tools/documents-tests-tools" }
+dubp-user-docs-tests-tools = { path = "../../../tests-tools/user-docs-tests-tools" }
 durs-common-tests-tools = { path = "../../../tests-tools/common-tests-tools" }
 
 [features]

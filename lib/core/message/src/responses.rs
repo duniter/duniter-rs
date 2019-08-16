@@ -13,13 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use dubp_block_doc::BlockDocument;
 use dubp_common_doc::BlockNumber;
 use dubp_common_doc::Blockstamp;
-use dubp_documents::documents::block::BlockDocument;
-use dubp_documents::documents::certification::CertificationDocument;
-use dubp_documents::documents::identity::IdentityDocument;
-use dubp_documents::documents::membership::MembershipDocument;
-use dubp_documents::documents::revocation::RevocationDocumentV10;
+use dubp_user_docs::documents::certification::CertificationDocument;
+use dubp_user_docs::documents::identity::IdentityDocument;
+use dubp_user_docs::documents::membership::MembershipDocument;
+use dubp_user_docs::documents::revocation::RevocationDocumentV10;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_module::ModuleReqId;

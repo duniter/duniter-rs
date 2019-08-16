@@ -17,7 +17,7 @@
 
 use crate::constants;
 use crate::WS2Pv1Module;
-use dubp_documents::documents::UserDocumentDUBP;
+use dubp_user_docs::documents::UserDocumentDUBP;
 use durs_message::events::DursEvent;
 use durs_message::*;
 use durs_module::{ModuleEvent, ModuleStaticName, RouterThreadMessage};

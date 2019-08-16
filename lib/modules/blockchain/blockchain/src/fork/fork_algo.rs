@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::Blockstamp;
-use dubp_documents::documents::block::BlockDocumentTrait;
 use durs_blockchain_dal::entities::fork_tree::ForkTree;
 use durs_blockchain_dal::{DALError, ForksDBs};
 use std::collections::HashSet;
@@ -100,8 +100,8 @@ mod tests {
 
     use super::*;
     use crate::*;
+    use dubp_block_doc::BlockDocument;
     use dubp_common_doc::{BlockHash, BlockNumber};
-    use dubp_documents::documents::block::BlockDocument;
     use durs_blockchain_dal::entities::block::DALBlock;
 
     #[test]
@@ -118,7 +118,7 @@ mod tests {
 
         // Generate `FORK_WINDOW_SIZE + 2` mock blocks
         let main_branch: Vec<BlockDocument> =
-            dubp_documents_tests_tools::mocks::gen_empty_timed_blocks_v10(
+            dubp_user_docs_tests_tools::mocks::gen_empty_timed_blocks_v10(
                 fork_window_size + 2,
                 0u64,
             );
@@ -156,7 +156,7 @@ mod tests {
         let fork_blocks: Vec<BlockDocument> = (0..3)
             .map(|i| {
                 BlockDocument::V10(
-                    dubp_documents_tests_tools::mocks::gen_empty_timed_block_v10(
+                    dubp_user_docs_tests_tools::mocks::gen_empty_timed_block_v10(
                         Blockstamp {
                             id: BlockNumber(fork_point.number().0 + i + 1),
                             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
@@ -203,7 +203,7 @@ mod tests {
                 &forks_dbs,
                 DALBlock {
                     block: BlockDocument::V10(
-                        dubp_documents_tests_tools::mocks::gen_empty_timed_block_v10(
+                        dubp_user_docs_tests_tools::mocks::gen_empty_timed_block_v10(
                             determining_blockstamp,
                             *ADVANCE_TIME,
                             dup_crypto_tests_tools::mocks::hash('A'),
@@ -235,7 +235,7 @@ mod tests {
         let new_main_blocks: Vec<BlockDocument> = (0..7)
             .map(|i| {
                 BlockDocument::V10(
-                    dubp_documents_tests_tools::mocks::gen_empty_timed_block_v10(
+                    dubp_user_docs_tests_tools::mocks::gen_empty_timed_block_v10(
                         Blockstamp {
                             id: BlockNumber(fork_point.number().0 + i + 1),
                             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),

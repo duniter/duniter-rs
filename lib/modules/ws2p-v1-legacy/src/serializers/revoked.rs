@@ -16,7 +16,7 @@
 //! Sub-module that serialize CompactRevocationDocumentV10Stringified into WS2Pv1 json format
 
 use super::IntoWS2Pv1Json;
-use dubp_documents::documents::revocation::CompactRevocationDocumentV10Stringified;
+use dubp_user_docs::documents::revocation::CompactRevocationDocumentV10Stringified;
 
 impl IntoWS2Pv1Json for CompactRevocationDocumentV10Stringified {
     fn into_ws2p_v1_json(self) -> serde_json::Value {

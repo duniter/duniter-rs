@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::entities::block::DALBlock;
-use dubp_documents::documents::block::BlockDocumentTrait;
+use dubp_block_doc::block::BlockDocumentTrait;
 use dup_crypto::keys::PubKey;
 use durs_common_tools::fatal_error;
 use durs_wot::operations::centrality::{CentralitiesCalculator, UlrikBrandesCentralityCalculator};

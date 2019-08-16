@@ -14,9 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
+use dubp_block_doc::BlockDocument;
 use dubp_common_doc::Blockstamp;
-use dubp_documents::documents::block::BlockDocument;
-use dubp_documents::documents::UserDocumentDUBP;
+use dubp_user_docs::documents::UserDocumentDUBP;
 use durs_network::events::NetworkEvent;
 
 /// The DURS event message.

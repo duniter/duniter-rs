@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use dubp_common_doc::{BlockNumber, Blockstamp};
-use dubp_documents::documents::identity::IdentityDocumentV10;
+use dubp_user_docs::documents::identity::IdentityDocumentV10;
 use durs_wot::NodeId;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]

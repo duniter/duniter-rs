@@ -26,13 +26,13 @@ Pour exécutez les tests (TU+TI) d'une crate en particulier :
 
     cargo test --package CRATE_NAME
 
-Par exemple pour exécuter les tests (TU+TI) de la crate dubp-documents:
+Par exemple pour exécuter les tests (TU+TI) de la crate dubp-user-docs:
 
-    cargo test --package dubp-documents
+    cargo test --package dubp-user-docs
 
 Le nom d'une crate est indiqué dans l'attribut `name` du fichier `Cargo.toml` situé a la racine de la crate en question.
 
-Par exemple pour la crate située dans `lib/tools/documents`, il faut regarder le fichier `lib/tools/documents/Cargo.toml`.
+Par exemple pour la crate située dans `lib/tools/user-docs`, il faut regarder le fichier `lib/tools/user-docs/Cargo.toml`.
 
 ## Lancer tout les tests du projet
 

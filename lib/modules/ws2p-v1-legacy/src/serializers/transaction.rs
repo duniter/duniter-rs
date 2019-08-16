@@ -16,7 +16,7 @@
 //! Sub-module that serialize TransactionDocument into WS2Pv1 json format
 
 use super::IntoWS2Pv1Json;
-use dubp_documents::documents::transaction::TransactionDocumentStringified;
+use dubp_user_docs::documents::transaction::TransactionDocumentStringified;
 
 impl IntoWS2Pv1Json for TransactionDocumentStringified {
     fn into_ws2p_v1_json(self) -> serde_json::Value {

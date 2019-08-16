@@ -18,7 +18,7 @@
 
 use crate::*;
 use dubp_common_doc::traits::Document;
-use dubp_documents::documents::UserDocumentDUBP;
+use dubp_user_docs::documents::UserDocumentDUBP;
 use unwrap::unwrap;
 
 pub fn receive_user_documents(_bc: &mut BlockchainModule, network_documents: &[UserDocumentDUBP]) {

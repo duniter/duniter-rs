@@ -1,11 +1,11 @@
 [package]
-name = "dubp-documents"
-version = "0.14.0"
-authors = ["nanocryk <nanocryk@duniter.org>", "elois <elois@ifee.fr>"]
-description = "Handles DUBP documents (DUBP: DUniter Blockhain Protocol)"
+name = "dubp-block-doc"
+version = "0.1.0"
+authors = ["elois <elois@ifee.fr>"]
+description = "Handles DUBP block (DUBP: DUniter Blockhain Protocol)."
 repository = "https://git.duniter.org/nodes/rust/duniter-rs"
 readme = "README.md"
-keywords = ["duniter", "blockchain", "cryptocurrency", "document"]
+keywords = ["dunitrust", "duniter", "blockchain", "cryptocurrency", "block"]
 license = "AGPL-3.0"
 edition = "2018"
 
@@ -15,6 +15,7 @@ path = "src/lib.rs"
 [dependencies]
 dubp-common-doc = { path = "../common-doc"} #, version = "0.1.0" }
 dubp-currency-params = { path = "../currency-params", version = "0.2.0" }
+dubp-user-docs = { path = "../user-docs", version = "0.14.0" }
 dup-crypto = { path = "../../crypto", version = "0.7.0" }
 durs-common-tools = { path = "../../tools/common-tools", version = "0.2.0" }
 failure = "0.1.5"
@@ -29,5 +30,6 @@ unwrap = "1.2.1"
 
 [dev-dependencies]
 pretty_assertions = "0.5.1"
+dubp-user-docs-tests-tools = { path = "../../tests-tools/user-docs-tests-tools" }
 
 [features]

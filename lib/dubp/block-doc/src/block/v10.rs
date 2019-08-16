@@ -16,19 +16,22 @@
 //! Wrappers around Block document V10.
 
 use super::{BlockDocumentTrait, VerifyBlockHashError};
-use crate::documents::certification::v10::CompactCertificationDocumentV10Stringified;
-use crate::documents::identity::IdentityDocumentV10;
-use crate::documents::membership::v10::{MembershipDocumentV10, MembershipDocumentV10Stringified};
-use crate::documents::revocation::v10::CompactRevocationDocumentV10Stringified;
-use crate::documents::revocation::RevocationDocumentV10;
-use crate::documents::transaction::TransactionDocument;
-use crate::documents::*;
 use dubp_common_doc::blockstamp::Blockstamp;
 use dubp_common_doc::traits::text::*;
 use dubp_common_doc::traits::{Document, ToStringObject};
 use dubp_common_doc::{BlockHash, BlockNumber};
 use dubp_currency_params::genesis_block_params::v10::BlockV10Parameters;
 use dubp_currency_params::CurrencyName;
+use dubp_user_docs::documents::certification::v10::{
+    CertificationDocumentV10, CompactCertificationDocumentV10Stringified,
+};
+use dubp_user_docs::documents::identity::{IdentityDocumentV10, IdentityDocumentV10Stringified};
+use dubp_user_docs::documents::membership::v10::{
+    MembershipDocumentV10, MembershipDocumentV10Stringified,
+};
+use dubp_user_docs::documents::revocation::v10::CompactRevocationDocumentV10Stringified;
+use dubp_user_docs::documents::revocation::RevocationDocumentV10;
+use dubp_user_docs::documents::transaction::{TransactionDocument, TransactionDocumentStringified};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
@@ -620,10 +623,14 @@ impl ToStringObject for BlockDocumentV10 {
 
 #[cfg(test)]
 mod tests {
-    use super::certification::CertificationDocumentParser;
-    use super::transaction::TransactionDocumentParser;
     use super::*;
+    use dubp_common_doc::parser::TextDocumentParser;
     use dubp_common_doc::traits::Document;
+    use dubp_user_docs::documents::certification::{
+        CertificationDocument, CertificationDocumentParser,
+    };
+    use dubp_user_docs::documents::membership::{MembershipDocument, MembershipDocumentParser};
+    use dubp_user_docs::documents::transaction::{TransactionDocument, TransactionDocumentParser};
 
     #[test]
     fn generate_and_verify_empty_block() {

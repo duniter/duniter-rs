@@ -15,7 +15,6 @@
 
 //! Implements the Dunitrust blockchain Documents.
 
-use crate::documents::block::*;
 use crate::documents::certification::*;
 use crate::documents::identity::*;
 use crate::documents::membership::*;
@@ -27,21 +26,11 @@ use durs_common_tools::fatal_error;
 use pest::iterators::Pair;
 use pest::Parser;
 
-pub mod block;
 pub mod certification;
 pub mod identity;
 pub mod membership;
 pub mod revocation;
 pub mod transaction;
-
-/// Document of DUBP (DUniter Blockhain Protocol)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum DocumentDUBP {
-    /// Block document.
-    Block(Box<BlockDocument>),
-    /// User document of DUBP (DUniter Blockhain Protocol)
-    UserDocument(UserDocumentDUBP),
-}
 
 /// User document of DUBP (DUniter Blockhain Protocol)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,15 +51,6 @@ pub enum UserDocumentDUBP {
     Revocation(Box<RevocationDocument>),
 }
 
-/// List of stringified document types.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum DocumentDUBPStr {
-    /// Block document (not yet implemented)
-    Block(Box<BlockDocumentStringified>),
-    /// Stringified user document.
-    UserDocument(UserDocumentDUBPStr),
-}
-
 /// List of stringified user document types.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum UserDocumentDUBPStr {
@@ -88,21 +68,6 @@ pub enum UserDocumentDUBPStr {
 
     /// Revocation document.
     Revocation(Box<RevocationDocumentStringified>),
-}
-
-impl ToStringObject for DocumentDUBP {
-    type StringObject = DocumentDUBPStr;
-
-    fn to_string_object(&self) -> Self::StringObject {
-        match *self {
-            DocumentDUBP::Block(ref doc) => {
-                DocumentDUBPStr::Block(Box::new(doc.to_string_object()))
-            }
-            DocumentDUBP::UserDocument(ref user_doc) => {
-                DocumentDUBPStr::UserDocument(user_doc.to_string_object())
-            }
-        }
-    }
 }
 
 impl ToStringObject for UserDocumentDUBP {

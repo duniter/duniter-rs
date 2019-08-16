@@ -10,7 +10,7 @@ edition = "2018"
 path = "lib.rs"
 
 [dependencies]
-dubp-documents= { path = "../../dubp/documents" }
+dubp-user-docs= { path = "../../dubp/user-docs" }
 durs-conf = { path = "../../core/conf" }
 durs-message =  { path = "../../core/message" }
 durs-module = { path = "../../core/module" }

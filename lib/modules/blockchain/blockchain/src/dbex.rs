@@ -14,9 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
+use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::BlockNumber;
-use dubp_documents::documents::block::BlockDocumentTrait;
-use dubp_documents::documents::transaction::*;
+use dubp_user_docs::documents::transaction::*;
 use dup_crypto::keys::*;
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::data::WebOfTrust;

@@ -86,9 +86,50 @@ pub fn parse_json_transaction(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dubp_common_doc::traits::DocumentBuilder;
+    use dubp_common_doc::Blockstamp;
+    use std::str::FromStr;
+
+    pub fn first_g1_tx_doc() -> TransactionDocument {
+        let expected_tx_builder = TransactionDocumentBuilder {
+            currency: &"g1",
+            blockstamp: &Blockstamp::from_string(
+                "50-00001DAA4559FEDB8320D1040B0F22B631459F36F237A0D9BC1EB923C12A12E7",
+            )
+            .expect("Fail to parse blockstamp"),
+            locktime: &0,
+            issuers: &vec![PubKey::Ed25519(
+                ed25519::PublicKey::from_base58("2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ")
+                    .expect("Fail to parse issuer !"),
+            )],
+            inputs: &vec![TransactionInput::from_str(
+                "1000:0:D:2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ:1",
+            )
+            .expect("Fail to parse inputs")],
+            unlocks: &vec![
+                TransactionInputUnlocks::from_str("0:SIG(0)").expect("Fail to parse unlocks")
+            ],
+            outputs: &vec![
+                TransactionOutput::from_str(
+                    "1:0:SIG(Com8rJukCozHZyFao6AheSsfDQdPApxQRnz7QYFf64mm)",
+                )
+                .expect("Fail to parse outputs"),
+                TransactionOutput::from_str(
+                    "999:0:SIG(2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ)",
+                )
+                .expect("Fail to parse outputs"),
+            ],
+            comment: "TEST",
+            hash: None,
+        };
+
+        expected_tx_builder.build_with_signature(vec![Sig::Ed25519(
+                ed25519::Signature::from_base64("fAH5Gor+8MtFzQZ++JaJO6U8JJ6+rkqKtPrRr/iufh3MYkoDGxmjzj6jCADQL+hkWBt8y8QzlgRkz0ixBcKHBw==").expect("Fail to parse sig !")
+            )])
+    }
 
     #[test]
-    fn parse_empty_json_block() {
+    fn test_parse_json_tx() {
         let tx_json_str = r#"{
      "version": 10,
      "currency": "g1",
@@ -120,7 +161,7 @@ mod tests {
             json_pest_parser::parse_json_string(tx_json_str).expect("Fail to parse json tx !");
 
         assert_eq!(
-            crate::parsers::tests::first_g1_tx_doc(),
+            first_g1_tx_doc(),
             parse_json_transaction(&tx_json_value).expect("Fail to parse tx_json_value !")
         );
     }

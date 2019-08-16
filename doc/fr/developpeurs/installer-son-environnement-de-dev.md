@@ -318,13 +318,13 @@ La compilation de cette feature `ssl` nécessitera que vous ayez la lib opensssl
 
 ### tc="cargo fmt && cargo test --package"
 
-Pour exécuter les tests d'une crate en particulier. Par exemple pour exécuter les tests de la crate `dubp-documents` sasissez la commande suivante :
+Pour exécuter les tests d'une crate en particulier. Par exemple pour exécuter les tests de la crate `dubp-user-docs` sasissez la commande suivante :
 
-    tc dubp-documents
+    tc dubp-user-docs
 
 Le nom d'une crate est indiqué dans l'attribut `name` du fichier `Cargo.toml` situé a la racine de la crate en question.
 
-Par exemple pour la crate située dans `lib/tools/documents`, il faut regarder le fichier `lib/tools/documents/Cargo.toml`.
+Par exemple pour la crate située dans `lib/tools/user-docs`, il faut regarder le fichier `lib/tools/user-docs/Cargo.toml`.
 
 ### ta="cargo fmt && cargo test --all"
 

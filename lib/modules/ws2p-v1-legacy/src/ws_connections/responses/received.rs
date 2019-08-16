@@ -16,7 +16,7 @@
 //! Sub-module managing the WS2Pv1 responses received.
 
 use crate::*;
-use dubp_documents::parsers::blocks::parse_json_block_from_serde_value;
+use dubp_block_doc::parser::parse_json_block_from_serde_value;
 use durs_module::ModuleReqFullId;
 use durs_network::requests::*;
 use durs_network_documents::NodeFullId;

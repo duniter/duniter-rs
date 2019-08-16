@@ -13,13 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::documents::block::{v10::TxDocOrTxHash, BlockDocument, BlockDocumentV10};
-use crate::documents::membership::v10::MembershipType;
-use crate::parsers::{serde_json_value_to_pest_json_value, DefaultHasher};
-use crate::*;
+//! Parsers for block.
+
+use crate::block::{v10::TxDocOrTxHash, BlockDocument, BlockDocumentV10};
 use dubp_common_doc::{BlockHash, BlockNumber};
 use dubp_currency_params::genesis_block_params::v10::BlockV10Parameters;
 use dubp_currency_params::CurrencyName;
+use dubp_user_docs::documents::membership::v10::MembershipType;
+use dubp_user_docs::parsers::{serde_json_value_to_pest_json_value, DefaultHasher};
 use dup_crypto::bases::BaseConvertionError;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
@@ -91,26 +92,26 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
         },
         inner_hash: Some(Hash::from_hex(get_str(json_block, "inner_hash")?)?),
         dividend: get_optional_usize(json_block, "dividend")?,
-        identities: crate::parsers::identities::parse_compact_identities(
+        identities: dubp_user_docs::parsers::identities::parse_compact_identities(
             currency,
             get_str_array(json_block, "identities")?,
         )?,
-        joiners: crate::parsers::memberships::parse_compact_memberships(
+        joiners: dubp_user_docs::parsers::memberships::parse_compact_memberships(
             currency,
             MembershipType::In(),
             &get_str_array(json_block, "joiners")?,
         )?,
-        actives: crate::parsers::memberships::parse_compact_memberships(
+        actives: dubp_user_docs::parsers::memberships::parse_compact_memberships(
             currency,
             MembershipType::In(),
             &get_str_array(json_block, "actives")?,
         )?,
-        leavers: crate::parsers::memberships::parse_compact_memberships(
+        leavers: dubp_user_docs::parsers::memberships::parse_compact_memberships(
             currency,
             MembershipType::Out(),
             &get_str_array(json_block, "leavers")?,
         )?,
-        revoked: crate::parsers::revoked::parse_revocations_into_compact(&get_str_array(
+        revoked: dubp_user_docs::parsers::revoked::parse_revocations_into_compact(&get_str_array(
             json_block, "revoked",
         )?),
         excluded: get_str_array(json_block, "excluded")?
@@ -118,7 +119,7 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
             .map(|p| ed25519::PublicKey::from_base58(p))
             .map(|p| p.map(PubKey::Ed25519))
             .collect::<Result<Vec<PubKey>, BaseConvertionError>>()?,
-        certifications: crate::parsers::certifications::parse_certifications_into_compact(
+        certifications: dubp_user_docs::parsers::certifications::parse_certifications_into_compact(
             &get_str_array(json_block, "certifications")?,
         ),
         transactions: json_block
@@ -132,7 +133,7 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
                     .to_owned(),
             })?
             .iter()
-            .map(|tx| crate::parsers::transactions::parse_json_transaction(tx))
+            .map(|tx| dubp_user_docs::parsers::transactions::parse_json_transaction(tx))
             .map(|tx_result| tx_result.map(|tx_doc| TxDocOrTxHash::TxDoc(Box::new(tx_doc))))
             .collect::<Result<Vec<TxDocOrTxHash>, Error>>()?,
     }))
@@ -141,7 +142,7 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::documents::block::BlockDocumentTrait;
+    use crate::block::*;
 
     #[test]
     fn parse_empty_json_block() {
@@ -236,8 +237,6 @@ mod tests {
             parse_json_block(&block_json_value).expect("Fail to parse block_json_value !")
         );
     }
-
-    use crate::documents::block::VerifyBlockHashError;
 
     #[test]
     fn parse_json_block_with_one_tx() -> Result<(), VerifyBlockHashError> {
@@ -354,7 +353,7 @@ mod tests {
                 revoked: vec![],
                 excluded: vec![],
                 certifications: vec![],
-                transactions: vec![TxDocOrTxHash::TxDoc(Box::new(crate::parsers::tests::first_g1_tx_doc()))],
+                transactions: vec![TxDocOrTxHash::TxDoc(Box::new(dubp_user_docs_tests_tools::mocks::tx::first_g1_tx_doc()))],
             });
         assert_eq!(
             expected_block,

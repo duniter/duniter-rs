@@ -132,7 +132,7 @@ mod test {
             joined_on: Blockstamp::default(),
             expired_on: None,
             revoked_on: None,
-            idty_doc: dubp_documents_tests_tools::mocks::identity::gen_mock_idty(
+            idty_doc: dubp_user_docs_tests_tools::mocks::identity::gen_mock_idty(
                 pubkey,
                 created_block_id,
             ),

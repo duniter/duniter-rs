@@ -15,7 +15,7 @@
 
 //! Verify block inner hash and block hash
 
-use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait, VerifyBlockHashError};
+use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait, VerifyBlockHashError};
 
 /// Verify block hashs
 pub fn verify_block_hashs(block_doc: &BlockDocument) -> Result<(), VerifyBlockHashError> {

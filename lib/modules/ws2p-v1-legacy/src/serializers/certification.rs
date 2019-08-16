@@ -16,7 +16,7 @@
 //! Sub-module that serialize CompactCertificationDocumentV10Stringified into WS2Pv1 json format
 
 use super::IntoWS2Pv1Json;
-use dubp_documents::documents::certification::v10::CompactCertificationDocumentV10Stringified;
+use dubp_user_docs::documents::certification::v10::CompactCertificationDocumentV10Stringified;
 
 impl IntoWS2Pv1Json for CompactCertificationDocumentV10Stringified {
     fn into_ws2p_v1_json(self) -> serde_json::Value {

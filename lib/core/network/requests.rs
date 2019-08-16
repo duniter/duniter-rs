@@ -16,9 +16,9 @@
 //! Defined network requests.
 
 use crate::*;
+use dubp_block_doc::BlockDocument;
 use dubp_common_doc::blockstamp::Blockstamp;
-use dubp_documents::documents::block::BlockDocument;
-use dubp_documents::documents::UserDocumentDUBP;
+use dubp_user_docs::documents::UserDocumentDUBP;
 
 #[derive(Debug, Copy, Clone)]
 /// Type containing a request addressed to the network module

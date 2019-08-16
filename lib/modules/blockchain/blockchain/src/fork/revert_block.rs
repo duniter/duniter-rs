@@ -15,11 +15,11 @@
 
 //! Sub-module that applies a block backwards.
 
+use dubp_block_doc::block::v10::TxDocOrTxHash;
+use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait, BlockDocumentV10};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
-use dubp_documents::documents::block::v10::TxDocOrTxHash;
-use dubp_documents::documents::block::{BlockDocument, BlockDocumentTrait, BlockDocumentV10};
-use dubp_documents::documents::transaction::{TxAmount, TxBase};
+use dubp_user_docs::documents::transaction::{TxAmount, TxBase};
 use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::block::DALBlock;
 use durs_blockchain_dal::entities::sources::SourceAmount;

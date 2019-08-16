@@ -20,8 +20,8 @@ pub mod sent;
 
 use crate::serializers::IntoWS2Pv1Json;
 use crate::ws_connections::requests::WS2Pv1ReqId;
+use dubp_block_doc::BlockDocument;
 use dubp_common_doc::traits::ToStringObject;
-use dubp_documents::documents::block::BlockDocument;
 use dup_crypto::keys::PubKey;
 
 /// WS2Pv1 request response

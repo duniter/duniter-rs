@@ -17,7 +17,7 @@
 
 use super::*;
 use crate::ws_connections::requests::WS2Pv1ReqBody;
-use dubp_documents::documents::DocumentDUBP;
+use dubp_block_doc::DocumentDUBP;
 use durs_network_documents::NodeFullId;
 use ws::Message;
 

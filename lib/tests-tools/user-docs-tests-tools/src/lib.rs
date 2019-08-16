@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Crypto tests tools for projects use dubp-documents.
+//! Crypto tests tools for projects use dubp-user-docs.
 
 #![deny(
     missing_docs,
