@@ -17,8 +17,8 @@
 
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
-use dup_currency_params::genesis_block_params::v10::BlockV10Parameters;
-use dup_currency_params::CurrencyName;
+use dubp_currency_params::genesis_block_params::v10::BlockV10Parameters;
+use dubp_currency_params::CurrencyName;
 use durs_common_tools::fatal_error;
 use std::ops::Deref;
 use unwrap::unwrap;

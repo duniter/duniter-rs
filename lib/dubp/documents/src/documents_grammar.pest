@@ -1,6 +1,6 @@
 
 
-WHITESPACE = _{ "" } // Prohibition of white spaces
+//WHITESPACE = _{ "" } // Prohibition of white spaces
 nl = _{ "\n" } // Only one way to break a line is accepted
 
 hexa_upper = { ASCII_DIGIT | 'A'..'F' }
