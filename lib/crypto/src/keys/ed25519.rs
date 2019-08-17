@@ -624,7 +624,6 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
         );
     }
 
-    #[cfg(unix)]
     #[test]
     fn keypair_generate() {
         let key_pair1 = KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(
@@ -657,7 +656,6 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
         assert!(!key_pair2.eq(&other_key_pair));
     }
 
-    #[cfg(unix)]
     #[test]
     fn keypair_generate_sign_and_verify() {
         let keypair = KeyPairFromSaltedPasswordGenerator::with_default_parameters()
