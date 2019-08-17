@@ -160,10 +160,11 @@ mod tests {
     use super::*;
 
     pub fn keypair1() -> ed25519::KeyPair {
-        ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(
-            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV".as_bytes(),
-            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV_".as_bytes(),
-        )
+        let seed = [
+            61u8, 245, 136, 162, 155, 50, 205, 43, 116, 15, 45, 84, 138, 54, 114, 214, 71, 213, 11,
+            251, 135, 182, 202, 131, 48, 91, 166, 226, 40, 255, 251, 172,
+        ];
+        ed25519::KeyPairFromSeedGenerator::generate(&seed)
     }
 
     #[test]
