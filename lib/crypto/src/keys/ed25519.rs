@@ -23,7 +23,7 @@ use super::{PrivateKey as PrivateKeyMethods, PublicKey as PublicKeyMethods};
 use crate::bases::*;
 use base58::ToBase58;
 use base64;
-use cryptoxide as crypto;
+use crypto;
 use rand::{thread_rng, Rng};
 use serde::de::{Deserialize, Deserializer, Error, SeqAccess, Visitor};
 use serde::ser::{Serialize, SerializeTuple, Serializer};
@@ -306,17 +306,23 @@ impl KeyPairFromSeedGenerator {
 }
 
 /// Keypair generator with given parameters for `scrypt` keypair function.
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct KeyPairFromSaltedPasswordGenerator {
-    scrypt_params: scrypt::ScryptParams,
+    /// The log2 of the Scrypt parameter `N`.
+    log_n: u8,
+    /// The Scrypt parameter `r`
+    r: u32,
+    /// The Scrypt parameter `p`
+    p: u32,
 }
 
 impl KeyPairFromSaltedPasswordGenerator {
     /// Create a `KeyPairGenerator` with default arguments `(log_n: 12, r: 16, p: 1)`
     pub fn with_default_parameters() -> KeyPairFromSaltedPasswordGenerator {
         KeyPairFromSaltedPasswordGenerator {
-            scrypt_params: scrypt::ScryptParams::new(12, 16, 1)
-                .expect("dev error: invalid default scrypt params"),
+            log_n: 12,
+            r: 16,
+            p: 1,
         }
     }
 
@@ -327,22 +333,20 @@ impl KeyPairFromSaltedPasswordGenerator {
     /// - log_n - The log2 of the Scrypt parameter N
     /// - r - The Scrypt parameter r
     /// - p - The Scrypt parameter p
-    pub fn with_parameters(
-        log_n: u8,
-        r: u32,
-        p: u32,
-    ) -> Result<KeyPairFromSaltedPasswordGenerator, scrypt::errors::InvalidParams> {
-        Ok(KeyPairFromSaltedPasswordGenerator {
-            scrypt_params: scrypt::ScryptParams::new(log_n, r, p)?,
-        })
+    pub fn with_parameters(log_n: u8, r: u32, p: u32) -> KeyPairFromSaltedPasswordGenerator {
+        KeyPairFromSaltedPasswordGenerator { log_n, r, p }
     }
 
     /// Create a seed based on a given password and salt.
     pub fn generate_seed(&self, password: &[u8], salt: &[u8]) -> [u8; 32] {
         let mut seed = [0u8; 32];
 
-        scrypt::scrypt(salt, password, &self.scrypt_params, &mut seed)
-            .expect("dev error: invalid seed len");
+        crypto::scrypt::scrypt(
+            salt,
+            password,
+            &crypto::scrypt::ScryptParams::new(self.log_n, self.r, self.p),
+            &mut seed,
+        );
 
         seed
     }
@@ -359,7 +363,6 @@ impl KeyPairFromSaltedPasswordGenerator {
 
 #[cfg(test)]
 mod tests {
-    use super::KeyPair as ed25519KeyPair;
     use super::*;
     use crate::keys::{KeyPair, Sig, Signature};
     use base58::FromBase58;
@@ -638,7 +641,6 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
         );
 
         let key_pair2 = KeyPairFromSaltedPasswordGenerator::with_parameters(12u8, 16, 1)
-            .expect("fail to create KeyPairFromSaltedPasswordGenerator: invalid scrypt params.")
             .generate(b"toto", b"toto");
 
         // Test signature display and debug
@@ -673,22 +675,5 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 
         let sig = keypair.sign(message.as_bytes());
         assert!(keypair.verify(message.as_bytes(), &sig).is_ok());
-    }
-
-    #[test]
-    fn test_exchange_dh() {
-        let kp1 = ed25519KeyPair::generate_random();
-        let kp2 = ed25519KeyPair::generate_random();
-
-        let secret1 = crypto::ed25519::exchange(&kp1.pubkey.0, &kp2.privkey.0);
-        let secret2 = crypto::ed25519::exchange(&kp2.pubkey.0, &kp1.privkey.0);
-
-        assert_eq!(secret1, secret2);
-
-        println!("pk1={}", kp1.pubkey);
-        println!("pk2={}", kp2.pubkey);
-        println!("shared_secret1={:?}", secret1);
-        println!("shared_secret2={:?}", secret2);
-        //panic!();
     }
 }

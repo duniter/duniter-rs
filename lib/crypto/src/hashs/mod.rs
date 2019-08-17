@@ -20,9 +20,9 @@ use rand::{thread_rng, Rng};
 use std::fmt::{Debug, Display, Error, Formatter};
 
 #[cfg(not(all(unix, any(target_arch = "x86", target_arch = "x86_64"))))]
-use cryptoxide::digest::Digest;
+use crypto::digest::Digest;
 #[cfg(not(all(unix, any(target_arch = "x86", target_arch = "x86_64"))))]
-use cryptoxide::sha2::Sha256;
+use crypto::sha2::Sha256;
 #[cfg(all(unix, any(target_arch = "x86", target_arch = "x86_64")))]
 use sha2::{Digest, Sha256};
 
