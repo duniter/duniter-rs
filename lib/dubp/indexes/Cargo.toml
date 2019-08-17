@@ -1,0 +1,30 @@
+[package]
+name = "dubp-indexes"
+version = "0.1.0"
+authors = ["elois <elois@ifee.fr>"]
+description = "Provides the definition of the indexes described in the DUBP RFC (DUBP: DUniter Blockhain Protocol)."
+repository = "https://git.duniter.org/nodes/rust/duniter-rs"
+readme = "README.md"
+keywords = ["dunitrust", "duniter", "blockchain", "cryptocurrency", "block", "dubp"]
+license = "AGPL-3.0"
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+dubp-common-doc = { path = "../common-doc"} #, version = "0.1.0" }
+dubp-user-docs = { path = "../user-docs"} #, version = "0.1.0" }
+dubp-currency-params = { path = "../currency-params", version = "0.2.0" }
+dup-crypto = { path = "../../crypto", version = "0.7.0" }
+durs-common-tools = { path = "../../tools/common-tools", version = "0.2.0" }
+failure = "0.1.5"
+log = "0.4.*"
+serde = { version = "1.0.*", features = ["derive"] }
+shrinkwraprs = "0.2.*"
+unwrap = "1.2.1"
+
+[dev-dependencies]
+pretty_assertions = "0.5.1"
+
+[features]

@@ -46,8 +46,8 @@ pub fn create_du(
         }
     })?;
     // Get members balances
-    let members_balances: HashMap<PubKey, (SourceAmount, HashSet<UTXOIndexV10>)> = balances_db
-        .read(|db| {
+    let members_balances: HashMap<PubKey, (SourceAmount, HashSet<UniqueIdUTXOv10>)> =
+        balances_db.read(|db| {
             let mut members_balances = HashMap::new();
             for pubkey in members {
                 members_balances.insert(
@@ -62,17 +62,18 @@ pub fn create_du(
             members_balances
         })?;
     // Increase/Decrease members balance
-    let members_balances: Vec<(PubKey, (SourceAmount, HashSet<UTXOIndexV10>))> = members_balances
-        .iter()
-        .map(|(pubkey, (balance, utxos_indexs))| {
-            let new_balance = if revert {
-                *balance - *du_amount
-            } else {
-                *balance + *du_amount
-            };
-            (*pubkey, (new_balance, utxos_indexs.clone()))
-        })
-        .collect();
+    let members_balances: Vec<(PubKey, (SourceAmount, HashSet<UniqueIdUTXOv10>))> =
+        members_balances
+            .iter()
+            .map(|(pubkey, (balance, utxos_indexs))| {
+                let new_balance = if revert {
+                    *balance - *du_amount
+                } else {
+                    *balance + *du_amount
+                };
+                (*pubkey, (new_balance, utxos_indexs.clone()))
+            })
+            .collect();
     // Write new members balance
     balances_db.write(|db| {
         for (pubkey, (balance, utxos_indexs)) in members_balances {

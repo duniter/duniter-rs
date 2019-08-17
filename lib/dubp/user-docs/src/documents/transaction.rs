@@ -53,9 +53,9 @@ impl Sub for TxAmount {
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Eq, Ord, Deserialize, Hash, Serialize)]
 pub struct TxBase(pub usize);
 
-/// Wrap a transaction index
+/// Wrap an output index
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct TxIndex(pub usize);
+pub struct OutputIndex(pub usize);
 
 /// Wrap a transaction input
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -63,7 +63,7 @@ pub enum TransactionInput {
     /// Universal Dividend Input
     D(TxAmount, TxBase, PubKey, BlockNumber),
     /// Previous Transaction Input
-    T(TxAmount, TxBase, Hash, TxIndex),
+    T(TxAmount, TxBase, Hash, OutputIndex),
 }
 
 impl ToString for TransactionInput {
@@ -103,7 +103,7 @@ impl TransactionInput {
                     TxAmount(inner_rules.next().unwrap().as_str().parse().unwrap()),
                     TxBase(inner_rules.next().unwrap().as_str().parse().unwrap()),
                     Hash::from_hex(inner_rules.next().unwrap().as_str()).unwrap(),
-                    TxIndex(inner_rules.next().unwrap().as_str().parse().unwrap()),
+                    OutputIndex(inner_rules.next().unwrap().as_str().parse().unwrap()),
                 )
             }
             _ => fatal_error!("unexpected rule: {:?}", tx_input_type_pair.as_rule()), // Grammar ensures that we never reach this line
@@ -156,7 +156,7 @@ impl FromStr for TransactionInput {
                 TxAmount(amount.parse().expect("fail to parse input amount")),
                 TxBase(base.parse().expect("fail to parse base amount")),
                 Hash::from_hex(tx_hash).expect("fail to parse tx_hash"),
-                TxIndex(tx_index.parse().expect("fail to parse tx_index amount")),
+                OutputIndex(tx_index.parse().expect("fail to parse tx_index amount")),
             ))
         } else {
             println!("Fail to parse this input = {:?}", source);
@@ -1038,7 +1038,7 @@ mod tests {
                 TxBase(0),
                 Hash::from_hex("2CF1ACD8FE8DC93EE39A1D55881C50D87C55892AE8E4DB71D4EBAB3D412AA8FD")
                     .unwrap(),
-                TxIndex(1),
+                OutputIndex(1),
             )],
             unlocks: &vec![
                 TransactionInputUnlocks::from_str("0:SIG(0)").expect("fail to parse unlock !")

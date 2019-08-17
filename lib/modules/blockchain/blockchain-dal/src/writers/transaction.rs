@@ -16,8 +16,9 @@
 use dubp_user_docs::documents::transaction::*;
 use durs_common_tools::fatal_error;
 
-use crate::entities::sources::{SourceAmount, SourceIndexV10, UTXOIndexV10, UTXOV10};
+use crate::entities::sources::{SourceAmount, UTXOV10};
 use crate::*;
+use dubp_indexes::sindex::{SourceUniqueIdV10, UniqueIdUTXOv10};
 
 #[derive(Debug, Copy, Clone)]
 /// Transaction error
@@ -40,7 +41,7 @@ pub struct DALTxV10 {
     /// Transaction document
     pub tx_doc: TransactionDocument,
     /// Index of sources destroyed by this transaction
-    pub sources_destroyed: HashSet<UTXOIndexV10>,
+    pub sources_destroyed: HashSet<UniqueIdUTXOv10>,
 }
 
 /// Apply transaction backwards
@@ -58,13 +59,18 @@ pub fn revert_tx(
         .get_outputs()
         .iter()
         .enumerate()
-        .map(|(tx_index, output)| UTXOV10(UTXOIndexV10(tx_hash, TxIndex(tx_index)), output.clone()))
+        .map(|(tx_index, output)| {
+            UTXOV10(
+                UniqueIdUTXOv10(tx_hash, OutputIndex(tx_index)),
+                output.clone(),
+            )
+        })
         .collect();
     // Recalculate balance of consumed adress
     let new_balances_consumed_adress = dbs.balances_db.read(|db| {
         let mut new_balances_consumed_adress: HashMap<
             UTXOConditionsGroup,
-            (SourceAmount, HashSet<UTXOIndexV10>),
+            (SourceAmount, HashSet<UniqueIdUTXOv10>),
         > = HashMap::new();
         for source in &consumed_utxos {
             let source_amount = source.get_amount();
@@ -104,7 +110,7 @@ pub fn revert_tx(
         }
     })?;
     // Complete sources_destroyed
-    let sources_destroyed: HashMap<UTXOConditionsGroup, Vec<(UTXOIndexV10, SourceAmount)>> =
+    let sources_destroyed: HashMap<UTXOConditionsGroup, Vec<(UniqueIdUTXOv10, SourceAmount)>> =
         if !sources_destroyed.is_empty() {
             dbs.tx_db.read(|db| {
                 let mut sources_destroyed_completed = HashMap::new();
@@ -115,11 +121,13 @@ pub fn revert_tx(
                         .tx_doc
                         .get_outputs()[(s_index.1).0]
                         .clone();
-                    let mut sources_destroyed_for_same_address: Vec<(UTXOIndexV10, SourceAmount)> =
-                        sources_destroyed_completed
-                            .get(&tx_output.conditions.conditions)
-                            .cloned()
-                            .unwrap_or_default();
+                    let mut sources_destroyed_for_same_address: Vec<(
+                        UniqueIdUTXOv10,
+                        SourceAmount,
+                    )> = sources_destroyed_completed
+                        .get(&tx_output.conditions.conditions)
+                        .cloned()
+                        .unwrap_or_default();
                     sources_destroyed_for_same_address
                         .push((*s_index, SourceAmount(tx_output.amount, tx_output.base)));
                     sources_destroyed_completed.insert(
@@ -133,29 +141,29 @@ pub fn revert_tx(
             HashMap::with_capacity(0)
         };
     // Index recreated sources
-    let recreated_sources: HashMap<SourceIndexV10, SourceAmount> = tx_doc
+    let recreated_sources: HashMap<SourceUniqueIdV10, SourceAmount> = tx_doc
         .get_inputs()
         .iter()
         .map(|input| match *input {
             TransactionInput::D(tx_amout, tx_amout_base, pubkey, block_id) => (
-                SourceIndexV10::UD(pubkey, block_id),
+                SourceUniqueIdV10::UD(pubkey, block_id),
                 SourceAmount(tx_amout, tx_amout_base),
             ),
             TransactionInput::T(tx_amout, tx_amout_base, hash, tx_index) => (
-                SourceIndexV10::UTXO(UTXOIndexV10(hash, tx_index)),
+                SourceUniqueIdV10::UTXO(UniqueIdUTXOv10(hash, tx_index)),
                 SourceAmount(tx_amout, tx_amout_base),
             ),
         })
         .collect();
     // Find adress of recreated sources
-    let recreated_adress: HashMap<UTXOConditionsGroup, (SourceAmount, HashSet<UTXOIndexV10>)> =
+    let recreated_adress: HashMap<UTXOConditionsGroup, (SourceAmount, HashSet<UniqueIdUTXOv10>)> =
         dbs.utxos_db.read(|db| {
             let mut recreated_adress: HashMap<
                 UTXOConditionsGroup,
-                (SourceAmount, HashSet<UTXOIndexV10>),
+                (SourceAmount, HashSet<UniqueIdUTXOv10>),
             > = HashMap::new();
             for (source_index, source_amount) in &recreated_sources {
-                if let SourceIndexV10::UTXO(utxo_index) = source_index {
+                if let SourceUniqueIdV10::UTXO(utxo_index) = source_index {
                     // Get utxo
                     let utxo = db.get(&utxo_index).unwrap_or_else(|| {
                         fatal_error!(
@@ -175,7 +183,7 @@ pub fn revert_tx(
                     utxos_index.insert(*utxo_index);
                     // Write new balances datas for "conditions" address
                     recreated_adress.insert(conditions.clone(), (balance, utxos_index));
-                } else if let SourceIndexV10::UD(pubkey, _block_id) = source_index {
+                } else if let SourceUniqueIdV10::UD(pubkey, _block_id) = source_index {
                     let address =
                         UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(*pubkey));
                     let (mut balance, utxos_index) =
@@ -220,7 +228,7 @@ pub fn revert_tx(
     })?;
     // Recreate recreated sources
     for s_index in recreated_sources.keys() {
-        if let SourceIndexV10::UTXO(utxo_index) = s_index {
+        if let SourceUniqueIdV10::UTXO(utxo_index) = s_index {
             let utxo_content = dbs.tx_db.read(|db| {
                 db.get(&utxo_index.0)
                     .expect("Fatal error : not found Source TX of this utxo !")
@@ -231,7 +239,7 @@ pub fn revert_tx(
             dbs.utxos_db.write(|db| {
                 db.insert(*utxo_index, utxo_content);
             })?;
-        } else if let SourceIndexV10::UD(pubkey, block_id) = s_index {
+        } else if let SourceUniqueIdV10::UD(pubkey, block_id) = s_index {
             let mut pubkey_dus: HashSet<BlockNumber> = dbs
                 .du_db
                 .read(|db| db.get(&pubkey).cloned().unwrap_or_default())?;
@@ -254,29 +262,29 @@ pub fn apply_and_write_tx(
     let tx_hash = tx_doc.get_hash();
     let mut sources_destroyed = HashSet::new();
     // Index consumed sources
-    let consumed_sources: HashMap<SourceIndexV10, SourceAmount> = tx_doc
+    let consumed_sources: HashMap<SourceUniqueIdV10, SourceAmount> = tx_doc
         .get_inputs()
         .iter()
         .map(|input| match *input {
             TransactionInput::D(tx_amout, tx_amout_base, pubkey, block_id) => (
-                SourceIndexV10::UD(pubkey, block_id),
+                SourceUniqueIdV10::UD(pubkey, block_id),
                 SourceAmount(tx_amout, tx_amout_base),
             ),
             TransactionInput::T(tx_amout, tx_amout_base, hash, tx_index) => (
-                SourceIndexV10::UTXO(UTXOIndexV10(hash, tx_index)),
+                SourceUniqueIdV10::UTXO(UniqueIdUTXOv10(hash, tx_index)),
                 SourceAmount(tx_amout, tx_amout_base),
             ),
         })
         .collect();
     // Find adress of consumed sources
-    let consumed_adress: HashMap<UTXOConditionsGroup, (SourceAmount, HashSet<UTXOIndexV10>)> =
+    let consumed_adress: HashMap<UTXOConditionsGroup, (SourceAmount, HashSet<UniqueIdUTXOv10>)> =
         dbs.utxos_db.read(|db| {
             let mut consumed_adress: HashMap<
                 UTXOConditionsGroup,
-                (SourceAmount, HashSet<UTXOIndexV10>),
+                (SourceAmount, HashSet<UniqueIdUTXOv10>),
             > = HashMap::new();
             for (source_index, source_amount) in &consumed_sources {
-                if let SourceIndexV10::UTXO(utxo_index) = source_index {
+                if let SourceUniqueIdV10::UTXO(utxo_index) = source_index {
                     // Get utxo
                     let utxo = db.get(&utxo_index).unwrap_or_else(|| {
                         debug!("apply_tx=\"{:#?}\"", tx_doc);
@@ -295,7 +303,7 @@ pub fn apply_and_write_tx(
                     utxos_index.insert(*utxo_index);
                     // Write new balances datas for "conditions" address
                     consumed_adress.insert(conditions.clone(), (balance, utxos_index));
-                } else if let SourceIndexV10::UD(pubkey, _block_id) = source_index {
+                } else if let SourceUniqueIdV10::UD(pubkey, _block_id) = source_index {
                     let address =
                         UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(*pubkey));
                     let (mut balance, utxos_index) =
@@ -337,11 +345,11 @@ pub fn apply_and_write_tx(
     })?;
     // Remove consumed sources
     for source_index in consumed_sources.keys() {
-        if let SourceIndexV10::UTXO(utxo_index) = source_index {
+        if let SourceUniqueIdV10::UTXO(utxo_index) = source_index {
             dbs.utxos_db.write(|db| {
                 db.remove(utxo_index);
             })?;
-        } else if let SourceIndexV10::UD(pubkey, block_id) = source_index {
+        } else if let SourceUniqueIdV10::UD(pubkey, block_id) = source_index {
             let mut pubkey_dus: HashSet<BlockNumber> = dbs
                 .du_db
                 .read(|db| db.get(&pubkey).cloned().unwrap_or_default())?;
@@ -356,7 +364,7 @@ pub fn apply_and_write_tx(
     let mut output_index = 0;
     for output in tx_doc.get_outputs() {
         created_utxos.push(UTXOV10(
-            UTXOIndexV10(tx_hash, TxIndex(output_index)),
+            UniqueIdUTXOv10(tx_hash, TxIndex(output_index)),
             output.clone(),
         ));
         output_index += 1;
@@ -365,13 +373,18 @@ pub fn apply_and_write_tx(
         .get_outputs()
         .iter()
         .enumerate()
-        .map(|(tx_index, output)| UTXOV10(UTXOIndexV10(tx_hash, TxIndex(tx_index)), output.clone()))
+        .map(|(tx_index, output)| {
+            UTXOV10(
+                UniqueIdUTXOv10(tx_hash, OutputIndex(tx_index)),
+                output.clone(),
+            )
+        })
         .collect();
     // Recalculate balance of supplied adress
     let new_balances_supplied_adress = dbs.balances_db.read(|db| {
         let mut new_balances_supplied_adress: HashMap<
             UTXOConditionsGroup,
-            (SourceAmount, HashSet<UTXOIndexV10>),
+            (SourceAmount, HashSet<UniqueIdUTXOv10>),
         > = HashMap::new();
         for source in &created_utxos {
             let source_amount = source.get_amount();

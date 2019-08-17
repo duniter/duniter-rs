@@ -72,8 +72,9 @@ use std::path::PathBuf;
 
 use crate::entities::block::DALBlock;
 use crate::entities::identity::DALIdentity;
-use crate::entities::sources::{SourceAmount, UTXOContentV10, UTXOIndexV10};
+use crate::entities::sources::{SourceAmount, UTXOContentV10};
 use crate::writers::transaction::DALTxV10;
+use dubp_indexes::sindex::UniqueIdUTXOv10;
 
 /// All blocks of local blockchain indexed by block number
 pub type LocalBlockchainV10Datas = FnvHashMap<BlockNumber, DALBlock>;
@@ -94,11 +95,11 @@ pub type CertsExpirV10Datas = FnvHashMap<BlockNumber, HashSet<(NodeId, NodeId)>>
 /// V10 Transactions indexed by their hashs
 pub type TxV10Datas = HashMap<Hash, DALTxV10>;
 /// V10 Unused Transaction Output (=sources)
-pub type UTXOsV10Datas = HashMap<UTXOIndexV10, UTXOContentV10>;
+pub type UTXOsV10Datas = HashMap<UniqueIdUTXOv10, UTXOContentV10>;
 /// V10 UDs sources
 pub type UDsV10Datas = HashMap<PubKey, HashSet<BlockNumber>>;
 /// V10 Balances accounts
-pub type BalancesV10Datas = HashMap<UTXOConditionsGroup, (SourceAmount, HashSet<UTXOIndexV10>)>;
+pub type BalancesV10Datas = HashMap<UTXOConditionsGroup, (SourceAmount, HashSet<UniqueIdUTXOv10>)>;
 
 #[derive(Debug)]
 /// Database

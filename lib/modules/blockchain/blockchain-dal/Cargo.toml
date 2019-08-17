@@ -12,6 +12,7 @@ path = "src/lib.rs"
 [dependencies]
 dubp-block-doc = { path = "../../../dubp/block-doc"} #, version = "0.1.0" }
 dubp-common-doc = { path = "../../../dubp/common-doc"} #, version = "0.1.0" }
+dubp-indexes = { path = "../../../dubp/indexes"} #, version = "0.1.0" }
 dup-crypto = { path = "../../../crypto" }
 dubp-currency-params = { path = "../../../dubp/currency-params" }
 dubp-user-docs= { path = "../../../dubp/user-docs" }

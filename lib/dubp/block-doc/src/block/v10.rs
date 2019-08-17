@@ -630,7 +630,7 @@ mod tests {
         CertificationDocument, CertificationDocumentParser,
     };
     use dubp_user_docs::documents::membership::{MembershipDocument, MembershipDocumentParser};
-    use dubp_user_docs::documents::transaction::{TransactionDocument, TransactionDocumentParser};
+    use dubp_user_docs::documents::transaction::TransactionDocumentParser;
 
     #[test]
     fn generate_and_verify_empty_block() {

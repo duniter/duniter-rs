@@ -13,10 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use dubp_common_doc::BlockNumber;
+use dubp_indexes::sindex::UniqueIdUTXOv10;
 use dubp_user_docs::documents::transaction::*;
-use dup_crypto::hashs::Hash;
-use dup_crypto::keys::PubKey;
 use durs_common_tools::fatal_error;
 use std::cmp::Ordering;
 use std::ops::{Add, Sub};
@@ -77,16 +75,12 @@ impl Sub for SourceAmount {
     }
 }
 
-#[derive(Copy, Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-/// UTXOIndexV10
-pub struct UTXOIndexV10(pub Hash, pub TxIndex);
-
 /// UTXO content V10
 pub type UTXOContentV10 = TransactionOutput;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 /// V10 Unused Transaction Output
-pub struct UTXOV10(pub UTXOIndexV10, pub UTXOContentV10);
+pub struct UTXOV10(pub UniqueIdUTXOv10, pub UTXOContentV10);
 
 impl UTXOV10 {
     /// UTXO conditions
@@ -123,13 +117,4 @@ impl UTXO {
             _ => fatal_error!("UTXO version not supported !"),
         }
     }
-}
-
-#[derive(Copy, Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-/// Index of a V10 source
-pub enum SourceIndexV10 {
-    /// unused Transaction Output
-    UTXO(UTXOIndexV10),
-    /// universal Dividend
-    UD(PubKey, BlockNumber),
 }

@@ -10,6 +10,7 @@ members = [
     "lib/dubp/block-doc",
     "lib/dubp/common-doc",
     "lib/dubp/currency-params",
+    "lib/dubp/indexes",
     "lib/dubp/user-docs",
     "lib/dubp/wot",
     "lib/dunp/network-documents",

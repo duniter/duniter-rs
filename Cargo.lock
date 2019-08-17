@@ -360,13 +360,13 @@ version = "0.1.0"
 dependencies = [
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
+ "dubp-user-docs 0.14.0",
  "dup-crypto 0.7.0",
  "durs-common-tools 0.2.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "pretty_assertions 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.99 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.99 (registry+https://github.com/rust-lang/crates.io-index)",
  "shrinkwraprs 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "unwrap 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -481,6 +481,7 @@ dependencies = [
  "dubp-block-doc 0.1.0",
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
+ "dubp-indexes 0.1.0",
  "dubp-user-docs 0.14.0",
  "dubp-user-docs-tests-tools 0.1.0",
  "dup-crypto 0.7.0",
