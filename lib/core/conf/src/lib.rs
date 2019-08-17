@@ -424,12 +424,8 @@ impl DuniterKeyPairs {
 
 // Warning: This function cannot use the macro fatal_error! because the logger is not yet initialized, so it must use panic !
 fn generate_random_keypair(algo: KeysAlgo) -> KeyPairEnum {
-    let mut rng = rand::thread_rng();
     match algo {
-        KeysAlgo::Ed25519 => {
-            let generator = ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters();
-            KeyPairEnum::Ed25519(generator.generate(&[rng.gen::<u8>(); 8], &[rng.gen::<u8>(); 8]))
-        }
+        KeysAlgo::Ed25519 => KeyPairEnum::Ed25519(ed25519::KeyPair::generate_random()),
         KeysAlgo::Schnorr => panic!("Schnorr algo not yet supported !"),
     }
 }

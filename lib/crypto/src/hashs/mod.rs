@@ -20,9 +20,9 @@ use rand::{thread_rng, Rng};
 use std::fmt::{Debug, Display, Error, Formatter};
 
 #[cfg(not(all(unix, any(target_arch = "x86", target_arch = "x86_64"))))]
-use crypto::digest::Digest;
+use cryptoxide::digest::Digest;
 #[cfg(not(all(unix, any(target_arch = "x86", target_arch = "x86_64"))))]
-use crypto::sha2::Sha256;
+use cryptoxide::sha2::Sha256;
 #[cfg(all(unix, any(target_arch = "x86", target_arch = "x86_64")))]
 use sha2::{Digest, Sha256};
 
@@ -55,15 +55,9 @@ impl Hash {
     pub const SIZE_IN_BYTES: usize = 32;
 
     /// Generate a random Hash
+    #[inline]
     pub fn random() -> Self {
-        let mut rng = thread_rng();
-        let mut hash_bytes = Vec::with_capacity(32);
-        for _ in 0..32 {
-            hash_bytes.push(rng.gen::<u8>());
-        }
-        let mut hash_bytes_arr = [0; 32];
-        hash_bytes_arr.copy_from_slice(&hash_bytes);
-        Hash(hash_bytes_arr)
+        Hash(thread_rng().gen::<[u8; 32]>())
     }
 
     #[cfg(all(unix, any(target_arch = "x86", target_arch = "x86_64")))]
