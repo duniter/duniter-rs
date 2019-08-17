@@ -182,6 +182,7 @@ mod tests {
     static SALT_TEST: &'static str = "testsalt";
     static PASSWORD_TEST: &'static str = "testpassword";
 
+    #[cfg(unix)]
     #[test]
     fn test_modify_member_keys() {
         let key_pairs = DuniterKeyPairs {
@@ -227,6 +228,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_modify_network_keys() {
         let key_pairs = DuniterKeyPairs {
@@ -258,6 +260,7 @@ mod tests {
         assert_eq!(result_key_pairs.member_keypair, None);
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_clear_network_keys() {
         let key_pairs = DuniterKeyPairs {
@@ -308,6 +311,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_clear_member_keys() {
         let key_pairs = DuniterKeyPairs {
