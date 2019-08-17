@@ -161,9 +161,25 @@ impl Default for WS2PConf {
                     0,
                 )),
                 unwrap!(EndpointV1::parse_from_raw(
-                    "WS2P 7b33becd g1.nordstrom.duniter.org 443 /ws2p",
+                    "WS2P 9407e0ac monit.g1.nordstrom.duniter.org 443 /ws2p",
                     PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
-                        "DWoSCRLQyQ48dLxUGr1MDKg4NFcbPbC56LN2hJjCCPpZ",
+                        "74RBUM4VkhZU4PLJcf8ok9snKjXTX6aP52PdGcCM1meA",
+                    ))),
+                    0,
+                    0,
+                )),
+                unwrap!(EndpointV1::parse_from_raw(
+                    "WS2P beb7012c g1.monnaielibreoccitanie.org 443 /ws2p",
+                    PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+                        "RD11hyG5HY9MGAp4ui3KoPYWHBMEBCyzSPT81Em4cCL",
+                    ))),
+                    0,
+                    0,
+                )),
+                unwrap!(EndpointV1::parse_from_raw(
+                    "WS2P 90e9b12 duniter.g1.1000i100.fr 443 /ws2p",
+                    PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+                        "2sZF6j2PkxBDNAqUde7Dgo5x3crkerZpQ4rBqqJGn8QT",
                     ))),
                     0,
                     0,
