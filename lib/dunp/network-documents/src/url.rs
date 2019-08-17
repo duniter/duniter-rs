@@ -18,6 +18,7 @@
 use crate::host::Host;
 use durs_common_tools::fatal_error;
 use failure::Fail;
+use std::net::SocketAddr;
 use std::str::FromStr;
 use unwrap::unwrap;
 
@@ -105,7 +106,7 @@ impl UrlWithoutScheme {
         if let Some(port) = self.port {
             port == 443u16
         } else {
-            true
+            false
         }
     }
     pub fn to_url_with_scheme(&self, scheme: &str) -> Result<url::Url, url::ParseError> {
@@ -174,74 +175,46 @@ impl Url {
             Url::UrlWithoutScheme(url_without_scheme) => url_without_scheme.path(),
         }
     }
-    pub fn to_listenable_addr(
-        &self,
-        default_scheme: &str,
-    ) -> std::io::Result<url::HostAndPort<String>> {
+    pub fn to_listenable_addr(&self, default_scheme: &str) -> std::io::Result<Vec<SocketAddr>> {
         self.to_listenable_addr_with_default_port(default_scheme, default_port)
     }
     pub fn to_listenable_addr_with_default_port<F>(
         &self,
         default_scheme: &str,
         default_port: F,
-    ) -> std::io::Result<url::HostAndPort<String>>
+    ) -> std::io::Result<Vec<SocketAddr>>
     where
-        F: FnOnce(&url::Url) -> Result<u16, ()>,
+        F: Fn() -> Option<u16>,
     {
         match self {
-            Url::Url(url) => Ok(url.with_default_port(default_port)?.to_owned()),
+            Url::Url(url) => Ok(url.socket_addrs(default_port)?),
             Url::UrlWithoutScheme(url_without_scheme) => {
                 match url_without_scheme.to_url_with_scheme(default_scheme) {
-                    Ok(url) => Ok(url.with_default_port(default_port)?.to_owned()),
+                    Ok(url) => Ok(url.socket_addrs(default_port)?),
                     Err(e) => fatal_error!("Fail to convert UrlWithoutScheme to Url: {}", e),
                 }
             }
         }
     }
-
-    pub fn to_url_string(&self, default_scheme: &str) -> std::io::Result<String> {
-        self.to_url_string_with_default_port(default_scheme, default_port)
-    }
-
-    pub fn to_url_string_with_default_port<F>(
-        &self,
-        default_scheme: &str,
-        default_port: F,
-    ) -> std::io::Result<String>
-    where
-        F: FnOnce(&url::Url) -> Result<u16, ()>,
-    {
-        let url: url::Url = match self {
-            Url::Url(url) => url.clone(),
-            Url::UrlWithoutScheme(url_without_scheme) => {
-                match url_without_scheme.to_url_with_scheme(default_scheme) {
-                    Ok(url) => url,
-                    Err(e) => fatal_error!("Fail to convert UrlWithoutScheme to Url: {}", e),
-                }
-            }
-        };
-
-        let host_and_port: url::HostAndPort<String> =
-            url.with_default_port(default_port)?.to_owned();
-
-        Ok(format!(
-            "{scheme}://{host}:{port}{path}",
-            scheme = url.scheme(),
-            host = host_and_port.host,
-            port = host_and_port.port,
-            path = url.path(),
-        ))
-    }
 }
 
-fn default_port(_: &url::Url) -> Result<u16, ()> {
-    fatal_error!("Unknown url scheme !")
+#[inline]
+fn default_port() -> Option<u16> {
+    None
 }
 
 #[cfg(test)]
 mod tests {
 
     use super::*;
+    use std::net::{Ipv4Addr, Ipv6Addr, SocketAddrV4, SocketAddrV6};
+
+    fn ip4() -> Ipv4Addr {
+        Ipv4Addr::new(91, 121, 157, 13)
+    }
+    fn ip6() -> Ipv6Addr {
+        Ipv6Addr::new(0x2001, 0x41d0, 1, 0xde0d, 0, 0, 0, 1)
+    }
 
     #[test]
     fn parse_url_with_host_only() -> Result<(), url::ParseError> {
@@ -256,10 +229,13 @@ mod tests {
         assert_eq!(Ok(expected_url.clone()), Url::from_str("g1.duniter.org"));
 
         assert_eq!(
-            "wss://g1.duniter.org:443/".to_owned(),
+            vec![
+                SocketAddr::V4(SocketAddrV4::new(ip4(), 80)),
+                SocketAddr::V6(SocketAddrV6::new(ip6(), 80, 0, 0))
+            ],
             expected_url
-                .to_url_string("ws")
-                .expect("Fail to get listen url")
+                .to_listenable_addr("ws")
+                .expect("Fail to get to_listenable_addr addr")
         );
 
         Ok(())
@@ -270,8 +246,12 @@ mod tests {
         let url = Url::Url(url::Url::parse("wss://g1.duniter.org")?);
 
         assert_eq!(
-            "wss://g1.duniter.org:443/".to_owned(),
-            url.to_url_string("ws").expect("Fail to get listen url")
+            vec![
+                SocketAddr::V4(SocketAddrV4::new(ip4(), 443)),
+                SocketAddr::V6(SocketAddrV6::new(ip6(), 443, 0, 0))
+            ],
+            url.to_listenable_addr("ws")
+                .expect("Fail to get to_listenable_addr addr")
         );
 
         Ok(())
@@ -293,10 +273,13 @@ mod tests {
         );
 
         assert_eq!(
-            "ws://g1.duniter.org:20901/".to_owned(),
+            vec![
+                SocketAddr::V4(SocketAddrV4::new(ip4(), 20901)),
+                SocketAddr::V6(SocketAddrV6::new(ip6(), 20901, 0, 0))
+            ],
             expected_url
-                .to_url_string("ws")
-                .expect("Fail to get listen url")
+                .to_listenable_addr("ws")
+                .expect("Fail to get to_listenable_addr addr")
         );
 
         Ok(())
@@ -307,8 +290,12 @@ mod tests {
         let url = Url::Url(url::Url::parse("ws://g1.duniter.org:20901")?);
 
         assert_eq!(
-            "ws://g1.duniter.org:20901/".to_owned(),
-            url.to_url_string("ws").expect("Fail to get listen url")
+            vec![
+                SocketAddr::V4(SocketAddrV4::new(ip4(), 20901)),
+                SocketAddr::V6(SocketAddrV6::new(ip6(), 20901, 0, 0))
+            ],
+            url.to_listenable_addr("ws")
+                .expect("Fail to get to_listenable_addr addr")
         );
 
         Ok(())

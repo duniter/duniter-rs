@@ -1,5 +1,3 @@
-WHITESPACE = _{ "" }
-
 // Single character rules
 nl = _{ "\n" }
 no_zero_hexa_lower = @{ '1'..'9' | 'a'..'f' }
