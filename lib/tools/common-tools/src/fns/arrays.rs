@@ -13,9 +13,32 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Common rust functions for DURS project.
+//! Common rust functions for handle arrays.
 
-pub mod arrays;
-pub mod bin_file;
-pub mod str_escape;
-pub mod time;
+use std::convert::AsMut;
+
+/// Copy a slice into array
+///
+/// panic! if the target array and the passed-in slice do not have the same length.
+pub fn copy_into_array<A, T>(slice: &[T]) -> A
+where
+    A: Default + AsMut<[T]>,
+    T: Copy,
+{
+    let mut a = A::default();
+    <A as AsMut<[T]>>::as_mut(&mut a).copy_from_slice(slice);
+    a
+}
+
+/// Clone a slice into array
+///
+/// panic! if the target array and the passed-in slice do not have the same length.
+pub fn clone_into_array<A, T>(slice: &[T]) -> A
+where
+    A: Default + AsMut<[T]>,
+    T: Clone,
+{
+    let mut a = A::default();
+    <A as AsMut<[T]>>::as_mut(&mut a).clone_from_slice(slice);
+    a
+}
