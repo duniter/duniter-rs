@@ -15,7 +15,7 @@
 
 use crate::entities::identity::DALIdentity;
 use crate::filters::identities::IdentitiesFilter;
-use crate::{BinDB, DALError, IdentitiesV10Datas};
+use crate::{BinFreeStructDb, DALError, IdentitiesV10Datas};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
 use dup_crypto::keys::*;
@@ -24,7 +24,7 @@ use std::collections::HashMap;
 
 /// Get identities in databases
 pub fn get_identities(
-    db: &BinDB<IdentitiesV10Datas>,
+    db: &BinFreeStructDb<IdentitiesV10Datas>,
     filters: IdentitiesFilter,
     current_block_id: BlockNumber,
 ) -> Result<Vec<DALIdentity>, DALError> {
@@ -62,7 +62,7 @@ pub fn get_identities(
 
 /// Get identity in databases
 pub fn get_identity(
-    db: &BinDB<IdentitiesV10Datas>,
+    db: &BinFreeStructDb<IdentitiesV10Datas>,
     pubkey: &PubKey,
 ) -> Result<Option<DALIdentity>, DALError> {
     Ok(db.read(|db| {
@@ -76,7 +76,7 @@ pub fn get_identity(
 
 /// Get uid from pubkey
 pub fn get_uid(
-    identities_db: &BinDB<IdentitiesV10Datas>,
+    identities_db: &BinFreeStructDb<IdentitiesV10Datas>,
     pubkey: PubKey,
 ) -> Result<Option<String>, DALError> {
     Ok(identities_db.read(|db| {
@@ -90,7 +90,7 @@ pub fn get_uid(
 
 /// Get pubkey from uid
 pub fn get_pubkey_from_uid(
-    identities_db: &BinDB<IdentitiesV10Datas>,
+    identities_db: &BinFreeStructDb<IdentitiesV10Datas>,
     uid: &str,
 ) -> Result<Option<PubKey>, DALError> {
     Ok(identities_db.read(|db| {
@@ -105,7 +105,7 @@ pub fn get_pubkey_from_uid(
 
 /// Get wot_id index
 pub fn get_wot_index(
-    identities_db: &BinDB<IdentitiesV10Datas>,
+    identities_db: &BinFreeStructDb<IdentitiesV10Datas>,
 ) -> Result<HashMap<PubKey, WotId>, DALError> {
     Ok(identities_db.read(|db| {
         db.iter()
@@ -155,8 +155,9 @@ mod test {
         ];
 
         // Write mock identities in DB
-        let identities_db =
-            BinDB::Mem(open_memory_db::<IdentitiesV10Datas>().expect("Fail to create memory DB !"));
+        let identities_db = BinFreeStructDb::Mem(
+            open_free_struct_memory_db::<IdentitiesV10Datas>().expect("Fail to create memory DB !"),
+        );
         for idty in &mock_identities {
             identities_db.write(|db| {
                 db.insert(idty.idty_doc.issuers()[0], idty.clone());

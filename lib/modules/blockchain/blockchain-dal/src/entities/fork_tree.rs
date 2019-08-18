@@ -112,6 +112,7 @@ impl TreeNode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// Tree store all forks branchs
 pub struct ForkTree {
+    current_blockstamp: Option<Blockstamp>,
     main_branch: HashMap<BlockNumber, TreeNodeId>,
     max_depth: usize,
     nodes: Vec<Option<TreeNode>>,
@@ -132,6 +133,7 @@ impl ForkTree {
     #[inline]
     pub fn new(max_depth: usize) -> Self {
         ForkTree {
+            current_blockstamp: None,
             main_branch: HashMap::with_capacity(max_depth + 1),
             max_depth,
             nodes: Vec::with_capacity(max_depth * 2),
@@ -139,6 +141,11 @@ impl ForkTree {
             root: None,
             sheets: HashSet::new(),
         }
+    }
+    /// Get tree size
+    #[inline]
+    pub fn get_current_blockstamp(&self) -> Option<Blockstamp> {
+        self.current_blockstamp
     }
     /// Set max depth
     #[inline]
@@ -357,6 +364,9 @@ impl ForkTree {
                 self.pruning();
             }
         }
+
+        // Update current blockstamp
+        self.current_blockstamp = Some(new_current_blockstamp);
     }
     /// Find node with specific blockstamp
     pub fn find_node_with_blockstamp(&self, blockstamp: &Blockstamp) -> Option<TreeNodeId> {
@@ -409,6 +419,7 @@ impl ForkTree {
         self.removed_blockstamps.clear();
         if main_branch {
             self.main_branch.insert(data.id, new_node_id);
+            self.current_blockstamp = Some(data);
             if self.main_branch.len() > self.max_depth {
                 self.pruning();
             }

@@ -24,7 +24,7 @@ use dubp_common_doc::{BlockHash, BlockNumber};
 use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use dup_crypto::keys::*;
 use durs_blockchain_dal::writers::requests::*;
-use durs_blockchain_dal::{open_memory_db, CertsExpirV10Datas};
+use durs_blockchain_dal::{open_free_struct_memory_db, CertsExpirV10Datas};
 use durs_common_tools::fatal_error;
 use durs_wot::WotId;
 use failure::Fail;
@@ -69,6 +69,11 @@ pub enum SyncJobsMess {
 #[derive(Clone, Debug, Fail)]
 /// Local sync error
 pub enum LocalSyncError {
+    /// Fail to open database
+    #[fail(
+        display = "Unable to open the database, it may be a problem of access rights to the folder"
+    )]
+    FailToOpenDB,
     #[fail(
         display = "The folder you specified contains the blockchain of currency {}, \
         and your node already contains the blockchain of another currency {}. If you \
@@ -175,7 +180,7 @@ pub fn local_sync<DC: DursConfTrait>(
     durs_conf::write_conf_file(conf_path.as_path(), &conf).expect("Fail to write new conf !");
 
     // Open blocks databases
-    let blocks_dbs = BlocksV10DBs::open(Some(&db_path));
+    let db = open_db(&db_path.as_path()).map_err(|_| LocalSyncError::FailToOpenDB)?;
 
     // Open forks databases
     let forks_dbs = ForksDBs::open(Some(&db_path));
@@ -186,7 +191,7 @@ pub fn local_sync<DC: DursConfTrait>(
     // Get local current blockstamp
     debug!("Get local current blockstamp...");
     let current_blockstamp: Blockstamp =
-        durs_blockchain_dal::readers::block::get_current_blockstamp(&blocks_dbs)
+        durs_blockchain_dal::readers::fork_tree::get_current_blockstamp(&forks_dbs)
             .expect("DALError : fail to get current blockstamp !")
             .unwrap_or_default();
     debug!("Success to get local current blockstamp.");
@@ -235,7 +240,7 @@ pub fn local_sync<DC: DursConfTrait>(
         &pool,
         sender_sync_thread.clone(),
         recv_blocks_thread,
-        blocks_dbs,
+        db,
         forks_dbs,
         target_blockstamp,
         apply_pb,
@@ -261,8 +266,9 @@ pub fn local_sync<DC: DursConfTrait>(
 
     // Open databases
     let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone());
-    let certs_db =
-        BinDB::Mem(open_memory_db::<CertsExpirV10Datas>().expect("Fail to create memory certs_db"));
+    let certs_db = BinFreeStructDb::Mem(
+        open_free_struct_memory_db::<CertsExpirV10Datas>().expect("Fail to create memory certs_db"),
+    );
 
     // initialise le BlockApplicator
     let mut block_applicator = BlockApplicator {

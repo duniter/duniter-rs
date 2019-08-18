@@ -25,6 +25,7 @@ members = [
     "lib/tests-tools/user-docs-tests-tools",
     "lib/tests-tools/common-tests-tools",
     "lib/tools/common-tools",
+    "lib/tools/dbs-tools",
     "lib/tools/json-pest-parser",
     "lib/tools/pkstl",
     "lib/tools/rules-engine",

@@ -22,8 +22,8 @@ use std::collections::{HashMap, HashSet};
 
 /// Apply UD creation in databases
 pub fn create_du(
-    du_db: &BinDB<UDsV10Datas>,
-    balances_db: &BinDB<BalancesV10Datas>,
+    du_db: &BinFreeStructDb<UDsV10Datas>,
+    balances_db: &BinFreeStructDb<BalancesV10Datas>,
     du_amount: &SourceAmount,
     du_block_id: BlockNumber,
     members: &[PubKey],

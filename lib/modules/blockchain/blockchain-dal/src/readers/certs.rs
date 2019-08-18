@@ -13,14 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{BinDB, CertsExpirV10Datas, DALError};
+use crate::{BinFreeStructDb, CertsExpirV10Datas, DALError};
 use dubp_common_doc::BlockNumber;
 use durs_wot::WotId;
 use std::collections::HashMap;
 
 /// Find certifications that emitted in indicated blocks expiring
 pub fn find_expire_certs(
-    certs_db: &BinDB<CertsExpirV10Datas>,
+    certs_db: &BinFreeStructDb<CertsExpirV10Datas>,
     blocks_expiring: Vec<BlockNumber>,
 ) -> Result<HashMap<(WotId, WotId), BlockNumber>, DALError> {
     Ok(certs_db.read(|db| {

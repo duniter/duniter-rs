@@ -23,7 +23,7 @@ use dup_crypto::keys::*;
 use durs_blockchain_dal::entities::block::DALBlock;
 use durs_blockchain_dal::entities::sources::SourceAmount;
 use durs_blockchain_dal::writers::requests::*;
-use durs_blockchain_dal::BinDB;
+use durs_blockchain_dal::BinFreeStructDb;
 use durs_common_tools::fatal_error;
 use durs_wot::data::NewLinkResult;
 use durs_wot::{WebOfTrust, WotId};
@@ -49,7 +49,7 @@ pub enum ApplyValidBlockError {
 pub fn apply_valid_block<W: WebOfTrust>(
     block: BlockDocument,
     wot_index: &mut HashMap<PubKey, WotId>,
-    wot_db: &BinDB<W>,
+    wot_db: &BinFreeStructDb<W>,
     expire_certs: &HashMap<(WotId, WotId), BlockNumber>,
 ) -> Result<ValidBlockApplyReqs, ApplyValidBlockError> {
     match block {
@@ -62,7 +62,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
 pub fn apply_valid_block_v10<W: WebOfTrust>(
     mut block: BlockDocumentV10,
     wot_index: &mut HashMap<PubKey, WotId>,
-    wot_db: &BinDB<W>,
+    wot_db: &BinFreeStructDb<W>,
     expire_certs: &HashMap<(WotId, WotId), BlockNumber>,
 ) -> Result<ValidBlockApplyReqs, ApplyValidBlockError> {
     debug!(

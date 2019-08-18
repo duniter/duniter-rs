@@ -59,7 +59,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
             // Apply db requests
             block_query
                 .apply(
-                    &bc.blocks_databases.blockchain_db,
+                    &bc.db,
                     &bc.forks_dbs,
                     unwrap!(bc.currency_params).fork_window_size,
                     None,
@@ -99,7 +99,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                 // Apply db requests
                 bc_db_query
                     .apply(
-                        &bc.blocks_databases.blockchain_db,
+                        &bc.db,
                         &bc.forks_dbs,
                         unwrap!(bc.currency_params).fork_window_size,
                         None,
@@ -139,7 +139,9 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
         }
 
         // save dbs
-        bc.blocks_databases.save_dbs();
+        bc.db
+            .save()
+            .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
         bc.forks_dbs.save_dbs();
         bc.wot_databases.save_dbs();
         bc.currency_databases.save_dbs(true, true);
@@ -161,7 +163,6 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
     } else {
         // reload dbs
         let dbs_path = durs_conf::get_blockchain_db_path(bc.profile_path.clone());
-        bc.blocks_databases = BlocksV10DBs::open(Some(&dbs_path));
         bc.forks_dbs = ForksDBs::open(Some(&dbs_path));
         bc.wot_databases = WotsV10DBs::open(Some(&dbs_path));
         bc.currency_databases = CurrencyV10DBs::open(Some(&dbs_path));

@@ -35,7 +35,7 @@ pub enum CheckAndApplyBlockReturn {
     OrphanBlock,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 pub enum BlockError {
     AlreadyHaveBlock,
     BlockOrOutForkWindow,
@@ -69,7 +69,7 @@ pub fn check_and_apply_block(
 ) -> Result<CheckAndApplyBlockReturn, BlockError> {
     // Get BlockDocument && check if already have block
     let already_have_block = readers::block::already_have_block(
-        &bc.blocks_databases.blockchain_db,
+        &bc.db,
         &bc.forks_dbs,
         block_doc.blockstamp(),
         block_doc.previous_hash(),
@@ -98,7 +98,7 @@ pub fn check_and_apply_block(
         // Verify block validity (check all protocol rule, very long !)
         verify_block_validity(
             &block_doc,
-            &bc.blocks_databases.blockchain_db,
+            &bc.db,
             &bc.wot_databases.certs_db,
             &bc.wot_index,
             &bc.wot_databases.wot_db,

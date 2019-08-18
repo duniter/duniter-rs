@@ -47,7 +47,7 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                     // Apply db requests
                     bc_db_query
                         .apply(
-                            &bc.blocks_databases.blockchain_db,
+                            &bc.db,
                             &bc.forks_dbs,
                             unwrap!(bc.currency_params).fork_window_size,
                             None,
@@ -76,7 +76,9 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                 }
             }
             // Save databases
-            bc.blocks_databases.save_dbs();
+            bc.db
+                .save()
+                .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
             bc.forks_dbs.save_dbs();
             bc.wot_databases.save_dbs();
             bc.currency_databases.save_dbs(true, true);

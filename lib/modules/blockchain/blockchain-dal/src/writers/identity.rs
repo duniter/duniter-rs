@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::entities::identity::{DALIdentity, DALIdentityState};
-use crate::{BinDB, DALError, IdentitiesV10Datas, MsExpirV10Datas};
+use crate::{BinFreeStructDb, DALError, IdentitiesV10Datas, MsExpirV10Datas};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use dubp_currency_params::CurrencyParameters;
@@ -25,8 +25,8 @@ use durs_wot::WotId;
 
 /// Remove identity from databases
 pub fn revert_create_identity(
-    identities_db: &BinDB<IdentitiesV10Datas>,
-    ms_db: &BinDB<MsExpirV10Datas>,
+    identities_db: &BinFreeStructDb<IdentitiesV10Datas>,
+    ms_db: &BinFreeStructDb<MsExpirV10Datas>,
     pubkey: &PubKey,
 ) -> Result<(), DALError> {
     let dal_idty = identities_db.read(|db| {
@@ -53,8 +53,8 @@ pub fn revert_create_identity(
 /// Write identity in databases
 pub fn create_identity(
     currency_params: &CurrencyParameters,
-    identities_db: &BinDB<IdentitiesV10Datas>,
-    ms_db: &BinDB<MsExpirV10Datas>,
+    identities_db: &BinFreeStructDb<IdentitiesV10Datas>,
+    ms_db: &BinFreeStructDb<MsExpirV10Datas>,
     idty_doc: &IdentityDocumentV10,
     ms_created_block_id: BlockNumber,
     wot_id: WotId,
@@ -90,7 +90,7 @@ pub fn create_identity(
 
 /// Apply "exclude identity" event
 pub fn exclude_identity(
-    identities_db: &BinDB<IdentitiesV10Datas>,
+    identities_db: &BinFreeStructDb<IdentitiesV10Datas>,
     pubkey: &PubKey,
     exclusion_blockstamp: &Blockstamp,
     revert: bool,
@@ -127,7 +127,7 @@ pub fn exclude_identity(
 
 /// Apply "revoke identity" event
 pub fn revoke_identity(
-    identities_db: &BinDB<IdentitiesV10Datas>,
+    identities_db: &BinFreeStructDb<IdentitiesV10Datas>,
     pubkey: &PubKey,
     renewal_blockstamp: &Blockstamp,
     explicit: bool,
@@ -178,8 +178,8 @@ pub fn revoke_identity(
 /// Apply "renewal identity" event in databases
 pub fn renewal_identity(
     currency_params: &CurrencyParameters,
-    identities_db: &BinDB<IdentitiesV10Datas>,
-    ms_db: &BinDB<MsExpirV10Datas>,
+    identities_db: &BinFreeStructDb<IdentitiesV10Datas>,
+    ms_db: &BinFreeStructDb<MsExpirV10Datas>,
     pubkey: &PubKey,
     idty_wot_id: WotId,
     renewal_timestamp: u64,
@@ -241,7 +241,10 @@ pub fn renewal_identity(
 }
 
 /// Remove identity from databases
-pub fn remove_identity(db: &BinDB<IdentitiesV10Datas>, pubkey: PubKey) -> Result<(), DALError> {
+pub fn remove_identity(
+    db: &BinFreeStructDb<IdentitiesV10Datas>,
+    pubkey: PubKey,
+) -> Result<(), DALError> {
     db.write(|db| {
         db.remove(&pubkey);
     })?;

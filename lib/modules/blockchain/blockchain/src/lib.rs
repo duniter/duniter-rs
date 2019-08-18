@@ -18,7 +18,6 @@
 #![allow(clippy::large_enum_variant)]
 #![deny(
     missing_docs,
-    missing_debug_implementations,
     missing_copy_implementations,
     trivial_casts,
     trivial_numeric_casts,
@@ -89,7 +88,6 @@ pub static MAX_BLOCKS_REQUEST: &u32 = &500;
 pub static DISTANCE_CALCULATOR: &RustyDistanceCalculator = &RustyDistanceCalculator {};
 
 /// Blockchain Module
-#[derive(Debug)]
 pub struct BlockchainModule {
     /// Router sender
     pub router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
@@ -97,8 +95,8 @@ pub struct BlockchainModule {
     pub profile_path: PathBuf,
     /// Currency
     pub currency: Option<CurrencyName>,
-    /// Blocks Databases
-    pub blocks_databases: BlocksV10DBs,
+    /// Database
+    pub db: Db,
     /// Forks Databases
     pub forks_dbs: ForksDBs,
     /// Wot index
@@ -190,14 +188,14 @@ impl BlockchainModule {
         let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone());
 
         // Open databases
-        let blocks_databases = BlocksV10DBs::open(Some(&dbs_path));
+        let db = open_db(&dbs_path.as_path()).unwrap_or_else(|_| fatal_error!("Fail to open DB."));
         let forks_dbs = ForksDBs::open(Some(&dbs_path));
         let wot_databases = WotsV10DBs::open(Some(&dbs_path));
         let currency_databases = CurrencyV10DBs::open(Some(&dbs_path));
 
         // Get current blockstamp
         let current_blockstamp =
-            durs_blockchain_dal::readers::block::get_current_blockstamp(&blocks_databases)
+            durs_blockchain_dal::readers::fork_tree::get_current_blockstamp(&forks_dbs)
                 .expect("Fatal error : fail to read Blockchain DB !")
                 .unwrap_or_default();
 
@@ -226,7 +224,7 @@ impl BlockchainModule {
             currency_params,
             current_blockstamp,
             consensus: Blockstamp::default(),
-            blocks_databases,
+            db,
             forks_dbs,
             wot_index,
             wot_databases,
@@ -340,5 +338,19 @@ impl BlockchainModule {
                 );
             }
         }
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+
+    use super::*;
+    use tempfile::tempdir;
+
+    #[inline]
+    /// Open database in an arbitrary temporary directory given by OS
+    /// and automatically cleaned when `Db` is dropped
+    pub fn open_tmp_db() -> Result<Db, DALError> {
+        open_db(tempdir().map_err(DALError::FileSystemError)?.path())
     }
 }

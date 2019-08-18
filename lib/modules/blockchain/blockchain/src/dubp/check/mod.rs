@@ -32,20 +32,22 @@ pub enum InvalidBlockError {
     VersionDecrease,
 }
 
-pub fn verify_block_validity<W: WebOfTrust>(
+pub fn verify_block_validity<DB, W>(
     block: &BlockDocument,
-    blockchain_db: &BinDB<LocalBlockchainV10Datas>,
-    _certs_db: &BinDB<CertsExpirV10Datas>,
+    db: &DB,
+    _certs_db: &BinFreeStructDb<CertsExpirV10Datas>,
     _wot_index: &HashMap<PubKey, WotId>,
-    _wot_db: &BinDB<W>,
-) -> Result<(), BlockError> {
+    _wot_db: &BinFreeStructDb<W>,
+) -> Result<(), BlockError>
+where
+    DB: DbReadable,
+    W: WebOfTrust,
+{
     // Rules that do not concern genesis block
     if block.number().0 > 0 {
         // Get previous block
-        let previous_block_opt = readers::block::get_block_in_local_blockchain(
-            blockchain_db,
-            BlockNumber(block.number().0 - 1),
-        )?;
+        let previous_block_opt =
+            readers::block::get_block_in_local_blockchain(db, BlockNumber(block.number().0 - 1))?;
 
         // Previous block must exist
         if previous_block_opt.is_none() {

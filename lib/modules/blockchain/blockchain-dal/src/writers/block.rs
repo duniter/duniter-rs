@@ -13,43 +13,60 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::constants::*;
 use crate::entities::block::DALBlock;
+use crate::DALError;
 use crate::*;
-use crate::{BinDB, DALError, LocalBlockchainV10Datas};
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::traits::Document;
 use unwrap::unwrap;
 
 /// Insert new head Block in databases
 pub fn insert_new_head_block(
-    blockchain_db: &BinDB<LocalBlockchainV10Datas>,
-    forks_dbs: &ForksDBs,
+    db: &Db,
+    forks_dbs: Option<&ForksDBs>,
     dal_block: DALBlock,
 ) -> Result<(), DALError> {
     // Insert head block in blockchain
-    blockchain_db.write(|db| {
-        db.insert(dal_block.block.number(), dal_block.clone());
+    let bin_block = durs_dbs_tools::to_bytes(&dal_block)?;
+    db.write(|mut w| {
+        db.get_int_store(LOCAL_BC).put(
+            w.as_mut(),
+            *dal_block.block.number(),
+            &Db::db_value(&bin_block)?,
+        )?;
+        Ok(w)
     })?;
 
-    // Insert head block in fork tree
-    let removed_blockstamps = crate::writers::fork_tree::insert_new_head_block(
-        &forks_dbs.fork_tree_db,
-        dal_block.blockstamp(),
-    )?;
+    if let Some(forks_dbs) = forks_dbs {
+        // Insert head block in fork tree
+        let removed_blockstamps = crate::writers::fork_tree::insert_new_head_block(
+            &forks_dbs.fork_tree_db,
+            dal_block.blockstamp(),
+        )?;
 
-    // Insert head block in ForksBlocks
-    forks_dbs.fork_blocks_db.write(|db| {
-        db.insert(dal_block.blockstamp(), dal_block);
-    })?;
+        // Insert head block in ForksBlocks
+        forks_dbs.fork_blocks_db.write(|db| {
+            db.insert(dal_block.blockstamp(), dal_block);
+        })?;
 
-    // Remove too old blocks
-    forks_dbs.fork_blocks_db.write(|db| {
-        for blockstamp in removed_blockstamps {
-            db.remove(&blockstamp);
-        }
-    })?;
-
+        // Remove too old blocks
+        forks_dbs.fork_blocks_db.write(|db| {
+            for blockstamp in removed_blockstamps {
+                db.remove(&blockstamp);
+            }
+        })?;
+    }
     Ok(())
+}
+
+/// Remove a block in local blockchain storage
+pub fn remove_block(db: &Db, block_number: BlockNumber) -> Result<(), DALError> {
+    db.write(|mut w| {
+        db.get_int_store(LOCAL_BC)
+            .delete(w.as_mut(), block_number.0)?;
+        Ok(w)
+    })
 }
 
 /// Insert new fork Block in databases

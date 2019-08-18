@@ -21,7 +21,7 @@ pub fn execute(
     pool: &ThreadPool,
     sender_sync_thread: mpsc::Sender<MessForSyncThread>,
     recv: mpsc::Receiver<SyncJobsMess>,
-    blocks_dbs: BlocksV10DBs,
+    db: Db,
     forks_db: ForksDBs,
     target_blockstamp: Blockstamp,
     mut apply_pb: ProgressBar<std::io::Stdout>,
@@ -46,13 +46,8 @@ pub fn execute(
                         all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
 
                         // Apply db request
-                        req.apply(
-                            &blocks_dbs.blockchain_db,
-                            &forks_db,
-                            fork_window_size,
-                            Some(target_blockstamp),
-                        )
-                        .expect("Fatal error : Fail to apply DBWriteRequest !");
+                        req.apply(&db, &forks_db, fork_window_size, Some(target_blockstamp))
+                            .expect("Fatal error : Fail to apply DBWriteRequest !");
 
                         chunk_index += 1;
                         if chunk_index == 250 {
@@ -81,7 +76,8 @@ pub fn execute(
         println!();
         println!("Write indexs in files...");
         info!("Save blockchain and forks databases in files...");
-        blocks_dbs.save_dbs();
+        db.save()
+            .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
         forks_db.save_dbs();
 
         // Send finish signal

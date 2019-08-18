@@ -18,7 +18,7 @@ use crate::*;
 
 /// Get address balance
 pub fn get_address_balance(
-    balances_db: &BinDB<BalancesV10Datas>,
+    balances_db: &BinFreeStructDb<BalancesV10Datas>,
     address: &UTXOConditionsGroup,
 ) -> Result<Option<SourceAmount>, DALError> {
     Ok(balances_db.read(|db| {

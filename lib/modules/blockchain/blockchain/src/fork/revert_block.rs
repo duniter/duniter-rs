@@ -25,7 +25,7 @@ use durs_blockchain_dal::entities::block::DALBlock;
 use durs_blockchain_dal::entities::sources::SourceAmount;
 use durs_blockchain_dal::writers::requests::*;
 use durs_blockchain_dal::writers::transaction::DALTxV10;
-use durs_blockchain_dal::{BinDB, DALError, TxV10Datas};
+use durs_blockchain_dal::{BinFreeStructDb, DALError, TxV10Datas};
 use durs_common_tools::fatal_error;
 use durs_wot::data::{NewLinkResult, RemLinkResult};
 use durs_wot::{WebOfTrust, WotId};
@@ -41,7 +41,7 @@ pub struct ValidBlockRevertReqs {
     pub currency_queries: Vec<CurrencyDBsWriteQuery>,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 /// RevertValidBlockError
 pub enum RevertValidBlockError {
     ExcludeUnknowNodeId(),
@@ -58,8 +58,8 @@ impl From<DALError> for RevertValidBlockError {
 pub fn revert_block<W: WebOfTrust>(
     dal_block: DALBlock,
     wot_index: &mut HashMap<PubKey, WotId>,
-    wot_db: &BinDB<W>,
-    txs_db: &BinDB<TxV10Datas>,
+    wot_db: &BinFreeStructDb<W>,
+    txs_db: &BinFreeStructDb<TxV10Datas>,
 ) -> Result<ValidBlockRevertReqs, RevertValidBlockError> {
     match dal_block.block {
         BlockDocument::V10(block_v10) => revert_block_v10(
@@ -76,8 +76,8 @@ pub fn revert_block_v10<W: WebOfTrust>(
     mut block: BlockDocumentV10,
     expire_certs: HashMap<(WotId, WotId), BlockNumber>,
     wot_index: &mut HashMap<PubKey, WotId>,
-    wot_db: &BinDB<W>,
-    txs_db: &BinDB<TxV10Datas>,
+    wot_db: &BinFreeStructDb<W>,
+    txs_db: &BinFreeStructDb<TxV10Datas>,
 ) -> Result<ValidBlockRevertReqs, RevertValidBlockError> {
     // Get transactions
     let dal_txs: Vec<DALTxV10> = block

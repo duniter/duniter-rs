@@ -106,11 +106,13 @@ mod tests {
 
     #[test]
     fn test_fork_resolution_algo() -> Result<(), DALError> {
+        // Open empty DB in tmp dir
+        let db = crate::tests::open_tmp_db()?;
+
         // Get FORK_WINDOW_SIZE value
         let fork_window_size = *dubp_currency_params::constants::DEFAULT_FORK_WINDOW_SIZE;
 
         // Open empty databases in memory mode
-        let bc_dbs = BlocksV10DBs::open(None);
         let forks_dbs = ForksDBs::open(None);
 
         // Begin with no invalid blocks
@@ -126,14 +128,25 @@ mod tests {
         // Insert mock blocks in forks_dbs
         for block in &main_branch {
             durs_blockchain_dal::writers::block::insert_new_head_block(
-                &bc_dbs.blockchain_db,
-                &forks_dbs,
+                &db,
+                Some(&forks_dbs),
                 DALBlock {
                     block: block.clone(),
                     expire_certs: None,
                 },
             )?;
         }
+
+        // Local blockchain must contain at least `fork_window_size +2` blocks
+        assert!(
+            durs_blockchain_dal::readers::block::get_block_in_local_blockchain(
+                &db,
+                BlockNumber((fork_window_size + 1) as u32)
+            )?
+            .is_some()
+        );
+
+        // Fork tree must contain at least `fork_window_size +2` blocks
         assert_eq!(
             fork_window_size,
             forks_dbs.fork_tree_db.read(|fork_tree| fork_tree.size())?

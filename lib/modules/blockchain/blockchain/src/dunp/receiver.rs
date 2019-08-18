@@ -53,7 +53,7 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                     // Apply db requests
                     bc_db_query
                         .apply(
-                            &bc.blocks_databases.blockchain_db,
+                            &bc.db,
                             &bc.forks_dbs,
                             unwrap!(bc.currency_params).fork_window_size,
                             None,
@@ -126,7 +126,9 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
     }
     // Save databases
     if save_blocks_dbs {
-        bc.blocks_databases.save_dbs();
+        bc.db
+            .save()
+            .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
         bc.forks_dbs.save_dbs();
     }
     if save_wots_dbs {

@@ -20,7 +20,7 @@ use dubp_common_doc::BlockHash;
 /// Insert new head Block in fork tree,
 /// return vector of removed blockstamps
 pub fn insert_new_head_block(
-    fork_tree_db: &BinDB<ForksTreeV10Datas>,
+    fork_tree_db: &BinFreeStructDb<ForksTreeV10Datas>,
     blockstamp: Blockstamp,
 ) -> Result<Vec<Blockstamp>, DALError> {
     fork_tree_db.write(|fork_tree| {
@@ -39,7 +39,7 @@ pub fn insert_new_head_block(
 /// Insert new fork block in fork tree only if parent exist in fork tree (orphan block not inserted)
 /// Returns true if block has a parent and has therefore been inserted, return false if block is orphaned
 pub fn insert_new_fork_block(
-    fork_tree_db: &BinDB<ForksTreeV10Datas>,
+    fork_tree_db: &BinFreeStructDb<ForksTreeV10Datas>,
     blockstamp: Blockstamp,
     previous_hash: Hash,
 ) -> Result<bool, DALError> {
@@ -97,12 +97,12 @@ mod test {
         // Create mock datas
         let blockstamps =
             dubp_user_docs_tests_tools::mocks::generate_blockstamps(*DEFAULT_FORK_WINDOW_SIZE + 2);
-        let fork_tree_db = open_db::<ForksTreeV10Datas>(None, "")?;
+        let fork_tree_db = open_free_struct_db::<ForksTreeV10Datas>(None, "")?;
 
         // Insert genesis block
         assert_eq!(
-            Ok(vec![]),
-            insert_new_head_block(&fork_tree_db, blockstamps[0])
+            Vec::<Blockstamp>::with_capacity(0),
+            insert_new_head_block(&fork_tree_db, blockstamps[0])?
         );
 
         // Check tree state
@@ -115,8 +115,8 @@ mod test {
         // Insert FORK_WINDOW_SIZE blocks
         for i in 1..*DEFAULT_FORK_WINDOW_SIZE {
             assert_eq!(
-                Ok(vec![]),
-                insert_new_head_block(&fork_tree_db, blockstamps[i])
+                Vec::<Blockstamp>::with_capacity(0),
+                insert_new_head_block(&fork_tree_db, blockstamps[i])?
             );
         }
 
@@ -135,12 +135,12 @@ mod test {
 
         // Insert blocks after FORK_WINDOW_SIZE (firsts blocks must be removed)
         assert_eq!(
-            Ok(vec![blockstamps[0]]),
-            insert_new_head_block(&fork_tree_db, blockstamps[*DEFAULT_FORK_WINDOW_SIZE])
+            vec![blockstamps[0]],
+            insert_new_head_block(&fork_tree_db, blockstamps[*DEFAULT_FORK_WINDOW_SIZE])?
         );
         assert_eq!(
-            Ok(vec![blockstamps[1]]),
-            insert_new_head_block(&fork_tree_db, blockstamps[*DEFAULT_FORK_WINDOW_SIZE + 1])
+            vec![blockstamps[1]],
+            insert_new_head_block(&fork_tree_db, blockstamps[*DEFAULT_FORK_WINDOW_SIZE + 1])?
         );
 
         Ok(())
@@ -151,13 +151,13 @@ mod test {
         // Create mock datas
         let blockstamps =
             dubp_user_docs_tests_tools::mocks::generate_blockstamps(*DEFAULT_FORK_WINDOW_SIZE + 3);
-        let fork_tree_db = open_db::<ForksTreeV10Datas>(None, "")?;
+        let fork_tree_db = open_free_struct_db::<ForksTreeV10Datas>(None, "")?;
 
         // Insert 4 main blocks
         for i in 0..4 {
             assert_eq!(
-                Ok(vec![]),
-                insert_new_head_block(&fork_tree_db, blockstamps[i])
+                Vec::<Blockstamp>::with_capacity(0),
+                insert_new_head_block(&fork_tree_db, blockstamps[i])?
             );
         }
 
@@ -174,8 +174,8 @@ mod test {
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
         };
         assert_eq!(
-            Ok(true),
-            insert_new_fork_block(&fork_tree_db, fork_blockstamp, blockstamps[2].hash.0)
+            true,
+            insert_new_fork_block(&fork_tree_db, fork_blockstamp, blockstamps[2].hash.0)?
         );
 
         // Check tree state
@@ -194,8 +194,8 @@ mod test {
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
         };
         assert_eq!(
-            Ok(true),
-            insert_new_fork_block(&fork_tree_db, fork_blockstamp_2, fork_blockstamp.hash.0)
+            true,
+            insert_new_fork_block(&fork_tree_db, fork_blockstamp_2, fork_blockstamp.hash.0)?
         );
 
         // Check tree state
@@ -211,8 +211,8 @@ mod test {
         // Insert FORK_WINDOW_SIZE blocks
         for i in 4..*DEFAULT_FORK_WINDOW_SIZE {
             assert_eq!(
-                Ok(vec![]),
-                insert_new_head_block(&fork_tree_db, blockstamps[i])
+                Vec::<Blockstamp>::with_capacity(0),
+                insert_new_head_block(&fork_tree_db, blockstamps[i])?
             );
         }
 
@@ -235,15 +235,15 @@ mod test {
         // Insert 2 new main blocks (too old blocks must be removed)
         for i in 0..2 {
             assert_eq!(
-                Ok(vec![blockstamps[i]]),
-                insert_new_head_block(&fork_tree_db, blockstamps[*DEFAULT_FORK_WINDOW_SIZE + i])
+                vec![blockstamps[i]],
+                insert_new_head_block(&fork_tree_db, blockstamps[*DEFAULT_FORK_WINDOW_SIZE + i])?
             );
         }
 
         // Insert one new main block (fork branch must be removed)
         assert_eq!(
-            Ok(vec![blockstamps[2], fork_blockstamp_2, fork_blockstamp]),
-            insert_new_head_block(&fork_tree_db, blockstamps[*DEFAULT_FORK_WINDOW_SIZE + 2])
+            vec![blockstamps[2], fork_blockstamp_2, fork_blockstamp],
+            insert_new_head_block(&fork_tree_db, blockstamps[*DEFAULT_FORK_WINDOW_SIZE + 2])?
         );
 
         // Check tree state

@@ -13,27 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::*;
-use dubp_common_doc::Blockstamp;
+//! Define Key-Value database
 
-/// get current blockstamp
-pub fn get_current_blockstamp(forks_dbs: &ForksDBs) -> Result<Option<Blockstamp>, DALError> {
-    Ok(forks_dbs
-        .fork_tree_db
-        .read(|fork_tree| fork_tree.get_current_blockstamp())?)
-}
+mod file;
 
-/// Get stackables blocks
-pub fn get_stackables_blocks(
-    forks_dbs: &ForksDBs,
-    current_blockstamp: &Blockstamp,
-) -> Result<Vec<DALBlock>, DALError> {
-    if let Some(stackables_blocks) = forks_dbs
-        .orphan_blocks_db
-        .read(|db| db.get(&current_blockstamp).cloned())?
-    {
-        Ok(stackables_blocks)
-    } else {
-        Ok(vec![])
-    }
-}
+pub use file::{
+    KvFileDbHandler, KvFileDbRead, KvFileDbReader, KvFileDbRoHandler, KvFileDbSchema,
+    KvFileDbStoreType, KvFileDbWriter,
+};
+pub use rkv::{
+    IntegerStore, MultiIntegerStore, MultiStore, OwnedValue as KvFileDbOwnedValue, SingleStore,
+    Value as KvFileDbValue,
+};

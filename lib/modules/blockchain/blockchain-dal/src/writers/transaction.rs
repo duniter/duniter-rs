@@ -20,7 +20,7 @@ use crate::entities::sources::{SourceAmount, UTXOV10};
 use crate::*;
 use dubp_indexes::sindex::{SourceUniqueIdV10, UniqueIdUTXOv10};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 /// Transaction error
 pub enum TxError {
     /// UnkonwError

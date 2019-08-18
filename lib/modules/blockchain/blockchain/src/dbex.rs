@@ -93,8 +93,8 @@ pub fn dbex_bc(profile_path: PathBuf, _csv: bool, _query: DbExBcQuery) -> Result
 
     // Open databases
     let load_dbs_begin = SystemTime::now();
-    let blocks_db = BlocksV10DBs::open(Some(&db_path));
-    //let forks_dbs = ForksDBs::open(Some(&db_path));
+    let db = open_db(&db_path.as_path())?;
+    let forks_dbs = ForksDBs::open(Some(&db_path));
     let wot_databases = WotsV10DBs::open(Some(&db_path));
 
     let load_dbs_duration = SystemTime::now()
@@ -107,18 +107,14 @@ pub fn dbex_bc(profile_path: PathBuf, _csv: bool, _query: DbExBcQuery) -> Result
     );
 
     if let Some(current_blockstamp) =
-        durs_blockchain_dal::readers::block::get_current_blockstamp(&blocks_db)?
+        durs_blockchain_dal::readers::fork_tree::get_current_blockstamp(&forks_dbs)?
     {
         println!("Current block: #{}.", current_blockstamp);
-        if let Some(current_block) = durs_blockchain_dal::readers::block::get_block(
-            &blocks_db.blockchain_db,
-            None,
-            &current_blockstamp,
-        )? {
-            let map_pubkey = durs_blockchain_dal::readers::block::get_current_frame(
-                &current_block,
-                &blocks_db.blockchain_db,
-            )?;
+        if let Some(current_block) =
+            durs_blockchain_dal::readers::block::get_block(&db, None, &current_blockstamp)?
+        {
+            let map_pubkey =
+                durs_blockchain_dal::readers::block::get_current_frame(&current_block, &db)?;
 
             let mut vec = map_pubkey.iter().collect::<Vec<(&PubKey, &usize)>>();
             vec.sort_by(|a, b| b.1.cmp(&a.1));
@@ -303,8 +299,9 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
         .expect("Fail to read IdentitiesDB !");
 
     // Open wot db
-    let wot_db = BinDB::File(
-        open_file_db::<RustyWebOfTrust>(&db_path, "wot.db").expect("Fail to open WotDB !"),
+    let wot_db = BinFreeStructDb::File(
+        open_free_struct_file_db::<RustyWebOfTrust>(&db_path, "wot.db")
+            .expect("Fail to open WotDB !"),
     );
 
     // Print wot blockstamp
@@ -374,19 +371,19 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
         }
         DbExWotQuery::ExpireMembers(ref reverse) => {
             // Open blockchain database
-            let blockchain_db = open_file_db::<LocalBlockchainV10Datas>(&db_path, "blockchain.db")
-                .expect("Fail to open blockchain db");
+            let db = open_db(&db_path.as_path()).expect("Fail to open DB.");
             // Get blocks_times
-            let (current_bc_time, blocks_times): (u64, HashMap<BlockNumber, u64>) = blockchain_db
-                .read(|db| {
-                    (
-                        db[&BlockNumber(db.len() as u32 - 1)].block.common_time(),
-                        db.iter()
-                            .map(|(block_id, dal_block)| (*block_id, dal_block.block.common_time()))
-                            .collect(),
-                    )
-                })
-                .expect("Fail to read blockchain db");
+            let all_blocks = durs_blockchain_dal::readers::block::get_blocks_in_local_blockchain(
+                &db,
+                BlockNumber(0),
+                10_000_000,
+            )
+            .expect("Fail to get all blocks");
+            let current_bc_time = all_blocks.last().expect("empty blockchain").common_time();
+            let blocks_times: HashMap<BlockNumber, u64> = all_blocks
+                .iter()
+                .map(|block| (block.number(), block.common_time()))
+                .collect();
             // Get expire_dates
             let min_created_ms_time = current_bc_time - currency_params.ms_validity;
             let mut expire_dates: Vec<(WotId, u64)> = wot_databases

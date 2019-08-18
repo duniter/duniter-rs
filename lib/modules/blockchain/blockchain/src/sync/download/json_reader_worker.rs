@@ -96,9 +96,9 @@ pub fn json_reader_worker(
         // Get current local blockstamp
         debug!("Get local current blockstamp...");
         let db_path = durs_conf::get_blockchain_db_path(profile_path);
-        let blocks_databases = BlocksV10DBs::open(Some(&db_path));
+        let forks_dbs = ForksDBs::open(Some(&db_path));
         let current_blockstamp: Blockstamp =
-            durs_blockchain_dal::readers::block::get_current_blockstamp(&blocks_databases)
+            durs_blockchain_dal::readers::fork_tree::get_current_blockstamp(&forks_dbs)
                 .expect("ForksV10DB : RustBreakError !")
                 .unwrap_or_default();
         info!("Local current blockstamp = {}", current_blockstamp);

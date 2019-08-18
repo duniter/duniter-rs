@@ -27,7 +27,7 @@ use dubp_common_doc::{BlockNumber, Blockstamp};
 use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use dup_crypto::keys::PubKey;
 use durs_blockchain_dal::writers::requests::WotsDBsWriteQuery;
-use durs_blockchain_dal::{BinDB, CertsExpirV10Datas, WotsV10DBs};
+use durs_blockchain_dal::{BinFreeStructDb, CertsExpirV10Datas, WotsV10DBs};
 use durs_common_tools::fatal_error;
 use durs_network_documents::url::Url;
 use durs_wot::data::rusty::RustyWebOfTrust;
@@ -59,7 +59,7 @@ pub struct BlockApplicator {
     // databases
     pub wot_index: HashMap<PubKey, WotId>,
     pub wot_databases: WotsV10DBs,
-    pub certs_db: BinDB<CertsExpirV10Datas>,
+    pub certs_db: BinFreeStructDb<CertsExpirV10Datas>,
     // time measurement
     pub wait_begin: SystemTime,
     pub all_wait_duration: Duration,

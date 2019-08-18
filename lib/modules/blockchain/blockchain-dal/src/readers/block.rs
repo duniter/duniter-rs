@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::constants::*;
 use crate::*;
 use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
 use dubp_common_doc::traits::Document;
@@ -21,36 +22,22 @@ use dup_crypto::keys::*;
 use std::collections::HashMap;
 use unwrap::unwrap;
 
-/// get current blockstamp
-pub fn get_current_blockstamp(blocks_db: &BlocksV10DBs) -> Result<Option<Blockstamp>, DALError> {
-    Ok(blocks_db.blockchain_db.read(|db| {
-        let blockchain_len = db.len() as u32;
-        if blockchain_len == 0 {
-            None
-        } else if let Some(dal_block) = db.get(&BlockNumber(blockchain_len - 1)) {
-            Some(dal_block.blockstamp())
-        } else {
-            None
-        }
-    })?)
-}
-
 /// Get block hash
-pub fn get_block_hash(
-    db: &BinDB<LocalBlockchainV10Datas>,
+pub fn get_block_hash<DB: DbReadable>(
+    db: &DB,
     block_number: BlockNumber,
 ) -> Result<Option<BlockHash>, DALError> {
-    Ok(db.read(|db| {
-        if let Some(dal_block) = db.get(&block_number) {
-            dal_block.block.hash()
+    Ok(
+        if let Some(block) = get_block_in_local_blockchain(db, block_number)? {
+            block.hash()
         } else {
             None
-        }
-    })?)
+        },
+    )
 }
 /// Return true if the node already knows this block
-pub fn already_have_block(
-    blockchain_db: &BinDB<LocalBlockchainV10Datas>,
+pub fn already_have_block<DB: DbReadable>(
+    db: &DB,
     forks_dbs: &ForksDBs,
     blockstamp: Blockstamp,
     previous_hash: Option<Hash>,
@@ -84,91 +71,114 @@ pub fn already_have_block(
             }
         }
     } else {
-        return Ok(blockchain_db.read(|db| {
-            if let Some(dal_block) = db.get(&blockstamp.id) {
-                if dal_block.block.hash().unwrap_or_default() == blockstamp.hash {
-                    return true;
-                }
-            }
-            false
-        })?);
+        return Ok(get_block_in_local_blockchain(db, blockstamp.id)?.is_some());
     }
 
     Ok(false)
 }
 
 /// Get block
-pub fn get_block(
-    blockchain_db: &BinDB<LocalBlockchainV10Datas>,
-    forks_blocks_db: Option<&BinDB<ForksBlocksV10Datas>>,
+pub fn get_block<DB: DbReadable>(
+    db: &DB,
+    forks_blocks_db: Option<&BinFreeStructDb<ForksBlocksV10Datas>>,
     blockstamp: &Blockstamp,
 ) -> Result<Option<DALBlock>, DALError> {
-    let dal_block = blockchain_db.read(|db| db.get(&blockstamp.id).cloned())?;
-    if dal_block.is_none() && forks_blocks_db.is_some() {
+    let opt_dal_block = get_dal_block_in_local_blockchain(db, blockstamp.id)?;
+    if opt_dal_block.is_none() && forks_blocks_db.is_some() {
         Ok(forks_blocks_db
             .expect("safe unwrap")
             .read(|db| db.get(&blockstamp).cloned())?)
     } else {
-        Ok(dal_block)
+        Ok(opt_dal_block)
     }
 }
 
 /// Get block in local blockchain
 #[inline]
-pub fn get_block_in_local_blockchain(
-    db: &BinDB<LocalBlockchainV10Datas>,
-    block_id: BlockNumber,
+pub fn get_block_in_local_blockchain<DB: DbReadable>(
+    db: &DB,
+    block_number: BlockNumber,
 ) -> Result<Option<BlockDocument>, DALError> {
-    Ok(db.read(|db| {
-        if let Some(dal_block) = db.get(&block_id) {
-            Some(dal_block.block.clone())
+    Ok(get_dal_block_in_local_blockchain(db, block_number)?.map(|dal_block| dal_block.block))
+}
+
+/// Get block in local blockchain
+pub fn get_dal_block_in_local_blockchain<DB: DbReadable>(
+    db: &DB,
+    block_number: BlockNumber,
+) -> Result<Option<DALBlock>, DALError> {
+    db.read(|r| {
+        if let Some(v) = db.get_int_store(LOCAL_BC).get(r, block_number.0)? {
+            Ok(Some(DB::from_db_value(v)?))
         } else {
-            None
+            Ok(None)
         }
-    })?)
+    })
+    //local_bc_db.read(|r| local_bc_db.get(&r, block_number.0))
 }
 
 /// Get several blocks in local blockchain
-#[inline]
-pub fn get_blocks_in_local_blockchain(
-    db: &BinDB<LocalBlockchainV10Datas>,
+pub fn get_blocks_in_local_blockchain<DB: DbReadable>(
+    db: &DB,
     first_block_number: BlockNumber,
-    count: u32,
+    mut count: u32,
 ) -> Result<Vec<BlockDocument>, DALError> {
-    Ok(db.read(|db| {
+    db.read(|r| {
+        let bc_store = db.get_int_store(LOCAL_BC);
         let mut blocks = Vec::with_capacity(count as usize);
         let mut current_block_number = first_block_number;
-        while let Some(dal_block) = db.get(&current_block_number) {
-            blocks.push(dal_block.block.clone());
-            current_block_number = BlockNumber(current_block_number.0 + 1);
+
+        while let Some(v) = bc_store.get(r, current_block_number.0)? {
+            blocks.push(DB::from_db_value::<DALBlock>(v)?.block);
+            count -= 1;
+            if count > 0 {
+                current_block_number = BlockNumber(current_block_number.0 + 1);
+            } else {
+                return Ok(blocks);
+            }
         }
-        blocks
-    })?)
+        Ok(blocks)
+    })
+    /*bc_db.read(|r| {
+        let mut blocks = Vec::with_capacity(count as usize);
+        let mut current_block_number = first_block_number;
+        while let Some(dal_block) = bc_db.get(&r, current_block_number.0)? {
+            blocks.push(dal_block.block);
+            count -= 1;
+            if count > 0 {
+                current_block_number = BlockNumber(current_block_number.0 + 1);
+            } else {
+                return Ok(blocks);
+            }
+        }
+        Ok(blocks)
+    })*/
 }
 
 /// Get current frame of calculating members
-pub fn get_current_frame(
+pub fn get_current_frame<DB: DbReadable>(
     current_block: &DALBlock,
-    db: &BinDB<LocalBlockchainV10Datas>,
+    db: &DB,
 ) -> Result<HashMap<PubKey, usize>, DALError> {
     let frame_begin =
         current_block.block.number().0 - current_block.block.current_frame_size() as u32;
-    Ok(db.read(|db| {
-        let mut current_frame: HashMap<PubKey, usize> = HashMap::new();
-        for block_number in frame_begin..current_block.block.number().0 {
-            let issuer = db
-                .get(&BlockNumber(block_number))
-                .unwrap_or_else(|| fatal_error!("Fail to get block #{} !", block_number))
-                .block
-                .issuers()[0];
-            let issuer_count_blocks = if let Some(issuer_count_blocks) = current_frame.get(&issuer)
-            {
-                issuer_count_blocks + 1
-            } else {
-                1
-            };
-            current_frame.insert(issuer, issuer_count_blocks);
-        }
-        current_frame
-    })?)
+
+    let blocks = get_blocks_in_local_blockchain(
+        db,
+        BlockNumber(frame_begin),
+        current_block.block.current_frame_size() as u32,
+    )?;
+
+    let mut current_frame: HashMap<PubKey, usize> = HashMap::new();
+    for block in blocks {
+        let issuer = block.issuers()[0];
+        let issuer_count_blocks = if let Some(issuer_count_blocks) = current_frame.get(&issuer) {
+            issuer_count_blocks + 1
+        } else {
+            1
+        };
+        current_frame.insert(issuer, issuer_count_blocks);
+    }
+
+    Ok(current_frame)
 }

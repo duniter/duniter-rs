@@ -57,7 +57,7 @@ impl BlocksDBsWriteQuery {
     /// BlocksDBsWriteQuery
     pub fn apply(
         self,
-        blockchain_db: &BinDB<LocalBlockchainV10Datas>,
+        db: &Db,
         forks_db: &ForksDBs,
         fork_window_size: usize,
         sync_target: Option<Blockstamp>,
@@ -70,20 +70,14 @@ impl BlocksDBsWriteQuery {
                     || dal_block.blockstamp().id.0 + fork_window_size as u32
                         >= sync_target.expect("safe unwrap").id.0
                 {
-                    super::block::insert_new_head_block(blockchain_db, forks_db, dal_block)?;
+                    super::block::insert_new_head_block(db, Some(forks_db), dal_block)?;
                 } else {
-                    // Insert block in blockchain
-                    blockchain_db.write(|db| {
-                        db.insert(dal_block.block.number(), dal_block);
-                    })?;
+                    super::block::insert_new_head_block(db, None, dal_block)?;
                 }
             }
             BlocksDBsWriteQuery::RevertBlock(dal_block) => {
                 trace!("BlocksDBsWriteQuery::WriteBlock...");
-                // Remove block in blockchain
-                blockchain_db.write(|db| {
-                    db.remove(&dal_block.block.number());
-                })?;
+                super::block::remove_block(db, dal_block.block.number())?;
                 trace!("BlocksDBsWriteQuery::WriteBlock...finish");
             }
         }
