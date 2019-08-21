@@ -56,7 +56,7 @@ impl TxDocOrTxHash {
             if let Some(ref hash) = tx_doc.get_hash_opt() {
                 TxDocOrTxHash::TxHash(*hash)
             } else {
-                TxDocOrTxHash::TxHash(tx_doc.clone().compute_hash())
+                TxDocOrTxHash::TxHash(tx_doc.compute_hash())
             }
         } else {
             self.clone()

@@ -605,7 +605,7 @@ impl ToStringObject for TransactionDocument {
 
 impl TransactionDocument {
     /// Compute transaction hash
-    pub fn compute_hash(&mut self) -> Hash {
+    pub fn compute_hash(&self) -> Hash {
         let mut hashing_text = if let Some(ref text) = self.text {
             text.clone()
         } else {
@@ -616,8 +616,7 @@ impl TransactionDocument {
             hashing_text.push_str("\n");
         }
         //println!("tx_text_hasing={}", hashing_text);
-        self.hash = Some(Hash::compute_str(&hashing_text));
-        self.hash.expect("Try to get hash of a reduce tx !")
+        Hash::compute_str(&hashing_text)
     }
     /// get transaction hash option
     pub fn get_hash_opt(&self) -> Option<Hash> {
@@ -628,7 +627,8 @@ impl TransactionDocument {
         if let Some(hash) = self.hash {
             hash
         } else {
-            self.compute_hash()
+            self.hash = Some(self.compute_hash());
+            self.hash.expect("Try to get hash of a reduce tx !")
         }
     }
     /// Get transaction inputs

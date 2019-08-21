@@ -84,14 +84,15 @@ pub fn revert_block_v10<W: WebOfTrust>(
         .transactions
         .iter()
         .map(|tx_enum| match *tx_enum {
-            TxDocOrTxHash::TxHash(ref tx_hash) => {
-                if let Ok(Some(tx)) = txs_db.read(|db| db.get(tx_hash).cloned()) {
-                    tx
-                } else {
-                    fatal_error!("revert_block(): tx {} not found !", tx_hash);
-                }
+            TxDocOrTxHash::TxHash(tx_hash) => tx_hash,
+            TxDocOrTxHash::TxDoc(ref tx_doc) => tx_doc.compute_hash(),
+        })
+        .map(|tx_hash| {
+            if let Ok(Some(tx)) = txs_db.read(|db| db.get(&tx_hash).cloned()) {
+                tx
+            } else {
+                fatal_error!("revert_block(): tx {} not found !", tx_hash);
             }
-            TxDocOrTxHash::TxDoc(ref _dal_tx) => fatal_error!("Try to revert not reduce block !"),
         })
         .collect();
 
