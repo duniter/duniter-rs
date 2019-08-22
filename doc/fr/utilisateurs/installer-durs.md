@@ -1,4 +1,4 @@
-# Installer DURS sur votre ordinateur
+# Installer Dunitrust sur votre ordinateur
 
 ## Installation simple
 
@@ -6,7 +6,7 @@ Dans tout les cas vous aurez 3 choix a faire :
 
 1. Choisir entre dunitrust-server ou dunitrust-desktop
 2. Choisir la version de Dunitrust que vous souhaitez installer
-3. Choisir le livrable correspondant votre système d'exploitation et votre processeur.
+3. Choisir le livrable correspondant à votre système d'exploitation et votre processeur.
 
 ### `dunitrust-server` ou `dunitrust-desktop`
 
@@ -24,7 +24,7 @@ Notez bien : il est possible d'administrer `dunitrust-server` a distance via une
 
 <s>Rendez vous sur [le site officiel de Dunitrust](dunitrust.org), vous y trouverez un lien direct vers la dernière version stable.</s>
 
-Le site web de Dunitrust n'existe pas encore, en attendant vous devrez vous renseigenr sur le [forum duniter](https://forum.duniter.org) pour savoir quelle version installer.
+Le site web de Dunitrust n'existe pas encore, en attendant vous devrez vous renseigner sur le [forum duniter](https://forum.duniter.org) pour savoir quelle version installer.
 
 Vous trouverez toute les versions disponibles au téléchargement sur [cette page du gitlab](https://git.duniter.org/nodes/rust/duniter-rs/tags).
 
@@ -45,7 +45,7 @@ S'il n'y a pas de livrable pour votre configuration, vous pouvez installer durs 
 
 Téléchargez l'image docker de durs :
 
-    docker pull registry.duniter.org/nodes/rust/duniter-rs
+    docker pull dunitrust/dunitrust
 
 Sans préciser de tag, vous obtiendrez la dernière version stable.
 
@@ -53,7 +53,7 @@ Sans préciser de tag, vous obtiendrez la dernière version stable.
 
 Pour les alpha-testeurs, vous pouvez télécharger la dernière version de développement avec le tag `dev` :
 
-    docker pull registry.duniter.org/nodes/rust/duniter-rs:dev
+    docker pull dunitrust/dunitrust:dev
 
 Ensuite configurez votre noeud durs via un fichier de variables d'environnement
 
