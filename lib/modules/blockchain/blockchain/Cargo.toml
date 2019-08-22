@@ -1,6 +1,6 @@
 [package]
 name = "durs-blockchain"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 authors = ["librelois <elois@ifee.fr>"]
 description = "Blockchain module for the Dunitrust project."
 license = "AGPL-3.0"

@@ -1,6 +1,6 @@
 [package]
 name = "durs-ws2p"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 authors = ["librelois <elois@ifee.fr>"]
 description = "WebSocketToPeer API for DURS Project."
 license = "AGPL-3.0"

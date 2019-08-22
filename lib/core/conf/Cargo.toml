@@ -1,6 +1,6 @@
 [package]
 name = "durs-conf"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 authors = ["librelois <elois@ifee.fr>"]
 description = "Configuration module for the Duniter project."
 license = "AGPL-3.0"
