@@ -1,6 +1,6 @@
 [package]
 name = "durs-blockchain-dal"
-version = "0.2.0-a"
+version = "0.2.0-a3"
 authors = ["librelois <elois@ifee.fr>"]
 description = "Data Access Layer for Dunitrust Blockchain module."
 license = "AGPL-3.0"

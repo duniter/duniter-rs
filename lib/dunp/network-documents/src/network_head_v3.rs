@@ -245,8 +245,8 @@ mod tests {
                 "50-000005B1CEB4EC5245EF7E33101A330A1C9A358EC45A25FC13F78BB58C9E7370",
             )
             .unwrap(),
-            software: String::from("durs"),
-            soft_version: String::from("0.2.0-a1"),
+            software: String::from("dunitrust"),
+            soft_version: String::from("0.2.0-a3"),
             signature: None,
             step: 0,
         };

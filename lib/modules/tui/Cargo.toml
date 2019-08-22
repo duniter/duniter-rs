@@ -1,6 +1,6 @@
 [package]
 name = "durs-tui"
-version = "0.2.0-a"
+version = "0.2.0-a3"
 authors = ["librelois <elois@ifee.fr>"]
 description = "Terminal user interface for Duniter-Rs."
 license = "AGPL-3.0"

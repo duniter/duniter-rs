@@ -68,7 +68,7 @@ Le nom de commit doit être entièrement en minuscules. Le nom du commit est de 
 * `feat` : Développement d'une nouvelle fonctionnalité.
 * `fix` : Correction d'un bug
 * `opti` :  Optimisation : amélioration des performances ou/et réduction de l'espace mémoire/disque utilisé.
-* `pub` : commit lié a la publication d'une crate sur [crates.io](https://crates.io).
+* `pub` : commit lié a la publication d'une release du projet ou d'une crate sur [crates.io](https://crates.io).
 * `ref` : Changement du code qui ne change rien au fonctionnement (refactoring en anglais).
 * `style` : Modification du style du code (fmt et clippy).
 * `tests` : Modification des tests existants ou/et création de nouveaux tests.
