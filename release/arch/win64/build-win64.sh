@@ -86,5 +86,5 @@ cp "${ROOT}/target/${TARGET}/release/dunitrust.exe" "${RELEASES}/server_/" || ex
 # ---------------
 
 cd "${RELEASES}/server_"
-zip "${BIN}/duniter-rust-server-${DURS_TAG}-windows-x64.zip" * || exit 1
-create_desc "${BIN}/duniter-rust-server-${DURS_TAG}-windows-x64.zip" "Server" "Windows"
+zip "${BIN}/dunitrust-server-${DURS_TAG}-windows-x64.zip" * || exit 1
+create_desc "${BIN}/dunitrust-server-${DURS_TAG}-windows-x64.zip" "Server" "Windows"
