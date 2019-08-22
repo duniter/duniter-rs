@@ -1,6 +1,6 @@
 [package]
 name = "dunitrust"
-version = "0.2.0-a3"
+version = "0.2.0-a4"
 authors = ["librelois <elois@duniter.org>","nanocryk <nanocryk@duniter.org>","inso <inso@tuta.io>"]
 description = "Dunitrust (Dividende Universel Rust) is a new implementation of Duniter protocol and software in Rust, a safe, concurrent, practical language"
 license = "AGPL-3.0"

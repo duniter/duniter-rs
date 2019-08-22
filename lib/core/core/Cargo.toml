@@ -1,6 +1,6 @@
 [package]
 name = "durs-core"
-version = "0.2.0-a3"
+version = "0.2.0-a4"
 authors = ["librelois <elois@ifee.fr>"]
 description = "Dunitrust core."
 license = "AGPL-3.0"

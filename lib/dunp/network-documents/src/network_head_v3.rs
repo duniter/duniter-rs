@@ -246,7 +246,7 @@ mod tests {
             )
             .unwrap(),
             software: String::from("dunitrust"),
-            soft_version: String::from("0.2.0-a3"),
+            soft_version: String::from("0.2.0-a4"),
             signature: None,
             step: 0,
         };
