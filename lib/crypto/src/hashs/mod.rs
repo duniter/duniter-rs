@@ -19,12 +19,8 @@ use crate::bases::*;
 use rand::{thread_rng, Rng};
 use std::fmt::{Debug, Display, Error, Formatter};
 
-#[cfg(not(all(unix, any(target_arch = "x86", target_arch = "x86_64"))))]
 use cryptoxide::digest::Digest;
-#[cfg(not(all(unix, any(target_arch = "x86", target_arch = "x86_64"))))]
 use cryptoxide::sha2::Sha256;
-#[cfg(all(unix, any(target_arch = "x86", target_arch = "x86_64")))]
-use sha2::{Digest, Sha256};
 
 /// A hash wrapper.
 ///
@@ -60,23 +56,6 @@ impl Hash {
         Hash(thread_rng().gen::<[u8; 32]>())
     }
 
-    #[cfg(all(unix, any(target_arch = "x86", target_arch = "x86_64")))]
-    /// Compute hash of any binary datas
-    pub fn compute(datas: &[u8]) -> Hash {
-        let hasher = Sha256::new();
-        let mut hash = Hash::default();
-        hash.0
-            .copy_from_slice(hasher.chain(datas).result().as_slice());
-        hash
-    }
-    #[cfg(all(unix, any(target_arch = "x86", target_arch = "x86_64")))]
-    #[inline]
-    /// Compute hash of a string
-    pub fn compute_str(str_datas: &str) -> Hash {
-        Hash::compute(str_datas.as_bytes())
-    }
-    #[cfg(not(all(unix, any(target_arch = "x86", target_arch = "x86_64"))))]
-    #[cfg_attr(tarpaulin, skip)]
     /// Compute hash of any binary datas
     pub fn compute(datas: &[u8]) -> Hash {
         let mut sha = Sha256::new();
@@ -85,8 +64,6 @@ impl Hash {
         sha.result(&mut hash_buffer);
         Hash(hash_buffer)
     }
-    #[cfg(not(all(unix, any(target_arch = "x86", target_arch = "x86_64"))))]
-    #[cfg_attr(tarpaulin, skip)]
     /// Compute hash of a string
     pub fn compute_str(str_datas: &str) -> Hash {
         let mut sha256 = Sha256::new();
