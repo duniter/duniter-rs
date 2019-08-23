@@ -84,7 +84,7 @@ api_incoming_conf = @{ u8 }
 free_member_rooms = @{ u8 }
 free_mirror_rooms = @{ u8 }
 software = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
-soft_version = @{ ASCII_DIGIT ~ "." ~ ASCII_DIGIT ~ "." ~ ASCII_DIGIT ~ ("-" ~ ("a" | "b" | "rc") ~ ASCII_DIGIT ~ ("." ~ ASCII_DIGIT){0,2})? }
+soft_version = @{ ASCII_DIGIT ~ "." ~ ASCII_DIGIT ~ "." ~ ASCII_DIGIT ~ ("-" ~ ASCII_ALPHANUMERIC* ~ ("." ~ ASCII_DIGIT{1,3}){0,2})? }
 step = @{ u_int }
 
 head_v3 = ${
