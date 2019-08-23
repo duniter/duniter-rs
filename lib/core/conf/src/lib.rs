@@ -36,6 +36,7 @@ pub mod constants;
 pub mod keys;
 
 use crate::constants::MODULES_DATAS_FOLDER;
+use byteorder::{BigEndian, ByteOrder};
 use dubp_currency_params::CurrencyName;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
@@ -43,7 +44,7 @@ use durs_module::{
     DursConfTrait, DursGlobalConfTrait, ModuleName, RequiredKeys, RequiredKeysContent,
 };
 use failure::Fail;
-use rand::Rng;
+use ring::rand;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use std::collections::HashSet;
 use std::fs;
@@ -431,8 +432,11 @@ fn generate_random_keypair(algo: KeysAlgo) -> KeyPairEnum {
 }
 
 fn generate_random_node_id() -> u32 {
-    let mut rng = rand::thread_rng();
-    rng.gen::<u32>()
+    if let Ok(random_bytes) = rand::generate::<[u8; 4]>(&rand::SystemRandom::new()) {
+        BigEndian::read_u32(&random_bytes.expose())
+    } else {
+        fatal_error!("System error: fail to generate random hash !")
+    }
 }
 
 /// Return the user datas folder name

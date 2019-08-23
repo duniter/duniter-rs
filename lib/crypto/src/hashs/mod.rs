@@ -16,11 +16,10 @@
 //! Provide wrappers for cryptographic hashs
 
 use crate::bases::*;
-use rand::{thread_rng, Rng};
+use durs_common_tools::fatal_error;
+use log::error;
+use ring::{digest, rand};
 use std::fmt::{Debug, Display, Error, Formatter};
-
-use cryptoxide::digest::Digest;
-use cryptoxide::sha2::Sha256;
 
 /// A hash wrapper.
 ///
@@ -53,22 +52,22 @@ impl Hash {
     /// Generate a random Hash
     #[inline]
     pub fn random() -> Self {
-        Hash(thread_rng().gen::<[u8; 32]>())
+        if let Ok(random_bytes) = rand::generate::<[u8; 32]>(&rand::SystemRandom::new()) {
+            Hash(random_bytes.expose())
+        } else {
+            fatal_error!("System error: fail to generate random hash !")
+        }
     }
 
     /// Compute hash of any binary datas
     pub fn compute(datas: &[u8]) -> Hash {
-        let mut sha = Sha256::new();
-        sha.input(datas);
         let mut hash_buffer = [0u8; 32];
-        sha.result(&mut hash_buffer);
+        hash_buffer.copy_from_slice(digest::digest(&digest::SHA256, datas).as_ref());
         Hash(hash_buffer)
     }
     /// Compute hash of a string
     pub fn compute_str(str_datas: &str) -> Hash {
-        let mut sha256 = Sha256::new();
-        sha256.input_str(&str_datas);
-        Hash::from_hex(&sha256.result_str()).expect("Sha256 result must be an hexa string !")
+        Hash::compute(str_datas.as_bytes())
     }
 
     /// Convert Hash into bytes vector

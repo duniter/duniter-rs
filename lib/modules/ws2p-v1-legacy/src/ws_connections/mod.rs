@@ -25,7 +25,7 @@ pub mod states;
 use crate::*;
 use dup_crypto::keys::*;
 use durs_network_documents::network_endpoint::EndpointV1;
-use rand::Rng;
+use ring::rand;
 use states::WS2PConnectionState;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -171,15 +171,19 @@ pub fn close_connection(
 pub fn get_random_connection<S: ::std::hash::BuildHasher>(
     connections: HashSet<&NodeFullId, S>,
 ) -> NodeFullId {
-    let mut rng = rand::thread_rng();
     let mut loop_count = 0;
+    let rng = rand::SystemRandom::new();
     loop {
         for ws2p_full_id in &connections {
             if loop_count > 10 {
                 return **ws2p_full_id;
             }
-            if rng.gen::<bool>() {
-                return **ws2p_full_id;
+            if let Ok(random_bytes) = rand::generate::<[u8; 4]>(&rng) {
+                if random_bytes.expose()[0] < 0b1000_0000 {
+                    return **ws2p_full_id;
+                }
+            } else {
+                fatal_error!("System error: fail to generate random boolean !")
             }
         }
         loop_count += 1;

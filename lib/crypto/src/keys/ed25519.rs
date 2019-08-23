@@ -24,7 +24,9 @@ use crate::bases::*;
 use base58::ToBase58;
 use base64;
 use cryptoxide as crypto;
-use rand::{thread_rng, Rng};
+use durs_common_tools::fatal_error;
+use log::error;
+use ring::rand;
 use serde::de::{Deserialize, Deserializer, Error, SeqAccess, Visitor};
 use serde::ser::{Serialize, SerializeTuple, Serializer};
 use std::fmt;
@@ -283,7 +285,13 @@ impl super::KeyPair for KeyPair {
 impl KeyPair {
     /// Generate random keypair
     pub fn generate_random() -> Self {
-        KeyPairFromSeedGenerator::generate(&thread_rng().gen::<[u8; 32]>())
+        let random_seed =
+            if let Ok(random_bytes) = rand::generate::<[u8; 32]>(&rand::SystemRandom::new()) {
+                random_bytes.expose()
+            } else {
+                fatal_error!("System error: fail to generate random hash !")
+            };
+        KeyPairFromSeedGenerator::generate(&random_seed)
     }
 }
 
