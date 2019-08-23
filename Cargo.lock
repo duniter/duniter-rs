@@ -435,14 +435,14 @@ dependencies = [
 
 [[package]]
 name = "dunitrust"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 dependencies = [
- "durs-core 0.2.0-a",
- "durs-module 0.2.0-a",
- "durs-network 0.2.0-a",
- "durs-tui 0.2.0-a",
- "durs-ws2p 0.2.0-a",
- "durs-ws2p-v1-legacy 0.2.0-a",
+ "durs-core 0.3.0-dev",
+ "durs-module 0.3.0-dev",
+ "durs-network 0.3.0-dev",
+ "durs-tui 0.3.0-dev",
+ "durs-ws2p 0.3.0-dev",
+ "durs-ws2p-v1-legacy 0.3.0-dev",
  "human-panic 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "structopt 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -474,7 +474,7 @@ dependencies = [
 
 [[package]]
 name = "durs-blockchain"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 dependencies = [
  "dirs 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "dubp-block-doc 0.1.0",
@@ -484,12 +484,12 @@ dependencies = [
  "dubp-user-docs-tests-tools 0.1.0",
  "dup-crypto 0.7.0",
  "dup-crypto-tests-tools 0.1.0",
- "durs-blockchain-dal 0.2.0-a",
+ "durs-blockchain-dal 0.3.0-dev",
  "durs-common-tools 0.2.0",
- "durs-conf 0.2.0-a",
- "durs-message 0.2.0-a",
- "durs-module 0.2.0-a",
- "durs-network 0.2.0-a",
+ "durs-conf 0.3.0-dev",
+ "durs-message 0.3.0-dev",
+ "durs-module 0.3.0-dev",
+ "durs-network 0.3.0-dev",
  "durs-network-documents 0.4.0",
  "durs-wot 0.8.0-a0.9",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -507,7 +507,7 @@ dependencies = [
 
 [[package]]
 name = "durs-blockchain-dal"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 dependencies = [
  "dubp-block-doc 0.1.0",
  "dubp-common-doc 0.1.0",
@@ -519,8 +519,8 @@ dependencies = [
  "dup-crypto-tests-tools 0.1.0",
  "durs-common-tests-tools 0.1.0",
  "durs-common-tools 0.2.0",
- "durs-conf 0.2.0-a",
- "durs-module 0.2.0-a",
+ "durs-conf 0.3.0-dev",
+ "durs-module 0.3.0-dev",
  "durs-wot 0.8.0-a0.9",
  "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "id_tree 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -549,14 +549,14 @@ dependencies = [
 
 [[package]]
 name = "durs-conf"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 dependencies = [
  "dirs 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
  "dup-crypto 0.7.0",
  "durs-common-tools 0.2.0",
- "durs-module 0.2.0-a",
+ "durs-module 0.3.0-dev",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -568,17 +568,17 @@ dependencies = [
 
 [[package]]
 name = "durs-core"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 dependencies = [
  "dirs 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "dubp-currency-params 0.2.0",
  "dup-crypto 0.7.0",
- "durs-blockchain 0.2.0-a",
+ "durs-blockchain 0.3.0-dev",
  "durs-common-tools 0.2.0",
- "durs-conf 0.2.0-a",
- "durs-message 0.2.0-a",
- "durs-module 0.2.0-a",
- "durs-network 0.2.0-a",
+ "durs-conf 0.3.0-dev",
+ "durs-message 0.3.0-dev",
+ "durs-module 0.3.0-dev",
+ "durs-network 0.3.0-dev",
  "durs-network-documents 0.4.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -593,16 +593,16 @@ dependencies = [
 
 [[package]]
 name = "durs-message"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 dependencies = [
  "dubp-block-doc 0.1.0",
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
  "dup-crypto 0.7.0",
- "durs-blockchain-dal 0.2.0-a",
- "durs-module 0.2.0-a",
- "durs-network 0.2.0-a",
+ "durs-blockchain-dal 0.3.0-dev",
+ "durs-module 0.3.0-dev",
+ "durs-network 0.3.0-dev",
  "durs-network-documents 0.4.0",
  "serde 1.0.99 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.99 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -611,7 +611,7 @@ dependencies = [
 
 [[package]]
 name = "durs-module"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 dependencies = [
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
@@ -628,14 +628,14 @@ dependencies = [
 
 [[package]]
 name = "durs-network"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 dependencies = [
  "dubp-block-doc 0.1.0",
  "dubp-common-doc 0.1.0",
  "dubp-user-docs 0.14.0",
  "dup-crypto 0.7.0",
  "durs-common-tools 0.2.0",
- "durs-module 0.2.0-a",
+ "durs-module 0.3.0-dev",
  "durs-network-documents 0.4.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.99 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -676,10 +676,10 @@ dependencies = [
  "dubp-user-docs 0.14.0",
  "dup-crypto 0.7.0",
  "durs-common-tools 0.2.0",
- "durs-conf 0.2.0-a",
- "durs-message 0.2.0-a",
- "durs-module 0.2.0-a",
- "durs-network 0.2.0-a",
+ "durs-conf 0.3.0-dev",
+ "durs-message 0.3.0-dev",
+ "durs-module 0.3.0-dev",
+ "durs-network 0.3.0-dev",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.99 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -690,16 +690,16 @@ dependencies = [
 
 [[package]]
 name = "durs-tui"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 dependencies = [
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
  "dup-crypto 0.7.0",
  "durs-common-tools 0.2.0",
- "durs-conf 0.2.0-a",
- "durs-message 0.2.0-a",
- "durs-module 0.2.0-a",
- "durs-network 0.2.0-a",
+ "durs-conf 0.3.0-dev",
+ "durs-message 0.3.0-dev",
+ "durs-module 0.3.0-dev",
+ "durs-network 0.3.0-dev",
  "durs-network-documents 0.4.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -725,7 +725,7 @@ dependencies = [
 
 [[package]]
 name = "durs-ws2p"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 dependencies = [
  "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "dubp-common-doc 0.1.0",
@@ -734,13 +734,13 @@ dependencies = [
  "dup-crypto 0.7.0",
  "durs-common-tests-tools 0.1.0",
  "durs-common-tools 0.2.0",
- "durs-conf 0.2.0-a",
- "durs-message 0.2.0-a",
- "durs-module 0.2.0-a",
- "durs-network 0.2.0-a",
+ "durs-conf 0.3.0-dev",
+ "durs-message 0.3.0-dev",
+ "durs-module 0.3.0-dev",
+ "durs-network 0.3.0-dev",
  "durs-network-documents 0.4.0",
- "durs-ws2p-messages 0.2.0-a",
- "durs-ws2p-protocol 0.2.0-a",
+ "durs-ws2p-messages 0.3.0-dev",
+ "durs-ws2p-protocol 0.3.0-dev",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "maplit 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -753,7 +753,7 @@ dependencies = [
 
 [[package]]
 name = "durs-ws2p-messages"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 dependencies = [
  "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -774,16 +774,16 @@ dependencies = [
 
 [[package]]
 name = "durs-ws2p-protocol"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 dependencies = [
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
  "dup-crypto 0.7.0",
  "durs-common-tools 0.2.0",
- "durs-module 0.2.0-a",
+ "durs-module 0.3.0-dev",
  "durs-network-documents 0.4.0",
- "durs-ws2p-messages 0.2.0-a",
+ "durs-ws2p-messages 0.3.0-dev",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "pretty_assertions 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -794,7 +794,7 @@ dependencies = [
 
 [[package]]
 name = "durs-ws2p-v1-legacy"
-version = "0.2.0-a"
+version = "0.3.0-dev"
 dependencies = [
  "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -804,10 +804,10 @@ dependencies = [
  "dubp-user-docs 0.14.0",
  "dup-crypto 0.7.0",
  "durs-common-tools 0.2.0",
- "durs-conf 0.2.0-a",
- "durs-message 0.2.0-a",
- "durs-module 0.2.0-a",
- "durs-network 0.2.0-a",
+ "durs-conf 0.3.0-dev",
+ "durs-message 0.3.0-dev",
+ "durs-module 0.3.0-dev",
+ "durs-network 0.3.0-dev",
  "durs-network-documents 0.4.0",
  "durs-wot 0.8.0-a0.9",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
