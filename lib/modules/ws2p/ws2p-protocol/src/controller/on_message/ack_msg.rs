@@ -81,7 +81,7 @@ fn send_ok_msg<M: ModuleMessage>(
     if let Ok((_, bin_ok_msg)) = WS2Pv2Message::encapsulate_payload(
         controller.meta_datas.currency.clone(),
         controller.meta_datas.local_node.my_node_id,
-        controller.meta_datas.local_node.my_key_pair,
+        &controller.meta_datas.signator,
         WS2Pv2MessagePayload::Ok(ok_msg),
     ) {
         // Order the sending of a OK message

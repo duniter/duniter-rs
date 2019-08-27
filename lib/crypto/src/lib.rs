@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Manage cryptographic operations for the DUP (DUniter Protocol).
+//! Manage cryptographic operations.
 
 #![deny(
     clippy::option_unwrap_used,
@@ -39,25 +39,27 @@ extern crate log;
 pub mod bases;
 pub mod hashs;
 pub mod keys;
+pub mod rand;
 
 #[cfg(test)]
 mod tests {
 
     use super::*;
+    use crate::keys::Seed;
     use ring::signature::Ed25519KeyPair;
     use ring::signature::KeyPair;
 
     #[test]
     fn test_ring_gen_keypair() {
-        let seed = [
+        let seed = Seed::new([
             61u8, 245, 136, 162, 155, 50, 205, 43, 116, 15, 45, 84, 138, 54, 114, 214, 71, 213, 11,
             251, 135, 182, 202, 131, 48, 91, 166, 226, 40, 255, 251, 172,
-        ];
+        ]);
 
         let legacy_key_pair = keys::ed25519::KeyPairFromSeedGenerator::generate(&seed);
 
         let ring_key_pair: Ed25519KeyPair =
-            Ed25519KeyPair::from_seed_and_public_key(&seed, &legacy_key_pair.pubkey.0)
+            Ed25519KeyPair::from_seed_and_public_key(seed.as_ref(), &legacy_key_pair.pubkey.0)
                 .expect("fail to generate ring key pair !");
 
         let ring_pubkey: <Ed25519KeyPair as KeyPair>::PublicKey = *ring_key_pair.public_key();

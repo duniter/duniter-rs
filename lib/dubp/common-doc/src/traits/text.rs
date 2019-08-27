@@ -117,14 +117,14 @@ pub trait TextDocumentBuilder: DocumentBuilder {
     ///
     /// - Text without signatures
     /// - Signatures
-    fn build_signed_text(&self, private_keys: Vec<PrivKey>) -> (String, Vec<Sig>) {
+    fn build_signed_text(&self, signators: Vec<SignatorEnum>) -> (String, Vec<Sig>) {
         let text = self.generate_text();
 
         let signatures: Vec<_> = {
             let text_bytes = text.as_bytes();
-            private_keys
+            signators
                 .iter()
-                .map(|key| key.sign(text_bytes))
+                .map(|signator| signator.sign(text_bytes))
                 .collect()
         };
 

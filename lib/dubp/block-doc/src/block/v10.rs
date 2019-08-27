@@ -345,8 +345,8 @@ Transactions:{transactions}
             i.reduce();
         }
     }
-    fn sign(&mut self, privkey: PrivKey) {
-        self.signatures = vec![privkey.sign(self.compute_will_signed_string().as_bytes())];
+    fn sign(&mut self, signator: SignatorEnum) {
+        self.signatures = vec![signator.sign(self.compute_will_signed_string().as_bytes())];
     }
     fn verify_inner_hash(&self) -> Result<(), VerifyBlockHashError> {
         match self.inner_hash {

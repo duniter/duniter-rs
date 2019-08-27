@@ -13,28 +13,31 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! WS2P Services
+//! Manage random generation.
 
-use dup_crypto::keys::KeyPairEnum;
-use durs_network_documents::*;
-use durs_ws2p_messages::v2::api_features::WS2PFeatures;
+use byteorder::ByteOrder;
+use durs_common_tools::fatal_error;
+use log::error;
+use ring::rand;
 
-pub mod outgoing;
-
-/// Websocket Error
-#[derive(Debug, Copy, Clone)]
-pub enum WsError {
-    /// Unknown error
-    UnknownError,
+#[inline]
+/// Generate random u32
+pub fn gen_u32() -> u32 {
+    let rng = rand::SystemRandom::new();
+    if let Ok(random_bytes) = rand::generate::<[u8; 4]>(&rng) {
+        byteorder::BigEndian::read_u32(&random_bytes.expose())
+    } else {
+        fatal_error!("System error: fail to generate random boolean !")
+    }
 }
 
-/// Store self WS2P properties
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct MySelfWs2pNode {
-    /// Local node id
-    pub my_node_id: NodeId,
-    /// Local network keypair
-    pub my_key_pair: KeyPairEnum,
-    /// Local node WWS2PFeatures
-    pub my_features: WS2PFeatures,
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_gen_u32() {
+        assert_ne!(gen_u32(), gen_u32())
+    }
 }

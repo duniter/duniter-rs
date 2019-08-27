@@ -39,7 +39,7 @@ pub fn process<M: ModuleMessage>(
     // Generate connect message
     let connect_msg = generate_connect_message(
         controller.meta_datas.connect_type,
-        controller.meta_datas.local_node.my_features.clone(),
+        controller.meta_datas.local_node.my_features,
         controller.meta_datas.challenge,
         None,
     );
@@ -48,7 +48,7 @@ pub fn process<M: ModuleMessage>(
     if let Ok((_ws2p_full_msg, bin_connect_msg)) = WS2Pv2Message::encapsulate_payload(
         controller.meta_datas.currency.clone(),
         controller.meta_datas.local_node.my_node_id,
-        controller.meta_datas.local_node.my_key_pair,
+        &controller.meta_datas.signator,
         WS2Pv2MessagePayload::Connect(Box::new(connect_msg)),
     ) {
         // Order the sending of a CONNECT message

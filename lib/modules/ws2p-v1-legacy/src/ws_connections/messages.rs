@@ -58,17 +58,17 @@ pub enum WS2Pv1MsgPayload {
 
 pub fn generate_connect_message(
     currency: &str,
-    key_pair: KeyPairEnum,
+    signator: &SignatorEnum,
     challenge: String,
 ) -> Message {
     // Create CONNECT Message
     let mut connect_message = WS2PConnectMessageV1 {
         currency: String::from(currency),
-        pubkey: key_pair.public_key(),
+        pubkey: signator.public_key(),
         challenge,
         signature: None,
     };
-    connect_message.signature = Some(connect_message.sign(key_pair));
+    connect_message.signature = Some(connect_message.sign(signator));
     Message::text(
         serde_json::to_string(&connect_message).expect("Fail to serialize CONNECT message !"),
     )

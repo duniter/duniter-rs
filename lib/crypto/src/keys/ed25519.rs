@@ -19,14 +19,13 @@
 //!
 //! [`KeyPairGenerator`]: struct.KeyPairGenerator.html
 
-use super::{PrivateKey as PrivateKeyMethods, PublicKey as PublicKeyMethods};
+use super::seed::Seed;
+use super::PublicKey as PublicKeyMethods;
 use crate::bases::*;
 use base58::ToBase58;
 use base64;
-use cryptoxide as crypto;
-use durs_common_tools::fatal_error;
-use log::error;
-use ring::rand;
+use clear_on_drop::ClearOnDrop;
+use ring::signature::{Ed25519KeyPair as RingKeyPair, KeyPair, UnparsedPublicKey, ED25519};
 use serde::de::{Deserialize, Deserializer, Error, SeqAccess, Visitor};
 use serde::ser::{Serialize, SerializeTuple, Serializer};
 use std::fmt;
@@ -181,116 +180,94 @@ impl super::PublicKey for PublicKey {
     }
 
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> Result<(), SigError> {
-        if crypto::ed25519::verify(message, &self.0, &signature.0) {
-            Ok(())
-        } else {
-            Err(SigError::InvalidSig)
-        }
+        Ok(UnparsedPublicKey::new(&ED25519, &self.0)
+            .verify(message, &signature.0)
+            .map_err(|_| SigError::InvalidSig)?)
     }
 }
 
-/// Store a Ed25519 private key.
-///
-/// Can be generated with [`KeyPairGenerator`].
-///
-/// [`KeyPairGenerator`]: struct.KeyPairGenerator.html
-#[derive(Copy, Clone)]
-pub struct PrivateKey(pub [u8; 64]);
-
-impl ToBase58 for PrivateKey {
-    fn to_base58(&self) -> String {
-        self.0.to_base58()
-    }
+#[inline]
+fn get_ring_ed25519_pubkey(ring_key_pair: &RingKeyPair) -> PublicKey {
+    let ring_pubkey: <RingKeyPair as KeyPair>::PublicKey = *ring_key_pair.public_key();
+    let mut ring_pubkey_bytes: [u8; 32] = [0u8; 32];
+    ring_pubkey_bytes.copy_from_slice(ring_pubkey.as_ref());
+    PublicKey(ring_pubkey_bytes)
 }
 
-impl Display for PrivateKey {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}", self.to_base58())
-    }
-}
+/// Store a ed25519 cryptographic signator
+#[derive(Debug)]
+pub struct Signator(RingKeyPair);
 
-impl Debug for PrivateKey {
-    // PrivateKey { 468Q1XtT... }
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        write!(f, "PrivateKey {{ {} }}", self)
-    }
-}
-
-impl PartialEq<PrivateKey> for PrivateKey {
-    fn eq(&self, other: &PrivateKey) -> bool {
-        // No PartialEq for [u8;64], need to use 2 [u8;32]
-        self.0[0..32] == other.0[0..32] && self.0[32..64] == other.0[32..64]
-    }
-}
-
-impl Eq for PrivateKey {}
-
-impl super::PrivateKey for PrivateKey {
+impl super::Signator for Signator {
     type Signature = Signature;
+    type PublicKey = PublicKey;
 
-    #[inline]
-    fn from_base58(base58_data: &str) -> Result<Self, BaseConvertionError> {
-        Ok(PrivateKey(b58::str_base58_to_64bytes(base58_data)?))
+    fn public_key(&self) -> Self::PublicKey {
+        get_ring_ed25519_pubkey(&self.0)
     }
-
-    /// Sign a message with this private key.
     fn sign(&self, message: &[u8]) -> Self::Signature {
-        Signature(crypto::ed25519::signature(message, &self.0))
+        let mut sig_bytes = [0u8; 64];
+        sig_bytes.copy_from_slice(self.0.sign(message).as_ref());
+        Signature(sig_bytes)
     }
 }
 
 /// Store a ed25519 cryptographic key pair (`PublicKey` + `PrivateKey`)
 #[derive(Debug, Copy, Clone, Eq)]
-pub struct KeyPair {
+pub struct Ed25519KeyPair {
     /// Store a Ed25519 public key.
     pub pubkey: PublicKey,
-    /// Store a Ed25519 private key.
-    pub privkey: PrivateKey,
+    /// Store a seed of 32 bytes.
+    pub seed: Seed,
 }
 
-impl Display for KeyPair {
+impl Display for Ed25519KeyPair {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(f, "({}, hidden)", self.pubkey.to_base58())
     }
 }
 
-impl PartialEq<KeyPair> for KeyPair {
-    fn eq(&self, other: &KeyPair) -> bool {
-        self.pubkey.eq(&other.pubkey) && self.privkey.eq(&other.privkey)
+impl PartialEq<Ed25519KeyPair> for Ed25519KeyPair {
+    fn eq(&self, other: &Ed25519KeyPair) -> bool {
+        self.pubkey.eq(&other.pubkey) && self.seed.eq(&other.seed)
     }
 }
 
-impl super::KeyPair for KeyPair {
-    type Signature = Signature;
-    type PublicKey = PublicKey;
-    type PrivateKey = PrivateKey;
+impl super::KeyPair for Ed25519KeyPair {
+    type Signator = Signator;
+
+    fn generate_signator(&self) -> Result<Self::Signator, super::SignError> {
+        Ok(Signator(
+            RingKeyPair::from_seed_and_public_key(self.seed.as_ref(), &self.pubkey.0)
+                .map_err(|_| super::SignError::CorruptedKeyPair)?,
+        ))
+    }
 
     fn public_key(&self) -> PublicKey {
         self.pubkey
     }
 
-    fn private_key(&self) -> PrivateKey {
-        self.privkey
+    fn seed(&self) -> Seed {
+        self.seed
     }
 
-    fn sign(&self, message: &[u8]) -> Signature {
-        self.private_key().sign(message)
-    }
-
-    fn verify(&self, message: &[u8], signature: &Self::Signature) -> Result<(), SigError> {
+    fn verify(
+        &self,
+        message: &[u8],
+        signature: &<Self::Signator as super::Signator>::Signature,
+    ) -> Result<(), SigError> {
         self.public_key().verify(message, signature)
     }
 }
 
-impl KeyPair {
+impl Ed25519KeyPair {
     /// Generate random keypair
     pub fn generate_random() -> Self {
-        let random_seed =
-            if let Ok(random_bytes) = rand::generate::<[u8; 32]>(&rand::SystemRandom::new()) {
-                random_bytes.expose()
-            } else {
-                fatal_error!("System error: fail to generate random hash !")
-            };
+        // generate random seed
+        let mut random_seed = Seed::random();
+        // For security, clear automatically random_seed when it's droped
+        let random_seed = ClearOnDrop::new(&mut random_seed);
+        // Generate and return keypair from seed
         KeyPairFromSeedGenerator::generate(&random_seed)
     }
 }
@@ -304,11 +281,13 @@ impl KeyPairFromSeedGenerator {
     ///
     /// The [`PublicKey`](struct.PublicKey.html) will be able to verify messaged signed with
     /// the [`PrivateKey`](struct.PrivateKey.html).
-    pub fn generate(seed: &[u8; 32]) -> KeyPair {
-        let (private, public) = crypto::ed25519::keypair(seed);
-        KeyPair {
-            pubkey: PublicKey(public),
-            privkey: PrivateKey(private),
+    pub fn generate(seed: &Seed) -> Ed25519KeyPair {
+        let ring_key_pair = RingKeyPair::from_seed_unchecked(seed.as_ref())
+            .expect("dev error: fail to generate ed25519 keypair.");
+
+        Ed25519KeyPair {
+            pubkey: get_ring_ed25519_pubkey(&ring_key_pair),
+            seed: *seed,
         }
     }
 }
@@ -346,106 +325,95 @@ impl KeyPairFromSaltedPasswordGenerator {
     }
 
     /// Create a seed based on a given password and salt.
-    pub fn generate_seed(&self, password: &[u8], salt: &[u8]) -> [u8; 32] {
+    pub fn generate_seed(&self, password: &[u8], salt: &[u8]) -> Seed {
         let mut seed = [0u8; 32];
 
         scrypt::scrypt(salt, password, &self.scrypt_params, &mut seed)
             .expect("dev error: invalid seed len");
 
-        seed
+        Seed::new(seed)
     }
 
     /// Create a keypair based on a given password and salt.
     ///
     /// The [`PublicKey`](struct.PublicKey.html) will be able to verify messaged signed with
     /// the [`PrivateKey`](struct.PrivateKey.html).
-    pub fn generate(&self, password: &[u8], salt: &[u8]) -> KeyPair {
-        let seed: [u8; 32] = self.generate_seed(password, salt);
+    pub fn generate(&self, password: &[u8], salt: &[u8]) -> Ed25519KeyPair {
+        // Generate seed from tuple (password + salt)
+        let mut seed = self.generate_seed(password, salt);
+        // For security, clear automatically seed when it's droped
+        let seed = ClearOnDrop::new(&mut seed);
+        // Generate keypair from seed
         KeyPairFromSeedGenerator::generate(&seed)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::KeyPair as ed25519KeyPair;
     use super::*;
-    use crate::keys::{KeyPair, Sig, Signature};
+    use crate::keys::{KeyPair, Seed, Sig, Signator, Signature};
     use base58::FromBase58;
     use bincode;
     use std::collections::hash_map::DefaultHasher;
 
     #[test]
-    fn base58_private_key() {
-        let private58 =
-            "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9r\
-             qnXuW3iAfZACm7";
-        let private_key = super::PrivateKey::from_base58(private58).unwrap();
+    fn base58_seed() {
+        let seed58 = "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV";
 
         // Test base58 encoding/decoding (loop for every bytes)
-        assert_eq!(private_key.to_base58(), private58);
-        let private_raw = private58.from_base58().unwrap();
-        for (key, raw) in private_key.0.iter().zip(private_raw.iter()) {
-            assert_eq!(key, raw);
-        }
+        let seed = Seed::from_base58(seed58).expect("fail to parser seed !");
+        assert_eq!(seed.to_base58(), seed58);
 
-        // Test privkey display and debug
+        // Test seed display and debug
         assert_eq!(
-            "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7".to_owned(),
-            format!("{}", private_key)
+            "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV".to_owned(),
+            format!("{}", seed)
         );
         assert_eq!(
-            "PrivateKey { 468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7 }".to_owned(),
-            format!("{:?}", private_key)
+            "Seed { DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV }".to_owned(),
+            format!("{:?}", seed)
         );
 
-        // Test privkey equality
-        let same_private_key = private_key.clone();
-        let other_private_key = PrivateKey([
-            0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0,
-        ]);
-        assert!(private_key.eq(&same_private_key));
-        assert!(!private_key.eq(&other_private_key));
+        // Test seed equality
+        let same_seed = seed.clone();
+        let other_seed = Seed::default();
+        assert!(seed.eq(&same_seed));
+        assert!(!seed.eq(&other_seed));
 
-        // Test privkey parsing
+        // Test seed parsing
         assert_eq!(
-            super::PrivateKey::from_base58(
-                "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iA\
-                fZACm7djh",
-            ).unwrap_err(),
-            BaseConvertionError::InvalidLength { found: 67, expected: 64 }
-        );
-        assert_eq!(
-            super::PrivateKey::from_base58(
-                "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9",
-            )
-            .unwrap_err(),
+            Seed::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLVgth",).unwrap_err(),
             BaseConvertionError::InvalidLength {
-                found: 53,
-                expected: 64
+                found: 35,
+                expected: 32
             }
         );
         assert_eq!(
-            super::PrivateKey::from_base58(
-                "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9<<",
-            )
-            .unwrap_err(),
+            Seed::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQd",).unwrap_err(),
+            BaseConvertionError::InvalidLength {
+                found: 31,
+                expected: 32
+            }
+        );
+        assert_eq!(
+            Seed::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQd<<").unwrap_err(),
             BaseConvertionError::InvalidCharacter {
                 character: '<',
-                offset: 73
+                offset: 42
             }
         );
         assert_eq!(
-            super::PrivateKey::from_base58(
+            Seed::from_base58(
                 "\
-                 468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9\
-                 468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9\
-                 468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5GiERP7ySs3wM8myLccbAAGejgMRC9\
-                 ",
+                 DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV\
+                 DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV\
+                 DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV\
+                 DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV\
+                 DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV\
+                 "
             )
             .unwrap_err(),
-            BaseConvertionError::InvalidBaseConverterLength,
+            BaseConvertionError::InvalidBaseConverterLength
         );
     }
 
@@ -594,18 +562,10 @@ mod tests {
 
     #[test]
     fn message_sign_verify() {
-        let pubkey =
-            super::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV").unwrap();
-
-        let prikey = super::PrivateKey::from_base58(
-            "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt\
-             5GiERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
-        )
-        .unwrap();
+        let seed = Seed::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV").unwrap();
 
         let expected_signature = super::Signature::from_base64(
-            "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FG\
-             MMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
+            "9ARKYkEAwp+kQ01rgvWUwJLchVLpZvHg3t/3H32XwWOoG119NiVCtfPSPtR4GDOeOz6Y+29drOLahqhzy+ciBw==",
         )
         .unwrap();
 
@@ -617,7 +577,11 @@ UniqueID: tic
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 ";
 
-        let sig = prikey.sign(message.as_bytes());
+        let signator = KeyPairFromSeedGenerator::generate(&seed)
+            .generate_signator()
+            .expect("fail to generate signator !");
+        let pubkey = signator.public_key();
+        let sig = signator.sign(message.as_bytes());
         let wrong_sig = Signature([
             0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -656,10 +620,10 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 
         // Test key_pair equality
         let same_key_pair = key_pair2.clone();
-        let other_key_pair = KeyPairFromSeedGenerator::generate(&[
+        let other_key_pair = KeyPairFromSeedGenerator::generate(&Seed::new([
             0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0,
-        ]);
+        ]));
         assert!(key_pair2.eq(&same_key_pair));
         assert!(!key_pair2.eq(&other_key_pair));
     }
@@ -677,24 +641,10 @@ UniqueID: tic
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 ";
 
-        let sig = keypair.sign(message.as_bytes());
+        let sig = keypair
+            .generate_signator()
+            .expect("fail to gen signator")
+            .sign(message.as_bytes());
         assert!(keypair.verify(message.as_bytes(), &sig).is_ok());
-    }
-
-    #[test]
-    fn test_exchange_dh() {
-        let kp1 = ed25519KeyPair::generate_random();
-        let kp2 = ed25519KeyPair::generate_random();
-
-        let secret1 = crypto::ed25519::exchange(&kp1.pubkey.0, &kp2.privkey.0);
-        let secret2 = crypto::ed25519::exchange(&kp2.pubkey.0, &kp1.privkey.0);
-
-        assert_eq!(secret1, secret2);
-
-        println!("pk1={}", kp1.pubkey);
-        println!("pk2={}", kp2.pubkey);
-        println!("shared_secret1={:?}", secret1);
-        println!("shared_secret2={:?}", secret2);
-        //panic!();
     }
 }

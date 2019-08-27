@@ -36,15 +36,14 @@ pub mod constants;
 pub mod keys;
 
 use crate::constants::MODULES_DATAS_FOLDER;
-use byteorder::{BigEndian, ByteOrder};
 use dubp_currency_params::CurrencyName;
 use dup_crypto::keys::*;
+use dup_crypto::rand;
 use durs_common_tools::fatal_error;
 use durs_module::{
     DursConfTrait, DursGlobalConfTrait, ModuleName, RequiredKeys, RequiredKeysContent,
 };
 use failure::Fail;
-use ring::rand;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use std::collections::HashSet;
 use std::fs;
@@ -370,8 +369,8 @@ impl Serialize for DuniterKeyPairs {
     where
         S: Serializer,
     {
-        let member_sec = if let Some(member_keypair) = self.member_keypair {
-            member_keypair.private_key().to_string()
+        let member_seed = if let Some(member_keypair) = self.member_keypair {
+            member_keypair.seed().to_string()
         } else {
             String::from("")
         };
@@ -382,14 +381,14 @@ impl Serialize for DuniterKeyPairs {
         };
         let mut state = serializer.serialize_struct("DuniterKeyPairs", 4)?;
         state.serialize_field(
-            "network_sec",
-            &self.network_keypair.private_key().to_string().as_str(),
+            "network_seed",
+            &self.network_keypair.seed().to_string().as_str(),
         )?;
         state.serialize_field(
             "network_pub",
             &self.network_keypair.public_key().to_string().as_str(),
         )?;
-        state.serialize_field("member_sec", member_sec.as_str())?;
+        state.serialize_field("member_seed", member_seed.as_str())?;
         state.serialize_field("member_pub", member_pub.as_str())?;
         state.end()
     }
@@ -426,17 +425,14 @@ impl DuniterKeyPairs {
 // Warning: This function cannot use the macro fatal_error! because the logger is not yet initialized, so it must use panic !
 fn generate_random_keypair(algo: KeysAlgo) -> KeyPairEnum {
     match algo {
-        KeysAlgo::Ed25519 => KeyPairEnum::Ed25519(ed25519::KeyPair::generate_random()),
+        KeysAlgo::Ed25519 => KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair::generate_random()),
         KeysAlgo::Schnorr => panic!("Schnorr algo not yet supported !"),
     }
 }
 
+#[inline]
 fn generate_random_node_id() -> u32 {
-    if let Ok(random_bytes) = rand::generate::<[u8; 4]>(&rand::SystemRandom::new()) {
-        BigEndian::read_u32(&random_bytes.expose())
-    } else {
-        fatal_error!("System error: fail to generate random hash !")
-    }
+    rand::gen_u32()
 }
 
 /// Return the user datas folder name
@@ -552,37 +548,37 @@ pub fn load_conf_at_path(
                 let json_conf: serde_json::Value =
                     serde_json::from_str(&contents).expect("Conf: Fail to parse keypairs file !");
 
-                if let Some(network_sec) = json_conf.get("network_sec") {
+                if let Some(network_seed) = json_conf.get("network_seed") {
                     if let Some(network_pub) = json_conf.get("network_pub") {
-                        let network_sec = network_sec
+                        let network_seed = network_seed
                             .as_str()
                             .expect("Conf: Fail to parse keypairs file !");
                         let network_pub = network_pub
                             .as_str()
                             .expect("Conf: Fail to parse keypairs file !");
-                        let network_keypair = KeyPairEnum::Ed25519(ed25519::KeyPair {
-                            privkey: ed25519::PrivateKey::from_base58(network_sec)
-                                .expect("conf : keypairs file : fail to parse network_sec !"),
+                        let network_keypair = KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
+                            seed: Seed::from_base58(network_seed)
+                                .expect("conf : keypairs file : fail to parse network_seed !"),
                             pubkey: ed25519::PublicKey::from_base58(network_pub)
                                 .expect("conf : keypairs file : fail to parse network_pub !"),
                         });
 
-                        let member_keypair = if let Some(member_sec) = json_conf.get("member_sec") {
+                        let member_keypair = if let Some(member_seed) = json_conf.get("member_seed")
+                        {
                             if let Some(member_pub) = json_conf.get("member_pub") {
-                                let member_sec = member_sec
+                                let member_seed = member_seed
                                     .as_str()
                                     .expect("Conf: Fail to parse keypairs file !");
                                 let member_pub = member_pub
                                     .as_str()
                                     .expect("Conf: Fail to parse keypairs file !");
-                                if member_sec.is_empty() || member_pub.is_empty() {
+                                if member_seed.is_empty() || member_pub.is_empty() {
                                     None
                                 } else {
-                                    Some(KeyPairEnum::Ed25519(ed25519::KeyPair {
-                                        privkey: ed25519::PrivateKey::from_base58(member_sec)
-                                            .expect(
-                                                "conf : keypairs file : fail to parse member_sec !",
-                                            ),
+                                    Some(KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
+                                        seed: Seed::from_base58(member_seed).expect(
+                                            "conf : keypairs file : fail to parse member_seed !",
+                                        ),
                                         pubkey: ed25519::PublicKey::from_base58(member_pub).expect(
                                             "conf : keypairs file : fail to parse member_pub !",
                                         ),

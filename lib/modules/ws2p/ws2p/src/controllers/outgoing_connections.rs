@@ -56,7 +56,7 @@ pub fn connect_to_ws2p_v2_endpoint(
                 Hash::random(),
                 WS2Pv2ConnectType::OutgoingServer,
                 currency.clone(),
-                self_node.clone(),
+                *self_node,
             ),
             orchestrator_sender.clone(),
         ) {

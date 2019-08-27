@@ -15,7 +15,8 @@ path = "src/lib.rs"
 [dependencies]
 base58 = "0.1.*"
 base64 = "0.10.*"
-cryptoxide = "0.1.2"
+byteorder = "1.2.3"
+clear_on_drop = "0.2.3"
 failure = "0.1.5"
 ring = "0.16.5"
 scrypt = { version = "0.2", default-features = false }

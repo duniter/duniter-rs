@@ -21,7 +21,7 @@ use dubp_common_doc::blockstamp::Blockstamp;
 use dubp_common_doc::traits::{Document, ToStringObject};
 use dubp_common_doc::{BlockHash, BlockNumber};
 use dup_crypto::hashs::Hash;
-use dup_crypto::keys::{PrivKey, PubKey, PublicKey};
+use dup_crypto::keys::{PubKey, PublicKey, SignatorEnum};
 
 pub use v10::{BlockDocumentV10, BlockDocumentV10Stringified};
 
@@ -88,7 +88,7 @@ pub trait BlockDocumentTrait {
     /// Verify block hash
     fn verify_hash(&self) -> Result<(), VerifyBlockHashError>;
     /// Sign block
-    fn sign(&mut self, privkey: PrivKey);
+    fn sign(&mut self, signator: SignatorEnum);
 }
 
 impl BlockDocumentTrait for BlockDocument {
@@ -201,9 +201,9 @@ impl BlockDocumentTrait for BlockDocument {
         }
     }
     #[inline]
-    fn sign(&mut self, privkey: PrivKey) {
+    fn sign(&mut self, signator: SignatorEnum) {
         match self {
-            BlockDocument::V10(block) => block.sign(privkey),
+            BlockDocument::V10(block) => block.sign(signator),
         }
     }
 }

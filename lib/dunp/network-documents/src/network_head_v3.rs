@@ -233,6 +233,8 @@ mod tests {
     #[test]
     fn head_v3_sign_and_verify() {
         let keypair = keypair1();
+        let signator =
+            SignatorEnum::Ed25519(keypair.generate_signator().expect("Fail to gen signator"));
         let mut head_v3 = NetworkHeadV3 {
             currency_name: CurrencyName("g1".to_owned()),
             api_outgoing_conf: 0u8,
@@ -251,7 +253,7 @@ mod tests {
             step: 0,
         };
         // Sign
-        let sign_result = head_v3.sign(PrivKey::Ed25519(keypair.private_key()));
+        let sign_result = head_v3.sign(&signator);
         if let Ok(head_v3_raw) = sign_result {
             println!("{}", head_v3_raw);
             assert_eq!(

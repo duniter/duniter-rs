@@ -61,7 +61,7 @@ impl WS2PConnectionMetaDatas {
     pub fn parse_and_check_incoming_message(
         &mut self,
         currency: &str,
-        key_pair: KeyPairEnum,
+        signator: &SignatorEnum,
         msg: &serde_json::Value,
     ) -> WS2Pv1MsgPayload {
         if let Some(s) = msg.get("auth") {
@@ -78,11 +78,11 @@ impl WS2PConnectionMetaDatas {
                                     self.remote_challenge = message.challenge.clone();
                                     let mut response = WS2PAckMessageV1 {
                                         currency: currency.to_string(),
-                                        pubkey: key_pair.public_key(),
+                                        pubkey: signator.public_key(),
                                         challenge: self.remote_challenge.clone(),
                                         signature: None,
                                     };
-                                    response.signature = Some(response.sign(key_pair));
+                                    response.signature = Some(response.sign(signator));
                                     return WS2Pv1MsgPayload::ValidConnectMessage(
                                         unwrap!(serde_json::to_string(&response)),
                                         self.state,
@@ -111,11 +111,11 @@ impl WS2PConnectionMetaDatas {
                             };
                             let mut response = WS2POkMessageV1 {
                                 currency: currency.to_string(),
-                                pubkey: key_pair.public_key(),
+                                pubkey: signator.public_key(),
                                 challenge: self.challenge.to_string(),
                                 signature: None,
                             };
-                            response.signature = Some(response.sign(key_pair));
+                            response.signature = Some(response.sign(signator));
                             return WS2Pv1MsgPayload::ValidAckMessage(
                                 unwrap!(serde_json::to_string(&response)),
                                 self.state,

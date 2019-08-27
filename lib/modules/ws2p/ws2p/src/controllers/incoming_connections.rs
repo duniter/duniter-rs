@@ -46,7 +46,7 @@ pub fn listen_on_ws2p_v2_endpoint<A: ToSocketAddrs + Debug>(
                 Hash::random(),
                 WS2Pv2ConnectType::Incoming,
                 currency.clone(),
-                self_node.clone(),
+                *self_node,
             ),
             orchestrator_sender.clone(),
         ) {

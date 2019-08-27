@@ -296,13 +296,13 @@ impl<'a> CertificationDocumentV10Builder<'a> {
 
 impl<'a> DocumentBuilder for CertificationDocumentV10Builder<'a> {
     type Document = CertificationDocumentV10;
-    type PrivateKey = PrivKey;
+    type Signator = SignatorEnum;
 
     fn build_with_signature(&self, signatures: Vec<Sig>) -> CertificationDocumentV10 {
         self.build_with_text_and_sigs(self.generate_text(), signatures)
     }
 
-    fn build_and_sign(&self, private_keys: Vec<PrivKey>) -> CertificationDocumentV10 {
+    fn build_and_sign(&self, private_keys: Vec<SignatorEnum>) -> CertificationDocumentV10 {
         let (text, signatures) = self.build_signed_text(private_keys);
         self.build_with_text_and_sigs(text, signatures)
     }
@@ -335,21 +335,19 @@ CertTimestamp: {blockstamp}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dup_crypto::keys::{PrivateKey, PublicKey, Signature};
+    use dup_crypto::keys::{PublicKey, Signature};
 
     #[test]
     fn generate_real_document() {
-        let pubkey = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR")
-                .unwrap(),
+        let keypair = ed25519::KeyPairFromSeedGenerator::generate(
+            &Seed::from_base58("4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR").unwrap(),
         );
-
-        let prikey = PrivKey::Ed25519(ed25519::PrivateKey::from_base58(
-            "3XGWuuU1dQ7zaYPzE76ATfY71STzRkbT3t4DE1bSjMhYje81XdJFeXVG9uMPi3oDeRTosT2dmBAFH8VydrAUWXRZ",
-        ).unwrap());
+        let pubkey = PubKey::Ed25519(keypair.public_key());
+        let signator =
+            SignatorEnum::Ed25519(keypair.generate_signator().expect("fail to gen signator"));
 
         let sig = Sig::Ed25519(ed25519::Signature::from_base64(
-            "qfR6zqT1oJbqIsppOi64gC9yTtxb6g6XA9RYpulkq9ehMvqg2VYVigCbR0yVpqKFsnYiQTrnjgFuFRSJCJDfCw==",
+            "sYbaZp3pP9F/CveT1LPiJXECTBHlNurDXqmBo71N7JX/rvmHw6m/sid9bGdIa8cUq+vDD4DMB/F7r7As1p4rAg==",
         ).unwrap());
 
         let target = PubKey::Ed25519(
@@ -381,13 +379,22 @@ mod tests {
             blockstamp: &blockstamp,
         };
 
+        /*println!(
+            "Signatures = {:?}",
+            builder
+                .build_and_sign(vec![SignatorEnum::Ed25519(
+                    keypair.generate_signator().expect("fail to gen signator")
+                )])
+                .signatures()
+        );*/
+
         assert!(builder
             .build_with_signature(vec![sig])
             .verify_signatures()
             .is_ok());
 
         assert!(builder
-            .build_and_sign(vec![prikey])
+            .build_and_sign(vec![signator])
             .verify_signatures()
             .is_ok());
     }

@@ -250,6 +250,7 @@ pub struct WS2Pv1Module {
         mpsc::Receiver<WS2PThreadSignal>,
     ),
     pub my_head: Option<NetworkHead>,
+    pub my_signator: SignatorEnum,
     pub next_receiver: usize,
     pub node_id: NodeId,
     pub pending_received_requests: HashMap<ModuleReqId, WS2Pv1ReqFullId>,
@@ -297,6 +298,11 @@ impl WS2Pv1Module {
             requests_awaiting_response: HashMap::new(),
             heads_cache: HashMap::new(),
             my_head: None,
+            my_signator: if let Ok(signator) = key_pair.generate_signator() {
+                signator
+            } else {
+                fatal_error!("Your key pair is corrupted, please recreate it !");
+            },
             uids_cache: HashMap::new(),
             count_dal_requests: 0,
         }
@@ -322,8 +328,8 @@ impl From<dup_crypto::bases::BaseConvertionError> for WS2PMsgParseErr {
 pub trait WS2PMessage: Sized {
     fn parse(v: &serde_json::Value, currency: String) -> Result<Self, WS2PMsgParseErr>;
     fn to_raw(&self) -> String;
-    fn sign(&self, key_pair: KeyPairEnum) -> Sig {
-        key_pair.sign(self.to_raw().as_bytes())
+    fn sign(&self, signator: &SignatorEnum) -> Sig {
+        signator.sign(self.to_raw().as_bytes())
     }
     fn verify(&self) -> bool;
     //fn parse_and_verify(v: serde_json::Value, currency: String) -> bool;

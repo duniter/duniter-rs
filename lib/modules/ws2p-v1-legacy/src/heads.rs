@@ -18,7 +18,7 @@ use dubp_common_doc::Blockstamp;
 use durs_network_documents::network_head_v2::*;
 
 pub fn generate_my_head(
-    network_keypair: &KeyPairEnum,
+    network_signator: &SignatorEnum,
     node_id: NodeId,
     soft_name: &str,
     soft_version: &str,
@@ -28,7 +28,7 @@ pub fn generate_my_head(
     let message = NetworkHeadMessage::V2(NetworkHeadMessageV2 {
         api: String::from("WS2POCA"),
         version: 1,
-        pubkey: network_keypair.public_key(),
+        pubkey: network_signator.public_key(),
         blockstamp: *my_current_blockstamp,
         node_uuid: node_id,
         software: String::from(soft_name),
@@ -40,7 +40,7 @@ pub fn generate_my_head(
     let message_v2 = NetworkHeadMessage::V2(NetworkHeadMessageV2 {
         api: String::from("WS2POCA"),
         version: 2,
-        pubkey: network_keypair.public_key(),
+        pubkey: network_signator.public_key(),
         blockstamp: *my_current_blockstamp,
         node_uuid: node_id,
         software: String::from(soft_name),
@@ -51,13 +51,9 @@ pub fn generate_my_head(
     });
     NetworkHead::V2(Box::new(NetworkHeadV2 {
         message: message.clone(),
-        sig: network_keypair
-            .private_key()
-            .sign(message.to_string().as_bytes()),
+        sig: network_signator.sign(message.to_string().as_bytes()),
         message_v2: message_v2.clone(),
-        sig_v2: network_keypair
-            .private_key()
-            .sign(message_v2.to_string().as_bytes()),
+        sig_v2: network_signator.sign(message_v2.to_string().as_bytes()),
         step: 0,
         uid: my_uid,
     }))

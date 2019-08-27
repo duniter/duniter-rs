@@ -851,13 +851,13 @@ impl<'a> TransactionDocumentBuilder<'a> {
 
 impl<'a> DocumentBuilder for TransactionDocumentBuilder<'a> {
     type Document = TransactionDocument;
-    type PrivateKey = PrivKey;
+    type Signator = SignatorEnum;
 
     fn build_with_signature(&self, signatures: Vec<Sig>) -> TransactionDocument {
         self.build_with_text_and_sigs(self.generate_text(), signatures)
     }
 
-    fn build_and_sign(&self, private_keys: Vec<PrivKey>) -> TransactionDocument {
+    fn build_and_sign(&self, private_keys: Vec<SignatorEnum>) -> TransactionDocument {
         let (text, signatures) = self.build_signed_text(private_keys);
         self.build_with_text_and_sigs(text, signatures)
     }
@@ -951,21 +951,15 @@ mod tests {
 
     #[test]
     fn generate_real_document() {
-        let pubkey = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
-                .unwrap(),
+        let keypair = ed25519::KeyPairFromSeedGenerator::generate(
+            &Seed::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV").unwrap(),
         );
-
-        let prikey = PrivKey::Ed25519(
-            ed25519::PrivateKey::from_base58(
-                "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5G\
-                 iERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
-            )
-            .unwrap(),
-        );
+        let pubkey = PubKey::Ed25519(keypair.public_key());
+        let signator =
+            SignatorEnum::Ed25519(keypair.generate_signator().expect("fail to gen signator"));
 
         let sig = Sig::Ed25519(ed25519::Signature::from_base64(
-            "pRQeKlzCsvPNmYAAkEP5jPPQO1RwrtFMRfCajEfkkrG0UQE0DhoTkxG3Zs2JFmvAFLw67pn1V5NQ08zsSfJkBg==",
+            "cq86RugQlqAEyS8zFkB9o0PlWPSb+a6D/MEnLe8j+okyFYf/WzI6pFiBkQ9PSOVn5I0dwzVXg7Q4N1apMWeGAg==",
         ).unwrap());
 
         let block = Blockstamp::from_string(
@@ -998,16 +992,20 @@ mod tests {
             comment: "test",
             hash: None,
         };
-        println!(
-            "Signature = {:?}",
-            builder.build_and_sign(vec![prikey]).signatures()
-        );
+        /*println!(
+            "Signatures = {:?}",
+            builder
+                .build_and_sign(vec![SignatorEnum::Ed25519(
+                    keypair.generate_signator().expect("fail to gen signator")
+                )])
+                .signatures()
+        );*/
         assert!(builder
             .build_with_signature(vec![sig])
             .verify_signatures()
             .is_ok());
         assert!(builder
-            .build_and_sign(vec![prikey])
+            .build_and_sign(vec![signator])
             .verify_signatures()
             .is_ok());
     }

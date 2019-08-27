@@ -21,7 +21,7 @@
 //! # Usage
 //!
 //! ```
-//! use dup_crypto::keys::{Signature, PublicKey, PrivateKey, KeyPair};
+//! use dup_crypto::keys::{KeyPair, PublicKey, Signator, Signature};
 //! use dup_crypto::keys::ed25519::KeyPairFromSaltedPasswordGenerator;
 //!
 //! let generator = KeyPairFromSaltedPasswordGenerator::with_default_parameters();
@@ -31,9 +31,11 @@
 //!     b"salt"
 //! );
 //!
+//! let signator = keypair.generate_signator().expect("keypair corrupted");
+//!
 //! let message = "Hello, world!";
 //!
-//! let signature = keypair.sign(&message.as_bytes());
+//! let signature = signator.sign(&message.as_bytes());
 //!
 //! assert!(keypair.pubkey.verify(&message.as_bytes(), &signature).is_ok());
 //! ```
@@ -46,6 +48,13 @@
 //! `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/`
 //! with `=` as padding character.
 
+pub mod bin_signable;
+pub mod ed25519;
+pub mod seed;
+pub mod text_signable;
+
+pub use seed::Seed;
+
 use crate::bases::BaseConvertionError;
 use base58::ToBase58;
 use durs_common_tools::fatal_error;
@@ -56,10 +65,6 @@ use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::Hash;
 use std::str::FromStr;
-
-pub mod bin_signable;
-pub mod ed25519;
-pub mod text_signable;
 
 /// Cryptographic keys algorithms list
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
@@ -96,6 +101,9 @@ pub enum SigError {
 /// SignError
 #[derive(Debug, Eq, Fail, PartialEq)]
 pub enum SignError {
+    /// Corrupted key pair
+    #[fail(display = "Corrupted key pair.")]
+    CorruptedKeyPair,
     /// WrongAlgo
     #[fail(display = "Wrong algo.")]
     WrongAlgo,
@@ -306,107 +314,47 @@ impl PublicKey for PubKey {
     }
 }
 
-/// Define the operations that can be performed on a cryptographic private key.
-///
-/// A `PrivateKey` can be converted from/to Base58 format.
-/// When converted back and forth the value should be the same.
-///
-/// A `PrivateKey` is used to sign a message. The corresponding [`PublicKey`]
-/// will then be used to verify that signature.
-///
-/// [`PublicKey`]: trait.PublicKey.html
-pub trait PrivateKey: Clone + Display + Debug + PartialEq + Eq + ToBase58 {
-    /// Signature type of associated cryptosystem.
-    type Signature: Signature;
-
-    /// Create a PrivateKey from a Base58 string.
-    ///
-    /// The Base58 string should contains only valid Base58 characters
-    /// and have a correct length. If it's not the case, a [`BaseConvertionError`]
-    /// is returned with the corresponding variant.
-    ///
-    /// [`BaseConvertionError`]: enum.BaseConvertionError.html
-    fn from_base58(base58_string: &str) -> Result<Self, BaseConvertionError>;
-
-    /// Sign a message with this private key.
-    fn sign(&self, message: &[u8]) -> Self::Signature;
-}
-
-/// Store a cryptographic private key.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PrivKey {
-    /// Store a ed25519 private key.
-    Ed25519(ed25519::PrivateKey),
-    /// Store a Schnorr private key.
-    Schnorr(),
-}
-
-impl GetKeysAlgo for PrivKey {
-    fn algo(&self) -> KeysAlgo {
-        match *self {
-            PrivKey::Ed25519(_) => KeysAlgo::Ed25519,
-            PrivKey::Schnorr() => KeysAlgo::Schnorr,
-        }
-    }
-}
-
-impl ToBase58 for PrivKey {
-    fn to_base58(&self) -> String {
-        match *self {
-            PrivKey::Ed25519(ed25519_privkey) => ed25519_privkey.to_base58(),
-            PrivKey::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
-        }
-    }
-}
-
-impl Display for PrivKey {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "{}", self.to_base58())
-    }
-}
-
-impl PrivateKey for PrivKey {
-    type Signature = Sig;
-
-    #[cfg_attr(tarpaulin, skip)]
-    fn from_base58(_base58_string: &str) -> Result<Self, BaseConvertionError> {
-        unimplemented!()
-    }
-    fn sign(&self, message: &[u8]) -> Self::Signature {
-        match *self {
-            PrivKey::Ed25519(ed25519_privkey) => Sig::Ed25519(ed25519_privkey.sign(message)),
-            PrivKey::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
-        }
-    }
-}
-
 /// Define the operations that can be performed on a cryptographic key pair.
 pub trait KeyPair: Clone + Display + Debug + PartialEq + Eq {
+    /// Signator type of associated cryptosystem.
+    type Signator: Signator;
+
+    /// Generate signator.
+    fn generate_signator(&self) -> Result<Self::Signator, SignError>;
+
+    /// Get `PublicKey`
+    fn public_key(&self) -> <Self::Signator as Signator>::PublicKey;
+
+    /// Get `Seed`
+    fn seed(&self) -> Seed;
+
+    /// Verify a signature with public key.
+    fn verify(
+        &self,
+        message: &[u8],
+        signature: &<Self::Signator as Signator>::Signature,
+    ) -> Result<(), SigError>;
+}
+
+/// Define the operations that can be performed on a cryptographic signator.
+pub trait Signator: Debug {
     /// Signature type of associated cryptosystem.
     type Signature: Signature;
     /// PublicKey type of associated cryptosystem.
     type PublicKey: PublicKey;
-    /// PrivateKey type of associated cryptosystem.
-    type PrivateKey: PrivateKey;
 
     /// Get `PublicKey`
     fn public_key(&self) -> Self::PublicKey;
 
-    /// Get `PrivateKey`
-    fn private_key(&self) -> Self::PrivateKey;
-
-    /// Sign a message with private key.
+    /// Sign a message with private key encasuled in signator.
     fn sign(&self, message: &[u8]) -> Self::Signature;
-
-    /// Verify a signature with public key.
-    fn verify(&self, message: &[u8], signature: &Self::Signature) -> Result<(), SigError>;
 }
 
 /// Store a cryptographic key pair.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum KeyPairEnum {
     /// Store a ed25519 key pair.
-    Ed25519(ed25519::KeyPair),
+    Ed25519(ed25519::Ed25519KeyPair),
     /// Store a Schnorr key pair.
     Schnorr(),
 }
@@ -432,21 +380,25 @@ impl Display for KeyPairEnum {
 }
 
 impl KeyPair for KeyPairEnum {
-    type Signature = Sig;
-    type PublicKey = PubKey;
-    type PrivateKey = PrivKey;
+    type Signator = SignatorEnum;
 
-    fn public_key(&self) -> Self::PublicKey {
+    fn generate_signator(&self) -> Result<Self::Signator, SignError> {
+        match *self {
+            KeyPairEnum::Ed25519(ed25519_keypair) => {
+                Ok(SignatorEnum::Ed25519(ed25519_keypair.generate_signator()?))
+            }
+            KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
+        }
+    }
+    fn public_key(&self) -> <Self::Signator as Signator>::PublicKey {
         match *self {
             KeyPairEnum::Ed25519(ed25519_keypair) => PubKey::Ed25519(ed25519_keypair.public_key()),
             KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
-    fn private_key(&self) -> Self::PrivateKey {
+    fn seed(&self) -> Seed {
         match *self {
-            KeyPairEnum::Ed25519(ed25519_keypair) => {
-                PrivKey::Ed25519(ed25519_keypair.private_key())
-            }
+            KeyPairEnum::Ed25519(ed25519_keypair) => ed25519_keypair.seed(),
             KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
@@ -462,10 +414,36 @@ impl KeyPair for KeyPairEnum {
             KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
+}
+
+/// Store a cryptographic signator.
+#[derive(Debug)]
+pub enum SignatorEnum {
+    /// Store a ed25519 signator.
+    Ed25519(ed25519::Signator),
+    /// Store a Schnorr signator.
+    Schnorr(),
+}
+
+impl Signator for SignatorEnum {
+    type PublicKey = PubKey;
+    type Signature = Sig;
+
+    fn public_key(&self) -> Self::PublicKey {
+        match self {
+            SignatorEnum::Ed25519(ref ed25519_signator) => {
+                PubKey::Ed25519(ed25519_signator.public_key())
+            }
+            SignatorEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
+        }
+    }
+
     fn sign(&self, message: &[u8]) -> Sig {
-        match *self {
-            KeyPairEnum::Ed25519(ed25519_keypair) => Sig::Ed25519(ed25519_keypair.sign(message)),
-            KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
+        match self {
+            SignatorEnum::Ed25519(ref ed25519_signator) => {
+                Sig::Ed25519(ed25519_signator.sign(message))
+            }
+            SignatorEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
 }
@@ -474,24 +452,14 @@ impl KeyPair for KeyPairEnum {
 mod tests {
 
     use super::*;
+    use crate::hashs::Hash;
+    use ring::{agreement, rand};
 
     pub fn valid_key_pair_1() -> KeyPairEnum {
-        let kp = KeyPairEnum::Ed25519(ed25519::KeyPair {
-            pubkey: ed25519::PublicKey([
-                59u8, 106, 39, 188, 206, 182, 164, 45, 98, 163, 168, 208, 42, 111, 13, 115, 101,
-                50, 21, 119, 29, 226, 67, 166, 58, 192, 72, 161, 139, 89, 218, 41,
-            ]),
-            privkey: ed25519::PrivateKey([
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 59, 106, 39, 188, 206, 182, 164, 45, 98, 163, 168, 208, 42, 111, 13,
-                115, 101, 50, 21, 119, 29, 226, 67, 166, 58, 192, 72, 161, 139, 89, 218, 41,
-            ]),
-        });
-        println!("kp.pub={:?}", kp.public_key().to_bytes_vector());
-        if let PrivKey::Ed25519(ed_pk) = kp.private_key() {
-            println!("kp.priv={:?}", ed_pk.0.to_vec());
-        }
-        kp
+        KeyPairEnum::Ed25519(ed25519::KeyPairFromSeedGenerator::generate(&Seed::new([
+            59u8, 106, 39, 188, 206, 182, 164, 45, 98, 163, 168, 208, 42, 111, 13, 115, 101, 50,
+            21, 119, 29, 226, 67, 166, 58, 192, 72, 161, 139, 89, 218, 41,
+        ])))
     }
 
     #[test]
@@ -555,41 +523,31 @@ mod tests {
     }
 
     #[test]
-    fn privkey() {
-        let privkey_bytes = [
+    fn seed() {
+        let seed_default = Seed::default();
+        let seed_bytes = [
             0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0,
         ];
-        let privkey_str_b58 =
-            "1111111111111111111111111111111111111111111111111111111111111111".to_owned();
-        let privkey = PrivKey::Ed25519(ed25519::PrivateKey(privkey_bytes));
+        let seed_str_b58 = "11111111111111111111111111111111".to_owned();
+        let seed = Seed::new(seed_bytes);
 
-        assert_eq!(privkey_str_b58, format!("{}", privkey));
-
-        assert_eq!(KeysAlgo::Ed25519, privkey.algo());
-        assert_eq!(KeysAlgo::Schnorr, PrivKey::Schnorr().algo());
-
-        assert_eq!(privkey_str_b58, privkey.to_base58());
-
+        assert_eq!(seed_default, seed);
         assert_eq!(
-            Sig::Ed25519(ed25519::Signature::from_base64("JPurBgnHExHND1woow9nB7xVQjKkdHGs1znQbgv0ttboJXueHKd4SOvxuNWmw4w07F4CT//olYMEBw51Cy0SDA==").unwrap()),
-            privkey.sign(b"message")
+            seed_default,
+            Seed::from_base58(&seed_str_b58).expect("Fail to parse seed !")
         );
+
+        assert_eq!(seed_str_b58, format!("{}", seed));
+
+        assert_eq!(seed_str_b58, seed.to_base58());
     }
 
-    fn false_key_pair_ed25519() -> ed25519::KeyPair {
-        ed25519::KeyPair {
-            pubkey: ed25519::PublicKey([
-                0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0,
-            ]),
-            privkey: ed25519::PrivateKey([
-                0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0,
-            ]),
-        }
+    fn false_key_pair_ed25519() -> ed25519::Ed25519KeyPair {
+        ed25519::KeyPairFromSeedGenerator::generate(&Seed::new([
+            0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0,
+        ]))
     }
 
     #[test]
@@ -600,17 +558,14 @@ mod tests {
         assert_eq!(KeysAlgo::Ed25519, false_key_pair.algo());
         assert_eq!(KeysAlgo::Schnorr, KeyPairEnum::Schnorr().algo());
         assert_eq!(
-            "(11111111111111111111111111111111, hidden)".to_owned(),
+            "(4zvwRjXUKGfvwnParsHAS3HuSVzV5cA4McphgmoCtajS, hidden)".to_owned(),
             format!("{}", false_key_pair)
         );
         assert_eq!(
             PubKey::Ed25519(false_key_pair_ed25519.pubkey),
             false_key_pair.public_key()
         );
-        assert_eq!(
-            PrivKey::Ed25519(false_key_pair_ed25519.privkey),
-            false_key_pair.private_key()
-        );
+        assert_eq!(false_key_pair_ed25519.seed, false_key_pair.seed());
         assert_eq!(
             Err(SigError::InvalidSig),
             false_key_pair.verify(
@@ -627,7 +582,7 @@ mod tests {
     #[test]
     #[should_panic(
         expected = "Try to verify a signature with key pair of a different algorithm !\n\
-                    Signature=Schnorr\nKeyPair=(11111111111111111111111111111111, hidden)"
+                    Signature=Schnorr\nKeyPair=(4zvwRjXUKGfvwnParsHAS3HuSVzV5cA4McphgmoCtajS, hidden)"
     )]
     fn key_pair_verify_wrong_sig_algo() {
         let false_key_pair_ed25519 = false_key_pair_ed25519();
@@ -696,20 +651,6 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "Schnorr algo not yet supported !")]
-    fn privkey_schnorr_base58() {
-        let privkey = PrivKey::Schnorr();
-        privkey.to_base58();
-    }
-
-    #[test]
-    #[should_panic(expected = "Schnorr algo not yet supported !")]
-    fn privkey_schnorr_sign() {
-        let privkey = PrivKey::Schnorr();
-        privkey.sign(b"message");
-    }
-
-    #[test]
-    #[should_panic(expected = "Schnorr algo not yet supported !")]
     fn key_pair_schnorr_display() {
         let key_pair = KeyPairEnum::Schnorr();
         format!("{}", key_pair);
@@ -724,9 +665,9 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "Schnorr algo not yet supported !")]
-    fn key_pair_schnorr_get_privkey() {
+    fn key_pair_schnorr_get_seed() {
         let key_pair = KeyPairEnum::Schnorr();
-        key_pair.private_key();
+        key_pair.seed();
     }
 
     #[test]
@@ -738,8 +679,59 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "Schnorr algo not yet supported !")]
-    fn key_pair_schnorr_sign() {
-        let key_pair = KeyPairEnum::Schnorr();
-        key_pair.sign(b"message");
+    fn signator_schnorr_get_pubkey() {
+        let signator = SignatorEnum::Schnorr();
+        signator.public_key();
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn signator_schnorr_sign() {
+        let signator = SignatorEnum::Schnorr();
+        signator.sign(b"message");
+    }
+
+    #[test]
+    fn test_exchange_dh() -> Result<(), ring::error::Unspecified> {
+        let rng = rand::SystemRandom::new();
+
+        let secret_key_1 = agreement::EphemeralPrivateKey::generate(&agreement::X25519, &rng)?;
+        let public_key_1 = secret_key_1.compute_public_key()?;
+
+        let secret_key_2 = agreement::EphemeralPrivateKey::generate(&agreement::X25519, &rng)?;
+        let public_key_2 = secret_key_2.compute_public_key()?;
+
+        let dh1 = agreement::agree_ephemeral(
+            secret_key_1,
+            &agreement::UnparsedPublicKey::new(&agreement::X25519, &public_key_2),
+            ring::error::Unspecified,
+            |key_material| {
+                // In a real application, we'd apply a KDF to the key material and the
+                // public keys (as recommended in RFC 7748) and then derive session
+                // keys from the result.
+                Ok(Hash::compute(key_material))
+            },
+        )?;
+
+        let dh2 = agreement::agree_ephemeral(
+            secret_key_2,
+            &agreement::UnparsedPublicKey::new(&agreement::X25519, &public_key_1),
+            ring::error::Unspecified,
+            |key_material| {
+                // In a real application, we'd apply a KDF to the key material and the
+                // public keys (as recommended in RFC 7748) and then derive session
+                // keys from the result.
+                Ok(Hash::compute(key_material))
+            },
+        )?;
+
+        assert_eq!(dh1, dh2);
+
+        println!("pk1={:?}", public_key_1);
+        println!("pk2={:?}", public_key_2);
+        println!("shared_secret1={:?}", dh1);
+        println!("shared_secret2={:?}", dh2);
+        //panic!();
+        Ok(())
     }
 }

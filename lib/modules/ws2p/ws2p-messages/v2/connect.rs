@@ -129,7 +129,7 @@ impl Default for WS2Pv2ConnectMsg {
     fn default() -> Self {
         WS2Pv2ConnectMsg {
             challenge: Hash::random(),
-            api_features: WS2PFeatures(vec![]),
+            api_features: WS2PFeatures([0u8; 4]),
             flags_queries: WS2PConnectFlags(vec![]),
             peer_card: None,
             chunkstamp: None,
@@ -187,15 +187,16 @@ mod tests {
     #[test]
     fn test_ws2p_message_connect() {
         let keypair1 = keypair1();
+        let signator =
+            SignatorEnum::Ed25519(keypair1.generate_signator().expect("fail to gen signator"));
         let mut peer = create_peer_card_v11();
-        peer.sign(PrivKey::Ed25519(keypair1.private_key()))
-            .expect("Fail to sign peer card !");
+        peer.sign(&signator).expect("Fail to sign peer card !");
         let connect_msg = WS2Pv2ConnectMsg {
             challenge: Hash::from_hex(
                 "000007722B243094269E548F600BD34D73449F7578C05BD370A6D301D20B5F10",
             )
             .unwrap(),
-            api_features: WS2PFeatures(vec![7u8]),
+            api_features: WS2PFeatures([7u8, 0, 0, 0]),
             flags_queries: WS2PConnectFlags(vec![]),
             peer_card: Some(peer),
             chunkstamp: Some(

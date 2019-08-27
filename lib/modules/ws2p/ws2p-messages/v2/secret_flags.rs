@@ -71,12 +71,14 @@ mod tests {
     #[test]
     fn test_ws2p_message_secret_flags() {
         let keypair1 = keypair1();
+        let signator =
+            SignatorEnum::Ed25519(keypair1.generate_signator().expect("fail to gen signator"));
         let challenge = Hash::random();
         let msg = WS2Pv2SecretFlagsMsg {
             secret_flags: WS2Pv2SecretFlags(vec![]),
             member_proof: Some(MemberProof {
                 pubkey: PubKey::Ed25519(keypair1.public_key()),
-                sig: Sig::Ed25519(keypair1.private_key().sign(&challenge.0)),
+                sig: signator.sign(&challenge.0),
             }),
         };
         test_ws2p_message(WS2Pv2MessagePayload::SecretFlags(msg));

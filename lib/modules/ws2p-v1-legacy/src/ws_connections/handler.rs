@@ -21,6 +21,8 @@ use super::states::WS2PConnectionState;
 use crate::constants::*;
 use crate::*;
 use dup_crypto::keys::*;
+use durs_common_tools::fatal_error;
+use log::error;
 use std::sync::mpsc;
 #[allow(deprecated)]
 use ws::util::{Timeout, Token};
@@ -38,10 +40,10 @@ pub struct Client {
     ws: Sender,
     conductor_sender: mpsc::Sender<WS2PThreadSignal>,
     currency: String,
-    key_pair: KeyPairEnum,
     connect_message: Message,
     conn_meta_datas: WS2PConnectionMetaDatas,
     last_mess_time: SystemTime,
+    signator: SignatorEnum,
     spam_interval: bool,
     spam_counter: usize,
     timeout: Option<Timeout>,
@@ -51,7 +53,7 @@ pub fn connect_to_ws2p_endpoint(
     endpoint: &EndpointV1,
     conductor_sender: &mpsc::Sender<WS2PThreadSignal>,
     currency: &str,
-    key_pair: KeyPairEnum,
+    keypair: &KeyPairEnum,
 ) -> ws::Result<()> {
     // Get endpoint url
     let ws_url = endpoint.get_url(true, false).expect("Endpoint unreachable");
@@ -67,25 +69,34 @@ pub fn connect_to_ws2p_endpoint(
             .expect("WS2P: Fail to get ep.node_uuid() !"),
     );
 
-    // Generate connect message
-    let connect_message =
-        generate_connect_message(currency, key_pair, conn_meta_datas.challenge.clone());
-
     // Log
     info!("WS2P: Try connection to {} ...", ws_url);
 
     // Connect to websocket
-    ws::connect(ws_url, |ws| Client {
-        ws,
-        conductor_sender: conductor_sender.clone(),
-        currency: String::from(currency),
-        key_pair,
-        connect_message: connect_message.clone(),
-        conn_meta_datas: conn_meta_datas.clone(),
-        last_mess_time: SystemTime::now(),
-        spam_interval: false,
-        spam_counter: 0,
-        timeout: None,
+    ws::connect(ws_url, |ws| {
+        // Generate signator
+        let signator = if let Ok(signator) = keypair.generate_signator() {
+            signator
+        } else {
+            fatal_error!("Your key pair is corrupted, please recreate it !");
+        };
+
+        // Generate connect message
+        let connect_message =
+            generate_connect_message(currency, &signator, conn_meta_datas.challenge.clone());
+
+        Client {
+            ws,
+            conductor_sender: conductor_sender.clone(),
+            currency: String::from(currency),
+            connect_message: connect_message.clone(),
+            conn_meta_datas: conn_meta_datas.clone(),
+            last_mess_time: SystemTime::now(),
+            signator,
+            spam_interval: false,
+            spam_counter: 0,
+            timeout: None,
+        }
     })
 }
 
@@ -157,7 +168,7 @@ impl Handler for Client {
                     from: self.conn_meta_datas.node_full_id(),
                     payload: self.conn_meta_datas.parse_and_check_incoming_message(
                         &self.currency,
-                        self.key_pair,
+                        &self.signator,
                         &json_message,
                     ),
                 }));

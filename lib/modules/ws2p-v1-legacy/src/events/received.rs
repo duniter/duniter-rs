@@ -36,7 +36,7 @@ pub fn receive_event(
                     ws2p_module.current_blockstamp
                 );
                 ws2p_module.my_head = Some(heads::generate_my_head(
-                    &ws2p_module.key_pair,
+                    &ws2p_module.my_signator,
                     ws2p_module.node_id,
                     ws2p_module.soft_name,
                     ws2p_module.soft_version,

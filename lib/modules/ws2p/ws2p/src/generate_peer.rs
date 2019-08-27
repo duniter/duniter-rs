@@ -19,7 +19,7 @@ use bincode;
 use dubp_common_doc::BlockNumber;
 use dubp_currency_params::CurrencyName;
 use dup_crypto::keys::text_signable::TextSignable;
-use dup_crypto::keys::{KeyPair, KeyPairEnum, SignError};
+use dup_crypto::keys::{SignError, Signator, SignatorEnum};
 use durs_common_tools::fatal_error;
 use durs_network_documents::network_endpoint::*;
 use durs_network_documents::network_peer::*;
@@ -27,7 +27,7 @@ use durs_network_documents::*;
 
 pub fn _self_peer_update_endpoints(
     self_peer: PeerCardV11,
-    issuer_keys: KeyPairEnum,
+    issuer_signator: &SignatorEnum,
     created_on: BlockNumber,
     new_endpoints: Vec<EndpointEnum>,
 ) -> Result<PeerCardV11, SignError> {
@@ -84,14 +84,14 @@ pub fn _self_peer_update_endpoints(
         ..self_peer
     };
 
-    new_self_peer.sign(issuer_keys.private_key())?;
+    new_self_peer.sign(issuer_signator)?;
 
     Ok(new_self_peer)
 }
 
 pub fn _generate_self_peer(
     currency_name: CurrencyName,
-    issuer_keys: KeyPairEnum,
+    issuer_signator: &SignatorEnum,
     node_id: NodeId,
     created_on: BlockNumber,
     endpoints: Vec<EndpointEnum>,
@@ -120,7 +120,7 @@ pub fn _generate_self_peer(
 
     let mut self_peer = PeerCardV11 {
         currency_name,
-        issuer: issuer_keys.public_key(),
+        issuer: issuer_signator.public_key(),
         node_id,
         created_on,
         endpoints: endpoints_bin,
@@ -128,7 +128,7 @@ pub fn _generate_self_peer(
         sig: None,
     };
 
-    self_peer.sign(issuer_keys.private_key())?;
+    self_peer.sign(issuer_signator)?;
 
     Ok(self_peer)
 }

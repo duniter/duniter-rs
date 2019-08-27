@@ -24,8 +24,8 @@ pub mod states;
 
 use crate::*;
 use dup_crypto::keys::*;
+use dup_crypto::rand;
 use durs_network_documents::network_endpoint::EndpointV1;
-use ring::rand;
 use states::WS2PConnectionState;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -140,7 +140,7 @@ pub fn connect_to_without_checking_quotas(
             &endpoint_copy,
             &conductor_sender_copy,
             &currency_copy.expect("WS2PError : No currency !").0,
-            key_pair_copy,
+            &key_pair_copy,
         );
     });
 }
@@ -171,23 +171,19 @@ pub fn close_connection(
 pub fn get_random_connection<S: ::std::hash::BuildHasher>(
     connections: HashSet<&NodeFullId, S>,
 ) -> NodeFullId {
-    let mut loop_count = 0;
-    let rng = rand::SystemRandom::new();
-    loop {
-        for ws2p_full_id in &connections {
-            if loop_count > 10 {
-                return **ws2p_full_id;
-            }
-            if let Ok(random_bytes) = rand::generate::<[u8; 4]>(&rng) {
-                if random_bytes.expose()[0] < 0b1000_0000 {
-                    return **ws2p_full_id;
-                }
-            } else {
-                fatal_error!("System error: fail to generate random boolean !")
-            }
+    let random_usize = rand::gen_u32() as usize;
+    let mut count = random_usize % connections.len();
+    let mut last_node_full_id = None;
+    for node_full_id in &connections {
+        if count == 0 {
+            return **node_full_id;
+        } else {
+            count -= 1;
+            last_node_full_id = Some(**node_full_id);
+            continue;
         }
-        loop_count += 1;
     }
+    last_node_full_id.expect("ws2p connections set must be not empty !")
 }
 
 pub fn count_established_connections(ws2p_module: &WS2Pv1Module) -> usize {

@@ -10,7 +10,6 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-byteorder = "1.2.7"
 dirs = "1.0.2"
 dup-crypto = { path = "../../crypto" }
 dubp-currency-params = { path = "../../dubp/currency-params" }
@@ -19,7 +18,6 @@ durs-module = { path = "../module" }
 durs-common-tools = { path = "../../tools/common-tools" }
 failure = "0.1.5"
 log = "0.4.*"
-ring = "0.16.5"
 rpassword = "1.0.0"
 serde = "1.0.*"
 serde_derive = "1.0.*"

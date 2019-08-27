@@ -264,13 +264,13 @@ impl<'a> RevocationDocumentV10Builder<'a> {
 
 impl<'a> DocumentBuilder for RevocationDocumentV10Builder<'a> {
     type Document = RevocationDocumentV10;
-    type PrivateKey = PrivKey;
+    type Signator = SignatorEnum;
 
     fn build_with_signature(&self, signatures: Vec<Sig>) -> RevocationDocumentV10 {
         self.build_with_text_and_sigs(self.generate_text(), signatures)
     }
 
-    fn build_and_sign(&self, private_keys: Vec<PrivKey>) -> RevocationDocumentV10 {
+    fn build_and_sign(&self, private_keys: Vec<SignatorEnum>) -> RevocationDocumentV10 {
         let (text, signatures) = self.build_signed_text(private_keys);
         self.build_with_text_and_sigs(text, signatures)
     }
@@ -299,25 +299,19 @@ IdtySignature: {idty_sig}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dup_crypto::keys::{PrivateKey, PublicKey, Signature};
+    use dup_crypto::keys::Signature;
 
     #[test]
     fn generate_real_document() {
-        let pubkey = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
-                .unwrap(),
+        let keypair = ed25519::KeyPairFromSeedGenerator::generate(
+            &Seed::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV").unwrap(),
         );
-
-        let prikey = PrivKey::Ed25519(
-            ed25519::PrivateKey::from_base58(
-                "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5G\
-                 iERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
-            )
-            .unwrap(),
-        );
+        let pubkey = PubKey::Ed25519(keypair.public_key());
+        let signator =
+            SignatorEnum::Ed25519(keypair.generate_signator().expect("fail to gen signator"));
 
         let sig = Sig::Ed25519(ed25519::Signature::from_base64(
-            "XXOgI++6qpY9O31ml/FcfbXCE6aixIrgkT5jL7kBle3YOMr+8wrp7Rt+z9hDVjrNfYX2gpeJsuMNfG4T/fzVDQ==",
+            "gBD2mCr7E/tW8u3wqVK7IWtQB6IKxddg13UMl9ypVsv/VhqhAFTBba9BwoK5t6H9eqF1d+4sCB3WY2eJ/yuUAg==",
         ).unwrap());
 
         let identity_blockstamp = Blockstamp::from_string(
@@ -337,13 +331,22 @@ mod tests {
             identity_sig: &identity_sig,
         };
 
+        /*println!(
+            "Signatures = {:?}",
+            builder
+                .build_and_sign(vec![SignatorEnum::Ed25519(
+                    keypair.generate_signator().expect("fail to gen signator")
+                )])
+                .signatures()
+        );*/
+
         assert!(builder
             .build_with_signature(vec![sig])
             .verify_signatures()
             .is_ok());
 
         assert!(builder
-            .build_and_sign(vec![prikey])
+            .build_and_sign(vec![signator])
             .verify_signatures()
             .is_ok());
     }

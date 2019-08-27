@@ -28,15 +28,15 @@ pub trait TextSignable: Debug + Clone {
     /// Change signature
     fn set_signature(&mut self, _signature: Sig);
     /// Sign entity
-    fn sign(&mut self, priv_key: PrivKey) -> Result<String, SignError> {
+    fn sign(&mut self, signator: &SignatorEnum) -> Result<String, SignError> {
         if self.signature().is_some() {
             return Err(SignError::AlreadySign);
         }
         match self.issuer_pubkey() {
-            PubKey::Ed25519(_) => match priv_key {
-                PrivKey::Ed25519(priv_key) => {
+            PubKey::Ed25519(_) => match signator {
+                SignatorEnum::Ed25519(ed25519_signator) => {
                     let text = self.as_signable_text();
-                    let sig = priv_key.sign(&text.as_bytes());
+                    let sig = ed25519_signator.sign(&text.as_bytes());
                     self.set_signature(Sig::Ed25519(sig));
                     let str_sig = sig.to_base64();
                     Ok(format!("{}{}", text, str_sig))
@@ -102,6 +102,10 @@ mod tests {
     fn test_text_signable() {
         let key_pair = super::super::tests::valid_key_pair_1();
 
+        let signator = key_pair
+            .generate_signator()
+            .expect("fail to generate signator");
+
         let mut text_signable = TextSignableTestImpl {
             issuer: key_pair.public_key(),
             text: "toto".to_owned(),
@@ -111,22 +115,16 @@ mod tests {
         assert_eq!(Err(SigError::NotSig), text_signable.verify());
         assert_eq!(
             Err(SignError::WrongAlgo),
-            text_signable.sign(PrivKey::Schnorr())
+            text_signable.sign(&SignatorEnum::Schnorr())
         );
         text_signable.issuer = PubKey::Schnorr();
-        assert_eq!(
-            Err(SignError::WrongAlgo),
-            text_signable.sign(key_pair.private_key())
-        );
+        assert_eq!(Err(SignError::WrongAlgo), text_signable.sign(&signator));
         text_signable.issuer = key_pair.public_key();
         assert_eq!(
-            Ok("4zvwRjXUKGfvwnParsHAS3HuSVzV5cA4McphgmoCtajS:totoe53bEIYLX3IK7p0IBm60jAZfrQWxrBpinvzJqGxvD3kAzoe+zp2FGIXuxHMobrImu/Au33sB9k/6yOhtFz/YAw==".to_owned()),
-            text_signable.sign(key_pair.private_key())
+            Ok("VYgskcKKh525MzFRzpCiT5KXCQrnFLTnzMLffbvm9uw:toto+IC1fFkkYo5ox2loc1IMLCtrir1i6oyljfshNXIyXVcz6sJMFqn+6o8Zip4XdTzoBEORkbcnEnqQEr4TgaHpCw==".to_owned()),
+            text_signable.sign(&signator)
         );
-        assert_eq!(
-            Err(SignError::AlreadySign),
-            text_signable.sign(key_pair.private_key())
-        );
+        assert_eq!(Err(SignError::AlreadySign), text_signable.sign(&signator));
         assert_eq!(Ok(()), text_signable.verify());
         let old_sig = text_signable.sig.replace(Sig::Schnorr());
         assert_eq!(Err(SigError::NotSameAlgo), text_signable.verify());

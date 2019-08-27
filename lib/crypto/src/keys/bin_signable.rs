@@ -30,24 +30,21 @@ pub trait BinSignable<'de>: Serialize + Deserialize<'de> {
     fn get_bin_without_sig(&self) -> Result<Vec<u8>, failure::Error>;
     /// Add signature to bin datas
     fn add_sig_to_bin_datas(&self, bin_datas: &mut Vec<u8>);
-    /// Sign entity with a private key
-    fn sign(&mut self, priv_key: PrivKey) -> Result<Vec<u8>, SignError> {
+    /// Sign entity with a signator
+    fn sign(&mut self, signator: &SignatorEnum) -> Result<Vec<u8>, SignError> {
         if self.signature().is_some() {
             return Err(SignError::AlreadySign);
         }
         match self.issuer_pubkey() {
-            PubKey::Ed25519(_) => match priv_key {
-                PrivKey::Ed25519(priv_key) => {
-                    let mut bin_msg = self
-                        .get_bin_without_sig()
-                        .map_err(|e| SignError::SerdeError(e.to_string()))?;
-                    let sig = Sig::Ed25519(priv_key.sign(&bin_msg));
-                    self.set_signature(sig);
-                    self.add_sig_to_bin_datas(&mut bin_msg);
-                    Ok(bin_msg)
-                }
-                _ => Err(SignError::WrongAlgo),
-            },
+            PubKey::Ed25519(_) => {
+                let mut bin_msg = self
+                    .get_bin_without_sig()
+                    .map_err(|e| SignError::SerdeError(e.to_string()))?;
+                let sig = signator.sign(&bin_msg);
+                self.set_signature(sig);
+                self.add_sig_to_bin_datas(&mut bin_msg);
+                Ok(bin_msg)
+            }
             _ => Err(SignError::WrongAlgo),
         }
     }
@@ -119,10 +116,16 @@ mod tests {
 
     #[test]
     fn test_bin_signable() {
-        let key_pair = ed25519::KeyPairFromSeedGenerator::generate(&[
+        let key_pair = ed25519::KeyPairFromSeedGenerator::generate(&Seed::new([
             0u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
             10, 11, 12, 13, 14, 15,
-        ]);
+        ]));
+
+        let signator = SignatorEnum::Ed25519(
+            key_pair
+                .generate_signator()
+                .expect("fail to generate signator !"),
+        );
 
         let mut bin_signable_datas = BinSignableTestImpl {
             datas: vec![0, 1, 2, 3],
@@ -133,12 +136,12 @@ mod tests {
         assert_eq!(Err(SigError::NotSig), bin_signable_datas.verify());
 
         let _bin_msg = bin_signable_datas
-            .sign(PrivKey::Ed25519(key_pair.privkey))
+            .sign(&signator)
             .expect("Fail to sign datas !");
 
         assert_eq!(
             Err(SignError::AlreadySign),
-            bin_signable_datas.sign(PrivKey::Ed25519(key_pair.privkey))
+            bin_signable_datas.sign(&signator)
         );
 
         assert_eq!(Ok(()), bin_signable_datas.verify())

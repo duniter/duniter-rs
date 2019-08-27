@@ -117,8 +117,8 @@ pub trait DocumentBuilder {
     /// Type of the builded document.
     type Document: Document;
 
-    /// Type of the private keys signing the documents.
-    type PrivateKey: PrivateKey<
+    /// Type of the signator signing the documents.
+    type Signator: Signator<
         Signature = <<Self::Document as Document>::PublicKey as PublicKey>::Signature,
     >;
 
@@ -129,7 +129,7 @@ pub trait DocumentBuilder {
     ) -> Self::Document;
 
     /// Build a document and sign it with the private key.
-    fn build_and_sign(&self, private_keys: Vec<Self::PrivateKey>) -> Self::Document;
+    fn build_and_sign(&self, signators: Vec<Self::Signator>) -> Self::Document;
 }
 
 /// Trait for a document parser from a `S` source

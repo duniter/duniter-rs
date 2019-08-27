@@ -32,7 +32,7 @@
 extern crate serde_derive;
 
 use dubp_currency_params::CurrencyName;
-use dup_crypto::keys::{KeyPair, KeyPairEnum};
+use dup_crypto::keys::{KeyPair, KeyPairEnum, Signator};
 use durs_common_tools::fatal_error;
 use durs_common_tools::traits::merge::Merge;
 use durs_network_documents::network_endpoint::{ApiPart, EndpointEnum};
@@ -270,11 +270,11 @@ pub enum RequiredKeysContent {
     /// Contains the member keypair (private key included).
     MemberKeyPair(Option<KeyPairEnum>),
     /// Contains the member public key.
-    MemberPublicKey(Option<<KeyPairEnum as KeyPair>::PublicKey>),
+    MemberPublicKey(Option<<<KeyPairEnum as KeyPair>::Signator as Signator>::PublicKey>),
     /// Contains the network keypair (private key included).
     NetworkKeyPair(KeyPairEnum),
     /// Contains the network public key.
-    NetworkPublicKey(<KeyPairEnum as KeyPair>::PublicKey),
+    NetworkPublicKey(<<KeyPairEnum as KeyPair>::Signator as Signator>::PublicKey),
     /// Does not contain any keys
     None(),
 }

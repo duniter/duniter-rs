@@ -11,7 +11,6 @@ path = "src/lib.rs"
 
 [dependencies]
 bincode = "1.0.1"
-byteorder = "1.2.3"
 dubp-block-doc = { path = "../../dubp/block-doc"} #, version = "0.1.0" }
 dubp-common-doc = { path = "../../dubp/common-doc"} #, version = "0.1.0" }
 dubp-currency-params = { path = "../../dubp/currency-params" }
@@ -27,7 +26,6 @@ durs-wot = { path = "../../dubp/wot" }
 failure = "0.1.5"
 log = "0.4.*"
 maplit = "1.0.1"
-ring = "0.16.5"
 serde = { version = "1.0.*", features = ["derive"] }
 serde_json = "1.0.*"
 structopt= "0.2.*"

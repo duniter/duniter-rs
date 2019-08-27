@@ -83,7 +83,7 @@ pub fn process_ws2p_v2p_connect_msg<M: ModuleMessage>(
         .meta_datas
         .local_node
         .my_features
-        .check_features_compatibility(&connect_msg.api_features)
+        .check_features_compatibility(connect_msg.api_features)
     {
         Ok(merged_features) => controller.meta_datas.features = Some(merged_features),
         Err(_) => {
@@ -95,7 +95,7 @@ pub fn process_ws2p_v2p_connect_msg<M: ModuleMessage>(
     if let Ok((_, bin_ack_msg)) = WS2Pv2Message::encapsulate_payload(
         controller.meta_datas.currency.clone(),
         controller.meta_datas.local_node.my_node_id,
-        controller.meta_datas.local_node.my_key_pair,
+        &controller.meta_datas.signator,
         WS2Pv2MessagePayload::Ack {
             challenge: remote_challenge,
         },

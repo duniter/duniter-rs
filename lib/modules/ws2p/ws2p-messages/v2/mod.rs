@@ -64,18 +64,18 @@ impl WS2Pv2Message {
     pub fn encapsulate_payload(
         currency_name: CurrencyName,
         issuer_node_id: NodeId,
-        issuer_keypair: KeyPairEnum,
+        issuer_signator: &SignatorEnum,
         payload: WS2Pv2MessagePayload,
     ) -> Result<(WS2PMessage, Vec<u8>), SignError> {
         let mut msg = WS2PMessage::V2(WS2Pv2Message {
             currency_name,
             issuer_node_id,
-            issuer_pubkey: issuer_keypair.public_key(),
+            issuer_pubkey: issuer_signator.public_key(),
             payload,
             message_hash: None,
             signature: None,
         });
-        match msg.sign(issuer_keypair.private_key()) {
+        match msg.sign(issuer_signator) {
             Ok(bin_msg) => Ok((msg, bin_msg)),
             Err(e) => Err(e),
         }
@@ -98,9 +98,10 @@ mod tests {
     #[test]
     fn test_ws2p_message_peers() {
         let keypair1 = keypair1();
+        let signator =
+            SignatorEnum::Ed25519(keypair1.generate_signator().expect("fail to gen signator"));
         let mut peer = create_peer_card_v11();
-        peer.sign(PrivKey::Ed25519(keypair1.private_key()))
-            .expect("Fail to sign peer card !");
+        peer.sign(&signator).expect("Fail to sign peer card !");
         test_ws2p_message(WS2Pv2MessagePayload::Peers(vec![peer]));
     }
 }

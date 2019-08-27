@@ -174,11 +174,11 @@ mod tests {
     use std::net::Ipv4Addr;
     use std::str::FromStr;
 
-    pub fn keypair1() -> ed25519::KeyPair {
-        let seed = [
+    pub fn keypair1() -> ed25519::Ed25519KeyPair {
+        let seed = Seed::new([
             228, 125, 124, 120, 57, 212, 246, 250, 139, 246, 62, 26, 56, 241, 175, 123, 151, 209,
             5, 106, 2, 148, 43, 101, 118, 160, 233, 7, 112, 222, 0, 169,
-        ];
+        ]);
         ed25519::KeyPairFromSeedGenerator::generate(&seed)
     }
 
@@ -223,6 +223,8 @@ mod tests {
 
     pub fn test_ws2p_message(payload: WS2Pv2MessagePayload) {
         let keypair1 = keypair1();
+        let signator =
+            SignatorEnum::Ed25519(keypair1.generate_signator().expect("fail to gen signator"));
         let mut ws2p_message = WS2PMessage::V2(WS2Pv2Message {
             currency_name: CurrencyName(String::from("g1")),
             issuer_node_id: NodeId(0),
@@ -232,7 +234,7 @@ mod tests {
             signature: None,
         });
 
-        let sign_result = ws2p_message.sign(PrivKey::Ed25519(keypair1.private_key()));
+        let sign_result = ws2p_message.sign(&signator);
         if let Ok(bin_msg) = sign_result {
             // Test binarization
             assert_eq!(

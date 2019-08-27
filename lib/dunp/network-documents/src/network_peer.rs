@@ -316,6 +316,8 @@ mod tests {
     #[test]
     fn peer_card_v11_sign_and_verify() {
         let keypair1 = keypair1();
+        let signator =
+            SignatorEnum::Ed25519(keypair1.generate_signator().expect("Fail to gen signator"));
         let mut peer_card_v11 = PeerCardV11 {
             currency_name: CurrencyName(String::from("g1")),
             issuer: PubKey::Ed25519(keypair1.public_key()),
@@ -326,7 +328,7 @@ mod tests {
             sig: None,
         };
         // Sign
-        let sign_result = peer_card_v11.sign(PrivKey::Ed25519(keypair1.private_key()));
+        let sign_result = peer_card_v11.sign(&signator);
         if let Ok(peer_card_v11_raw) = sign_result {
             println!("{}", peer_card_v11_raw);
             assert_eq!(

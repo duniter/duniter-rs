@@ -234,13 +234,13 @@ impl<'a> IdentityDocumentV10Builder<'a> {
 
 impl<'a> DocumentBuilder for IdentityDocumentV10Builder<'a> {
     type Document = IdentityDocumentV10;
-    type PrivateKey = PrivKey;
+    type Signator = SignatorEnum;
 
     fn build_with_signature(&self, signatures: Vec<Sig>) -> IdentityDocumentV10 {
         self.build_with_text_and_sigs(self.generate_text(), signatures)
     }
 
-    fn build_and_sign(&self, private_keys: Vec<PrivKey>) -> IdentityDocumentV10 {
+    fn build_and_sign(&self, private_keys: Vec<SignatorEnum>) -> IdentityDocumentV10 {
         let (text, signatures) = self.build_signed_text(private_keys);
         self.build_with_text_and_sigs(text, signatures)
     }
@@ -268,27 +268,20 @@ Timestamp: {blockstamp}
 mod tests {
     use super::*;
     use dubp_common_doc::traits::Document;
-    use dup_crypto::keys::{PrivateKey, PublicKey, Signature};
+    use dup_crypto::keys::Signature;
 
     #[test]
     fn generate_real_document() {
-        let pubkey = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
-                .unwrap(),
+        let keypair = ed25519::KeyPairFromSeedGenerator::generate(
+            &Seed::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV").unwrap(),
         );
-
-        let prikey = PrivKey::Ed25519(
-            ed25519::PrivateKey::from_base58(
-                "468Q1XtTq7h84NorZdWBZFJrGkB18CbmbHr9tkp9snt5G\
-                 iERP7ySs3wM8myLccbAAGejgMRC9rqnXuW3iAfZACm7",
-            )
-            .unwrap(),
-        );
+        let pubkey = PubKey::Ed25519(keypair.public_key());
+        let signator =
+            SignatorEnum::Ed25519(keypair.generate_signator().expect("fail to gen signator"));
 
         let sig = Sig::Ed25519(
             ed25519::Signature::from_base64(
-                "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGM\
-                 MmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
+                "mmFepRsiOjILKnCvEvN3IZScLOfg8+e0JPAl5VkiuTLZRGJKgKhPy8nQlCKbeg0jefQm/2HJ78e/Sj+NMqYLCw==",
             )
             .unwrap(),
         );
@@ -305,12 +298,21 @@ mod tests {
             issuer: &pubkey,
         };
 
+        /*println!(
+            "Signatures = {:?}",
+            builder
+                .build_and_sign(vec![SignatorEnum::Ed25519(
+                    keypair.generate_signator().expect("fail to gen signator")
+                )])
+                .signatures()
+        );*/
+
         assert!(builder
             .build_with_signature(vec![sig])
             .verify_signatures()
             .is_ok());
         assert!(builder
-            .build_and_sign(vec![prikey])
+            .build_and_sign(vec![signator])
             .verify_signatures()
             .is_ok());
     }

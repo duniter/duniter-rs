@@ -20,13 +20,16 @@ use crate::MySelfWs2pNode;
 use dubp_common_doc::Blockstamp;
 use dubp_currency_params::CurrencyName;
 use dup_crypto::hashs::Hash;
+use dup_crypto::keys::{KeyPair, SignatorEnum};
+use durs_common_tools::fatal_error;
 use durs_network_documents::network_peer::PeerCardV11;
 use durs_network_documents::NodeFullId;
 use durs_ws2p_messages::v2::api_features::WS2PFeatures;
 use durs_ws2p_messages::v2::connect::WS2Pv2ConnectType;
+use log::error;
 use std::time::SystemTime;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 /// WS2p Connection meta datas
 pub struct WS2PControllerMetaDatas {
     /// Local challenge
@@ -41,6 +44,8 @@ pub struct WS2PControllerMetaDatas {
     pub creation_time: SystemTime,
     /// Connection features
     pub features: Option<WS2PFeatures>,
+    /// Signator
+    pub signator: SignatorEnum,
     /// Timestamp of last received message
     pub last_mess_time: SystemTime,
     /// Local node properties
@@ -76,6 +81,11 @@ impl WS2PControllerMetaDatas {
             local_node,
             remote_connect_type: None,
             remote_node: None,
+            signator: if let Ok(signator) = local_node.my_key_pair.generate_signator() {
+                signator
+            } else {
+                fatal_error!("Your keypair is corrupted, please recreate it !");
+            },
             spam_interval: false,
             spam_counter: 0,
             state: WS2PConnectionState::TryToOpenWS,

@@ -13,13 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 /// WS2PFeatures
-pub struct WS2PFeatures(pub Vec<u8>);
+pub struct WS2PFeatures(pub [u8; 4]);
 
 impl WS2PFeatures {
     /// Return true if all flags are disabled (or if it's really empty).
-    pub fn is_empty(&self) -> bool {
+    pub fn is_empty(self) -> bool {
         for byte in &self.0 {
             if *byte > 0u8 {
                 return false;
@@ -28,23 +28,23 @@ impl WS2PFeatures {
         true
     }
     /// Check flag DEF
-    pub fn def(&self) -> bool {
+    pub fn def(self) -> bool {
         self.0[0] | 0b1111_1110 == 255u8
     }
     /// Check flag LOW
-    pub fn low(&self) -> bool {
+    pub fn low(self) -> bool {
         self.0[0] | 0b1111_1101 == 255u8
     }
     /// Check flag ABF
-    pub fn abf(&self) -> bool {
+    pub fn abf(self) -> bool {
         self.0[0] | 0b1111_1011 == 255u8
     }
     /// Check features compatibility
     pub fn check_features_compatibility(
-        &self,
-        remote_features: &WS2PFeatures,
+        self,
+        remote_features: WS2PFeatures,
     ) -> Result<WS2PFeatures, ()> {
-        let mut merged_features = self.clone();
+        let mut merged_features = self;
         // Remove features unsuported by remote node
         if self.def() && !remote_features.def() {
             merged_features.0[0] &= 0b1111_1110;
