@@ -40,39 +40,3 @@ pub mod bases;
 pub mod hashs;
 pub mod keys;
 pub mod rand;
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-    use crate::keys::Seed;
-    use ring::signature::Ed25519KeyPair;
-    use ring::signature::KeyPair;
-
-    #[test]
-    fn test_ring_gen_keypair() {
-        let seed = Seed::new([
-            61u8, 245, 136, 162, 155, 50, 205, 43, 116, 15, 45, 84, 138, 54, 114, 214, 71, 213, 11,
-            251, 135, 182, 202, 131, 48, 91, 166, 226, 40, 255, 251, 172,
-        ]);
-
-        let legacy_key_pair = keys::ed25519::KeyPairFromSeedGenerator::generate(&seed);
-
-        let ring_key_pair: Ed25519KeyPair =
-            Ed25519KeyPair::from_seed_and_public_key(seed.as_ref(), &legacy_key_pair.pubkey.0)
-                .expect("fail to generate ring key pair !");
-
-        let ring_pubkey: <Ed25519KeyPair as KeyPair>::PublicKey = *ring_key_pair.public_key();
-        let mut ring_pubkey_bytes: [u8; 32] = [0u8; 32];
-        ring_pubkey_bytes.copy_from_slice(ring_pubkey.as_ref());
-
-        assert_eq!(legacy_key_pair.pubkey.0, ring_pubkey_bytes);
-
-        println!(
-            "ring pubkey={}",
-            keys::ed25519::PublicKey(ring_pubkey_bytes)
-        );
-
-        //panic!()
-    }
-}

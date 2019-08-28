@@ -70,6 +70,12 @@ impl WS2PControllerMetaDatas {
         currency: CurrencyName,
         local_node: MySelfWs2pNode,
     ) -> Self {
+        let signator = if let Ok(signator) = local_node.my_key_pair.generate_signator() {
+            signator
+        } else {
+            fatal_error!("Your keypair is corrupted, please recreate it !");
+        };
+
         WS2PControllerMetaDatas {
             challenge,
             connect_type,
@@ -81,11 +87,7 @@ impl WS2PControllerMetaDatas {
             local_node,
             remote_connect_type: None,
             remote_node: None,
-            signator: if let Ok(signator) = local_node.my_key_pair.generate_signator() {
-                signator
-            } else {
-                fatal_error!("Your keypair is corrupted, please recreate it !");
-            },
+            signator,
             spam_interval: false,
             spam_counter: 0,
             state: WS2PConnectionState::TryToOpenWS,

@@ -280,6 +280,12 @@ impl WS2Pv1Module {
         key_pair: KeyPairEnum,
         router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
     ) -> WS2Pv1Module {
+        let my_signator = if let Ok(signator) = key_pair.generate_signator() {
+            signator
+        } else {
+            fatal_error!("Your key pair is corrupted, please recreate it !");
+        };
+
         WS2Pv1Module {
             router_sender,
             key_pair,
@@ -298,11 +304,7 @@ impl WS2Pv1Module {
             requests_awaiting_response: HashMap::new(),
             heads_cache: HashMap::new(),
             my_head: None,
-            my_signator: if let Ok(signator) = key_pair.generate_signator() {
-                signator
-            } else {
-                fatal_error!("Your key pair is corrupted, please recreate it !");
-            },
+            my_signator,
             uids_cache: HashMap::new(),
             count_dal_requests: 0,
         }

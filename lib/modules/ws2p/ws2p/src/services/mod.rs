@@ -29,7 +29,7 @@ pub enum WsError {
 }
 
 /// Store self WS2P properties
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MySelfWs2pNode {
     /// Local node id
     pub my_node_id: NodeId,

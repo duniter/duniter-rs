@@ -304,7 +304,7 @@ mod tests {
     #[test]
     fn generate_real_document() {
         let keypair = ed25519::KeyPairFromSeedGenerator::generate(
-            &Seed::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV").unwrap(),
+            Seed::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV").unwrap(),
         );
         let pubkey = PubKey::Ed25519(keypair.public_key());
         let signator =
@@ -331,14 +331,14 @@ mod tests {
             identity_sig: &identity_sig,
         };
 
-        /*println!(
+        println!(
             "Signatures = {:?}",
             builder
                 .build_and_sign(vec![SignatorEnum::Ed25519(
                     keypair.generate_signator().expect("fail to gen signator")
                 )])
                 .signatures()
-        );*/
+        );
 
         assert!(builder
             .build_with_signature(vec![sig])

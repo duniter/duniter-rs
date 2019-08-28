@@ -326,7 +326,7 @@ pub trait KeyPair: Clone + Display + Debug + PartialEq + Eq {
     fn public_key(&self) -> <Self::Signator as Signator>::PublicKey;
 
     /// Get `Seed`
-    fn seed(&self) -> Seed;
+    fn seed(&self) -> &Seed;
 
     /// Verify a signature with public key.
     fn verify(
@@ -351,7 +351,7 @@ pub trait Signator: Debug {
 }
 
 /// Store a cryptographic key pair.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum KeyPairEnum {
     /// Store a ed25519 key pair.
     Ed25519(ed25519::Ed25519KeyPair),
@@ -370,8 +370,8 @@ impl GetKeysAlgo for KeyPairEnum {
 
 impl Display for KeyPairEnum {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        match *self {
-            KeyPairEnum::Ed25519(ed25519_keypair) => {
+        match self {
+            KeyPairEnum::Ed25519(ref ed25519_keypair) => {
                 write!(f, "({}, hidden)", ed25519_keypair.pubkey.to_base58())
             }
             KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
@@ -383,28 +383,30 @@ impl KeyPair for KeyPairEnum {
     type Signator = SignatorEnum;
 
     fn generate_signator(&self) -> Result<Self::Signator, SignError> {
-        match *self {
-            KeyPairEnum::Ed25519(ed25519_keypair) => {
+        match self {
+            KeyPairEnum::Ed25519(ref ed25519_keypair) => {
                 Ok(SignatorEnum::Ed25519(ed25519_keypair.generate_signator()?))
             }
             KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
     fn public_key(&self) -> <Self::Signator as Signator>::PublicKey {
-        match *self {
-            KeyPairEnum::Ed25519(ed25519_keypair) => PubKey::Ed25519(ed25519_keypair.public_key()),
+        match self {
+            KeyPairEnum::Ed25519(ref ed25519_keypair) => {
+                PubKey::Ed25519(ed25519_keypair.public_key())
+            }
             KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
-    fn seed(&self) -> Seed {
+    fn seed(&self) -> &Seed {
         match *self {
-            KeyPairEnum::Ed25519(ed25519_keypair) => ed25519_keypair.seed(),
+            KeyPairEnum::Ed25519(ref ed25519_keypair) => &ed25519_keypair.seed(),
             KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
     fn verify(&self, message: &[u8], signature: &Sig) -> Result<(), SigError> {
-        match *self {
-            KeyPairEnum::Ed25519(ed25519_keypair) => {
+        match self {
+            KeyPairEnum::Ed25519(ref ed25519_keypair) => {
                 if let Sig::Ed25519(ed25519_sig) = signature {
                     ed25519_keypair.verify(message, ed25519_sig)
                 } else {
@@ -456,7 +458,7 @@ mod tests {
     use ring::{agreement, rand};
 
     pub fn valid_key_pair_1() -> KeyPairEnum {
-        KeyPairEnum::Ed25519(ed25519::KeyPairFromSeedGenerator::generate(&Seed::new([
+        KeyPairEnum::Ed25519(ed25519::KeyPairFromSeedGenerator::generate(Seed::new([
             59u8, 106, 39, 188, 206, 182, 164, 45, 98, 163, 168, 208, 42, 111, 13, 115, 101, 50,
             21, 119, 29, 226, 67, 166, 58, 192, 72, 161, 139, 89, 218, 41,
         ])))
@@ -544,7 +546,7 @@ mod tests {
     }
 
     fn false_key_pair_ed25519() -> ed25519::Ed25519KeyPair {
-        ed25519::KeyPairFromSeedGenerator::generate(&Seed::new([
+        ed25519::KeyPairFromSeedGenerator::generate(Seed::new([
             0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0,
         ]))
@@ -553,7 +555,7 @@ mod tests {
     #[test]
     fn key_pair() {
         let false_key_pair_ed25519 = false_key_pair_ed25519();
-        let false_key_pair = KeyPairEnum::Ed25519(false_key_pair_ed25519);
+        let false_key_pair = KeyPairEnum::Ed25519(false_key_pair_ed25519.clone());
 
         assert_eq!(KeysAlgo::Ed25519, false_key_pair.algo());
         assert_eq!(KeysAlgo::Schnorr, KeyPairEnum::Schnorr().algo());
@@ -565,7 +567,7 @@ mod tests {
             PubKey::Ed25519(false_key_pair_ed25519.pubkey),
             false_key_pair.public_key()
         );
-        assert_eq!(false_key_pair_ed25519.seed, false_key_pair.seed());
+        assert_eq!(false_key_pair_ed25519.seed, false_key_pair.seed().clone());
         assert_eq!(
             Err(SigError::InvalidSig),
             false_key_pair.verify(

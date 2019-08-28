@@ -24,7 +24,7 @@ use super::PublicKey as PublicKeyMethods;
 use crate::bases::*;
 use base58::ToBase58;
 use base64;
-use clear_on_drop::ClearOnDrop;
+use clear_on_drop::clear::Clear;
 use ring::signature::{Ed25519KeyPair as RingKeyPair, KeyPair, UnparsedPublicKey, ED25519};
 use serde::de::{Deserialize, Deserializer, Error, SeqAccess, Visitor};
 use serde::ser::{Serialize, SerializeTuple, Serializer};
@@ -213,12 +213,19 @@ impl super::Signator for Signator {
 }
 
 /// Store a ed25519 cryptographic key pair (`PublicKey` + `PrivateKey`)
-#[derive(Debug, Copy, Clone, Eq)]
+#[derive(Debug, Clone, Eq)]
 pub struct Ed25519KeyPair {
     /// Store a Ed25519 public key.
     pub pubkey: PublicKey,
     /// Store a seed of 32 bytes.
     pub seed: Seed,
+}
+
+impl Drop for Ed25519KeyPair {
+    #[inline]
+    fn drop(&mut self) {
+        self.seed.clear();
+    }
 }
 
 impl Display for Ed25519KeyPair {
@@ -247,8 +254,8 @@ impl super::KeyPair for Ed25519KeyPair {
         self.pubkey
     }
 
-    fn seed(&self) -> Seed {
-        self.seed
+    fn seed(&self) -> &Seed {
+        &self.seed
     }
 
     fn verify(
@@ -263,12 +270,7 @@ impl super::KeyPair for Ed25519KeyPair {
 impl Ed25519KeyPair {
     /// Generate random keypair
     pub fn generate_random() -> Self {
-        // generate random seed
-        let mut random_seed = Seed::random();
-        // For security, clear automatically random_seed when it's droped
-        let random_seed = ClearOnDrop::new(&mut random_seed);
-        // Generate and return keypair from seed
-        KeyPairFromSeedGenerator::generate(&random_seed)
+        KeyPairFromSeedGenerator::generate(Seed::random())
     }
 }
 
@@ -281,13 +283,12 @@ impl KeyPairFromSeedGenerator {
     ///
     /// The [`PublicKey`](struct.PublicKey.html) will be able to verify messaged signed with
     /// the [`PrivateKey`](struct.PrivateKey.html).
-    pub fn generate(seed: &Seed) -> Ed25519KeyPair {
+    pub fn generate(seed: Seed) -> Ed25519KeyPair {
         let ring_key_pair = RingKeyPair::from_seed_unchecked(seed.as_ref())
             .expect("dev error: fail to generate ed25519 keypair.");
-
         Ed25519KeyPair {
             pubkey: get_ring_ed25519_pubkey(&ring_key_pair),
-            seed: *seed,
+            seed,
         }
     }
 }
@@ -340,11 +341,9 @@ impl KeyPairFromSaltedPasswordGenerator {
     /// the [`PrivateKey`](struct.PrivateKey.html).
     pub fn generate(&self, password: &[u8], salt: &[u8]) -> Ed25519KeyPair {
         // Generate seed from tuple (password + salt)
-        let mut seed = self.generate_seed(password, salt);
-        // For security, clear automatically seed when it's droped
-        let seed = ClearOnDrop::new(&mut seed);
+        let seed = self.generate_seed(password, salt);
         // Generate keypair from seed
-        KeyPairFromSeedGenerator::generate(&seed)
+        KeyPairFromSeedGenerator::generate(seed)
     }
 }
 
@@ -577,7 +576,7 @@ UniqueID: tic
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 ";
 
-        let signator = KeyPairFromSeedGenerator::generate(&seed)
+        let signator = KeyPairFromSeedGenerator::generate(seed)
             .generate_signator()
             .expect("fail to generate signator !");
         let pubkey = signator.public_key();
@@ -620,7 +619,7 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 
         // Test key_pair equality
         let same_key_pair = key_pair2.clone();
-        let other_key_pair = KeyPairFromSeedGenerator::generate(&Seed::new([
+        let other_key_pair = KeyPairFromSeedGenerator::generate(Seed::new([
             0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0,
         ]));

@@ -44,7 +44,7 @@ pub fn keypair1() -> ed25519::Ed25519KeyPair {
         61u8, 245, 136, 162, 155, 50, 205, 43, 116, 15, 45, 84, 138, 54, 114, 214, 71, 213, 11,
         251, 135, 182, 202, 131, 48, 91, 166, 226, 40, 255, 251, 172,
     ]);
-    ed25519::KeyPairFromSeedGenerator::generate(&seed)
+    ed25519::KeyPairFromSeedGenerator::generate(seed)
 }
 
 pub fn keypair2() -> ed25519::Ed25519KeyPair {
@@ -52,7 +52,7 @@ pub fn keypair2() -> ed25519::Ed25519KeyPair {
         228, 125, 124, 120, 57, 212, 246, 250, 139, 246, 62, 26, 56, 241, 175, 123, 151, 209, 5,
         106, 2, 148, 43, 101, 118, 160, 233, 7, 112, 222, 0, 169,
     ]);
-    ed25519::KeyPairFromSeedGenerator::generate(&seed)
+    ed25519::KeyPairFromSeedGenerator::generate(seed)
 }
 
 fn server_node() -> MySelfWs2pNode {

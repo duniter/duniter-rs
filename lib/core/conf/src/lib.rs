@@ -355,7 +355,7 @@ impl DursConfTrait for DuRsConf {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// Keypairs filled in by the user (via a file or by direct entry in the terminal).
 pub struct DuniterKeyPairs {
     /// Keypair used by the node to sign its communications with other nodes. This keypair is mandatory, if it's not filled in, a random keypair is generated.
@@ -369,12 +369,12 @@ impl Serialize for DuniterKeyPairs {
     where
         S: Serializer,
     {
-        let member_seed = if let Some(member_keypair) = self.member_keypair {
+        let member_seed = if let Some(ref member_keypair) = self.member_keypair {
             member_keypair.seed().to_string()
         } else {
             String::from("")
         };
-        let member_pub = if let Some(member_keypair) = self.member_keypair {
+        let member_pub = if let Some(ref member_keypair) = self.member_keypair {
             member_keypair.public_key().to_string()
         } else {
             String::from("")

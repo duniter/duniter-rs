@@ -23,7 +23,7 @@ use ring::rand;
 use std::fmt::{self, Debug, Display, Formatter};
 
 /// Store a 32 bytes seed used to generate keys.
-#[derive(Copy, Clone, Default, Deserialize, PartialEq, Eq, Hash, Serialize)]
+#[derive(Clone, Copy, Default, Deserialize, PartialEq, Eq, Hash, Serialize)]
 pub struct Seed([u8; 32]);
 
 impl AsRef<[u8]> for Seed {
@@ -60,15 +60,26 @@ impl Seed {
     #[inline]
     /// Create seed from base58 str
     pub fn from_base58(base58_str: &str) -> Result<Self, BaseConvertionError> {
-        Ok(Seed(b58::str_base58_to_32bytes(base58_str)?))
+        Ok(Seed::new(b58::str_base58_to_32bytes(base58_str)?))
     }
     #[inline]
     /// Generate random seed
     pub fn random() -> Seed {
         if let Ok(random_bytes) = rand::generate::<[u8; 32]>(&rand::SystemRandom::new()) {
-            Seed(random_bytes.expose())
+            Seed::new(random_bytes.expose())
         } else {
             fatal_error!("System error: fail to generate random seed !")
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_gen_random_seed() {
+        assert_ne!(Seed::random(), Seed::random());
     }
 }

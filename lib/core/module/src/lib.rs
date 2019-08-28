@@ -264,7 +264,7 @@ pub enum RequiredKeys {
     None(),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// Contains the keys the module needs
 pub enum RequiredKeysContent {
     /// Contains the member keypair (private key included).

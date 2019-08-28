@@ -405,14 +405,13 @@ impl DursCore<DuRsConf> {
                         .modules()
                         .get(&NM::name().to_string().as_str())
                         .cloned();
-                    let keypairs = self.keypairs;
 
                     // Load module conf and keys
                     let ((module_conf, _), required_keys) = get_module_conf_and_keys::<NM>(
                         self.currency_name.as_ref(),
                         &soft_meta_datas.conf.get_global_conf(),
                         module_conf_json,
-                        keypairs,
+                        self.keypairs.clone(),
                     )?;
 
                     let sync_params = network_sync.clone();
@@ -491,13 +490,12 @@ impl DursCore<DuRsConf> {
                     .modules()
                     .get(&M::name().to_string().as_str())
                     .cloned();
-                let keypairs = self.keypairs;
                 // Load module conf and keys
                 let ((module_conf, _), required_keys) = get_module_conf_and_keys::<M>(
                     self.currency_name.as_ref(),
                     &soft_meta_datas.conf.get_global_conf(),
                     module_conf_json,
-                    keypairs,
+                    self.keypairs.clone(),
                 )?;
 
                 let thread_builder = thread::Builder::new().name(M::name().0.into());

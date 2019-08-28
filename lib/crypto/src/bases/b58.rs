@@ -46,7 +46,7 @@ pub fn str_base58_to_32bytes(base58_data: &str) -> Result<[u8; 32], BaseConverti
     }
 }
 
-/// Create an array of 64bytes from a Base58 string.
+/*/// Create an array of 64bytes from a Base58 string.
 pub fn str_base58_to_64bytes(base58_data: &str) -> Result<[u8; 64], BaseConvertionError> {
     match base58_data.from_base58() {
         Ok(result) => {
@@ -70,4 +70,4 @@ pub fn str_base58_to_64bytes(base58_data: &str) -> Result<[u8; 64], BaseConverti
             Err(BaseConvertionError::InvalidBaseConverterLength)
         }
     }
-}
+}*/

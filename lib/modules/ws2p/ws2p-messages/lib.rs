@@ -179,7 +179,7 @@ mod tests {
             228, 125, 124, 120, 57, 212, 246, 250, 139, 246, 62, 26, 56, 241, 175, 123, 151, 209,
             5, 106, 2, 148, 43, 101, 118, 160, 233, 7, 112, 222, 0, 169,
         ]);
-        ed25519::KeyPairFromSeedGenerator::generate(&seed)
+        ed25519::KeyPairFromSeedGenerator::generate(seed)
     }
 
     pub fn create_endpoint_v11() -> EndpointV2 {

@@ -39,7 +39,7 @@ use durs_network_documents::{NodeFullId, NodeId};
 use durs_ws2p_messages::v2::api_features::WS2PFeatures;
 
 /// Store self WS2P properties
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MySelfWs2pNode {
     /// Local node id
     pub my_node_id: NodeId,

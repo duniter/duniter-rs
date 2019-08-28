@@ -201,20 +201,29 @@ mod tests {
             )
         );
         assert_eq!(
-            result_key_pairs.network_keypair.seed(),
+            result_key_pairs.network_keypair.seed().clone(),
             Seed::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_INIT"),
         );
 
         // We expect member key to update as intended
         assert_eq!(
-            result_key_pairs.member_keypair.unwrap().public_key(),
+            result_key_pairs
+                .member_keypair
+                .clone()
+                .unwrap()
+                .public_key(),
             PubKey::Ed25519(
                 ed25519::PublicKey::from_base58(BASE58_PUB_TEST)
                     .expect("Wrong data in BASE58_PUB_TEST")
             )
         );
         assert_eq!(
-            result_key_pairs.member_keypair.unwrap().seed(),
+            result_key_pairs
+                .member_keypair
+                .clone()
+                .unwrap()
+                .seed()
+                .clone(),
             Seed::from_base58(BASE58_SEED_TEST).expect("Wrong data in BASE58_SEED_TEST"),
         );
     }
@@ -240,7 +249,7 @@ mod tests {
             )
         );
         assert_eq!(
-            result_key_pairs.network_keypair.seed(),
+            result_key_pairs.network_keypair.seed().clone(),
             Seed::from_base58(BASE58_SEED_TEST).expect("Wrong data in BASE58_SEED_TEST")
         );
         // We expect member key not to change
@@ -273,20 +282,29 @@ mod tests {
             )
         );
         assert_ne!(
-            result_key_pairs.network_keypair.seed(),
+            result_key_pairs.network_keypair.seed().clone(),
             Seed::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_TEST")
         );
 
         // We expect member key not to change
         assert_eq!(
-            result_key_pairs.member_keypair.unwrap().public_key(),
+            result_key_pairs
+                .member_keypair
+                .clone()
+                .unwrap()
+                .public_key(),
             PubKey::Ed25519(
                 ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
                     .expect("Wrong data in BASE58_PUB_TEST")
             )
         );
         assert_eq!(
-            result_key_pairs.member_keypair.unwrap().seed(),
+            result_key_pairs
+                .member_keypair
+                .clone()
+                .unwrap()
+                .seed()
+                .clone(),
             Seed::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_TEST")
         );
     }
@@ -317,7 +335,7 @@ mod tests {
             )
         );
         assert_eq!(
-            result_key_pairs.network_keypair.seed(),
+            result_key_pairs.network_keypair.seed().clone(),
             Seed::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_TEST")
         );
 
