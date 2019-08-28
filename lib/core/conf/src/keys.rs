@@ -184,7 +184,7 @@ mod tests {
     fn test_modify_member_keys() {
         let key_pairs = DuniterKeyPairs {
             network_keypair: KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
-                seed: Seed::from_base58(BASE58_SEED_INIT)
+                seed: Seed32::from_base58(BASE58_SEED_INIT)
                     .expect("conf : keypairs file : fail to parse network_seed !"),
                 pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
                     .expect("conf : keypairs file : fail to parse network_pub !"),
@@ -202,7 +202,7 @@ mod tests {
         );
         assert_eq!(
             result_key_pairs.network_keypair.seed().clone(),
-            Seed::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_INIT"),
+            Seed32::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_INIT"),
         );
 
         // We expect member key to update as intended
@@ -224,7 +224,7 @@ mod tests {
                 .unwrap()
                 .seed()
                 .clone(),
-            Seed::from_base58(BASE58_SEED_TEST).expect("Wrong data in BASE58_SEED_TEST"),
+            Seed32::from_base58(BASE58_SEED_TEST).expect("Wrong data in BASE58_SEED_TEST"),
         );
     }
 
@@ -232,7 +232,7 @@ mod tests {
     fn test_modify_network_keys() {
         let key_pairs = DuniterKeyPairs {
             network_keypair: KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
-                seed: Seed::from_base58(BASE58_SEED_INIT)
+                seed: Seed32::from_base58(BASE58_SEED_INIT)
                     .expect("conf : keypairs file : fail to parse network_seed !"),
                 pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
                     .expect("conf : keypairs file : fail to parse network_pub !"),
@@ -250,7 +250,7 @@ mod tests {
         );
         assert_eq!(
             result_key_pairs.network_keypair.seed().clone(),
-            Seed::from_base58(BASE58_SEED_TEST).expect("Wrong data in BASE58_SEED_TEST")
+            Seed32::from_base58(BASE58_SEED_TEST).expect("Wrong data in BASE58_SEED_TEST")
         );
         // We expect member key not to change
         assert_eq!(result_key_pairs.member_keypair, None);
@@ -260,13 +260,13 @@ mod tests {
     fn test_clear_network_keys() {
         let key_pairs = DuniterKeyPairs {
             network_keypair: KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
-                seed: Seed::from_base58(BASE58_SEED_INIT)
+                seed: Seed32::from_base58(BASE58_SEED_INIT)
                     .expect("conf : keypairs file : fail to parse network_seed !"),
                 pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
                     .expect("conf : keypairs file : fail to parse network_pub !"),
             }),
             member_keypair: Some(KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
-                seed: Seed::from_base58(BASE58_SEED_INIT)
+                seed: Seed32::from_base58(BASE58_SEED_INIT)
                     .expect("conf : keypairs file : fail to parse network_seed !"),
                 pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
                     .expect("conf : keypairs file : fail to parse network_pub !"),
@@ -283,7 +283,7 @@ mod tests {
         );
         assert_ne!(
             result_key_pairs.network_keypair.seed().clone(),
-            Seed::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_TEST")
+            Seed32::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_TEST")
         );
 
         // We expect member key not to change
@@ -305,7 +305,7 @@ mod tests {
                 .unwrap()
                 .seed()
                 .clone(),
-            Seed::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_TEST")
+            Seed32::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_TEST")
         );
     }
 
@@ -313,13 +313,13 @@ mod tests {
     fn test_clear_member_keys() {
         let key_pairs = DuniterKeyPairs {
             network_keypair: KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
-                seed: Seed::from_base58(BASE58_SEED_INIT)
+                seed: Seed32::from_base58(BASE58_SEED_INIT)
                     .expect("conf : keypairs file : fail to parse network_seed !"),
                 pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
                     .expect("conf : keypairs file : fail to parse network_pub !"),
             }),
             member_keypair: Some(KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
-                seed: Seed::from_base58(BASE58_SEED_INIT)
+                seed: Seed32::from_base58(BASE58_SEED_INIT)
                     .expect("conf : keypairs file : fail to parse network_seed !"),
                 pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
                     .expect("conf : keypairs file : fail to parse network_pub !"),
@@ -336,7 +336,7 @@ mod tests {
         );
         assert_eq!(
             result_key_pairs.network_keypair.seed().clone(),
-            Seed::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_TEST")
+            Seed32::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_TEST")
         );
 
         // We expect member key to change

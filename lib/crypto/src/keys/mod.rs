@@ -50,10 +50,9 @@
 
 pub mod bin_signable;
 pub mod ed25519;
-pub mod seed;
 pub mod text_signable;
 
-pub use seed::Seed;
+pub use crate::seeds::Seed32;
 
 use crate::bases::BaseConvertionError;
 use base58::ToBase58;
@@ -325,8 +324,8 @@ pub trait KeyPair: Clone + Display + Debug + PartialEq + Eq {
     /// Get `PublicKey`
     fn public_key(&self) -> <Self::Signator as Signator>::PublicKey;
 
-    /// Get `Seed`
-    fn seed(&self) -> &Seed;
+    /// Get `Seed32`
+    fn seed(&self) -> &Seed32;
 
     /// Verify a signature with public key.
     fn verify(
@@ -398,7 +397,7 @@ impl KeyPair for KeyPairEnum {
             KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
         }
     }
-    fn seed(&self) -> &Seed {
+    fn seed(&self) -> &Seed32 {
         match *self {
             KeyPairEnum::Ed25519(ref ed25519_keypair) => &ed25519_keypair.seed(),
             KeyPairEnum::Schnorr() => fatal_error!("Schnorr algo not yet supported !"),
@@ -454,14 +453,14 @@ impl Signator for SignatorEnum {
 mod tests {
 
     use super::*;
-    use crate::hashs::Hash;
-    use ring::{agreement, rand};
 
     pub fn valid_key_pair_1() -> KeyPairEnum {
-        KeyPairEnum::Ed25519(ed25519::KeyPairFromSeedGenerator::generate(Seed::new([
-            59u8, 106, 39, 188, 206, 182, 164, 45, 98, 163, 168, 208, 42, 111, 13, 115, 101, 50,
-            21, 119, 29, 226, 67, 166, 58, 192, 72, 161, 139, 89, 218, 41,
-        ])))
+        KeyPairEnum::Ed25519(ed25519::KeyPairFromSeed32Generator::generate(Seed32::new(
+            [
+                59u8, 106, 39, 188, 206, 182, 164, 45, 98, 163, 168, 208, 42, 111, 13, 115, 101,
+                50, 21, 119, 29, 226, 67, 166, 58, 192, 72, 161, 139, 89, 218, 41,
+            ],
+        )))
     }
 
     #[test]
@@ -526,18 +525,18 @@ mod tests {
 
     #[test]
     fn seed() {
-        let seed_default = Seed::default();
+        let seed_default = Seed32::default();
         let seed_bytes = [
             0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0,
         ];
         let seed_str_b58 = "11111111111111111111111111111111".to_owned();
-        let seed = Seed::new(seed_bytes);
+        let seed = Seed32::new(seed_bytes);
 
         assert_eq!(seed_default, seed);
         assert_eq!(
             seed_default,
-            Seed::from_base58(&seed_str_b58).expect("Fail to parse seed !")
+            Seed32::from_base58(&seed_str_b58).expect("Fail to parse seed !")
         );
 
         assert_eq!(seed_str_b58, format!("{}", seed));
@@ -546,7 +545,7 @@ mod tests {
     }
 
     fn false_key_pair_ed25519() -> ed25519::Ed25519KeyPair {
-        ed25519::KeyPairFromSeedGenerator::generate(Seed::new([
+        ed25519::KeyPairFromSeed32Generator::generate(Seed32::new([
             0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0,
         ]))
@@ -691,49 +690,5 @@ mod tests {
     fn signator_schnorr_sign() {
         let signator = SignatorEnum::Schnorr();
         signator.sign(b"message");
-    }
-
-    #[test]
-    fn test_exchange_dh() -> Result<(), ring::error::Unspecified> {
-        let rng = rand::SystemRandom::new();
-
-        let secret_key_1 = agreement::EphemeralPrivateKey::generate(&agreement::X25519, &rng)?;
-        let public_key_1 = secret_key_1.compute_public_key()?;
-
-        let secret_key_2 = agreement::EphemeralPrivateKey::generate(&agreement::X25519, &rng)?;
-        let public_key_2 = secret_key_2.compute_public_key()?;
-
-        let dh1 = agreement::agree_ephemeral(
-            secret_key_1,
-            &agreement::UnparsedPublicKey::new(&agreement::X25519, &public_key_2),
-            ring::error::Unspecified,
-            |key_material| {
-                // In a real application, we'd apply a KDF to the key material and the
-                // public keys (as recommended in RFC 7748) and then derive session
-                // keys from the result.
-                Ok(Hash::compute(key_material))
-            },
-        )?;
-
-        let dh2 = agreement::agree_ephemeral(
-            secret_key_2,
-            &agreement::UnparsedPublicKey::new(&agreement::X25519, &public_key_1),
-            ring::error::Unspecified,
-            |key_material| {
-                // In a real application, we'd apply a KDF to the key material and the
-                // public keys (as recommended in RFC 7748) and then derive session
-                // keys from the result.
-                Ok(Hash::compute(key_material))
-            },
-        )?;
-
-        assert_eq!(dh1, dh2);
-
-        println!("pk1={:?}", public_key_1);
-        println!("pk2={:?}", public_key_2);
-        println!("shared_secret1={:?}", dh1);
-        println!("shared_secret2={:?}", dh2);
-        //panic!();
-        Ok(())
     }
 }

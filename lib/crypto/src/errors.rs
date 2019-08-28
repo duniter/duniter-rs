@@ -13,34 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Manage cryptographic operations.
+//! Manage cryptographic errors.
 
-#![deny(
-    clippy::option_unwrap_used,
-    clippy::result_unwrap_used,
-    missing_docs,
-    missing_copy_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_import_braces,
-    unused_qualifications
-)]
-#![allow(non_camel_case_types)]
-
-#[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate log;
-
-pub mod agreement;
-pub mod bases;
-pub mod encryption;
-pub mod errors;
-pub mod hashs;
-pub mod keys;
-pub mod rand;
-pub mod seeds;
+#[derive(Debug)]
+/// Cryptographic error
+pub enum CryptoError {
+    /// Fail to compute agreement
+    FailToComputeAgreement,
+    /// Fail to decrypt datas
+    FailToDecryptDatas(chacha20_poly1305_aead::DecryptError),
+    /// Fail to encrypt datas
+    FailToEncryptDatas(std::io::Error),
+    /// Fail to generate ephemeral key pair
+    FailToGenEphemerKeyPair,
+    /// Fail to generate ephemeral public key
+    FailToGenEphemerPubKey,
+}

@@ -116,7 +116,7 @@ mod tests {
 
     #[test]
     fn test_bin_signable() {
-        let key_pair = ed25519::KeyPairFromSeedGenerator::generate(Seed::new([
+        let key_pair = ed25519::KeyPairFromSeed32Generator::generate(Seed32::new([
             0u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
             10, 11, 12, 13, 14, 15,
         ]));

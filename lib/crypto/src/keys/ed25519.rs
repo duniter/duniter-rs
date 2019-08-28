@@ -19,9 +19,9 @@
 //!
 //! [`KeyPairGenerator`]: struct.KeyPairGenerator.html
 
-use super::seed::Seed;
 use super::PublicKey as PublicKeyMethods;
 use crate::bases::*;
+use crate::seeds::Seed32;
 use base58::ToBase58;
 use base64;
 use clear_on_drop::clear::Clear;
@@ -218,7 +218,7 @@ pub struct Ed25519KeyPair {
     /// Store a Ed25519 public key.
     pub pubkey: PublicKey,
     /// Store a seed of 32 bytes.
-    pub seed: Seed,
+    pub seed: Seed32,
 }
 
 impl Drop for Ed25519KeyPair {
@@ -254,7 +254,7 @@ impl super::KeyPair for Ed25519KeyPair {
         self.pubkey
     }
 
-    fn seed(&self) -> &Seed {
+    fn seed(&self) -> &Seed32 {
         &self.seed
     }
 
@@ -270,20 +270,20 @@ impl super::KeyPair for Ed25519KeyPair {
 impl Ed25519KeyPair {
     /// Generate random keypair
     pub fn generate_random() -> Self {
-        KeyPairFromSeedGenerator::generate(Seed::random())
+        KeyPairFromSeed32Generator::generate(Seed32::random())
     }
 }
 
 /// Keypair generator with seed
 #[derive(Debug, Copy, Clone)]
-pub struct KeyPairFromSeedGenerator {}
+pub struct KeyPairFromSeed32Generator {}
 
-impl KeyPairFromSeedGenerator {
+impl KeyPairFromSeed32Generator {
     /// Create a keypair based on a given seed.
     ///
     /// The [`PublicKey`](struct.PublicKey.html) will be able to verify messaged signed with
     /// the [`PrivateKey`](struct.PrivateKey.html).
-    pub fn generate(seed: Seed) -> Ed25519KeyPair {
+    pub fn generate(seed: Seed32) -> Ed25519KeyPair {
         let ring_key_pair = RingKeyPair::from_seed_unchecked(seed.as_ref())
             .expect("dev error: fail to generate ed25519 keypair.");
         Ed25519KeyPair {
@@ -326,13 +326,13 @@ impl KeyPairFromSaltedPasswordGenerator {
     }
 
     /// Create a seed based on a given password and salt.
-    pub fn generate_seed(&self, password: &[u8], salt: &[u8]) -> Seed {
+    pub fn generate_seed(&self, password: &[u8], salt: &[u8]) -> Seed32 {
         let mut seed = [0u8; 32];
 
         scrypt::scrypt(salt, password, &self.scrypt_params, &mut seed)
             .expect("dev error: invalid seed len");
 
-        Seed::new(seed)
+        Seed32::new(seed)
     }
 
     /// Create a keypair based on a given password and salt.
@@ -343,14 +343,15 @@ impl KeyPairFromSaltedPasswordGenerator {
         // Generate seed from tuple (password + salt)
         let seed = self.generate_seed(password, salt);
         // Generate keypair from seed
-        KeyPairFromSeedGenerator::generate(seed)
+        KeyPairFromSeed32Generator::generate(seed)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::keys::{KeyPair, Seed, Sig, Signator, Signature};
+    use crate::keys::{KeyPair, Sig, Signator, Signature};
+    use crate::seeds::Seed32;
     use base58::FromBase58;
     use bincode;
     use std::collections::hash_map::DefaultHasher;
@@ -360,7 +361,7 @@ mod tests {
         let seed58 = "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV";
 
         // Test base58 encoding/decoding (loop for every bytes)
-        let seed = Seed::from_base58(seed58).expect("fail to parser seed !");
+        let seed = Seed32::from_base58(seed58).expect("fail to parser seed !");
         assert_eq!(seed.to_base58(), seed58);
 
         // Test seed display and debug
@@ -369,40 +370,40 @@ mod tests {
             format!("{}", seed)
         );
         assert_eq!(
-            "Seed { DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV }".to_owned(),
+            "Seed32 { DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV }".to_owned(),
             format!("{:?}", seed)
         );
 
         // Test seed equality
         let same_seed = seed.clone();
-        let other_seed = Seed::default();
+        let other_seed = Seed32::default();
         assert!(seed.eq(&same_seed));
         assert!(!seed.eq(&other_seed));
 
         // Test seed parsing
         assert_eq!(
-            Seed::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLVgth",).unwrap_err(),
+            Seed32::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLVgth",).unwrap_err(),
             BaseConvertionError::InvalidLength {
                 found: 35,
                 expected: 32
             }
         );
         assert_eq!(
-            Seed::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQd",).unwrap_err(),
+            Seed32::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQd",).unwrap_err(),
             BaseConvertionError::InvalidLength {
                 found: 31,
                 expected: 32
             }
         );
         assert_eq!(
-            Seed::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQd<<").unwrap_err(),
+            Seed32::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQd<<").unwrap_err(),
             BaseConvertionError::InvalidCharacter {
                 character: '<',
                 offset: 42
             }
         );
         assert_eq!(
-            Seed::from_base58(
+            Seed32::from_base58(
                 "\
                  DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV\
                  DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV\
@@ -561,7 +562,7 @@ mod tests {
 
     #[test]
     fn message_sign_verify() {
-        let seed = Seed::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV").unwrap();
+        let seed = Seed32::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV").unwrap();
 
         let expected_signature = super::Signature::from_base64(
             "9ARKYkEAwp+kQ01rgvWUwJLchVLpZvHg3t/3H32XwWOoG119NiVCtfPSPtR4GDOeOz6Y+29drOLahqhzy+ciBw==",
@@ -576,7 +577,7 @@ UniqueID: tic
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 ";
 
-        let signator = KeyPairFromSeedGenerator::generate(seed)
+        let signator = KeyPairFromSeed32Generator::generate(seed)
             .generate_signator()
             .expect("fail to generate signator !");
         let pubkey = signator.public_key();
@@ -619,7 +620,7 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 
         // Test key_pair equality
         let same_key_pair = key_pair2.clone();
-        let other_key_pair = KeyPairFromSeedGenerator::generate(Seed::new([
+        let other_key_pair = KeyPairFromSeed32Generator::generate(Seed32::new([
             0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0,
         ]));

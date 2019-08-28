@@ -339,8 +339,8 @@ mod tests {
 
     #[test]
     fn generate_real_certification_document() {
-        let seed = Seed::from_base58("4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR").unwrap();
-        let keypair = ed25519::KeyPairFromSeedGenerator::generate(seed);
+        let seed = Seed32::from_base58("4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR").unwrap();
+        let keypair = ed25519::KeyPairFromSeed32Generator::generate(seed);
         let pubkey = PubKey::Ed25519(keypair.public_key());
         let signator =
             SignatorEnum::Ed25519(keypair.generate_signator().expect("fail to gen signator"));

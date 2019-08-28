@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Provide wrappers around cryptographic seed
+//! Provide wrappers around cryptographic seeds
 
 use crate::bases::*;
 use base58::ToBase58;
@@ -22,51 +22,84 @@ use log::error;
 use ring::rand;
 use std::fmt::{self, Debug, Display, Formatter};
 
-/// Store a 32 bytes seed used to generate keys.
-#[derive(Clone, Copy, Default, Deserialize, PartialEq, Eq, Hash, Serialize)]
-pub struct Seed([u8; 32]);
+/// Store a 48 bytes seed used to generate keys.
+#[derive(Clone, Copy)]
+pub struct Seed48([u8; 48]);
 
-impl AsRef<[u8]> for Seed {
+impl AsRef<[u8]> for Seed48 {
     fn as_ref(&self) -> &[u8] {
         &self.0
     }
 }
 
-impl ToBase58 for Seed {
+impl Default for Seed48 {
+    fn default() -> Self {
+        Seed48([0u8; 48])
+    }
+}
+
+impl Seed48 {
+    #[inline]
+    /// Create new seed
+    pub fn new(seed_bytes: [u8; 48]) -> Seed48 {
+        Seed48(seed_bytes)
+    }
+    #[inline]
+    /// Generate random seed
+    pub fn random() -> Seed48 {
+        if let Ok(random_bytes) = rand::generate::<[u8; 48]>(&rand::SystemRandom::new()) {
+            Seed48::new(random_bytes.expose())
+        } else {
+            fatal_error!("System error: fail to generate random seed !")
+        }
+    }
+}
+
+/// Store a 32 bytes seed used to generate keys.
+#[derive(Clone, Copy, Default, Deserialize, PartialEq, Eq, Hash, Serialize)]
+pub struct Seed32([u8; 32]);
+
+impl AsRef<[u8]> for Seed32 {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl ToBase58 for Seed32 {
     fn to_base58(&self) -> String {
         self.0.to_base58()
     }
 }
 
-impl Display for Seed {
+impl Display for Seed32 {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.to_base58())
     }
 }
 
-impl Debug for Seed {
-    // Seed { DNann1L... }
+impl Debug for Seed32 {
+    // Seed32 { DNann1L... }
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        write!(f, "Seed {{ {} }}", self)
+        write!(f, "Seed32 {{ {} }}", self)
     }
 }
 
-impl Seed {
+impl Seed32 {
     #[inline]
     /// Create new seed
-    pub fn new(seed_bytes: [u8; 32]) -> Seed {
-        Seed(seed_bytes)
+    pub fn new(seed_bytes: [u8; 32]) -> Seed32 {
+        Seed32(seed_bytes)
     }
     #[inline]
     /// Create seed from base58 str
     pub fn from_base58(base58_str: &str) -> Result<Self, BaseConvertionError> {
-        Ok(Seed::new(b58::str_base58_to_32bytes(base58_str)?))
+        Ok(Seed32::new(b58::str_base58_to_32bytes(base58_str)?))
     }
     #[inline]
     /// Generate random seed
-    pub fn random() -> Seed {
+    pub fn random() -> Seed32 {
         if let Ok(random_bytes) = rand::generate::<[u8; 32]>(&rand::SystemRandom::new()) {
-            Seed::new(random_bytes.expose())
+            Seed32::new(random_bytes.expose())
         } else {
             fatal_error!("System error: fail to generate random seed !")
         }
@@ -80,6 +113,6 @@ mod tests {
 
     #[test]
     fn test_gen_random_seed() {
-        assert_ne!(Seed::random(), Seed::random());
+        assert_ne!(Seed32::random(), Seed32::random());
     }
 }

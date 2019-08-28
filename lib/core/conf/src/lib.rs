@@ -557,7 +557,7 @@ pub fn load_conf_at_path(
                             .as_str()
                             .expect("Conf: Fail to parse keypairs file !");
                         let network_keypair = KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
-                            seed: Seed::from_base58(network_seed)
+                            seed: Seed32::from_base58(network_seed)
                                 .expect("conf : keypairs file : fail to parse network_seed !"),
                             pubkey: ed25519::PublicKey::from_base58(network_pub)
                                 .expect("conf : keypairs file : fail to parse network_pub !"),
@@ -576,7 +576,7 @@ pub fn load_conf_at_path(
                                     None
                                 } else {
                                     Some(KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
-                                        seed: Seed::from_base58(member_seed).expect(
+                                        seed: Seed32::from_base58(member_seed).expect(
                                             "conf : keypairs file : fail to parse member_seed !",
                                         ),
                                         pubkey: ed25519::PublicKey::from_base58(member_pub).expect(
