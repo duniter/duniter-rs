@@ -221,13 +221,6 @@ pub struct Ed25519KeyPair {
     pub seed: Seed32,
 }
 
-impl Drop for Ed25519KeyPair {
-    #[inline]
-    fn drop(&mut self) {
-        self.seed.clear();
-    }
-}
-
 impl Display for Ed25519KeyPair {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(f, "({}, hidden)", self.pubkey.to_base58())
@@ -293,6 +286,27 @@ impl KeyPairFromSeed32Generator {
     }
 }
 
+/// Salted password
+pub struct SaltedPassword {
+    salt: String,
+    password: String,
+}
+
+impl SaltedPassword {
+    /// Create new salted password
+    pub fn new(salt: String, password: String) -> SaltedPassword {
+        SaltedPassword { salt, password }
+    }
+}
+
+impl Drop for SaltedPassword {
+    #[inline]
+    fn drop(&mut self) {
+        <String as Clear>::clear(&mut self.salt);
+        <String as Clear>::clear(&mut self.password);
+    }
+}
+
 /// Keypair generator with given parameters for `scrypt` keypair function.
 #[derive(Copy, Clone)]
 pub struct KeyPairFromSaltedPasswordGenerator {
@@ -329,7 +343,7 @@ impl KeyPairFromSaltedPasswordGenerator {
     pub fn generate_seed(&self, password: &[u8], salt: &[u8]) -> Seed32 {
         let mut seed = [0u8; 32];
 
-        scrypt::scrypt(salt, password, &self.scrypt_params, &mut seed)
+        scrypt::scrypt(password, salt, &self.scrypt_params, &mut seed)
             .expect("dev error: invalid seed len");
 
         Seed32::new(seed)
@@ -339,9 +353,12 @@ impl KeyPairFromSaltedPasswordGenerator {
     ///
     /// The [`PublicKey`](struct.PublicKey.html) will be able to verify messaged signed with
     /// the [`PrivateKey`](struct.PrivateKey.html).
-    pub fn generate(&self, password: &[u8], salt: &[u8]) -> Ed25519KeyPair {
+    pub fn generate(&self, salted_password: SaltedPassword) -> Ed25519KeyPair {
         // Generate seed from tuple (password + salt)
-        let seed = self.generate_seed(password, salt);
+        let seed = self.generate_seed(
+            salted_password.password.as_bytes(),
+            salted_password.salt.as_bytes(),
+        );
         // Generate keypair from seed
         KeyPairFromSeed32Generator::generate(seed)
     }
@@ -599,8 +616,10 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
     #[test]
     fn keypair_generate() {
         let key_pair1 = KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(
-            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV".as_bytes(),
-            "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV_".as_bytes(),
+            SaltedPassword::new(
+                "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV".to_owned(),
+                "JhxtHB7UcsDbA9wMSyMKXUzBZUQvqVyB32KwzS9SWoLkjrUhHV_".to_owned(),
+            ),
         );
 
         assert_eq!(
@@ -610,7 +629,7 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 
         let key_pair2 = KeyPairFromSaltedPasswordGenerator::with_parameters(12u8, 16, 1)
             .expect("fail to create KeyPairFromSaltedPasswordGenerator: invalid scrypt params.")
-            .generate(b"toto", b"toto");
+            .generate(SaltedPassword::new("toto".to_owned(), "toto".to_owned()));
 
         // Test signature display and debug
         assert_eq!(
@@ -630,8 +649,9 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 
     #[test]
     fn keypair_generate_sign_and_verify() {
-        let keypair = KeyPairFromSaltedPasswordGenerator::with_default_parameters()
-            .generate("password".as_bytes(), "salt".as_bytes());
+        let keypair = KeyPairFromSaltedPasswordGenerator::with_default_parameters().generate(
+            SaltedPassword::new("password".to_owned(), "salt".to_owned()),
+        );
 
         let message = "Version: 10
 Type: Identity

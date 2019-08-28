@@ -18,6 +18,7 @@
 use crate::commands::DursExecutableCoreCommand;
 use crate::errors::DursCoreError;
 use crate::DursCore;
+use clear_on_drop::clear::Clear;
 use durs_conf::keys::*;
 use durs_conf::DuRsConf;
 
@@ -124,6 +125,14 @@ pub struct SaltPasswordOpt {
     pub password: String,
 }
 
+impl Drop for SaltPasswordOpt {
+    #[inline]
+    fn drop(&mut self) {
+        <String as Clear>::clear(&mut self.salt);
+        <String as Clear>::clear(&mut self.password);
+    }
+}
+
 #[derive(StructOpt, Debug, Copy, Clone)]
 /// WizardOpt
 pub struct WizardOpt {}
@@ -146,14 +155,20 @@ impl DursExecutableCoreCommand for KeysOpt {
             }
             KeysSubCommand::Modify(modify_opt) => match modify_opt.subcommand {
                 ModifySubCommand::NetworkSaltPassword(network_opt) => {
-                    let new_keypairs =
-                        modify_network_keys(&network_opt.salt, &network_opt.password, keypairs);
+                    let new_keypairs = modify_network_keys(
+                        network_opt.salt.clone(),
+                        network_opt.password.clone(),
+                        keypairs,
+                    );
                     save_keypairs(profile_path, &keypairs_file, new_keypairs)
                         .map_err(DursCoreError::FailWriteKeypairsFile)
                 }
                 ModifySubCommand::MemberSaltPassword(member_opt) => {
-                    let new_keypairs =
-                        modify_member_keys(&member_opt.salt, &member_opt.password, keypairs);
+                    let new_keypairs = modify_member_keys(
+                        member_opt.salt.clone(),
+                        member_opt.password.clone(),
+                        keypairs,
+                    );
                     save_keypairs(profile_path, &keypairs_file, new_keypairs)
                         .map_err(DursCoreError::FailWriteKeypairsFile)
                 }

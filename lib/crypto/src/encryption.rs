@@ -17,16 +17,26 @@
 
 use crate::errors::CryptoError;
 use crate::seeds::Seed48;
+use clear_on_drop::clear::Clear;
 use std::io::Read;
 
 const CHACHA20_TAG_SIZE: usize = 16;
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Default)]
 /// Secret key used for encryption algo
 pub struct SecretKey {
     key: [u8; 32],
     nonce: [u8; 12],
     aad: [u8; 4],
+}
+
+impl Drop for SecretKey {
+    #[inline]
+    fn drop(&mut self) {
+        self.key.clear();
+        self.nonce.clear();
+        self.aad.clear();
+    }
 }
 
 impl SecretKey {

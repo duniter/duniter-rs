@@ -10,6 +10,7 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
+clear_on_drop = "0.2.3"
 dirs = "1.0.2"
 durs-blockchain = { path = "../../modules/blockchain/blockchain" }
 durs-common-tools = { path = "../../tools/common-tools" }

@@ -22,14 +22,14 @@
 //!
 //! ```
 //! use dup_crypto::keys::{KeyPair, PublicKey, Signator, Signature};
-//! use dup_crypto::keys::ed25519::KeyPairFromSaltedPasswordGenerator;
+//! use dup_crypto::keys::ed25519::{KeyPairFromSaltedPasswordGenerator, SaltedPassword};
 //!
 //! let generator = KeyPairFromSaltedPasswordGenerator::with_default_parameters();
 //!
-//! let keypair = generator.generate(
-//!     b"password",
-//!     b"salt"
-//! );
+//! let keypair = generator.generate(SaltedPassword::new(
+//!     "salt".to_owned(),
+//!     "password".to_owned(),
+//! ));
 //!
 //! let signator = keypair.generate_signator().expect("keypair corrupted");
 //!

@@ -17,24 +17,34 @@
 
 use crate::bases::*;
 use base58::ToBase58;
+use clear_on_drop::clear::Clear;
 use durs_common_tools::fatal_error;
 use log::error;
 use ring::rand;
 use std::fmt::{self, Debug, Display, Formatter};
 
 /// Store a 48 bytes seed used to generate keys.
-#[derive(Clone, Copy)]
-pub struct Seed48([u8; 48]);
+#[derive(Default)]
+pub struct Seed48(InnerSeed48);
 
-impl AsRef<[u8]> for Seed48 {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
+struct InnerSeed48([u8; 48]);
+
+impl Default for InnerSeed48 {
+    fn default() -> Self {
+        InnerSeed48([0u8; 48])
     }
 }
 
-impl Default for Seed48 {
-    fn default() -> Self {
-        Seed48([0u8; 48])
+impl AsRef<[u8]> for Seed48 {
+    fn as_ref(&self) -> &[u8] {
+        &(self.0).0
+    }
+}
+
+impl Drop for Seed48 {
+    #[inline]
+    fn drop(&mut self) {
+        <InnerSeed48 as Clear>::clear(&mut self.0);
     }
 }
 
@@ -42,7 +52,7 @@ impl Seed48 {
     #[inline]
     /// Create new seed
     pub fn new(seed_bytes: [u8; 48]) -> Seed48 {
-        Seed48(seed_bytes)
+        Seed48(InnerSeed48(seed_bytes))
     }
     #[inline]
     /// Generate random seed
@@ -56,7 +66,7 @@ impl Seed48 {
 }
 
 /// Store a 32 bytes seed used to generate keys.
-#[derive(Clone, Copy, Default, Deserialize, PartialEq, Eq, Hash, Serialize)]
+#[derive(Clone, Default, Deserialize, PartialEq, Eq, Hash, Serialize)]
 pub struct Seed32([u8; 32]);
 
 impl AsRef<[u8]> for Seed32 {
@@ -71,16 +81,22 @@ impl ToBase58 for Seed32 {
     }
 }
 
+impl Debug for Seed32 {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        write!(f, "Seed32 {{ {} }}", self)
+    }
+}
+
 impl Display for Seed32 {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.to_base58())
     }
 }
 
-impl Debug for Seed32 {
-    // Seed32 { DNann1L... }
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        write!(f, "Seed32 {{ {} }}", self)
+impl Drop for Seed32 {
+    #[inline]
+    fn drop(&mut self) {
+        <[u8; 32] as Clear>::clear(&mut self.0);
     }
 }
 

@@ -42,25 +42,25 @@ impl From<std::io::Error> for WizardError {
 
 /// Modify network keys command
 pub fn modify_network_keys(
-    salt: &str,
-    password: &str,
+    salt: String,
+    password: String,
     mut key_pairs: DuniterKeyPairs,
 ) -> DuniterKeyPairs {
     let generator = ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters();
     key_pairs.network_keypair =
-        KeyPairEnum::Ed25519(generator.generate(salt.as_bytes(), password.as_bytes()));
+        KeyPairEnum::Ed25519(generator.generate(ed25519::SaltedPassword::new(salt, password)));
     key_pairs
 }
 
 /// Modify member keys command
 pub fn modify_member_keys(
-    salt: &str,
-    password: &str,
+    salt: String,
+    password: String,
     mut key_pairs: DuniterKeyPairs,
 ) -> DuniterKeyPairs {
     let generator = ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters();
     key_pairs.member_keypair = Some(KeyPairEnum::Ed25519(
-        generator.generate(salt.as_bytes(), password.as_bytes()),
+        generator.generate(ed25519::SaltedPassword::new(salt, password)),
     ));
     key_pairs
 }
@@ -129,10 +129,9 @@ fn salt_password_prompt() -> Result<KeyPairEnum, WizardError> {
         let password = rpassword::prompt_password_stdout("Password: ")?;
         if !password.is_empty() {
             let generator = ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters();
-            let key_pairs = KeyPairEnum::Ed25519(generator.generate(
-                salt.into_bytes().as_slice(),
-                password.into_bytes().as_slice(),
-            ));
+            let key_pairs = KeyPairEnum::Ed25519(
+                generator.generate(ed25519::SaltedPassword::new(salt, password)),
+            );
             Ok(key_pairs)
         } else {
             Err(WizardError::BadInput)
@@ -191,7 +190,8 @@ mod tests {
             }),
             member_keypair: None,
         };
-        let result_key_pairs = modify_member_keys(SALT_TEST, PASSWORD_TEST, key_pairs);
+        let result_key_pairs =
+            modify_member_keys(SALT_TEST.to_owned(), PASSWORD_TEST.to_owned(), key_pairs);
         // We expect network key not to change
         assert_eq!(
             result_key_pairs.network_keypair.public_key(),
@@ -239,7 +239,8 @@ mod tests {
             }),
             member_keypair: None,
         };
-        let result_key_pairs = modify_network_keys(SALT_TEST, PASSWORD_TEST, key_pairs);
+        let result_key_pairs =
+            modify_network_keys(SALT_TEST.to_owned(), PASSWORD_TEST.to_owned(), key_pairs);
         // We expect network key to update
         assert_eq!(
             result_key_pairs.network_keypair.public_key(),
