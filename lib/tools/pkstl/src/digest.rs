@@ -1,4 +1,4 @@
-//  Copyright (C) 2017-2019  The AXIOM TEAM Association.
+//  Copyright (C) 2019  Eloïs SANCHEZ.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,32 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Manage cryptographic operations.
+//! Manage cryptographic digest operations.
 
-#![deny(
-    clippy::option_unwrap_used,
-    clippy::result_unwrap_used,
-    missing_docs,
-    missing_copy_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_import_braces,
-    unused_qualifications
-)]
-#![allow(non_camel_case_types)]
-
-#[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate log;
-
-pub mod bases;
-pub mod errors;
-pub mod hashs;
-pub mod keys;
-pub mod rand;
-pub mod seeds;
+pub(crate) fn sha256(datas: &[u8]) -> impl AsRef<[u8]> {
+    ring::digest::digest(&ring::digest::SHA256, datas)
+}

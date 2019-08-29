@@ -15,17 +15,6 @@
 
 //! Manage cryptographic errors.
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 /// Cryptographic error
-pub enum CryptoError {
-    /// Fail to compute agreement
-    FailToComputeAgreement,
-    /// Fail to decrypt datas
-    FailToDecryptDatas(chacha20_poly1305_aead::DecryptError),
-    /// Fail to encrypt datas
-    FailToEncryptDatas(std::io::Error),
-    /// Fail to generate ephemeral key pair
-    FailToGenEphemerKeyPair,
-    /// Fail to generate ephemeral public key
-    FailToGenEphemerPubKey,
-}
+pub enum CryptoError {}

@@ -1,4 +1,4 @@
-//  Copyright (C) 2017-2019  The AXIOM TEAM Association.
+//  Copyright (C) 2019  Eloïs SANCHEZ.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,32 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Manage cryptographic operations.
+//! Define PKSTL Signature.
 
-#![deny(
-    clippy::option_unwrap_used,
-    clippy::result_unwrap_used,
-    missing_docs,
-    missing_copy_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_import_braces,
-    unused_qualifications
-)]
-#![allow(non_camel_case_types)]
+use ring::signature::UnparsedPublicKey;
 
-#[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate log;
+/// Signature algorithm Ed25519
+pub const SIG_ALGO_ED25519: &[u8] = &[0, 0, 0, 0];
 
-pub mod bases;
-pub mod errors;
-pub mod hashs;
-pub mod keys;
-pub mod rand;
-pub mod seeds;
+/// Signature algorithm Ed25519 array
+pub const SIG_ALGO_ED25519_ARRAY: [u8; 4] = [0, 0, 0, 0];
+
+pub(crate) fn verify_sig(pubkey: &[u8], message: &[u8], sig: &[u8]) -> bool {
+    UnparsedPublicKey::new(&ring::signature::ED25519, pubkey)
+        .verify(message, sig)
+        .is_ok()
+}

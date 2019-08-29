@@ -1,0 +1,36 @@
+[package]
+name = "pkstl"
+version = "0.1.0"
+authors = ["elois <elois@duniter.org>"]
+description = "Public Key Secure Transport Layer."
+repository = "https://git.duniter.org/nodes/rust/duniter-rs"
+readme = "README.md"
+keywords = ["security", "transport", "cryptography"]
+license = "AGPL-3.0"
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+bincode = { version = "1.0.*", optional = true }
+chacha20-poly1305-aead = "0.1.2"
+clear_on_drop = "0.2.3"
+failure = "0.1.5"
+flate2 = { version = "1.0.11", optional = true }
+ring = "0.16.5"
+serde = { version = "1.0.*", features = ["derive"], optional = true }
+serde_cbor = { version = "0.10.1", optional = true }
+serde_json = { version = "1.0.40", optional = true }
+log = "0.4.*"
+
+[dev-dependencies]
+pretty_assertions = "0.6.1"
+
+[features]
+default = ["zip-sign"]
+zip-sign = ["flate2"]
+ser = ["zip-sign", "serde"]
+bin = ["ser", "bincode"]
+cbor = ["ser", "serde_cbor"]
+json = ["ser", "serde_json"]
