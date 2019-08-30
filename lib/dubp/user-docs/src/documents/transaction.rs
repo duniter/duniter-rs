@@ -640,9 +640,9 @@ impl TransactionDocument {
         &self.outputs
     }
     /// Lightens the transaction (for example to store it while minimizing the space required)
+    /// WARNING: do not remove the hash as it's necessary to reverse the transaction !
     pub fn reduce(&mut self) {
         self.text = None;
-        self.hash = None;
         for output in &mut self.outputs {
             output.reduce()
         }

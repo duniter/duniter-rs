@@ -85,7 +85,9 @@ pub fn revert_block_v10<W: WebOfTrust>(
         .iter()
         .map(|tx_enum| match *tx_enum {
             TxDocOrTxHash::TxHash(tx_hash) => tx_hash,
-            TxDocOrTxHash::TxDoc(ref tx_doc) => tx_doc.compute_hash(),
+            TxDocOrTxHash::TxDoc(ref tx_doc) => tx_doc.get_hash_opt().unwrap_or_else(|| {
+                fatal_error!("Dev error: The hash of a transaction should never be deleted.");
+            }),
         })
         .map(|tx_hash| {
             if let Ok(Some(tx)) = txs_db.read(|db| db.get(&tx_hash).cloned()) {
