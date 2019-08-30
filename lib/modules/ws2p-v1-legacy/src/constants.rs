@@ -16,43 +16,43 @@
 //! WS2Pv1 constants
 
 /// Module name
-pub static MODULE_NAME: &'static str = "ws2p1";
+pub static MODULE_NAME: &str = "ws2p1";
 
 /// API Name
-pub static WS2P_API: &'static str = "WS2P";
+pub static WS2P_API: &str = "WS2P";
 
 /// Interval between to sequence of general actions
-pub static WS2P_GENERAL_STATE_INTERVAL: &'static u64 = &15;
+pub static WS2P_GENERAL_STATE_INTERVAL: &u64 = &15;
 
 /// Connection wave interval at startup
-pub static WS2P_OUTCOMING_INTERVAL_AT_STARTUP: &'static u64 = &75;
+pub static WS2P_OUTCOMING_INTERVAL_AT_STARTUP: &u64 = &75;
 
 /// Interval of connection waves after the start-up phase
-pub static WS2P_OUTCOMING_INTERVAL: &'static u64 = &300;
+pub static WS2P_OUTCOMING_INTERVAL: &u64 = &300;
 
 /// Default outgoing connection quota
-pub static WS2P_DEFAULT_OUTCOMING_QUOTA: &'static usize = &10;
+pub static WS2P_DEFAULT_OUTCOMING_QUOTA: &usize = &10;
 
 /// Maximum duration of a connection negotiation
-pub static WS2P_NEGOTIATION_TIMEOUT: &'static u64 = &15;
+pub static WS2P_NEGOTIATION_TIMEOUT: &u64 = &15;
 
 /// Maximum waiting time for a response to a request
-pub static WS2P_V1_REQUESTS_TIMEOUT_IN_SECS: &'static u64 = &30;
+pub static WS2P_V1_REQUESTS_TIMEOUT_IN_SECS: &u64 = &30;
 
 /// Maximum duration of inactivity of a connection (the connection will be closed after this delay)
-pub static WS2P_EXPIRE_TIMEOUT: &'static u64 = &120;
+pub static WS2P_EXPIRE_TIMEOUT: &u64 = &120;
 
 /// Interval between 2 messages from which it''s perhaps a spam (in milliseconds)
-pub static WS2P_SPAM_INTERVAL_IN_MILLI_SECS: &'static u64 = &80;
+pub static WS2P_SPAM_INTERVAL_IN_MILLI_SECS: &u64 = &80;
 
 /// Number of consecutive closed messages from which messages will be considered as spam.
-pub static WS2P_SPAM_LIMIT: &'static usize = &6;
+pub static WS2P_SPAM_LIMIT: &usize = &6;
 
 /// Rest time in a situation of proven spam
-pub static WS2P_SPAM_SLEEP_TIME_IN_SEC: &'static u64 = &100;
+pub static WS2P_SPAM_SLEEP_TIME_IN_SEC: &u64 = &100;
 
 /// Duration between 2 endpoints saving
-pub static DURATION_BETWEEN_2_ENDPOINTS_SAVING: &'static u64 = &180;
+pub static DURATION_BETWEEN_2_ENDPOINTS_SAVING: &u64 = &180;
 
 /// Duration between 2 requests from the pool of the wot data
-pub static PENDING_IDENTITIES_REQUEST_INTERVAL: &'static u64 = &40;
+pub static PENDING_IDENTITIES_REQUEST_INTERVAL: &u64 = &40;

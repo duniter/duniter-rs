@@ -20,9 +20,9 @@ use durs_blockchain_dal::{DALError, ForksDBs};
 use std::collections::HashSet;
 
 /// Number of advance blocks required
-pub static ADVANCE_BLOCKS: &'static u32 = &3;
+pub static ADVANCE_BLOCKS: &u32 = &3;
 /// Advance blockchain time required (in seconds)
-pub static ADVANCE_TIME: &'static u64 = &900;
+pub static ADVANCE_TIME: &u64 = &900;
 
 pub fn fork_resolution_algo(
     forks_dbs: &ForksDBs,

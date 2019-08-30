@@ -37,7 +37,7 @@ use dup_crypto::keys::*;
 use durs_network_documents::NodeId;
 
 /// WS2P v2 message metadata size
-pub static WS2P_V2_MESSAGE_METADATA_SIZE: &'static usize = &144;
+pub static WS2P_V2_MESSAGE_METADATA_SIZE: &usize = &144;
 
 /// WS2Pv2Message
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]

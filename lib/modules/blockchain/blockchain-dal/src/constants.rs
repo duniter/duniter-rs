@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 /// Default page size for requests responses
-pub static DEFAULT_PAGE_SIZE: &'static usize = &50;
+pub static DEFAULT_PAGE_SIZE: &usize = &50;
 
 /// Currency parameters DB name
 pub const CURRENCY_PARAMS_DB_NAME: &str = "params.db";

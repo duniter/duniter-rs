@@ -28,12 +28,11 @@ use std::time::*;
 use unwrap::unwrap;
 
 /// Error message for empty blockchain case
-pub static EMPTY_BLOCKCHAIN: &'static str =
-    "No blockchain, please sync your node to get a blockchain.";
+pub static EMPTY_BLOCKCHAIN: &str = "No blockchain, please sync your node to get a blockchain.";
 
-static PUB_KEY: &'static str = "PUBKEY";
-static BLOCK: &'static str = "BLOCK";
-static USERNAME: &'static str = "USERNAME";
+static PUB_KEY: &str = "PUBKEY";
+static BLOCK: &str = "BLOCK";
+static USERNAME: &str = "USERNAME";
 
 #[derive(Debug, Copy, Clone)]
 /// Query for blockchain databases explorer

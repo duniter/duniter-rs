@@ -16,19 +16,19 @@
 //! WS2P V2+ Protocol constants
 
 /// Connection negociation timeout
-pub static WS2P_NEGOTIATION_TIMEOUT_IN_SECS: &'static u64 = &15;
+pub static WS2P_NEGOTIATION_TIMEOUT_IN_SECS: &u64 = &15;
 
 /// Conection expiration timeout
-pub static WS2P_EXPIRE_TIMEOUT_IN_SECS: &'static u64 = &120;
+pub static WS2P_EXPIRE_TIMEOUT_IN_SECS: &u64 = &120;
 
 /// Interval between 2 messages from which it''s perhaps a spam (in milliseconds)
-pub static WS2P_SPAM_INTERVAL_IN_MILLI_SECS: &'static u64 = &80;
+pub static WS2P_SPAM_INTERVAL_IN_MILLI_SECS: &u64 = &80;
 
 /// Number of consecutive closed messages from which messages will be considered as spam.
-pub static WS2P_SPAM_LIMIT: &'static usize = &6;
+pub static WS2P_SPAM_LIMIT: &usize = &6;
 
 /// Rest time in a situation of proven spam
-pub static WS2P_SPAM_SLEEP_TIME_IN_SEC: &'static u64 = &100;
+pub static WS2P_SPAM_SLEEP_TIME_IN_SEC: &u64 = &100;
 
 /// Number of invalid messages tolerated
-pub static WS2P_INVALID_MSGS_LIMIT: &'static usize = &5;
+pub static WS2P_INVALID_MSGS_LIMIT: &usize = &5;

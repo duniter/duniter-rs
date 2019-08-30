@@ -37,7 +37,7 @@ use threadpool::ThreadPool;
 use unwrap::unwrap;
 
 /// Number of sync jobs
-pub static NB_SYNC_JOBS: &'static usize = &4;
+pub static NB_SYNC_JOBS: &usize = &4;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Block header

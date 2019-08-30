@@ -30,7 +30,7 @@ use durs_network_documents::network_head_v3::NetworkHeadV3;
 use durs_network_documents::network_peer::PeerCardV11;
 
 /// WS2P v2 message payload metadata size
-pub static WS2P_V2_MESSAGE_PAYLOAD_METADATA_SIZE: &'static usize = &8;
+pub static WS2P_V2_MESSAGE_PAYLOAD_METADATA_SIZE: &usize = &8;
 
 /// WS2Pv2MessagePayload
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

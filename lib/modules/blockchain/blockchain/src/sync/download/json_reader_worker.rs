@@ -27,7 +27,7 @@ use std::sync::mpsc;
 use threadpool::ThreadPool;
 
 /// Number of chunk parsed before sending them to the apply workers
-static CHUNKS_STEP: &'static usize = &16;
+static CHUNKS_STEP: &usize = &16;
 
 /// Json reader worker
 pub fn json_reader_worker(

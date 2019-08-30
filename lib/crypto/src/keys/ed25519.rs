@@ -34,9 +34,9 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 
 /// Size of a public key in bytes
-pub static PUBKEY_SIZE_IN_BYTES: &'static usize = &32;
+pub static PUBKEY_SIZE_IN_BYTES: &usize = &32;
 /// Size of a signature in bytes
-pub static SIG_SIZE_IN_BYTES: &'static usize = &64;
+pub static SIG_SIZE_IN_BYTES: &usize = &64;
 
 /// Store a ed25519 signature.
 #[derive(Clone, Copy)]

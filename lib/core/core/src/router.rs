@@ -28,7 +28,7 @@ use std::thread;
 use std::time::Duration;
 use std::time::SystemTime;
 
-static MAX_REGISTRATION_DELAY: &'static u64 = &20;
+static MAX_REGISTRATION_DELAY: &u64 = &20;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 enum DursMsgReceiver {

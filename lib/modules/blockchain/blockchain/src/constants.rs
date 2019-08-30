@@ -14,25 +14,25 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 /// Module name
-pub static MODULE_NAME: &'static str = "blockchain";
+pub static MODULE_NAME: &str = "blockchain";
 
 /// Chunk size (in blocks)
-pub static CHUNK_SIZE: &'static usize = &250;
+pub static CHUNK_SIZE: &usize = &250;
 
 /// Chunk file name begin
-pub static CHUNK_FILE_NAME_BEGIN: &'static str = "chunk_";
+pub static CHUNK_FILE_NAME_BEGIN: &str = "chunk_";
 
 /// Chunk file name end
-pub static CHUNK_FILE_NAME_END: &'static str = "-250.json";
+pub static CHUNK_FILE_NAME_END: &str = "-250.json";
 
 /// Low requency of request of main blocks
-pub static REQUEST_MAIN_BLOCKS_LOW_FREQUENCY_IN_SEC: &'static u64 = &240;
+pub static REQUEST_MAIN_BLOCKS_LOW_FREQUENCY_IN_SEC: &u64 = &240;
 
 /// High frequency of request of the main blocks
-pub static REQUEST_MAIN_BLOCKS_HIGH_FREQUENCY_IN_SEC: &'static u64 = &30;
+pub static REQUEST_MAIN_BLOCKS_HIGH_FREQUENCY_IN_SEC: &u64 = &30;
 
 /// Frequency of request fork blocks (=request all blocks on fork window)
-pub static REQUEST_FORK_BLOCKS_FREQUENCY_IN_SEC: &'static u64 = &180;
+pub static REQUEST_FORK_BLOCKS_FREQUENCY_IN_SEC: &u64 = &180;
 
 /// Blocks Delay threshold
-pub static BLOCKS_DELAY_THRESHOLD: &'static u32 = &5;
+pub static BLOCKS_DELAY_THRESHOLD: &u32 = &5;

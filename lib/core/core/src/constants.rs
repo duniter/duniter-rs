@@ -16,4 +16,4 @@
 //! Dunitrust core constants.
 
 /// Default user profile
-pub static DEFAULT_USER_PROFILE: &'static str = "default";
+pub static DEFAULT_USER_PROFILE: &str = "default";

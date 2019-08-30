@@ -20,7 +20,7 @@ use dup_crypto::hashs::Hash;
 use durs_network_documents::network_peer::PeerCardV11;
 
 /// WS2P v2 connect message min size
-pub static CONNECT_MSG_MIN_SIZE: &'static usize = &36;
+pub static CONNECT_MSG_MIN_SIZE: &usize = &36;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 /// WS2PConnectFlags

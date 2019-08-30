@@ -21,10 +21,10 @@ pub const CURRENCY_PARAMS_DB_NAME: &str = "currency_params.db";
 /// Default currency name
 pub const DEFAULT_CURRENCY: &str = "default_currency";
 /// Default value for sig_renew_period parameter
-pub static DEFAULT_SIG_RENEW_PERIOD: &'static u64 = &5_259_600;
+pub static DEFAULT_SIG_RENEW_PERIOD: &u64 = &5_259_600;
 /// Default value for ms_period parameter
-pub static DEFAULT_MS_PERIOD: &'static u64 = &5_259_600;
+pub static DEFAULT_MS_PERIOD: &u64 = &5_259_600;
 /// Default value for tx_window parameter
-pub static DEFAULT_TX_WINDOW: &'static u64 = &604_800;
+pub static DEFAULT_TX_WINDOW: &u64 = &604_800;
 /// Default maximum roolback length
-pub static DEFAULT_FORK_WINDOW_SIZE: &'static usize = &100;
+pub static DEFAULT_FORK_WINDOW_SIZE: &usize = &100;

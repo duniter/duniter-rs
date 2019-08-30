@@ -80,13 +80,13 @@ use durs_wot::NodeId;
 use failure::Error;
 
 /// The blocks are requested by packet groups. This constant sets the block packet size.
-pub static CHUNK_SIZE: &'static u32 = &50;
+pub static CHUNK_SIZE: &u32 = &50;
 /// Necessary to instantiate the wot object before knowing the currency parameters
-pub static INFINITE_SIG_STOCK: &'static usize = &4_000_000_000;
+pub static INFINITE_SIG_STOCK: &usize = &4_000_000_000;
 /// The blocks are requested by packet groups. This constant sets the number of packets per group.
-pub static MAX_BLOCKS_REQUEST: &'static u32 = &500;
+pub static MAX_BLOCKS_REQUEST: &u32 = &500;
 /// The distance calculator
-pub static DISTANCE_CALCULATOR: &'static RustyDistanceCalculator = &RustyDistanceCalculator {};
+pub static DISTANCE_CALCULATOR: &RustyDistanceCalculator = &RustyDistanceCalculator {};
 
 /// Blockchain Module
 #[derive(Debug)]

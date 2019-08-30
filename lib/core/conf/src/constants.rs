@@ -16,19 +16,19 @@
 //! Dunitrust configuration constants
 
 /// User datas folder
-pub static USER_DATAS_FOLDER: &'static str = "durs-dev";
+pub static USER_DATAS_FOLDER: &str = "durs-dev";
 
 /// Configuration filename
-pub static CONF_FILENAME: &'static str = "conf.json";
+pub static CONF_FILENAME: &str = "conf.json";
 
 /// Keypairs filename
-pub static KEYPAIRS_FILENAME: &'static str = "keypairs.json";
+pub static KEYPAIRS_FILENAME: &str = "keypairs.json";
 
 /// If no currency is specified by the user, is the currency will be chosen by default
-pub static DEFAULT_CURRENCY: &'static str = "g1";
+pub static DEFAULT_CURRENCY: &str = "g1";
 
 /// Default value for `default_sync_module` conf field
-pub static DEFAULT_DEFAULT_SYNC_MODULE: &'static str = "ws2p";
+pub static DEFAULT_DEFAULT_SYNC_MODULE: &str = "ws2p";
 
 /// Modules datas folder
-pub static MODULES_DATAS_FOLDER: &'static str = "datas";
+pub static MODULES_DATAS_FOLDER: &str = "datas";

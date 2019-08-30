@@ -48,7 +48,7 @@ use std::thread;
 use std::time::{Duration, SystemTime};
 
 /// Name of your module
-pub static MODULE_NAME: &'static str = "skeleton";
+pub static MODULE_NAME: &str = "skeleton";
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Skeleton Module Configuration

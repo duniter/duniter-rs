@@ -26,11 +26,11 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 
 /// Total size of all fixed size fields of an EndpointV2
-pub static ENDPOINTV2_FIXED_SIZE: &'static usize = &9;
+pub static ENDPOINTV2_FIXED_SIZE: &usize = &9;
 /// Maximum number of network features
-pub static MAX_NETWORK_FEATURES_COUNT: &'static usize = &2040;
+pub static MAX_NETWORK_FEATURES_COUNT: &usize = &2040;
 /// Maximum number of api features
-pub static MAX_API_FEATURES_COUNT: &'static usize = &2040;
+pub static MAX_API_FEATURES_COUNT: &usize = &2040;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 /// ApiFeatures
