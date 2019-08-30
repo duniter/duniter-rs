@@ -58,8 +58,8 @@ build_extra_server() {
 # Parameters:
 # 1. Building type (either “desktop” or “server”).
 build_deb_pack() {
-	cargo deb --manifest-path "${ROOT}/bin/dunitrust-${1}/Cargo.toml" --output "${BIN}/dunitrust-server-${1}-${DURS_TAG}-linux-x64.deb"
-	create_desc "${BIN}/duniter-rust-${1}-${DURS_TAG}-linux-x64.deb" "${1}" "Linux (Ubuntu/Debian)"
+	cargo deb --manifest-path "${ROOT}/bin/dunitrust-${1}/Cargo.toml" --output "${BIN}/dunitrust-${1}-${DURS_TAG}-linux-x64.deb"
+	create_desc "${BIN}/dunitrust-${1}-${DURS_TAG}-linux-x64.deb" "${1}" "Linux (Ubuntu/Debian)"
 }
 
 # ------------
@@ -93,10 +93,10 @@ cp "${ROOT}/target/release/dunitrust" "${RELEASES}/server_/" || exit 1
 #cp "${ROOT}/target/release/dunitrust" "${RELEASES}/desktop_" || exit 1
 
 # Copy logo
-cp "${ROOT}/images/duniter-rs.png" "${RELEASES}/server_/" || exit 1
-#cp "${ROOT}/images/duniter-rs.png" "${RELEASES}/desktop_" || exit 1
+cp "${ROOT}/images/dunitrust.png" "${RELEASES}/server_/" || exit 1
+#cp "${ROOT}/images/dunitrust.png" "${RELEASES}/desktop_" || exit 1
 
 # package tar.gz for server variant
 cd "${RELEASES}/server_"
-tar czf "${BIN}/duniter-rust-server-${DURS_TAG}-linux-x64.tar.gz" * || exit 1
-create_desc "${BIN}/duniter-rust-server-${DURS_TAG}-linux-x64.tar.gz" "Server" "Linux (generic)"
+tar czf "${BIN}/dunitrust-server-${DURS_TAG}-linux-x64.tar.gz" * || exit 1
+create_desc "${BIN}/dunitrust-server-${DURS_TAG}-linux-x64.tar.gz" "Server" "Linux (generic)"

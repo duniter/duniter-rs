@@ -61,8 +61,8 @@ build_extra_server() {
 build_deb_pack() {
 	#cd "bin/dunitrust-${1}"
 	#cargo build --release --target=armv7-unknown-linux-gnueabihf --features=ssl
-	cargo deb --manifest-path="bin/dunitrust-${1}/Cargo.toml" --target=${TARGET} --variant=arm --output "${BIN}/duniter-rust-${1}-${DURS_TAG}-armv7.deb"
-	create_desc "${BIN}/duniter-rust-${1}-${DURS_TAG}-armv7.deb" "${1}" "Linux (Ubuntu/Debian/Raspbian)"
+	cargo deb --manifest-path="bin/dunitrust-${1}/Cargo.toml" --target=${TARGET} --variant=arm --output "${BIN}/dunitrust-${1}-${DURS_TAG}-armv7.deb"
+	create_desc "${BIN}/dunitrust-${1}-${DURS_TAG}-armv7.deb" "${1}" "Linux (Ubuntu/Debian/Raspbian)"
 }
 
 # ------------
@@ -96,11 +96,11 @@ cp "${ROOT}/target/${TARGET}/release/dunitrust" "${RELEASES}/server_/" || exit 1
 #cp "${ROOT}/target/release/dunitrust" "${RELEASES}/desktop_" || exit 1
 
 # Copy logo
-cp "${ROOT}/images/duniter-rs.png" "${RELEASES}/server_/" || exit 1
-#cp "${ROOT}/images/duniter-rs.png" "${RELEASES}/desktop_" || exit 1
+cp "${ROOT}/images/dunitrust.png" "${RELEASES}/server_/" || exit 1
+#cp "${ROOT}/images/dunitrust.png" "${RELEASES}/desktop_" || exit 1
 
 
 # package tar.gz for server variant
 cd "${RELEASES}/server_"
-tar czf "${BIN}/duniter-rust-server-${DURS_TAG}-armv7.tar.gz" * || exit 1
-create_desc "${BIN}/duniter-rust-server-${DURS_TAG}-armv7.tar.gz" "Server" "Linux (generic)"
+tar czf "${BIN}/dunitrust-server-${DURS_TAG}-armv7.tar.gz" * || exit 1
+create_desc "${BIN}/dunitrust-server-${DURS_TAG}-armv7.tar.gz" "Server" "Linux (generic)"

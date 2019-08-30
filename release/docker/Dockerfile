@@ -4,7 +4,7 @@
 
 FROM registry.duniter.org/docker/dunitrust/dunitrust-ci-lin64:latest as build
 
-LABEL maintainer="elois <elois@duniter.org>>"
+LABEL maintainer="elois <elois@dunitrust.org>"
 LABEL version="0.1.3"
 LABEL description="Dunitrust server (Divende Universel Rust)"
 

@@ -77,8 +77,8 @@ cp "${ROOT}/target/${TARGET}/release/dunitrust.exe" "${RELEASES}/server_/" || ex
 #cp "${ROOT}/target/${TARGET}/release/dunitrust" "${RELEASES}/desktop_" || exit 1
 
 # Copy logo
-#cp "${ROOT}/images/duniter-rs.png" "${RELEASES}/server_/" || exit 1
-#cp "${ROOT}/images/duniter-rs.png" "${RELEASES}/desktop_" || exit 1
+#cp "${ROOT}/images/dunitrust.png" "${RELEASES}/server_/" || exit 1
+#cp "${ROOT}/images/dunitrust.png" "${RELEASES}/desktop_" || exit 1
 
 
 # ---------------
@@ -86,5 +86,5 @@ cp "${ROOT}/target/${TARGET}/release/dunitrust.exe" "${RELEASES}/server_/" || ex
 # ---------------
 
 cd "${RELEASES}/server_"
-zip "${BIN}/duniter-rust-server-${DURS_TAG}-windows-x64.zip" * || exit 1
-create_desc "${BIN}/duniter-rust-server-${DURS_TAG}-windows-x64.zip" "Server" "Windows"
+zip "${BIN}/dunitrust-server-${DURS_TAG}-windows-x64.zip" * || exit 1
+create_desc "${BIN}/dunitrust-server-${DURS_TAG}-windows-x64.zip" "Server" "Windows"
