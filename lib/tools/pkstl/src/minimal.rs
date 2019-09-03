@@ -31,6 +31,7 @@ use std::io::{BufReader, BufWriter, Write};
 /// Minimal secure layer
 pub struct MinimalSecureLayer {
     ack_msg_recv_too_early: Option<Vec<u8>>,
+    cloned: bool,
     config: SdtlMinimalConfig,
     pub(crate) encrypt_algo_with_secret: Option<EncryptAlgoWithSecretKey>,
     ephemeral_kp: Option<EphemeralKeyPair>,
@@ -42,9 +43,34 @@ pub struct MinimalSecureLayer {
 }
 
 impl MinimalSecureLayer {
+    /// Try to clone, The negotiation must have been successful
+    pub fn try_clone(&mut self) -> Result<Self> {
+        if self.status == SecureLayerStatus::NegotiationSuccessful {
+            self.cloned = true;
+            Ok(MinimalSecureLayer {
+                ack_msg_recv_too_early: None,
+                cloned: true,
+                config: self.config,
+                encrypt_algo_with_secret: self.encrypt_algo_with_secret.clone(),
+                ephemeral_kp: None,
+                ephemeral_pubkey: self.ephemeral_pubkey.clone(),
+                peer_epk: None,
+                peer_sig_pubkey: None,
+                status: SecureLayerStatus::NegotiationSuccessful,
+                tmp_stack_user_msgs: self.tmp_stack_user_msgs.clone(),
+            })
+        } else {
+            Err(Error::NegoMustHaveBeenSuccessful)
+        }
+    }
     /// Change configuration
-    pub fn change_config(&mut self, new_config: SdtlMinimalConfig) {
-        self.config = new_config;
+    pub fn change_config(&mut self, new_config: SdtlMinimalConfig) -> Result<()> {
+        if !self.cloned {
+            self.config = new_config;
+            Ok(())
+        } else {
+            Err(Error::ForbidChangeConfAfterClone)
+        }
     }
     /// Create minimal secure layer
     pub fn create(
@@ -56,6 +82,7 @@ impl MinimalSecureLayer {
 
         let secure_layer = MinimalSecureLayer {
             ack_msg_recv_too_early: None,
+            cloned: false,
             config,
             encrypt_algo_with_secret: None,
             ephemeral_pubkey,
@@ -385,7 +412,8 @@ mod tests {
         let mut msl = MinimalSecureLayer::create(SdtlMinimalConfig::default(), None)?;
         msl.change_config(SdtlMinimalConfig {
             encrypt_algo: EncryptAlgo::Chacha20Poly1305Aead,
-        });
+        })
+        .expect("change config must be success");
         Ok(())
     }
 

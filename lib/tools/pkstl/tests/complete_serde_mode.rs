@@ -66,16 +66,14 @@ mod tests {
 
         // Receiver read connect message from channel
         let channel = channel.into_inner().map_err(|_| Error::BufferFlushError)?;
-        let msg_received = receiver_msl
-            .read(&channel[..])?
-            .expect("Must be receive a message");
+        let msg_received = receiver_msl.read(&channel[..])?;
         if let IncomingMessage::Connect {
             custom_datas: custom_datas_received,
             peer_sig_public_key,
-        } = msg_received
+        } = msg_received.get(0).expect("Must be receive a message")
         {
-            assert_eq!(custom_datas, custom_datas_received);
-            Ok(peer_sig_public_key)
+            assert_eq!(&custom_datas, custom_datas_received);
+            Ok(peer_sig_public_key.to_owned())
         } else {
             print!("Unexpected incoming message={:?}", msg_received);
             panic!();
@@ -93,14 +91,12 @@ mod tests {
 
         // Receiver read ack message from channel
         let channel = channel.into_inner().map_err(|_| Error::BufferFlushError)?;
-        let msg_received = receiver_msl
-            .read(&channel[..])?
-            .expect("Must be receive a message");
+        let msg_received = receiver_msl.read(&channel[..])?;
         if let IncomingMessage::Ack {
             custom_datas: custom_datas_received,
-        } = msg_received
+        } = msg_received.get(0).expect("Must be receive a message")
         {
-            assert_eq!(custom_datas, custom_datas_received);
+            assert_eq!(&custom_datas, custom_datas_received);
             Ok(())
         } else {
             print!("Unexpected incoming message={:?}", msg_received);
@@ -119,14 +115,12 @@ mod tests {
 
         // Receiver read user message from channel
         let channel = channel.into_inner().map_err(|_| Error::BufferFlushError)?;
-        let msg_received = receiver_msl
-            .read(&channel[..])?
-            .expect("Must be receive a message");
+        let msg_received = receiver_msl.read(&channel[..])?;
         if let IncomingMessage::Message {
             datas: datas_received,
-        } = msg_received
+        } = msg_received.get(0).expect("Must be receive a message")
         {
-            assert_eq!(Some(datas), datas_received);
+            assert_eq!(&Some(datas), datas_received);
             Ok(())
         } else {
             print!("Unexpected incoming message={:?}", msg_received);

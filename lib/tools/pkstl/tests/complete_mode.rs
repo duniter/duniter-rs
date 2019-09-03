@@ -70,16 +70,14 @@ mod tests {
 
         // Receiver read connect message from channel
         let channel = channel.into_inner().map_err(|_| Error::BufferFlushError)?;
-        let msg_received = receiver_msl
-            .read_bin(&channel[..])?
-            .expect("Must be receive a message");
+        let msg_received = receiver_msl.read_bin(&channel[..])?;
         if let IncomingBinaryMessage::Connect {
             custom_datas: custom_datas_received,
             peer_sig_public_key,
-        } = msg_received
+        } = msg_received.get(0).expect("Must be receive a message")
         {
-            assert_eq!(custom_datas, custom_datas_received);
-            Ok(peer_sig_public_key)
+            assert_eq!(&custom_datas, custom_datas_received);
+            Ok(peer_sig_public_key.to_owned())
         } else {
             print!("Unexpected incoming message={:?}", msg_received);
             panic!();
@@ -97,14 +95,12 @@ mod tests {
 
         // Receiver read ack message from channel
         let channel = channel.into_inner().map_err(|_| Error::BufferFlushError)?;
-        let msg_received = receiver_msl
-            .read_bin(&channel[..])?
-            .expect("Must be receive a message");
+        let msg_received = receiver_msl.read_bin(&channel[..])?;
         if let IncomingBinaryMessage::Ack {
             custom_datas: custom_datas_received,
-        } = msg_received
+        } = msg_received.get(0).expect("Must be receive a message")
         {
-            assert_eq!(custom_datas, custom_datas_received);
+            assert_eq!(&custom_datas, custom_datas_received);
             Ok(())
         } else {
             print!("Unexpected incoming message={:?}", msg_received);
@@ -123,19 +119,93 @@ mod tests {
 
         // Receiver read user message from channel
         let channel = channel.into_inner().map_err(|_| Error::BufferFlushError)?;
-        let msg_received = receiver_msl
-            .read_bin(&channel[..])?
-            .expect("Must be receive a message");
+        let msg_received = receiver_msl.read_bin(&channel[..])?;
         if let IncomingBinaryMessage::Message {
             datas: datas_received,
-        } = msg_received
+        } = msg_received.get(0).expect("Must be receive a message")
         {
-            assert_eq!(Some(datas), datas_received);
+            assert_eq!(&Some(datas), datas_received);
             Ok(())
         } else {
             print!("Unexpected incoming message={:?}", msg_received);
             panic!();
         }
+    }
+
+    #[test]
+    fn server_recv_ack_early() -> Result<()> {
+        //////////////////////////
+        // SERVER INFOS
+        //////////////////////////
+
+        let (mut server_msl, server_sig_pk) = server_infos()?;
+
+        //////////////////////////
+        // CLIENT INFOS
+        //////////////////////////
+
+        let mut client_msl = client_infos(Some(server_sig_pk.clone()))?;
+
+        //////////////////////////
+        // SERVER CONNECT MSG
+        //////////////////////////
+
+        send_connect_msg(&mut server_msl, &mut client_msl, Some(vec![5, 1, 1, 5]))?;
+
+        //////////////////////////
+        // CLIENT ACK MSG
+        //////////////////////////
+
+        // Client write ack message and it's sig in channel
+        let mut channel = BufWriter::new(Vec::with_capacity(1_000));
+        let client_ack_custom_datas = Some(vec![7, 1, 1, 7]);
+        client_msl.write_ack_msg_bin(client_ack_custom_datas.as_opt_ref(), &mut channel)?;
+
+        // Server read ack message from channel
+        let channel = channel.into_inner().map_err(|_| Error::BufferFlushError)?;
+        let msg_receiveds = server_msl.read_bin(&channel[..])?;
+
+        // Server must read nothing because the ack message received too early has been set aside
+        assert_eq!(
+            Vec::<IncomingBinaryMessage>::with_capacity(0),
+            msg_receiveds
+        );
+
+        //////////////////////////
+        // CLIENT CONNECT MSG
+        //////////////////////////
+
+        // Client write connect message and it's sig in channel
+        let mut channel = BufWriter::new(Vec::with_capacity(1_000));
+        let client_connect_custom_datas = Some(vec![5, 1, 1, 5]);
+        client_msl.write_connect_msg_bin(client_connect_custom_datas.as_opt_ref(), &mut channel)?;
+
+        // Server read connect message from channel
+        let channel = channel.into_inner().map_err(|_| Error::BufferFlushError)?;
+        let msgs_received = server_msl.read_bin(&channel[..])?;
+        if let IncomingBinaryMessage::Connect {
+            custom_datas: custom_datas_received,
+            ..
+        } = msgs_received.get(0).expect("Must be receive a message")
+        {
+            assert_eq!(&client_connect_custom_datas, custom_datas_received);
+        } else {
+            print!("Unexpected incoming messages={:?}", msgs_received);
+            panic!();
+        }
+
+        // Server must also receive the ack message that had been set aside
+        if let IncomingBinaryMessage::Ack {
+            custom_datas: custom_datas_received,
+        } = msgs_received.get(1).expect("Must be receive a message")
+        {
+            assert_eq!(&client_ack_custom_datas, custom_datas_received);
+        } else {
+            print!("Unexpected incoming messages={:?}", msgs_received);
+            panic!();
+        }
+
+        Ok(())
     }
 
     #[test]
@@ -178,6 +248,19 @@ mod tests {
         //////////////////////////
 
         send_ack_msg(&mut client_msl, &mut server_msl, Some(vec![5, 0, 0, 5]))?;
+
+        // Negociation must be successfull, so we can clone secure layer
+        client_msl.try_clone()?;
+        server_msl.try_clone()?;
+
+        // After clone, we can't change config
+        let result = client_msl.change_config(SdtlConfig::default());
+        if let Err(Error::ForbidChangeConfAfterClone) = result {
+            // OK
+        } else {
+            println!("unexpected result={:?}", result);
+            panic!();
+        }
 
         //////////////////////////
         // CLIENT USER MSG

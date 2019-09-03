@@ -456,6 +456,19 @@ fn ordered_passing_case() -> Result<()> {
         Some(vec![5, 9, 9, 5]),
     )?;
 
+    // Negociation must be successfull, so we can clone secure layer
+    client_msl.try_clone()?;
+    server_msl.try_clone()?;
+
+    // After clone, we can't change config
+    let result = client_msl.change_config(SdtlMinimalConfig::default());
+    if let Err(Error::ForbidChangeConfAfterClone) = result {
+        // OK
+    } else {
+        println!("unexpected result={:?}", result);
+        panic!();
+    }
+
     //////////////////////////
     // CLIENT USER MSG
     //////////////////////////

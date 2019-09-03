@@ -36,6 +36,8 @@ pub enum Error {
     FailToGenEphemerPubKey,
     /// Fail to generate signature key pair
     FailtoGenSigKeyPair,
+    /// Forbidden to change the configuration after the security layer has been cloned
+    ForbidChangeConfAfterClone,
     /// Forbidden to write the ACK message now
     ForbidWriteAckMsgNow,
     /// Message must be signed

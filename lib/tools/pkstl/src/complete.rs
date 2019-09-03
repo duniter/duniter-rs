@@ -40,15 +40,27 @@ use std::fmt::Debug;
 pub struct SecureLayer {
     config: SdtlConfig,
     minimal_secure_layer: MinimalSecureLayer,
-    sig_key_pair: Ed25519KeyPair,
+    sig_key_pair: Option<Ed25519KeyPair>,
 }
 
 impl SecureLayer {
+    /// Try to clone, The negotiation must have been successful
+    pub fn try_clone(&mut self) -> Result<Self> {
+        let msl_clone = self.minimal_secure_layer.try_clone()?;
+
+        Ok(SecureLayer {
+            config: self.config,
+            minimal_secure_layer: msl_clone,
+            sig_key_pair: None,
+        })
+    }
     /// Change configuration
     #[inline]
-    pub fn change_config(&mut self, new_config: SdtlConfig) {
+    pub fn change_config(&mut self, new_config: SdtlConfig) -> Result<()> {
+        self.minimal_secure_layer
+            .change_config(new_config.minimal)?;
         self.config = new_config;
-        self.minimal_secure_layer.change_config(new_config.minimal);
+        Ok(())
     }
     fn compress(&self, bin_message: &[u8]) -> Result<Vec<u8>> {
         // Create buffer
@@ -95,54 +107,84 @@ impl SecureLayer {
                 config.minimal,
                 expected_remote_sig_pubkey,
             )?,
-            sig_key_pair: Ed25519KeyPair::from_seed_unchecked(seed.as_ref())
-                .map_err(|_| Error::FailtoGenSigKeyPair)?,
+            sig_key_pair: Some(
+                Ed25519KeyPair::from_seed_unchecked(seed.as_ref())
+                    .map_err(|_| Error::FailtoGenSigKeyPair)?,
+            ),
         };
 
         Ok(secure_layer)
     }
     /// Read binary incoming datas
-    pub fn read_bin(&mut self, incoming_datas: &[u8]) -> Result<Option<IncomingBinaryMessage>> {
+    pub fn read_bin(&mut self, incoming_datas: &[u8]) -> Result<Vec<IncomingBinaryMessage>> {
+        let mut messages = Vec::new();
+
         let message_opt = self.minimal_secure_layer.read(incoming_datas)?;
 
         if let Some(message) = message_opt {
-            let user_message = match message {
+            match message {
                 Message::Connect {
                     custom_datas,
                     sig_pubkey,
                     ..
-                } => IncomingBinaryMessage::Connect {
-                    custom_datas: if let Some(custom_datas) = custom_datas {
-                        Some(Self::uncompress(&custom_datas)?)
-                    } else {
-                        None
-                    },
-                    peer_sig_public_key: sig_pubkey,
-                },
-                Message::Ack { custom_datas } => IncomingBinaryMessage::Ack {
-                    custom_datas: if let Some(custom_datas) = custom_datas {
-                        Some(Self::uncompress(&custom_datas)?)
-                    } else {
-                        None
-                    },
-                },
-                Message::Message { custom_datas } => IncomingBinaryMessage::Message {
-                    datas: if let Some(custom_datas) = custom_datas {
-                        Some(Self::uncompress(&custom_datas)?)
-                    } else {
-                        None
-                    },
-                },
+                } => {
+                    messages.push(IncomingBinaryMessage::Connect {
+                        custom_datas: if let Some(custom_datas) = custom_datas {
+                            Some(Self::uncompress(&custom_datas)?)
+                        } else {
+                            None
+                        },
+                        peer_sig_public_key: sig_pubkey,
+                    });
+                    if let Some(Message::Ack { custom_datas }) =
+                        self.minimal_secure_layer.take_ack_msg_recv_too_early()?
+                    {
+                        messages.push(IncomingBinaryMessage::Ack {
+                            custom_datas: if let Some(custom_datas) = custom_datas {
+                                Some(Self::uncompress(&custom_datas)?)
+                            } else {
+                                None
+                            },
+                        });
+                    }
+                }
+                Message::Ack { custom_datas } => {
+                    messages.push(IncomingBinaryMessage::Ack {
+                        custom_datas: if let Some(custom_datas) = custom_datas {
+                            Some(Self::uncompress(&custom_datas)?)
+                        } else {
+                            None
+                        },
+                    });
+                    for msg in self.minimal_secure_layer.drain_tmp_stack_user_msgs()? {
+                        if let Message::Message { custom_datas } = msg {
+                            messages.push(IncomingBinaryMessage::Message {
+                                datas: if let Some(custom_datas) = custom_datas {
+                                    Some(Self::uncompress(&custom_datas)?)
+                                } else {
+                                    None
+                                },
+                            });
+                        }
+                    }
+                }
+                Message::Message { custom_datas } => {
+                    messages.push(IncomingBinaryMessage::Message {
+                        datas: if let Some(custom_datas) = custom_datas {
+                            Some(Self::uncompress(&custom_datas)?)
+                        } else {
+                            None
+                        },
+                    })
+                }
             };
-            Ok(Some(user_message))
-        } else {
-            Ok(None)
         }
+        Ok(messages)
     }
     /// Read incoming datas
     #[cfg(feature = "ser")]
     #[inline]
-    pub fn read<M>(&mut self, incoming_datas: &[u8]) -> Result<Option<IncomingMessage<M>>>
+    pub fn read<M>(&mut self, incoming_datas: &[u8]) -> Result<Vec<IncomingMessage<M>>>
     where
         M: Debug + DeserializeOwned,
     {
@@ -262,7 +304,8 @@ mod tests {
             #[cfg(feature = "ser")]
             message_format: MessageFormat::RawBinary,
             minimal: SdtlMinimalConfig::default(),
-        });
+        })
+        .expect("change config must be success");
         Ok(())
     }
 }

@@ -17,7 +17,7 @@
 //! Sub-module define incoming messages format.
 
 /// Incoming binary Message
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum IncomingBinaryMessage {
     /// Connect message
     Connect {

@@ -26,44 +26,44 @@ use std::fmt::Debug;
 pub(crate) fn read<M>(
     sl: &mut SecureLayer,
     incoming_datas: &[u8],
-) -> Result<Option<IncomingMessage<M>>>
+) -> Result<Vec<IncomingMessage<M>>>
 where
     M: Debug + DeserializeOwned,
 {
-    let bin_msg_opt = sl.read_bin(incoming_datas)?;
+    let bin_msgs = sl.read_bin(incoming_datas)?;
 
-    if let Some(bin_msg) = bin_msg_opt {
-        let user_message = match bin_msg {
+    let mut msgs = Vec::new();
+
+    for bin_msg in bin_msgs {
+        match bin_msg {
             IncomingBinaryMessage::Connect {
                 custom_datas,
                 peer_sig_public_key,
-            } => IncomingMessage::Connect {
+            } => msgs.push(IncomingMessage::Connect {
                 custom_datas: if let Some(custom_datas) = custom_datas {
                     Some(deserialize(&custom_datas)?)
                 } else {
                     None
                 },
                 peer_sig_public_key,
-            },
-            IncomingBinaryMessage::Ack { custom_datas } => IncomingMessage::Ack {
+            }),
+            IncomingBinaryMessage::Ack { custom_datas } => msgs.push(IncomingMessage::Ack {
                 custom_datas: if let Some(custom_datas) = custom_datas {
                     Some(deserialize(&custom_datas)?)
                 } else {
                     None
                 },
-            },
-            IncomingBinaryMessage::Message { datas } => IncomingMessage::Message {
+            }),
+            IncomingBinaryMessage::Message { datas } => msgs.push(IncomingMessage::Message {
                 datas: if let Some(datas) = datas {
                     Some(deserialize(&datas)?)
                 } else {
                     None
                 },
-            },
+            }),
         };
-        Ok(Some(user_message))
-    } else {
-        Ok(None)
     }
+    Ok(msgs)
 }
 
 #[inline]

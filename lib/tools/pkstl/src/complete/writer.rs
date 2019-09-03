@@ -18,7 +18,7 @@
 
 use super::SecureLayer;
 use crate::{Error, Result};
-use ring::signature::KeyPair;
+use ring::signature::{Ed25519KeyPair, KeyPair};
 use std::io::{BufWriter, Write};
 
 #[inline]
@@ -30,22 +30,26 @@ pub fn write_connect_msg<W>(
 where
     W: Write,
 {
-    // Create connect message
-    let bin_connect_msg = sl.minimal_secure_layer.create_connect_message(
-        sl.sig_key_pair.public_key().as_ref(),
-        match custom_datas {
-            Some(ref d) => Some(&d[..]),
-            None => None,
-        },
-    )?;
+    if let Some(ref sig_key_pair) = sl.sig_key_pair {
+        // Create connect message
+        let bin_connect_msg = sl.minimal_secure_layer.create_connect_message(
+            sig_key_pair.public_key().as_ref(),
+            match custom_datas {
+                Some(ref d) => Some(&d[..]),
+                None => None,
+            },
+        )?;
 
-    // Write connect message
-    writer
-        .write(&bin_connect_msg)
-        .map_err(|_| Error::BufferFlushError)?;
+        // Write connect message
+        writer
+            .write(&bin_connect_msg)
+            .map_err(|_| Error::BufferFlushError)?;
 
-    // Sign message and write signature
-    sign_bin_msg_and_write_sig(sl, &bin_connect_msg, writer)
+        // Sign message and write signature
+        sign_bin_msg_and_write_sig(sig_key_pair, &bin_connect_msg, writer)
+    } else {
+        Err(Error::ConnectMsgAlreadyWritten)
+    }
 }
 
 #[inline]
@@ -57,26 +61,30 @@ pub fn write_ack_msg<W>(
 where
     W: Write,
 {
-    // Create ack message
-    let bin_connect_msg = sl
-        .minimal_secure_layer
-        .create_ack_message(match custom_datas {
-            Some(ref d) => Some(&d[..]),
-            None => None,
-        })?;
+    if let Some(ref sig_key_pair) = sl.sig_key_pair {
+        // Create ack message
+        let bin_connect_msg = sl
+            .minimal_secure_layer
+            .create_ack_message(match custom_datas {
+                Some(ref d) => Some(&d[..]),
+                None => None,
+            })?;
 
-    // Write ack message
-    writer
-        .write(&bin_connect_msg)
-        .map_err(|_| Error::BufferFlushError)?;
+        // Write ack message
+        writer
+            .write(&bin_connect_msg)
+            .map_err(|_| Error::BufferFlushError)?;
 
-    // Sign message and write signature
-    sign_bin_msg_and_write_sig(sl, &bin_connect_msg, writer)
+        // Sign message and write signature
+        sign_bin_msg_and_write_sig(sig_key_pair, &bin_connect_msg, writer)
+    } else {
+        Err(Error::ConnectMsgAlreadyWritten)
+    }
 }
 
 #[inline]
 fn sign_bin_msg_and_write_sig<W>(
-    sl: &mut SecureLayer,
+    sig_key_pair: &Ed25519KeyPair,
     bin_msg: &[u8],
     writer: &mut BufWriter<W>,
 ) -> Result<()>
@@ -84,7 +92,7 @@ where
     W: Write,
 {
     writer
-        .write(sl.sig_key_pair.sign(bin_msg).as_ref())
+        .write(sig_key_pair.sign(bin_msg).as_ref())
         .map(|_| ())
         .map_err(|_| Error::BufferFlushError)
 }
