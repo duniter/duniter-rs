@@ -29,7 +29,7 @@ mod tests {
         let seed = Seed32::random();
 
         // Create server secure layer
-        let mut conf = SdtlConfig::default();
+        let mut conf = SecureLayerConfig::default();
         conf.message_format = format;
         let server_msl = SecureLayer::create(conf, Some(seed.clone()), None)?;
 
@@ -48,7 +48,7 @@ mod tests {
         format: MessageFormat,
     ) -> Result<SecureLayer> {
         // Create client secure layer
-        let mut conf = SdtlConfig::default();
+        let mut conf = SecureLayerConfig::default();
         conf.message_format = format;
         let client_msl = SecureLayer::create(conf, None, expected_server_sig_pubkey)?;
 

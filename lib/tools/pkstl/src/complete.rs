@@ -23,7 +23,7 @@ pub mod writer;
 #[cfg(feature = "ser")]
 pub use self::serde::IncomingMessage;
 
-use crate::{Error, Message, MinimalSecureLayer, Result, SdtlConfig, Seed32};
+use crate::{Error, Message, MinimalSecureLayer, Result, SecureLayerConfig, Seed32};
 use flate2::write::{DeflateDecoder, DeflateEncoder};
 use message::IncomingBinaryMessage;
 use ring::signature::Ed25519KeyPair;
@@ -37,8 +37,8 @@ use ::serde::Serialize;
 use std::fmt::Debug;
 
 /// Secure layer
+#[derive(Debug)]
 pub struct SecureLayer {
-    config: SdtlConfig,
     minimal_secure_layer: MinimalSecureLayer,
     sig_key_pair: Option<Ed25519KeyPair>,
 }
@@ -49,17 +49,14 @@ impl SecureLayer {
         let msl_clone = self.minimal_secure_layer.try_clone()?;
 
         Ok(SecureLayer {
-            config: self.config,
             minimal_secure_layer: msl_clone,
             sig_key_pair: None,
         })
     }
     /// Change configuration
     #[inline]
-    pub fn change_config(&mut self, new_config: SdtlConfig) -> Result<()> {
-        self.minimal_secure_layer
-            .change_config(new_config.minimal)?;
-        self.config = new_config;
+    pub fn change_config(&mut self, new_config: SecureLayerConfig) -> Result<()> {
+        self.minimal_secure_layer.change_config(new_config)?;
         Ok(())
     }
     fn compress(&self, bin_message: &[u8]) -> Result<Vec<u8>> {
@@ -67,11 +64,12 @@ impl SecureLayer {
         let buffer = BufWriter::new(Vec::with_capacity(bin_message.len()));
 
         // Determine compression level
-        let compression_level = if bin_message.len() < self.config.compression_min_size {
-            flate2::Compression::none()
-        } else {
-            self.config.compression
-        };
+        let compression_level =
+            if bin_message.len() < self.minimal_secure_layer.config.compression_min_size {
+                flate2::Compression::none()
+            } else {
+                self.minimal_secure_layer.config.compression
+            };
 
         // Create compressor
         let mut deflate_encoder = DeflateEncoder::new(buffer, compression_level);
@@ -95,18 +93,14 @@ impl SecureLayer {
     /// Create secure layer
     #[inline]
     pub fn create(
-        config: SdtlConfig,
+        config: SecureLayerConfig,
         sig_key_pair_seed: Option<Seed32>,
         expected_remote_sig_pubkey: Option<Vec<u8>>,
     ) -> Result<Self> {
         let seed = sig_key_pair_seed.unwrap_or_else(Seed32::random);
 
         let secure_layer = SecureLayer {
-            config,
-            minimal_secure_layer: MinimalSecureLayer::create(
-                config.minimal,
-                expected_remote_sig_pubkey,
-            )?,
+            minimal_secure_layer: MinimalSecureLayer::create(config, expected_remote_sig_pubkey)?,
             sig_key_pair: Some(
                 Ed25519KeyPair::from_seed_unchecked(seed.as_ref())
                     .map_err(|_| Error::FailtoGenSigKeyPair)?,
@@ -293,17 +287,17 @@ mod tests {
     use super::*;
     #[cfg(feature = "ser")]
     use crate::MessageFormat;
-    use crate::SdtlMinimalConfig;
+    use crate::{EncryptAlgo, SecureLayerConfig};
 
     #[test]
     fn test_change_config() -> Result<()> {
-        let mut msl = SecureLayer::create(SdtlConfig::default(), None, None)?;
-        msl.change_config(SdtlConfig {
+        let mut msl = SecureLayer::create(SecureLayerConfig::default(), None, None)?;
+        msl.change_config(SecureLayerConfig {
             compression: flate2::Compression::fast(),
             compression_min_size: 8_192,
             #[cfg(feature = "ser")]
             message_format: MessageFormat::RawBinary,
-            minimal: SdtlMinimalConfig::default(),
+            encrypt_algo: EncryptAlgo::default(),
         })
         .expect("change config must be success");
         Ok(())

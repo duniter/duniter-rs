@@ -42,7 +42,7 @@ impl EncryptAlgo {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum EncryptAlgoWithSecretKey {
     Chacha20Poly1305Aead(chacha20_poly1305_aead::SecretKey),
 }

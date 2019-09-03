@@ -46,7 +46,7 @@ mod signature;
 mod status;
 
 pub use agreement::EphemeralPublicKey;
-pub use config::{SdtlConfig, SdtlMinimalConfig};
+pub use config::SecureLayerConfig;
 pub use encryption::EncryptAlgo;
 pub use errors::Error;
 pub use message::{EncapsuledMessage, Message};

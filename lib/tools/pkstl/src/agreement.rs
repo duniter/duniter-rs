@@ -65,7 +65,7 @@ impl SharedSecret {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 /// Ephemeral public key used once to generate shared secret
 pub struct EphemeralPublicKey(agreement::PublicKey);
 
@@ -76,6 +76,7 @@ impl AsRef<[u8]> for EphemeralPublicKey {
 }
 
 /// Ephemeral key pair used once to generate shared secret
+#[derive(Debug)]
 pub struct EphemeralKeyPair {
     privkey: agreement::EphemeralPrivateKey,
     pubkey: EphemeralPublicKey,

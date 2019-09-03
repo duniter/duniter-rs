@@ -26,35 +26,32 @@ use crate::format::MessageFormat;
 #[cfg(feature = "zip-sign")]
 #[derive(Clone, Copy, Debug, PartialEq)]
 /// PKSTL Configuration
-pub struct SdtlConfig {
+pub struct SecureLayerConfig {
+    #[cfg(feature = "zip-sign")]
     /// Compression level
     pub compression: flate2::Compression,
+    #[cfg(feature = "zip-sign")]
     /// Compression minimal size in bytes
     pub compression_min_size: usize,
     #[cfg(feature = "ser")]
     /// Message format
     pub message_format: MessageFormat,
-    /// PKSTL minimum Configuration
-    pub minimal: SdtlMinimalConfig,
+    /// Encryption algorithm
+    pub encrypt_algo: EncryptAlgo,
 }
 
-impl Default for SdtlConfig {
+impl Default for SecureLayerConfig {
     fn default() -> Self {
-        SdtlConfig {
+        SecureLayerConfig {
+            #[cfg(feature = "zip-sign")]
             compression: flate2::Compression::fast(),
+            #[cfg(feature = "zip-sign")]
             compression_min_size: DEFAULT_COMPRESSION_MIN_SIZE,
             #[cfg(feature = "ser")]
             message_format: MessageFormat::default(),
-            minimal: SdtlMinimalConfig::default(),
+            encrypt_algo: EncryptAlgo::default(),
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-/// PKSTL minimum Configuration
-pub struct SdtlMinimalConfig {
-    /// Encryption algorithm
-    pub encrypt_algo: EncryptAlgo,
 }
 
 #[cfg(test)]
@@ -65,14 +62,14 @@ mod tests {
     #[test]
     fn test_default_config() {
         assert_eq!(
-            SdtlConfig {
+            SecureLayerConfig {
                 compression: flate2::Compression::fast(),
                 compression_min_size: DEFAULT_COMPRESSION_MIN_SIZE,
                 #[cfg(feature = "ser")]
                 message_format: MessageFormat::default(),
-                minimal: SdtlMinimalConfig::default(),
+                encrypt_algo: EncryptAlgo::default(),
             },
-            SdtlConfig::default()
+            SecureLayerConfig::default()
         )
     }
 }

@@ -32,7 +32,7 @@ where
 {
     // Serialize and compress custom datas
     let custom_datas = if let Some(custom_datas) = custom_datas {
-        let bin_msg = serialize(custom_datas, sl.config.message_format)?;
+        let bin_msg = serialize(custom_datas, sl.minimal_secure_layer.config.message_format)?;
         Some(sl.compress(&bin_msg[..])?)
     } else {
         None
@@ -53,7 +53,7 @@ where
 {
     // Serialize and compress custom datas
     let custom_datas = if let Some(custom_datas) = custom_datas {
-        let bin_msg = serialize(custom_datas, sl.config.message_format)?;
+        let bin_msg = serialize(custom_datas, sl.minimal_secure_layer.config.message_format)?;
         Some(sl.compress(&bin_msg[..])?)
     } else {
         None
@@ -73,7 +73,7 @@ where
     W: Write,
 {
     // Serialize message
-    let bin_msg = serialize(message, sl.config.message_format)?;
+    let bin_msg = serialize(message, sl.minimal_secure_layer.config.message_format)?;
 
     // Compress message
     let bin_zip_msg = sl.compress(&bin_msg[..])?;

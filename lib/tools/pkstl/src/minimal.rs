@@ -16,7 +16,7 @@
 //! Manage minimal secure and decentralized transport layer.
 
 use crate::agreement::{EphemeralKeyPair, EphemeralPublicKey};
-use crate::config::SdtlMinimalConfig;
+use crate::config::SecureLayerConfig;
 use crate::constants::*;
 use crate::digest::sha256;
 use crate::encryption::{encrypt, EncryptAlgoWithSecretKey};
@@ -29,10 +29,11 @@ use crate::{Action, ActionSideEffects, Error, MsgType, Result};
 use std::io::{BufReader, BufWriter, Write};
 
 /// Minimal secure layer
+#[derive(Debug)]
 pub struct MinimalSecureLayer {
     ack_msg_recv_too_early: Option<Vec<u8>>,
     cloned: bool,
-    config: SdtlMinimalConfig,
+    pub(crate) config: SecureLayerConfig,
     pub(crate) encrypt_algo_with_secret: Option<EncryptAlgoWithSecretKey>,
     ephemeral_kp: Option<EphemeralKeyPair>,
     pub(crate) ephemeral_pubkey: EphemeralPublicKey,
@@ -64,7 +65,7 @@ impl MinimalSecureLayer {
         }
     }
     /// Change configuration
-    pub fn change_config(&mut self, new_config: SdtlMinimalConfig) -> Result<()> {
+    pub fn change_config(&mut self, new_config: SecureLayerConfig) -> Result<()> {
         if !self.cloned {
             self.config = new_config;
             Ok(())
@@ -74,7 +75,7 @@ impl MinimalSecureLayer {
     }
     /// Create minimal secure layer
     pub fn create(
-        config: SdtlMinimalConfig,
+        config: SecureLayerConfig,
         expected_remote_sig_public_key: Option<Vec<u8>>,
     ) -> Result<Self> {
         let ephemeral_kp = EphemeralKeyPair::generate()?;
@@ -409,9 +410,10 @@ mod tests {
 
     #[test]
     fn test_change_config() -> Result<()> {
-        let mut msl = MinimalSecureLayer::create(SdtlMinimalConfig::default(), None)?;
-        msl.change_config(SdtlMinimalConfig {
+        let mut msl = MinimalSecureLayer::create(SecureLayerConfig::default(), None)?;
+        msl.change_config(SecureLayerConfig {
             encrypt_algo: EncryptAlgo::Chacha20Poly1305Aead,
+            ..SecureLayerConfig::default()
         })
         .expect("change config must be success");
         Ok(())
@@ -419,8 +421,8 @@ mod tests {
 
     #[test]
     fn test_compute_shared_secret_twice() -> Result<()> {
-        let mut msl1 = MinimalSecureLayer::create(SdtlMinimalConfig::default(), None)?;
-        let msl2 = MinimalSecureLayer::create(SdtlMinimalConfig::default(), None)?;
+        let mut msl1 = MinimalSecureLayer::create(SecureLayerConfig::default(), None)?;
+        let msl2 = MinimalSecureLayer::create(SecureLayerConfig::default(), None)?;
 
         msl1.compute_shared_secret(msl2.ephemeral_pubkey.as_ref())?;
         msl1.compute_shared_secret(msl2.ephemeral_pubkey.as_ref())?;
@@ -429,7 +431,7 @@ mod tests {
 
     #[test]
     fn test_status_update_to_fail() -> Result<()> {
-        let mut msl1 = MinimalSecureLayer::create(SdtlMinimalConfig::default(), None)?;
+        let mut msl1 = MinimalSecureLayer::create(SecureLayerConfig::default(), None)?;
         let fake_encrypted_incoming_datas = &[0, 0, 0, 0];
         let result = msl1.read(fake_encrypted_incoming_datas);
 
@@ -455,7 +457,7 @@ mod tests {
         incoming_datas.append(&mut [0u8; 32].to_vec()); // fake sig
 
         // Create secure layer
-        let mut msl1 = MinimalSecureLayer::create(SdtlMinimalConfig::default(), None)?;
+        let mut msl1 = MinimalSecureLayer::create(SecureLayerConfig::default(), None)?;
 
         // Read ack msg
         let result = msl1.read(&incoming_datas[..]);
@@ -471,7 +473,7 @@ mod tests {
     #[test]
     fn test_write_user_msg_before_nego() -> Result<()> {
         // Create secure layer
-        let mut msl1 = MinimalSecureLayer::create(SdtlMinimalConfig::default(), None)?;
+        let mut msl1 = MinimalSecureLayer::create(SecureLayerConfig::default(), None)?;
 
         // Try to create ack message before connect message
         let result = msl1.write_message(&[], &mut BufWriter::new(Vec::new()));
@@ -486,7 +488,7 @@ mod tests {
     #[test]
     fn test_create_ack_msg_before_connect() -> Result<()> {
         // Create secure layer
-        let mut msl1 = MinimalSecureLayer::create(SdtlMinimalConfig::default(), None)?;
+        let mut msl1 = MinimalSecureLayer::create(SecureLayerConfig::default(), None)?;
 
         // Try to create ack message before connect message
         let result = msl1.create_ack_message(None);
@@ -505,7 +507,7 @@ mod tests {
             .map_err(|_| Error::FailtoGenSigKeyPair)?;
 
         // Create secure layer
-        let mut msl1 = MinimalSecureLayer::create(SdtlMinimalConfig::default(), None)?;
+        let mut msl1 = MinimalSecureLayer::create(SecureLayerConfig::default(), None)?;
 
         let _ = msl1.create_connect_message(sig_kp.public_key().as_ref(), None)?;
 
@@ -539,7 +541,7 @@ mod tests {
         incoming_datas.append(&mut [0u8; 32].to_vec()); // fake sig
 
         // Create secure layer
-        let mut msl1 = MinimalSecureLayer::create(SdtlMinimalConfig::default(), None)?;
+        let mut msl1 = MinimalSecureLayer::create(SecureLayerConfig::default(), None)?;
 
         // Read connect msg
         let result = msl1.read(&incoming_datas[..]);
@@ -566,7 +568,7 @@ mod tests {
             create_connect_msg_bytes(ephemeral_kp.public_key().as_ref().to_vec(), &sig_kp)?;
 
         // Create secure layer
-        let mut msl1 = MinimalSecureLayer::create(SdtlMinimalConfig::default(), None)?;
+        let mut msl1 = MinimalSecureLayer::create(SecureLayerConfig::default(), None)?;
 
         // Read connect message
         let _ = msl1.read(&incoming_datas[..])?;
@@ -588,7 +590,7 @@ mod tests {
             .map_err(|_| Error::FailtoGenSigKeyPair)?;
 
         // Create secure layer
-        let mut msl1 = MinimalSecureLayer::create(SdtlMinimalConfig::default(), None)?;
+        let mut msl1 = MinimalSecureLayer::create(SecureLayerConfig::default(), None)?;
 
         // Create ack msg bytes
         let incoming_datas =
@@ -609,7 +611,7 @@ mod tests {
     #[test]
     fn test_recv_user_msg_before_nego() -> Result<()> {
         // Create secure layer
-        let mut msl1 = MinimalSecureLayer::create(SdtlMinimalConfig::default(), None)?;
+        let mut msl1 = MinimalSecureLayer::create(SecureLayerConfig::default(), None)?;
 
         // Create empty user msg fakely encryted
         let mut incoming_datas = Vec::with_capacity(100);

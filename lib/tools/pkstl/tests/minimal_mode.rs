@@ -39,14 +39,14 @@ fn client_infos(server_sig_kp: &[u8]) -> Result<(MinimalSecureLayer, Ed25519KeyP
 
     // Create client secure layer
     let client_msl =
-        MinimalSecureLayer::create(SdtlMinimalConfig::default(), Some(server_sig_kp.to_vec()))?;
+        MinimalSecureLayer::create(SecureLayerConfig::default(), Some(server_sig_kp.to_vec()))?;
 
     Ok((client_msl, client_sig_kp))
 }
 
 fn server_infos() -> Result<(MinimalSecureLayer, Ed25519KeyPair)> {
     // Create server secure layer
-    let server_msl = MinimalSecureLayer::create(SdtlMinimalConfig::default(), None)?;
+    let server_msl = MinimalSecureLayer::create(SecureLayerConfig::default(), None)?;
 
     // Create server sig keypair
     let server_sig_kp = Ed25519KeyPair::from_seed_unchecked(Seed32::random().as_ref())
@@ -461,7 +461,7 @@ fn ordered_passing_case() -> Result<()> {
     server_msl.try_clone()?;
 
     // After clone, we can't change config
-    let result = client_msl.change_config(SdtlMinimalConfig::default());
+    let result = client_msl.change_config(SecureLayerConfig::default());
     if let Err(Error::ForbidChangeConfAfterClone) = result {
         // OK
     } else {

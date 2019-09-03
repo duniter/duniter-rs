@@ -39,7 +39,8 @@ mod tests {
         let seed = Seed32::random();
 
         // Create server secure layer
-        let server_msl = SecureLayer::create(SdtlConfig::default(), Some(seed.clone()), None)?;
+        let server_msl =
+            SecureLayer::create(SecureLayerConfig::default(), Some(seed.clone()), None)?;
 
         // Get server sig pubkey
         let server_sig_pubkey = Ed25519KeyPair::from_seed_unchecked(seed.as_ref())
@@ -53,8 +54,11 @@ mod tests {
 
     fn client_infos(expected_server_sig_pubkey: Option<Vec<u8>>) -> Result<SecureLayer> {
         // Create client secure layer
-        let client_msl =
-            SecureLayer::create(SdtlConfig::default(), None, expected_server_sig_pubkey)?;
+        let client_msl = SecureLayer::create(
+            SecureLayerConfig::default(),
+            None,
+            expected_server_sig_pubkey,
+        )?;
 
         Ok(client_msl)
     }
@@ -254,7 +258,7 @@ mod tests {
         server_msl.try_clone()?;
 
         // After clone, we can't change config
-        let result = client_msl.change_config(SdtlConfig::default());
+        let result = client_msl.change_config(SecureLayerConfig::default());
         if let Err(Error::ForbidChangeConfAfterClone) = result {
             // OK
         } else {

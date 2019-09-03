@@ -22,7 +22,7 @@ use std::io::{BufWriter, Read, Write};
 
 const CHACHA20_TAG_SIZE: usize = 16;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 /// Secret key used for encryption algo
 pub struct SecretKey {
     key: [u8; 32],
