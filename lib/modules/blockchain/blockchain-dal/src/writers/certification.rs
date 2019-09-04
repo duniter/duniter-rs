@@ -18,7 +18,7 @@ use dubp_common_doc::BlockNumber;
 use dubp_currency_params::CurrencyParameters;
 use dubp_user_docs::documents::certification::CompactCertificationDocumentV10;
 use dup_crypto::keys::*;
-use durs_wot::NodeId;
+use durs_wot::WotId;
 
 /// Apply "certification" event in databases
 pub fn write_certification(
@@ -26,8 +26,8 @@ pub fn write_certification(
     identities_db: &BinDB<IdentitiesV10Datas>,
     certs_db: &BinDB<CertsExpirV10Datas>,
     source_pubkey: PubKey,
-    source: NodeId,
-    target: NodeId,
+    source: WotId,
+    target: WotId,
     created_block_id: BlockNumber,
     written_timestamp: u64,
 ) -> Result<(), DALError> {
@@ -59,8 +59,8 @@ pub fn revert_write_cert(
     identities_db: &BinDB<IdentitiesV10Datas>,
     certs_db: &BinDB<CertsExpirV10Datas>,
     compact_doc: CompactCertificationDocumentV10,
-    source: NodeId,
-    target: NodeId,
+    source: WotId,
+    target: WotId,
 ) -> Result<(), DALError> {
     // Remove CertsExpirV10Datas entry
     certs_db.write(|db| {
@@ -84,8 +84,8 @@ pub fn revert_write_cert(
 /// Revert "certification expiry" event in databases
 pub fn revert_expire_cert(
     certs_db: &BinDB<CertsExpirV10Datas>,
-    source: NodeId,
-    target: NodeId,
+    source: WotId,
+    target: WotId,
     created_block_id: BlockNumber,
 ) -> Result<(), DALError> {
     // Reinsert CertsExpirV10Datas entry

@@ -26,7 +26,7 @@ use dup_crypto::keys::*;
 use durs_blockchain_dal::writers::requests::*;
 use durs_blockchain_dal::{open_memory_db, CertsExpirV10Datas};
 use durs_common_tools::fatal_error;
-use durs_wot::NodeId;
+use durs_wot::WotId;
 use failure::Fail;
 use pbr::ProgressBar;
 use std::collections::{HashMap, VecDeque};
@@ -198,7 +198,7 @@ pub fn local_sync<DC: DursConfTrait>(
     }
 
     // Get wot index
-    let wot_index: HashMap<PubKey, NodeId> =
+    let wot_index: HashMap<PubKey, WotId> =
         readers::identity::get_wot_index(&wot_databases.identities_db)
             .expect("Fatal eror : get_wot_index : Fail to read blockchain databases");
 

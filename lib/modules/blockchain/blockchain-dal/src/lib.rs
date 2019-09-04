@@ -56,7 +56,7 @@ use dubp_user_docs::documents::transaction::*;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
-use durs_wot::data::{rusty::RustyWebOfTrust, NodeId};
+use durs_wot::data::{rusty::RustyWebOfTrust, WotId};
 use fnv::FnvHashMap;
 use rustbreak::backend::{FileBackend, MemoryBackend};
 use rustbreak::error::{RustbreakError, RustbreakErrorKind};
@@ -89,9 +89,9 @@ pub type WotDB = RustyWebOfTrust;
 /// V10 Identities indexed by public key
 pub type IdentitiesV10Datas = HashMap<PubKey, DALIdentity>;
 /// Memberships sorted by created block
-pub type MsExpirV10Datas = FnvHashMap<BlockNumber, HashSet<NodeId>>;
+pub type MsExpirV10Datas = FnvHashMap<BlockNumber, HashSet<WotId>>;
 /// Certifications sorted by created block
-pub type CertsExpirV10Datas = FnvHashMap<BlockNumber, HashSet<(NodeId, NodeId)>>;
+pub type CertsExpirV10Datas = FnvHashMap<BlockNumber, HashSet<(WotId, WotId)>>;
 /// V10 Transactions indexed by their hashs
 pub type TxV10Datas = HashMap<Hash, DALTxV10>;
 /// V10 Unused Transaction Output (=sources)

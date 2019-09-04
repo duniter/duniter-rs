@@ -28,7 +28,7 @@ use durs_blockchain_dal::writers::transaction::DALTxV10;
 use durs_blockchain_dal::{BinDB, DALError, TxV10Datas};
 use durs_common_tools::fatal_error;
 use durs_wot::data::{NewLinkResult, RemLinkResult};
-use durs_wot::{NodeId, WebOfTrust};
+use durs_wot::{WebOfTrust, WotId};
 use std::collections::HashMap;
 use unwrap::unwrap;
 
@@ -57,7 +57,7 @@ impl From<DALError> for RevertValidBlockError {
 
 pub fn revert_block<W: WebOfTrust>(
     dal_block: DALBlock,
-    wot_index: &mut HashMap<PubKey, NodeId>,
+    wot_index: &mut HashMap<PubKey, WotId>,
     wot_db: &BinDB<W>,
     txs_db: &BinDB<TxV10Datas>,
 ) -> Result<ValidBlockRevertReqs, RevertValidBlockError> {
@@ -74,8 +74,8 @@ pub fn revert_block<W: WebOfTrust>(
 
 pub fn revert_block_v10<W: WebOfTrust>(
     mut block: BlockDocumentV10,
-    expire_certs: HashMap<(NodeId, NodeId), BlockNumber>,
-    wot_index: &mut HashMap<PubKey, NodeId>,
+    expire_certs: HashMap<(WotId, WotId), BlockNumber>,
+    wot_index: &mut HashMap<PubKey, WotId>,
     wot_db: &BinDB<W>,
     txs_db: &BinDB<TxV10Datas>,
 ) -> Result<ValidBlockRevertReqs, RevertValidBlockError> {

@@ -19,7 +19,7 @@ use crate::{BinDB, DALError, IdentitiesV10Datas};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
 use dup_crypto::keys::*;
-use durs_wot::NodeId;
+use durs_wot::WotId;
 use std::collections::HashMap;
 
 /// Get identities in databases
@@ -106,7 +106,7 @@ pub fn get_pubkey_from_uid(
 /// Get wot_id index
 pub fn get_wot_index(
     identities_db: &BinDB<IdentitiesV10Datas>,
-) -> Result<HashMap<PubKey, NodeId>, DALError> {
+) -> Result<HashMap<PubKey, WotId>, DALError> {
     Ok(identities_db.read(|db| {
         db.iter()
             .map(|(pubkey, member_datas)| (*pubkey, member_datas.wot_id))
@@ -136,7 +136,7 @@ mod test {
                 pubkey,
                 created_block_id,
             ),
-            wot_id: NodeId(0),
+            wot_id: WotId(0),
             ms_created_block_id: BlockNumber(0),
             ms_chainable_on: vec![],
             cert_chainable_on: vec![],

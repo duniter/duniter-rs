@@ -15,8 +15,8 @@
 
 //! Provide a trait and implementations to compute distances.
 
-use crate::data::NodeId;
 use crate::data::WebOfTrust;
+use crate::data::WotId;
 use rayon::prelude::*;
 use std::collections::HashSet;
 
@@ -24,7 +24,7 @@ use std::collections::HashSet;
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct WotDistanceParameters {
     /// Node from where distances are calculated.
-    pub node: NodeId,
+    pub node: WotId,
     /// Links count received AND issued to be a sentry.
     pub sentry_requirement: u32,
     /// Currency parameter.

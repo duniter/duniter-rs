@@ -289,11 +289,11 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
         readers::identity::get_wot_index(&wot_databases.identities_db).expect("DALError");
 
     // get wot_reverse_index
-    let wot_reverse_index: HashMap<NodeId, &PubKey> =
+    let wot_reverse_index: HashMap<WotId, &PubKey> =
         wot_index.iter().map(|(p, id)| (*id, p)).collect();
 
     // get wot uid index
-    let wot_uid_index: HashMap<NodeId, String> = wot_databases
+    let wot_uid_index: HashMap<WotId, String> = wot_databases
         .identities_db
         .read(|db| {
             db.iter()
@@ -320,7 +320,7 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
         DbExWotQuery::AllDistances(ref reverse) => {
             println!("compute distances...");
             let compute_distances_begin = SystemTime::now();
-            let mut distances_datas: Vec<(NodeId, WotDistance)> = wot_db
+            let mut distances_datas: Vec<(WotId, WotDistance)> = wot_db
                 .read(|db| {
                     db.get_enabled()
                         .iter()
@@ -389,7 +389,7 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
                 .expect("Fail to read blockchain db");
             // Get expire_dates
             let min_created_ms_time = current_bc_time - currency_params.ms_validity;
-            let mut expire_dates: Vec<(NodeId, u64)> = wot_databases
+            let mut expire_dates: Vec<(WotId, u64)> = wot_databases
                 .ms_db
                 .read(|db| {
                     let mut expire_dates = Vec::new();

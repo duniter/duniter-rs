@@ -15,8 +15,8 @@
 
 //! Provide a trait and implementations to find paths between nodes.
 
-use crate::data::NodeId;
 use crate::data::WebOfTrust;
+use crate::data::WotId;
 use std::collections::{HashMap, VecDeque};
 
 /// Find paths between 2 nodes of a `WebOfTrust`.
@@ -41,11 +41,11 @@ impl<T: WebOfTrust> CentralitiesCalculator<T> for UlrikBrandesCentralityCalculat
 
         // The source of any path belongs to enabled_nodes
         for s in enabled_nodes.clone() {
-            let mut stack: Vec<NodeId> = Vec::with_capacity(wot_size);
-            let mut paths: HashMap<NodeId, Vec<NodeId>> = HashMap::with_capacity(wot_size);
+            let mut stack: Vec<WotId> = Vec::with_capacity(wot_size);
+            let mut paths: HashMap<WotId, Vec<WotId>> = HashMap::with_capacity(wot_size);
             let mut sigma = vec![0.0; wot_size];
             let mut d: Vec<isize> = vec![-1; wot_size];
-            let mut q: VecDeque<NodeId> = VecDeque::with_capacity(wot_size);
+            let mut q: VecDeque<WotId> = VecDeque::with_capacity(wot_size);
 
             sigma[s.0] = 1.0;
             d[s.0] = 0;
@@ -94,11 +94,11 @@ impl<T: WebOfTrust> CentralitiesCalculator<T> for UlrikBrandesCentralityCalculat
 
         // The source of any path belongs to enabled_nodes
         for s in enabled_nodes.clone() {
-            let mut stack: Vec<NodeId> = Vec::with_capacity(wot_size);
-            let mut paths: HashMap<NodeId, Vec<NodeId>> = HashMap::with_capacity(wot_size);
+            let mut stack: Vec<WotId> = Vec::with_capacity(wot_size);
+            let mut paths: HashMap<WotId, Vec<WotId>> = HashMap::with_capacity(wot_size);
             let mut sigma = vec![0.0; wot_size];
             let mut d: Vec<isize> = vec![-1; wot_size];
-            let mut q: VecDeque<NodeId> = VecDeque::with_capacity(wot_size);
+            let mut q: VecDeque<WotId> = VecDeque::with_capacity(wot_size);
 
             sigma[s.0] = 1.0;
             d[s.0] = 0;
@@ -147,11 +147,11 @@ impl<T: WebOfTrust> CentralitiesCalculator<T> for UlrikBrandesCentralityCalculat
 
         // The source of any path belongs to enabled_nodes
         for s in enabled_nodes.clone() {
-            let mut stack: Vec<NodeId> = Vec::with_capacity(wot_size);
-            let mut paths: HashMap<NodeId, Vec<NodeId>> = HashMap::with_capacity(wot_size);
+            let mut stack: Vec<WotId> = Vec::with_capacity(wot_size);
+            let mut paths: HashMap<WotId, Vec<WotId>> = HashMap::with_capacity(wot_size);
             let mut sigma = vec![0.0; wot_size];
             let mut d: Vec<isize> = vec![-1; wot_size];
-            let mut q: VecDeque<NodeId> = VecDeque::with_capacity(wot_size);
+            let mut q: VecDeque<WotId> = VecDeque::with_capacity(wot_size);
 
             sigma[s.0] = 1.0;
             d[s.0] = 0;

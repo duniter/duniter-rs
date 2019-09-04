@@ -17,5 +17,4 @@
 
 pub mod centrality;
 pub mod distance;
-pub mod file;
 pub mod path;

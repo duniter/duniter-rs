@@ -25,9 +25,9 @@ use std::fmt::{self, Debug};
 
 /// Wrapper for a node id.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct NodeId(pub usize);
+pub struct WotId(pub usize);
 
-impl Serialize for NodeId {
+impl Serialize for WotId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -36,48 +36,48 @@ impl Serialize for NodeId {
     }
 }
 
-struct NodeIdVisitor;
+struct WotIdVisitor;
 
-impl<'de> Visitor<'de> for NodeIdVisitor {
-    type Value = NodeId;
+impl<'de> Visitor<'de> for WotIdVisitor {
+    type Value = WotId;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("an integer between -2^31 and 2^31")
     }
 
-    fn visit_u8<E>(self, value: u8) -> Result<NodeId, E>
+    fn visit_u8<E>(self, value: u8) -> Result<WotId, E>
     where
         E: de::Error,
     {
-        Ok(NodeId(value as usize))
+        Ok(WotId(value as usize))
     }
 
-    fn visit_u32<E>(self, value: u32) -> Result<NodeId, E>
+    fn visit_u32<E>(self, value: u32) -> Result<WotId, E>
     where
         E: de::Error,
     {
-        Ok(NodeId(value as usize))
+        Ok(WotId(value as usize))
     }
 
-    fn visit_u64<E>(self, value: u64) -> Result<NodeId, E>
+    fn visit_u64<E>(self, value: u64) -> Result<WotId, E>
     where
         E: de::Error,
     {
         use std::usize;
         if value >= usize::MIN as u64 && value <= usize::MAX as u64 {
-            Ok(NodeId(value as usize))
+            Ok(WotId(value as usize))
         } else {
             Err(E::custom(format!("u32 out of range: {}", value)))
         }
     }
 }
 
-impl<'de> Deserialize<'de> for NodeId {
-    fn deserialize<D>(deserializer: D) -> Result<NodeId, D::Error>
+impl<'de> Deserialize<'de> for WotId {
+    fn deserialize<D>(deserializer: D) -> Result<WotId, D::Error>
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_u32(NodeIdVisitor)
+        deserializer.deserialize_u32(WotIdVisitor)
     }
 }
 
@@ -136,52 +136,52 @@ pub trait WebOfTrust: Clone + Debug + Default + DeserializeOwned + Send + Serial
     fn set_max_link(&mut self, max_link: usize);
 
     /// Add a new node.
-    fn add_node(&mut self) -> NodeId;
+    fn add_node(&mut self) -> WotId;
 
     /// Remove the last node.
     /// Returns `None` if the WoT was empty, otherwise new top node id.
-    fn rem_node(&mut self) -> Option<NodeId>;
+    fn rem_node(&mut self) -> Option<WotId>;
 
     /// Get the size of the WoT.
     fn size(&self) -> usize;
 
     /// Check if given node is enabled.
     /// Returns `None` if this node doesn't exist.
-    fn is_enabled(&self, id: NodeId) -> Option<bool>;
+    fn is_enabled(&self, id: WotId) -> Option<bool>;
 
     /// Set the enabled state of given node.
     /// Returns `Null` if this node doesn't exist, `enabled` otherwise.
-    fn set_enabled(&mut self, id: NodeId, enabled: bool) -> Option<bool>;
+    fn set_enabled(&mut self, id: WotId, enabled: bool) -> Option<bool>;
 
     /// Get enabled node array.
-    fn get_enabled(&self) -> Vec<NodeId>;
+    fn get_enabled(&self) -> Vec<WotId>;
 
     /// Get disabled node array.
-    fn get_disabled(&self) -> Vec<NodeId>;
+    fn get_disabled(&self) -> Vec<WotId>;
 
     /// Try to add a link from the source to the target.
-    fn add_link(&mut self, source: NodeId, target: NodeId) -> NewLinkResult;
+    fn add_link(&mut self, source: WotId, target: WotId) -> NewLinkResult;
 
     /// Try to remove a link from the source to the target.
-    fn rem_link(&mut self, source: NodeId, target: NodeId) -> RemLinkResult;
+    fn rem_link(&mut self, source: WotId, target: WotId) -> RemLinkResult;
 
     /// Test if there is a link from the source to the target.
-    fn has_link(&self, source: NodeId, target: NodeId) -> HasLinkResult;
+    fn has_link(&self, source: WotId, target: WotId) -> HasLinkResult;
 
     /// Get the list of links source for this target.
     /// Returns `None` if this node doesn't exist.
-    fn get_links_source(&self, target: NodeId) -> Option<Vec<NodeId>>;
+    fn get_links_source(&self, target: WotId) -> Option<Vec<WotId>>;
 
     /// Get the number of issued links by a node.
     /// Returns `None` if this node doesn't exist.
-    fn issued_count(&self, id: NodeId) -> Option<usize>;
+    fn issued_count(&self, id: WotId) -> Option<usize>;
 
     /// Test if a node is a sentry.
-    fn is_sentry(&self, node: NodeId, sentry_requirement: usize) -> Option<bool>;
+    fn is_sentry(&self, node: WotId, sentry_requirement: usize) -> Option<bool>;
 
     /// Get sentries array.
-    fn get_sentries(&self, sentry_requirement: usize) -> Vec<NodeId>;
+    fn get_sentries(&self, sentry_requirement: usize) -> Vec<WotId>;
 
     /// Get non sentries array.
-    fn get_non_sentries(&self, sentry_requirement: usize) -> Vec<NodeId>;
+    fn get_non_sentries(&self, sentry_requirement: usize) -> Vec<WotId>;
 }

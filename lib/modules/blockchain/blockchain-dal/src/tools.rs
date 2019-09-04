@@ -21,7 +21,7 @@ use durs_wot::operations::centrality::{CentralitiesCalculator, UlrikBrandesCentr
 use durs_wot::operations::distance::{
     DistanceCalculator, RustyDistanceCalculator, WotDistance, WotDistanceParameters,
 };
-use durs_wot::{NodeId, WebOfTrust};
+use durs_wot::{WebOfTrust, WotId};
 use std::collections::HashMap;
 
 /// CENTRALITY_CALCULATOR
@@ -109,7 +109,7 @@ pub fn compute_distances<T: WebOfTrust + Sync>(
             .compute_distance(
                 wot,
                 WotDistanceParameters {
-                    node: NodeId(i),
+                    node: WotId(i),
                     sentry_requirement,
                     step_max,
                     x_percent,

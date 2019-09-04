@@ -15,14 +15,14 @@
 
 //! Provide a trait and implementations to find paths between nodes.
 
-use crate::data::NodeId;
 use crate::data::WebOfTrust;
+use crate::data::WotId;
 use std::collections::HashSet;
 
 /// Find paths between 2 nodes of a `WebOfTrust`.
 pub trait PathFinder<T: WebOfTrust> {
     /// Get paths from one node to the other.
-    fn find_paths(&self, wot: &T, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>>;
+    fn find_paths(&self, wot: &T, from: WotId, to: WotId, k_max: u32) -> Vec<Vec<WotId>>;
 }
 
 /// A new "rusty-er" implementation of `WoT` path finding.
@@ -30,7 +30,7 @@ pub trait PathFinder<T: WebOfTrust> {
 pub struct RustyPathFinder;
 
 impl<T: WebOfTrust> PathFinder<T> for RustyPathFinder {
-    fn find_paths(&self, wot: &T, from: NodeId, to: NodeId, k_max: u32) -> Vec<Vec<NodeId>> {
+    fn find_paths(&self, wot: &T, from: WotId, to: WotId, k_max: u32) -> Vec<Vec<WotId>> {
         if from.0 >= wot.size() || to.0 >= wot.size() {
             return vec![];
         }
@@ -40,7 +40,7 @@ impl<T: WebOfTrust> PathFinder<T> for RustyPathFinder {
 
         // Stores for each node its distance to `to` node and its backward links.
         // By default all nodes are out of range (`k_max + 1`) and links are known.
-        let mut graph: Vec<(u32, Vec<NodeId>)> =
+        let mut graph: Vec<(u32, Vec<WotId>)> =
             (0..wot.size()).map(|_| (k_max + 1, vec![])).collect();
         // `to` node is at distance 0, and have no backward links.
         graph[to.0] = (0, vec![]);

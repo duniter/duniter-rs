@@ -16,9 +16,10 @@
 //! Experimental implementation of the Web of Trust in a more "rusty" style.
 
 use super::{HasLinkResult, NewLinkResult, RemLinkResult};
-use crate::NodeId;
 use crate::WebOfTrust;
+use crate::WotId;
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// A node in the `WoT` graph.
@@ -27,7 +28,7 @@ struct Node {
     /// Is this node enabled ?
     enabled: bool,
     /// Set of links this node is the target.
-    links_source: HashSet<NodeId>,
+    links_source: HashSet<WotId>,
     /// Number of links the node issued.
     issued_count: usize,
 }
@@ -77,16 +78,16 @@ impl WebOfTrust for RustyWebOfTrust {
         self.max_links = max_links;
     }
 
-    fn add_node(&mut self) -> NodeId {
+    fn add_node(&mut self) -> WotId {
         self.nodes.push(Node::new());
-        NodeId(self.nodes.len() - 1)
+        WotId(self.nodes.len() - 1)
     }
 
-    fn rem_node(&mut self) -> Option<NodeId> {
+    fn rem_node(&mut self) -> Option<WotId> {
         self.nodes.pop();
 
         if !self.nodes.is_empty() {
-            Some(NodeId(self.nodes.len() - 1))
+            Some(WotId(self.nodes.len() - 1))
         } else {
             None
         }
@@ -96,36 +97,36 @@ impl WebOfTrust for RustyWebOfTrust {
         self.nodes.len()
     }
 
-    fn is_enabled(&self, id: NodeId) -> Option<bool> {
+    fn is_enabled(&self, id: WotId) -> Option<bool> {
         self.nodes.get(id.0).map(|n| n.enabled)
     }
 
-    fn set_enabled(&mut self, id: NodeId, enabled: bool) -> Option<bool> {
+    fn set_enabled(&mut self, id: WotId, enabled: bool) -> Option<bool> {
         self.nodes
             .get_mut(id.0)
             .map(|n| n.enabled = enabled)
             .map(|_| enabled)
     }
 
-    fn get_enabled(&self) -> Vec<NodeId> {
+    fn get_enabled(&self) -> Vec<WotId> {
         self.nodes
             .par_iter()
             .enumerate()
             .filter(|&(_, n)| n.enabled)
-            .map(|(i, _)| NodeId(i))
+            .map(|(i, _)| WotId(i))
             .collect()
     }
 
-    fn get_disabled(&self) -> Vec<NodeId> {
+    fn get_disabled(&self) -> Vec<WotId> {
         self.nodes
             .par_iter()
             .enumerate()
             .filter(|&(_, n)| !n.enabled)
-            .map(|(i, _)| NodeId(i))
+            .map(|(i, _)| WotId(i))
             .collect()
     }
 
-    fn add_link(&mut self, source: NodeId, target: NodeId) -> NewLinkResult {
+    fn add_link(&mut self, source: WotId, target: WotId) -> NewLinkResult {
         if source == target {
             NewLinkResult::SelfLinkingForbidden()
         } else if source.0 >= self.size() {
@@ -141,7 +142,7 @@ impl WebOfTrust for RustyWebOfTrust {
         }
     }
 
-    fn rem_link(&mut self, source: NodeId, target: NodeId) -> RemLinkResult {
+    fn rem_link(&mut self, source: WotId, target: WotId) -> RemLinkResult {
         if source.0 >= self.size() {
             RemLinkResult::UnknownSource()
         } else if target.0 >= self.size() {
@@ -155,7 +156,7 @@ impl WebOfTrust for RustyWebOfTrust {
         }
     }
 
-    fn has_link(&self, source: NodeId, target: NodeId) -> HasLinkResult {
+    fn has_link(&self, source: WotId, target: WotId) -> HasLinkResult {
         if source.0 >= self.size() {
             HasLinkResult::UnknownSource()
         } else if target.0 >= self.size() {
@@ -165,17 +166,17 @@ impl WebOfTrust for RustyWebOfTrust {
         }
     }
 
-    fn get_links_source(&self, target: NodeId) -> Option<Vec<NodeId>> {
+    fn get_links_source(&self, target: WotId) -> Option<Vec<WotId>> {
         self.nodes
             .get(target.0)
             .map(|n| n.links_source.iter().cloned().collect())
     }
 
-    fn issued_count(&self, id: NodeId) -> Option<usize> {
+    fn issued_count(&self, id: WotId) -> Option<usize> {
         self.nodes.get(id.0).map(|n| n.issued_count)
     }
 
-    fn is_sentry(&self, node: NodeId, sentry_requirement: usize) -> Option<bool> {
+    fn is_sentry(&self, node: WotId, sentry_requirement: usize) -> Option<bool> {
         if node.0 >= self.size() {
             return None;
         }
@@ -189,7 +190,7 @@ impl WebOfTrust for RustyWebOfTrust {
         )
     }
 
-    fn get_sentries(&self, sentry_requirement: usize) -> Vec<NodeId> {
+    fn get_sentries(&self, sentry_requirement: usize) -> Vec<WotId> {
         self.nodes
             .par_iter()
             .enumerate()
@@ -198,11 +199,11 @@ impl WebOfTrust for RustyWebOfTrust {
                     && n.issued_count >= sentry_requirement
                     && n.links_source.len() >= sentry_requirement
             })
-            .map(|(i, _)| NodeId(i))
+            .map(|(i, _)| WotId(i))
             .collect()
     }
 
-    fn get_non_sentries(&self, sentry_requirement: usize) -> Vec<NodeId> {
+    fn get_non_sentries(&self, sentry_requirement: usize) -> Vec<WotId> {
         self.nodes
             .par_iter()
             .enumerate()
@@ -211,7 +212,7 @@ impl WebOfTrust for RustyWebOfTrust {
                     && (n.issued_count < sentry_requirement
                         || n.links_source.len() < sentry_requirement)
             })
-            .map(|(i, _)| NodeId(i))
+            .map(|(i, _)| WotId(i))
             .collect()
     }
 }

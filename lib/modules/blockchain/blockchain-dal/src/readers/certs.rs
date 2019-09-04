@@ -15,14 +15,14 @@
 
 use crate::{BinDB, CertsExpirV10Datas, DALError};
 use dubp_common_doc::BlockNumber;
-use durs_wot::NodeId;
+use durs_wot::WotId;
 use std::collections::HashMap;
 
 /// Find certifications that emitted in indicated blocks expiring
 pub fn find_expire_certs(
     certs_db: &BinDB<CertsExpirV10Datas>,
     blocks_expiring: Vec<BlockNumber>,
-) -> Result<HashMap<(NodeId, NodeId), BlockNumber>, DALError> {
+) -> Result<HashMap<(WotId, WotId), BlockNumber>, DALError> {
     Ok(certs_db.read(|db| {
         let mut all_expire_certs = HashMap::new();
         for expire_block_id in blocks_expiring {

@@ -23,7 +23,7 @@ use dubp_currency_params::CurrencyParameters;
 use dubp_user_docs::documents::certification::CompactCertificationDocumentV10;
 use dubp_user_docs::documents::identity::IdentityDocumentV10;
 use dup_crypto::keys::PubKey;
-use durs_wot::NodeId;
+use durs_wot::WotId;
 use std::ops::Deref;
 
 #[derive(Debug, Clone)]
@@ -96,7 +96,7 @@ impl BlocksDBsWriteQuery {
 pub enum WotsDBsWriteQuery {
     /// Newcomer (wot_id, blockstamp, current_bc_time, idty_doc, ms_created_block_id)
     CreateIdentity(
-        NodeId,
+        WotId,
         Blockstamp,
         u64,
         Box<IdentityDocumentV10>,
@@ -105,9 +105,9 @@ pub enum WotsDBsWriteQuery {
     /// Revert newcomer event (wot_id, blockstamp, current_bc_time, idty_doc, ms_created_block_id)
     RevertCreateIdentity(PubKey),
     /// Active (pubKey, idty_wot_id, current_bc_time, ms_created_block_id)
-    RenewalIdentity(PubKey, NodeId, u64, BlockNumber),
+    RenewalIdentity(PubKey, WotId, u64, BlockNumber),
     /// Revert active (pubKey, idty_wot_id, current_bc_time, ms_created_block_id)
-    RevertRenewalIdentity(PubKey, NodeId, u64, BlockNumber),
+    RevertRenewalIdentity(PubKey, WotId, u64, BlockNumber),
     /// Excluded
     ExcludeIdentity(PubKey, Blockstamp),
     /// Revert exclusion
@@ -117,13 +117,13 @@ pub enum WotsDBsWriteQuery {
     /// Revert revocation
     RevertRevokeIdentity(PubKey, Blockstamp, bool),
     /// Certification (source_pubkey, source, target, created_block_id, median_time)
-    CreateCert(PubKey, NodeId, NodeId, BlockNumber, u64),
+    CreateCert(PubKey, WotId, WotId, BlockNumber, u64),
     /// Revert certification (source_pubkey, source, target, created_block_id, median_time)
-    RevertCert(CompactCertificationDocumentV10, NodeId, NodeId),
+    RevertCert(CompactCertificationDocumentV10, WotId, WotId),
     /// Certification expiry (source, target, created_block_id)
     ExpireCerts(BlockNumber),
     /// Revert certification expiry event (source, target, created_block_id)
-    RevertExpireCert(NodeId, NodeId, BlockNumber),
+    RevertExpireCert(WotId, WotId, BlockNumber),
 }
 
 impl WotsDBsWriteQuery {

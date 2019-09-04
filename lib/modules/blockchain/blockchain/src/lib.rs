@@ -76,7 +76,7 @@ use durs_network::{
 };
 // use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::operations::distance::RustyDistanceCalculator;
-use durs_wot::NodeId;
+use durs_wot::WotId;
 use failure::Error;
 
 /// The blocks are requested by packet groups. This constant sets the block packet size.
@@ -102,7 +102,7 @@ pub struct BlockchainModule {
     /// Forks Databases
     pub forks_dbs: ForksDBs,
     /// Wot index
-    pub wot_index: HashMap<PubKey, NodeId>,
+    pub wot_index: HashMap<PubKey, WotId>,
     /// Wots Databases
     pub wot_databases: WotsV10DBs,
     /// Currency databases
@@ -214,7 +214,7 @@ impl BlockchainModule {
         };
 
         // Get wot index
-        let wot_index: HashMap<PubKey, NodeId> =
+        let wot_index: HashMap<PubKey, WotId> =
             readers::identity::get_wot_index(&wot_databases.identities_db)
                 .expect("Fatal eror : get_wot_index : Fail to read blockchain databases");
 

@@ -2,10 +2,10 @@
 name = "durs-wot"
 version = "0.8.0-a0.9"
 authors = ["nanocryk <nanocryk@duniter.org>", "elois <elois@duniter.org>"]
-description = "Makes Web of Trust computations for the Duniter project."
+description = "Makes Web of Trust computations for the Dunitrust project."
 repository = "https://git.duniter.org/nodes/rust/duniter-rs"
 readme = "README.md"
-keywords = ["duniter", "wot", "wot", "web", "trust"]
+keywords = ["duniter", "dunitrust", "wot", "trust"]
 license = "AGPL-3.0"
 edition = "2018"
 
@@ -13,12 +13,11 @@ edition = "2018"
 path = "lib.rs"
 
 [dependencies]
-log = "0.4.*"
-durs-common-tools = { path = "../../tools/common-tools" }
-serde = "1.0.*"
-serde_derive = "1.0.*"
-bincode = "1.0.*"
-byteorder = "1.2.*"
 rayon = "1.2.0"
+serde = { version = "1.0.*", features = ["derive"] }
+
+[dev-dependencies]
+bincode = "1.0.*"
+durs-common-tools = { path = "../../tools/common-tools", version = "0.2.0" }
 
 [features]

@@ -26,7 +26,7 @@ use durs_blockchain_dal::writers::requests::*;
 use durs_blockchain_dal::BinDB;
 use durs_common_tools::fatal_error;
 use durs_wot::data::NewLinkResult;
-use durs_wot::{NodeId, WebOfTrust};
+use durs_wot::{WebOfTrust, WotId};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
@@ -48,9 +48,9 @@ pub enum ApplyValidBlockError {
 #[inline]
 pub fn apply_valid_block<W: WebOfTrust>(
     block: BlockDocument,
-    wot_index: &mut HashMap<PubKey, NodeId>,
+    wot_index: &mut HashMap<PubKey, WotId>,
     wot_db: &BinDB<W>,
-    expire_certs: &HashMap<(NodeId, NodeId), BlockNumber>,
+    expire_certs: &HashMap<(WotId, WotId), BlockNumber>,
 ) -> Result<ValidBlockApplyReqs, ApplyValidBlockError> {
     match block {
         BlockDocument::V10(block_v10) => {
@@ -61,9 +61,9 @@ pub fn apply_valid_block<W: WebOfTrust>(
 
 pub fn apply_valid_block_v10<W: WebOfTrust>(
     mut block: BlockDocumentV10,
-    wot_index: &mut HashMap<PubKey, NodeId>,
+    wot_index: &mut HashMap<PubKey, WotId>,
     wot_db: &BinDB<W>,
-    expire_certs: &HashMap<(NodeId, NodeId), BlockNumber>,
+    expire_certs: &HashMap<(WotId, WotId), BlockNumber>,
 ) -> Result<ValidBlockApplyReqs, ApplyValidBlockError> {
     debug!(
         "BlockchainModule : apply_valid_block({})",
@@ -80,7 +80,7 @@ pub fn apply_valid_block_v10<W: WebOfTrust>(
         let pubkey = joiner.issuers()[0];
         if let Some(idty_doc) = identities.get(&pubkey) {
             // Newcomer
-            let wot_id = NodeId(
+            let wot_id = WotId(
                 wot_db
                     .read(WebOfTrust::size)
                     .expect("Fatal error : fail to read WotDB !"),

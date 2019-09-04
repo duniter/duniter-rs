@@ -21,7 +21,7 @@ use dubp_currency_params::CurrencyParameters;
 use dubp_user_docs::documents::identity::IdentityDocumentV10;
 use dup_crypto::keys::PubKey;
 use durs_common_tools::fatal_error;
-use durs_wot::NodeId;
+use durs_wot::WotId;
 
 /// Remove identity from databases
 pub fn revert_create_identity(
@@ -57,7 +57,7 @@ pub fn create_identity(
     ms_db: &BinDB<MsExpirV10Datas>,
     idty_doc: &IdentityDocumentV10,
     ms_created_block_id: BlockNumber,
-    wot_id: NodeId,
+    wot_id: WotId,
     current_blockstamp: Blockstamp,
     current_bc_time: u64,
 ) -> Result<(), DALError> {
@@ -181,7 +181,7 @@ pub fn renewal_identity(
     identities_db: &BinDB<IdentitiesV10Datas>,
     ms_db: &BinDB<MsExpirV10Datas>,
     pubkey: &PubKey,
-    idty_wot_id: NodeId,
+    idty_wot_id: WotId,
     renewal_timestamp: u64,
     ms_created_block_id: BlockNumber,
     revert: bool,

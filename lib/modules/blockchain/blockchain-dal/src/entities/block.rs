@@ -17,7 +17,7 @@ use crate::*;
 use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
-use durs_wot::NodeId;
+use durs_wot::WotId;
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -28,7 +28,7 @@ pub struct DALBlock {
     /// List of certifications that expire in this block.
     /// Warning : BlockNumber contain the emission block, not the written block !
     /// HashMap<(Source, Target), BlockNumber>
-    pub expire_certs: Option<HashMap<(NodeId, NodeId), BlockNumber>>,
+    pub expire_certs: Option<HashMap<(WotId, WotId), BlockNumber>>,
 }
 
 impl DALBlock {

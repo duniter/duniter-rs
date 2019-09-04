@@ -15,7 +15,7 @@
 
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use dubp_user_docs::documents::identity::IdentityDocumentV10;
-use durs_wot::NodeId;
+use durs_wot::WotId;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]
 /// Identity state
@@ -48,7 +48,7 @@ pub struct DALIdentity {
     /// Identity document
     pub idty_doc: IdentityDocumentV10,
     /// Identity wot id
-    pub wot_id: NodeId,
+    pub wot_id: WotId,
     /// Membership created block number
     pub ms_created_block_id: BlockNumber,
     /// Timestamp from which membership can be renewed

@@ -31,7 +31,7 @@ use durs_blockchain_dal::{BinDB, CertsExpirV10Datas, WotsV10DBs};
 use durs_common_tools::fatal_error;
 use durs_network_documents::url::Url;
 use durs_wot::data::rusty::RustyWebOfTrust;
-use durs_wot::data::NodeId;
+use durs_wot::data::WotId;
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::mpsc;
@@ -57,7 +57,7 @@ pub struct BlockApplicator {
     pub blocks_not_expiring: VecDeque<u64>,
     pub last_block_expiring: isize,
     // databases
-    pub wot_index: HashMap<PubKey, NodeId>,
+    pub wot_index: HashMap<PubKey, WotId>,
     pub wot_databases: WotsV10DBs,
     pub certs_db: BinDB<CertsExpirV10Datas>,
     // time measurement
