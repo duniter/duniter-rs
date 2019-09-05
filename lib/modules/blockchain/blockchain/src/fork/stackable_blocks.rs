@@ -22,11 +22,9 @@ use unwrap::unwrap;
 
 pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
     'blockchain: loop {
-        let stackable_blocks = durs_blockchain_dal::readers::fork_tree::get_stackables_blocks(
-            &bc.forks_dbs,
-            &bc.current_blockstamp,
-        )
-        .expect("Fatal error : Fail to read ForksDB !");
+        let stackable_blocks =
+            durs_bc_db_reader::readers::block::get_stackables_blocks(&bc.db, bc.current_blockstamp)
+                .expect("Fatal error : Fail to read ForksDB !");
         if stackable_blocks.is_empty() {
             break 'blockchain;
         } else {
@@ -36,50 +34,63 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                 let stackable_block_number = stackable_block.block.number();
                 let stackable_block_blockstamp = stackable_block.block.blockstamp();
 
-                if let Ok(CheckAndApplyBlockReturn::ValidMainBlock(ValidBlockApplyReqs(
-                    bc_db_query,
-                    wot_dbs_queries,
-                    tx_dbs_queries,
-                ))) = check_and_apply_block(bc, stackable_block.block)
-                {
-                    let new_current_block = bc_db_query.get_block_doc_copy();
-                    let blockstamp = new_current_block.blockstamp();
-                    // Apply db requests
-                    bc_db_query
-                        .apply(
-                            &bc.db,
-                            &bc.forks_dbs,
-                            unwrap!(bc.currency_params).fork_window_size,
-                            None,
-                        )
-                        .expect("Fatal error : Fail to apply DBWriteRequest !");
-                    for query in &wot_dbs_queries {
-                        query
-                            .apply(&blockstamp, &unwrap!(bc.currency_params), &bc.wot_databases)
-                            .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
-                    }
-                    for query in &tx_dbs_queries {
-                        query
-                            .apply(&blockstamp, &bc.currency_databases)
-                            .expect("Fatal error : Fail to apply CurrencyDBsWriteRequest !");
-                    }
-                    debug!("success to stackable_block({})", stackable_block_number);
+                match check_and_apply_block(bc, stackable_block.block) {
+                    Ok(CheckAndApplyBlockReturn::ValidMainBlock(ValidBlockApplyReqs(
+                        bc_db_query,
+                        wot_dbs_queries,
+                        tx_dbs_queries,
+                    ))) => {
+                        let new_current_block = bc_db_query.get_block_doc_copy();
+                        let blockstamp = new_current_block.blockstamp();
+                        // Apply db requests
+                        bc_db_query
+                            .apply(
+                                &bc.db,
+                                &mut bc.fork_tree,
+                                unwrap!(bc.currency_params).fork_window_size,
+                                None,
+                            )
+                            .expect("Fatal error : Fail to apply DBWriteRequest !");
+                        for query in &wot_dbs_queries {
+                            query
+                                .apply(
+                                    &blockstamp,
+                                    &unwrap!(bc.currency_params),
+                                    &bc.wot_databases,
+                                    &bc.db,
+                                )
+                                .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
+                        }
+                        for query in &tx_dbs_queries {
+                            query
+                                .apply(&blockstamp, &bc.currency_databases)
+                                .expect("Fatal error : Fail to apply CurrencyDBsWriteRequest !");
+                        }
+                        debug!("success to stackable_block({})", stackable_block_number);
 
-                    bc.current_blockstamp = stackable_block_blockstamp;
-                    events::sent::send_event(
-                        bc,
-                        &BlockchainEvent::StackUpValidBlock(Box::new(new_current_block)),
-                    );
-                    continue 'blockchain;
-                } else {
-                    warn!("fail to stackable_block({})", stackable_block_number);
+                        bc.current_blockstamp = stackable_block_blockstamp;
+                        events::sent::send_event(
+                            bc,
+                            &BlockchainEvent::StackUpValidBlock(Box::new(new_current_block)),
+                        );
+                        continue 'blockchain;
+                    }
+                    Ok(re) => warn!(
+                        "fail to stackable_block({}) : {:?}",
+                        stackable_block_number, re
+                    ),
+                    Err(e) => warn!(
+                        "fail to stackable_block({}) : {:?}",
+                        stackable_block_number, e
+                    ),
                 }
             }
             // Save databases
             bc.db
                 .save()
                 .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
-            bc.forks_dbs.save_dbs();
+            durs_bc_db_writer::writers::fork_tree::save_fork_tree(&bc.db, &bc.fork_tree)
+                .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
             bc.wot_databases.save_dbs();
             bc.currency_databases.save_dbs(true, true);
             break 'blockchain;

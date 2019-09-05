@@ -28,6 +28,7 @@ pub fn execute(
         let wot_job_begin = SystemTime::now();
         // Open databases
         let db_path = durs_conf::get_blockchain_db_path(profile_path);
+        let db = open_db(&db_path).expect("Fail to open DB.");
         let databases = WotsV10DBs::open(Some(&db_path));
 
         // Listen db requets
@@ -37,7 +38,7 @@ pub fn execute(
             all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
             match mess {
                 SyncJobsMess::WotsDBsWriteQuery(blockstamp, currency_params, req) => req
-                    .apply(&blockstamp, &currency_params.deref(), &databases)
+                    .apply(&blockstamp, &currency_params.deref(), &databases, &db)
                     .expect("Fatal error : Fail to apply DBWriteRequest !"),
                 SyncJobsMess::End => break,
                 _ => {}

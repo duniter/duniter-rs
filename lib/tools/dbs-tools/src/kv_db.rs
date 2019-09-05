@@ -22,6 +22,6 @@ pub use file::{
     KvFileDbStoreType, KvFileDbWriter,
 };
 pub use rkv::{
-    IntegerStore, MultiIntegerStore, MultiStore, OwnedValue as KvFileDbOwnedValue, SingleStore,
-    Value as KvFileDbValue,
+    store::multi::Iter, IntegerStore, MultiIntegerStore, MultiStore,
+    OwnedValue as KvFileDbOwnedValue, SingleStore, Value as KvFileDbValue,
 };

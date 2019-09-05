@@ -21,11 +21,11 @@ use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use dubp_user_docs::documents::transaction::{TxAmount, TxBase};
 use dup_crypto::keys::*;
-use durs_blockchain_dal::entities::block::DALBlock;
-use durs_blockchain_dal::entities::sources::SourceAmount;
-use durs_blockchain_dal::writers::requests::*;
-use durs_blockchain_dal::writers::transaction::DALTxV10;
-use durs_blockchain_dal::{BinFreeStructDb, DALError, TxV10Datas};
+use durs_bc_db_reader::entities::block::DbBlock;
+use durs_bc_db_reader::entities::sources::SourceAmount;
+use durs_bc_db_writer::writers::requests::*;
+use durs_bc_db_writer::writers::transaction::DbTxV10;
+use durs_bc_db_writer::{BinFreeStructDb, DbError, TxV10Datas};
 use durs_common_tools::fatal_error;
 use durs_wot::data::{NewLinkResult, RemLinkResult};
 use durs_wot::{WebOfTrust, WotId};
@@ -46,17 +46,17 @@ pub struct ValidBlockRevertReqs {
 pub enum RevertValidBlockError {
     ExcludeUnknowNodeId(),
     RevokeUnknowNodeId(),
-    DALError(DALError),
+    DbError(DbError),
 }
 
-impl From<DALError> for RevertValidBlockError {
-    fn from(e: DALError) -> Self {
-        RevertValidBlockError::DALError(e)
+impl From<DbError> for RevertValidBlockError {
+    fn from(e: DbError) -> Self {
+        RevertValidBlockError::DbError(e)
     }
 }
 
 pub fn revert_block<W: WebOfTrust>(
-    dal_block: DALBlock,
+    dal_block: DbBlock,
     wot_index: &mut HashMap<PubKey, WotId>,
     wot_db: &BinFreeStructDb<W>,
     txs_db: &BinFreeStructDb<TxV10Datas>,
@@ -80,7 +80,7 @@ pub fn revert_block_v10<W: WebOfTrust>(
     txs_db: &BinFreeStructDb<TxV10Datas>,
 ) -> Result<ValidBlockRevertReqs, RevertValidBlockError> {
     // Get transactions
-    let dal_txs: Vec<DALTxV10> = block
+    let dal_txs: Vec<DbTxV10> = block
         .transactions
         .iter()
         .map(|tx_enum| match *tx_enum {
@@ -270,7 +270,7 @@ pub fn revert_block_v10<W: WebOfTrust>(
     // Return DBs requests
     Ok(ValidBlockRevertReqs {
         new_current_blockstamp: block.previous_blockstamp(),
-        block_query: BlocksDBsWriteQuery::RevertBlock(DALBlock {
+        block_query: BlocksDBsWriteQuery::RevertBlock(DbBlock {
             block: BlockDocument::V10(block),
             expire_certs: Some(expire_certs),
         }),

@@ -163,7 +163,7 @@ impl WS2PConnectionMetaDatas {
             match req_id.as_str() {
                 Some(req_id) => match msg.get("body") {
                     Some(body) => {
-                        trace!("WS2P : Receive DAL Request from {}.", self.node_full_id());
+                        trace!("WS2P : Receive DB Request from {}.", self.node_full_id());
 
                         let req_id = match WS2Pv1ReqId::from_str(req_id) {
                             Ok(req_id) => req_id,

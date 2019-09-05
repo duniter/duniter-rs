@@ -27,7 +27,7 @@ pub fn receive_response(
         match *bc_res.deref() {
             BlockchainResponse::CurrentBlockstamp(ref current_blockstamp_) => {
                 debug!(
-                    "WS2Pv1Module : receive DALResBc::CurrentBlockstamp({})",
+                    "WS2Pv1Module : receive DbResBc::CurrentBlockstamp({})",
                     ws2p_module.current_blockstamp
                 );
                 ws2p_module.current_blockstamp = *current_blockstamp_;

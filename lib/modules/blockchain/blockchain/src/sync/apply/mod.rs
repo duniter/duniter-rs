@@ -26,8 +26,9 @@ use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use dup_crypto::keys::PubKey;
-use durs_blockchain_dal::writers::requests::WotsDBsWriteQuery;
-use durs_blockchain_dal::{BinFreeStructDb, CertsExpirV10Datas, WotsV10DBs};
+use durs_bc_db_reader::CertsExpirV10Datas;
+use durs_bc_db_writer::writers::requests::WotsDBsWriteQuery;
+use durs_bc_db_writer::{BinFreeStructDb, WotsV10DBs};
 use durs_common_tools::fatal_error;
 use durs_network_documents::url::Url;
 use durs_wot::data::rusty::RustyWebOfTrust;
@@ -95,8 +96,8 @@ impl BlockApplicator {
 
         // Find expire_certs
         let expire_certs =
-            durs_blockchain_dal::readers::certs::find_expire_certs(&self.certs_db, blocks_expiring)
-                .expect("find_expire_certs() : DALError");
+            durs_bc_db_reader::readers::certs::find_expire_certs(&self.certs_db, blocks_expiring)
+                .expect("find_expire_certs() : DbError");
 
         // Get block blockstamp
         let blockstamp = block_doc.blockstamp();

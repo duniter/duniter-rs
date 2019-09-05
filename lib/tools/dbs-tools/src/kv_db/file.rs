@@ -15,7 +15,7 @@
 
 //! Define Key-Value file database
 
-use crate::errors::DALError;
+use crate::errors::DbError;
 use durs_common_tools::fatal_error;
 use log::error;
 use rkv::{DatabaseFlags, EnvironmentFlags, Manager, OwnedValue, Rkv, StoreOptions, Value};
@@ -35,6 +35,12 @@ pub struct KvFileDbWriter<'a> {
     writer: rkv::Writer<'a>,
 }
 
+impl<'a> AsRef<rkv::Writer<'a>> for KvFileDbWriter<'a> {
+    fn as_ref(&self) -> &rkv::Writer<'a> {
+        &self.writer
+    }
+}
+
 impl<'a> AsMut<rkv::Writer<'a>> for KvFileDbWriter<'a> {
     fn as_mut(&mut self) -> &mut rkv::Writer<'a> {
         &mut self.writer
@@ -52,10 +58,76 @@ pub struct KvFileDbHandler {
 /// Key-value file Database read-only handler
 pub struct KvFileDbRoHandler(KvFileDbHandler);
 
+impl KvFileDbRoHandler {
+    /// Open Key-value file Database in read-only mode
+    pub fn open_db_ro(path: &Path, schema: &KvFileDbSchema) -> Result<KvFileDbRoHandler, DbError> {
+        let mut db_main_file = path.to_owned();
+        db_main_file.push("data.mdb");
+        if !db_main_file.as_path().is_file() {
+            return Err(DbError::DBNotExist);
+        }
+
+        let mut manager = Manager::singleton().write()?;
+        let mut env = Rkv::environment_builder();
+        env.set_flags(EnvironmentFlags::READ_ONLY)
+            .set_max_dbs(64)
+            .set_map_size(std::u32::MAX as usize);
+        let arc = manager.get_or_create(path, |path| Rkv::from_env(path, env))?;
+
+        let mut stores = HashMap::new();
+        for (store_name, store_type) in &schema.stores {
+            let store = match store_type {
+                KvFileDbStoreType::Single => {
+                    KvFileDbStore::Single(arc.clone().read()?.open_single(
+                        store_name.as_str(),
+                        StoreOptions {
+                            create: false,
+                            flags: DatabaseFlags::empty(),
+                        },
+                    )?)
+                }
+                KvFileDbStoreType::SingleIntKey => {
+                    KvFileDbStore::SingleIntKey(arc.clone().read()?.open_integer(
+                        store_name.as_str(),
+                        StoreOptions {
+                            create: false,
+                            flags: DatabaseFlags::INTEGER_KEY,
+                        },
+                    )?)
+                }
+                KvFileDbStoreType::Multi => KvFileDbStore::Multi(arc.clone().read()?.open_multi(
+                    store_name.as_str(),
+                    StoreOptions {
+                        create: false,
+                        flags: DatabaseFlags::empty(),
+                    },
+                )?),
+                KvFileDbStoreType::MultiIntKey => {
+                    KvFileDbStore::MultiIntKey(arc.clone().read()?.open_multi_integer(
+                        store_name.as_str(),
+                        StoreOptions {
+                            create: false,
+                            flags: DatabaseFlags::INTEGER_KEY,
+                        },
+                    )?)
+                }
+            };
+            stores.insert(store_name.to_owned(), store);
+        }
+
+        Ok(KvFileDbRoHandler(KvFileDbHandler {
+            arc,
+            path: path.to_owned(),
+            schema: schema.clone(),
+            stores,
+        }))
+    }
+}
+
 /// Key-value file Database read operations
 pub trait KvFileDbRead: Sized {
     /// Convert DB value to a rust type
-    fn from_db_value<T: DeserializeOwned>(v: Value) -> Result<T, DALError>;
+    fn from_db_value<T: DeserializeOwned>(v: Value) -> Result<T, DbError>;
 
     /// get a single store
     fn get_store(&self, store_name: &str) -> &super::SingleStore;
@@ -63,18 +135,18 @@ pub trait KvFileDbRead: Sized {
     /// Get an integer store
     fn get_int_store(&self, store_name: &str) -> &super::IntegerStore<u32>;
 
-    /// Read datas in transaction database
-    fn read<F, R>(&self, f: F) -> Result<R, DALError>
-    where
-        F: FnOnce(KvFileDbReader) -> Result<R, DALError>;
+    /// get a multi store
+    fn get_multi_store(&self, store_name: &str) -> &super::MultiStore;
 
-    /// Try to clone database handler
-    fn try_clone(&self) -> Result<Self, DALError>;
+    /// Read datas in transaction database
+    fn read<F, R>(&self, f: F) -> Result<R, DbError>
+    where
+        F: FnOnce(KvFileDbReader) -> Result<R, DbError>;
 }
 
 impl KvFileDbRead for KvFileDbRoHandler {
     #[inline]
-    fn from_db_value<T: DeserializeOwned>(v: Value) -> Result<T, DALError> {
+    fn from_db_value<T: DeserializeOwned>(v: Value) -> Result<T, DbError> {
         KvFileDbHandler::from_db_value(v)
     }
     #[inline]
@@ -86,15 +158,15 @@ impl KvFileDbRead for KvFileDbRoHandler {
         self.0.get_int_store(store_name)
     }
     #[inline]
-    fn read<F, R>(&self, f: F) -> Result<R, DALError>
-    where
-        F: FnOnce(KvFileDbReader) -> Result<R, DALError>,
-    {
-        self.0.read(f)
+    fn get_multi_store(&self, store_name: &str) -> &super::MultiStore {
+        self.0.get_multi_store(store_name)
     }
     #[inline]
-    fn try_clone(&self) -> Result<Self, DALError> {
-        Ok(KvFileDbRoHandler(self.0.try_clone()?))
+    fn read<F, R>(&self, f: F) -> Result<R, DbError>
+    where
+        F: FnOnce(KvFileDbReader) -> Result<R, DbError>,
+    {
+        self.0.read(f)
     }
 }
 
@@ -132,11 +204,11 @@ pub enum KvFileDbStore {
 
 impl KvFileDbRead for KvFileDbHandler {
     #[inline]
-    fn from_db_value<T: DeserializeOwned>(v: Value) -> Result<T, DALError> {
+    fn from_db_value<T: DeserializeOwned>(v: Value) -> Result<T, DbError> {
         if let Value::Blob(bytes) = v {
             Ok(bincode::deserialize::<T>(bytes)?)
         } else {
-            Err(DALError::DBCorrupted)
+            Err(DbError::DBCorrupted)
         }
     }
     fn get_int_store(&self, store_name: &str) -> &super::IntegerStore<u32> {
@@ -161,14 +233,22 @@ impl KvFileDbRead for KvFileDbHandler {
             fatal_error!("Dev error: store '{}' don't exist in DB.", store_name);
         }
     }
-    fn read<F, R>(&self, f: F) -> Result<R, DALError>
+    fn get_multi_store(&self, store_name: &str) -> &super::MultiStore {
+        if let Some(store_enum) = self.stores.get(store_name) {
+            if let KvFileDbStore::Multi(store) = store_enum {
+                store
+            } else {
+                fatal_error!("Dev error: store '{}' is not a multi store.", store_name);
+            }
+        } else {
+            fatal_error!("Dev error: store '{}' don't exist in DB.", store_name);
+        }
+    }
+    fn read<F, R>(&self, f: F) -> Result<R, DbError>
     where
-        F: FnOnce(KvFileDbReader) -> Result<R, DALError>,
+        F: FnOnce(KvFileDbReader) -> Result<R, DbError>,
     {
         Ok(f(&self.arc_clone().read()?.read()?)?)
-    }
-    fn try_clone(&self) -> Result<KvFileDbHandler, DALError> {
-        KvFileDbHandler::open_db_inner(&self.path, &self.schema, false)
     }
 }
 
@@ -180,26 +260,24 @@ impl KvFileDbHandler {
         self.arc().clone()
     }
     /// Convert bytes to DB value
-    pub fn db_value(bytes: &[u8]) -> Result<Value, DALError> {
+    pub fn db_value(bytes: &[u8]) -> Result<Value, DbError> {
         Ok(Value::Blob(bytes))
-    }
-    /// Get read_only handler
-    pub fn get_ro_handler(&self) -> Result<KvFileDbRoHandler, DALError> {
-        Ok(KvFileDbRoHandler(self.try_clone()?))
     }
     /// Open Key-value file Database
     #[inline]
-    pub fn open_db(path: &Path, schema: &KvFileDbSchema) -> Result<KvFileDbHandler, DALError> {
+    pub fn open_db(path: &Path, schema: &KvFileDbSchema) -> Result<KvFileDbHandler, DbError> {
         KvFileDbHandler::open_db_inner(path, schema, true)
     }
     fn open_db_inner(
         path: &Path,
         schema: &KvFileDbSchema,
         first_open: bool,
-    ) -> Result<KvFileDbHandler, DALError> {
+    ) -> Result<KvFileDbHandler, DbError> {
+        let mut env_flags = EnvironmentFlags::NO_MEM_INIT;
+        env_flags.insert(EnvironmentFlags::NO_SYNC);
         let mut manager = Manager::singleton().write()?;
         let mut env = Rkv::environment_builder();
-        env.set_flags(EnvironmentFlags::NO_SYNC)
+        env.set_flags(env_flags)
             .set_max_dbs(64)
             .set_map_size(std::u32::MAX as usize);
         let arc = manager.get_or_create(path, |path| Rkv::from_env(path, env))?;
@@ -253,14 +331,14 @@ impl KvFileDbHandler {
         })
     }
     /// Persist DB datas on disk
-    pub fn save(&self) -> Result<(), DALError> {
+    pub fn save(&self) -> Result<(), DbError> {
         Ok(self.arc_clone().read()?.sync(true)?)
     }
     /// Write datas in database
     /// /!\ The written data are visible to readers but not persisted on the disk until a save() is performed.
-    pub fn write<F>(&self, f: F) -> Result<(), DALError>
+    pub fn write<F>(&self, f: F) -> Result<(), DbError>
     where
-        F: FnOnce(KvFileDbWriter) -> Result<KvFileDbWriter, DALError>,
+        F: FnOnce(KvFileDbWriter) -> Result<KvFileDbWriter, DbError>,
     {
         f(KvFileDbWriter {
             buffer: Vec::with_capacity(0),
@@ -268,6 +346,87 @@ impl KvFileDbHandler {
         })?
         .writer
         .commit()?;
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use tempfile::tempdir;
+
+    fn get_int_store_str_val(
+        ro_db: &KvFileDbRoHandler,
+        store_name: &str,
+        key: u32,
+    ) -> Result<Option<String>, DbError> {
+        ro_db.read(|r| {
+            if let Some(Value::Str(v)) = ro_db.get_int_store(store_name).get(r, key)? {
+                Ok(Some(v.to_owned()))
+            } else {
+                Ok(None)
+            }
+        })
+    }
+
+    #[test]
+    fn test_open_db_wr_and_ro() -> Result<(), DbError> {
+        let tmp_dir = tempdir().map_err(DbError::FileSystemError)?;
+        let mut stores = HashMap::new();
+        stores.insert("test1".to_owned(), KvFileDbStoreType::SingleIntKey);
+        let schema = KvFileDbSchema { stores };
+        let db = KvFileDbHandler::open_db(tmp_dir.path(), &schema)?;
+        let store_test1 = db.get_int_store("test1");
+
+        db.write(|mut w| {
+            store_test1.put(w.as_mut(), 3, &Value::Str("toto"))?;
+            Ok(w)
+        })?;
+
+        let ro_db = KvFileDbRoHandler::open_db_ro(tmp_dir.path(), &schema)?;
+
+        assert_eq!(
+            Some("toto".to_owned()),
+            get_int_store_str_val(&ro_db, "test1", 3)?
+        );
+
+        db.write(|mut w| {
+            store_test1.put(w.as_mut(), 3, &Value::Str("titi"))?;
+            Ok(w)
+        })?;
+
+        assert_eq!(
+            Some("titi".to_owned()),
+            get_int_store_str_val(&ro_db, "test1", 3)?
+        );
+
+        db.write(|mut w| {
+            store_test1.put(w.as_mut(), 3, &Value::Str("tutu"))?;
+            assert_eq!(
+                Some("titi".to_owned()),
+                get_int_store_str_val(&ro_db, "test1", 3)?
+            );
+            Ok(w)
+        })?;
+
+        let db_path = tmp_dir.path().to_owned();
+        let thread = std::thread::spawn(move || {
+            let ro_db =
+                KvFileDbRoHandler::open_db_ro(db_path.as_path(), &schema).expect("Fail to open DB");
+            assert_eq!(
+                Some("tutu".to_owned()),
+                get_int_store_str_val(&ro_db, "test1", 3).expect("Fail to read DB")
+            );
+        });
+
+        assert_eq!(
+            Some("tutu".to_owned()),
+            get_int_store_str_val(&ro_db, "test1", 3).expect("Fail to read DB")
+        );
+
+        let _ = thread.join();
 
         Ok(())
     }

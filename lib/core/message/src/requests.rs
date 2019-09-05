@@ -17,7 +17,6 @@ use crate::*;
 use dubp_common_doc::BlockNumber;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
-use durs_blockchain_dal::filters::identities::IdentitiesFilter;
 use durs_network::requests::OldNetworkRequest;
 
 #[derive(Debug, Clone)]
@@ -58,8 +57,6 @@ pub enum BlockchainRequest {
     },
     /// Usernames corresponding to the public keys in parameter
     UIDs(Vec<PubKey>),
-    /// Get identities
-    GetIdentities(IdentitiesFilter),
 }
 
 #[derive(Debug, Copy, Clone)]

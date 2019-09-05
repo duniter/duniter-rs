@@ -20,7 +20,21 @@ use rustbreak::error::{RustbreakError, RustbreakErrorKind};
 
 #[derive(Debug)]
 /// Data Access Layer Error
-pub enum DALError {
+pub enum DbError {
+    /// A database is corrupted, you have to reset the data completely
+    DBCorrupted,
+    ///  Database not exist
+    DBNotExist,
+    /// Error in read operation
+    ReadError,
+    /// Error with the file system
+    FileSystemError(std::io::Error),
+    /// Serialization/Deserialization error
+    SerdeError(String),
+    /// Rkv store error
+    StoreError(rkv::error::StoreError),
+    /// Unknown error
+    UnknowError,
     /// Abort write transaction
     WriteAbort {
         /// Reason of transaction abort
@@ -28,49 +42,37 @@ pub enum DALError {
     },
     /// Error in write operation
     WriteError,
-    /// Error in read operation
-    ReadError,
-    /// A database is corrupted, you have to reset the data completely
-    DBCorrupted,
-    /// Error with the file system
-    FileSystemError(std::io::Error),
-    /// Serialization/Deserialization error
-    SerdeError(String),
-    /// Rkv store error
-    StoreError(rkv::error::StoreError),
     /// Capturing a panic signal during a write operation
     WritePanic,
-    /// Unknown error
-    UnknowError,
 }
 
-impl From<bincode::Error> for DALError {
-    fn from(e: bincode::Error) -> DALError {
-        DALError::SerdeError(format!("{}", e))
+impl From<bincode::Error> for DbError {
+    fn from(e: bincode::Error) -> DbError {
+        DbError::SerdeError(format!("{}", e))
     }
 }
 
-impl From<rkv::error::StoreError> for DALError {
-    fn from(e: rkv::error::StoreError) -> DALError {
-        DALError::StoreError(e)
+impl From<rkv::error::StoreError> for DbError {
+    fn from(e: rkv::error::StoreError) -> DbError {
+        DbError::StoreError(e)
     }
 }
 
-impl<T> From<std::sync::PoisonError<T>> for DALError {
-    fn from(_: std::sync::PoisonError<T>) -> DALError {
-        DALError::DBCorrupted
+impl<T> From<std::sync::PoisonError<T>> for DbError {
+    fn from(_: std::sync::PoisonError<T>) -> DbError {
+        DbError::DBCorrupted
     }
 }
 
-impl From<RustbreakError> for DALError {
-    fn from(rust_break_error: RustbreakError) -> DALError {
+impl From<RustbreakError> for DbError {
+    fn from(rust_break_error: RustbreakError) -> DbError {
         match rust_break_error.kind() {
-            RustbreakErrorKind::Serialization => DALError::WriteError,
-            RustbreakErrorKind::Deserialization => DALError::ReadError,
-            RustbreakErrorKind::Poison => DALError::DBCorrupted,
-            RustbreakErrorKind::Backend => DALError::DBCorrupted,
-            RustbreakErrorKind::WritePanic => DALError::WritePanic,
-            _ => DALError::UnknowError,
+            RustbreakErrorKind::Serialization => DbError::WriteError,
+            RustbreakErrorKind::Deserialization => DbError::ReadError,
+            RustbreakErrorKind::Poison => DbError::DBCorrupted,
+            RustbreakErrorKind::Backend => DbError::DBCorrupted,
+            RustbreakErrorKind::WritePanic => DbError::WritePanic,
+            _ => DbError::UnknowError,
         }
     }
 }

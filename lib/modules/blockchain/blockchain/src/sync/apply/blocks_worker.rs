@@ -22,13 +22,16 @@ pub fn execute(
     sender_sync_thread: mpsc::Sender<MessForSyncThread>,
     recv: mpsc::Receiver<SyncJobsMess>,
     db: Db,
-    forks_db: ForksDBs,
     target_blockstamp: Blockstamp,
     mut apply_pb: ProgressBar<std::io::Stdout>,
 ) {
     // Launch blocks_worker thread
     pool.execute(move || {
         let blocks_job_begin = SystemTime::now();
+
+        // Get fork tree
+        let mut fork_tree = durs_bc_db_reader::readers::current_meta_datas::get_fork_tree(&db)
+            .expect("Fail to read DB.");
 
         // Listen db requets
         let mut chunk_index = 0;
@@ -46,8 +49,13 @@ pub fn execute(
                         all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
 
                         // Apply db request
-                        req.apply(&db, &forks_db, fork_window_size, Some(target_blockstamp))
-                            .expect("Fatal error : Fail to apply DBWriteRequest !");
+                        req.apply(
+                            &db,
+                            &mut fork_tree,
+                            fork_window_size,
+                            Some(target_blockstamp),
+                        )
+                        .expect("Fatal error : Fail to apply DBWriteRequest !");
 
                         chunk_index += 1;
                         if chunk_index == 250 {
@@ -76,9 +84,10 @@ pub fn execute(
         println!();
         println!("Write indexs in files...");
         info!("Save blockchain and forks databases in files...");
+        durs_bc_db_writer::writers::fork_tree::save_fork_tree(&db, &fork_tree)
+            .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
         db.save()
             .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
-        forks_db.save_dbs();
 
         // Send finish signal
         sender_sync_thread

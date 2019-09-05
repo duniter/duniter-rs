@@ -89,7 +89,7 @@ pub fn request_orphan_previous(
     _orphan_block_number: BlockNumber,
 ) -> HashMap<ModuleReqId, OldNetworkRequest> {
     /*if orphan_block_number.0
-        > bc.current_blockstamp.id.0 - *durs_blockchain_dal::constants::FORK_WINDOW_SIZE as u32
+        > bc.current_blockstamp.id.0 - *durs_bc_db_writer::constants::FORK_WINDOW_SIZE as u32
         && orphan_block_number.0 <= bc.current_blockstamp.id.0 + *CHUNK_SIZE
     {
         request_blocks_from_to(

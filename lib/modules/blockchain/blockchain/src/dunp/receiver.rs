@@ -54,14 +54,19 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                     bc_db_query
                         .apply(
                             &bc.db,
-                            &bc.forks_dbs,
+                            &mut bc.fork_tree,
                             unwrap!(bc.currency_params).fork_window_size,
                             None,
                         )
                         .expect("Fatal error : Fail to apply DBWriteRequest !");
                     for query in &wot_dbs_queries {
                         query
-                            .apply(&blockstamp, &unwrap!(bc.currency_params), &bc.wot_databases)
+                            .apply(
+                                &blockstamp,
+                                &unwrap!(bc.currency_params),
+                                &bc.wot_databases,
+                                &bc.db,
+                            )
                             .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
                     }
                     for query in &tx_dbs_queries {
@@ -83,9 +88,9 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                 }
                 CheckAndApplyBlockReturn::ForkBlock => {
                     info!("blockchain: new fork block(#{})", blockstamp);
-                    bc.forks_dbs.save_dbs();
                     if let Ok(Some(new_bc_branch)) = fork_algo::fork_resolution_algo(
-                        &bc.forks_dbs,
+                        &bc.db,
+                        &bc.fork_tree,
                         unwrap!(bc.currency_params).fork_window_size,
                         bc.current_blockstamp,
                         &bc.invalid_forks,
@@ -111,8 +116,8 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                     error!("ApplyValidBlockError(#{}): {:?}", blockstamp, e2);
                     crate::events::sent::send_event(bc, &BlockchainEvent::RefusedBlock(blockstamp));
                 }
-                BlockError::DALError(e2) => {
-                    error!("BlockError::DALError(#{}): {:?}", blockstamp, e2);
+                BlockError::DbError(e2) => {
+                    error!("BlockError::DbError(#{}): {:?}", blockstamp, e2);
                     crate::events::sent::send_event(bc, &BlockchainEvent::RefusedBlock(blockstamp));
                 }
                 BlockError::AlreadyHaveBlock => {
@@ -129,7 +134,8 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
         bc.db
             .save()
             .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
-        bc.forks_dbs.save_dbs();
+        durs_bc_db_writer::writers::fork_tree::save_fork_tree(&bc.db, &bc.fork_tree)
+            .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
     }
     if save_wots_dbs {
         bc.wot_databases.save_dbs();

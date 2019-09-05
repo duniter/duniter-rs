@@ -15,7 +15,7 @@
 
 //! Define free structure database
 
-use crate::errors::DALError;
+use crate::errors::DbError;
 use rustbreak::backend::{FileBackend, MemoryBackend};
 use rustbreak::error::RustbreakError;
 use rustbreak::{deser::Bincode, Database, FileDatabase, MemoryDatabase};
@@ -30,7 +30,7 @@ use std::path::PathBuf;
 /// Open free structured rustbreak memory database
 pub fn open_free_struct_memory_db<
     D: Serialize + DeserializeOwned + Debug + Default + Clone + Send,
->() -> Result<MemoryDatabase<D, Bincode>, DALError> {
+>() -> Result<MemoryDatabase<D, Bincode>, DbError> {
     let backend = MemoryBackend::new();
     let db = MemoryDatabase::<D, Bincode>::from_parts(D::default(), backend, Bincode);
     Ok(db)
@@ -42,7 +42,7 @@ pub fn open_free_struct_file_db<
 >(
     dbs_folder_path: &PathBuf,
     db_file_name: &str,
-) -> Result<FileDatabase<D, Bincode>, DALError> {
+) -> Result<FileDatabase<D, Bincode>, DbError> {
     let mut db_path = dbs_folder_path.clone();
     db_path.push(db_file_name);
     let file_path = db_path.as_path();

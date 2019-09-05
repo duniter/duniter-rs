@@ -24,8 +24,8 @@ use check::*;
 use dubp_block_doc::block::{BlockDocumentTrait, VerifyBlockHashError};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
-use durs_blockchain_dal::entities::block::DALBlock;
-use durs_blockchain_dal::*;
+use durs_bc_db_reader::entities::block::DbBlock;
+use durs_bc_db_writer::*;
 use unwrap::unwrap;
 
 #[derive(Debug, Clone)]
@@ -40,7 +40,7 @@ pub enum BlockError {
     AlreadyHaveBlock,
     BlockOrOutForkWindow,
     VerifyBlockHashError(VerifyBlockHashError),
-    DALError(DALError),
+    DbError(DbError),
     InvalidBlock(InvalidBlockError),
     ApplyValidBlockError(ApplyValidBlockError),
 }
@@ -51,9 +51,9 @@ impl From<VerifyBlockHashError> for BlockError {
     }
 }
 
-impl From<DALError> for BlockError {
-    fn from(err: DALError) -> Self {
-        BlockError::DALError(err)
+impl From<DbError> for BlockError {
+    fn from(err: DbError) -> Self {
+        BlockError::DbError(err)
     }
 }
 
@@ -68,9 +68,8 @@ pub fn check_and_apply_block(
     block_doc: BlockDocument,
 ) -> Result<CheckAndApplyBlockReturn, BlockError> {
     // Get BlockDocument && check if already have block
-    let already_have_block = readers::block::already_have_block(
+    let already_have_block = durs_bc_db_reader::readers::block::already_have_block(
         &bc.db,
-        &bc.forks_dbs,
         block_doc.blockstamp(),
         block_doc.previous_hash(),
     )?;
@@ -90,7 +89,7 @@ pub fn check_and_apply_block(
         );
         // Detect expire_certs
         let blocks_expiring = Vec::with_capacity(0);
-        let expire_certs = durs_blockchain_dal::readers::certs::find_expire_certs(
+        let expire_certs = durs_bc_db_reader::readers::certs::find_expire_certs(
             &bc.wot_databases.certs_db,
             blocks_expiring,
         )?;
@@ -110,7 +109,7 @@ pub fn check_and_apply_block(
             let datas_path = durs_conf::get_datas_path(bc.profile_path.clone());
             // Get and write currency params
             bc.currency_params = Some(
-                durs_blockchain_dal::readers::currency_params::get_and_write_currency_params(
+                durs_bc_db_reader::readers::currency_params::get_and_write_currency_params(
                     &datas_path,
                     &block_doc,
                 ),
@@ -134,13 +133,17 @@ pub fn check_and_apply_block(
             block_doc.blockstamp()
         );
 
-        let dal_block = DALBlock {
+        let dal_block = DbBlock {
             block: block_doc.clone(),
             expire_certs: None,
         };
 
-        if durs_blockchain_dal::writers::block::insert_new_fork_block(&bc.forks_dbs, dal_block)
-            .expect("durs_blockchain_dal::writers::block::insert_new_fork_block() : DALError")
+        if durs_bc_db_writer::writers::block::insert_new_fork_block(
+            &bc.db,
+            &mut bc.fork_tree,
+            dal_block,
+        )
+        .expect("durs_bc_db_writer::writers::block::insert_new_fork_block() : DbError")
         {
             Ok(CheckAndApplyBlockReturn::ForkBlock)
         } else {

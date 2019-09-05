@@ -15,8 +15,9 @@
 
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::Blockstamp;
-use durs_blockchain_dal::entities::fork_tree::ForkTree;
-use durs_blockchain_dal::{DALError, ForksDBs};
+use durs_bc_db_reader::entities::fork_tree::ForkTree;
+use durs_bc_db_reader::DbReadable;
+use durs_bc_db_writer::DbError;
 use std::collections::HashSet;
 
 /// Number of advance blocks required
@@ -24,45 +25,39 @@ pub static ADVANCE_BLOCKS: &u32 = &3;
 /// Advance blockchain time required (in seconds)
 pub static ADVANCE_TIME: &u64 = &900;
 
-pub fn fork_resolution_algo(
-    forks_dbs: &ForksDBs,
+pub fn fork_resolution_algo<DB: DbReadable>(
+    db: &DB,
+    fork_tree: &ForkTree,
     fork_window_size: usize,
     current_blockstamp: Blockstamp,
     invalid_blocks: &HashSet<Blockstamp>,
-) -> Result<Option<Vec<Blockstamp>>, DALError> {
-    let current_bc_time = forks_dbs.fork_blocks_db.read(|db| {
-        db.get(&current_blockstamp)
-            .expect("safe unwrap")
-            .block
-            .common_time()
-    })?;
+) -> Result<Option<Vec<Blockstamp>>, DbError> {
+    let current_bc_time =
+        durs_bc_db_reader::readers::current_meta_datas::get_current_common_time(db)?;
 
     debug!(
         "fork_resolution_algo({}, {})",
         fork_window_size, current_bc_time
     );
 
-    let mut sheets = forks_dbs.fork_tree_db.read(ForkTree::get_sheets)?;
+    let mut sheets = fork_tree.get_sheets();
 
     sheets.sort_unstable_by(|s1, s2| s2.1.id.cmp(&s1.1.id));
 
     for sheet in sheets {
         if sheet.1 != current_blockstamp {
-            let branch = forks_dbs
-                .fork_tree_db
-                .read(|fork_tree| fork_tree.get_fork_branch(sheet.0))?;
+            let branch = fork_tree.get_fork_branch(sheet.0);
 
             if branch.is_empty() {
                 continue;
             }
 
             let branch_head_blockstamp = branch.last().expect("safe unwrap");
-            let branch_head_median_time = forks_dbs.fork_blocks_db.read(|db| {
-                db.get(&branch_head_blockstamp)
+            let branch_head_median_time =
+                durs_bc_db_reader::readers::block::get_fork_block(db, *branch_head_blockstamp)?
                     .expect("safe unwrap")
                     .block
-                    .common_time()
-            })?;
+                    .common_time();
 
             if branch_head_blockstamp.id.0 >= current_blockstamp.id.0 + *ADVANCE_BLOCKS
                 && branch_head_median_time >= current_bc_time + *ADVANCE_TIME
@@ -102,18 +97,16 @@ mod tests {
     use crate::*;
     use dubp_block_doc::BlockDocument;
     use dubp_common_doc::{BlockHash, BlockNumber};
-    use durs_blockchain_dal::entities::block::DALBlock;
+    use durs_bc_db_reader::entities::block::DbBlock;
 
     #[test]
-    fn test_fork_resolution_algo() -> Result<(), DALError> {
+    fn test_fork_resolution_algo() -> Result<(), DbError> {
         // Open empty DB in tmp dir
         let db = crate::tests::open_tmp_db()?;
+        let mut fork_tree = ForkTree::default();
 
         // Get FORK_WINDOW_SIZE value
         let fork_window_size = *dubp_currency_params::constants::DEFAULT_FORK_WINDOW_SIZE;
-
-        // Open empty databases in memory mode
-        let forks_dbs = ForksDBs::open(None);
 
         // Begin with no invalid blocks
         let invalid_blocks: HashSet<Blockstamp> = HashSet::new();
@@ -127,10 +120,10 @@ mod tests {
 
         // Insert mock blocks in forks_dbs
         for block in &main_branch {
-            durs_blockchain_dal::writers::block::insert_new_head_block(
+            durs_bc_db_writer::writers::block::insert_new_head_block(
                 &db,
-                Some(&forks_dbs),
-                DALBlock {
+                Some(&mut fork_tree),
+                DbBlock {
                     block: block.clone(),
                     expire_certs: None,
                 },
@@ -139,7 +132,7 @@ mod tests {
 
         // Local blockchain must contain at least `fork_window_size +2` blocks
         assert!(
-            durs_blockchain_dal::readers::block::get_block_in_local_blockchain(
+            durs_bc_db_reader::readers::block::get_block_in_local_blockchain(
                 &db,
                 BlockNumber((fork_window_size + 1) as u32)
             )?
@@ -147,22 +140,10 @@ mod tests {
         );
 
         // Fork tree must contain at least `fork_window_size +2` blocks
-        assert_eq!(
-            fork_window_size,
-            forks_dbs.fork_tree_db.read(|fork_tree| fork_tree.size())?
-        );
-        assert_eq!(
-            fork_window_size,
-            forks_dbs.fork_blocks_db.read(|db| db.len())?
-        );
+        assert_eq!(fork_window_size, fork_tree.size());
 
         // Get current blockstamp
-        let mut current_blockstamp = forks_dbs
-            .fork_tree_db
-            .read(|fork_tree| fork_tree.get_sheets())?
-            .get(0)
-            .expect("must be one sheet")
-            .1;
+        let mut current_blockstamp = fork_tree.get_sheets().get(0).expect("must be one sheet").1;
 
         // Generate 3 fork block
         let fork_point = &main_branch[main_branch.len() - 2];
@@ -186,19 +167,15 @@ mod tests {
             .collect();
 
         // Add forks blocks into fork tree
-        insert_fork_blocks(&forks_dbs, &fork_blocks)?;
-        assert_eq!(
-            2,
-            forks_dbs
-                .fork_tree_db
-                .read(|tree| tree.get_sheets().len())?
-        );
+        insert_fork_blocks(&db, &mut fork_tree, &fork_blocks)?;
+        assert_eq!(2, fork_tree.get_sheets().len());
 
         // Must not fork
         assert_eq!(
             None,
             fork_resolution_algo(
-                &forks_dbs,
+                &db,
+                &fork_tree,
                 fork_window_size,
                 current_blockstamp,
                 &invalid_blocks
@@ -212,9 +189,10 @@ mod tests {
         };
         assert_eq!(
             true,
-            durs_blockchain_dal::writers::block::insert_new_fork_block(
-                &forks_dbs,
-                DALBlock {
+            durs_bc_db_writer::writers::block::insert_new_fork_block(
+                &db,
+                &mut fork_tree,
+                DbBlock {
                     block: BlockDocument::V10(
                         dubp_user_docs_tests_tools::mocks::gen_empty_timed_block_v10(
                             determining_blockstamp,
@@ -236,7 +214,8 @@ mod tests {
                 determining_blockstamp,
             ]),
             fork_resolution_algo(
-                &forks_dbs,
+                &db,
+                &mut fork_tree,
                 fork_window_size,
                 current_blockstamp,
                 &invalid_blocks
@@ -263,13 +242,14 @@ mod tests {
                 )
             })
             .collect();
-        insert_fork_blocks(&forks_dbs, &new_main_blocks)?;
+        insert_fork_blocks(&db, &mut fork_tree, &new_main_blocks)?;
 
         // Must refork
         assert_eq!(
             Some(new_main_blocks.iter().map(|b| b.blockstamp()).collect()),
             fork_resolution_algo(
-                &forks_dbs,
+                &db,
+                &mut fork_tree,
                 fork_window_size,
                 current_blockstamp,
                 &invalid_blocks
@@ -280,13 +260,18 @@ mod tests {
         Ok(())
     }
 
-    fn insert_fork_blocks(forks_dbs: &ForksDBs, blocks: &[BlockDocument]) -> Result<(), DALError> {
+    fn insert_fork_blocks(
+        db: &Db,
+        fork_tree: &mut ForkTree,
+        blocks: &[BlockDocument],
+    ) -> Result<(), DbError> {
         for block in blocks {
             assert_eq!(
                 true,
-                durs_blockchain_dal::writers::block::insert_new_fork_block(
-                    forks_dbs,
-                    DALBlock {
+                durs_bc_db_writer::writers::block::insert_new_fork_block(
+                    db,
+                    fork_tree,
+                    DbBlock {
                         block: block.clone(),
                         expire_certs: None,
                     },

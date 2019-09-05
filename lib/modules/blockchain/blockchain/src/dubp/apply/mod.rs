@@ -20,10 +20,10 @@ use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
 use dubp_user_docs::documents::transaction::{TxAmount, TxBase};
 use dup_crypto::keys::*;
-use durs_blockchain_dal::entities::block::DALBlock;
-use durs_blockchain_dal::entities::sources::SourceAmount;
-use durs_blockchain_dal::writers::requests::*;
-use durs_blockchain_dal::BinFreeStructDb;
+use durs_bc_db_reader::entities::block::DbBlock;
+use durs_bc_db_reader::entities::sources::SourceAmount;
+use durs_bc_db_writer::writers::requests::*;
+use durs_bc_db_writer::BinFreeStructDb;
 use durs_common_tools::fatal_error;
 use durs_wot::data::NewLinkResult;
 use durs_wot::{WebOfTrust, WotId};
@@ -257,7 +257,7 @@ pub fn apply_valid_block_v10<W: WebOfTrust>(
             (centralities.iter().sum::<u64>() as f64 / centralities.len() as f64) as usize;
         // Register the state of the wot
         let max_connectivity = currency_params.max_connectivity();
-        durs_blockchain_dal::register_wot_state(
+        durs_bc_db_writer::register_wot_state(
             db,
             &WotState {
                 block_number: block.number.0,
@@ -282,9 +282,9 @@ pub fn apply_valid_block_v10<W: WebOfTrust>(
             },
         );
     }*/
-    // Create DALBlock
+    // Create DbBlock
     block.reduce();
-    let dal_block = DALBlock {
+    let dal_block = DbBlock {
         block: BlockDocument::V10(block),
         expire_certs: Some(expire_certs.clone()),
     };

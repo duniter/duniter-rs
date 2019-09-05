@@ -29,7 +29,7 @@ host = @{ ASCII_ALPHA_LOWER ~ (alphanum_lower | "-" | "_" | ".")* }
 port = @{ u_int }
 path_inner = @{ (ASCII_ALPHANUMERIC | "-" | "_" | ".")+ }
 
-endpoint_v1 = ${ api_name ~ (" " ~ node_id)? ~ " " ~ host ~ " " ~ port ~ (" " ~ "/"? ~ path_inner)? ~ " "? }
+endpoint_v1 = ${ api_name ~ (" " ~ node_id)? ~ " " ~ (ip4 | ip6 | host) ~ " " ~ port ~ (" " ~ "/"? ~ path_inner)? ~ " "? }
 
 // IP v6 rules 
 ip6_seg  = _{ hexa_lower{1,4} }

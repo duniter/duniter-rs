@@ -16,7 +16,7 @@
 //! Sub-module managing the inter-modules requests received.
 
 use crate::*;
-use dubp_user_docs::documents::identity::IdentityDocument;
+//use dubp_user_docs::documents::identity::IdentityDocument;
 use durs_message::requests::*;
 use durs_module::*;
 
@@ -38,9 +38,12 @@ pub fn receive_req(
                 debug!("BlockchainModule : receive BlockchainRequest::CurrentBlock()");
 
                 if let Ok(block_opt) =
-                    readers::block::get_block(&bc.db, None, &bc.current_blockstamp)
+                    durs_bc_db_reader::readers::block::get_block_in_local_blockchain(
+                        &bc.db,
+                        bc.current_blockstamp.id,
+                    )
                 {
-                    if let Some(dal_block) = block_opt {
+                    if let Some(block) = block_opt {
                         debug!(
                             "BlockchainModule : send_req_response(CurrentBlock({}))",
                             bc.current_blockstamp
@@ -50,7 +53,7 @@ pub fn receive_req(
                             req_from,
                             req_id,
                             &BlockchainResponse::CurrentBlock(
-                                Box::new(dal_block.block),
+                                Box::new(block),
                                 bc.current_blockstamp,
                             ),
                         );
@@ -70,7 +73,10 @@ pub fn receive_req(
                 );
 
                 if let Ok(block_opt) =
-                    readers::block::get_block_in_local_blockchain(&bc.db, block_number)
+                    durs_bc_db_reader::readers::block::get_block_in_local_blockchain(
+                        &bc.db,
+                        block_number,
+                    )
                 {
                     if let Some(block) = block_opt {
                         debug!(
@@ -104,11 +110,13 @@ pub fn receive_req(
                     first_block_number, count
                 );
 
-                if let Ok(blocks) = readers::block::get_blocks_in_local_blockchain(
-                    &bc.db,
-                    first_block_number,
-                    count,
-                ) {
+                if let Ok(blocks) =
+                    durs_bc_db_reader::readers::block::get_blocks_in_local_blockchain(
+                        &bc.db,
+                        first_block_number,
+                        count,
+                    )
+                {
                     if blocks.is_empty() {
                         debug!(
                             "BlockchainModule : Req : not found chunk (#{}, {}) in bdd !",
@@ -144,34 +152,30 @@ pub fn receive_req(
                             .map(|p| {
                                 (
                                     p,
-                                    durs_blockchain_dal::readers::identity::get_uid(
-                                        &bc.wot_databases.identities_db,
-                                        p,
-                                    )
-                                    .expect("Fatal error : get_uid : Fail to read WotV10DB !"),
+                                    durs_bc_db_reader::readers::identity::get_uid(&bc.db, &p)
+                                        .expect("Fatal error : get_uid : Fail to read WotV10DB !"),
                                 )
                             })
                             .collect(),
                     ),
                 );
-            }
-            BlockchainRequest::GetIdentities(filters) => {
-                let identities = durs_blockchain_dal::readers::identity::get_identities(
-                    &bc.wot_databases.identities_db,
-                    filters,
-                    bc.current_blockstamp.id,
-                )
-                .expect("Fatal error : get_identities: Fail to read IdentitiesDB !")
-                .into_iter()
-                .map(|dal_idty| IdentityDocument::V10(dal_idty.idty_doc))
-                .collect::<Vec<IdentityDocument>>();
-                responses::sent::send_req_response(
-                    bc,
-                    req_from,
-                    req_id,
-                    &BlockchainResponse::Identities(identities),
-                );
-            }
+            } /*BlockchainRequest::GetIdentities(filters) => {
+                  let identities = durs_bc_db_reader::readers::identity::get_identities(
+                      &db,
+                      filters,
+                      bc.current_blockstamp.id,
+                  )
+                  .expect("Fatal error : get_identities: Fail to read IdentitiesDB !")
+                  .into_iter()
+                  .map(|dal_idty| IdentityDocument::V10(dal_idty.idty_doc))
+                  .collect::<Vec<IdentityDocument>>();
+                  responses::sent::send_req_response(
+                      bc,
+                      req_from,
+                      req_id,
+                      &BlockchainResponse::Identities(identities),
+                  );
+              }*/
         }
     }
 }

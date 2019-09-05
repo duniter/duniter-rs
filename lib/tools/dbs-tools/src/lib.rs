@@ -31,7 +31,7 @@ mod errors;
 mod free_struct_db;
 pub mod kv_db;
 
-pub use errors::DALError;
+pub use errors::DbError;
 pub use free_struct_db::{open_free_struct_file_db, open_free_struct_memory_db, BinFreeStructDb};
 
 use serde::de::DeserializeOwned;
@@ -42,7 +42,7 @@ use std::path::PathBuf;
 
 /// Convert rust type to bytes
 #[inline]
-pub fn to_bytes<T: Serialize>(t: &T) -> Result<Vec<u8>, DALError> {
+pub fn to_bytes<T: Serialize>(t: &T) -> Result<Vec<u8>, DbError> {
     Ok(bincode::serialize(t)?)
 }
 
@@ -50,7 +50,7 @@ pub fn to_bytes<T: Serialize>(t: &T) -> Result<Vec<u8>, DALError> {
 pub fn open_free_struct_db<D: Serialize + DeserializeOwned + Debug + Default + Clone + Send>(
     dbs_folder_path: Option<&PathBuf>,
     db_file_name: &str,
-) -> Result<BinFreeStructDb<D>, DALError> {
+) -> Result<BinFreeStructDb<D>, DbError> {
     if let Some(dbs_folder_path) = dbs_folder_path {
         Ok(BinFreeStructDb::File(open_free_struct_file_db::<D>(
             dbs_folder_path,

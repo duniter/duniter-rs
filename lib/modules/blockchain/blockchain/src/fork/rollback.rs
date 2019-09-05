@@ -30,13 +30,11 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
 
     // Rollback (revert old branch)
     while bc.current_blockstamp.id.0 > last_common_block_number {
-        if let Some(dal_block) = bc
-            .forks_dbs
-            .fork_blocks_db
-            .read(|db| db.get(&bc.current_blockstamp).cloned())
-            .unwrap_or_else(|_| {
-                fatal_error!("revert block {} fail !", bc.current_blockstamp);
-            })
+        if let Some(dal_block) =
+            durs_bc_db_reader::readers::block::get_fork_block(&bc.db, bc.current_blockstamp)
+                .unwrap_or_else(|_| {
+                    fatal_error!("revert block {} fail !", bc.current_blockstamp);
+                })
         {
             let blockstamp = dal_block.block.blockstamp();
             debug!("try to revert block #{}", blockstamp);
@@ -60,14 +58,19 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
             block_query
                 .apply(
                     &bc.db,
-                    &bc.forks_dbs,
+                    &mut bc.fork_tree,
                     unwrap!(bc.currency_params).fork_window_size,
                     None,
                 )
                 .expect("Fatal error : Fail to apply DBWriteRequest !");
             for query in &wot_queries {
                 query
-                    .apply(&blockstamp, &unwrap!(bc.currency_params), &bc.wot_databases)
+                    .apply(
+                        &blockstamp,
+                        &unwrap!(bc.currency_params),
+                        &bc.wot_databases,
+                        &bc.db,
+                    )
                     .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
             }
             for query in &currency_queries {
@@ -83,12 +86,12 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
 
     // Apply new branch
     let mut new_branch_is_valid = true;
+    let mut new_branch_blocks = Vec::with_capacity(new_bc_branch.len());
     for blockstamp in &new_bc_branch {
-        if let Ok(Some(dal_block)) = bc
-            .forks_dbs
-            .fork_blocks_db
-            .read(|db| db.get(&blockstamp).cloned())
+        if let Ok(Some(dal_block)) =
+            durs_bc_db_reader::readers::block::get_fork_block(&bc.db, *blockstamp)
         {
+            new_branch_blocks.push(dal_block.clone());
             if let Ok(CheckAndApplyBlockReturn::ValidMainBlock(ValidBlockApplyReqs(
                 bc_db_query,
                 wot_dbs_queries,
@@ -100,14 +103,19 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                 bc_db_query
                     .apply(
                         &bc.db,
-                        &bc.forks_dbs,
+                        &mut bc.fork_tree,
                         unwrap!(bc.currency_params).fork_window_size,
                         None,
                     )
                     .expect("Fatal error : Fail to apply DBWriteRequest !");
                 for query in &wot_dbs_queries {
                     query
-                        .apply(&blockstamp, &unwrap!(bc.currency_params), &bc.wot_databases)
+                        .apply(
+                            &blockstamp,
+                            &unwrap!(bc.currency_params),
+                            &bc.wot_databases,
+                            &bc.db,
+                        )
                         .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
                 }
                 for query in &tx_dbs_queries {
@@ -130,40 +138,33 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
 
     if new_branch_is_valid {
         // update main branch in fork tree
-        if let Err(err) = durs_blockchain_dal::writers::fork_tree::change_main_branch(
-            &bc.forks_dbs,
+        if let Err(err) = durs_bc_db_writer::writers::fork_tree::change_main_branch(
+            &bc.db,
+            &mut bc.fork_tree,
             old_current_blockstamp,
             bc.current_blockstamp,
         ) {
-            fatal_error!("DALError: ForksDB: {:?}", err);
+            fatal_error!("DbError: ForksDB: {:?}", err);
         }
 
         // save dbs
         bc.db
             .save()
             .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
-        bc.forks_dbs.save_dbs();
+        durs_bc_db_writer::writers::fork_tree::save_fork_tree(&bc.db, &bc.fork_tree)
+            .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
         bc.wot_databases.save_dbs();
         bc.currency_databases.save_dbs(true, true);
         // Send events stackUpValidBlock
-        let new_branch_blocks: Vec<BlockDocument> = new_bc_branch
-            .into_iter()
-            .map(|blockstamp| {
-                bc.forks_dbs
-                    .fork_blocks_db
-                    .read(|db| db.get(&blockstamp).cloned())
-                    .expect("safe unwrap")
-                    .expect("safe unwrap")
-                    .block
-            })
-            .collect();
-        for block in new_branch_blocks {
-            events::sent::send_event(bc, &BlockchainEvent::StackUpValidBlock(Box::new(block)))
+        for db_block in new_branch_blocks {
+            events::sent::send_event(
+                bc,
+                &BlockchainEvent::StackUpValidBlock(Box::new(db_block.block)),
+            )
         }
     } else {
         // reload dbs
         let dbs_path = durs_conf::get_blockchain_db_path(bc.profile_path.clone());
-        bc.forks_dbs = ForksDBs::open(Some(&dbs_path));
         bc.wot_databases = WotsV10DBs::open(Some(&dbs_path));
         bc.currency_databases = CurrencyV10DBs::open(Some(&dbs_path));
     }

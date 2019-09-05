@@ -61,7 +61,8 @@ use dubp_common_doc::traits::Document;
 use dubp_common_doc::Blockstamp;
 use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use dup_crypto::keys::*;
-use durs_blockchain_dal::*;
+use durs_bc_db_reader::entities::fork_tree::ForkTree;
+use durs_bc_db_writer::*;
 use durs_common_tools::fatal_error;
 use durs_message::events::*;
 use durs_message::requests::*;
@@ -97,8 +98,8 @@ pub struct BlockchainModule {
     pub currency: Option<CurrencyName>,
     /// Database
     pub db: Db,
-    /// Forks Databases
-    pub forks_dbs: ForksDBs,
+    /// Fork tree
+    pub fork_tree: ForkTree,
     /// Wot index
     pub wot_index: HashMap<PubKey, WotId>,
     /// Wots Databases
@@ -189,13 +190,14 @@ impl BlockchainModule {
 
         // Open databases
         let db = open_db(&dbs_path.as_path()).unwrap_or_else(|_| fatal_error!("Fail to open DB."));
-        let forks_dbs = ForksDBs::open(Some(&dbs_path));
+        let fork_tree = durs_bc_db_reader::readers::current_meta_datas::get_fork_tree(&db)
+            .unwrap_or_else(|_| fatal_error!("Fail to get fork tree."));
         let wot_databases = WotsV10DBs::open(Some(&dbs_path));
         let currency_databases = CurrencyV10DBs::open(Some(&dbs_path));
 
         // Get current blockstamp
         let current_blockstamp =
-            durs_blockchain_dal::readers::fork_tree::get_current_blockstamp(&forks_dbs)
+            durs_bc_db_reader::readers::current_meta_datas::get_current_blockstamp(&db)
                 .expect("Fatal error : fail to read Blockchain DB !")
                 .unwrap_or_default();
 
@@ -213,7 +215,7 @@ impl BlockchainModule {
 
         // Get wot index
         let wot_index: HashMap<PubKey, WotId> =
-            readers::identity::get_wot_index(&wot_databases.identities_db)
+            durs_bc_db_reader::readers::identity::get_wot_index(&db)
                 .expect("Fatal eror : get_wot_index : Fail to read blockchain databases");
 
         // Instanciate BlockchainModule
@@ -225,7 +227,7 @@ impl BlockchainModule {
             current_blockstamp,
             consensus: Blockstamp::default(),
             db,
-            forks_dbs,
+            fork_tree,
             wot_index,
             wot_databases,
             currency_databases,
@@ -350,7 +352,7 @@ pub mod tests {
     #[inline]
     /// Open database in an arbitrary temporary directory given by OS
     /// and automatically cleaned when `Db` is dropped
-    pub fn open_tmp_db() -> Result<Db, DALError> {
-        open_db(tempdir().map_err(DALError::FileSystemError)?.path())
+    pub fn open_tmp_db() -> Result<Db, DbError> {
+        open_db(tempdir().map_err(DbError::FileSystemError)?.path())
     }
 }

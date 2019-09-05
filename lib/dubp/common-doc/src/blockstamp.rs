@@ -29,6 +29,9 @@ use std::fmt::{Debug, Display, Error, Formatter};
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Fail)]
 pub enum BlockstampParseError {
     /// Given string have invalid format
+    #[fail(display = "Given bytes with invalid length")]
+    InvalidLen,
+    /// Given string have invalid format
     #[fail(display = "Given string have invalid format")]
     InvalidFormat(),
     /// [`BlockNumber`](struct.BlockHash.html) part is not a valid number.
@@ -70,6 +73,15 @@ pub type PreviousBlockstamp = Blockstamp;
 impl Blockstamp {
     /// Blockstamp size (in bytes).
     pub const SIZE_IN_BYTES: usize = 36;
+}
+
+impl Into<Vec<u8>> for Blockstamp {
+    fn into(self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(Self::SIZE_IN_BYTES);
+        bytes.append(&mut self.id.0.to_be_bytes().to_vec());
+        bytes.append(&mut (self.hash.0).0.to_vec());
+        bytes
+    }
 }
 
 impl Display for Blockstamp {
@@ -127,6 +139,22 @@ impl From<std::io::Error> for ReadBytesBlockstampError {
 }
 
 impl Blockstamp {
+    /// Create a `Blockstamp` from bytes.
+    pub fn from_bytes(src: &[u8]) -> Result<Blockstamp, BlockstampParseError> {
+        if src.len() != Blockstamp::SIZE_IN_BYTES {
+            Err(BlockstampParseError::InvalidLen)
+        } else {
+            let mut id_bytes = [0u8; 4];
+            id_bytes.copy_from_slice(&src[..4]);
+            let mut hash_bytes = [0u8; 32];
+            hash_bytes.copy_from_slice(&src[4..]);
+            Ok(Blockstamp {
+                id: BlockNumber(u32::from_be_bytes(id_bytes)),
+                hash: BlockHash(Hash(hash_bytes)),
+            })
+        }
+    }
+
     /// Create a `Blockstamp` from a text.
     pub fn from_string(src: &str) -> Result<Blockstamp, BlockstampParseError> {
         let mut split = src.split('-');

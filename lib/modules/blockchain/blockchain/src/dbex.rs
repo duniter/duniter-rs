@@ -20,6 +20,7 @@ use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::BlockNumber;
 use dubp_user_docs::documents::transaction::*;
 use dup_crypto::keys::*;
+use durs_bc_db_reader::BcDbRo;
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::data::WebOfTrust;
 use durs_wot::operations::distance::{DistanceCalculator, WotDistance, WotDistanceParameters};
@@ -74,6 +75,23 @@ pub enum DbExQuery {
     WotQuery(DbExWotQuery),
 }
 
+fn open_bc_db_ro(profile_path: PathBuf) -> Option<BcDbRo> {
+    // Get db path
+    let db_path = durs_conf::get_blockchain_db_path(profile_path);
+
+    match durs_bc_db_reader::open_db_ro(&db_path) {
+        Ok(db) => Some(db),
+        Err(DbError::DBNotExist) => {
+            println!("DB not exist, please sync.");
+            None
+        }
+        Err(e) => {
+            println!("Fail to open DB: {:?}", e);
+            None
+        }
+    }
+}
+
 /// Execute DbExQuery
 pub fn dbex(profile_path: PathBuf, csv: bool, query: &DbExQuery) {
     match *query {
@@ -87,15 +105,13 @@ pub fn dbex(profile_path: PathBuf, csv: bool, query: &DbExQuery) {
 }
 
 /// Execute DbExBcQuery
-pub fn dbex_bc(profile_path: PathBuf, _csv: bool, _query: DbExBcQuery) -> Result<(), DALError> {
+pub fn dbex_bc(profile_path: PathBuf, _csv: bool, _query: DbExBcQuery) -> Result<(), DbError> {
     // Get db path
     let db_path = durs_conf::get_blockchain_db_path(profile_path);
 
     // Open databases
     let load_dbs_begin = SystemTime::now();
     let db = open_db(&db_path.as_path())?;
-    let forks_dbs = ForksDBs::open(Some(&db_path));
-    let wot_databases = WotsV10DBs::open(Some(&db_path));
 
     let load_dbs_duration = SystemTime::now()
         .duration_since(load_dbs_begin)
@@ -107,14 +123,17 @@ pub fn dbex_bc(profile_path: PathBuf, _csv: bool, _query: DbExBcQuery) -> Result
     );
 
     if let Some(current_blockstamp) =
-        durs_blockchain_dal::readers::fork_tree::get_current_blockstamp(&forks_dbs)?
+        durs_bc_db_reader::readers::current_meta_datas::get_current_blockstamp(&db)?
     {
         println!("Current block: #{}.", current_blockstamp);
         if let Some(current_block) =
-            durs_blockchain_dal::readers::block::get_block(&db, None, &current_blockstamp)?
+            durs_bc_db_reader::readers::block::get_block_in_local_blockchain(
+                &db,
+                current_blockstamp.id,
+            )?
         {
             let map_pubkey =
-                durs_blockchain_dal::readers::block::get_current_frame(&current_block, &db)?;
+                durs_bc_db_reader::readers::block::get_current_frame(&current_block, &db)?;
 
             let mut vec = map_pubkey.iter().collect::<Vec<(&PubKey, &usize)>>();
             vec.sort_by(|a, b| b.1.cmp(&a.1));
@@ -122,10 +141,9 @@ pub fn dbex_bc(profile_path: PathBuf, _csv: bool, _query: DbExBcQuery) -> Result
             if _csv {
                 println!("{},{},{}", &BLOCK, &USERNAME, &PUB_KEY);
                 for (pub_key, v) in &vec {
-                    if let Ok(Some(identity)) = durs_blockchain_dal::readers::identity::get_identity(
-                        &wot_databases.identities_db,
-                        &pub_key,
-                    ) {
+                    if let Ok(Some(identity)) =
+                        durs_bc_db_reader::readers::identity::get_identity(&db, &pub_key)
+                    {
                         println!(
                             "{},{},{}",
                             v,
@@ -138,10 +156,9 @@ pub fn dbex_bc(profile_path: PathBuf, _csv: bool, _query: DbExBcQuery) -> Result
                 let mut table = Table::new();
                 table.add_row(row![&BLOCK, &USERNAME, &PUB_KEY]);
                 for (pub_key, v) in &vec {
-                    if let Ok(Some(identity)) = durs_blockchain_dal::readers::identity::get_identity(
-                        &wot_databases.identities_db,
-                        &pub_key,
-                    ) {
+                    if let Ok(Some(identity)) =
+                        durs_bc_db_reader::readers::identity::get_identity(&db, &pub_key)
+                    {
                         table.add_row(row![v, identity.idty_doc.username(), pub_key.to_string()]);
                     }
                 }
@@ -155,30 +172,23 @@ pub fn dbex_bc(profile_path: PathBuf, _csv: bool, _query: DbExBcQuery) -> Result
 
 /// Print fork tree
 pub fn dbex_fork_tree(profile_path: PathBuf, _csv: bool) {
-    // Get db path
-    let db_path = durs_conf::get_blockchain_db_path(profile_path);
-
-    // Open forks databases
-    let load_dbs_begin = SystemTime::now();
-    let forks_dbs = ForksDBs::open(Some(&db_path));
-    let load_dbs_duration = SystemTime::now()
-        .duration_since(load_dbs_begin)
+    // Open DB
+    let load_db_begin = SystemTime::now();
+    let db = if let Some(db) = open_bc_db_ro(profile_path) {
+        db
+    } else {
+        return;
+    };
+    let load_db_duration = SystemTime::now()
+        .duration_since(load_db_begin)
         .expect("duration_since error !");
     println!(
         "Databases loaded in {}.{:03} seconds.",
-        load_dbs_duration.as_secs(),
-        load_dbs_duration.subsec_millis()
+        load_db_duration.as_secs(),
+        load_db_duration.subsec_millis()
     );
-    let fork_tree_db = forks_dbs.fork_tree_db;
-    let fork_tree = fork_tree_db
-        .read(|fork_tree| fork_tree.clone())
-        .expect("Fail to read fork tree DB !");
-
-    // Print all sheets
-    println!("-----------------------------------");
-    println!("sheets={:?}", fork_tree.get_sheets());
-    println!("-----------------------------------");
-
+    let fork_tree = durs_bc_db_reader::readers::current_meta_datas::get_fork_tree(&db)
+        .expect("fail to get fork tree");
     // Print all fork branches
     for (tree_node_id, blockstamp) in fork_tree.get_sheets() {
         debug!(
@@ -196,15 +206,18 @@ pub fn dbex_fork_tree(profile_path: PathBuf, _csv: bool) {
 /// Execute DbExTxQuery
 pub fn dbex_tx(profile_path: PathBuf, _csv: bool, query: &DbExTxQuery) {
     // Get db path
-    let db_path = durs_conf::get_blockchain_db_path(profile_path);
+    let db_path = durs_conf::get_blockchain_db_path(profile_path.clone());
 
-    // Open databases
-    let load_dbs_begin = SystemTime::now();
-    //let blocks_databases = BlocksV10DBs::open(Some(&db_path));
+    // Open DB
+    let load_db_begin = SystemTime::now();
+    let db = if let Some(db) = open_bc_db_ro(profile_path) {
+        db
+    } else {
+        return;
+    };
     let currency_databases = CurrencyV10DBs::open(Some(&db_path));
-    let wot_databases = WotsV10DBs::open(Some(&db_path));
     let load_dbs_duration = SystemTime::now()
-        .duration_since(load_dbs_begin)
+        .duration_since(load_db_begin)
         .expect("duration_since error !");
     println!(
         "Databases loaded in {}.{:03} seconds.",
@@ -217,11 +230,8 @@ pub fn dbex_tx(profile_path: PathBuf, _csv: bool, query: &DbExTxQuery) {
             let pubkey = if let Ok(ed25519_pubkey) = ed25519::PublicKey::from_base58(address_str) {
                 PubKey::Ed25519(ed25519_pubkey)
             } else if let Some(pubkey) =
-                durs_blockchain_dal::readers::identity::get_pubkey_from_uid(
-                    &wot_databases.identities_db,
-                    address_str,
-                )
-                .expect("get_uid : DALError")
+                durs_bc_db_reader::readers::identity::get_pubkey_from_uid(&db, address_str)
+                    .expect("get_uid : DbError")
             {
                 pubkey
             } else {
@@ -229,11 +239,11 @@ pub fn dbex_tx(profile_path: PathBuf, _csv: bool, query: &DbExTxQuery) {
                 return;
             };
             let address = UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(pubkey));
-            let address_balance = durs_blockchain_dal::readers::balance::get_address_balance(
+            let address_balance = durs_bc_db_reader::readers::balance::get_address_balance(
                 &currency_databases.balances_db,
                 &address,
             )
-            .expect("get_address_balance : DALError")
+            .expect("get_address_balance : DbError")
             .expect("Address not found in balances DB.");
             println!(
                 "Balance={},{} Ğ1",
@@ -258,11 +268,16 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
     // Get db path
     let db_path = durs_conf::get_blockchain_db_path(profile_path.clone());
 
-    // Open databases
-    let load_dbs_begin = SystemTime::now();
+    // Open DB
+    let load_db_begin = SystemTime::now();
+    let db = if let Some(db) = open_bc_db_ro(profile_path.clone()) {
+        db
+    } else {
+        return;
+    };
     let wot_databases = WotsV10DBs::open(Some(&db_path));
     let load_dbs_duration = SystemTime::now()
-        .duration_since(load_dbs_begin)
+        .duration_since(load_db_begin)
         .expect("duration_since error");
     println!(
         "Databases loaded in {}.{:03} seconds.",
@@ -281,22 +296,15 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
     let currency_params = unwrap!(currency_params_db_datas).1;
 
     // get wot_index
-    let wot_index =
-        readers::identity::get_wot_index(&wot_databases.identities_db).expect("DALError");
+    let wot_index = durs_bc_db_reader::readers::identity::get_wot_index(&db).expect("DbError");
 
     // get wot_reverse_index
     let wot_reverse_index: HashMap<WotId, &PubKey> =
         wot_index.iter().map(|(p, id)| (*id, p)).collect();
 
     // get wot uid index
-    let wot_uid_index: HashMap<WotId, String> = wot_databases
-        .identities_db
-        .read(|db| {
-            db.iter()
-                .map(|(_, idty)| (idty.wot_id, String::from(idty.idty_doc.username())))
-                .collect()
-        })
-        .expect("Fail to read IdentitiesDB !");
+    let wot_uid_index =
+        durs_bc_db_reader::readers::identity::get_wot_uid_index(&db).expect("DbError");
 
     // Open wot db
     let wot_db = BinFreeStructDb::File(
@@ -373,7 +381,7 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
             // Open blockchain database
             let db = open_db(&db_path.as_path()).expect("Fail to open DB.");
             // Get blocks_times
-            let all_blocks = durs_blockchain_dal::readers::block::get_blocks_in_local_blockchain(
+            let all_blocks = durs_bc_db_reader::readers::block::get_blocks_in_local_blockchain(
                 &db,
                 BlockNumber(0),
                 10_000_000,
@@ -415,11 +423,9 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
         }
         DbExWotQuery::MemberDatas(ref uid) => {
             println!(" Members count = {}.", members_count);
-            if let Some(pubkey) = durs_blockchain_dal::readers::identity::get_pubkey_from_uid(
-                &wot_databases.identities_db,
-                uid,
-            )
-            .expect("get_pubkey_from_uid() : DALError !")
+            if let Some(pubkey) =
+                durs_bc_db_reader::readers::identity::get_pubkey_from_uid(&db, uid)
+                    .expect("get_pubkey_from_uid() : DbError !")
             {
                 let wot_id = wot_index[&pubkey];
                 println!(
@@ -454,11 +460,11 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
                     .expect("Fail to get links source !");
                 println!("Certifiers : {}", sources.len());
                 for (i, source) in sources.iter().enumerate() {
-                    let source_uid = durs_blockchain_dal::readers::identity::get_uid(
-                        &wot_databases.identities_db,
-                        *(wot_reverse_index[&source]),
+                    let source_uid = durs_bc_db_reader::readers::identity::get_uid(
+                        &db,
+                        wot_reverse_index[&source],
                     )
-                    .expect("get_uid() : DALError")
+                    .expect("get_uid() : DbError")
                     .expect("Not found source_uid !");
                     println!("{}: {}", i + 1, source_uid);
                 }

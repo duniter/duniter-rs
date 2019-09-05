@@ -1,0 +1,36 @@
+[package]
+name = "durs-bc-db-reader"
+version = "0.3.0-dev"
+authors = ["librelois <elois@ifee.fr>"]
+description = "Reader for Dunitrust Blockchain Database."
+license = "AGPL-3.0"
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+dubp-block-doc = { path = "../../dubp/block-doc"} #, version = "0.1.0" }
+dubp-common-doc = { path = "../../dubp/common-doc"} #, version = "0.1.0" }
+dubp-indexes = { path = "../../dubp/indexes"} #, version = "0.1.0" }
+dup-crypto = { path = "../../crypto" }
+dubp-currency-params = { path = "../../dubp/currency-params" }
+dubp-user-docs= { path = "../../dubp/user-docs" }
+durs-conf = { path = "../../core/conf" }
+durs-module = { path = "../../core/module" }
+durs-common-tools = { path = "../../tools/common-tools" }
+durs-dbs-tools = { path = "../../tools/dbs-tools" }
+durs-wot = { path = "../../dubp/wot" }
+log = "0.4.*"
+maplit = "1.0.1"
+fnv = "1.0.6"
+serde = { version = "1.0.*", features = ["derive"] }
+unwrap = "1.2.1"
+
+[dev-dependencies]
+dup-crypto-tests-tools = { path = "../../tests-tools/crypto-tests-tools" }
+dubp-user-docs-tests-tools = { path = "../../tests-tools/user-docs-tests-tools" }
+durs-common-tests-tools = { path = "../../tests-tools/common-tests-tools" }
+tempfile = "3.1.0"
+
+[features]

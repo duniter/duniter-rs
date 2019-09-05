@@ -22,7 +22,8 @@ use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
 use dup_crypto::keys::PubKey;
-use durs_blockchain_dal::*;
+use durs_bc_db_reader::CertsExpirV10Datas;
+use durs_bc_db_writer::*;
 use durs_wot::*;
 use std::collections::HashMap;
 
@@ -46,8 +47,10 @@ where
     // Rules that do not concern genesis block
     if block.number().0 > 0 {
         // Get previous block
-        let previous_block_opt =
-            readers::block::get_block_in_local_blockchain(db, BlockNumber(block.number().0 - 1))?;
+        let previous_block_opt = durs_bc_db_reader::readers::block::get_block_in_local_blockchain(
+            db,
+            BlockNumber(block.number().0 - 1),
+        )?;
 
         // Previous block must exist
         if previous_block_opt.is_none() {

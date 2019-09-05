@@ -23,8 +23,9 @@ use dubp_common_doc::Blockstamp;
 use dubp_common_doc::{BlockHash, BlockNumber};
 use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use dup_crypto::keys::*;
-use durs_blockchain_dal::writers::requests::*;
-use durs_blockchain_dal::{open_free_struct_memory_db, CertsExpirV10Datas};
+use durs_bc_db_reader::CertsExpirV10Datas;
+use durs_bc_db_writer::open_free_struct_memory_db;
+use durs_bc_db_writer::writers::requests::*;
 use durs_common_tools::fatal_error;
 use durs_wot::WotId;
 use failure::Fail;
@@ -179,11 +180,8 @@ pub fn local_sync<DC: DursConfTrait>(
     conf_path.push(durs_conf::constants::CONF_FILENAME);
     durs_conf::write_conf_file(conf_path.as_path(), &conf).expect("Fail to write new conf !");
 
-    // Open blocks databases
+    // Open database
     let db = open_db(&db_path.as_path()).map_err(|_| LocalSyncError::FailToOpenDB)?;
-
-    // Open forks databases
-    let forks_dbs = ForksDBs::open(Some(&db_path));
 
     // Open wot databases
     let wot_databases = WotsV10DBs::open(Some(&db_path));
@@ -191,8 +189,8 @@ pub fn local_sync<DC: DursConfTrait>(
     // Get local current blockstamp
     debug!("Get local current blockstamp...");
     let current_blockstamp: Blockstamp =
-        durs_blockchain_dal::readers::fork_tree::get_current_blockstamp(&forks_dbs)
-            .expect("DALError : fail to get current blockstamp !")
+        durs_bc_db_reader::readers::current_meta_datas::get_current_blockstamp(&db)
+            .expect("DbError : fail to get current blockstamp !")
             .unwrap_or_default();
     debug!("Success to get local current blockstamp.");
 
@@ -204,7 +202,7 @@ pub fn local_sync<DC: DursConfTrait>(
 
     // Get wot index
     let wot_index: HashMap<PubKey, WotId> =
-        readers::identity::get_wot_index(&wot_databases.identities_db)
+        durs_bc_db_reader::readers::identity::get_wot_index(&db)
             .expect("Fatal eror : get_wot_index : Fail to read blockchain databases");
 
     // Start sync
@@ -241,7 +239,6 @@ pub fn local_sync<DC: DursConfTrait>(
         sender_sync_thread.clone(),
         recv_blocks_thread,
         db,
-        forks_dbs,
         target_blockstamp,
         apply_pb,
     );
@@ -302,7 +299,7 @@ pub fn local_sync<DC: DursConfTrait>(
             let datas_path = durs_conf::get_datas_path(profile_path.clone());
             if block_doc.number() == BlockNumber(0) {
                 block_applicator.currency_params = Some(
-                    durs_blockchain_dal::readers::currency_params::get_and_write_currency_params(
+                    durs_bc_db_reader::readers::currency_params::get_and_write_currency_params(
                         &datas_path,
                         &block_doc,
                     ),

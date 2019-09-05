@@ -17,7 +17,6 @@ dubp-user-docs= { path = "../../dubp/user-docs" }
 dup-crypto = { path = "../../crypto" }
 durs-module = { path = "../module" }
 durs-network = { path = "../network" }
-durs-blockchain-dal = { path = "../../modules/blockchain/blockchain-dal" }
 durs-network-documents = { path = "../../dunp/network-documents" }
 serde = "1.0.*"
 serde_derive = "1.0.*"

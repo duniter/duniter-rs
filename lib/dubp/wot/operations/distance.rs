@@ -56,6 +56,15 @@ pub trait DistanceCalculator<T: WebOfTrust> {
     /// Returns `None` if this node doesn't exist.
     fn compute_distance(&self, wot: &T, params: WotDistanceParameters) -> Option<WotDistance>;
 
+    /// Compute distances of all members
+    fn compute_distances(
+        &self,
+        wot: &T,
+        sentry_requirement: u32,
+        step_max: u32,
+        x_percent: f64,
+    ) -> (usize, Vec<usize>, usize, Vec<usize>);
+
     /// Test if a node is outdistanced in the network.
     /// Returns `Node` if this node doesn't exist.
     fn is_outdistanced(&self, wot: &T, params: WotDistanceParameters) -> Option<bool>;
@@ -124,5 +133,51 @@ impl<T: WebOfTrust + Sync> DistanceCalculator<T> for RustyDistanceCalculator {
 
     fn is_outdistanced(&self, wot: &T, params: WotDistanceParameters) -> Option<bool> {
         Self::compute_distance(&self, wot, params).map(|result| result.outdistanced)
+    }
+
+    fn compute_distances(
+        &self,
+        wot: &T,
+        sentry_requirement: u32,
+        step_max: u32,
+        x_percent: f64,
+    ) -> (usize, Vec<usize>, usize, Vec<usize>) {
+        let members_count = wot.get_enabled().len();
+        let mut distances = Vec::new();
+        let mut average_distance: usize = 0;
+        let mut connectivities = Vec::new();
+        let mut average_connectivity: usize = 0;
+        for i in 0..wot.size() {
+            let distance_datas: WotDistance = Self::compute_distance(
+                &self,
+                wot,
+                WotDistanceParameters {
+                    node: WotId(i),
+                    sentry_requirement,
+                    step_max,
+                    x_percent,
+                },
+            )
+            .expect("Fatal Error: compute_distance return None !");
+            let distance = ((f64::from(distance_datas.success)
+                / (x_percent * f64::from(distance_datas.sentries)))
+                * 100.0) as usize;
+            distances.push(distance);
+            average_distance += distance;
+            let connectivity =
+                ((f64::from(distance_datas.success - distance_datas.success_at_border)
+                    / (x_percent * f64::from(distance_datas.sentries)))
+                    * 100.0) as usize;
+            connectivities.push(connectivity);
+            average_connectivity += connectivity;
+        }
+        average_distance /= members_count;
+        average_connectivity /= members_count;
+        (
+            average_distance,
+            distances,
+            average_connectivity,
+            connectivities,
+        )
     }
 }
