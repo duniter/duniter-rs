@@ -452,6 +452,17 @@ impl ForkTree {
         self.nodes[root_node_id.0] = None;
         self.sheets.remove(&root_node_id);
         self.root = Some(root_node_main_child_id);
+
+        // Remove orphan sheets
+        for (tree_node_id, _) in self.get_sheets() {
+            if let Some(node_opt) = self.nodes.get(tree_node_id.0) {
+                if node_opt.is_none() {
+                    self.sheets.remove(&tree_node_id);
+                }
+            } else {
+                self.sheets.remove(&tree_node_id);
+            }
+        }
     }
 
     /// Return removed blockstamps
