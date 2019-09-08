@@ -178,8 +178,17 @@ pub fn dbex_fork_tree(profile_path: PathBuf, _csv: bool) {
         .read(|fork_tree| fork_tree.clone())
         .expect("Fail to read fork tree DB !");
 
+    // Print all sheets
+    println!("-----------------------------------");
+    println!("sheets={:?}", fork_tree.get_sheets());
+    println!("-----------------------------------");
+
     // Print all fork branches
     for (tree_node_id, blockstamp) in fork_tree.get_sheets() {
+        debug!(
+            "fork_tree.get_fork_branch({:?}, {})",
+            tree_node_id, blockstamp
+        );
         let branch = fork_tree.get_fork_branch(tree_node_id);
         if !branch.is_empty() {
             println!("Fork branch #{}:", blockstamp);

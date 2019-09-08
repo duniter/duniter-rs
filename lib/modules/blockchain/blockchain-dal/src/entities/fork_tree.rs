@@ -265,29 +265,33 @@ impl ForkTree {
     /// Get fork branch
     pub fn get_fork_branch(&self, node_id: TreeNodeId) -> Vec<Blockstamp> {
         let mut branch = Vec::with_capacity(self.max_depth);
-        let node = self.get_ref_node(node_id);
-        branch.push(node.data);
+        if let Some(Some(ref node)) = self.nodes.get(node_id.0) {
+            branch.push(node.data);
 
-        if let Some(parent_id) = node.parent {
-            let mut parent = self.get_ref_node(parent_id);
-            while !self.main_branch.contains_key(&parent.data.id)
-                || self
-                    .get_main_branch_block_hash(parent.data.id)
-                    .expect("safe unwrap")
-                    != parent.data.hash
-            {
-                branch.push(parent.data);
+            if let Some(parent_id) = node.parent {
+                if let Some(Some(mut parent)) = self.nodes.get(parent_id.0).cloned() {
+                    while !self.main_branch.contains_key(&parent.data.id)
+                        || self
+                            .get_main_branch_block_hash(parent.data.id)
+                            .expect("safe unwrap")
+                            != parent.data.hash
+                    {
+                        branch.push(parent.data);
 
-                if let Some(parent_id) = parent.parent {
-                    parent = self.get_ref_node(parent_id);
-                } else {
-                    break;
+                        if let Some(parent_id) = parent.parent {
+                            parent = self.get_ref_node(parent_id).clone();
+                        } else {
+                            break;
+                        }
+                    }
                 }
             }
-        }
 
-        branch.reverse();
-        branch
+            branch.reverse();
+            branch
+        } else {
+            vec![]
+        }
     }
     /// Modify the main branch (function to call after a successful roolback)
     pub fn change_main_branch(
@@ -417,6 +421,7 @@ impl ForkTree {
 
         // Remove root node
         self.nodes[root_node_id.0] = None;
+        self.sheets.remove(&root_node_id);
         self.root = Some(root_node_main_child_id);
     }
 
