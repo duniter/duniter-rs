@@ -138,8 +138,10 @@ tests:win64:stable:
     - cargo test --package durs-message --target=x86_64-pc-windows-gnu
     - cargo test --package durs-module --target=x86_64-pc-windows-gnu
     - cargo test --package durs-network --target=x86_64-pc-windows-gnu
+    - cargo test --package durs-bc-db-reader --target=x86_64-pc-windows-gnu
+    - cargo test --package durs-bc-db-writer --target=x86_64-pc-windows-gnu
     - cargo test --package durs-blockchain --target=x86_64-pc-windows-gnu
-    - cargo test --package durs-blockchain-dal --target=x86_64-pc-windows-gnu
+    - cargo test --package durs-dbs-tools --target=x86_64-pc-windows-gnu
     #- cargo test --package durs-skeleton-module --target=x86_64-pc-windows-gnu
     - cargo test --package durs-ws2p-v1-legacy --target=x86_64-pc-windows-gnu
     - cargo test --package durs-ws2p --target=x86_64-pc-windows-gnu
