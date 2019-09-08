@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Identities stored indexes: write requests.
+
 use crate::{BinFreeStructDb, Db, DbError, MsExpirV10Datas};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};

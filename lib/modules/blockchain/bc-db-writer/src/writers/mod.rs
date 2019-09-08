@@ -13,23 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/// Block writer functions
-pub mod block;
+//! DELETION IN PROGRESS
 
-/// Certification apply functions
-pub mod certification;
-
-/// Dividend apply functions
-pub mod dividend;
-
-/// Fork tree writer functions
-pub mod fork_tree;
-
-/// Identities writer functions
-pub mod identity;
-
-/// Databases write requests
+/// DELETION IN PROGRESS
 pub mod requests;
-
-/// Transaction apply functions
-pub mod transaction;

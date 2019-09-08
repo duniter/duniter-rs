@@ -84,7 +84,7 @@ pub fn execute(
         println!();
         println!("Write indexs in files...");
         info!("Save blockchain and forks databases in files...");
-        durs_bc_db_writer::writers::fork_tree::save_fork_tree(&db, &fork_tree)
+        durs_bc_db_writer::blocks::fork_tree::save_fork_tree(&db, &fork_tree)
             .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
         db.save()
             .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));

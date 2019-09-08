@@ -138,7 +138,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
 
     if new_branch_is_valid {
         // update main branch in fork tree
-        if let Err(err) = durs_bc_db_writer::writers::fork_tree::change_main_branch(
+        if let Err(err) = durs_bc_db_writer::blocks::fork_tree::change_main_branch(
             &bc.db,
             &mut bc.fork_tree,
             old_current_blockstamp,
@@ -148,10 +148,10 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
         }
 
         // save dbs
+        durs_bc_db_writer::blocks::fork_tree::save_fork_tree(&bc.db, &bc.fork_tree)
+            .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
         bc.db
             .save()
-            .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
-        durs_bc_db_writer::writers::fork_tree::save_fork_tree(&bc.db, &bc.fork_tree)
             .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
         bc.wot_databases.save_dbs();
         bc.currency_databases.save_dbs(true, true);

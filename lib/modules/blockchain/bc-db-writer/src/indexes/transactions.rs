@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Transactions stored indexes: write requests.
+
 use dubp_user_docs::documents::transaction::*;
 use durs_common_tools::fatal_error;
 
@@ -495,7 +497,7 @@ mod tests {
         // Open currencys_db in memory mode
         let currency_dbs = CurrencyV10DBs::open(None);
         // Create first g1 UD for cgeek and tortue
-        writers::dividend::create_du(
+        crate::indexes::dividends::create_du(
             &currency_dbs.du_db,
             &currency_dbs.balances_db,
             &SourceAmount(TxAmount(1000), TxBase(0)),

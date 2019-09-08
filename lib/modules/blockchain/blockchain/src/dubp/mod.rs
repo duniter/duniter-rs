@@ -138,12 +138,8 @@ pub fn check_and_apply_block(
             expire_certs: None,
         };
 
-        if durs_bc_db_writer::writers::block::insert_new_fork_block(
-            &bc.db,
-            &mut bc.fork_tree,
-            dal_block,
-        )
-        .expect("durs_bc_db_writer::writers::block::insert_new_fork_block() : DbError")
+        if durs_bc_db_writer::blocks::insert_new_fork_block(&bc.db, &mut bc.fork_tree, dal_block)
+            .expect("durs_bc_db_writer::writers::block::insert_new_fork_block() : DbError")
         {
             Ok(CheckAndApplyBlockReturn::ForkBlock)
         } else {

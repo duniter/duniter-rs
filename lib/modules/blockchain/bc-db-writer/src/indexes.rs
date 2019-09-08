@@ -13,5 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/// Currency parameters DB name
-pub const CURRENCY_PARAMS_DB_NAME: &str = "params.db";
+//! Blockchain stored indexes: write requests.
+
+pub mod certs;
+pub mod dividends;
+pub mod identities;
+pub mod transactions;

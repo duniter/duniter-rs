@@ -131,10 +131,10 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
     }
     // Save databases
     if save_blocks_dbs {
+        durs_bc_db_writer::blocks::fork_tree::save_fork_tree(&bc.db, &bc.fork_tree)
+            .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
         bc.db
             .save()
-            .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
-        durs_bc_db_writer::writers::fork_tree::save_fork_tree(&bc.db, &bc.fork_tree)
             .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
     }
     if save_wots_dbs {

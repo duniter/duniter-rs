@@ -13,6 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Blocks storage: defien write requests.
+
+pub mod fork_tree;
+
 use crate::DbError;
 use crate::*;
 use dubp_block_doc::block::BlockDocumentTrait;
@@ -62,10 +66,8 @@ pub fn insert_new_head_block(
 
         if let Some(fork_tree) = fork_tree {
             // Insert head block in fork tree
-            let removed_blockstamps = crate::writers::fork_tree::insert_new_head_block(
-                fork_tree,
-                dal_block.blockstamp(),
-            )?;
+            let removed_blockstamps =
+                crate::blocks::fork_tree::insert_new_head_block(fork_tree, dal_block.blockstamp())?;
             // Insert head block in ForkBlocks
             let blockstamp_bytes: Vec<u8> = dal_block.blockstamp().into();
             fork_blocks_store.put(
@@ -101,7 +103,7 @@ pub fn insert_new_fork_block(
 ) -> Result<bool, DbError> {
     let bin_dal_block = durs_dbs_tools::to_bytes(&dal_block)?;
     let blockstamp_bytes: Vec<u8> = dal_block.blockstamp().into();
-    if crate::writers::fork_tree::insert_new_fork_block(
+    if fork_tree::insert_new_fork_block(
         fork_tree,
         dal_block.block.blockstamp(),
         unwrap!(dal_block.block.previous_hash()),

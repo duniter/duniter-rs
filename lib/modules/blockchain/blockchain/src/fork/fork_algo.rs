@@ -119,7 +119,7 @@ mod tests {
 
         // Insert mock blocks in forks_dbs
         for block in &main_branch {
-            durs_bc_db_writer::writers::block::insert_new_head_block(
+            durs_bc_db_writer::blocks::insert_new_head_block(
                 &db,
                 Some(&mut fork_tree),
                 DbBlock {
@@ -186,7 +186,7 @@ mod tests {
         };
         assert_eq!(
             true,
-            durs_bc_db_writer::writers::block::insert_new_fork_block(
+            durs_bc_db_writer::blocks::insert_new_fork_block(
                 &db,
                 &mut fork_tree,
                 DbBlock {
@@ -265,7 +265,7 @@ mod tests {
         for block in blocks {
             assert_eq!(
                 true,
-                durs_bc_db_writer::writers::block::insert_new_fork_block(
+                durs_bc_db_writer::blocks::insert_new_fork_block(
                     db,
                     fork_tree,
                     DbBlock {

@@ -32,10 +32,8 @@ extern crate log;
 #[macro_use]
 extern crate serde_derive;
 
-/// Define crate constants
-pub mod constants;
-
-/// Contains all write databases functions
+pub mod blocks;
+pub mod indexes;
 pub mod writers;
 
 pub use durs_dbs_tools::kv_db::{
@@ -47,7 +45,7 @@ pub use durs_dbs_tools::{
 };
 pub use durs_dbs_tools::{BinFreeStructDb, DbError};
 
-use crate::writers::transaction::DbTxV10;
+use crate::indexes::transactions::DbTxV10;
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use dubp_indexes::sindex::UniqueIdUTXOv10;
 use dubp_user_docs::documents::transaction::*;

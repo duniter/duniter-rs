@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Blocks fork tree: define write requests.
+
 use crate::*;
 use dubp_common_doc::BlockHash;
 use durs_bc_db_reader::blocks::fork_tree::ForkTree;
@@ -252,17 +254,9 @@ mod test {
         // Check tree state
         assert_eq!(*DEFAULT_FORK_WINDOW_SIZE, fork_tree.size());
         assert_eq!(
-        <<<<<<< dev:lib/modules/blockchain/blockchain-dal/src/writers/fork_tree.rs
-                    vec![(TreeNodeId(1), blockstamps[*DEFAULT_FORK_WINDOW_SIZE + 2])],
-                    fork_tree_db.read(|tree| tree.get_sheets())?
-        =======
-                    vec![(
-                        TreeNodeId(*DEFAULT_FORK_WINDOW_SIZE + 4),
-                        blockstamps[*DEFAULT_FORK_WINDOW_SIZE + 2]
-                    )],
-                    fork_tree.get_sheets()
-        >>>>>>> [ref] blockchain: migrate forks & identities in LMDB:lib/modules/blockchain/bc-db-writer/src/writers/fork_tree.rs
-                );
+            vec![(TreeNodeId(1), blockstamps[*DEFAULT_FORK_WINDOW_SIZE + 2])],
+            fork_tree.get_sheets()
+        );
 
         Ok(())
     }

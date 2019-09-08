@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Certifications stored indexes: write requests.
+
 use crate::{BinFreeStructDb, Db, DbError};
 use dubp_common_doc::BlockNumber;
 use dubp_currency_params::CurrencyParameters;

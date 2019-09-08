@@ -86,10 +86,10 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                 }
             }
             // Save databases
+            durs_bc_db_writer::blocks::fork_tree::save_fork_tree(&bc.db, &bc.fork_tree)
+                .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
             bc.db
                 .save()
-                .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
-            durs_bc_db_writer::writers::fork_tree::save_fork_tree(&bc.db, &bc.fork_tree)
                 .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
             bc.wot_databases.save_dbs();
             bc.currency_databases.save_dbs(true, true);
