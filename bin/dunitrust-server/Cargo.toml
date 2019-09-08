@@ -37,7 +37,7 @@ section = "misc"
 priority = "optional"
 assets = [
     ["../../target/release/dunitrust", "usr/bin/", "755"],
-    ["../../images/duniter-rs.png", "usr/share/dunitrust/", "644"],
+    ["../../images/dunitrust.png", "usr/share/dunitrust/", "644"],
 ]
 features = ["ssl"]
 
