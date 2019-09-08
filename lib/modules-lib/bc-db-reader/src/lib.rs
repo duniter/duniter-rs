@@ -27,15 +27,17 @@
     unused_qualifications
 )]
 
+pub mod blocks;
 pub mod constants;
-pub mod entities;
-pub mod filters;
-pub mod readers;
+pub mod currency_params;
+pub mod current_meta_datas;
+pub mod indexes;
+pub mod paging;
 pub mod tools;
 
 pub use durs_dbs_tools::kv_db::{
     KvFileDbRead as DbReadable, KvFileDbRoHandler as BcDbRo, KvFileDbSchema, KvFileDbStoreType,
-    KvFileDbValue as DbValue,
+    KvFileDbValue as DbValue, Readable as Reader,
 };
 
 use constants::*;
@@ -77,7 +79,7 @@ pub type CertsExpirV10Datas = fnv::FnvHashMap<
 pub type BalancesV10Datas = std::collections::HashMap<
     dubp_user_docs::documents::transaction::UTXOConditionsGroup,
     (
-        crate::entities::sources::SourceAmount,
+        crate::indexes::sources::SourceAmount,
         std::collections::HashSet<dubp_indexes::sindex::UniqueIdUTXOv10>,
     ),
 >;

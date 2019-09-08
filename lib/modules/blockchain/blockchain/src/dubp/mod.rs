@@ -24,7 +24,7 @@ use check::*;
 use dubp_block_doc::block::{BlockDocumentTrait, VerifyBlockHashError};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
-use durs_bc_db_reader::entities::block::DbBlock;
+use durs_bc_db_reader::blocks::DbBlock;
 use durs_bc_db_writer::*;
 use unwrap::unwrap;
 
@@ -68,7 +68,7 @@ pub fn check_and_apply_block(
     block_doc: BlockDocument,
 ) -> Result<CheckAndApplyBlockReturn, BlockError> {
     // Get BlockDocument && check if already have block
-    let already_have_block = durs_bc_db_reader::readers::block::already_have_block(
+    let already_have_block = durs_bc_db_reader::blocks::already_have_block(
         &bc.db,
         block_doc.blockstamp(),
         block_doc.previous_hash(),
@@ -89,7 +89,7 @@ pub fn check_and_apply_block(
         );
         // Detect expire_certs
         let blocks_expiring = Vec::with_capacity(0);
-        let expire_certs = durs_bc_db_reader::readers::certs::find_expire_certs(
+        let expire_certs = durs_bc_db_reader::indexes::certs::find_expire_certs(
             &bc.wot_databases.certs_db,
             blocks_expiring,
         )?;
@@ -109,7 +109,7 @@ pub fn check_and_apply_block(
             let datas_path = durs_conf::get_datas_path(bc.profile_path.clone());
             // Get and write currency params
             bc.currency_params = Some(
-                durs_bc_db_reader::readers::currency_params::get_and_write_currency_params(
+                durs_bc_db_reader::currency_params::get_and_write_currency_params(
                     &datas_path,
                     &block_doc,
                 ),

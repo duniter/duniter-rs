@@ -15,7 +15,7 @@
 
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::Blockstamp;
-use durs_bc_db_reader::entities::fork_tree::ForkTree;
+use durs_bc_db_reader::blocks::fork_tree::ForkTree;
 use durs_bc_db_reader::DbReadable;
 use durs_bc_db_writer::DbError;
 use std::collections::HashSet;
@@ -32,8 +32,7 @@ pub fn fork_resolution_algo<DB: DbReadable>(
     current_blockstamp: Blockstamp,
     invalid_blocks: &HashSet<Blockstamp>,
 ) -> Result<Option<Vec<Blockstamp>>, DbError> {
-    let current_bc_time =
-        durs_bc_db_reader::readers::current_meta_datas::get_current_common_time(db)?;
+    let current_bc_time = durs_bc_db_reader::current_meta_datas::get_current_common_time(db)?;
 
     debug!(
         "fork_resolution_algo({}, {})",
@@ -54,7 +53,7 @@ pub fn fork_resolution_algo<DB: DbReadable>(
 
             let branch_head_blockstamp = branch.last().expect("safe unwrap");
             let branch_head_median_time =
-                durs_bc_db_reader::readers::block::get_fork_block(db, *branch_head_blockstamp)?
+                durs_bc_db_reader::blocks::get_fork_block(db, *branch_head_blockstamp)?
                     .expect("safe unwrap")
                     .block
                     .common_time();
@@ -97,7 +96,7 @@ mod tests {
     use crate::*;
     use dubp_block_doc::BlockDocument;
     use dubp_common_doc::{BlockHash, BlockNumber};
-    use durs_bc_db_reader::entities::block::DbBlock;
+    use durs_bc_db_reader::blocks::DbBlock;
 
     #[test]
     fn test_fork_resolution_algo() -> Result<(), DbError> {
@@ -131,13 +130,11 @@ mod tests {
         }
 
         // Local blockchain must contain at least `fork_window_size +2` blocks
-        assert!(
-            durs_bc_db_reader::readers::block::get_block_in_local_blockchain(
-                &db,
-                BlockNumber((fork_window_size + 1) as u32)
-            )?
-            .is_some()
-        );
+        assert!(durs_bc_db_reader::blocks::get_block_in_local_blockchain(
+            &db,
+            BlockNumber((fork_window_size + 1) as u32)
+        )?
+        .is_some());
 
         // Fork tree must contain at least `fork_window_size +2` blocks
         assert_eq!(fork_window_size, fork_tree.size());

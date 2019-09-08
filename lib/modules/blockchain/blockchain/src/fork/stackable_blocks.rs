@@ -23,7 +23,7 @@ use unwrap::unwrap;
 pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
     'blockchain: loop {
         let stackable_blocks =
-            durs_bc_db_reader::readers::block::get_stackables_blocks(&bc.db, bc.current_blockstamp)
+            durs_bc_db_reader::blocks::get_stackables_blocks(&bc.db, bc.current_blockstamp)
                 .expect("Fatal error : Fail to read ForksDB !");
         if stackable_blocks.is_empty() {
             break 'blockchain;

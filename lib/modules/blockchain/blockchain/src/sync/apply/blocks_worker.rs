@@ -30,8 +30,8 @@ pub fn execute(
         let blocks_job_begin = SystemTime::now();
 
         // Get fork tree
-        let mut fork_tree = durs_bc_db_reader::readers::current_meta_datas::get_fork_tree(&db)
-            .expect("Fail to read DB.");
+        let mut fork_tree =
+            durs_bc_db_reader::current_meta_datas::get_fork_tree(&db).expect("Fail to read DB.");
 
         // Listen db requets
         let mut chunk_index = 0;

@@ -189,7 +189,7 @@ pub fn local_sync<DC: DursConfTrait>(
     // Get local current blockstamp
     debug!("Get local current blockstamp...");
     let current_blockstamp: Blockstamp =
-        durs_bc_db_reader::readers::current_meta_datas::get_current_blockstamp(&db)
+        durs_bc_db_reader::current_meta_datas::get_current_blockstamp(&db)
             .expect("DbError : fail to get current blockstamp !")
             .unwrap_or_default();
     debug!("Success to get local current blockstamp.");
@@ -202,7 +202,7 @@ pub fn local_sync<DC: DursConfTrait>(
 
     // Get wot index
     let wot_index: HashMap<PubKey, WotId> =
-        durs_bc_db_reader::readers::identity::get_wot_index(&db)
+        durs_bc_db_reader::indexes::identities::get_wot_index(&db)
             .expect("Fatal eror : get_wot_index : Fail to read blockchain databases");
 
     // Start sync
@@ -299,7 +299,7 @@ pub fn local_sync<DC: DursConfTrait>(
             let datas_path = durs_conf::get_datas_path(profile_path.clone());
             if block_doc.number() == BlockNumber(0) {
                 block_applicator.currency_params = Some(
-                    durs_bc_db_reader::readers::currency_params::get_and_write_currency_params(
+                    durs_bc_db_reader::currency_params::get_and_write_currency_params(
                         &datas_path,
                         &block_doc,
                     ),

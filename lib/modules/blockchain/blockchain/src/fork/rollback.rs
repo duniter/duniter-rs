@@ -31,10 +31,11 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
     // Rollback (revert old branch)
     while bc.current_blockstamp.id.0 > last_common_block_number {
         if let Some(dal_block) =
-            durs_bc_db_reader::readers::block::get_fork_block(&bc.db, bc.current_blockstamp)
-                .unwrap_or_else(|_| {
+            durs_bc_db_reader::blocks::get_fork_block(&bc.db, bc.current_blockstamp).unwrap_or_else(
+                |_| {
                     fatal_error!("revert block {} fail !", bc.current_blockstamp);
-                })
+                },
+            )
         {
             let blockstamp = dal_block.block.blockstamp();
             debug!("try to revert block #{}", blockstamp);
@@ -88,8 +89,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
     let mut new_branch_is_valid = true;
     let mut new_branch_blocks = Vec::with_capacity(new_bc_branch.len());
     for blockstamp in &new_bc_branch {
-        if let Ok(Some(dal_block)) =
-            durs_bc_db_reader::readers::block::get_fork_block(&bc.db, *blockstamp)
+        if let Ok(Some(dal_block)) = durs_bc_db_reader::blocks::get_fork_block(&bc.db, *blockstamp)
         {
             new_branch_blocks.push(dal_block.clone());
             if let Ok(CheckAndApplyBlockReturn::ValidMainBlock(ValidBlockApplyReqs(

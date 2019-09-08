@@ -13,16 +13,87 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Identities stored index.
+
 use crate::constants::*;
-use crate::entities::identity::DbIdentity;
-use crate::filters::identities::IdentitiesFilter;
+use crate::paging::PagingFilter;
 use crate::*;
 use dubp_common_doc::traits::Document;
-use dubp_common_doc::BlockNumber;
+use dubp_common_doc::{BlockNumber, Blockstamp};
+use dubp_user_docs::documents::identity::IdentityDocumentV10;
 use dup_crypto::keys::*;
 use durs_dbs_tools::DbError;
 use durs_wot::WotId;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// Identities filter
+pub struct IdentitiesFilter {
+    /// Pagination parameters
+    pub paging: PagingFilter,
+    /// Filter identities by public key
+    pub by_pubkey: Option<PubKey>,
+}
+
+impl Default for IdentitiesFilter {
+    fn default() -> Self {
+        IdentitiesFilter {
+            paging: PagingFilter::default(),
+            by_pubkey: None,
+        }
+    }
+}
+
+impl IdentitiesFilter {
+    /// Create "by pubkey" filter
+    pub fn by_pubkey(pubkey: PubKey) -> Self {
+        IdentitiesFilter {
+            paging: PagingFilter::default(),
+            by_pubkey: Some(pubkey),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]
+/// Identity state
+pub enum DbIdentityState {
+    /// Member
+    Member(Vec<usize>),
+    /// Expire Member
+    ExpireMember(Vec<usize>),
+    /// Explicit Revoked
+    ExplicitRevoked(Vec<usize>),
+    /// Explicit Revoked after expire
+    ExplicitExpireRevoked(Vec<usize>),
+    /// Implicit revoked
+    ImplicitRevoked(Vec<usize>),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]
+/// Identity in database
+pub struct DbIdentity {
+    /// Identity hash
+    pub hash: String,
+    /// Identity state
+    pub state: DbIdentityState,
+    /// Blockstamp the identity was written
+    pub joined_on: Blockstamp,
+    /// Blockstamp the identity was expired
+    pub expired_on: Option<Blockstamp>,
+    /// Blockstamp the identity was revoked
+    pub revoked_on: Option<Blockstamp>,
+    /// Identity document
+    pub idty_doc: IdentityDocumentV10,
+    /// Identity wot id
+    pub wot_id: WotId,
+    /// Membership created block number
+    pub ms_created_block_id: BlockNumber,
+    /// Timestamp from which membership can be renewed
+    pub ms_chainable_on: Vec<u64>,
+    /// Timestamp from which the identity can write a new certification
+    pub cert_chainable_on: Vec<u64>,
+}
 
 /// Get identities in databases
 pub fn get_identities<DB: DbReadable>(
@@ -65,18 +136,25 @@ pub fn get_identities<DB: DbReadable>(
     }
 }
 
-/// Get identity in databases
+/// Get identity by pubkey in databases
 pub fn get_identity<DB: DbReadable>(
     db: &DB,
     pubkey: &PubKey,
 ) -> Result<Option<DbIdentity>, DbError> {
-    db.read(|r| {
-        if let Some(v) = db.get_store(IDENTITIES).get(r, &pubkey.to_bytes_vector())? {
-            Ok(Some(DB::from_db_value(v)?))
-        } else {
-            Ok(None)
-        }
-    })
+    db.read(|r| get_identity_(db, r, pubkey))
+}
+
+/// Get identity by pubkey
+pub fn get_identity_<DB: DbReadable, R: Reader>(
+    db: &DB,
+    r: &R,
+    pubkey: &PubKey,
+) -> Result<Option<DbIdentity>, DbError> {
+    if let Some(v) = db.get_store(IDENTITIES).get(r, &pubkey.to_bytes_vector())? {
+        Ok(Some(DB::from_db_value(v)?))
+    } else {
+        Ok(None)
+    }
 }
 
 /// Get uid from pubkey
@@ -132,8 +210,7 @@ pub fn get_wot_uid_index<DB: DbReadable>(db: &DB) -> Result<HashMap<WotId, Strin
 mod test {
 
     use super::*;
-    use crate::entities::identity::*;
-    use crate::filters::PagingFilter;
+    use crate::paging::PagingFilter;
     use dubp_common_doc::Blockstamp;
     use dup_crypto_tests_tools::mocks::pubkey;
     use durs_common_tests_tools::collections::slice_same_elems;

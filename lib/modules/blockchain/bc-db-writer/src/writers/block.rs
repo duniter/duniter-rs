@@ -17,10 +17,10 @@ use crate::DbError;
 use crate::*;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::traits::Document;
+use durs_bc_db_reader::blocks::fork_tree::ForkTree;
+use durs_bc_db_reader::blocks::DbBlock;
 use durs_bc_db_reader::constants::*;
-use durs_bc_db_reader::entities::block::DbBlock;
-use durs_bc_db_reader::entities::current_meta_datas::CurrentMetaDataKey;
-use durs_bc_db_reader::entities::fork_tree::ForkTree;
+use durs_bc_db_reader::current_meta_datas::CurrentMetaDataKey;
 use durs_bc_db_reader::DbValue;
 use unwrap::unwrap;
 
@@ -118,7 +118,7 @@ pub fn insert_new_fork_block(
 
         // As long as orphan blocks can succeed the last inserted block, they are inserted
         for stackable_block in
-            durs_bc_db_reader::readers::block::get_stackables_blocks(db, dal_block.blockstamp())?
+            durs_bc_db_reader::blocks::get_stackables_blocks(db, dal_block.blockstamp())?
         {
             let _ = insert_new_fork_block(db, fork_tree, stackable_block);
         }

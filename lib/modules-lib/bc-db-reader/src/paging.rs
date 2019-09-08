@@ -13,9 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Define Define all filters applicable to database entities.
-
-pub mod identities;
+//! Define pagination.
 
 use dubp_common_doc::BlockNumber;
 

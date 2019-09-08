@@ -21,7 +21,7 @@ use dubp_user_docs::documents::identity::IdentityDocumentV10;
 use dup_crypto::keys::PubKey;
 use dup_crypto::keys::PublicKey;
 use durs_bc_db_reader::constants::*;
-use durs_bc_db_reader::entities::identity::{DbIdentity, DbIdentityState};
+use durs_bc_db_reader::indexes::identities::{DbIdentity, DbIdentityState};
 use durs_bc_db_reader::{DbReadable, DbValue};
 use durs_common_tools::fatal_error;
 use durs_wot::WotId;
@@ -32,7 +32,7 @@ pub fn revert_create_identity(
     ms_db: &BinFreeStructDb<MsExpirV10Datas>,
     pubkey: &PubKey,
 ) -> Result<(), DbError> {
-    let dal_idty = durs_bc_db_reader::readers::identity::get_identity(db, pubkey)?
+    let dal_idty = durs_bc_db_reader::indexes::identities::get_identity(db, pubkey)?
         .expect("Try to revert unexist idty.");
     // Remove membership
     ms_db.write(|db| {
@@ -105,7 +105,7 @@ pub fn exclude_identity(
     exclusion_blockstamp: &Blockstamp,
     revert: bool,
 ) -> Result<(), DbError> {
-    let mut idty_datas = durs_bc_db_reader::readers::identity::get_identity(db, pubkey)?
+    let mut idty_datas = durs_bc_db_reader::indexes::identities::get_identity(db, pubkey)?
         .expect("Try to exclude unexist idty.");
     idty_datas.state = if revert {
         match idty_datas.state {
@@ -148,7 +148,7 @@ pub fn revoke_identity(
     explicit: bool,
     revert: bool,
 ) -> Result<(), DbError> {
-    let mut member_datas = durs_bc_db_reader::readers::identity::get_identity(db, pubkey)?
+    let mut member_datas = durs_bc_db_reader::indexes::identities::get_identity(db, pubkey)?
         .expect("Try to revoke unexist idty.");
 
     member_datas.state = if revert {
@@ -208,7 +208,7 @@ pub fn renewal_identity(
     revert: bool,
 ) -> Result<(), DbError> {
     // Get idty_datas
-    let mut idty_datas = durs_bc_db_reader::readers::identity::get_identity(db, pubkey)?
+    let mut idty_datas = durs_bc_db_reader::indexes::identities::get_identity(db, pubkey)?
         .expect("Fatal error : try to renewal unknow identity !");
     // Calculate new state value
     idty_datas.state = if revert {

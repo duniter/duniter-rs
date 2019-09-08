@@ -15,9 +15,9 @@
 
 use crate::*;
 use dubp_common_doc::BlockHash;
+use durs_bc_db_reader::blocks::fork_tree::ForkTree;
 use durs_bc_db_reader::constants::*;
-use durs_bc_db_reader::entities::current_meta_datas::CurrentMetaDataKey;
-use durs_bc_db_reader::entities::fork_tree::ForkTree;
+use durs_bc_db_reader::current_meta_datas::CurrentMetaDataKey;
 
 /// SAve fork tree
 pub fn save_fork_tree(db: &Db, fork_tree: &ForkTree) -> Result<(), DbError> {
@@ -99,7 +99,7 @@ mod test {
 
     use super::*;
     use dubp_currency_params::constants::DEFAULT_FORK_WINDOW_SIZE;
-    use durs_bc_db_reader::entities::fork_tree::{ForkTree, TreeNodeId};
+    use durs_bc_db_reader::blocks::fork_tree::{ForkTree, TreeNodeId};
 
     #[test]
     fn test_insert_new_head_block() -> Result<(), DbError> {

@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Currency parameters storage.
+
 use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
 use dubp_common_doc::traits::Document;
 use dubp_currency_params::db::write_currency_params;

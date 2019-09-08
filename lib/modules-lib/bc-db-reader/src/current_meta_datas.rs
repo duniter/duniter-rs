@@ -13,12 +13,41 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Current meta datas
+
+use crate::blocks::fork_tree::ForkTree;
 use crate::constants::*;
-use crate::entities::current_meta_datas::CurrentMetaDataKey;
-use crate::entities::fork_tree::ForkTree;
 use crate::{DbReadable, DbValue};
 use dubp_common_doc::{Blockstamp, CurrencyName};
 use durs_dbs_tools::DbError;
+
+#[derive(Clone, Copy, Debug)]
+/// Current meta data key
+pub enum CurrentMetaDataKey {
+    /// Version of the database structure
+    DbVersion,
+    /// Currency name
+    CurrencyName,
+    /// Current blockstamp
+    CurrentBlockstamp,
+    /// Current "blokchain" time
+    CurrentBlockchainTime,
+    /// Fork tree
+    ForkTree,
+}
+
+impl CurrentMetaDataKey {
+    /// To u32
+    pub fn to_u32(self) -> u32 {
+        match self {
+            Self::DbVersion => 0,
+            Self::CurrencyName => 1,
+            Self::CurrentBlockstamp => 2,
+            Self::CurrentBlockchainTime => 3,
+            Self::ForkTree => 4,
+        }
+    }
+}
 
 /// Get DB version
 pub fn get_db_version<DB: DbReadable>(db: &DB) -> Result<usize, DbError> {

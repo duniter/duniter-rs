@@ -13,22 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Blockchain database readers.
+//! Blockchain stored indexes.
 
-/// Balances read functions
 pub mod balance;
-
-/// Block read functions
-pub mod block;
-
-/// Certifications read functions
 pub mod certs;
-
-/// Currency params read functions
-pub mod currency_params;
-
-/// Current meta datas read functions
-pub mod current_meta_datas;
-
-/// Identities read functions
-pub mod identity;
+pub mod identities;
+pub mod sources;

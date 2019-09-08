@@ -21,9 +21,9 @@ use dubp_currency_params::CurrencyParameters;
 use dubp_user_docs::documents::certification::CompactCertificationDocumentV10;
 use dubp_user_docs::documents::identity::IdentityDocumentV10;
 use dup_crypto::keys::PubKey;
-use durs_bc_db_reader::entities::block::DbBlock;
-use durs_bc_db_reader::entities::fork_tree::ForkTree;
-use durs_bc_db_reader::entities::sources::SourceAmount;
+use durs_bc_db_reader::blocks::fork_tree::ForkTree;
+use durs_bc_db_reader::blocks::DbBlock;
+use durs_bc_db_reader::indexes::sources::SourceAmount;
 use durs_wot::WotId;
 use std::ops::Deref;
 

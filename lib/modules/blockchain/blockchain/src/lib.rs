@@ -61,7 +61,7 @@ use dubp_common_doc::traits::Document;
 use dubp_common_doc::Blockstamp;
 use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use dup_crypto::keys::*;
-use durs_bc_db_reader::entities::fork_tree::ForkTree;
+use durs_bc_db_reader::blocks::fork_tree::ForkTree;
 use durs_bc_db_writer::*;
 use durs_common_tools::fatal_error;
 use durs_message::events::*;
@@ -190,16 +190,15 @@ impl BlockchainModule {
         let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone());
 
         // Open databases
-        let fork_tree = durs_bc_db_reader::readers::current_meta_datas::get_fork_tree(&db)
+        let fork_tree = durs_bc_db_reader::current_meta_datas::get_fork_tree(&db)
             .unwrap_or_else(|_| fatal_error!("Fail to get fork tree."));
         let wot_databases = WotsV10DBs::open(Some(&dbs_path));
         let currency_databases = CurrencyV10DBs::open(Some(&dbs_path));
 
         // Get current blockstamp
-        let current_blockstamp =
-            durs_bc_db_reader::readers::current_meta_datas::get_current_blockstamp(&db)
-                .expect("Fatal error : fail to read Blockchain DB !")
-                .unwrap_or_default();
+        let current_blockstamp = durs_bc_db_reader::current_meta_datas::get_current_blockstamp(&db)
+            .expect("Fatal error : fail to read Blockchain DB !")
+            .unwrap_or_default();
 
         // Get currency parameters
         let (currency_name, currency_params) = if let Some((currency_name, currency_params)) =
@@ -215,7 +214,7 @@ impl BlockchainModule {
 
         // Get wot index
         let wot_index: HashMap<PubKey, WotId> =
-            durs_bc_db_reader::readers::identity::get_wot_index(&db)
+            durs_bc_db_reader::indexes::identities::get_wot_index(&db)
                 .expect("Fatal eror : get_wot_index : Fail to read blockchain databases");
 
         // Instanciate BlockchainModule

@@ -47,7 +47,7 @@ where
     // Rules that do not concern genesis block
     if block.number().0 > 0 {
         // Get previous block
-        let previous_block_opt = durs_bc_db_reader::readers::block::get_block_in_local_blockchain(
+        let previous_block_opt = durs_bc_db_reader::blocks::get_block_in_local_blockchain(
             db,
             BlockNumber(block.number().0 - 1),
         )?;

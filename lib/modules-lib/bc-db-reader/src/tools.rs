@@ -15,7 +15,7 @@
 
 //! Data calculation tools
 
-use crate::entities::block::DbBlock;
+use crate::blocks::DbBlock;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dup_crypto::keys::PubKey;
 use durs_common_tools::fatal_error;

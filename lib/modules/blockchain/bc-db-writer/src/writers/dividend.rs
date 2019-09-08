@@ -17,7 +17,7 @@ use crate::*;
 use dubp_common_doc::BlockNumber;
 use dubp_user_docs::documents::transaction::*;
 use dup_crypto::keys::PubKey;
-use durs_bc_db_reader::entities::sources::SourceAmount;
+use durs_bc_db_reader::indexes::sources::SourceAmount;
 use durs_bc_db_reader::BalancesV10Datas;
 use std::collections::{HashMap, HashSet};
 

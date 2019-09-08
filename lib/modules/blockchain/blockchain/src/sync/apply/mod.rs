@@ -96,7 +96,7 @@ impl BlockApplicator {
 
         // Find expire_certs
         let expire_certs =
-            durs_bc_db_reader::readers::certs::find_expire_certs(&self.certs_db, blocks_expiring)
+            durs_bc_db_reader::indexes::certs::find_expire_certs(&self.certs_db, blocks_expiring)
                 .expect("find_expire_certs() : DbError");
 
         // Get block blockstamp

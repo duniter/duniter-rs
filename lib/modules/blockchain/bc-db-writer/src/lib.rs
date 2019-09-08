@@ -53,7 +53,7 @@ use dubp_indexes::sindex::UniqueIdUTXOv10;
 use dubp_user_docs::documents::transaction::*;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
-use durs_bc_db_reader::entities::sources::UTXOContentV10;
+use durs_bc_db_reader::indexes::sources::UTXOContentV10;
 use durs_bc_db_reader::{BalancesV10Datas, CertsExpirV10Datas};
 use durs_common_tools::fatal_error;
 use durs_wot::data::{rusty::RustyWebOfTrust, WotId};
@@ -69,7 +69,7 @@ pub type Db = KvFileDbHandler;
 pub type DbReader = KvFileDbRoHandler;
 
 /// Forks tree meta datas (block number and hash only)
-pub type ForksTreeV10Datas = durs_bc_db_reader::entities::fork_tree::ForkTree;
+pub type ForksTreeV10Datas = durs_bc_db_reader::blocks::fork_tree::ForkTree;
 /// Database containing the wot graph (each node of the graph in an u32)
 pub type WotDB = RustyWebOfTrust;
 /// Memberships sorted by created block

@@ -18,7 +18,7 @@ use durs_common_tools::fatal_error;
 
 use crate::*;
 use dubp_indexes::sindex::{SourceUniqueIdV10, UniqueIdUTXOv10};
-use durs_bc_db_reader::entities::sources::{SourceAmount, UTXOV10};
+use durs_bc_db_reader::indexes::sources::{SourceAmount, UTXOV10};
 
 #[derive(Debug)]
 /// Transaction error

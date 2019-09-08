@@ -13,21 +13,28 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::entities::sources::*;
-use crate::BalancesV10Datas;
-use dubp_user_docs::documents::transaction::UTXOConditionsGroup;
-use durs_dbs_tools::{BinFreeStructDb, DbError};
+//! Certificatiosn stored index.
 
-/// Get address balance
-pub fn get_address_balance(
-    balances_db: &BinFreeStructDb<BalancesV10Datas>,
-    address: &UTXOConditionsGroup,
-) -> Result<Option<SourceAmount>, DbError> {
-    Ok(balances_db.read(|db| {
-        if let Some(balance_and_utxos) = db.get(address) {
-            Some(balance_and_utxos.0)
-        } else {
-            None
+use crate::CertsExpirV10Datas;
+use dubp_common_doc::BlockNumber;
+use durs_dbs_tools::{BinFreeStructDb, DbError};
+use durs_wot::WotId;
+use std::collections::HashMap;
+
+/// Find certifications that emitted in indicated blocks expiring
+pub fn find_expire_certs(
+    certs_db: &BinFreeStructDb<CertsExpirV10Datas>,
+    blocks_expiring: Vec<BlockNumber>,
+) -> Result<HashMap<(WotId, WotId), BlockNumber>, DbError> {
+    Ok(certs_db.read(|db| {
+        let mut all_expire_certs = HashMap::new();
+        for expire_block_id in blocks_expiring {
+            if let Some(expire_certs) = db.get(&expire_block_id) {
+                for (source, target) in expire_certs {
+                    all_expire_certs.insert((*source, *target), expire_block_id);
+                }
+            }
         }
+        all_expire_certs
     })?)
 }

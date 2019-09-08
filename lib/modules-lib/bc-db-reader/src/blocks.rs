@@ -13,8 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Define blocks entities and requests
+
+pub mod fork_tree;
+
 use crate::constants::*;
-use crate::entities::block::DbBlock;
 use crate::*;
 use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
 use dubp_common_doc::traits::Document;
@@ -22,7 +25,31 @@ use dubp_common_doc::{BlockHash, BlockNumber, Blockstamp, PreviousBlockstamp};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_dbs_tools::DbError;
+use durs_wot::WotId;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// A block as it is saved in a database
+pub struct DbBlock {
+    /// Block document
+    pub block: BlockDocument,
+    /// List of certifications that expire in this block.
+    /// Warning : BlockNumber contain the emission block, not the written block !
+    /// HashMap<(Source, Target), BlockNumber>
+    pub expire_certs: Option<HashMap<(WotId, WotId), BlockNumber>>,
+}
+
+impl DbBlock {
+    /// Get blockstamp
+    pub fn blockstamp(&self) -> Blockstamp {
+        self.block.blockstamp()
+    }
+    /// Get previous blockstamp
+    pub fn previous_blockstamp(&self) -> PreviousBlockstamp {
+        self.block.previous_blockstamp()
+    }
+}
 
 /// Return true if the node already knows this block
 pub fn already_have_block<DB: DbReadable>(
