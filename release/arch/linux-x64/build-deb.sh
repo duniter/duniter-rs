@@ -63,7 +63,7 @@ build_deb_pack() {
 }
 
 # ------------
-# BEGIn SCRIPT
+# BEGIN SCRIPT
 # ------------
 
 # Prepare

@@ -52,3 +52,6 @@ assets = [
     ["../../images/duniter-rs.png", "usr/share/dunitrust/", "644"],
 ]
 features = ["ssl"]
+
+[package.metadata.arch]
+arch = ["x86_64"]
