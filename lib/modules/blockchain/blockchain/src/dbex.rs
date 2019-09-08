@@ -111,7 +111,7 @@ pub fn dbex_bc(profile_path: PathBuf, _csv: bool, _query: DbExBcQuery) -> Result
 
     // Open databases
     let load_dbs_begin = SystemTime::now();
-    let db = open_db(&db_path.as_path())?;
+    let db = durs_bc_db_reader::open_db_ro(&db_path.as_path())?;
 
     let load_dbs_duration = SystemTime::now()
         .duration_since(load_dbs_begin)
@@ -379,7 +379,7 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
         }
         DbExWotQuery::ExpireMembers(ref reverse) => {
             // Open blockchain database
-            let db = open_db(&db_path.as_path()).expect("Fail to open DB.");
+            let db = durs_bc_db_reader::open_db_ro(&db_path.as_path()).expect("Fail to open DB.");
             // Get blocks_times
             let all_blocks = durs_bc_db_reader::readers::block::get_blocks_in_local_blockchain(
                 &db,

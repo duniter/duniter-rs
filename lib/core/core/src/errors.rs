@@ -29,6 +29,9 @@ pub enum DursCoreError {
     /// Generic error that impl Fail
     #[fail(display = "{}", _0)]
     Error(Error),
+    /// Fail to open blockchain DB.
+    #[fail(display = "Fail to open blockchain DB: {:?}", _0)]
+    FailOpenBcDb(durs_dbs_tools::DbError),
     /// Fail to read currency params DB
     #[fail(display = "Fail to read currency params DB: {}", _0)]
     FailReadCurrencyParamsDb(CurrencyParamsDbError),

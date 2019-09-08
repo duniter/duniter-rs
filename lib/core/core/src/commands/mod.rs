@@ -21,10 +21,12 @@ pub mod modules;
 pub mod reset;
 pub mod start;
 
+use crate::constants::DEFAULT_USER_PROFILE;
 use crate::errors::DursCoreError;
 use crate::DursCore;
 pub use dbex::*;
 use durs_conf::DuRsConf;
+use durs_dbs_tools::kv_db::KvFileDbHandler;
 pub use durs_network::cli::sync::SyncOpt;
 pub use keys::KeysOpt;
 use log::Level;
@@ -45,6 +47,20 @@ pub struct DursCoreOptions {
     pub profile_name: Option<String>,
     /// Path where user profiles are persisted
     pub profiles_path: Option<PathBuf>,
+}
+
+impl DursCoreOptions {
+    /// Define profile path
+    #[inline]
+    pub fn define_profile_path(&self) -> PathBuf {
+        durs_conf::get_profile_path(
+            &self.profiles_path,
+            &self
+                .profile_name
+                .clone()
+                .unwrap_or_else(|| DEFAULT_USER_PROFILE.to_owned()),
+        )
+    }
 }
 
 /// Dunitrust executable command
@@ -76,6 +92,14 @@ pub enum DursCommandEnum<T: ExecutableModuleCommand> {
 }
 
 impl<T: ExecutableModuleCommand> DursCommand<T> {
+    fn open_bc_db(&self, profile_path: &PathBuf) -> Result<KvFileDbHandler, DursCoreError> {
+        let bc_db_path = durs_conf::get_blockchain_db_path(profile_path.clone());
+        durs_dbs_tools::kv_db::KvFileDbHandler::open_db(
+            bc_db_path.as_path(),
+            &durs_bc_db_reader::bc_db_schema(),
+        )
+        .map_err(DursCoreError::FailOpenBcDb)
+    }
     /// Execute Dunitrust command
     pub fn execute<PlugFunc>(
         self,
@@ -86,12 +110,16 @@ impl<T: ExecutableModuleCommand> DursCommand<T> {
     where
         PlugFunc: FnMut(&mut DursCore<DuRsConf>) -> Result<(), DursCoreError>,
     {
+        let profile_path = self.options.define_profile_path();
+        let bc_db = self.open_bc_db(&profile_path)?;
+
         match self.command {
             DursCommandEnum::Core(core_cmd) => DursCore::execute_core_command(
+                bc_db,
                 core_cmd,
                 self.options,
-                vec![],
                 plug_modules,
+                profile_path,
                 soft_name,
                 soft_version,
             ),

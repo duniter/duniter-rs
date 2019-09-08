@@ -96,7 +96,7 @@ pub fn json_reader_worker(
         // Get current local blockstamp
         debug!("Get local current blockstamp...");
         let db_path = durs_conf::get_blockchain_db_path(profile_path);
-        let db = open_db(&db_path).expect("Fail to open DB.");
+        let db = durs_bc_db_reader::open_db_ro(&db_path).expect("Fail to open DB.");
         let current_blockstamp: Blockstamp =
             durs_bc_db_reader::readers::current_meta_datas::get_current_blockstamp(&db)
                 .expect("get_current_blockstamp: Fail to read DB !")

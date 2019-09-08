@@ -181,6 +181,7 @@ impl BlockchainModule {
     }
     /// Loading blockchain configuration
     pub fn load_blockchain_conf(
+        db: Db,
         router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
         profile_path: PathBuf,
         _keys: RequiredKeysContent,
@@ -189,7 +190,6 @@ impl BlockchainModule {
         let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone());
 
         // Open databases
-        let db = open_db(&dbs_path.as_path()).unwrap_or_else(|_| fatal_error!("Fail to open DB."));
         let fork_tree = durs_bc_db_reader::readers::current_meta_datas::get_fork_tree(&db)
             .unwrap_or_else(|_| fatal_error!("Fail to get fork tree."));
         let wot_databases = WotsV10DBs::open(Some(&dbs_path));

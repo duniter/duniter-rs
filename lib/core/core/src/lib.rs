@@ -40,7 +40,6 @@ mod logger;
 mod router;
 
 use crate::commands::*;
-use crate::constants::DEFAULT_USER_PROFILE;
 use crate::errors::DursCoreError;
 use dubp_currency_params::CurrencyName;
 use durs_blockchain::{dbex::DbExQuery, BlockchainModule};
@@ -155,10 +154,11 @@ impl DursCore<DuRsConf> {
 
     /// Execute core command
     pub fn execute_core_command<PlugFunc>(
+        bc_db: durs_dbs_tools::kv_db::KvFileDbHandler,
         core_command: DursCoreCommand,
         durs_core_opts: DursCoreOptions,
-        external_followers: Vec<mpsc::Sender<DursMsg>>,
         mut plug_modules: PlugFunc,
+        profile_path: PathBuf,
         soft_name: &'static str,
         soft_version: &'static str,
     ) -> Result<(), DursCoreError>
@@ -167,8 +167,6 @@ impl DursCore<DuRsConf> {
     {
         // Instantiate durs core
         let mut durs_core = DursCore::<DuRsConf>::init(soft_name, soft_version, durs_core_opts, 0)?;
-
-        let profile_path = durs_core.soft_meta_datas.profile_path.clone();
 
         /*
          * CORE COMMAND PROCESSING
@@ -183,7 +181,6 @@ impl DursCore<DuRsConf> {
                     0,
                     profile_path.clone(),
                     durs_core.soft_meta_datas.conf.clone(),
-                    vec![],
                 ));
                 plug_modules(&mut durs_core)
             }
@@ -194,10 +191,9 @@ impl DursCore<DuRsConf> {
                     durs_core.run_duration_in_secs,
                     profile_path.clone(),
                     durs_core.soft_meta_datas.conf.clone(),
-                    external_followers,
                 ));
                 plug_modules(&mut durs_core)?;
-                durs_core.start()
+                durs_core.start(bc_db)
             }
             DursCoreCommand::SyncOpt(opts) => {
                 if opts.local_path.is_some() {
@@ -217,10 +213,9 @@ impl DursCore<DuRsConf> {
                         durs_core.run_duration_in_secs,
                         profile_path.clone(),
                         durs_core.soft_meta_datas.conf.clone(),
-                        external_followers,
                     ));
                     plug_modules(&mut durs_core)?;
-                    durs_core.start()
+                    durs_core.start(bc_db)
                 } else {
                     Err(DursCoreError::SyncWithoutSource)
                 }
@@ -238,13 +233,7 @@ impl DursCore<DuRsConf> {
         run_duration_in_secs: u64,
     ) -> Result<DursCore<DuRsConf>, DursCoreError> {
         // get profile path
-        let profile_path = durs_conf::get_profile_path(
-            &durs_core_opts.profiles_path,
-            &durs_core_opts
-                .profile_name
-                .clone()
-                .unwrap_or_else(|| DEFAULT_USER_PROFILE.to_owned()),
-        );
+        let profile_path = durs_core_opts.define_profile_path();
 
         // Init logger
         logger::init(
@@ -286,7 +275,10 @@ impl DursCore<DuRsConf> {
         })
     }
     /// Start durs server
-    pub fn start(mut self) -> Result<(), DursCoreError> {
+    pub fn start(
+        mut self,
+        bc_db: durs_dbs_tools::kv_db::KvFileDbHandler,
+    ) -> Result<(), DursCoreError> {
         if self.network_modules_count == 0 {
             fatal_error!(
                 "Dev error: no network module found: you must plug at least one network module !"
@@ -329,6 +321,7 @@ impl DursCore<DuRsConf> {
 
         // Instantiate blockchain module and load is conf
         let mut blockchain_module = BlockchainModule::load_blockchain_conf(
+            bc_db,
             router_sender.clone(),
             profile_path,
             RequiredKeysContent::MemberKeyPair(None),

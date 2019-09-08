@@ -41,7 +41,6 @@ enum DursMsgReceiver {
 fn start_broadcasting_thread(
     start_time: SystemTime,
     receiver: &mpsc::Receiver<RouterThreadMessage<DursMsg>>,
-    _external_followers: &[mpsc::Sender<DursMsg>],
 ) {
     // Define variables
     let mut modules_senders: HashMap<ModuleStaticName, mpsc::Sender<DursMsg>> = HashMap::new();
@@ -317,7 +316,6 @@ pub fn start_router(
     run_duration_in_secs: u64,
     profile_path: PathBuf,
     conf: DuRsConf,
-    external_followers: Vec<mpsc::Sender<DursMsg>>,
 ) -> mpsc::Sender<RouterThreadMessage<DursMsg>> {
     let start_time = SystemTime::now();
 
@@ -337,7 +335,7 @@ pub fn start_router(
 
         // Create broadcasting thread
         thread::spawn(move || {
-            start_broadcasting_thread(start_time, &broadcasting_receiver, &external_followers);
+            start_broadcasting_thread(start_time, &broadcasting_receiver);
         });
 
         // Create conf thread channel
