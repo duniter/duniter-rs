@@ -252,10 +252,7 @@ mod test {
             fork_tree_db.read(|tree| tree.size())?
         );
         assert_eq!(
-            vec![(
-                TreeNodeId(*DEFAULT_FORK_WINDOW_SIZE + 4),
-                blockstamps[*DEFAULT_FORK_WINDOW_SIZE + 2]
-            )],
+            vec![(TreeNodeId(1), blockstamps[*DEFAULT_FORK_WINDOW_SIZE + 2])],
             fork_tree_db.read(|tree| tree.get_sheets())?
         );
 

@@ -162,10 +162,16 @@ impl ForkTree {
     pub fn get_sheets(&self) -> Vec<(TreeNodeId, Blockstamp)> {
         self.sheets
             .iter()
-            .map(|s| (*s, self.get_ref_node(*s).data))
+            .filter_map(|s| {
+                if let Some(Some(ref node)) = self.nodes.get(s.0) {
+                    Some((*s, node.data))
+                } else {
+                    None
+                }
+            })
             .collect()
     }
-    ///
+    /// Get removed blockstamps
     pub fn get_removed_blockstamps(&self) -> Vec<Blockstamp> {
         self.removed_blockstamps.clone()
     }
@@ -178,29 +184,11 @@ impl ForkTree {
             .expect("Dev error: fork tree : get unexist node !")
             .expect("Dev error: fork tree : get removed node !")
     }
-    /// Get reference to a specific tree node
-    #[inline]
-    fn get_ref_node(&self, id: TreeNodeId) -> &TreeNode {
-        if let Some(Some(ref node)) = self.nodes.get(id.0) {
-            node
-        } else {
-            durs_common_tools::fatal_error!("Dev error: fork tree : get unexist or removed node !");
-        }
-    }
-    /// Get mutable reference to a specific tree node
-    #[inline]
-    fn get_mut_node(&mut self, id: TreeNodeId) -> &mut TreeNode {
-        if let Some(Some(ref mut node)) = self.nodes.get_mut(id.0) {
-            node
-        } else {
-            durs_common_tools::fatal_error!("Dev error: fork tree : get unexist or removed node !");
-        }
-    }
     /// Get free identifier
     fn get_free_node_id(&self) -> Option<TreeNodeId> {
         let mut new_node_id = None;
         for i in 0..self.nodes.len() {
-            if self.nodes.get(i).is_none() {
+            if let Some(None) = self.nodes.get(i) {
                 new_node_id = Some(TreeNodeId(i));
             }
         }
@@ -220,7 +208,14 @@ impl ForkTree {
     #[inline]
     pub fn get_main_branch_block_hash(&self, block_id: BlockNumber) -> Option<BlockHash> {
         if let Some(node_id) = self.main_branch.get(&block_id) {
-            Some(self.get_ref_node(*node_id).data.hash)
+            if let Some(Some(ref node)) = self.nodes.get(node_id.0) {
+                Some(node.data.hash)
+            } else {
+                durs_common_tools::fatal_error!(
+                    "Dev error: fork tree : missing block #{} in main branch.",
+                    block_id
+                );
+            }
         } else {
             None
         }
@@ -229,7 +224,15 @@ impl ForkTree {
     pub fn get_fork_branch_nodes_ids(&self, node_id: TreeNodeId) -> Vec<TreeNodeId> {
         let mut branch = Vec::with_capacity(self.max_depth);
 
-        let node = self.get_ref_node(node_id);
+        let node = if let Some(Some(ref node)) = self.nodes.get(node_id.0) {
+            node
+        } else {
+            log::warn!(
+                "Fork tree: call get_fork_branch_nodes_ids({}) for an unexist node.",
+                node_id.0
+            );
+            return vec![];
+        };
         if !self.main_branch.contains_key(&node.data.id)
             || self
                 .get_main_branch_block_hash(node.data.id)
@@ -240,7 +243,14 @@ impl ForkTree {
         }
 
         if let Some(first_parent_id) = node.parent {
-            let mut parent = self.get_ref_node(first_parent_id);
+            let mut parent = if let Some(Some(ref parent)) = self.nodes.get(first_parent_id.0) {
+                parent
+            } else {
+                durs_common_tools::fatal_error!(
+                    "Fork tree: call get_fork_branch_nodes_ids({}) for a node with unexist parent.",
+                    node_id.0
+                );
+            };
             let mut parent_id = first_parent_id;
             while !self.main_branch.contains_key(&parent.data.id)
                 || self
@@ -251,7 +261,14 @@ impl ForkTree {
                 branch.push(parent_id);
 
                 if let Some(next_parent_id) = parent.parent {
-                    parent = self.get_ref_node(next_parent_id);
+                    parent = if let Some(Some(ref parent)) = self.nodes.get(next_parent_id.0) {
+                        parent
+                    } else {
+                        durs_common_tools::fatal_error!(
+                            "Fork tree: call get_fork_branch_nodes_ids({}) for a node with indirect unexist parent.",
+                            node_id.0
+                        );
+                    };
                     parent_id = next_parent_id;
                 } else {
                     break;
@@ -279,7 +296,14 @@ impl ForkTree {
                         branch.push(parent.data);
 
                         if let Some(parent_id) = parent.parent {
-                            parent = self.get_ref_node(parent_id).clone();
+                            parent = if let Some(Some(ref parent)) = self.nodes.get(parent_id.0) {
+                                parent.clone()
+                            } else {
+                                durs_common_tools::fatal_error!(
+                                    "Fork tree: call get_fork_branch({}) for a node with indirect unexist parent.",
+                                    node_id.0
+                                );
+                            };
                         } else {
                             break;
                         }
@@ -371,7 +395,11 @@ impl ForkTree {
                 self.sheets.remove(&parent);
             }
             // Add new node in parent
-            self.get_mut_node(parent).add_child(new_node_id);
+            if let Some(Some(ref mut parent_)) = self.nodes.get_mut(parent.0) {
+                parent_.add_child(new_node_id)
+            } else {
+                durs_common_tools::fatal_error!("Dev error: fork tree: inserting a new node as the child of a non-existent parent");
+            }
         } else if self.root.is_none() {
             self.root = Some(new_node_id);
         } else {
@@ -429,11 +457,25 @@ impl ForkTree {
     fn remove_node_children(&mut self, id: TreeNodeId) {
         let mut ids_to_rm: Vec<TreeNodeId> = Vec::new();
 
-        let mut node = self.get_ref_node(id);
+        let mut node = if let Some(Some(ref node)) = self.nodes.get(id.0) {
+            node
+        } else {
+            durs_common_tools::fatal_error!(
+                "Fork tree: call remove_node_children({}) for an unexist node.",
+                id.0
+            );
+        };
         while node.children.len() <= 1 {
             if let Some(child_id) = node.children.get(0) {
                 ids_to_rm.push(*child_id);
-                node = self.get_ref_node(*child_id);
+                node = if let Some(Some(ref node)) = self.nodes.get(child_id.0) {
+                    node
+                } else {
+                    durs_common_tools::fatal_error!(
+                        "Fork tree: call remove_node_children({}) for a node with indirect unexist children.",
+                        id.0
+                    );
+                };
             } else {
                 break;
             }
