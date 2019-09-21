@@ -23,6 +23,7 @@ use dubp_user_docs::documents::identity::IdentityDocumentV10;
 use dup_crypto::keys::PubKey;
 use dup_crypto::keys::PublicKey;
 use durs_bc_db_reader::constants::*;
+use durs_bc_db_reader::indexes::identities::get_wot_id_;
 use durs_bc_db_reader::indexes::identities::{DbIdentity, DbIdentityState};
 use durs_bc_db_reader::{DbReadable, DbValue};
 use durs_common_tools::fatal_error;
@@ -34,7 +35,7 @@ pub fn revert_create_identity(
     ms_db: &BinFreeStructDb<MsExpirV10Datas>,
     pubkey: &PubKey,
 ) -> Result<(), DbError> {
-    let dal_idty = durs_bc_db_reader::indexes::identities::get_identity(db, pubkey)?
+    let dal_idty = durs_bc_db_reader::indexes::identities::get_identity_by_pubkey(db, pubkey)?
         .expect("Try to revert unexist idty.");
     // Remove membership
     ms_db.write(|db| {
@@ -47,10 +48,15 @@ pub fn revert_create_identity(
     })?;
     // Remove identity
     db.write(|mut w| {
-        db.get_store(IDENTITIES).delete(
-            w.as_mut(),
-            &dal_idty.idty_doc.issuers()[0].to_bytes_vector(),
-        )?;
+        let pubkey_bytes = dal_idty.idty_doc.issuers()[0].to_bytes_vector();
+        if let Some(DbValue::U64(wot_id)) =
+            db.get_store(WOT_ID_INDEX).get(w.as_ref(), &pubkey_bytes)?
+        {
+            db.get_int_store(IDENTITIES)
+                .delete(w.as_mut(), wot_id as u32)?;
+            db.get_store(WOT_ID_INDEX)
+                .delete(w.as_mut(), &pubkey_bytes)?;
+        }
         Ok(w)
     })?;
     Ok(())
@@ -84,11 +90,13 @@ pub fn create_identity(
     // Write Identity
     let bin_idty = durs_dbs_tools::to_bytes(&idty)?;
     db.write(|mut w| {
-        db.get_store(IDENTITIES).put(
+        db.get_store(WOT_ID_INDEX).put(
             w.as_mut(),
             &idty.idty_doc.issuers()[0].to_bytes_vector(),
-            &DbValue::Blob(&bin_idty),
+            &DbValue::U64(wot_id.0 as u64),
         )?;
+        db.get_int_store(IDENTITIES)
+            .put(w.as_mut(), wot_id.0 as u32, &DbValue::Blob(&bin_idty))?;
         Ok(w)
     })?;
     // Write membership
@@ -107,8 +115,9 @@ pub fn exclude_identity(
     exclusion_blockstamp: &Blockstamp,
     revert: bool,
 ) -> Result<(), DbError> {
-    let mut idty_datas = durs_bc_db_reader::indexes::identities::get_identity(db, pubkey)?
-        .expect("Try to exclude unexist idty.");
+    let mut idty_datas =
+        durs_bc_db_reader::indexes::identities::get_identity_by_pubkey(db, pubkey)?
+            .expect("Try to exclude unexist idty.");
     idty_datas.state = if revert {
         match idty_datas.state {
             DbIdentityState::ExpireMember(renewed_counts) => {
@@ -132,12 +141,16 @@ pub fn exclude_identity(
     // Write new identity datas
     let bin_idty = durs_dbs_tools::to_bytes(&idty_datas)?;
     db.write(|mut w| {
-        db.get_store(IDENTITIES).put(
-            w.as_mut(),
-            &pubkey.to_bytes_vector(),
-            &DbValue::Blob(&bin_idty),
-        )?;
-        Ok(w)
+        if let Some(wot_id) = get_wot_id_(db, w.as_ref(), &pubkey)? {
+            db.get_int_store(IDENTITIES).put(
+                w.as_mut(),
+                wot_id.0 as u32,
+                &DbValue::Blob(&bin_idty),
+            )?;
+            Ok(w)
+        } else {
+            Err(DbError::DBCorrupted)
+        }
     })?;
     Ok(())
 }
@@ -150,8 +163,9 @@ pub fn revoke_identity(
     explicit: bool,
     revert: bool,
 ) -> Result<(), DbError> {
-    let mut member_datas = durs_bc_db_reader::indexes::identities::get_identity(db, pubkey)?
-        .expect("Try to revoke unexist idty.");
+    let mut member_datas =
+        durs_bc_db_reader::indexes::identities::get_identity_by_pubkey(db, pubkey)?
+            .expect("Try to revoke unexist idty.");
 
     member_datas.state = if revert {
         match member_datas.state {
@@ -188,12 +202,16 @@ pub fn revoke_identity(
     // Update idty
     let bin_idty = durs_dbs_tools::to_bytes(&member_datas)?;
     db.write(|mut w| {
-        db.get_store(IDENTITIES).put(
-            w.as_mut(),
-            &pubkey.to_bytes_vector(),
-            &DbValue::Blob(&bin_idty),
-        )?;
-        Ok(w)
+        if let Some(wot_id) = get_wot_id_(db, w.as_ref(), &pubkey)? {
+            db.get_int_store(IDENTITIES).put(
+                w.as_mut(),
+                wot_id.0 as u32,
+                &DbValue::Blob(&bin_idty),
+            )?;
+            Ok(w)
+        } else {
+            Err(DbError::DBCorrupted)
+        }
     })?;
     Ok(())
 }
@@ -203,15 +221,15 @@ pub fn renewal_identity(
     currency_params: &CurrencyParameters,
     db: &Db,
     ms_db: &BinFreeStructDb<MsExpirV10Datas>,
-    pubkey: &PubKey,
     idty_wot_id: WotId,
     renewal_timestamp: u64,
     ms_created_block_id: BlockNumber,
     revert: bool,
 ) -> Result<(), DbError> {
     // Get idty_datas
-    let mut idty_datas = durs_bc_db_reader::indexes::identities::get_identity(db, pubkey)?
-        .expect("Fatal error : try to renewal unknow identity !");
+    let mut idty_datas =
+        durs_bc_db_reader::indexes::identities::get_identity_by_wot_id(db, idty_wot_id)?
+            .expect("Fatal error : try to renewal unknow identity !");
     // Calculate new state value
     idty_datas.state = if revert {
         match idty_datas.state {
@@ -252,9 +270,9 @@ pub fn renewal_identity(
     // Write new identity datas
     let bin_idty = durs_dbs_tools::to_bytes(&idty_datas)?;
     db.write(|mut w| {
-        db.get_store(IDENTITIES).put(
+        db.get_int_store(IDENTITIES).put(
             w.as_mut(),
-            &pubkey.to_bytes_vector(),
+            idty_wot_id.0 as u32,
             &DbValue::Blob(&bin_idty),
         )?;
         Ok(w)
@@ -271,8 +289,12 @@ pub fn renewal_identity(
 /// Remove identity from databases
 pub fn remove_identity(db: &Db, pubkey: PubKey) -> Result<(), DbError> {
     db.write(|mut w| {
-        db.get_store(IDENTITIES)
-            .delete(w.as_mut(), &pubkey.to_bytes_vector())?;
-        Ok(w)
+        if let Some(wot_id) = get_wot_id_(db, w.as_ref(), &pubkey)? {
+            db.get_int_store(IDENTITIES)
+                .delete(w.as_mut(), wot_id.0 as u32)?;
+            Ok(w)
+        } else {
+            Err(DbError::DBCorrupted)
+        }
     })
 }

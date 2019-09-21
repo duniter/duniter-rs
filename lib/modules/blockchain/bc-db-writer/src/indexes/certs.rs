@@ -19,7 +19,6 @@ use crate::{BinFreeStructDb, Db, DbError};
 use dubp_common_doc::BlockNumber;
 use dubp_currency_params::CurrencyParameters;
 use dubp_user_docs::documents::certification::CompactCertificationDocumentV10;
-use dup_crypto::keys::*;
 use durs_bc_db_reader::constants::*;
 use durs_bc_db_reader::indexes::identities::DbIdentity;
 use durs_bc_db_reader::{CertsExpirV10Datas, DbReadable, DbValue};
@@ -30,7 +29,6 @@ pub fn write_certification(
     currency_params: &CurrencyParameters,
     db: &Db,
     certs_db: &BinFreeStructDb<CertsExpirV10Datas>,
-    source_pubkey: PubKey,
     source: WotId,
     target: WotId,
     created_block_id: BlockNumber,
@@ -38,7 +36,7 @@ pub fn write_certification(
 ) -> Result<(), DbError> {
     // Get cert_chainable_on
     let mut member_datas =
-        durs_bc_db_reader::indexes::identities::get_identity(db, &source_pubkey)?
+        durs_bc_db_reader::indexes::identities::get_identity_by_wot_id(db, source)?
             .expect("Try to write certification with unexist certifier.");
     // Push new cert_chainable_on
     member_datas
@@ -47,9 +45,9 @@ pub fn write_certification(
     // Write new identity datas
     let bin_member_datas = durs_dbs_tools::to_bytes(&member_datas)?;
     db.write(|mut w| {
-        db.get_store(IDENTITIES).put(
+        db.get_int_store(IDENTITIES).put(
             w.as_mut(),
-            &source_pubkey.to_bytes_vector(),
+            source.0 as u32,
             &DbValue::Blob(&bin_member_datas),
         )?;
         Ok(w)
@@ -82,13 +80,16 @@ pub fn revert_write_cert(
     })?;
     // Pop last cert_chainable_on
     db.write(|mut w| {
-        let identities_store = db.get_store(IDENTITIES);
-        let pubkey_bytes = compact_doc.issuer.to_bytes_vector();
-        if let Some(v) = identities_store.get(w.as_ref(), &pubkey_bytes)? {
+        let identities_store = db.get_int_store(IDENTITIES);
+        if let Some(v) = identities_store.get(w.as_ref(), source.0 as u32)? {
             let mut member_datas = Db::from_db_value::<DbIdentity>(v)?;
             member_datas.cert_chainable_on.pop();
             let bin_member_datas = durs_dbs_tools::to_bytes(&member_datas)?;
-            identities_store.put(w.as_mut(), &pubkey_bytes, &DbValue::Blob(&bin_member_datas))?
+            identities_store.put(
+                w.as_mut(),
+                source.0 as u32,
+                &DbValue::Blob(&bin_member_datas),
+            )?
         }
         Ok(w)
     })?;

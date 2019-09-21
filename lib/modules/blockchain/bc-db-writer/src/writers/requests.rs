@@ -153,7 +153,7 @@ impl WotsDBsWriteQuery {
                 crate::indexes::identities::revert_create_identity(&db, &databases.ms_db, pubkey)?;
             }
             WotsDBsWriteQuery::RenewalIdentity(
-                ref pubkey,
+                _,
                 ref idty_wot_id,
                 ref current_bc_time,
                 ms_created_block_id,
@@ -163,7 +163,6 @@ impl WotsDBsWriteQuery {
                     currency_params,
                     &db,
                     &databases.ms_db,
-                    pubkey,
                     *idty_wot_id,
                     *current_bc_time,
                     ms_created_block_id,
@@ -172,7 +171,7 @@ impl WotsDBsWriteQuery {
                 trace!("DBWrWotsDBsWriteQueryiteRequest::RenewalIdentity...");
             }
             WotsDBsWriteQuery::RevertRenewalIdentity(
-                ref pubkey,
+                _,
                 ref idty_wot_id,
                 ref current_bc_time,
                 ms_created_block_id,
@@ -181,7 +180,6 @@ impl WotsDBsWriteQuery {
                     currency_params,
                     &db,
                     &databases.ms_db,
-                    pubkey,
                     *idty_wot_id,
                     *current_bc_time,
                     ms_created_block_id,
@@ -205,7 +203,7 @@ impl WotsDBsWriteQuery {
                 )?;
             }
             WotsDBsWriteQuery::CreateCert(
-                ref source_pubkey,
+                _,
                 ref source,
                 ref target,
                 ref created_block_id,
@@ -216,7 +214,6 @@ impl WotsDBsWriteQuery {
                     currency_params,
                     &db,
                     &databases.certs_db,
-                    *source_pubkey,
                     *source,
                     *target,
                     *created_block_id,

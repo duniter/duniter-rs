@@ -102,17 +102,17 @@ pub fn get_identities<DB: DbReadable>(
     current_block_id: BlockNumber,
 ) -> Result<Vec<DbIdentity>, DbError> {
     if let Some(pubkey) = filters.by_pubkey {
-        if let Some(idty) = get_identity(db, &pubkey)? {
+        if let Some(idty) = get_identity_by_pubkey(db, &pubkey)? {
             Ok(vec![idty])
         } else {
             Ok(vec![])
         }
     } else {
+        let mut identities: Vec<DbIdentity> = Vec::new();
         db.read(|r| {
-            let mut identities: Vec<DbIdentity> = Vec::new();
-            for entry in db.get_store(IDENTITIES).iter_start(r)? {
-                if let Some(v) = entry?.1 {
-                    let db_idty = DB::from_db_value::<DbIdentity>(v)?;
+            let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db, r)?;
+            for wot_id in 0..=greatest_wot_id.0 {
+                if let Some(db_idty) = get_identity_by_wot_id_(db, r, WotId(wot_id))? {
                     if filters
                         .paging
                         .check_created_on(db_idty.idty_doc.blockstamp().id, current_block_id)
@@ -121,36 +121,60 @@ pub fn get_identities<DB: DbReadable>(
                     }
                 }
             }
-            identities.sort_by(|i1, i2| {
-                i1.idty_doc
-                    .blockstamp()
-                    .id
-                    .cmp(&i2.idty_doc.blockstamp().id)
-            });
-            Ok(identities
-                .into_iter()
-                .skip(filters.paging.page_size * filters.paging.page_number)
-                .take(filters.paging.page_size)
-                .collect())
-        })
+            Ok(())
+        })?;
+        identities.sort_by(|i1, i2| {
+            i1.idty_doc
+                .blockstamp()
+                .id
+                .cmp(&i2.idty_doc.blockstamp().id)
+        });
+        Ok(identities
+            .into_iter()
+            .skip(filters.paging.page_size * filters.paging.page_number)
+            .take(filters.paging.page_size)
+            .collect())
     }
 }
 
 /// Get identity by pubkey in databases
-pub fn get_identity<DB: DbReadable>(
+pub fn get_identity_by_pubkey<DB: DbReadable>(
     db: &DB,
     pubkey: &PubKey,
 ) -> Result<Option<DbIdentity>, DbError> {
-    db.read(|r| get_identity_(db, r, pubkey))
+    db.read(|r| get_identity_by_pubkey_(db, r, pubkey))
 }
 
 /// Get identity by pubkey
-pub fn get_identity_<DB: DbReadable, R: Reader>(
+pub fn get_identity_by_pubkey_<DB: DbReadable, R: Reader>(
     db: &DB,
     r: &R,
     pubkey: &PubKey,
 ) -> Result<Option<DbIdentity>, DbError> {
-    if let Some(v) = db.get_store(IDENTITIES).get(r, &pubkey.to_bytes_vector())? {
+    if let Some(wot_id) = get_wot_id_(db, r, pubkey)? {
+        get_identity_by_wot_id_(db, r, wot_id)
+    } else {
+        Ok(None)
+    }
+}
+
+/// Get identity by pubkey
+#[inline]
+pub fn get_identity_by_wot_id<DB: DbReadable>(
+    db: &DB,
+    wot_id: WotId,
+) -> Result<Option<DbIdentity>, DbError> {
+    db.read(|r| get_identity_by_wot_id_(db, r, wot_id))
+}
+
+/// Get identity by pubkey
+#[inline]
+pub fn get_identity_by_wot_id_<DB: DbReadable, R: Reader>(
+    db: &DB,
+    r: &R,
+    wot_id: WotId,
+) -> Result<Option<DbIdentity>, DbError> {
+    if let Some(v) = db.get_int_store(IDENTITIES).get(r, wot_id.0 as u32)? {
         Ok(Some(DB::from_db_value(v)?))
     } else {
         Ok(None)
@@ -160,17 +184,17 @@ pub fn get_identity_<DB: DbReadable, R: Reader>(
 /// Get uid from pubkey
 #[inline]
 pub fn get_uid<DB: DbReadable>(db: &DB, pubkey: &PubKey) -> Result<Option<String>, DbError> {
-    Ok(get_identity(db, pubkey)?.map(|db_idty| db_idty.idty_doc.username().to_owned()))
+    Ok(get_identity_by_pubkey(db, pubkey)?.map(|db_idty| db_idty.idty_doc.username().to_owned()))
 }
 
 /// Get pubkey from uid
 pub fn get_pubkey_from_uid<DB: DbReadable>(db: &DB, uid: &str) -> Result<Option<PubKey>, DbError> {
     db.read(|r| {
-        for entry in db.get_store(IDENTITIES).iter_start(r)? {
-            if let Some(v) = entry?.1 {
-                let idty_doc = DB::from_db_value::<DbIdentity>(v)?.idty_doc;
-                if idty_doc.username() == uid {
-                    return Ok(Some(idty_doc.issuers()[0]));
+        let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db, r)?;
+        for wot_id in 0..=greatest_wot_id.0 {
+            if let Some(db_idty) = get_identity_by_wot_id_(db, r, WotId(wot_id))? {
+                if db_idty.idty_doc.username() == uid {
+                    return Ok(Some(db_idty.idty_doc.issuers()[0]));
                 }
             }
         }
@@ -178,14 +202,42 @@ pub fn get_pubkey_from_uid<DB: DbReadable>(db: &DB, uid: &str) -> Result<Option<
     })
 }
 
+/// Get identity wot_id
+pub fn get_wot_id<DB: DbReadable>(db: &DB, pubkey: &PubKey) -> Result<Option<WotId>, DbError> {
+    db.read(|r| get_wot_id_(db, r, pubkey))
+}
+
+/// Get identity wot_id
+#[inline]
+pub fn get_wot_id_<DB: DbReadable, R: Reader>(
+    db: &DB,
+    r: &R,
+    pubkey: &PubKey,
+) -> Result<Option<WotId>, DbError> {
+    if let Some(v) = db
+        .get_store(WOT_ID_INDEX)
+        .get(r, &pubkey.to_bytes_vector())?
+    {
+        if let DbValue::U64(wot_id) = v {
+            Ok(Some(WotId(wot_id as usize)))
+        } else {
+            Err(DbError::DBCorrupted)
+        }
+    } else {
+        Ok(None)
+    }
+}
 /// Get wot_id index
 pub fn get_wot_index<DB: DbReadable>(db: &DB) -> Result<HashMap<PubKey, WotId>, DbError> {
     db.read(|r| {
         let mut wot_index = HashMap::new();
-        for entry in db.get_store(IDENTITIES).iter_start(r)? {
-            if let Some(v) = entry?.1 {
-                let db_idty = DB::from_db_value::<DbIdentity>(v)?;
-                wot_index.insert(db_idty.idty_doc.issuers()[0], db_idty.wot_id);
+        for entry in db.get_store(WOT_ID_INDEX).iter_start(r)? {
+            let (k, v_opt) = entry?;
+            if let Some(DbValue::U64(wot_id)) = v_opt {
+                wot_index.insert(
+                    PubKey::from_bytes(k).map_err(|_| DbError::DBCorrupted)?,
+                    WotId(wot_id as usize),
+                );
             }
         }
         Ok(wot_index)
@@ -196,10 +248,10 @@ pub fn get_wot_index<DB: DbReadable>(db: &DB) -> Result<HashMap<PubKey, WotId>, 
 pub fn get_wot_uid_index<DB: DbReadable>(db: &DB) -> Result<HashMap<WotId, String>, DbError> {
     db.read(|r| {
         let mut wot_uid_index = HashMap::new();
-        for entry in db.get_store(IDENTITIES).iter_start(r)? {
-            if let Some(v) = entry?.1 {
-                let db_idty = DB::from_db_value::<DbIdentity>(v)?;
-                wot_uid_index.insert(db_idty.wot_id, db_idty.idty_doc.username().to_owned());
+        let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db, r)?;
+        for wot_id in 0..=greatest_wot_id.0 {
+            if let Some(db_idty) = get_identity_by_wot_id_(db, r, WotId(wot_id))? {
+                wot_uid_index.insert(WotId(wot_id), db_idty.idty_doc.username().to_owned());
             }
         }
         Ok(wot_uid_index)
@@ -210,6 +262,7 @@ pub fn get_wot_uid_index<DB: DbReadable>(db: &DB) -> Result<HashMap<WotId, Strin
 mod test {
 
     use super::*;
+    use crate::current_meta_datas::CurrentMetaDataKey;
     use crate::paging::PagingFilter;
     use dubp_common_doc::Blockstamp;
     use dup_crypto_tests_tools::mocks::pubkey;
@@ -247,17 +300,34 @@ mod test {
 
         // Write mock identities in DB
         let db = crate::tests::open_tmp_db()?;
+        let mut wot_id = 0;
         for idty in &mock_identities {
             let idty_bin = durs_dbs_tools::to_bytes(idty)?;
             db.write(|mut w| {
-                db.get_store(IDENTITIES).put(
+                db.get_store(WOT_ID_INDEX).put(
                     w.as_mut(),
                     &idty.idty_doc.issuers()[0].to_bytes_vector(),
+                    &DbValue::U64(wot_id),
+                )?;
+                db.get_int_store(IDENTITIES).put(
+                    w.as_mut(),
+                    wot_id as u32,
                     &KvFileDbHandler::db_value(&idty_bin)?,
                 )?;
                 Ok(w)
             })?;
+            wot_id += 1;
         }
+
+        // Write greatest wot id
+        db.write(|mut w| {
+            db.get_int_store(CURRENT_METAS_DATAS).put(
+                w.as_mut(),
+                CurrentMetaDataKey::GreatestWotId.to_u32(),
+                &DbValue::U64(wot_id),
+            )?;
+            Ok(w)
+        })?;
 
         // Test default filters
         let mut filters = IdentitiesFilter::default();

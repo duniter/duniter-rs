@@ -17,9 +17,11 @@
 
 use crate::blocks::fork_tree::ForkTree;
 use crate::constants::*;
+use crate::*;
 use crate::{DbReadable, DbValue};
 use dubp_common_doc::{Blockstamp, CurrencyName};
 use durs_dbs_tools::DbError;
+use durs_wot::WotId;
 
 #[derive(Clone, Copy, Debug)]
 /// Current meta data key
@@ -34,6 +36,8 @@ pub enum CurrentMetaDataKey {
     CurrentBlockchainTime,
     /// Fork tree
     ForkTree,
+    /// Greatest wot id
+    GreatestWotId,
 }
 
 impl CurrentMetaDataKey {
@@ -45,6 +49,7 @@ impl CurrentMetaDataKey {
             Self::CurrentBlockstamp => 2,
             Self::CurrentBlockchainTime => 3,
             Self::ForkTree => 4,
+            Self::GreatestWotId => 5,
         }
     }
 }
@@ -136,4 +141,21 @@ pub fn get_fork_tree<DB: DbReadable>(db: &DB) -> Result<ForkTree, DbError> {
             Ok(ForkTree::default())
         }
     })
+}
+
+/// Get greatest wot id
+#[inline]
+pub fn get_greatest_wot_id_<DB: DbReadable, R: Reader>(db: &DB, r: &R) -> Result<WotId, DbError> {
+    if let Some(v) = db
+        .get_int_store(CURRENT_METAS_DATAS)
+        .get(r, CurrentMetaDataKey::GreatestWotId.to_u32())?
+    {
+        if let DbValue::U64(greatest_wot_id) = v {
+            Ok(WotId(greatest_wot_id as usize))
+        } else {
+            Err(DbError::DBCorrupted)
+        }
+    } else {
+        Ok(WotId(0))
+    }
 }

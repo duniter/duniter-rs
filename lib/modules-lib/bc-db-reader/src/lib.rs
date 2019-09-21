@@ -54,7 +54,8 @@ pub fn bc_db_schema() -> KvFileDbSchema {
             MAIN_BLOCKS.to_owned() => KvFileDbStoreType::SingleIntKey,
             FORK_BLOCKS.to_owned() => KvFileDbStoreType::Single,
             ORPHAN_BLOCKSTAMP.to_owned() => KvFileDbStoreType::Single,
-            IDENTITIES.to_owned() => KvFileDbStoreType::Single,
+            IDENTITIES.to_owned() => KvFileDbStoreType::SingleIntKey,
+            WOT_ID_INDEX.to_owned() => KvFileDbStoreType::Single,
         ],
     }
 }

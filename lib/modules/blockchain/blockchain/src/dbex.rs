@@ -138,7 +138,9 @@ pub fn dbex_bc(profile_path: PathBuf, _csv: bool, _query: DbExBcQuery) -> Result
                 println!("{},{},{}", &BLOCK, &USERNAME, &PUB_KEY);
                 for (pub_key, v) in &vec {
                     if let Ok(Some(identity)) =
-                        durs_bc_db_reader::indexes::identities::get_identity(&db, &pub_key)
+                        durs_bc_db_reader::indexes::identities::get_identity_by_pubkey(
+                            &db, &pub_key,
+                        )
                     {
                         println!(
                             "{},{},{}",
@@ -153,7 +155,9 @@ pub fn dbex_bc(profile_path: PathBuf, _csv: bool, _query: DbExBcQuery) -> Result
                 table.add_row(row![&BLOCK, &USERNAME, &PUB_KEY]);
                 for (pub_key, v) in &vec {
                     if let Ok(Some(identity)) =
-                        durs_bc_db_reader::indexes::identities::get_identity(&db, &pub_key)
+                        durs_bc_db_reader::indexes::identities::get_identity_by_pubkey(
+                            &db, &pub_key,
+                        )
                     {
                         table.add_row(row![v, identity.idty_doc.username(), pub_key.to_string()]);
                     }

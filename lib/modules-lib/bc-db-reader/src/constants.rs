@@ -34,5 +34,8 @@ pub static MAIN_BLOCKS: &str = "bc";
 /// Blockstamp orphaned (no parent block) indexed by their previous blockstamp (PreviousBlockstamp, Vec<Blockstamp>)
 pub static ORPHAN_BLOCKSTAMP: &str = "ob";
 
-/// Identities (PubKey, DbIdentity)
+/// Wot id index (PubKey, WotId)
+pub static WOT_ID_INDEX: &str = "wii";
+
+/// Identities (WotId, DbIdentity)
 pub static IDENTITIES: &str = "idty";

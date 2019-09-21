@@ -235,7 +235,32 @@ pub enum PubKey {
     Schnorr(),
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+/// Error when parsing pubkey bytes
+pub enum PubkeyFromBytesError {
+    /// Invalid bytes length
+    InvalidBytesLen {
+        /// Expected length
+        expected: usize,
+        /// Found length
+        found: usize,
+    },
+}
+
 impl PubKey {
+    /// Create pubkey from bytes
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, PubkeyFromBytesError> {
+        if bytes.len() != *ed25519::PUBKEY_SIZE_IN_BYTES {
+            Err(PubkeyFromBytesError::InvalidBytesLen {
+                expected: *ed25519::PUBKEY_SIZE_IN_BYTES,
+                found: bytes.len(),
+            })
+        } else {
+            let mut pubkey_buffer = [0u8; 32];
+            pubkey_buffer.copy_from_slice(bytes);
+            Ok(PubKey::Ed25519(ed25519::PublicKey(pubkey_buffer)))
+        }
+    }
     /// Compute PubKey size in bytes
     pub fn size_in_bytes(&self) -> usize {
         match *self {
