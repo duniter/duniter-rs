@@ -10,11 +10,10 @@ Les points abordés dans cette page sont résumés ici pour vous permettre d'avo
 - le nommage des commits finaux doit respecter le format `[type] crate: action subject`
 - communiquer avec les développeurs via les espaces dédiés
 - l'intégration d'une contribution se fait uniquement par rebase (merge interdit) et une fois les critères suivants remplis
-    - branche à jour sur dev
-    - formatage canonique du code, tests automatisés passés avec succès
-    - historique des commits propre, compréhensible et concis
-    - contribution approuvée par un reviewer
-
+  - branche à jour sur dev
+  - formatage canonique du code, tests automatisés passés avec succès
+  - historique des commits propre, compréhensible et concis
+  - contribution approuvée par un reviewer
 
 ## Nommage des branches
 
@@ -61,22 +60,21 @@ Le nom de commit doit être entièrement en minuscules. Le nom du commit est de 
 
 ### Liste des types de commit
 
-* `build` : Modification des scripts de build, de packaging ou/et de publication des livrables.
-* `ci` : Modification de la chaîne d'intégration continue.
-* `deps` : Modification des dépendances sans modification du code : ce peut être pour mettre à jour des dépendances tierces ou pour supprimer des dépendances tierces qui ne sont plus utilisées.
-* `docs` : Modification de la documentation (y compris traduction et création de nouveau contenu).
-* `feat` : Développement d'une nouvelle fonctionnalité.
-* `fix` : Correction d'un bug
-* `opti` :  Optimisation : amélioration des performances ou/et réduction de l'espace mémoire/disque utilisé.
-* `pub` : commit lié a la publication d'une crate sur [crates.io](https://crates.io).
-* `ref` : Changement du code qui ne change rien au fonctionnement (refactoring en anglais).
-* `style` : Modification du style du code (fmt et clippy).
-* `tests` : Modification des tests existants ou/et création de nouveaux tests.
+- `build` : Modification des scripts de build, de packaging ou/et de publication des livrables.
+- `ci` : Modification de la chaîne d'intégration continue.
+- `deps` : Modification des dépendances sans modification du code : ce peut être pour mettre à jour des dépendances tierces ou pour supprimer des dépendances tierces qui ne sont plus utilisées.
+- `docs` : Modification de la documentation (y compris traduction et création de nouveau contenu).
+- `feat` : Développement d'une nouvelle fonctionnalité.
+- `fix` : Correction d'un bug
+- `opti` :  Optimisation : amélioration des performances ou/et réduction de l'espace mémoire/disque utilisé.
+- `pub` : commit lié a la publication d'une crate sur [crates.io](https://crates.io).
+- `ref` : Changement du code qui ne change rien au fonctionnement (refactoring en anglais).
+- `style` : Modification du style du code (fmt et clippy).
+- `tests` : Modification des tests existants ou/et création de nouveaux tests.
 
 Le nom du commit doit être parlant dans le seul contexte de la lecture de l'historique, il ne doit donc pas faire référence à une MR ou à des discussions en particulier.
 L'historique des commits est notamment utilisé pour publier le changelog entre deux versions ainsi que pour faire le bilan du travail accompli, c'est pourquoi il doit se suffire a lui-même.
 Si vous avez besoin d'effectuer une action qui ne rentre dans aucun de ses types, contactez les principaux développeurs du projet pour discuter de l'ajout d'un nouveau type de commit dans cette liste.
-
 
 ## Stratégie de mise à jour
 
@@ -100,7 +98,6 @@ Si quelque chose s'est mal passé et que vous ne savez plus où vous en êtes, v
 
 Il se peut que vous n'ayez pas de conflits du tout, dans ce cas vous sautez directement de l'étape 2. à 4. sans passer par 3.
 
-
 ## Quand pusher
 
 Idéalement à chaque fois que vous êtes sur le point d'éteindre votre ordinateur, soit environ une fois par jour (uniquement pour les jours où vous codez sur le projet bien sûr).
@@ -110,7 +107,6 @@ Pensez bien à préfixer votre commit par `wip:` pour indiquer que c'est un "wor
 > Pourquoi pusher alors que je n'ai pas fini ?
 
 Si votre ordinateur rencontre un problème (panne, perte de données, reformatage, etc), pusher vous permet de vous assurer d'avoir toujours une copie de votre travail quelque part sur les internets.
-
 
 ## À vérifier avant de demander la relecture de votre "merge request"
 
