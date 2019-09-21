@@ -1,0 +1,13 @@
+[clog]
+# A git repository link
+repository = "https://git.duniter.org/nodes/rust/duniter-rs"
+
+# specify the style of commit links to generate, defaults to "github" if omitted
+link-style = "gitlab"
+
+# Defaults to stdout when omitted
+changelog = "changelog.md"
+
+# If you use tags, you can set the following if you wish to only pick
+# up changes since your latest tag
+from-latest-tag = true
