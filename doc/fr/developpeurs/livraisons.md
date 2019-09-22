@@ -21,7 +21,7 @@ Installer le générateur de changelog :
 Le moment du gel est toujours un choix difficile et important, à décider en concertation avec les principaux contributeurs.
 Dans un monde idéal, le gel est effectué lorsque toutes les fonctionnalités d'un jalon ont été développées.
 Mais si l'on souhaite livrer le jalon à la date annoncée, le gel doit avoir lieu *a minima* 3 semaines avant la date de livraison prévisionnelle du jalon.
-Le choix de la date du gel est souvent un compromis entre la durée de retard acceptable et les fonctionnalités reportables au jalon suivant.
+Le choix de la date du gel est souvent un compromis entre la durée de retard acceptable et les fonctionnalités qui peuvent être reportées au jalon suivant.
 
 Une fois la date du gel décidée, voici comment effectuer le gel du jalon `x.y`:
 
@@ -39,7 +39,7 @@ Une fois la date du gel décidée, voici comment effectuer le gel du jalon `x.y`
 
 La version `alpha` du jalon est toujours la version du code au moment du gel, elle est réservée aux alpha-testeurs.
 Une fois le gel effectué, il faut pusher la branche du jalon (`release/x.y`) et la tag puis vérifier que la CI/CD se passe bien.
-En cas d'échec de la CI/CD, il faut corriger le problème dès que possible puis pusher le correctif sur la branche du jalon puis pusher un nouveau tag (vx.y.0-alpha2).
+En cas d'échec de la CI/CD, il faut corriger le problème dès que possible puis pusher le correctif sur la branche du jalon puis pusher un nouveau tag (`vx.y.0-alpha2`).
 On incrémente ainsi le nombre après "alpha" jusqu'à obtenir une CI/CD qui réussit et donc obtenir des binaires livrables.
 
 ## Annonce de la version alpha
@@ -58,18 +58,18 @@ Un ticket est considéré comme bloquant si :
 - L'anomalie empêche de poursuivre le déroulement des tests et il n'existe pas de solution de contournement pour l'utilisateur avancé.
 - L'anomalie provoque un arrêt inopiné (=crash) de Dunitrust dans au moins 1 cas d'utilisation normale et il n'existe pas de solution de contournement pour l'utilisateur avancé.
 
-Une fois que tous les tests du cahier des tests ont été joués, et que tous les tickets bloquants ont été corrigés, on peut passer à la phase "beta", même si tous les tests ne sont pas un succès.
+Une fois que tous les tests du cahier des tests ont été joués, et que tous les tickets bloquants ont été corrigés, on peut passer à la phase "bêta", même si tous les tests ne sont pas un succès.
 
 Cette phase "alpha" peut être très rapide si les alpha-testeurs sont réactifs/efficaces/nombreux, il n'y a pas de délai minimal imposé, les deux seules contraintes sont :
 
 1. Tous les tests du cahier des tests ont été joués intégralement au moins une fois.
 2. Il n'existe plus de ticket bloquant connu.
 
-## Livraison de la beta
+## Livraison de la bêta
 
-Lorsque les conditions permettant de clore la phase "alpha" sont atteintes, un `Maintainer` ou `Owner` du projet peut liver la 1ère version beta à condition d'avoir obtenu l'autorisation explicite du chef de projet (ou à défaut du bureau d'axiom-Team).
+Lorsque les conditions permettant de clore la phase "alpha" sont atteintes, un `Maintainer` ou `Owner` du projet peut livrer la 1ère version bêta à condition d'avoir obtenu l'autorisation explicite du chef de projet (ou à défaut du bureau d'Axiom-Team).
 
-Pour livrer la 1ère version beta :
+Pour livrer la 1ère version bêta :
 
     ```bash
     git checkout release/x.y
@@ -79,14 +79,14 @@ Pour livrer la 1ère version beta :
     ```
 
 Vérifier que la CI/CD se déroule avec succès et jusqu'au bout (ça peut être long).
-Lorsque la CI/CD s'est intégralement terminée avec succès, l'annonce de la version beta peut être faite sur le site web de Dunitrust ainsi que sur le forum technique.
+Lorsque la CI/CD s'est intégralement terminée avec succès, l'annonce de la version bêta peut être faite sur le site web de Dunitrust ainsi que sur le forum technique.
 
-En phase "beta", tout les tests du cahier des tests doivent réussir. Lorsqu'un test échoue, un ticket doit être ouvert par le testeur.
-Le test en échec doit être intégralement rejoué par un beta-testeur après livraison du correctif.
+En phase "bêta", tout les tests du cahier des tests doivent réussir. Lorsqu'un test échoue, un ticket doit être ouvert par le testeur.
+Le test en échec doit être intégralement rejoué par un bêta-testeur après livraison du correctif.
 
-Inutile de relivrer une beta à chaque ticket corrigé, autant attendre la correction d'une 1ère vague de tickets, il ne faut toutefois pas trop attendre, car les testeurs ont besoin des correctifs pour rejouer les tests en échec.
+Inutile de re-livrer une bêta à chaque ticket corrigé, autant attendre la correction d'une 1ère vague de tickets, il ne faut toutefois pas trop attendre, car les testeurs ont besoin des correctifs pour rejouer les tests en échec.
 
-Les nouvelles versions beta seront nommées `x.y-beta2`, `x.y-beta3`, etc.
+Les nouvelles versions bêta seront nommées `x.y-beta2`, `x.y-beta3`, etc.
 
 Lorsque tous les cas de test du cahier des tests sont verts, on peut passer à la phase "release candidate".
 Il est possible de passer à cette phase même si tous les tests ne sont pas verts, car il peut être décidé de reporter le correctif d'anomalies mineures à un jalon suivant, mais dans tous les cas il faut l'autorisation explicite du chef de projet (ou à défaut du bureau d'Axiom-Team).
@@ -125,7 +125,7 @@ Pour livrer la 1ère version stable :
 Vérifier que la CI/CD se déroule avec succès et jusqu'au bout (ça peut être long).
 
 Lorsque la CI/CD s'est intégralement terminée avec succès, l'annonce de la version stable doit être faite sur le site web de Dunitrust ainsi que sur le forum technique.
-L'annonce de cette version stable doit alors être relayée le plus largement possible, tout les utilisateurs de dunitrust sont invités à se mettre a jour.
+L'annonce de cette version stable doit alors être relayée le plus largement possible, tout les utilisateurs de Dunitrust sont invités à se mettre a jour.
 
 ## Hotfix
 
