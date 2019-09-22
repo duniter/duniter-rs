@@ -49,12 +49,16 @@ pub fn execute(
                         all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
 
                         // Apply db request
-                        req.apply(
-                            &db,
-                            &mut fork_tree,
-                            fork_window_size,
-                            Some(target_blockstamp),
-                        )
+                        db.write(|mut w| {
+                            req.apply(
+                                &db,
+                                &mut w,
+                                &mut fork_tree,
+                                fork_window_size,
+                                Some(target_blockstamp),
+                            )?;
+                            Ok(w)
+                        })
                         .expect("Fatal error : Fail to apply DBWriteRequest !");
 
                         chunk_index += 1;
@@ -80,18 +84,19 @@ pub fn execute(
 
         // Increment progress bar (last chunk)
         apply_pb.inc();
-        // Save blockchain, and fork databases
+        // Save fork tree
         println!();
         println!("Write indexs in files...");
-        info!("Save blockchain and forks databases in files...");
-        durs_bc_db_writer::blocks::fork_tree::save_fork_tree(&db, &fork_tree)
-            .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
-        db.save()
-            .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
+        info!("Save db...");
+        db.write(|mut w| {
+            durs_bc_db_writer::blocks::fork_tree::save_fork_tree(&db, &mut w, &fork_tree)?;
+            Ok(w)
+        })
+        .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
 
         // Send finish signal
         sender_sync_thread
-            .send(MessForSyncThread::ApplyFinish())
+            .send(MessForSyncThread::ApplyFinish(Some(db)))
             .expect("Fatal error : sync_thread unrechable !");
         let blocks_job_duration =
             SystemTime::now().duration_since(blocks_job_begin).unwrap() - all_wait_duration;

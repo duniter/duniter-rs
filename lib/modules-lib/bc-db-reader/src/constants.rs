@@ -39,3 +39,13 @@ pub static WOT_ID_INDEX: &str = "wii";
 
 /// Identities (WotId, DbIdentity)
 pub static IDENTITIES: &str = "idty";
+
+/// Unused universal dividends
+pub static DIVIDENDS: &str = "du";
+
+/// Unused Transaction Output (UniqueIdUTXOv10, TransactionOutput)
+pub static UTXOS: &str = "utxo";
+
+/// Consumed UTXOs (BlockNumber, UTXO)
+/// Used only to revert a block
+pub static CONSUMED_UTXOS: &str = "cutxo";

@@ -48,13 +48,13 @@ pub struct BlockHeader {
     pub issuer: PubKey,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 /// Message for main sync thread
 pub enum MessForSyncThread {
     Target(CurrencyName, Blockstamp),
     BlockDocument(BlockDocument),
     DownloadFinish(),
-    ApplyFinish(),
+    ApplyFinish(Option<Db>),
 }
 
 #[derive(Debug)]
@@ -63,7 +63,10 @@ pub enum SyncJobsMess {
     ForkWindowSize(usize), // informs block worker of fork window size
     BlocksDBsWriteQuery(BlocksDBsWriteQuery),
     WotsDBsWriteQuery(Blockstamp, Box<CurrencyParameters>, WotsDBsWriteQuery),
-    CurrencyDBsWriteQuery(Blockstamp, CurrencyDBsWriteQuery),
+    CurrencyDBsWriteQuery {
+        in_fork_window: bool,
+        req: CurrencyDBsWriteQuery,
+    },
     End,
 }
 
@@ -263,6 +266,7 @@ pub fn local_sync<DC: DursConfTrait>(
 
     // Open databases
     let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone());
+    let db = open_db(dbs_path.as_path()).expect("Fail to open blockchain DB.");
     let certs_db = BinFreeStructDb::Mem(
         open_free_struct_memory_db::<CertsExpirV10Datas>().expect("Fail to create memory certs_db"),
     );
@@ -273,6 +277,7 @@ pub fn local_sync<DC: DursConfTrait>(
         currency,
         currency_params: None,
         dbs_path,
+        db: Some(db),
         verif_inner_hash: !unsafe_mode,
         target_blockstamp,
         current_blockstamp,
@@ -379,14 +384,28 @@ pub fn local_sync<DC: DursConfTrait>(
 
     // Wait recv two finish signals
     let mut wait_jobs = *NB_SYNC_JOBS - 1;
+    let mut db = None;
     while wait_jobs > 0 {
         match recv_sync_thread.recv() {
-            Ok(MessForSyncThread::ApplyFinish()) => wait_jobs -= 1,
+            Ok(MessForSyncThread::ApplyFinish(db_opt)) => {
+                if db.is_none() {
+                    db = db_opt;
+                }
+                wait_jobs -= 1;
+            }
             Ok(_) => thread::sleep(Duration::from_millis(50)),
             Err(_) => wait_jobs -= 1,
         }
     }
     info!("All sync jobs finish.");
+
+    // Save blockchain DB
+    if let Some(db) = db {
+        db.save()
+            .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
+    } else {
+        fatal_error!("Dev error: sync workers didn't return the DB.")
+    }
 
     // Log sync duration
     debug!("certs_count={}", block_applicator.certs_count);

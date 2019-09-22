@@ -29,8 +29,6 @@
 
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate serde_derive;
 
 pub mod blocks;
 pub mod indexes;
@@ -38,25 +36,21 @@ pub mod writers;
 
 pub use durs_dbs_tools::kv_db::{
     KvFileDbHandler, KvFileDbRead as DbReadable, KvFileDbRoHandler, KvFileDbSchema,
-    KvFileDbStoreType, KvFileDbValue,
+    KvFileDbStoreType, KvFileDbValue, KvFileDbWriter as DbWriter,
 };
 pub use durs_dbs_tools::{
     open_free_struct_db, open_free_struct_file_db, open_free_struct_memory_db,
 };
 pub use durs_dbs_tools::{BinFreeStructDb, DbError};
 
-use crate::indexes::transactions::DbTxV10;
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use dubp_indexes::sindex::UniqueIdUTXOv10;
 use dubp_user_docs::documents::transaction::*;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
-use durs_bc_db_reader::indexes::sources::UTXOContentV10;
-use durs_bc_db_reader::{BalancesV10Datas, CertsExpirV10Datas};
-use durs_common_tools::fatal_error;
+use durs_bc_db_reader::CertsExpirV10Datas;
 use durs_wot::data::{rusty::RustyWebOfTrust, WotId};
 use fnv::FnvHashMap;
-use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
@@ -72,10 +66,6 @@ pub type ForksTreeV10Datas = durs_bc_db_reader::blocks::fork_tree::ForkTree;
 pub type WotDB = RustyWebOfTrust;
 /// Memberships sorted by created block
 pub type MsExpirV10Datas = FnvHashMap<BlockNumber, HashSet<WotId>>;
-/// V10 Transactions indexed by their hashs
-pub type TxV10Datas = HashMap<Hash, DbTxV10>;
-/// V10 Unused Transaction Output (=sources)
-pub type UTXOsV10Datas = HashMap<UniqueIdUTXOv10, UTXOContentV10>;
 /// V10 UDs sources
 pub type UDsV10Datas = HashMap<PubKey, HashSet<BlockNumber>>;
 
@@ -124,55 +114,6 @@ impl WotsV10DBs {
         self.certs_db
             .save()
             .expect("Fatal error : fail to save CertsExpirV10DB !");
-    }
-}
-
-#[derive(Debug)]
-/// Set of databases storing currency information
-pub struct CurrencyV10DBs {
-    /// Store all UD sources
-    pub du_db: BinFreeStructDb<UDsV10Datas>,
-    /// Store all Transactions
-    pub tx_db: BinFreeStructDb<TxV10Datas>,
-    /// Store all UTXOs
-    pub utxos_db: BinFreeStructDb<UTXOsV10Datas>,
-    /// Store balances of all address (and theirs UTXOs indexs)
-    pub balances_db: BinFreeStructDb<BalancesV10Datas>,
-}
-
-impl CurrencyV10DBs {
-    /// Open currency databases from their respective files
-    pub fn open(db_path: Option<&PathBuf>) -> CurrencyV10DBs {
-        CurrencyV10DBs {
-            du_db: open_free_struct_db::<UDsV10Datas>(db_path, "du.db")
-                .expect("Fail to open UDsV10DB"),
-            tx_db: open_free_struct_db::<TxV10Datas>(db_path, "tx.db")
-                .unwrap_or_else(|_| fatal_error!("Fail to open TxV10DB")),
-            utxos_db: open_free_struct_db::<UTXOsV10Datas>(db_path, "sources.db")
-                .expect("Fail to open UTXOsV10DB"),
-            balances_db: open_free_struct_db::<BalancesV10Datas>(db_path, "balances.db")
-                .expect("Fail to open BalancesV10DB"),
-        }
-    }
-    /// Save currency databases in their respective files
-    pub fn save_dbs(&self, tx: bool, du: bool) {
-        if tx {
-            info!("BC-DB-WRITER: Save CurrencyV10DBs.");
-            self.tx_db
-                .save()
-                .expect("Fatal error : fail to save LocalBlockchainV10DB !");
-            self.utxos_db
-                .save()
-                .expect("Fatal error : fail to save UTXOsV10DB !");
-            self.balances_db
-                .save()
-                .expect("Fatal error : fail to save BalancesV10DB !");
-        }
-        if du {
-            self.du_db
-                .save()
-                .expect("Fatal error : fail to save UDsV10DB !");
-        }
     }
 }
 

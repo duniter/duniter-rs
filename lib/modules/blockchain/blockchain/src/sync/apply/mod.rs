@@ -19,8 +19,9 @@ pub mod wot_worker;
 
 use crate::dubp;
 use crate::dubp::apply::apply_valid_block;
-use crate::dubp::apply::ValidBlockApplyReqs;
+use crate::dubp::apply::{ApplyValidBlockError, ValidBlockApplyReqs};
 use crate::sync::SyncJobsMess;
+use crate::Db;
 use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
@@ -58,6 +59,7 @@ pub struct BlockApplicator {
     pub blocks_not_expiring: VecDeque<u64>,
     pub last_block_expiring: isize,
     // databases
+    pub db: Option<Db>,
     pub wot_index: HashMap<PubKey, WotId>,
     pub wot_databases: WotsV10DBs,
     pub certs_db: BinFreeStructDb<CertsExpirV10Datas>,
@@ -104,13 +106,26 @@ impl BlockApplicator {
 
         // Apply block
         let apply_valid_block_begin = SystemTime::now();
+        let mut apply_valid_block_result = Err(ApplyValidBlockError::DBsCorrupted);
+        if let Some(db) = self.db.take() {
+            db.write(|mut w| {
+                apply_valid_block_result = apply_valid_block::<RustyWebOfTrust>(
+                    &db,
+                    &mut w,
+                    block_doc,
+                    &mut self.wot_index,
+                    &self.wot_databases.wot_db,
+                    &expire_certs,
+                );
+                Ok(w)
+            })
+            .expect("Fail to apply valid block.");
+            self.db = Some(db);
+        } else {
+            fatal_error!("Dev error: BlockApplicator must have DB.")
+        }
         if let Ok(ValidBlockApplyReqs(block_req, wot_db_reqs, currency_db_reqs)) =
-            apply_valid_block::<RustyWebOfTrust>(
-                block_doc,
-                &mut self.wot_index,
-                &self.wot_databases.wot_db,
-                &expire_certs,
-            )
+            apply_valid_block_result
         {
             self.all_apply_valid_block_duration += SystemTime::now()
                 .duration_since(apply_valid_block_begin)
@@ -154,13 +169,19 @@ impl BlockApplicator {
                         "Fail to communicate with tx worker thread, please reset data & resync !",
                     )
             }
+
+            // In fork window ?
+            let fork_window_size = unwrap!(self.currency_params).fork_window_size as u32;
+            let in_fork_window = self.target_blockstamp.id.0 < fork_window_size
+                || self.current_blockstamp.id.0 > self.target_blockstamp.id.0 - fork_window_size;
+
             // Send blocks and wot requests to wot worker thread
             for req in currency_db_reqs {
                 self.sender_tx_thread
-                    .send(SyncJobsMess::CurrencyDBsWriteQuery(
-                        self.current_blockstamp,
-                        req.clone(),
-                    ))
+                    .send(SyncJobsMess::CurrencyDBsWriteQuery {
+                        in_fork_window,
+                        req: req.clone(),
+                    })
                     .expect(
                         "Fail to communicate with tx worker thread, please reset data & resync !",
                     );

@@ -15,7 +15,6 @@
 
 //! Sub-module that applies a block backwards.
 
-use dubp_block_doc::block::v10::TxDocOrTxHash;
 use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait, BlockDocumentV10};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
@@ -23,9 +22,8 @@ use dubp_user_docs::documents::transaction::{TxAmount, TxBase};
 use dup_crypto::keys::*;
 use durs_bc_db_reader::blocks::DbBlock;
 use durs_bc_db_reader::indexes::sources::SourceAmount;
-use durs_bc_db_writer::indexes::transactions::DbTxV10;
 use durs_bc_db_writer::writers::requests::*;
-use durs_bc_db_writer::{BinFreeStructDb, DbError, TxV10Datas};
+use durs_bc_db_writer::{BinFreeStructDb, DbError};
 use durs_common_tools::fatal_error;
 use durs_wot::data::{NewLinkResult, RemLinkResult};
 use durs_wot::{WebOfTrust, WotId};
@@ -59,7 +57,6 @@ pub fn revert_block<W: WebOfTrust>(
     dal_block: DbBlock,
     wot_index: &mut HashMap<PubKey, WotId>,
     wot_db: &BinFreeStructDb<W>,
-    txs_db: &BinFreeStructDb<TxV10Datas>,
 ) -> Result<ValidBlockRevertReqs, RevertValidBlockError> {
     match dal_block.block {
         BlockDocument::V10(block_v10) => revert_block_v10(
@@ -67,7 +64,6 @@ pub fn revert_block<W: WebOfTrust>(
             unwrap!(dal_block.expire_certs),
             wot_index,
             wot_db,
-            txs_db,
         ),
     }
 }
@@ -77,27 +73,7 @@ pub fn revert_block_v10<W: WebOfTrust>(
     expire_certs: HashMap<(WotId, WotId), BlockNumber>,
     wot_index: &mut HashMap<PubKey, WotId>,
     wot_db: &BinFreeStructDb<W>,
-    txs_db: &BinFreeStructDb<TxV10Datas>,
 ) -> Result<ValidBlockRevertReqs, RevertValidBlockError> {
-    // Get transactions
-    let dal_txs: Vec<DbTxV10> = block
-        .transactions
-        .iter()
-        .map(|tx_enum| match *tx_enum {
-            TxDocOrTxHash::TxHash(tx_hash) => tx_hash,
-            TxDocOrTxHash::TxDoc(ref tx_doc) => tx_doc.get_hash_opt().unwrap_or_else(|| {
-                fatal_error!("Dev error: The hash of a transaction should never be deleted.");
-            }),
-        })
-        .map(|tx_hash| {
-            if let Ok(Some(tx)) = txs_db.read(|db| db.get(&tx_hash).cloned()) {
-                tx
-            } else {
-                fatal_error!("revert_block(): tx {} not found !", tx_hash);
-            }
-        })
-        .collect();
-
     // Revert reduce block
     block.generate_inner_hash();
     debug!("blockchain: revert_valid_block({})", block.blockstamp());
@@ -105,8 +81,8 @@ pub fn revert_block_v10<W: WebOfTrust>(
     // REVERT_CURRENCY_EVENTS
     let mut currency_dbs_requests = Vec::new();
     // Revert transactions
-    for dal_tx in dal_txs.iter().rev() {
-        currency_dbs_requests.push(CurrencyDBsWriteQuery::RevertTx(Box::new(dal_tx.clone())));
+    for tx_doc in block.transactions.iter().rev() {
+        currency_dbs_requests.push(CurrencyDBsWriteQuery::RevertTx(Box::new(tx_doc.clone())));
     }
     // Revert UD
     if let Some(du_amount) = block.dividend {

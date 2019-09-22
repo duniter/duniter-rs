@@ -38,7 +38,7 @@ pub fn receive_req(
                 debug!("BlockchainModule : receive BlockchainRequest::CurrentBlock()");
 
                 if let Ok(block_opt) = durs_bc_db_reader::blocks::get_block_in_local_blockchain(
-                    &bc.db,
+                    bc.db(),
                     bc.current_blockstamp.id,
                 ) {
                     if let Some(block) = block_opt {
@@ -71,7 +71,7 @@ pub fn receive_req(
                 );
 
                 if let Ok(block_opt) =
-                    durs_bc_db_reader::blocks::get_block_in_local_blockchain(&bc.db, block_number)
+                    durs_bc_db_reader::blocks::get_block_in_local_blockchain(bc.db(), block_number)
                 {
                     if let Some(block) = block_opt {
                         debug!(
@@ -106,7 +106,7 @@ pub fn receive_req(
                 );
 
                 if let Ok(blocks) = durs_bc_db_reader::blocks::get_blocks_in_local_blockchain(
-                    &bc.db,
+                    bc.db(),
                     first_block_number,
                     count,
                 ) {
@@ -145,7 +145,7 @@ pub fn receive_req(
                             .map(|p| {
                                 (
                                     p,
-                                    durs_bc_db_reader::indexes::identities::get_uid(&bc.db, &p)
+                                    durs_bc_db_reader::indexes::identities::get_uid(bc.db(), &p)
                                         .expect("Fatal error : get_uid : Fail to read WotV10DB !"),
                                 )
                             })

@@ -35,42 +35,7 @@ use dubp_user_docs::documents::transaction::{TransactionDocument, TransactionDoc
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
-use std::ops::Deref;
 use unwrap::unwrap;
-
-/// Store a transaction document or just its hash.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub enum TxDocOrTxHash {
-    /// Transaction document
-    TxDoc(Box<TransactionDocument>),
-    /// transaction hash
-    TxHash(Hash),
-}
-
-impl TxDocOrTxHash {
-    /// Lightens the TxDocOrTxHash (for example to store it while minimizing the space required)
-    /// lightening consists in transforming the document by its hash.
-    pub fn reduce(&self) -> TxDocOrTxHash {
-        if let TxDocOrTxHash::TxDoc(ref tx_doc) = self {
-            let tx_doc = tx_doc.deref();
-            if let Some(ref hash) = tx_doc.get_hash_opt() {
-                TxDocOrTxHash::TxHash(*hash)
-            } else {
-                TxDocOrTxHash::TxHash(tx_doc.compute_hash())
-            }
-        } else {
-            self.clone()
-        }
-    }
-    /// Get TxDoc variant
-    pub fn unwrap_doc(&self) -> TransactionDocument {
-        if let TxDocOrTxHash::TxDoc(ref tx_doc) = self {
-            tx_doc.deref().clone()
-        } else {
-            fatal_error!("Try to unwrap_doc() in a TxHash() variant of TxDocOrTxHash !")
-        }
-    }
-}
 
 /// Wrap a Block document.
 ///
@@ -135,7 +100,7 @@ pub struct BlockDocumentV10 {
     /// Certifications
     pub certifications: Vec<TextDocumentFormat<CertificationDocumentV10>>,
     /// Transactions
-    pub transactions: Vec<TxDocOrTxHash>,
+    pub transactions: Vec<TransactionDocument>,
 }
 
 impl BlockDocumentTrait for BlockDocumentV10 {
@@ -206,11 +171,9 @@ impl BlockDocumentTrait for BlockDocumentV10 {
             certifications_str.push_str(&certification.as_compact_text());
         }
         let mut transactions_str = String::from("");
-        for transaction in self.transactions.clone() {
-            if let TxDocOrTxHash::TxDoc(transaction) = transaction {
-                transactions_str.push_str("\n");
-                transactions_str.push_str(&transaction.deref().generate_compact_text());
-            }
+        for transaction in &self.transactions {
+            transactions_str.push_str("\n");
+            transactions_str.push_str(&transaction.generate_compact_text());
         }
         let mut dividend_str = String::from("");
         if let Some(dividend) = self.dividend {
@@ -610,12 +573,7 @@ impl ToStringObject for BlockDocumentV10 {
             transactions: self
                 .transactions
                 .iter()
-                .map(|tx_doc_or_tx_hash| match tx_doc_or_tx_hash {
-                    TxDocOrTxHash::TxDoc(tx_doc) => tx_doc.to_string_object(),
-                    TxDocOrTxHash::TxHash(_) => {
-                        fatal_error!("Try to stringify block without their tx documents")
-                    }
-                })
+                .map(|tx_doc| tx_doc.to_string_object())
                 .collect(),
         }
     }
@@ -766,7 +724,7 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
             revoked: Vec::new(),
             excluded: Vec::new(),
             certifications: vec![TextDocumentFormat::Complete(cert1)],
-            transactions: vec![TxDocOrTxHash::TxDoc(Box::new(tx1)), TxDocOrTxHash::TxDoc(Box::new(tx2))],
+            transactions: vec![tx1, tx2],
         };
         // test inner_hash computation
         block.generate_inner_hash();
@@ -948,7 +906,7 @@ nxr4exGrt16jteN9ZX3XZPP9l+X0OUbZ1o/QjE1hbWQNtVU3HhH9SJoEvNj2iVl3gCRr9u2OA9uj9vCy
             revoked: vec![],
             excluded: vec![],
             certifications: vec![],
-            transactions: vec![TxDocOrTxHash::TxDoc(Box::new(tx1)), TxDocOrTxHash::TxDoc(Box::new(tx2))],
+            transactions: vec![tx1, tx2],
         };
         // test inner_hash computation
         block.generate_inner_hash();

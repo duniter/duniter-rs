@@ -13,7 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::indexes::transactions::DbTxV10;
 use crate::*;
 use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
 use dubp_common_doc::Blockstamp;
@@ -59,6 +58,7 @@ impl BlocksDBsWriteQuery {
     pub fn apply(
         self,
         db: &Db,
+        w: &mut DbWriter,
         fork_tree: &mut ForkTree,
         fork_window_size: usize,
         sync_target: Option<Blockstamp>,
@@ -71,14 +71,14 @@ impl BlocksDBsWriteQuery {
                     || dal_block.blockstamp().id.0 + fork_window_size as u32
                         >= sync_target.expect("safe unwrap").id.0
                 {
-                    crate::blocks::insert_new_head_block(db, Some(fork_tree), dal_block)?;
+                    crate::blocks::insert_new_head_block(db, w, Some(fork_tree), dal_block)?;
                 } else {
-                    crate::blocks::insert_new_head_block(db, None, dal_block)?;
+                    crate::blocks::insert_new_head_block(db, w, None, dal_block)?;
                 }
             }
             BlocksDBsWriteQuery::RevertBlock(dal_block) => {
                 trace!("BlocksDBsWriteQuery::WriteBlock...");
-                crate::blocks::remove_block(db, dal_block.block.number())?;
+                crate::blocks::remove_block(db, w, dal_block.block.number())?;
                 trace!("BlocksDBsWriteQuery::WriteBlock...finish");
             }
         }
@@ -125,10 +125,11 @@ impl WotsDBsWriteQuery {
     /// Apply WotsDBsWriteQuery
     pub fn apply(
         &self,
+        db: &Db,
+        w: &mut DbWriter,
         _blockstamp: &Blockstamp,
         currency_params: &CurrencyParameters,
         databases: &WotsV10DBs,
-        db: &Db,
     ) -> Result<(), DbError> {
         match *self {
             WotsDBsWriteQuery::CreateIdentity(
@@ -141,6 +142,7 @@ impl WotsDBsWriteQuery {
                 crate::indexes::identities::create_identity(
                     currency_params,
                     &db,
+                    w,
                     &databases.ms_db,
                     idty_doc.deref(),
                     *ms_created_block_id,
@@ -150,7 +152,12 @@ impl WotsDBsWriteQuery {
                 )?;
             }
             WotsDBsWriteQuery::RevertCreateIdentity(ref pubkey) => {
-                crate::indexes::identities::revert_create_identity(&db, &databases.ms_db, pubkey)?;
+                crate::indexes::identities::revert_create_identity(
+                    &db,
+                    w,
+                    &databases.ms_db,
+                    pubkey,
+                )?;
             }
             WotsDBsWriteQuery::RenewalIdentity(
                 _,
@@ -162,6 +169,7 @@ impl WotsDBsWriteQuery {
                 crate::indexes::identities::renewal_identity(
                     currency_params,
                     &db,
+                    w,
                     &databases.ms_db,
                     *idty_wot_id,
                     *current_bc_time,
@@ -179,6 +187,7 @@ impl WotsDBsWriteQuery {
                 crate::indexes::identities::renewal_identity(
                     currency_params,
                     &db,
+                    w,
                     &databases.ms_db,
                     *idty_wot_id,
                     *current_bc_time,
@@ -187,19 +196,19 @@ impl WotsDBsWriteQuery {
                 )?;
             }
             WotsDBsWriteQuery::ExcludeIdentity(ref pubkey, ref blockstamp) => {
-                crate::indexes::identities::exclude_identity(&db, pubkey, blockstamp, false)?;
+                crate::indexes::identities::exclude_identity(&db, w, pubkey, blockstamp, false)?;
             }
             WotsDBsWriteQuery::RevertExcludeIdentity(ref pubkey, ref blockstamp) => {
-                crate::indexes::identities::exclude_identity(&db, pubkey, blockstamp, true)?;
+                crate::indexes::identities::exclude_identity(&db, w, pubkey, blockstamp, true)?;
             }
             WotsDBsWriteQuery::RevokeIdentity(ref pubkey, ref blockstamp, ref explicit) => {
                 crate::indexes::identities::revoke_identity(
-                    &db, pubkey, blockstamp, *explicit, false,
+                    &db, w, pubkey, blockstamp, *explicit, false,
                 )?;
             }
             WotsDBsWriteQuery::RevertRevokeIdentity(ref pubkey, ref blockstamp, ref explicit) => {
                 crate::indexes::identities::revoke_identity(
-                    &db, pubkey, blockstamp, *explicit, true,
+                    &db, w, pubkey, blockstamp, *explicit, true,
                 )?;
             }
             WotsDBsWriteQuery::CreateCert(
@@ -213,6 +222,7 @@ impl WotsDBsWriteQuery {
                 crate::indexes::certs::write_certification(
                     currency_params,
                     &db,
+                    w,
                     &databases.certs_db,
                     *source,
                     *target,
@@ -225,6 +235,7 @@ impl WotsDBsWriteQuery {
                 trace!("WotsDBsWriteQuery::CreateCert...");
                 crate::indexes::certs::revert_write_cert(
                     &db,
+                    w,
                     &databases.certs_db,
                     *compact_doc,
                     *source,
@@ -254,7 +265,7 @@ pub enum CurrencyDBsWriteQuery {
     /// Write transaction
     WriteTx(Box<TransactionDocument>),
     /// Revert transaction
-    RevertTx(Box<DbTxV10>),
+    RevertTx(Box<TransactionDocument>),
     /// Create dividend
     CreateUD(SourceAmount, BlockNumber, Vec<PubKey>),
     /// Revert dividend
@@ -265,39 +276,39 @@ impl CurrencyDBsWriteQuery {
     /// Apply CurrencyDBsWriteQuery
     pub fn apply(
         &self,
-        blockstamp: &Blockstamp,
-        databases: &CurrencyV10DBs,
+        db: &Db,
+        w: &mut DbWriter,
+        block_consumed_sources_opt: Option<&mut HashMap<UniqueIdUTXOv10, TransactionOutput>>,
+        in_fork_window: bool,
     ) -> Result<(), DbError> {
         match *self {
             CurrencyDBsWriteQuery::WriteTx(ref tx_doc) => {
                 crate::indexes::transactions::apply_and_write_tx(
-                    blockstamp,
-                    &databases,
+                    db,
+                    w,
                     tx_doc.deref(),
+                    in_fork_window,
                 )?;
             }
-            CurrencyDBsWriteQuery::RevertTx(ref dal_tx) => {
-                crate::indexes::transactions::revert_tx(blockstamp, &databases, dal_tx.deref())?;
+            CurrencyDBsWriteQuery::RevertTx(ref tx_doc) => {
+                if let Some(block_consumed_sources) = block_consumed_sources_opt {
+                    crate::indexes::transactions::revert_tx(
+                        db,
+                        w,
+                        tx_doc.deref(),
+                        block_consumed_sources,
+                    )?;
+                } else {
+                    durs_common_tools::fatal_error!(
+                        "Try to revert tx without block_consumed_sources."
+                    )
+                }
             }
             CurrencyDBsWriteQuery::CreateUD(ref du_amount, ref block_id, ref members) => {
-                crate::indexes::dividends::create_du(
-                    &databases.du_db,
-                    &databases.balances_db,
-                    du_amount,
-                    *block_id,
-                    members,
-                    false,
-                )?;
+                crate::indexes::dividends::create_du(db, w, du_amount, *block_id, members, false)?;
             }
             CurrencyDBsWriteQuery::RevertUD(ref du_amount, ref block_id, ref members) => {
-                crate::indexes::dividends::create_du(
-                    &databases.du_db,
-                    &databases.balances_db,
-                    du_amount,
-                    *block_id,
-                    members,
-                    true,
-                )?;
+                crate::indexes::dividends::create_du(db, w, du_amount, *block_id, members, true)?;
             }
         }
         Ok(())

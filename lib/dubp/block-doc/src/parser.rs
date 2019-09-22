@@ -15,11 +15,12 @@
 
 //! Parsers for block.
 
-use crate::block::{v10::TxDocOrTxHash, BlockDocument, BlockDocumentV10};
+use crate::block::{BlockDocument, BlockDocumentV10};
 use dubp_common_doc::{BlockHash, BlockNumber};
 use dubp_currency_params::genesis_block_params::v10::BlockV10Parameters;
 use dubp_currency_params::CurrencyName;
 use dubp_user_docs::documents::membership::v10::MembershipType;
+use dubp_user_docs::documents::transaction::TransactionDocument;
 use dubp_user_docs::parsers::{serde_json_value_to_pest_json_value, DefaultHasher};
 use dup_crypto::bases::BaseConvertionError;
 use dup_crypto::hashs::Hash;
@@ -134,8 +135,7 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
             })?
             .iter()
             .map(|tx| dubp_user_docs::parsers::transactions::parse_json_transaction(tx))
-            .map(|tx_result| tx_result.map(|tx_doc| TxDocOrTxHash::TxDoc(Box::new(tx_doc))))
-            .collect::<Result<Vec<TxDocOrTxHash>, Error>>()?,
+            .collect::<Result<Vec<TransactionDocument>, Error>>()?,
     }))
 }
 
@@ -353,7 +353,7 @@ mod tests {
                 revoked: vec![],
                 excluded: vec![],
                 certifications: vec![],
-                transactions: vec![TxDocOrTxHash::TxDoc(Box::new(dubp_user_docs_tests_tools::mocks::tx::first_g1_tx_doc()))],
+                transactions: vec![dubp_user_docs_tests_tools::mocks::tx::first_g1_tx_doc()],
             });
         assert_eq!(
             expected_block,

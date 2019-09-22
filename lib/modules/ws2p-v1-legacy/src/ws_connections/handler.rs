@@ -159,7 +159,7 @@ impl Handler for Client {
             let s: String = msg
                 .into_text()
                 .expect("WS2P: Fail to convert message payload to String !");
-            debug!("WS2P: receive mess: {}", s);
+            trace!("WS2P: receive mess: {}", s);
             let json_message: serde_json::Value = serde_json::from_str(&s)
                 .expect("WS2P: Fail to convert string message ton json value !");
             let result = self

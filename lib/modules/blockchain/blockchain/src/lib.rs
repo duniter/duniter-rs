@@ -97,15 +97,13 @@ pub struct BlockchainModule {
     /// Currency
     pub currency: Option<CurrencyName>,
     /// Database
-    pub db: Db,
+    pub db: Option<Db>,
     /// Fork tree
     pub fork_tree: ForkTree,
     /// Wot index
     pub wot_index: HashMap<PubKey, WotId>,
     /// Wots Databases
     pub wot_databases: WotsV10DBs,
-    /// Currency databases
-    currency_databases: CurrencyV10DBs,
     /// Currency parameters
     pub currency_params: Option<CurrencyParameters>,
     /// Current blockstamp
@@ -193,7 +191,6 @@ impl BlockchainModule {
         let fork_tree = durs_bc_db_reader::current_meta_datas::get_fork_tree(&db)
             .unwrap_or_else(|_| fatal_error!("Fail to get fork tree."));
         let wot_databases = WotsV10DBs::open(Some(&dbs_path));
-        let currency_databases = CurrencyV10DBs::open(Some(&dbs_path));
 
         // Get current blockstamp
         let current_blockstamp = durs_bc_db_reader::current_meta_datas::get_current_blockstamp(&db)
@@ -225,11 +222,10 @@ impl BlockchainModule {
             currency_params,
             current_blockstamp,
             consensus: Blockstamp::default(),
-            db,
+            db: Some(db),
             fork_tree,
             wot_index,
             wot_databases,
-            currency_databases,
             pending_block: None,
             invalid_forks: HashSet::new(),
             pending_network_requests: HashMap::new(),
@@ -273,6 +269,22 @@ impl BlockchainModule {
         } else {
             // Start main loop
             self.main_loop(blockchain_receiver);
+        }
+    }
+    /// Take blockchain database
+    #[inline]
+    pub fn take_db(&mut self) -> Db {
+        self.db
+            .take()
+            .unwrap_or_else(|| fatal_error!("Dev error: none bc db."))
+    }
+    /// Reference to blockchain database
+    #[inline]
+    pub fn db(&self) -> &Db {
+        if let Some(ref db) = self.db {
+            db
+        } else {
+            fatal_error!("Dev error: none bc db.")
         }
     }
 

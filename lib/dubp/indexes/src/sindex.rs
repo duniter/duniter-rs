@@ -23,9 +23,20 @@ use dup_crypto::hashs::Hash;
 use dup_crypto::keys::PubKey;
 use serde::{Deserialize, Serialize};
 
+const UTXO_ID_SIZE: usize = 36;
+
 #[derive(Copy, Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 /// Unique identifier for Unused tx output v10
 pub struct UniqueIdUTXOv10(pub Hash, pub OutputIndex);
+
+impl Into<Vec<u8>> for UniqueIdUTXOv10 {
+    fn into(self) -> Vec<u8> {
+        let mut buffer = Vec::with_capacity(UTXO_ID_SIZE);
+        buffer.append(&mut (self.0).0.to_vec());
+        buffer.append(&mut (self.1).0.to_be_bytes().to_vec());
+        buffer
+    }
+}
 
 #[derive(Copy, Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 /// Index of a V10 source

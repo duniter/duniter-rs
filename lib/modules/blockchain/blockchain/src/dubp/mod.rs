@@ -65,11 +65,13 @@ impl From<ApplyValidBlockError> for BlockError {
 
 pub fn check_and_apply_block(
     bc: &mut BlockchainModule,
+    db: &Db,
+    w: &mut DbWriter,
     block_doc: BlockDocument,
 ) -> Result<CheckAndApplyBlockReturn, BlockError> {
     // Get BlockDocument && check if already have block
     let already_have_block = durs_bc_db_reader::blocks::already_have_block(
-        &bc.db,
+        db,
         block_doc.blockstamp(),
         block_doc.previous_hash(),
     )?;
@@ -97,7 +99,7 @@ pub fn check_and_apply_block(
         // Verify block validity (check all protocol rule, very long !)
         verify_block_validity(
             &block_doc,
-            &bc.db,
+            db,
             &bc.wot_databases.certs_db,
             &bc.wot_index,
             &bc.wot_databases.wot_db,
@@ -117,6 +119,8 @@ pub fn check_and_apply_block(
         }
 
         Ok(CheckAndApplyBlockReturn::ValidMainBlock(apply_valid_block(
+            db,
+            w,
             block_doc,
             &mut bc.wot_index,
             &bc.wot_databases.wot_db,
@@ -138,7 +142,7 @@ pub fn check_and_apply_block(
             expire_certs: None,
         };
 
-        if durs_bc_db_writer::blocks::insert_new_fork_block(&bc.db, &mut bc.fork_tree, dal_block)
+        if durs_bc_db_writer::blocks::insert_new_fork_block(&db, w, &mut bc.fork_tree, dal_block)
             .expect("durs_bc_db_writer::writers::block::insert_new_fork_block() : DbError")
         {
             Ok(CheckAndApplyBlockReturn::ForkBlock)

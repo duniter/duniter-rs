@@ -22,16 +22,14 @@ use durs_bc_db_reader::constants::*;
 use durs_bc_db_reader::current_meta_datas::CurrentMetaDataKey;
 
 /// SAve fork tree
-pub fn save_fork_tree(db: &Db, fork_tree: &ForkTree) -> Result<(), DbError> {
+pub fn save_fork_tree(db: &Db, w: &mut DbWriter, fork_tree: &ForkTree) -> Result<(), DbError> {
     let bin_fork_tree = durs_dbs_tools::to_bytes(&fork_tree)?;
-    db.write(|mut w| {
-        db.get_int_store(CURRENT_METAS_DATAS).put(
-            w.as_mut(),
-            CurrentMetaDataKey::ForkTree.to_u32(),
-            &Db::db_value(&bin_fork_tree)?,
-        )?;
-        Ok(w)
-    })
+    db.get_int_store(CURRENT_METAS_DATAS).put(
+        w.as_mut(),
+        CurrentMetaDataKey::ForkTree.to_u32(),
+        &Db::db_value(&bin_fork_tree)?,
+    )?;
+    Ok(())
 }
 
 /// Insert new head Block in fork tree,

@@ -48,6 +48,7 @@ impl<'a> AsMut<rkv::Writer<'a>> for KvFileDbWriter<'a> {
 }
 
 /// Key-value file Database handler
+#[derive(Debug)]
 pub struct KvFileDbHandler {
     arc: Arc<RwLock<Rkv>>,
     path: PathBuf,
@@ -200,6 +201,17 @@ pub enum KvFileDbStore {
     Multi(super::MultiStore),
     /// Multi valued map with integer key
     MultiIntKey(super::MultiIntegerStore<u32>),
+}
+
+impl Debug for KvFileDbStore {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Single(_) => write!(f, "KvFileDbStore::Single ()"),
+            Self::SingleIntKey(_) => write!(f, "KvFileDbStore::SingleIntKey ()"),
+            Self::Multi(_) => write!(f, "KvFileDbStore::Multi ()"),
+            Self::MultiIntKey(_) => write!(f, "KvFileDbStore::MultiIntKey ()"),
+        }
+    }
 }
 
 impl KvFileDbRead for KvFileDbHandler {

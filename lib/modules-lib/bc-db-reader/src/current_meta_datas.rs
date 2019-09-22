@@ -37,7 +37,7 @@ pub enum CurrentMetaDataKey {
     /// Fork tree
     ForkTree,
     /// Greatest wot id
-    GreatestWotId,
+    NextWotId,
 }
 
 impl CurrentMetaDataKey {
@@ -49,7 +49,7 @@ impl CurrentMetaDataKey {
             Self::CurrentBlockstamp => 2,
             Self::CurrentBlockchainTime => 3,
             Self::ForkTree => 4,
-            Self::GreatestWotId => 5,
+            Self::NextWotId => 5,
         }
     }
 }
@@ -91,24 +91,31 @@ pub fn get_currency_name<DB: DbReadable>(db: &DB) -> Result<Option<CurrencyName>
 }
 
 /// Get current blockstamp
+#[inline]
 pub fn get_current_blockstamp<DB: DbReadable>(db: &DB) -> Result<Option<Blockstamp>, DbError> {
-    db.read(|r| {
-        if let Some(v) = db
-            .get_int_store(CURRENT_METAS_DATAS)
-            .get(r, CurrentMetaDataKey::CurrentBlockstamp.to_u32())?
-        {
-            if let DbValue::Blob(current_blockstamp_bytes) = v {
-                Ok(Some(
-                    Blockstamp::from_bytes(current_blockstamp_bytes)
-                        .map_err(|_| DbError::DBCorrupted)?,
-                ))
-            } else {
-                Err(DbError::DBCorrupted)
-            }
+    db.read(|r| get_current_blockstamp_(db, r))
+}
+
+/// Get current blockstamp
+pub fn get_current_blockstamp_<DB: DbReadable, R: Reader>(
+    db: &DB,
+    r: &R,
+) -> Result<Option<Blockstamp>, DbError> {
+    if let Some(v) = db
+        .get_int_store(CURRENT_METAS_DATAS)
+        .get(r, CurrentMetaDataKey::CurrentBlockstamp.to_u32())?
+    {
+        if let DbValue::Blob(current_blockstamp_bytes) = v {
+            Ok(Some(
+                Blockstamp::from_bytes(current_blockstamp_bytes)
+                    .map_err(|_| DbError::DBCorrupted)?,
+            ))
         } else {
-            Ok(None)
+            Err(DbError::DBCorrupted)
         }
-    })
+    } else {
+        Ok(None)
+    }
 }
 
 /// Get current common time (also named "blockchain time")
@@ -148,7 +155,7 @@ pub fn get_fork_tree<DB: DbReadable>(db: &DB) -> Result<ForkTree, DbError> {
 pub fn get_greatest_wot_id_<DB: DbReadable, R: Reader>(db: &DB, r: &R) -> Result<WotId, DbError> {
     if let Some(v) = db
         .get_int_store(CURRENT_METAS_DATAS)
-        .get(r, CurrentMetaDataKey::GreatestWotId.to_u32())?
+        .get(r, CurrentMetaDataKey::NextWotId.to_u32())?
     {
         if let DbValue::U64(greatest_wot_id) = v {
             Ok(WotId(greatest_wot_id as usize))

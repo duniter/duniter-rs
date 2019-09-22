@@ -118,16 +118,20 @@ mod tests {
             );
 
         // Insert mock blocks in forks_dbs
-        for block in &main_branch {
-            durs_bc_db_writer::blocks::insert_new_head_block(
-                &db,
-                Some(&mut fork_tree),
-                DbBlock {
-                    block: block.clone(),
-                    expire_certs: None,
-                },
-            )?;
-        }
+        db.write(|mut w| {
+            for block in &main_branch {
+                durs_bc_db_writer::blocks::insert_new_head_block(
+                    &db,
+                    &mut w,
+                    Some(&mut fork_tree),
+                    DbBlock {
+                        block: block.clone(),
+                        expire_certs: None,
+                    },
+                )?;
+            }
+            Ok(w)
+        })?;
 
         // Local blockchain must contain at least `fork_window_size +2` blocks
         assert!(durs_bc_db_reader::blocks::get_block_in_local_blockchain(
@@ -184,23 +188,27 @@ mod tests {
             id: BlockNumber(fork_point.number().0 + 4),
             hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
         };
-        assert_eq!(
-            true,
-            durs_bc_db_writer::blocks::insert_new_fork_block(
-                &db,
-                &mut fork_tree,
-                DbBlock {
-                    block: BlockDocument::V10(
-                        dubp_user_docs_tests_tools::mocks::gen_empty_timed_block_v10(
-                            determining_blockstamp,
-                            *ADVANCE_TIME,
-                            dup_crypto_tests_tools::mocks::hash('A'),
-                        )
-                    ),
-                    expire_certs: None,
-                },
-            )?,
-        );
+        db.write(|mut w| {
+            assert_eq!(
+                true,
+                durs_bc_db_writer::blocks::insert_new_fork_block(
+                    &db,
+                    &mut w,
+                    &mut fork_tree,
+                    DbBlock {
+                        block: BlockDocument::V10(
+                            dubp_user_docs_tests_tools::mocks::gen_empty_timed_block_v10(
+                                determining_blockstamp,
+                                *ADVANCE_TIME,
+                                dup_crypto_tests_tools::mocks::hash('A'),
+                            )
+                        ),
+                        expire_certs: None,
+                    },
+                )?,
+            );
+            Ok(w)
+        })?;
 
         // Must fork
         assert_eq!(
@@ -262,20 +270,22 @@ mod tests {
         fork_tree: &mut ForkTree,
         blocks: &[BlockDocument],
     ) -> Result<(), DbError> {
-        for block in blocks {
-            assert_eq!(
-                true,
-                durs_bc_db_writer::blocks::insert_new_fork_block(
-                    db,
-                    fork_tree,
-                    DbBlock {
-                        block: block.clone(),
-                        expire_certs: None,
-                    },
-                )?,
-            );
-        }
-
-        Ok(())
+        db.write(|mut w| {
+            for block in blocks {
+                assert_eq!(
+                    true,
+                    durs_bc_db_writer::blocks::insert_new_fork_block(
+                        db,
+                        &mut w,
+                        fork_tree,
+                        DbBlock {
+                            block: block.clone(),
+                            expire_certs: None,
+                        },
+                    )?,
+                );
+            }
+            Ok(w)
+        })
     }
 }

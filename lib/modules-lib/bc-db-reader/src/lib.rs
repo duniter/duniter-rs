@@ -56,6 +56,9 @@ pub fn bc_db_schema() -> KvFileDbSchema {
             ORPHAN_BLOCKSTAMP.to_owned() => KvFileDbStoreType::Single,
             IDENTITIES.to_owned() => KvFileDbStoreType::SingleIntKey,
             WOT_ID_INDEX.to_owned() => KvFileDbStoreType::Single,
+            DIVIDENDS.to_owned() => KvFileDbStoreType::Multi,
+            UTXOS.to_owned() => KvFileDbStoreType::Single,
+            CONSUMED_UTXOS.to_owned() => KvFileDbStoreType::SingleIntKey,
         ],
     }
 }
@@ -74,15 +77,6 @@ pub fn open_db_ro(path: &Path) -> Result<BcDbRo, DbError> {
 pub type CertsExpirV10Datas = fnv::FnvHashMap<
     dubp_common_doc::BlockNumber,
     std::collections::HashSet<(durs_wot::WotId, durs_wot::WotId)>,
->;
-
-/// V10 Balances accounts
-pub type BalancesV10Datas = std::collections::HashMap<
-    dubp_user_docs::documents::transaction::UTXOConditionsGroup,
-    (
-        crate::indexes::sources::SourceAmount,
-        std::collections::HashSet<dubp_indexes::sindex::UniqueIdUTXOv10>,
-    ),
 >;
 
 #[cfg(test)]

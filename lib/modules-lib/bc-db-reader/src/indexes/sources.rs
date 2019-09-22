@@ -15,12 +15,17 @@
 
 //! Sources stored index.
 
+use crate::constants::UTXOS;
+use crate::*;
+use dubp_common_doc::BlockNumber;
 use dubp_indexes::sindex::UniqueIdUTXOv10;
 use dubp_user_docs::documents::transaction::*;
 use durs_common_tools::fatal_error;
+use durs_dbs_tools::DbError;
 use log::error;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::ops::{Add, Sub};
 
 #[derive(Copy, Clone, Debug, Deserialize, Eq, Hash, PartialEq, PartialOrd, Serialize)]
@@ -79,12 +84,9 @@ impl Sub for SourceAmount {
     }
 }
 
-/// UTXO content V10
-pub type UTXOContentV10 = TransactionOutput;
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
 /// V10 Unused Transaction Output
-pub struct UTXOV10(pub UniqueIdUTXOv10, pub UTXOContentV10);
+pub struct UTXOV10(pub UniqueIdUTXOv10, pub TransactionOutput);
 
 impl UTXOV10 {
     /// UTXO conditions
@@ -120,5 +122,47 @@ impl UTXO {
             UTXO::V10(ref utxo_v10) => utxo_v10.get_amount(),
             _ => fatal_error!("UTXO version not supported !"),
         }
+    }
+}
+
+/// Get utxo v10
+pub fn get_utxo_v10<DB: DbReadable>(
+    db: &DB,
+    utxo_id: UniqueIdUTXOv10,
+) -> Result<Option<TransactionOutput>, DbError> {
+    let utxo_id_bytes: Vec<u8> = utxo_id.into();
+    db.read(|r| {
+        if let Some(v) = db.get_store(UTXOS).get(r, &utxo_id_bytes)? {
+            Ok(Some(DB::from_db_value(v)?))
+        } else {
+            Ok(None)
+        }
+    })
+}
+
+/// Get utxo v10
+pub fn get_utxo_v10_<DB: DbReadable, R: Reader>(
+    db: &DB,
+    r: &R,
+    utxo_id: UniqueIdUTXOv10,
+) -> Result<Option<TransactionOutput>, DbError> {
+    let utxo_id_bytes: Vec<u8> = utxo_id.into();
+    if let Some(v) = db.get_store(UTXOS).get(r, &utxo_id_bytes)? {
+        Ok(Some(DB::from_db_value(v)?))
+    } else {
+        Ok(None)
+    }
+}
+
+/// Get block consumed sources
+pub fn get_block_consumed_sources_<DB: DbReadable, R: Reader>(
+    db: &DB,
+    r: &R,
+    block_number: BlockNumber,
+) -> Result<Option<HashMap<UniqueIdUTXOv10, TransactionOutput>>, DbError> {
+    if let Some(v) = db.get_int_store(CONSUMED_UTXOS).get(r, block_number.0)? {
+        Ok(Some(DB::from_db_value(v)?))
+    } else {
+        Ok(None)
     }
 }

@@ -17,16 +17,15 @@
 
 use crate::*;
 use dubp_common_doc::BlockNumber;
-use dubp_user_docs::documents::transaction::*;
 use dup_crypto::keys::PubKey;
+use durs_bc_db_reader::constants::DIVIDENDS;
 use durs_bc_db_reader::indexes::sources::SourceAmount;
-use durs_bc_db_reader::BalancesV10Datas;
-use std::collections::{HashMap, HashSet};
+use durs_bc_db_reader::DbValue;
 
 /// Apply UD creation in databases
 pub fn create_du(
-    du_db: &BinFreeStructDb<UDsV10Datas>,
-    balances_db: &BinFreeStructDb<BalancesV10Datas>,
+    db: &Db,
+    w: &mut DbWriter,
     du_amount: &SourceAmount,
     du_block_id: BlockNumber,
     members: &[PubKey],
@@ -37,54 +36,21 @@ pub fn create_du(
         du_amount, du_block_id.0, members, revert
     );
     // Insert/Remove UD sources in UDsV10DB
-    du_db.write(|db| {
-        for pubkey in members {
-            let mut pubkey_dus = db.get(&pubkey).cloned().unwrap_or_default();
-            if revert {
-                pubkey_dus.remove(&du_block_id);
-            } else {
-                pubkey_dus.insert(du_block_id);
-            }
-            db.insert(*pubkey, pubkey_dus);
+    for pubkey in members {
+        let pubkey_bytes = pubkey.to_bytes_vector();
+        if revert {
+            db.get_multi_store(DIVIDENDS).delete(
+                w.as_mut(),
+                &pubkey_bytes,
+                &DbValue::U64(u64::from(du_block_id.0)),
+            )?;
+        } else {
+            db.get_multi_store(DIVIDENDS).put(
+                w.as_mut(),
+                &pubkey_bytes,
+                &DbValue::U64(u64::from(du_block_id.0)),
+            )?;
         }
-    })?;
-    // Get members balances
-    let members_balances: HashMap<PubKey, (SourceAmount, HashSet<UniqueIdUTXOv10>)> =
-        balances_db.read(|db| {
-            let mut members_balances = HashMap::new();
-            for pubkey in members {
-                members_balances.insert(
-                    *pubkey,
-                    db.get(&UTXOConditionsGroup::Single(
-                        TransactionOutputCondition::Sig(*pubkey),
-                    ))
-                    .cloned()
-                    .unwrap_or_default(),
-                );
-            }
-            members_balances
-        })?;
-    // Increase/Decrease members balance
-    let members_balances: Vec<(PubKey, (SourceAmount, HashSet<UniqueIdUTXOv10>))> =
-        members_balances
-            .iter()
-            .map(|(pubkey, (balance, utxos_indexs))| {
-                let new_balance = if revert {
-                    *balance - *du_amount
-                } else {
-                    *balance + *du_amount
-                };
-                (*pubkey, (new_balance, utxos_indexs.clone()))
-            })
-            .collect();
-    // Write new members balance
-    balances_db.write(|db| {
-        for (pubkey, (balance, utxos_indexs)) in members_balances {
-            db.insert(
-                UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(pubkey)),
-                (balance, utxos_indexs),
-            );
-        }
-    })?;
+    }
     Ok(())
 }

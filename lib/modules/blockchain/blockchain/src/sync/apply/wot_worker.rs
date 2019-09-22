@@ -37,9 +37,19 @@ pub fn execute(
         while let Ok(mess) = recv.recv() {
             all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
             match mess {
-                SyncJobsMess::WotsDBsWriteQuery(blockstamp, currency_params, req) => req
-                    .apply(&blockstamp, &currency_params.deref(), &databases, &db)
-                    .expect("Fatal error : Fail to apply DBWriteRequest !"),
+                SyncJobsMess::WotsDBsWriteQuery(blockstamp, currency_params, req) => {
+                    db.write(|mut w| {
+                        req.apply(
+                            &db,
+                            &mut w,
+                            &blockstamp,
+                            &currency_params.deref(),
+                            &databases,
+                        )?;
+                        Ok(w)
+                    })
+                    .expect("Fatal error : Fail to apply DBWriteRequest !");
+                }
                 SyncJobsMess::End => break,
                 _ => {}
             }
@@ -51,7 +61,7 @@ pub fn execute(
 
         // Send finish signal
         sender_sync_thread
-            .send(MessForSyncThread::ApplyFinish())
+            .send(MessForSyncThread::ApplyFinish(None))
             .expect("Fatal error : sync_thread unrechable !");
         let wot_job_duration =
             SystemTime::now().duration_since(wot_job_begin).unwrap() - all_wait_duration;

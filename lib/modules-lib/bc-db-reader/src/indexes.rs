@@ -15,7 +15,6 @@
 
 //! Blockchain stored indexes: definition and read requests.
 
-pub mod balance;
 pub mod certs;
 pub mod identities;
 pub mod sources;

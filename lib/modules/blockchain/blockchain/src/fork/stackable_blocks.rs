@@ -15,26 +15,32 @@
 
 //! Sub-module that finds and applies the orphaned blocks that have become stackable on the local blockchain.
 
+use crate::dubp::apply::exec_currency_queries;
 use crate::*;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::traits::Document;
 use unwrap::unwrap;
 
 pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
-    'blockchain: loop {
+    'blocks: loop {
         let stackable_blocks =
-            durs_bc_db_reader::blocks::get_stackables_blocks(&bc.db, bc.current_blockstamp)
+            durs_bc_db_reader::blocks::get_stackables_blocks(bc.db(), bc.current_blockstamp)
                 .expect("Fatal error : Fail to read ForksDB !");
+
         if stackable_blocks.is_empty() {
-            break 'blockchain;
-        } else {
-            for stackable_block in stackable_blocks {
-                debug!("stackable_block({})", stackable_block.block.number());
+            break 'blocks;
+        }
 
-                let stackable_block_number = stackable_block.block.number();
-                let stackable_block_blockstamp = stackable_block.block.blockstamp();
+        for stackable_block in stackable_blocks {
+            debug!("stackable_block({})", stackable_block.block.number());
 
-                match check_and_apply_block(bc, stackable_block.block) {
+            let stackable_block_number = stackable_block.block.number();
+            let stackable_block_blockstamp = stackable_block.block.blockstamp();
+
+            // Apply db requests
+            let db = bc.take_db();
+            let db_write_result = db.write(|mut w| {
+                match check_and_apply_block(bc, &db, &mut w, stackable_block.block) {
                     Ok(CheckAndApplyBlockReturn::ValidMainBlock(ValidBlockApplyReqs(
                         bc_db_query,
                         wot_dbs_queries,
@@ -42,30 +48,35 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                     ))) => {
                         let new_current_block = bc_db_query.get_block_doc_copy();
                         let blockstamp = new_current_block.blockstamp();
-                        // Apply db requests
+
                         bc_db_query
                             .apply(
-                                &bc.db,
+                                &db,
+                                &mut w,
                                 &mut bc.fork_tree,
                                 unwrap!(bc.currency_params).fork_window_size,
                                 None,
                             )
-                            .expect("Fatal error : Fail to apply DBWriteRequest !");
+                            .expect("DB error : Fail to apply block query !");
                         for query in &wot_dbs_queries {
                             query
                                 .apply(
+                                    &db,
+                                    &mut w,
                                     &blockstamp,
                                     &unwrap!(bc.currency_params),
                                     &bc.wot_databases,
-                                    &bc.db,
                                 )
-                                .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
+                                .expect("DB error : Fail to apply wot queries !");
                         }
-                        for query in &tx_dbs_queries {
-                            query
-                                .apply(&blockstamp, &bc.currency_databases)
-                                .expect("Fatal error : Fail to apply CurrencyDBsWriteRequest !");
-                        }
+                        exec_currency_queries(&db, &mut w, blockstamp.id, tx_dbs_queries)
+                            .expect("DB error : Fail to apply currency queries !");
+                        durs_bc_db_writer::blocks::fork_tree::save_fork_tree(
+                            &db,
+                            &mut w,
+                            &bc.fork_tree,
+                        )
+                        .expect("DB error : Fail to save fork tree !");
                         debug!("success to stackable_block({})", stackable_block_number);
 
                         bc.current_blockstamp = stackable_block_blockstamp;
@@ -73,7 +84,6 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                             bc,
                             &BlockchainEvent::StackUpValidBlock(Box::new(new_current_block)),
                         );
-                        continue 'blockchain;
                     }
                     Ok(re) => warn!(
                         "fail to stackable_block({}) : {:?}",
@@ -84,16 +94,26 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                         stackable_block_number, e
                     ),
                 }
+                Ok(w)
+            });
+            bc.db = Some(db);
+            match db_write_result {
+                Ok(()) => continue 'blocks,
+                Err(e) => {
+                    debug!(
+                        "Invalid stackable block {}: {:?}",
+                        stackable_block_blockstamp, e
+                    );
+                }
             }
-            // Save databases
-            durs_bc_db_writer::blocks::fork_tree::save_fork_tree(&bc.db, &bc.fork_tree)
-                .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
-            bc.db
-                .save()
-                .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
-            bc.wot_databases.save_dbs();
-            bc.currency_databases.save_dbs(true, true);
-            break 'blockchain;
         }
+
+        // If we reach this point, it is that none of the stackable blocks are valid
+        break 'blocks;
     }
+    // Save database
+    bc.db()
+        .save()
+        .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
+    bc.wot_databases.save_dbs();
 }

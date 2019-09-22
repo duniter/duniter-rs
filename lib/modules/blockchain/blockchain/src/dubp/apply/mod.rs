@@ -21,9 +21,10 @@ use dubp_common_doc::BlockNumber;
 use dubp_user_docs::documents::transaction::{TxAmount, TxBase};
 use dup_crypto::keys::*;
 use durs_bc_db_reader::blocks::DbBlock;
+use durs_bc_db_reader::indexes::sources::get_block_consumed_sources_;
 use durs_bc_db_reader::indexes::sources::SourceAmount;
 use durs_bc_db_writer::writers::requests::*;
-use durs_bc_db_writer::BinFreeStructDb;
+use durs_bc_db_writer::{BinFreeStructDb, Db, DbError, DbWriter};
 use durs_common_tools::fatal_error;
 use durs_wot::data::NewLinkResult;
 use durs_wot::{WebOfTrust, WotId};
@@ -47,6 +48,8 @@ pub enum ApplyValidBlockError {
 
 #[inline]
 pub fn apply_valid_block<W: WebOfTrust>(
+    db: &Db,
+    w: &mut DbWriter,
     block: BlockDocument,
     wot_index: &mut HashMap<PubKey, WotId>,
     wot_db: &BinFreeStructDb<W>,
@@ -54,12 +57,14 @@ pub fn apply_valid_block<W: WebOfTrust>(
 ) -> Result<ValidBlockApplyReqs, ApplyValidBlockError> {
     match block {
         BlockDocument::V10(block_v10) => {
-            apply_valid_block_v10(block_v10, wot_index, wot_db, expire_certs)
+            apply_valid_block_v10(db, w, block_v10, wot_index, wot_db, expire_certs)
         }
     }
 }
 
 pub fn apply_valid_block_v10<W: WebOfTrust>(
+    db: &Db,
+    w: &mut DbWriter,
     mut block: BlockDocumentV10,
     wot_index: &mut HashMap<PubKey, WotId>,
     wot_db: &BinFreeStructDb<W>,
@@ -80,11 +85,8 @@ pub fn apply_valid_block_v10<W: WebOfTrust>(
         let pubkey = joiner.issuers()[0];
         if let Some(idty_doc) = identities.get(&pubkey) {
             // Newcomer
-            let wot_id = WotId(
-                wot_db
-                    .read(WebOfTrust::size)
-                    .expect("Fatal error : fail to read WotDB !"),
-            );
+            let wot_id = durs_bc_db_writer::indexes::identities::create_wot_id(db, w)
+                .expect("Fatal error : fail to create WotId !");
             wot_db
                 .write(|db| {
                     db.add_node();
@@ -231,7 +233,7 @@ pub fn apply_valid_block_v10<W: WebOfTrust>(
     }
 
     for tx in &block.transactions {
-        currency_dbs_requests.push(CurrencyDBsWriteQuery::WriteTx(Box::new(tx.unwrap_doc())));
+        currency_dbs_requests.push(CurrencyDBsWriteQuery::WriteTx(Box::new(tx.clone())));
     }
 
     /*// Calculate the state of the wot
@@ -294,4 +296,19 @@ pub fn apply_valid_block_v10<W: WebOfTrust>(
         wot_dbs_requests,
         currency_dbs_requests,
     ))
+}
+
+/// Execute currency queries
+#[inline]
+pub fn exec_currency_queries(
+    db: &Db,
+    w: &mut DbWriter,
+    block_number: BlockNumber,
+    currency_queries: Vec<CurrencyDBsWriteQuery>,
+) -> Result<(), DbError> {
+    let mut block_consumed_sources = get_block_consumed_sources_(db, w.as_ref(), block_number)?;
+    for query in &currency_queries {
+        query.apply(db, w, block_consumed_sources.as_mut(), true)?;
+    }
+    Ok(())
 }

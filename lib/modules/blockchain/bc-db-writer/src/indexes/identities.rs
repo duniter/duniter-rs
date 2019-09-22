@@ -15,7 +15,7 @@
 
 //! Identities stored indexes: write requests.
 
-use crate::{BinFreeStructDb, Db, DbError, MsExpirV10Datas};
+use crate::{BinFreeStructDb, Db, DbError, DbWriter, MsExpirV10Datas};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use dubp_currency_params::CurrencyParameters;
@@ -23,6 +23,7 @@ use dubp_user_docs::documents::identity::IdentityDocumentV10;
 use dup_crypto::keys::PubKey;
 use dup_crypto::keys::PublicKey;
 use durs_bc_db_reader::constants::*;
+use durs_bc_db_reader::current_meta_datas::CurrentMetaDataKey;
 use durs_bc_db_reader::indexes::identities::get_wot_id_;
 use durs_bc_db_reader::indexes::identities::{DbIdentity, DbIdentityState};
 use durs_bc_db_reader::{DbReadable, DbValue};
@@ -32,6 +33,7 @@ use durs_wot::WotId;
 /// Remove identity from databases
 pub fn revert_create_identity(
     db: &Db,
+    w: &mut DbWriter,
     ms_db: &BinFreeStructDb<MsExpirV10Datas>,
     pubkey: &PubKey,
 ) -> Result<(), DbError> {
@@ -47,25 +49,40 @@ pub fn revert_create_identity(
         db.insert(dal_idty.ms_created_block_id, memberships);
     })?;
     // Remove identity
-    db.write(|mut w| {
-        let pubkey_bytes = dal_idty.idty_doc.issuers()[0].to_bytes_vector();
-        if let Some(DbValue::U64(wot_id)) =
-            db.get_store(WOT_ID_INDEX).get(w.as_ref(), &pubkey_bytes)?
-        {
-            db.get_int_store(IDENTITIES)
-                .delete(w.as_mut(), wot_id as u32)?;
-            db.get_store(WOT_ID_INDEX)
-                .delete(w.as_mut(), &pubkey_bytes)?;
-        }
-        Ok(w)
-    })?;
+    let pubkey_bytes = dal_idty.idty_doc.issuers()[0].to_bytes_vector();
+    if let Some(DbValue::U64(wot_id)) = db.get_store(WOT_ID_INDEX).get(w.as_ref(), &pubkey_bytes)? {
+        db.get_int_store(IDENTITIES)
+            .delete(w.as_mut(), wot_id as u32)?;
+        db.get_store(WOT_ID_INDEX)
+            .delete(w.as_mut(), &pubkey_bytes)?;
+    }
     Ok(())
+}
+
+/// Create WotId
+pub fn create_wot_id(db: &Db, w: &mut DbWriter) -> Result<WotId, DbError> {
+    let next_wot_id = if let Some(DbValue::U64(next_wot_id)) = db
+        .get_int_store(CURRENT_METAS_DATAS)
+        .get(w.as_ref(), CurrentMetaDataKey::NextWotId.to_u32())?
+    {
+        next_wot_id
+    } else {
+        0u64
+    };
+
+    db.get_int_store(CURRENT_METAS_DATAS).put(
+        w.as_mut(),
+        CurrentMetaDataKey::NextWotId.to_u32(),
+        &DbValue::U64(next_wot_id + 1),
+    )?;
+    Ok(WotId(next_wot_id as usize))
 }
 
 /// Write identity in databases
 pub fn create_identity(
     currency_params: &CurrencyParameters,
     db: &Db,
+    w: &mut DbWriter,
     ms_db: &BinFreeStructDb<MsExpirV10Datas>,
     idty_doc: &IdentityDocumentV10,
     ms_created_block_id: BlockNumber,
@@ -89,16 +106,13 @@ pub fn create_identity(
     };
     // Write Identity
     let bin_idty = durs_dbs_tools::to_bytes(&idty)?;
-    db.write(|mut w| {
-        db.get_store(WOT_ID_INDEX).put(
-            w.as_mut(),
-            &idty.idty_doc.issuers()[0].to_bytes_vector(),
-            &DbValue::U64(wot_id.0 as u64),
-        )?;
-        db.get_int_store(IDENTITIES)
-            .put(w.as_mut(), wot_id.0 as u32, &DbValue::Blob(&bin_idty))?;
-        Ok(w)
-    })?;
+    db.get_store(WOT_ID_INDEX).put(
+        w.as_mut(),
+        &idty.idty_doc.issuers()[0].to_bytes_vector(),
+        &DbValue::U64(wot_id.0 as u64),
+    )?;
+    db.get_int_store(IDENTITIES)
+        .put(w.as_mut(), wot_id.0 as u32, &DbValue::Blob(&bin_idty))?;
     // Write membership
     ms_db.write(|db| {
         let mut memberships = db.get(&ms_created_block_id).cloned().unwrap_or_default();
@@ -111,6 +125,7 @@ pub fn create_identity(
 /// Apply "exclude identity" event
 pub fn exclude_identity(
     db: &Db,
+    w: &mut DbWriter,
     pubkey: &PubKey,
     exclusion_blockstamp: &Blockstamp,
     revert: bool,
@@ -140,24 +155,19 @@ pub fn exclude_identity(
     };
     // Write new identity datas
     let bin_idty = durs_dbs_tools::to_bytes(&idty_datas)?;
-    db.write(|mut w| {
-        if let Some(wot_id) = get_wot_id_(db, w.as_ref(), &pubkey)? {
-            db.get_int_store(IDENTITIES).put(
-                w.as_mut(),
-                wot_id.0 as u32,
-                &DbValue::Blob(&bin_idty),
-            )?;
-            Ok(w)
-        } else {
-            Err(DbError::DBCorrupted)
-        }
-    })?;
-    Ok(())
+    if let Some(wot_id) = get_wot_id_(db, w.as_ref(), &pubkey)? {
+        db.get_int_store(IDENTITIES)
+            .put(w.as_mut(), wot_id.0 as u32, &DbValue::Blob(&bin_idty))?;
+        Ok(())
+    } else {
+        Err(DbError::DBCorrupted)
+    }
 }
 
 /// Apply "revoke identity" event
 pub fn revoke_identity(
     db: &Db,
+    w: &mut DbWriter,
     pubkey: &PubKey,
     renewal_blockstamp: &Blockstamp,
     explicit: bool,
@@ -201,25 +211,20 @@ pub fn revoke_identity(
 
     // Update idty
     let bin_idty = durs_dbs_tools::to_bytes(&member_datas)?;
-    db.write(|mut w| {
-        if let Some(wot_id) = get_wot_id_(db, w.as_ref(), &pubkey)? {
-            db.get_int_store(IDENTITIES).put(
-                w.as_mut(),
-                wot_id.0 as u32,
-                &DbValue::Blob(&bin_idty),
-            )?;
-            Ok(w)
-        } else {
-            Err(DbError::DBCorrupted)
-        }
-    })?;
-    Ok(())
+    if let Some(wot_id) = get_wot_id_(db, w.as_ref(), &pubkey)? {
+        db.get_int_store(IDENTITIES)
+            .put(w.as_mut(), wot_id.0 as u32, &DbValue::Blob(&bin_idty))?;
+        Ok(())
+    } else {
+        Err(DbError::DBCorrupted)
+    }
 }
 
 /// Apply "renewal identity" event in databases
 pub fn renewal_identity(
     currency_params: &CurrencyParameters,
     db: &Db,
+    w: &mut DbWriter,
     ms_db: &BinFreeStructDb<MsExpirV10Datas>,
     idty_wot_id: WotId,
     renewal_timestamp: u64,
@@ -269,14 +274,11 @@ pub fn renewal_identity(
     }
     // Write new identity datas
     let bin_idty = durs_dbs_tools::to_bytes(&idty_datas)?;
-    db.write(|mut w| {
-        db.get_int_store(IDENTITIES).put(
-            w.as_mut(),
-            idty_wot_id.0 as u32,
-            &DbValue::Blob(&bin_idty),
-        )?;
-        Ok(w)
-    })?;
+    db.get_int_store(IDENTITIES).put(
+        w.as_mut(),
+        idty_wot_id.0 as u32,
+        &DbValue::Blob(&bin_idty),
+    )?;
     // Update MsExpirV10DB
     ms_db.write(|db| {
         let mut memberships = db.get(&ms_created_block_id).cloned().unwrap_or_default();
@@ -287,14 +289,12 @@ pub fn renewal_identity(
 }
 
 /// Remove identity from databases
-pub fn remove_identity(db: &Db, pubkey: PubKey) -> Result<(), DbError> {
-    db.write(|mut w| {
-        if let Some(wot_id) = get_wot_id_(db, w.as_ref(), &pubkey)? {
-            db.get_int_store(IDENTITIES)
-                .delete(w.as_mut(), wot_id.0 as u32)?;
-            Ok(w)
-        } else {
-            Err(DbError::DBCorrupted)
-        }
-    })
+pub fn remove_identity(db: &Db, w: &mut DbWriter, pubkey: PubKey) -> Result<(), DbError> {
+    if let Some(wot_id) = get_wot_id_(db, w.as_ref(), &pubkey)? {
+        db.get_int_store(IDENTITIES)
+            .delete(w.as_mut(), wot_id.0 as u32)?;
+        Ok(())
+    } else {
+        Err(DbError::DBCorrupted)
+    }
 }

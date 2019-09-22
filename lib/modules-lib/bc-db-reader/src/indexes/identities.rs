@@ -187,14 +187,14 @@ pub fn get_uid<DB: DbReadable>(db: &DB, pubkey: &PubKey) -> Result<Option<String
     Ok(get_identity_by_pubkey(db, pubkey)?.map(|db_idty| db_idty.idty_doc.username().to_owned()))
 }
 
-/// Get pubkey from uid
-pub fn get_pubkey_from_uid<DB: DbReadable>(db: &DB, uid: &str) -> Result<Option<PubKey>, DbError> {
+/// Get wot id from uid
+pub fn get_wot_id_from_uid<DB: DbReadable>(db: &DB, uid: &str) -> Result<Option<WotId>, DbError> {
     db.read(|r| {
         let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db, r)?;
         for wot_id in 0..=greatest_wot_id.0 {
             if let Some(db_idty) = get_identity_by_wot_id_(db, r, WotId(wot_id))? {
                 if db_idty.idty_doc.username() == uid {
-                    return Ok(Some(db_idty.idty_doc.issuers()[0]));
+                    return Ok(Some(WotId(wot_id)));
                 }
             }
         }
@@ -323,7 +323,7 @@ mod test {
         db.write(|mut w| {
             db.get_int_store(CURRENT_METAS_DATAS).put(
                 w.as_mut(),
-                CurrentMetaDataKey::GreatestWotId.to_u32(),
+                CurrentMetaDataKey::NextWotId.to_u32(),
                 &DbValue::U64(wot_id),
             )?;
             Ok(w)

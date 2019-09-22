@@ -27,25 +27,29 @@ pub fn execute(
         let tx_job_begin = SystemTime::now();
         // Open databases
         let db_path = durs_conf::get_blockchain_db_path(profile_path);
-        let databases = CurrencyV10DBs::open(Some(&db_path));
+        let db = open_db(db_path.as_path()).expect("Fail to open blockchain DB.");
 
         // Listen db requets
         let mut all_wait_duration = Duration::from_millis(0);
         let mut wait_begin = SystemTime::now();
-        while let Ok(SyncJobsMess::CurrencyDBsWriteQuery(blockstamp, req)) = recv.recv() {
+        while let Ok(SyncJobsMess::CurrencyDBsWriteQuery {
+            in_fork_window,
+            req,
+        }) = recv.recv()
+        {
             all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
             // Apply db request
-            req.apply(&blockstamp, &databases)
-                .expect("Fatal error : Fail to apply DBWriteRequest !");
+            db.write(|mut w| {
+                req.apply(&db, &mut w, None, in_fork_window)?;
+                Ok(w)
+            })
+            .expect("Fatal error : Fail to apply DBWriteRequest !");
             wait_begin = SystemTime::now();
         }
-        // Save tx, utxo, du and balances databases
-        info!("Save tx and sources database in file...");
-        databases.save_dbs(true, true);
 
         // Send finish signal
         sender_sync_thread
-            .send(MessForSyncThread::ApplyFinish())
+            .send(MessForSyncThread::ApplyFinish(None))
             .expect("Fatal error : sync_thread unrechable !");
         let tx_job_duration =
             SystemTime::now().duration_since(tx_job_begin).unwrap() - all_wait_duration;

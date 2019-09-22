@@ -18,7 +18,6 @@
 use crate::*;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::BlockNumber;
-use dubp_user_docs::documents::transaction::*;
 use dup_crypto::keys::*;
 use durs_bc_db_reader::BcDbRo;
 use durs_wot::data::rusty::RustyWebOfTrust;
@@ -204,18 +203,19 @@ pub fn dbex_fork_tree(profile_path: PathBuf, _csv: bool) {
 }
 
 /// Execute DbExTxQuery
-pub fn dbex_tx(profile_path: PathBuf, _csv: bool, query: &DbExTxQuery) {
+pub fn dbex_tx(profile_path: PathBuf, _csv: bool, _query: &DbExTxQuery) {
     // Get db path
-    let db_path = durs_conf::get_blockchain_db_path(profile_path.clone());
+    let _db_path = durs_conf::get_blockchain_db_path(profile_path.clone());
 
-    // Open DB
+    unimplemented!();
+
+    /*// Open DB
     let load_db_begin = SystemTime::now();
     let db = if let Some(db) = open_bc_db_ro(profile_path) {
         db
     } else {
         return;
     };
-    let currency_databases = CurrencyV10DBs::open(Some(&db_path));
     let load_dbs_duration = SystemTime::now()
         .duration_since(load_db_begin)
         .expect("duration_since error !");
@@ -260,7 +260,7 @@ pub fn dbex_tx(profile_path: PathBuf, _csv: bool, query: &DbExTxQuery) {
         "Request processed in  {}.{:06} seconds.",
         req_process_duration.as_secs(),
         req_process_duration.subsec_micros()
-    );
+    );*/
 }
 
 /// Execute DbExWotQuery

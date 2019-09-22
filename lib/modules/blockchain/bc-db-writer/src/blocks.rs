@@ -31,6 +31,7 @@ use unwrap::unwrap;
 /// Insert new head Block in databases
 pub fn insert_new_head_block(
     db: &Db,
+    w: &mut DbWriter,
     fork_tree: Option<&mut ForkTree>,
     dal_block: DbBlock,
 ) -> Result<(), DbError> {
@@ -38,66 +39,61 @@ pub fn insert_new_head_block(
     let bin_dal_block = durs_dbs_tools::to_bytes(&dal_block)?;
     let new_current_blockstamp_bytes: Vec<u8> = dal_block.blockstamp().into();
 
-    // Open write transaction
-    db.write(|mut w| {
-        let current_meta_datas_store = db.get_int_store(CURRENT_METAS_DATAS);
-        let main_blocks_store = db.get_int_store(MAIN_BLOCKS);
-        let fork_blocks_store = db.get_store(FORK_BLOCKS);
+    let current_meta_datas_store = db.get_int_store(CURRENT_METAS_DATAS);
+    let main_blocks_store = db.get_int_store(MAIN_BLOCKS);
+    let fork_blocks_store = db.get_store(FORK_BLOCKS);
 
-        // Insert block in MAIN_BLOCKS store
-        main_blocks_store.put(
+    // Insert block in MAIN_BLOCKS store
+    main_blocks_store.put(
+        w.as_mut(),
+        *dal_block.block.number(),
+        &Db::db_value(&bin_dal_block)?,
+    )?;
+
+    // Update current blockstamp
+    current_meta_datas_store.put(
+        w.as_mut(),
+        CurrentMetaDataKey::CurrentBlockstamp.to_u32(),
+        &DbValue::Blob(&new_current_blockstamp_bytes),
+    )?;
+    // Update current common time (also named "blockchain time")
+    current_meta_datas_store.put(
+        w.as_mut(),
+        CurrentMetaDataKey::CurrentBlockchainTime.to_u32(),
+        &DbValue::U64(dal_block.block.common_time()),
+    )?;
+
+    if let Some(fork_tree) = fork_tree {
+        // Insert head block in fork tree
+        let removed_blockstamps =
+            crate::blocks::fork_tree::insert_new_head_block(fork_tree, dal_block.blockstamp())?;
+        // Insert head block in ForkBlocks
+        let blockstamp_bytes: Vec<u8> = dal_block.blockstamp().into();
+        fork_blocks_store.put(
             w.as_mut(),
-            *dal_block.block.number(),
+            &blockstamp_bytes,
             &Db::db_value(&bin_dal_block)?,
         )?;
-
-        // Update current blockstamp
-        current_meta_datas_store.put(
-            w.as_mut(),
-            CurrentMetaDataKey::CurrentBlockstamp.to_u32(),
-            &DbValue::Blob(&new_current_blockstamp_bytes),
-        )?;
-        // Update current common time (also named "blockchain time")
-        current_meta_datas_store.put(
-            w.as_mut(),
-            CurrentMetaDataKey::CurrentBlockchainTime.to_u32(),
-            &DbValue::U64(dal_block.block.common_time()),
-        )?;
-
-        if let Some(fork_tree) = fork_tree {
-            // Insert head block in fork tree
-            let removed_blockstamps =
-                crate::blocks::fork_tree::insert_new_head_block(fork_tree, dal_block.blockstamp())?;
-            // Insert head block in ForkBlocks
-            let blockstamp_bytes: Vec<u8> = dal_block.blockstamp().into();
-            fork_blocks_store.put(
-                w.as_mut(),
-                &blockstamp_bytes,
-                &Db::db_value(&bin_dal_block)?,
-            )?;
-            // Remove too old blocks
-            for blockstamp in removed_blockstamps {
-                let blockstamp_bytes: Vec<u8> = blockstamp.into();
-                fork_blocks_store.delete(w.as_mut(), &blockstamp_bytes)?;
-            }
+        // Remove too old blocks
+        for blockstamp in removed_blockstamps {
+            let blockstamp_bytes: Vec<u8> = blockstamp.into();
+            fork_blocks_store.delete(w.as_mut(), &blockstamp_bytes)?;
         }
-
-        Ok(w)
-    })
+    }
+    Ok(())
 }
 
 /// Remove a block in local blockchain storage
-pub fn remove_block(db: &Db, block_number: BlockNumber) -> Result<(), DbError> {
-    db.write(|mut w| {
-        db.get_int_store(MAIN_BLOCKS)
-            .delete(w.as_mut(), block_number.0)?;
-        Ok(w)
-    })
+pub fn remove_block(db: &Db, w: &mut DbWriter, block_number: BlockNumber) -> Result<(), DbError> {
+    db.get_int_store(MAIN_BLOCKS)
+        .delete(w.as_mut(), block_number.0)?;
+    Ok(())
 }
 
 /// Insert new fork Block in databases
 pub fn insert_new_fork_block(
     db: &Db,
+    w: &mut DbWriter,
     fork_tree: &mut ForkTree,
     dal_block: DbBlock,
 ) -> Result<bool, DbError> {
@@ -109,50 +105,43 @@ pub fn insert_new_fork_block(
         unwrap!(dal_block.block.previous_hash()),
     )? {
         // Insert fork block FORK_BLOCKS
-        db.write(|mut w| {
-            db.get_store(FORK_BLOCKS).put(
-                w.as_mut(),
-                &blockstamp_bytes,
-                &Db::db_value(&bin_dal_block)?,
-            )?;
-            Ok(w)
-        })?;
+        db.get_store(FORK_BLOCKS).put(
+            w.as_mut(),
+            &blockstamp_bytes,
+            &Db::db_value(&bin_dal_block)?,
+        )?;
 
         // As long as orphan blocks can succeed the last inserted block, they are inserted
         for stackable_block in
             durs_bc_db_reader::blocks::get_stackables_blocks(db, dal_block.blockstamp())?
         {
-            let _ = insert_new_fork_block(db, fork_tree, stackable_block);
+            let _ = insert_new_fork_block(db, w, fork_tree, stackable_block);
         }
 
         Ok(true)
     } else {
         // Insert block in OrphanBlocks store
         let previous_blockstamp_bytes: Vec<u8> = dal_block.previous_blockstamp().into();
-        db.write(|mut w| {
-            let orphan_blockstamps_store = db.get_store(ORPHAN_BLOCKSTAMP);
-            let mut orphan_blockstamps = if let Some(v) =
-                orphan_blockstamps_store.get(w.as_ref(), &previous_blockstamp_bytes)?
-            {
-                Db::from_db_value::<Vec<Blockstamp>>(v)?
-            } else {
-                vec![]
-            };
-            orphan_blockstamps.push(dal_block.blockstamp());
-            orphan_blockstamps_store.put(
-                w.as_mut(),
-                &previous_blockstamp_bytes,
-                &DbValue::Blob(&durs_dbs_tools::to_bytes(&orphan_blockstamps)?),
-            )?;
-            // Insert orphan block in FORK_BLOCKS
-            db.get_store(FORK_BLOCKS).put(
-                w.as_mut(),
-                &blockstamp_bytes,
-                &Db::db_value(&bin_dal_block)?,
-            )?;
-            // Commit
-            Ok(w)
-        })?;
+        let orphan_blockstamps_store = db.get_store(ORPHAN_BLOCKSTAMP);
+        let mut orphan_blockstamps = if let Some(v) =
+            orphan_blockstamps_store.get(w.as_ref(), &previous_blockstamp_bytes)?
+        {
+            Db::from_db_value::<Vec<Blockstamp>>(v)?
+        } else {
+            vec![]
+        };
+        orphan_blockstamps.push(dal_block.blockstamp());
+        orphan_blockstamps_store.put(
+            w.as_mut(),
+            &previous_blockstamp_bytes,
+            &DbValue::Blob(&durs_dbs_tools::to_bytes(&orphan_blockstamps)?),
+        )?;
+        // Insert orphan block in FORK_BLOCKS
+        db.get_store(FORK_BLOCKS).put(
+            w.as_mut(),
+            &blockstamp_bytes,
+            &Db::db_value(&bin_dal_block)?,
+        )?;
         Ok(false)
     }
 }
