@@ -2,7 +2,7 @@ stages:
     - no_ci
     - fmt
     - tests
-    - clippy
+    - quality
     - package
     - publish_crate
     - publish_doc 
@@ -156,9 +156,32 @@ clippy:
   extends: .rust_stable_lin64
   before_script:
     - cargo clippy -- -V
-  stage: clippy
+  stage: quality
   script:
     - cargo clippy --all -- -D warnings --verbose
+
+audit:manual:
+  extends: .rust_stable_lin64
+  before_script:
+    - cargo install --force cargo-audit
+  stage: quality
+  script:
+    - cargo audit
+  when: manual
+  except:
+    refs:
+      - dev
+
+audit:
+  extends: .rust_stable_lin64
+  before_script:
+    - cargo install --force cargo-audit
+  stage: quality
+  script:
+    - cargo audit
+  only:
+    refs:
+      - dev
 
 publish:crate:
   extends: .rust_stable_lin64
