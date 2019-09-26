@@ -24,6 +24,7 @@ use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::data::WebOfTrust;
 use durs_wot::operations::distance::{DistanceCalculator, WotDistance, WotDistanceParameters};
 use prettytable::Table;
+use std::str::FromStr;
 use std::time::*;
 use unwrap::unwrap;
 
@@ -58,7 +59,26 @@ pub enum DbExWotQuery {
     /// Show members list
     ListMembers(bool),
     /// Ask member datas
-    MemberDatas(String),
+    MemberDatas(UidOrPubkey),
+}
+
+/// Username or public key
+#[derive(Debug, Clone)]
+pub enum UidOrPubkey {
+    /// Public key
+    Pubkey(PubKey),
+    /// Username
+    Uid(String),
+}
+
+impl From<String> for UidOrPubkey {
+    fn from(s: String) -> Self {
+        if let Ok(pubkey) = PubKey::from_str(&s) {
+            Self::Pubkey(pubkey)
+        } else {
+            Self::Uid(s)
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -230,7 +250,7 @@ pub fn dbex_tx(profile_path: PathBuf, _csv: bool, _query: &DbExTxQuery) {
             let pubkey = if let Ok(ed25519_pubkey) = ed25519::PublicKey::from_base58(address_str) {
                 PubKey::Ed25519(ed25519_pubkey)
             } else if let Some(pubkey) =
-                durs_bc_db_reader::indexes::identities::get_pubkey_from_uid(&db, address_str)
+                durs_bc_db_reader::indexes::identities::get_wot_id_from_uid(&db, address_str)
                     .expect("get_uid : DbError")
             {
                 pubkey
@@ -421,18 +441,26 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
                 println!("{}, {}", wot_uid_index[&node_id], expire_date);
             }
         }
-        DbExWotQuery::MemberDatas(ref uid) => {
+        DbExWotQuery::MemberDatas(ref uid_or_pubkey) => {
             println!(" Members count = {}.", members_count);
-            if let Some(pubkey) =
-                durs_bc_db_reader::indexes::identities::get_pubkey_from_uid(&db, uid)
-                    .expect("get_pubkey_from_uid() : DbError !")
-            {
-                let wot_id = wot_index[&pubkey];
+            let wot_id_opt = match uid_or_pubkey {
+                UidOrPubkey::Uid(ref uid) => {
+                    durs_bc_db_reader::indexes::identities::get_wot_id_from_uid(&db, uid)
+                        .expect("get_wot_id_from_uid() : DbError !")
+                }
+                UidOrPubkey::Pubkey(ref pubkey) => wot_index.get(pubkey).copied(),
+            };
+            if let Some(wot_id) = wot_id_opt {
+                let idty =
+                    durs_bc_db_reader::indexes::identities::get_identity_by_wot_id(&db, wot_id)
+                        .expect("DB error: ")
+                        .expect("DB corrupted: all WotId must be point to an identity.");
+
                 println!(
                     "{} : wot_id={}, pubkey={}.",
-                    uid,
+                    idty.idty_doc.username(),
                     wot_id.0,
-                    pubkey.to_string()
+                    idty.idty_doc.issuers()[0].to_string()
                 );
                 let distance_datas = wot_db
                     .read(|db| {
@@ -446,8 +474,8 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
                             },
                         )
                     })
-                    .expect("Fail to read WotDB")
-                    .expect("Fail to get distance !");
+                    .expect("Fail to read WotDB.")
+                    .expect("Fail to get distance.");
                 let distance_percent: f64 =
                     f64::from(distance_datas.success) / f64::from(distance_datas.sentries) * 100.0;
                 println!(
@@ -469,7 +497,7 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
                     println!("{}: {}", i + 1, source_uid);
                 }
             } else {
-                println!("Uid \"{}\" not found !", uid);
+                println!("{:?} not found !", uid_or_pubkey);
             }
         }
         _ => {}

@@ -140,7 +140,7 @@ impl DursExecutableCoreCommand for DbExOpt {
             DbExSubCommand::MemberOpt(member_opts) => dbex(
                 profile_path,
                 self.csv,
-                &DbExQuery::WotQuery(DbExWotQuery::MemberDatas(member_opts.uid)),
+                &DbExQuery::WotQuery(DbExWotQuery::MemberDatas(member_opts.uid.into())),
             ),
             DbExSubCommand::MembersOpt(members_opts) => {
                 if members_opts.expire {
