@@ -221,6 +221,13 @@ impl ForkTree {
             None
         }
     }
+    fn is_main_branch_node(&self, node: &TreeNode) -> bool {
+        if let Some(main_branch_block_hash) = self.get_main_branch_block_hash(node.data.id) {
+            main_branch_block_hash == node.data.hash
+        } else {
+            false
+        }
+    }
     /// Get fork branch nodes ids
     pub fn get_fork_branch_nodes_ids(&self, node_id: TreeNodeId) -> Vec<TreeNodeId> {
         let mut branch = Vec::with_capacity(self.max_depth);
@@ -234,12 +241,8 @@ impl ForkTree {
             );
             return vec![];
         };
-        if !self.main_branch.contains_key(&node.data.id)
-            || self
-                .get_main_branch_block_hash(node.data.id)
-                .expect("safe unwrap")
-                != node.data.hash
-        {
+
+        if !self.is_main_branch_node(&node) {
             branch.push(node_id);
         }
 
@@ -253,12 +256,8 @@ impl ForkTree {
                 );
             };
             let mut parent_id = first_parent_id;
-            while !self.main_branch.contains_key(&parent.data.id)
-                || self
-                    .get_main_branch_block_hash(parent.data.id)
-                    .expect("safe unwrap")
-                    != parent.data.hash
-            {
+
+            while !self.is_main_branch_node(&parent) {
                 branch.push(parent_id);
 
                 if let Some(next_parent_id) = parent.parent {
@@ -288,12 +287,7 @@ impl ForkTree {
 
             if let Some(parent_id) = node.parent {
                 if let Some(Some(mut parent)) = self.nodes.get(parent_id.0).cloned() {
-                    while !self.main_branch.contains_key(&parent.data.id)
-                        || self
-                            .get_main_branch_block_hash(parent.data.id)
-                            .expect("safe unwrap")
-                            != parent.data.hash
-                    {
+                    while !self.is_main_branch_node(&parent) {
                         branch.push(parent.data);
 
                         if let Some(parent_id) = parent.parent {
@@ -380,15 +374,14 @@ impl ForkTree {
         main_branch: bool,
     ) {
         let new_node = TreeNode::new(parent, data);
-        let mut new_node_id = self.get_free_node_id();
 
-        if new_node_id.is_none() {
-            new_node_id = Some(TreeNodeId(self.nodes.len()));
-            self.nodes.push(Some(new_node));
+        let new_node_id = if let Some(new_node_id) = self.get_free_node_id() {
+            self.nodes[new_node_id.0] = Some(new_node);
+            new_node_id
         } else {
-            self.nodes[new_node_id.expect("safe unwrap").0] = Some(new_node);
-        }
-        let new_node_id = new_node_id.expect("safe unwrap");
+            self.nodes.push(Some(new_node));
+            TreeNodeId(self.nodes.len() - 1)
+        };
 
         if let Some(parent) = parent {
             // Remove previous sheet
@@ -421,7 +414,7 @@ impl ForkTree {
 
     fn pruning(&mut self) {
         // get root node infos
-        let root_node_id = self.root.expect("safe unwrap");
+        let root_node_id = self.root.expect("dev error: pruning an empty fork tree.");
         let root_node = self.get_node(root_node_id);
         let root_node_block_id: BlockNumber = root_node.data.id;
 

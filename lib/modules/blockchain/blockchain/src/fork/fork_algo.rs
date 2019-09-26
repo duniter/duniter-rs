@@ -54,7 +54,12 @@ pub fn fork_resolution_algo<DB: DbReadable>(
             let branch_head_blockstamp = branch.last().expect("safe unwrap");
             let branch_head_median_time =
                 durs_bc_db_reader::blocks::get_fork_block(db, *branch_head_blockstamp)?
-                    .expect("safe unwrap")
+                    .unwrap_or_else(|| {
+                        panic!(
+                        "Db corrupted: fork block {} referenced in fork tree but not exist in db.",
+                        branch_head_blockstamp
+                    )
+                    })
                     .block
                     .common_time();
 
