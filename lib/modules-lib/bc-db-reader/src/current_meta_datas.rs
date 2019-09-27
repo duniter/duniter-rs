@@ -97,7 +97,7 @@ pub fn get_current_blockstamp<DB: DbReadable>(db: &DB) -> Result<Option<Blocksta
 }
 
 /// Get current blockstamp
-pub fn get_current_blockstamp_<DB: DbReadable, R: Reader>(
+pub fn get_current_blockstamp_<DB: DbReadable, R: DbReader>(
     db: &DB,
     r: &R,
 ) -> Result<Option<Blockstamp>, DbError> {
@@ -119,21 +119,28 @@ pub fn get_current_blockstamp_<DB: DbReadable, R: Reader>(
 }
 
 /// Get current common time (also named "blockchain time")
+#[inline]
 pub fn get_current_common_time<DB: DbReadable>(db: &DB) -> Result<u64, DbError> {
-    db.read(|r| {
-        if let Some(v) = db
-            .get_int_store(CURRENT_METAS_DATAS)
-            .get(r, CurrentMetaDataKey::CurrentBlockchainTime.to_u32())?
-        {
-            if let DbValue::U64(current_common_time) = v {
-                Ok(current_common_time)
-            } else {
-                Err(DbError::DBCorrupted)
-            }
+    db.read(|r| get_current_common_time_(db, r))
+}
+
+/// Get current common time (also named "blockchain time")
+pub fn get_current_common_time_<DB: DbReadable, R: DbReader>(
+    db: &DB,
+    r: &R,
+) -> Result<u64, DbError> {
+    if let Some(v) = db
+        .get_int_store(CURRENT_METAS_DATAS)
+        .get(r, CurrentMetaDataKey::CurrentBlockchainTime.to_u32())?
+    {
+        if let DbValue::U64(current_common_time) = v {
+            Ok(current_common_time)
         } else {
-            Ok(0u64)
+            Err(DbError::DBCorrupted)
         }
-    })
+    } else {
+        Ok(0u64)
+    }
 }
 
 /// Get fork tree root
@@ -152,7 +159,7 @@ pub fn get_fork_tree<DB: DbReadable>(db: &DB) -> Result<ForkTree, DbError> {
 
 /// Get greatest wot id
 #[inline]
-pub fn get_greatest_wot_id_<DB: DbReadable, R: Reader>(db: &DB, r: &R) -> Result<WotId, DbError> {
+pub fn get_greatest_wot_id_<DB: DbReadable, R: DbReader>(db: &DB, r: &R) -> Result<WotId, DbError> {
     if let Some(v) = db
         .get_int_store(CURRENT_METAS_DATAS)
         .get(r, CurrentMetaDataKey::NextWotId.to_u32())?

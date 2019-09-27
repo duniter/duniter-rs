@@ -146,7 +146,7 @@ pub fn get_identity_by_pubkey<DB: DbReadable>(
 }
 
 /// Get identity by pubkey
-pub fn get_identity_by_pubkey_<DB: DbReadable, R: Reader>(
+pub fn get_identity_by_pubkey_<DB: DbReadable, R: DbReader>(
     db: &DB,
     r: &R,
     pubkey: &PubKey,
@@ -169,7 +169,7 @@ pub fn get_identity_by_wot_id<DB: DbReadable>(
 
 /// Get identity by pubkey
 #[inline]
-pub fn get_identity_by_wot_id_<DB: DbReadable, R: Reader>(
+pub fn get_identity_by_wot_id_<DB: DbReadable, R: DbReader>(
     db: &DB,
     r: &R,
     wot_id: WotId,
@@ -209,7 +209,7 @@ pub fn get_wot_id<DB: DbReadable>(db: &DB, pubkey: &PubKey) -> Result<Option<Wot
 
 /// Get identity wot_id
 #[inline]
-pub fn get_wot_id_<DB: DbReadable, R: Reader>(
+pub fn get_wot_id_<DB: DbReadable, R: DbReader>(
     db: &DB,
     r: &R,
     pubkey: &PubKey,

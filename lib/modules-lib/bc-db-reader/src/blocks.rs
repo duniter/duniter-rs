@@ -99,27 +99,28 @@ pub fn get_block<DB: DbReadable>(
     db: &DB,
     blockstamp: Blockstamp,
 ) -> Result<Option<DbBlock>, DbError> {
-    let opt_dal_block = get_dal_block_in_local_blockchain(db, blockstamp.id)?;
-    if opt_dal_block.is_none() {
-        get_fork_block(db, blockstamp)
-    } else {
-        Ok(opt_dal_block)
-    }
+    db.read(|r| {
+        let opt_dal_block = get_dal_block_in_local_blockchain(db, r, blockstamp.id)?;
+        if opt_dal_block.is_none() {
+            get_fork_block(db, r, blockstamp)
+        } else {
+            Ok(opt_dal_block)
+        }
+    })
 }
 
 /// Get fork block
-pub fn get_fork_block<DB: DbReadable>(
+pub fn get_fork_block<DB: DbReadable, R: DbReader>(
     db: &DB,
+    r: &R,
     blockstamp: Blockstamp,
 ) -> Result<Option<DbBlock>, DbError> {
     let blockstamp_bytes: Vec<u8> = blockstamp.into();
-    db.read(|r| {
-        if let Some(v) = db.get_store(FORK_BLOCKS).get(r, &blockstamp_bytes)? {
-            Ok(Some(DB::from_db_value(v)?))
-        } else {
-            Ok(None)
-        }
-    })
+    if let Some(v) = db.get_store(FORK_BLOCKS).get(r, &blockstamp_bytes)? {
+        Ok(Some(DB::from_db_value(v)?))
+    } else {
+        Ok(None)
+    }
 }
 
 /// Get block hash
@@ -142,21 +143,25 @@ pub fn get_block_in_local_blockchain<DB: DbReadable>(
     db: &DB,
     block_number: BlockNumber,
 ) -> Result<Option<BlockDocument>, DbError> {
-    Ok(get_dal_block_in_local_blockchain(db, block_number)?.map(|dal_block| dal_block.block))
+    db.read(|r| {
+        Ok(
+            get_dal_block_in_local_blockchain(db, r, block_number)?
+                .map(|dal_block| dal_block.block),
+        )
+    })
 }
 
 /// Get block in local blockchain
-pub fn get_dal_block_in_local_blockchain<DB: DbReadable>(
+pub fn get_dal_block_in_local_blockchain<DB: DbReadable, R: DbReader>(
     db: &DB,
+    r: &R,
     block_number: BlockNumber,
 ) -> Result<Option<DbBlock>, DbError> {
-    db.read(|r| {
-        if let Some(v) = db.get_int_store(MAIN_BLOCKS).get(r, block_number.0)? {
-            Ok(Some(DB::from_db_value(v)?))
-        } else {
-            Ok(None)
-        }
-    })
+    if let Some(v) = db.get_int_store(MAIN_BLOCKS).get(r, block_number.0)? {
+        Ok(Some(DB::from_db_value(v)?))
+    } else {
+        Ok(None)
+    }
 }
 
 /// Get several blocks in local blockchain

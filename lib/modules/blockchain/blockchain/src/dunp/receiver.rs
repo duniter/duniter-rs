@@ -42,6 +42,9 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
     for block in blocks.into_iter() {
         let blockstamp = block.blockstamp();
 
+        // For eventually rollback
+        let mut new_bc_branch_opt = None;
+
         // Open write db transaction
         let db = bc.take_db();
         db.write(|mut w| {
@@ -93,13 +96,13 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                         info!("blockchain: new fork block(#{})", blockstamp);
                         if let Ok(Some(new_bc_branch)) = fork_algo::fork_resolution_algo(
                             &db,
+                            w.as_ref(),
                             &bc.fork_tree,
                             unwrap!(bc.currency_params).fork_window_size,
                             bc.current_blockstamp,
                             &bc.invalid_forks,
                         ) {
-                            info!("blockchain: apply_rollback({:?})", new_bc_branch);
-                            rollback::apply_rollback(bc, new_bc_branch);
+                            new_bc_branch_opt = Some(new_bc_branch);
                         }
                     }
                     CheckAndApplyBlockReturn::OrphanBlock => {
@@ -144,6 +147,11 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
         })
         .unwrap_or_else(|_| fatal_error!("Fail to check or apply block: {}.", blockstamp));
         bc.db = Some(db);
+
+        if let Some(new_bc_branch) = new_bc_branch_opt {
+            info!("blockchain: apply_rollback({:?})", new_bc_branch);
+            rollback::apply_rollback(bc, new_bc_branch);
+        }
     }
     // Save databases
     if save_dbs {

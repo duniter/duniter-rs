@@ -141,7 +141,7 @@ pub fn get_utxo_v10<DB: DbReadable>(
 }
 
 /// Get utxo v10
-pub fn get_utxo_v10_<DB: DbReadable, R: Reader>(
+pub fn get_utxo_v10_<DB: DbReadable, R: DbReader>(
     db: &DB,
     r: &R,
     utxo_id: UniqueIdUTXOv10,
@@ -155,7 +155,7 @@ pub fn get_utxo_v10_<DB: DbReadable, R: Reader>(
 }
 
 /// Get block consumed sources
-pub fn get_block_consumed_sources_<DB: DbReadable, R: Reader>(
+pub fn get_block_consumed_sources_<DB: DbReadable, R: DbReader>(
     db: &DB,
     r: &R,
     block_number: BlockNumber,
