@@ -48,9 +48,7 @@ use dubp_indexes::sindex::UniqueIdUTXOv10;
 use dubp_user_docs::documents::transaction::*;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
-use durs_bc_db_reader::CertsExpirV10Datas;
-use durs_wot::data::{rusty::RustyWebOfTrust, WotId};
-use fnv::FnvHashMap;
+use durs_wot::data::rusty::RustyWebOfTrust;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
@@ -60,14 +58,8 @@ pub type Db = KvFileDbHandler;
 /// Read-only database handler
 pub type DbReader = KvFileDbRoHandler;
 
-/// Forks tree meta datas (block number and hash only)
-pub type ForksTreeV10Datas = durs_bc_db_reader::blocks::fork_tree::ForkTree;
 /// Database containing the wot graph (each node of the graph in an u32)
 pub type WotDB = RustyWebOfTrust;
-/// Memberships sorted by created block
-pub type MsExpirV10Datas = FnvHashMap<BlockNumber, HashSet<WotId>>;
-/// V10 UDs sources
-pub type UDsV10Datas = HashMap<PubKey, HashSet<BlockNumber>>;
 
 /// Open database
 #[inline]
@@ -80,10 +72,6 @@ pub fn open_db(path: &Path) -> Result<Db, DbError> {
 pub struct WotsV10DBs {
     /// Store wot graph
     pub wot_db: BinFreeStructDb<WotDB>,
-    /// Store memberships created_block_id (Use only to detect expirations)
-    pub ms_db: BinFreeStructDb<MsExpirV10Datas>,
-    /// Store certifications created_block_id (Use only to detect expirations)
-    pub certs_db: BinFreeStructDb<CertsExpirV10Datas>,
 }
 
 impl WotsV10DBs {
@@ -92,10 +80,6 @@ impl WotsV10DBs {
         WotsV10DBs {
             wot_db: open_free_struct_db::<RustyWebOfTrust>(db_path, "wot.db")
                 .expect("Fail to open WotDB"),
-            ms_db: open_free_struct_db::<MsExpirV10Datas>(db_path, "ms.db")
-                .expect("Fail to open MsExpirV10DB"),
-            certs_db: open_free_struct_db::<CertsExpirV10Datas>(db_path, "certs.db")
-                .expect("Fail to open CertsExpirV10DB"),
         }
     }
     /// Save wot databases from their respective files
@@ -104,16 +88,6 @@ impl WotsV10DBs {
         self.wot_db
             .save()
             .expect("Fatal error : fail to save WotDB !");
-        self.save_dbs_except_graph();
-    }
-    /// Save wot databases from their respective files (except wot graph)
-    pub fn save_dbs_except_graph(&self) {
-        self.ms_db
-            .save()
-            .expect("Fatal error : fail to save MsExpirV10DB !");
-        self.certs_db
-            .save()
-            .expect("Fatal error : fail to save CertsExpirV10DB !");
     }
 }
 

@@ -15,7 +15,7 @@
 
 //! Identities stored indexes: write requests.
 
-use crate::{BinFreeStructDb, Db, DbError, DbWriter, MsExpirV10Datas};
+use crate::{Db, DbError, DbWriter};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use dubp_currency_params::CurrencyParameters;
@@ -31,23 +31,15 @@ use durs_common_tools::fatal_error;
 use durs_wot::WotId;
 
 /// Remove identity from databases
-pub fn revert_create_identity(
-    db: &Db,
-    w: &mut DbWriter,
-    ms_db: &BinFreeStructDb<MsExpirV10Datas>,
-    pubkey: &PubKey,
-) -> Result<(), DbError> {
+pub fn revert_create_identity(db: &Db, w: &mut DbWriter, pubkey: &PubKey) -> Result<(), DbError> {
     let dal_idty = durs_bc_db_reader::indexes::identities::get_identity_by_pubkey(db, pubkey)?
         .expect("Try to revert unexist idty.");
     // Remove membership
-    ms_db.write(|db| {
-        let mut memberships = db
-            .get(&dal_idty.ms_created_block_id)
-            .cloned()
-            .expect("Try to revert a membership that does not exist !");
-        memberships.remove(&dal_idty.wot_id);
-        db.insert(dal_idty.ms_created_block_id, memberships);
-    })?;
+    db.get_multi_int_store(MBS_BY_CREATED_BLOCK).delete(
+        w.as_mut(),
+        dal_idty.ms_created_block_id.0,
+        &DbValue::U64(dal_idty.wot_id.0 as u64),
+    )?;
     // Remove identity
     let pubkey_bytes = dal_idty.idty_doc.issuers()[0].to_bytes_vector();
     if let Some(DbValue::U64(wot_id)) = db.get_store(WOT_ID_INDEX).get(w.as_ref(), &pubkey_bytes)? {
@@ -83,7 +75,6 @@ pub fn create_identity(
     currency_params: &CurrencyParameters,
     db: &Db,
     w: &mut DbWriter,
-    ms_db: &BinFreeStructDb<MsExpirV10Datas>,
     idty_doc: &IdentityDocumentV10,
     ms_created_block_id: BlockNumber,
     wot_id: WotId,
@@ -114,11 +105,11 @@ pub fn create_identity(
     db.get_int_store(IDENTITIES)
         .put(w.as_mut(), wot_id.0 as u32, &DbValue::Blob(&bin_idty))?;
     // Write membership
-    ms_db.write(|db| {
-        let mut memberships = db.get(&ms_created_block_id).cloned().unwrap_or_default();
-        memberships.insert(wot_id);
-        db.insert(ms_created_block_id, memberships);
-    })?;
+    db.get_multi_int_store(MBS_BY_CREATED_BLOCK).put(
+        w.as_mut(),
+        ms_created_block_id.0,
+        &DbValue::U64(wot_id.0 as u64),
+    )?;
     Ok(())
 }
 
@@ -225,7 +216,6 @@ pub fn renewal_identity(
     currency_params: &CurrencyParameters,
     db: &Db,
     w: &mut DbWriter,
-    ms_db: &BinFreeStructDb<MsExpirV10Datas>,
     idty_wot_id: WotId,
     renewal_timestamp: u64,
     ms_created_block_id: BlockNumber,
@@ -280,11 +270,11 @@ pub fn renewal_identity(
         &DbValue::Blob(&bin_idty),
     )?;
     // Update MsExpirV10DB
-    ms_db.write(|db| {
-        let mut memberships = db.get(&ms_created_block_id).cloned().unwrap_or_default();
-        memberships.insert(idty_wot_id);
-        db.insert(ms_created_block_id, memberships);
-    })?;
+    db.get_multi_int_store(MBS_BY_CREATED_BLOCK).put(
+        w.as_mut(),
+        ms_created_block_id.0,
+        &DbValue::U64(idty_wot_id.0 as u64),
+    )?;
     Ok(())
 }
 

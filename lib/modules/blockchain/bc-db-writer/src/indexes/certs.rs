@@ -15,13 +15,13 @@
 
 //! Certifications stored indexes: write requests.
 
-use crate::{BinFreeStructDb, Db, DbError, DbWriter};
+use crate::{Db, DbError, DbWriter};
 use dubp_common_doc::BlockNumber;
 use dubp_currency_params::CurrencyParameters;
 use dubp_user_docs::documents::certification::CompactCertificationDocumentV10;
 use durs_bc_db_reader::constants::*;
 use durs_bc_db_reader::indexes::identities::DbIdentity;
-use durs_bc_db_reader::{CertsExpirV10Datas, DbReadable, DbValue};
+use durs_bc_db_reader::{DbReadable, DbValue};
 use durs_wot::WotId;
 
 /// Apply "certification" event in databases
@@ -29,7 +29,6 @@ pub fn write_certification(
     currency_params: &CurrencyParameters,
     db: &Db,
     w: &mut DbWriter,
-    certs_db: &BinFreeStructDb<CertsExpirV10Datas>,
     source: WotId,
     target: WotId,
     created_block_id: BlockNumber,
@@ -51,11 +50,11 @@ pub fn write_certification(
         &DbValue::Blob(&bin_member_datas),
     )?;
     // Add cert in certs_db
-    certs_db.write(|db| {
-        let mut created_certs = db.get(&created_block_id).cloned().unwrap_or_default();
-        created_certs.insert((source, target));
-        db.insert(created_block_id, created_certs);
-    })?;
+    db.get_multi_int_store(CERTS_BY_CREATED_BLOCK).put(
+        w.as_mut(),
+        created_block_id.0,
+        &DbValue::U64(cert_to_u64(source, target)),
+    )?;
     Ok(())
 }
 
@@ -63,20 +62,17 @@ pub fn write_certification(
 pub fn revert_write_cert(
     db: &Db,
     w: &mut DbWriter,
-    certs_db: &BinFreeStructDb<CertsExpirV10Datas>,
     compact_doc: CompactCertificationDocumentV10,
     source: WotId,
     target: WotId,
 ) -> Result<(), DbError> {
     // Remove CertsExpirV10Datas entry
-    certs_db.write(|db| {
-        let mut certs = db
-            .get(&compact_doc.block_number)
-            .cloned()
-            .unwrap_or_default();
-        certs.remove(&(source, target));
-        db.insert(compact_doc.block_number, certs);
-    })?;
+    db.get_multi_int_store(CERTS_BY_CREATED_BLOCK).delete(
+        w.as_mut(),
+        compact_doc.block_number.0,
+        &DbValue::U64(cert_to_u64(source, target)),
+    )?;
+
     // Pop last cert_chainable_on
     let identities_store = db.get_int_store(IDENTITIES);
     if let Some(v) = identities_store.get(w.as_ref(), source.0 as u32)? {
@@ -94,28 +90,62 @@ pub fn revert_write_cert(
 
 /// Revert "certification expiry" event in databases
 pub fn revert_expire_cert(
-    certs_db: &BinFreeStructDb<CertsExpirV10Datas>,
+    db: &Db,
+    w: &mut DbWriter,
     source: WotId,
     target: WotId,
     created_block_id: BlockNumber,
 ) -> Result<(), DbError> {
     // Reinsert CertsExpirV10Datas entry
-    certs_db.write(|db| {
-        let mut certs = db.get(&created_block_id).cloned().unwrap_or_default();
-        certs.insert((source, target));
-        db.insert(created_block_id, certs);
-    })?;
+    db.get_multi_int_store(CERTS_BY_CREATED_BLOCK).put(
+        w.as_mut(),
+        created_block_id.0,
+        &DbValue::U64(cert_to_u64(source, target)),
+    )?;
     Ok(())
 }
 
 /// Apply "certification expiry" event in databases
 pub fn expire_certs(
-    certs_db: &BinFreeStructDb<CertsExpirV10Datas>,
+    db: &Db,
+    w: &mut DbWriter,
     created_block_id: BlockNumber,
 ) -> Result<(), DbError> {
-    // Remove CertsExpirV10Datas entries
-    certs_db.write(|db| {
-        db.remove(&created_block_id);
-    })?;
+    // Remove all certs created at block `created_block_id`
+    if db
+        .get_multi_int_store(CERTS_BY_CREATED_BLOCK)
+        .get_first(w.as_ref(), created_block_id.0)?
+        .is_some()
+    {
+        db.get_multi_int_store(CERTS_BY_CREATED_BLOCK)
+            .delete_all(w.as_mut(), created_block_id.0)?;
+    }
+
     Ok(())
+}
+
+fn cert_to_u64(source: WotId, target: WotId) -> u64 {
+    let source_bytes = (source.0 as u32).to_be_bytes();
+    let target_bytes = (target.0 as u32).to_be_bytes();
+    let mut cert_u64_bytes = [0u8; 8];
+    cert_u64_bytes[..4].copy_from_slice(&source_bytes[..4]);
+    cert_u64_bytes[4..8].copy_from_slice(&target_bytes[..4]);
+    /*for i in 0..4 {
+        cert_u64_bytes[i] = source_bytes[i];
+        cert_u64_bytes[i + 4] = target_bytes[i];
+    }*/
+    u64::from_be_bytes(cert_u64_bytes)
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_cert_to_u64() {
+        assert_eq!(1u64, cert_to_u64(WotId(0), WotId(1)));
+        assert_eq!(2_623u64, cert_to_u64(WotId(0), WotId(2_623)));
+        assert_eq!((std::u32::MAX as u64) + 1, cert_to_u64(WotId(1), WotId(0)));
+    }
 }

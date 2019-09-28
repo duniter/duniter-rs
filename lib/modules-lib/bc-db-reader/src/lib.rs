@@ -55,6 +55,8 @@ pub fn bc_db_schema() -> KvFileDbSchema {
             FORK_BLOCKS.to_owned() => KvFileDbStoreType::Single,
             ORPHAN_BLOCKSTAMP.to_owned() => KvFileDbStoreType::Single,
             IDENTITIES.to_owned() => KvFileDbStoreType::SingleIntKey,
+            MBS_BY_CREATED_BLOCK.to_owned() => KvFileDbStoreType::MultiIntKey,
+            CERTS_BY_CREATED_BLOCK.to_owned() => KvFileDbStoreType::MultiIntKey,
             WOT_ID_INDEX.to_owned() => KvFileDbStoreType::Single,
             DIVIDENDS.to_owned() => KvFileDbStoreType::Multi,
             UTXOS.to_owned() => KvFileDbStoreType::Single,
@@ -68,16 +70,6 @@ pub fn bc_db_schema() -> KvFileDbSchema {
 pub fn open_db_ro(path: &Path) -> Result<BcDbRo, DbError> {
     BcDbRo::open_db_ro(path, &bc_db_schema())
 }
-
-///////////////////////////
-// Migration in progress //
-///////////////////////////
-
-/// Certifications sorted by created block
-pub type CertsExpirV10Datas = fnv::FnvHashMap<
-    dubp_common_doc::BlockNumber,
-    std::collections::HashSet<(durs_wot::WotId, durs_wot::WotId)>,
->;
 
 #[cfg(test)]
 pub mod tests {

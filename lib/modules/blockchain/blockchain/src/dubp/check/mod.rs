@@ -22,7 +22,7 @@ use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
 use dup_crypto::keys::PubKey;
-use durs_bc_db_reader::CertsExpirV10Datas;
+use durs_bc_db_reader::DbReader;
 use durs_bc_db_writer::*;
 use durs_wot::*;
 use std::collections::HashMap;
@@ -33,15 +33,16 @@ pub enum InvalidBlockError {
     VersionDecrease,
 }
 
-pub fn verify_block_validity<DB, W>(
+pub fn verify_block_validity<DB, R, W>(
     block: &BlockDocument,
     db: &DB,
-    _certs_db: &BinFreeStructDb<CertsExpirV10Datas>,
+    _r: &R,
     _wot_index: &HashMap<PubKey, WotId>,
     _wot_db: &BinFreeStructDb<W>,
 ) -> Result<(), BlockError>
 where
     DB: DbReadable,
+    R: DbReader,
     W: WebOfTrust,
 {
     // Rules that do not concern genesis block

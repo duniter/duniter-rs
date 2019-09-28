@@ -139,6 +139,9 @@ pub trait KvFileDbRead: Sized {
     /// get a multi store
     fn get_multi_store(&self, store_name: &str) -> &super::MultiStore;
 
+    /// get a multi integer store
+    fn get_multi_int_store(&self, store_name: &str) -> &super::MultiIntegerStore<u32>;
+
     /// Read datas in transaction database
     fn read<F, R>(&self, f: F) -> Result<R, DbError>
     where
@@ -161,6 +164,10 @@ impl KvFileDbRead for KvFileDbRoHandler {
     #[inline]
     fn get_multi_store(&self, store_name: &str) -> &super::MultiStore {
         self.0.get_multi_store(store_name)
+    }
+    #[inline]
+    fn get_multi_int_store(&self, store_name: &str) -> &super::MultiIntegerStore<u32> {
+        self.0.get_multi_int_store(store_name)
     }
     #[inline]
     fn read<F, R>(&self, f: F) -> Result<R, DbError>
@@ -251,6 +258,20 @@ impl KvFileDbRead for KvFileDbHandler {
                 store
             } else {
                 fatal_error!("Dev error: store '{}' is not a multi store.", store_name);
+            }
+        } else {
+            fatal_error!("Dev error: store '{}' don't exist in DB.", store_name);
+        }
+    }
+    fn get_multi_int_store(&self, store_name: &str) -> &super::MultiIntegerStore<u32> {
+        if let Some(store_enum) = self.stores.get(store_name) {
+            if let KvFileDbStore::MultiIntKey(store) = store_enum {
+                store
+            } else {
+                fatal_error!(
+                    "Dev error: store '{}' is not a multi integer store.",
+                    store_name
+                );
             }
         } else {
             fatal_error!("Dev error: store '{}' don't exist in DB.", store_name);

@@ -129,7 +129,6 @@ impl WotsDBsWriteQuery {
         w: &mut DbWriter,
         _blockstamp: &Blockstamp,
         currency_params: &CurrencyParameters,
-        databases: &WotsV10DBs,
     ) -> Result<(), DbError> {
         match *self {
             WotsDBsWriteQuery::CreateIdentity(
@@ -143,7 +142,6 @@ impl WotsDBsWriteQuery {
                     currency_params,
                     &db,
                     w,
-                    &databases.ms_db,
                     idty_doc.deref(),
                     *ms_created_block_id,
                     *wot_id,
@@ -152,12 +150,7 @@ impl WotsDBsWriteQuery {
                 )?;
             }
             WotsDBsWriteQuery::RevertCreateIdentity(ref pubkey) => {
-                crate::indexes::identities::revert_create_identity(
-                    &db,
-                    w,
-                    &databases.ms_db,
-                    pubkey,
-                )?;
+                crate::indexes::identities::revert_create_identity(&db, w, pubkey)?;
             }
             WotsDBsWriteQuery::RenewalIdentity(
                 _,
@@ -170,7 +163,6 @@ impl WotsDBsWriteQuery {
                     currency_params,
                     &db,
                     w,
-                    &databases.ms_db,
                     *idty_wot_id,
                     *current_bc_time,
                     ms_created_block_id,
@@ -188,7 +180,6 @@ impl WotsDBsWriteQuery {
                     currency_params,
                     &db,
                     w,
-                    &databases.ms_db,
                     *idty_wot_id,
                     *current_bc_time,
                     ms_created_block_id,
@@ -223,7 +214,6 @@ impl WotsDBsWriteQuery {
                     currency_params,
                     &db,
                     w,
-                    &databases.certs_db,
                     *source,
                     *target,
                     *created_block_id,
@@ -233,22 +223,16 @@ impl WotsDBsWriteQuery {
             }
             WotsDBsWriteQuery::RevertCert(ref compact_doc, ref source, ref target) => {
                 trace!("WotsDBsWriteQuery::CreateCert...");
-                crate::indexes::certs::revert_write_cert(
-                    &db,
-                    w,
-                    &databases.certs_db,
-                    *compact_doc,
-                    *source,
-                    *target,
-                )?;
+                crate::indexes::certs::revert_write_cert(&db, w, *compact_doc, *source, *target)?;
                 trace!("WotsDBsWriteQuery::CreateCert...finish");
             }
             WotsDBsWriteQuery::ExpireCerts(ref created_block_id) => {
-                crate::indexes::certs::expire_certs(&databases.certs_db, *created_block_id)?;
+                crate::indexes::certs::expire_certs(&db, w, *created_block_id)?;
             }
             WotsDBsWriteQuery::RevertExpireCert(ref source, ref target, ref created_block_id) => {
                 crate::indexes::certs::revert_expire_cert(
-                    &databases.certs_db,
+                    &db,
+                    w,
                     *source,
                     *target,
                     *created_block_id,
@@ -260,7 +244,7 @@ impl WotsDBsWriteQuery {
 }
 
 #[derive(Debug, Clone)]
-/// Contain a pending write request for currency databases
+/// Contain a pending write request for currency indexes
 pub enum CurrencyDBsWriteQuery {
     /// Write transaction
     WriteTx(Box<TransactionDocument>),

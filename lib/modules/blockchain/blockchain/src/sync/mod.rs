@@ -23,8 +23,6 @@ use dubp_common_doc::Blockstamp;
 use dubp_common_doc::{BlockHash, BlockNumber};
 use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use dup_crypto::keys::*;
-use durs_bc_db_reader::CertsExpirV10Datas;
-use durs_bc_db_writer::open_free_struct_memory_db;
 use durs_bc_db_writer::writers::requests::*;
 use durs_common_tools::fatal_error;
 use durs_wot::WotId;
@@ -267,9 +265,6 @@ pub fn local_sync<DC: DursConfTrait>(
     // Open databases
     let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone());
     let db = open_db(dbs_path.as_path()).expect("Fail to open blockchain DB.");
-    let certs_db = BinFreeStructDb::Mem(
-        open_free_struct_memory_db::<CertsExpirV10Datas>().expect("Fail to create memory certs_db"),
-    );
 
     // initialise le BlockApplicator
     let mut block_applicator = BlockApplicator {
@@ -289,7 +284,6 @@ pub fn local_sync<DC: DursConfTrait>(
         certs_count: 0,
         blocks_not_expiring: VecDeque::with_capacity(200_000),
         last_block_expiring: -1,
-        certs_db,
         wait_begin: SystemTime::now(),
         all_wait_duration: Duration::from_millis(0),
         all_verif_block_hashs_duration: Duration::from_millis(0),

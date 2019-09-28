@@ -19,7 +19,8 @@ use crate::*;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::BlockNumber;
 use dup_crypto::keys::*;
-use durs_bc_db_reader::BcDbRo;
+use durs_bc_db_reader::constants::*;
+use durs_bc_db_reader::{BcDbRo, DbValue};
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::data::WebOfTrust;
 use durs_wot::operations::distance::{DistanceCalculator, WotDistance, WotDistanceParameters};
@@ -295,7 +296,6 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
     } else {
         return;
     };
-    let wot_databases = WotsV10DBs::open(Some(&db_path));
     let load_dbs_duration = SystemTime::now()
         .duration_since(load_db_begin)
         .expect("duration_since error");
@@ -407,6 +407,7 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
                 10_000_000,
             )
             .expect("Fail to get all blocks");
+            let current_bc_number = all_blocks.last().expect("empty blockchain").number();
             let current_bc_time = all_blocks.last().expect("empty blockchain").common_time();
             let blocks_times: HashMap<BlockNumber, u64> = all_blocks
                 .iter()
@@ -414,24 +415,28 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
                 .collect();
             // Get expire_dates
             let min_created_ms_time = current_bc_time - currency_params.ms_validity;
-            let mut expire_dates: Vec<(WotId, u64)> = wot_databases
-                .ms_db
-                .read(|db| {
+            let mut expire_dates: Vec<(WotId, u64)> = db
+                .read(|r| {
                     let mut expire_dates = Vec::new();
-                    for (block_id, nodes_ids) in db {
-                        let created_ms_time = blocks_times[&block_id.0];
+                    for block_id in 0..current_bc_number.0 {
+                        let created_ms_time = blocks_times[&block_id];
                         if created_ms_time > min_created_ms_time {
-                            for node_id in nodes_ids {
-                                expire_dates.push((
-                                    *node_id,
-                                    created_ms_time + currency_params.ms_validity,
-                                ));
+                            for entry_result in db
+                                .get_multi_int_store(MBS_BY_CREATED_BLOCK)
+                                .get(r, block_id)?
+                            {
+                                if let Some(DbValue::U64(wot_id)) = entry_result?.1 {
+                                    expire_dates.push((
+                                        WotId(wot_id as usize),
+                                        created_ms_time + currency_params.ms_validity,
+                                    ));
+                                }
                             }
                         }
                     }
-                    expire_dates
+                    Ok(expire_dates)
                 })
-                .expect("Fail to read ms db");
+                .expect("Fail to read db");
             if *reverse {
                 expire_dates.sort_unstable_by(|(_, d1), (_, d2)| d1.cmp(&d2));
             } else {

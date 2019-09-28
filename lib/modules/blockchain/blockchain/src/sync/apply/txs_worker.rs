@@ -43,7 +43,7 @@ pub fn execute(
                 req.apply(&db, &mut w, None, in_fork_window)?;
                 Ok(w)
             })
-            .expect("Fatal error : Fail to apply DBWriteRequest !");
+            .expect("Fatal error : Fail to apply CurrencyDBsWriteQuery !");
             wait_begin = SystemTime::now();
         }
 

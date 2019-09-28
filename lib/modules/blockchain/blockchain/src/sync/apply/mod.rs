@@ -27,9 +27,9 @@ use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use dup_crypto::keys::PubKey;
-use durs_bc_db_reader::CertsExpirV10Datas;
+use durs_bc_db_reader::DbReadable;
 use durs_bc_db_writer::writers::requests::WotsDBsWriteQuery;
-use durs_bc_db_writer::{BinFreeStructDb, WotsV10DBs};
+use durs_bc_db_writer::WotsV10DBs;
 use durs_common_tools::fatal_error;
 use durs_network_documents::url::Url;
 use durs_wot::data::rusty::RustyWebOfTrust;
@@ -62,7 +62,6 @@ pub struct BlockApplicator {
     pub db: Option<Db>,
     pub wot_index: HashMap<PubKey, WotId>,
     pub wot_databases: WotsV10DBs,
-    pub certs_db: BinFreeStructDb<CertsExpirV10Datas>,
     // time measurement
     pub wait_begin: SystemTime,
     pub all_wait_duration: Duration,
@@ -97,9 +96,17 @@ impl BlockApplicator {
         }
 
         // Find expire_certs
-        let expire_certs =
-            durs_bc_db_reader::indexes::certs::find_expire_certs(&self.certs_db, blocks_expiring)
+        let expire_certs = if let Some(db) = self.db.take() {
+            let expire_certs = db
+                .read(|r| {
+                    durs_bc_db_reader::indexes::certs::find_expire_certs(&db, r, blocks_expiring)
+                })
                 .expect("find_expire_certs() : DbError");
+            self.db = Some(db);
+            expire_certs
+        } else {
+            fatal_error!("Dev error: BlockApplicator must have DB.")
+        };
 
         // Get block blockstamp
         let blockstamp = block_doc.blockstamp();
@@ -142,22 +149,13 @@ impl BlockApplicator {
             for req in wot_db_reqs {
                 if let WotsDBsWriteQuery::CreateCert(
                     ref _source_pubkey,
-                    ref source,
-                    ref target,
-                    ref created_block_id,
+                    ref _source,
+                    ref _target,
+                    ref _created_block_id,
                     ref _median_time,
                 ) = req
                 {
                     self.certs_count += 1;
-                    // Add cert in certs_db
-                    self.certs_db
-                        .write(|db| {
-                            let mut created_certs =
-                                db.get(&created_block_id.0).cloned().unwrap_or_default();
-                            created_certs.insert((*source, *target));
-                            db.insert(*created_block_id, created_certs);
-                        })
-                        .expect("RustBreakError : please reset data and resync !");
                 }
                 self.sender_wot_thread
                     .send(SyncJobsMess::WotsDBsWriteQuery(

@@ -15,26 +15,46 @@
 
 //! Certificatiosn stored index.
 
-use crate::CertsExpirV10Datas;
+use crate::*;
 use dubp_common_doc::BlockNumber;
-use durs_dbs_tools::{BinFreeStructDb, DbError};
+use durs_dbs_tools::DbError;
 use durs_wot::WotId;
 use std::collections::HashMap;
 
 /// Find certifications that emitted in indicated blocks expiring
-pub fn find_expire_certs(
-    certs_db: &BinFreeStructDb<CertsExpirV10Datas>,
+pub fn find_expire_certs<DB: DbReadable, R: DbReader>(
+    db: &DB,
+    r: &R,
     blocks_expiring: Vec<BlockNumber>,
 ) -> Result<HashMap<(WotId, WotId), BlockNumber>, DbError> {
-    Ok(certs_db.read(|db| {
-        let mut all_expire_certs = HashMap::new();
-        for expire_block_id in blocks_expiring {
-            if let Some(expire_certs) = db.get(&expire_block_id) {
-                for (source, target) in expire_certs {
-                    all_expire_certs.insert((*source, *target), expire_block_id);
+    let mut all_expire_certs = HashMap::new();
+    for expire_block_id in blocks_expiring {
+        for entry_result in db
+            .get_multi_int_store(CERTS_BY_CREATED_BLOCK)
+            .get(r, expire_block_id.0)?
+        {
+            if let Some(value) = entry_result?.1 {
+                if let DbValue::U64(cert) = value {
+                    let (source, target) = cert_from_u64(cert);
+                    all_expire_certs.insert((source, target), expire_block_id);
+                } else {
+                    return Err(DbError::DBCorrupted);
                 }
             }
         }
-        all_expire_certs
-    })?)
+    }
+    Ok(all_expire_certs)
+}
+
+fn cert_from_u64(cert: u64) -> (WotId, WotId) {
+    let mut source = [0u8; 4];
+    let mut target = [0u8; 4];
+    let cert_bytes = cert.to_be_bytes();
+    source.copy_from_slice(&cert_bytes[..4]);
+    target.copy_from_slice(&cert_bytes[4..]);
+
+    (
+        WotId(u32::from_be_bytes(source) as usize),
+        WotId(u32::from_be_bytes(target) as usize),
+    )
 }

@@ -77,10 +77,12 @@ impl Blockstamp {
 
 impl Into<Vec<u8>> for Blockstamp {
     fn into(self) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(Self::SIZE_IN_BYTES);
-        bytes.append(&mut self.id.0.to_be_bytes().to_vec());
-        bytes.append(&mut (self.hash.0).0.to_vec());
-        bytes
+        let mut bytes = [0u8; Self::SIZE_IN_BYTES];
+
+        bytes[..4].copy_from_slice(&self.id.0.to_be_bytes()[..4]);
+        bytes[4..Self::SIZE_IN_BYTES].copy_from_slice(&(self.hash.0).0[..]);
+
+        bytes.to_vec()
     }
 }
 

@@ -40,6 +40,12 @@ pub static WOT_ID_INDEX: &str = "wii";
 /// Identities (WotId, DbIdentity)
 pub static IDENTITIES: &str = "idty";
 
+/// Memberships sorted by created block (BlockNumber, Vec<WotId>)
+pub static MBS_BY_CREATED_BLOCK: &str = "mb";
+
+/// Certifications sorted by created block (BlockNumber, Vec<(WotId, WotId))
+pub static CERTS_BY_CREATED_BLOCK: &str = "cert";
+
 /// Unused universal dividends
 pub static DIVIDENDS: &str = "du";
 

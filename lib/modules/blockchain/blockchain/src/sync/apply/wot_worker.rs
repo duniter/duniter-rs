@@ -29,7 +29,6 @@ pub fn execute(
         // Open databases
         let db_path = durs_conf::get_blockchain_db_path(profile_path);
         let db = open_db(&db_path).expect("Fail to open DB.");
-        let databases = WotsV10DBs::open(Some(&db_path));
 
         // Listen db requets
         let mut all_wait_duration = Duration::from_millis(0);
@@ -39,25 +38,18 @@ pub fn execute(
             match mess {
                 SyncJobsMess::WotsDBsWriteQuery(blockstamp, currency_params, req) => {
                     db.write(|mut w| {
-                        req.apply(
-                            &db,
-                            &mut w,
-                            &blockstamp,
-                            &currency_params.deref(),
-                            &databases,
-                        )?;
+                        req.apply(&db, &mut w, &blockstamp, &currency_params.deref())?;
                         Ok(w)
                     })
-                    .expect("Fatal error : Fail to apply DBWriteRequest !");
+                    .unwrap_or_else(|_| {
+                        fatal_error!("Fail to apply WotsDBsWriteQuery ({})", blockstamp)
+                    });
                 }
                 SyncJobsMess::End => break,
                 _ => {}
             }
             wait_begin = SystemTime::now();
         }
-        // Save wots databases
-        info!("Save wots databases in files...");
-        databases.save_dbs_except_graph();
 
         // Send finish signal
         sender_sync_thread

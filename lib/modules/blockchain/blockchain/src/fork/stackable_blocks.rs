@@ -60,13 +60,7 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                             .expect("DB error : Fail to apply block query !");
                         for query in &wot_dbs_queries {
                             query
-                                .apply(
-                                    &db,
-                                    &mut w,
-                                    &blockstamp,
-                                    &unwrap!(bc.currency_params),
-                                    &bc.wot_databases,
-                                )
+                                .apply(&db, &mut w, &blockstamp, &unwrap!(bc.currency_params))
                                 .expect("DB error : Fail to apply wot queries !");
                         }
                         exec_currency_queries(&db, &mut w, blockstamp.id, tx_dbs_queries)

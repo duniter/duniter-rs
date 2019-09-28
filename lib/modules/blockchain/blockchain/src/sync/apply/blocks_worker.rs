@@ -59,7 +59,7 @@ pub fn execute(
                             )?;
                             Ok(w)
                         })
-                        .expect("Fatal error : Fail to apply DBWriteRequest !");
+                        .expect("Fatal error : Fail to apply BlocksDBsWriteQuery !");
 
                         chunk_index += 1;
                         if chunk_index == 250 {

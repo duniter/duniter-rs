@@ -31,10 +31,13 @@ pub struct UniqueIdUTXOv10(pub Hash, pub OutputIndex);
 
 impl Into<Vec<u8>> for UniqueIdUTXOv10 {
     fn into(self) -> Vec<u8> {
-        let mut buffer = Vec::with_capacity(UTXO_ID_SIZE);
-        buffer.append(&mut (self.0).0.to_vec());
-        buffer.append(&mut (self.1).0.to_be_bytes().to_vec());
-        buffer
+        let mut bytes = [0u8; UTXO_ID_SIZE];
+
+        bytes[..Hash::SIZE_IN_BYTES].copy_from_slice(&(self.0).0[..]);
+        bytes[Hash::SIZE_IN_BYTES..UTXO_ID_SIZE]
+            .copy_from_slice(&((self.1).0 as u32).to_be_bytes()[..]);
+
+        bytes.to_vec()
     }
 }
 

@@ -91,16 +91,14 @@ pub fn check_and_apply_block(
         );
         // Detect expire_certs
         let blocks_expiring = Vec::with_capacity(0);
-        let expire_certs = durs_bc_db_reader::indexes::certs::find_expire_certs(
-            &bc.wot_databases.certs_db,
-            blocks_expiring,
-        )?;
+        let expire_certs =
+            durs_bc_db_reader::indexes::certs::find_expire_certs(db, w.as_ref(), blocks_expiring)?;
 
         // Verify block validity (check all protocol rule, very long !)
         verify_block_validity(
             &block_doc,
             db,
-            &bc.wot_databases.certs_db,
+            w.as_ref(),
             &bc.wot_index,
             &bc.wot_databases.wot_db,
         )?;

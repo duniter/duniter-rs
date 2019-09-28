@@ -67,16 +67,10 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                         unwrap!(bc.currency_params).fork_window_size,
                         None,
                     )
-                    .expect("Fatal error : Fail to apply DBWriteRequest !");
+                    .expect("Fatal error : revert block: Fail to apply BlocksDBsWriteRequest !");
                 for query in &wot_queries {
                     query
-                        .apply(
-                            &db,
-                            &mut w,
-                            &blockstamp,
-                            &unwrap!(bc.currency_params),
-                            &bc.wot_databases,
-                        )
+                        .apply(&db, &mut w, &blockstamp, &unwrap!(bc.currency_params))
                         .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
                 }
                 exec_currency_queries(&db, &mut w, blockstamp.id, currency_queries)?;
@@ -114,13 +108,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                         .expect("Fatal error : Fail to apply DBWriteRequest !");
                     for query in &wot_dbs_queries {
                         query
-                            .apply(
-                                &db,
-                                &mut w,
-                                &blockstamp,
-                                &unwrap!(bc.currency_params),
-                                &bc.wot_databases,
-                            )
+                            .apply(&db, &mut w, &blockstamp, &unwrap!(bc.currency_params))
                             .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
                     }
                     exec_currency_queries(&db, &mut w, blockstamp.id, tx_dbs_queries)?;

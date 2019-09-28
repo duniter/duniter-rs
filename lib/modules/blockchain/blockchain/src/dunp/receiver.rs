@@ -68,13 +68,7 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                         )?;
                         for query in &wot_dbs_queries {
                             query
-                                .apply(
-                                    &db,
-                                    &mut w,
-                                    &blockstamp,
-                                    &unwrap!(bc.currency_params),
-                                    &bc.wot_databases,
-                                )
+                                .apply(&db, &mut w, &blockstamp, &unwrap!(bc.currency_params))
                                 .expect("Fatal error : Fail to apply WotsDBsWriteRequest !");
                         }
                         exec_currency_queries(&db, &mut w, blockstamp.id, tx_dbs_queries)?;
