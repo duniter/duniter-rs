@@ -140,11 +140,15 @@ mod tests {
         })?;
 
         // Local blockchain must contain at least `fork_window_size +2` blocks
-        assert!(durs_bc_db_reader::blocks::get_block_in_local_blockchain(
-            &db,
-            BlockNumber((fork_window_size + 1) as u32)
-        )?
-        .is_some());
+        assert!(db
+            .read(
+                |r| durs_bc_db_reader::blocks::get_block_in_local_blockchain(
+                    &db,
+                    r,
+                    BlockNumber((fork_window_size + 1) as u32)
+                )
+            )?
+            .is_some());
 
         // Fork tree must contain at least `fork_window_size +2` blocks
         assert_eq!(fork_window_size, fork_tree.size());

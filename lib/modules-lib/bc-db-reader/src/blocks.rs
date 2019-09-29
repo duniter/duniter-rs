@@ -124,12 +124,13 @@ pub fn get_fork_block<DB: DbReadable, R: DbReader>(
 }
 
 /// Get block hash
-pub fn get_block_hash<DB: DbReadable>(
+pub fn get_block_hash<DB: DbReadable, R: DbReader>(
     db: &DB,
+    r: &R,
     block_number: BlockNumber,
 ) -> Result<Option<BlockHash>, DbError> {
     Ok(
-        if let Some(block) = get_block_in_local_blockchain(db, block_number)? {
+        if let Some(block) = get_block_in_local_blockchain(db, r, block_number)? {
             block.hash()
         } else {
             None
@@ -139,16 +140,12 @@ pub fn get_block_hash<DB: DbReadable>(
 
 /// Get block in local blockchain
 #[inline]
-pub fn get_block_in_local_blockchain<DB: DbReadable>(
+pub fn get_block_in_local_blockchain<DB: DbReadable, R: DbReader>(
     db: &DB,
+    r: &R,
     block_number: BlockNumber,
 ) -> Result<Option<BlockDocument>, DbError> {
-    db.read(|r| {
-        Ok(
-            get_dal_block_in_local_blockchain(db, r, block_number)?
-                .map(|dal_block| dal_block.block),
-        )
-    })
+    Ok(get_dal_block_in_local_blockchain(db, r, block_number)?.map(|dal_block| dal_block.block))
 }
 
 /// Get block in local blockchain

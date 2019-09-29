@@ -37,10 +37,13 @@ pub fn receive_req(
             BlockchainRequest::CurrentBlock => {
                 debug!("BlockchainModule : receive BlockchainRequest::CurrentBlock()");
 
-                if let Ok(block_opt) = durs_bc_db_reader::blocks::get_block_in_local_blockchain(
-                    bc.db(),
-                    bc.current_blockstamp.id,
-                ) {
+                if let Ok(block_opt) = bc.db().read(|r| {
+                    durs_bc_db_reader::blocks::get_block_in_local_blockchain(
+                        bc.db(),
+                        r,
+                        bc.current_blockstamp.id,
+                    )
+                }) {
                     if let Some(block) = block_opt {
                         debug!(
                             "BlockchainModule : send_req_response(CurrentBlock({}))",
@@ -70,9 +73,13 @@ pub fn receive_req(
                     block_number
                 );
 
-                if let Ok(block_opt) =
-                    durs_bc_db_reader::blocks::get_block_in_local_blockchain(bc.db(), block_number)
-                {
+                if let Ok(block_opt) = bc.db().read(|r| {
+                    durs_bc_db_reader::blocks::get_block_in_local_blockchain(
+                        bc.db(),
+                        r,
+                        block_number,
+                    )
+                }) {
                     if let Some(block) = block_opt {
                         debug!(
                             "BlockchainModule : send_req_response(BlockByNumber(#{}))",

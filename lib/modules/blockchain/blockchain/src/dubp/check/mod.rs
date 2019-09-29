@@ -36,7 +36,7 @@ pub enum InvalidBlockError {
 pub fn verify_block_validity<DB, R, W>(
     block: &BlockDocument,
     db: &DB,
-    _r: &R,
+    r: &R,
     _wot_index: &HashMap<PubKey, WotId>,
     _wot_db: &BinFreeStructDb<W>,
 ) -> Result<(), BlockError>
@@ -50,6 +50,7 @@ where
         // Get previous block
         let previous_block_opt = durs_bc_db_reader::blocks::get_block_in_local_blockchain(
             db,
+            r,
             BlockNumber(block.number().0 - 1),
         )?;
 

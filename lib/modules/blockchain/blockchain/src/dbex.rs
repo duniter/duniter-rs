@@ -146,9 +146,9 @@ pub fn dbex_bc(profile_path: PathBuf, _csv: bool, _query: DbExBcQuery) -> Result
         durs_bc_db_reader::current_meta_datas::get_current_blockstamp(&db)?
     {
         println!("Current block: #{}.", current_blockstamp);
-        if let Some(current_block) =
-            durs_bc_db_reader::blocks::get_block_in_local_blockchain(&db, current_blockstamp.id)?
-        {
+        if let Some(current_block) = db.read(|r| {
+            durs_bc_db_reader::blocks::get_block_in_local_blockchain(&db, r, current_blockstamp.id)
+        })? {
             let map_pubkey = durs_bc_db_reader::blocks::get_current_frame(&current_block, &db)?;
 
             let mut vec = map_pubkey.iter().collect::<Vec<(&PubKey, &usize)>>();
