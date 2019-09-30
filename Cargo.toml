@@ -22,6 +22,8 @@ members = [
     "lib/modules/ws2p-v1-legacy",
     "lib/modules/ws2p/ws2p",
     "lib/modules/ws2p/ws2p-protocol",
+    "lib/tests-tools/bc-db-tests-tools",
+    "lib/tests-tools/blocks-tests-tools",
     "lib/tests-tools/crypto-tests-tools",
     "lib/tests-tools/user-docs-tests-tools",
     "lib/tests-tools/common-tests-tools",

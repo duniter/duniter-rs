@@ -91,6 +91,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "bc-db-tests-tools"
+version = "0.1.0"
+dependencies = [
+ "dubp-block-doc 0.1.0",
+ "dubp-blocks-tests-tools 0.1.0",
+ "dubp-common-doc 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-user-docs 0.14.0",
+ "dup-crypto 0.7.0",
+ "dup-crypto-tests-tools 0.1.0",
+ "durs-bc-db-reader 0.3.0-dev",
+ "durs-bc-db-writer 0.3.0-dev",
+ "tempfile 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "bincode"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -372,6 +388,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dubp-blocks-tests-tools"
+version = "0.1.0"
+dependencies = [
+ "dubp-block-doc 0.1.0",
+ "dubp-common-doc 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-user-docs 0.14.0",
+ "dubp-user-docs-tests-tools 0.1.0",
+ "dup-crypto 0.7.0",
+ "dup-crypto-tests-tools 0.1.0",
+]
+
+[[package]]
 name = "dubp-common-doc"
 version = "0.1.0"
 dependencies = [
@@ -440,7 +469,6 @@ dependencies = [
 name = "dubp-user-docs-tests-tools"
 version = "0.1.0"
 dependencies = [
- "dubp-block-doc 0.1.0",
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
@@ -494,6 +522,7 @@ name = "durs-bc-db-reader"
 version = "0.3.0-dev"
 dependencies = [
  "dubp-block-doc 0.1.0",
+ "dubp-blocks-tests-tools 0.1.0",
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-indexes 0.1.0",
@@ -520,6 +549,7 @@ name = "durs-bc-db-writer"
 version = "0.3.0-dev"
 dependencies = [
  "dubp-block-doc 0.1.0",
+ "dubp-blocks-tests-tools 0.1.0",
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-indexes 0.1.0",
@@ -548,6 +578,7 @@ version = "0.3.0-dev"
 dependencies = [
  "dirs 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "dubp-block-doc 0.1.0",
+ "dubp-blocks-tests-tools 0.1.0",
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",

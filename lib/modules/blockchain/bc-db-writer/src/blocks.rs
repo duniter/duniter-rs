@@ -29,6 +29,7 @@ use durs_bc_db_reader::DbValue;
 use unwrap::unwrap;
 
 /// Insert new head Block in databases
+/// Update MAIN_BLOCK and CURRENT_META_DATAS
 pub fn insert_new_head_block(
     db: &Db,
     w: &mut DbWriter,

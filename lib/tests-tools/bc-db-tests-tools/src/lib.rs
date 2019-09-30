@@ -13,7 +13,30 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Mocks for projects use dubp-user-docs
+//! Crypto tests tools for projects use dup-crypto.
 
-pub mod identity;
-pub mod tx;
+#![deny(
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    trivial_casts,
+    trivial_numeric_casts,
+    unsafe_code,
+    unstable_features,
+    unused_import_braces
+)]
+
+pub mod mocks;
+
+use durs_bc_db_writer::{Db, DbError};
+use tempfile::tempdir;
+
+#[inline]
+/// Open database in an arbitrary temporary directory given by OS
+/// and automatically cleaned when `Db` is dropped
+pub fn open_tmp_db() -> Result<Db, DbError> {
+    Db::open_db(
+        tempdir().map_err(DbError::FileSystemError)?.path(),
+        &durs_bc_db_reader::bc_db_schema(),
+    )
+}

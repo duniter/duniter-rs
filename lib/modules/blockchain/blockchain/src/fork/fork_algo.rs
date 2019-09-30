@@ -118,10 +118,7 @@ mod tests {
 
         // Generate `FORK_WINDOW_SIZE + 2` mock blocks
         let main_branch: Vec<BlockDocument> =
-            dubp_user_docs_tests_tools::mocks::gen_empty_timed_blocks_v10(
-                fork_window_size + 2,
-                0u64,
-            );
+            dubp_blocks_tests_tools::mocks::gen_empty_timed_blocks_v10(fork_window_size + 2, 0u64);
 
         // Insert mock blocks in forks_dbs
         db.write(|mut w| {
@@ -160,20 +157,18 @@ mod tests {
         let fork_point = &main_branch[main_branch.len() - 2];
         let fork_blocks: Vec<BlockDocument> = (0..3)
             .map(|i| {
-                BlockDocument::V10(
-                    dubp_user_docs_tests_tools::mocks::gen_empty_timed_block_v10(
-                        Blockstamp {
-                            id: BlockNumber(fork_point.number().0 + i + 1),
-                            hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
-                        },
-                        ADVANCE_TIME - 1,
-                        if i == 0 {
-                            fork_point.hash().expect("safe unwrap").0
-                        } else {
-                            dup_crypto_tests_tools::mocks::hash('A')
-                        },
-                    ),
-                )
+                BlockDocument::V10(dubp_blocks_tests_tools::mocks::gen_empty_timed_block_v10(
+                    Blockstamp {
+                        id: BlockNumber(fork_point.number().0 + i + 1),
+                        hash: BlockHash(dup_crypto_tests_tools::mocks::hash('A')),
+                    },
+                    ADVANCE_TIME - 1,
+                    if i == 0 {
+                        fork_point.hash().expect("safe unwrap").0
+                    } else {
+                        dup_crypto_tests_tools::mocks::hash('A')
+                    },
+                ))
             })
             .collect();
 
@@ -208,7 +203,7 @@ mod tests {
                     &mut fork_tree,
                     DbBlock {
                         block: BlockDocument::V10(
-                            dubp_user_docs_tests_tools::mocks::gen_empty_timed_block_v10(
+                            dubp_blocks_tests_tools::mocks::gen_empty_timed_block_v10(
                                 determining_blockstamp,
                                 *ADVANCE_TIME,
                                 dup_crypto_tests_tools::mocks::hash('A'),
@@ -243,20 +238,18 @@ mod tests {
         // The old main branch catches up and overlaps with the fork
         let new_main_blocks: Vec<BlockDocument> = (0..7)
             .map(|i| {
-                BlockDocument::V10(
-                    dubp_user_docs_tests_tools::mocks::gen_empty_timed_block_v10(
-                        Blockstamp {
-                            id: BlockNumber(fork_point.number().0 + i + 1),
-                            hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
-                        },
-                        ADVANCE_TIME * 2,
-                        if i == 0 {
-                            fork_point.hash().expect("safe unwrap").0
-                        } else {
-                            dup_crypto_tests_tools::mocks::hash('B')
-                        },
-                    ),
-                )
+                BlockDocument::V10(dubp_blocks_tests_tools::mocks::gen_empty_timed_block_v10(
+                    Blockstamp {
+                        id: BlockNumber(fork_point.number().0 + i + 1),
+                        hash: BlockHash(dup_crypto_tests_tools::mocks::hash('B')),
+                    },
+                    ADVANCE_TIME * 2,
+                    if i == 0 {
+                        fork_point.hash().expect("safe unwrap").0
+                    } else {
+                        dup_crypto_tests_tools::mocks::hash('B')
+                    },
+                ))
             })
             .collect();
         insert_fork_blocks(&db, &mut fork_tree, &new_main_blocks)?;
