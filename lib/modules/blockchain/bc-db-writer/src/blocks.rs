@@ -17,19 +17,17 @@
 
 pub mod fork_tree;
 
-use crate::DbError;
 use crate::*;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::traits::Document;
 use durs_bc_db_reader::blocks::fork_tree::ForkTree;
 use durs_bc_db_reader::blocks::DbBlock;
 use durs_bc_db_reader::constants::*;
-use durs_bc_db_reader::current_meta_datas::CurrentMetaDataKey;
 use durs_bc_db_reader::DbValue;
 use unwrap::unwrap;
 
 /// Insert new head Block in databases
-/// Update MAIN_BLOCK and CURRENT_META_DATAS
+/// Update MAIN_BLOCK only
 pub fn insert_new_head_block(
     db: &Db,
     w: &mut DbWriter,
@@ -38,9 +36,7 @@ pub fn insert_new_head_block(
 ) -> Result<(), DbError> {
     // Serialize datas
     let bin_dal_block = durs_dbs_tools::to_bytes(&dal_block)?;
-    let new_current_blockstamp_bytes: Vec<u8> = dal_block.blockstamp().into();
 
-    let current_meta_datas_store = db.get_int_store(CURRENT_METAS_DATAS);
     let main_blocks_store = db.get_int_store(MAIN_BLOCKS);
     let fork_blocks_store = db.get_store(FORK_BLOCKS);
 
@@ -49,19 +45,6 @@ pub fn insert_new_head_block(
         w.as_mut(),
         *dal_block.block.number(),
         &Db::db_value(&bin_dal_block)?,
-    )?;
-
-    // Update current blockstamp
-    current_meta_datas_store.put(
-        w.as_mut(),
-        CurrentMetaDataKey::CurrentBlockstamp.to_u32(),
-        &DbValue::Blob(&new_current_blockstamp_bytes),
-    )?;
-    // Update current common time (also named "blockchain time")
-    current_meta_datas_store.put(
-        w.as_mut(),
-        CurrentMetaDataKey::CurrentBlockchainTime.to_u32(),
-        &DbValue::U64(dal_block.block.common_time()),
     )?;
 
     if let Some(fork_tree) = fork_tree {

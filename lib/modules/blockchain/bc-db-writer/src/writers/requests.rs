@@ -67,6 +67,7 @@ impl BlocksDBsWriteQuery {
             BlocksDBsWriteQuery::WriteBlock(dal_block) => {
                 let dal_block: DbBlock = dal_block;
                 trace!("BlocksDBsWriteQuery::WriteBlock...");
+                crate::current_meta_datas::update_current_meta_datas(db, w, &dal_block.block)?;
                 if sync_target.is_none()
                     || dal_block.blockstamp().id.0 + fork_window_size as u32
                         >= sync_target.expect("safe unwrap").id.0
