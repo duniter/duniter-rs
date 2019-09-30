@@ -87,7 +87,12 @@ pub fn change_main_branch(
     let fork_blocks_store = db.get_store(FORK_BLOCKS);
     for blockstamp in removed_blockstamps {
         let blockstamp_bytes: Vec<u8> = blockstamp.into();
-        fork_blocks_store.delete(w.as_mut(), &blockstamp_bytes)?;
+        if fork_blocks_store
+            .get(w.as_ref(), &blockstamp_bytes)?
+            .is_some()
+        {
+            fork_blocks_store.delete(w.as_mut(), &blockstamp_bytes)?;
+        }
     }
     Ok(())
 }

@@ -78,7 +78,12 @@ pub fn insert_new_head_block(
         // Remove too old blocks
         for blockstamp in removed_blockstamps {
             let blockstamp_bytes: Vec<u8> = blockstamp.into();
-            fork_blocks_store.delete(w.as_mut(), &blockstamp_bytes)?;
+            if fork_blocks_store
+                .get(w.as_ref(), &blockstamp_bytes)?
+                .is_some()
+            {
+                fork_blocks_store.delete(w.as_mut(), &blockstamp_bytes)?;
+            }
         }
     }
     Ok(())
