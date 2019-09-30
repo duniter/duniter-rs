@@ -483,5 +483,4 @@ mod tests {
                 .expect("friends field must be an array of String")
         );
     }
-
 }

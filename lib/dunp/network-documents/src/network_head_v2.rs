@@ -68,20 +68,20 @@ impl NetworkHeadMessageV2 {
     pub fn to_human_string(&self, max_len: usize, uid: Option<String>) -> String {
         let short_api = &self.api[4..];
 
-        if max_len > 85 && uid.is_some() {
+        if max_len > 85 {
             format!(
-                "{node_id:8}-{pubkey:.8} {blockstamp:.16} {soft:9}:{ver:14} {pre:3} [{api:5}]  {mer:02}:{mir:02} {uid}",
-                node_id = self.node_uuid.to_string(),
-                pubkey = self.pubkey.to_string(),
-                blockstamp = self.blockstamp.to_string(),
-                soft = self.software,
-                ver = self.soft_version,
-                pre = self.prefix,
-                api = short_api,
-                mer = self.free_member_room.unwrap_or(0),
-                mir = self.free_mirror_room.unwrap_or(0),
-                uid = uid.unwrap(),
-            )
+                    "{node_id:8}-{pubkey:.8} {blockstamp:.16} {soft:9}:{ver:14} {pre:3} [{api:5}]  {mer:02}:{mir:02} {uid}",
+                    node_id = self.node_uuid.to_string(),
+                    pubkey = self.pubkey.to_string(),
+                    blockstamp = self.blockstamp.to_string(),
+                    soft = self.software,
+                    ver = self.soft_version,
+                    pre = self.prefix,
+                    api = short_api,
+                    mer = self.free_member_room.unwrap_or(0),
+                    mir = self.free_mirror_room.unwrap_or(0),
+                    uid = uid.unwrap_or_default(),
+                )
         } else if max_len > 75 {
             format!(
                 "{node_id:8}-{pubkey:.8} {blockstamp:.16} {soft:9}:{ver:14} {pre:3} [{api:5}]  {mer:02}:{mir:02}",

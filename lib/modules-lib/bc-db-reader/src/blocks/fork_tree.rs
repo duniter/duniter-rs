@@ -778,5 +778,4 @@ mod tests {
         // Check that the root of the tree has shifted
         assert_eq!(Some(TreeNodeId(1)), tree.get_root_id());
     }
-
 }

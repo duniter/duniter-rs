@@ -167,19 +167,14 @@ impl Blockstamp {
             let id = split.next().unwrap().parse::<u32>();
             let hash = Hash::from_hex(split.next().unwrap())?;
 
-            if id.is_err() {
-                Err(BlockstampParseError::InvalidBlockNumber())
-            } else {
+            if let Ok(id) = id {
                 Ok(Blockstamp {
-                    id: BlockNumber(id.unwrap()),
+                    id: BlockNumber(id),
                     hash: BlockHash(hash),
                 })
+            } else {
+                Err(BlockstampParseError::InvalidBlockNumber())
             }
         }
-    }
-
-    /// Convert a `BlockUId` to its text format.
-    pub fn to_string(&self) -> String {
-        format!("{}", self)
     }
 }

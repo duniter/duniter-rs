@@ -76,7 +76,8 @@ impl PeerCardV11 {
                     ))
                 }
                 Rule::block_id => {
-                    created_on = Some(BlockNumber(field.as_str().parse().unwrap())); // Grammar ensures that we have a digits string.
+                    created_on = Some(BlockNumber(field.as_str().parse().unwrap()));
+                    // Grammar ensures that we have a digits string.
                 }
                 Rule::endpoint_v2 => endpoints.push(EndpointV2::from_pest_pair(field)?),
                 Rule::ed25519_sig => {

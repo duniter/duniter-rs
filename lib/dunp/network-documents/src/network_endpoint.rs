@@ -36,6 +36,21 @@ pub static MAX_API_FEATURES_COUNT: &usize = &2040;
 /// ApiFeatures
 pub struct ApiFeatures(pub Vec<u8>);
 
+impl Display for ApiFeatures {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        if self.is_empty() {
+            write!(f, "")
+        } else {
+            let hex_str = hex::encode(self.0.clone());
+            if hex_str.len() == 2 {
+                write!(f, "0x{} ", &hex_str[1..])
+            } else {
+                write!(f, "0x{} ", hex_str)
+            }
+        }
+    }
+}
+
 impl ApiFeatures {
     fn is_empty(&self) -> bool {
         for byte in &self.0 {
@@ -44,19 +59,6 @@ impl ApiFeatures {
             }
         }
         true
-    }
-
-    fn to_string(&self) -> String {
-        if self.is_empty() {
-            String::from("")
-        } else {
-            let hex_str = hex::encode(self.0.clone());
-            if hex_str.len() == 2 {
-                format!("0x{} ", &hex_str[1..])
-            } else {
-                format!("0x{} ", hex_str)
-            }
-        }
     }
 }
 

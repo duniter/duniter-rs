@@ -630,5 +630,4 @@ mod tests {
             panic!();
         }
     }
-
 }

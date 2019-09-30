@@ -165,5 +165,4 @@ mod tests {
             parse_json_transaction(&tx_json_value).expect("Fail to parse tx_json_value !")
         );
     }
-
 }
