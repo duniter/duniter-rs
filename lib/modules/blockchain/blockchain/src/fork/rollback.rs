@@ -146,6 +146,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
             // update main branch in fork tree
             if let Err(err) = durs_bc_db_writer::blocks::fork_tree::change_main_branch(
                 &db,
+                &mut w,
                 &mut bc.fork_tree,
                 old_current_blockstamp,
                 bc.current_blockstamp,

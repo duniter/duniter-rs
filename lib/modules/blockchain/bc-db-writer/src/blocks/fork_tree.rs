@@ -74,6 +74,7 @@ pub fn insert_new_fork_block(
 /// Modify the main branch (function to call after a successful roolback)
 pub fn change_main_branch(
     db: &Db,
+    w: &mut DbWriter,
     fork_tree: &mut ForkTree,
     old_current_blockstamp: Blockstamp,
     new_current_blockstamp: Blockstamp,
@@ -83,15 +84,12 @@ pub fn change_main_branch(
     let removed_blockstamps = fork_tree.get_removed_blockstamps();
 
     // Remove too old blocks
-    db.write(|mut w| {
-        let fork_blocks_store = db.get_store(FORK_BLOCKS);
-        for blockstamp in removed_blockstamps {
-            let blockstamp_bytes: Vec<u8> = blockstamp.into();
-            fork_blocks_store.delete(w.as_mut(), &blockstamp_bytes)?;
-        }
-
-        Ok(w)
-    })
+    let fork_blocks_store = db.get_store(FORK_BLOCKS);
+    for blockstamp in removed_blockstamps {
+        let blockstamp_bytes: Vec<u8> = blockstamp.into();
+        fork_blocks_store.delete(w.as_mut(), &blockstamp_bytes)?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
