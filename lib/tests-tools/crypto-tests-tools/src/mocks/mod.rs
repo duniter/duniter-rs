@@ -43,3 +43,18 @@ pub fn pubkey(character: char) -> PubKey {
         ed25519::PublicKey::from_base58(&str_pub).expect("Fail to create mock pubkey !"),
     )
 }
+
+/// Generate mock pubkey from one byte
+pub fn pubkey_from_byte(byte: u8) -> PubKey {
+    let mut bytes = [0u8; 32];
+    for b in &mut bytes {
+        *b = byte
+    }
+
+    PubKey::Ed25519(ed25519::PublicKey(bytes))
+}
+
+/// Generate n mock pubkeys
+pub fn generate_pubkeys(n: usize) -> Vec<PubKey> {
+    (0..n).map(|i| pubkey_from_byte((i % 255) as u8)).collect()
+}

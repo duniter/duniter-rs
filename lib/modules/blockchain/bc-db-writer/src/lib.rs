@@ -33,6 +33,7 @@ extern crate log;
 pub mod blocks;
 pub mod current_meta_datas;
 pub mod indexes;
+pub mod store_name;
 pub mod writers;
 
 pub use durs_dbs_tools::kv_db::{

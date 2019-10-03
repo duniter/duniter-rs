@@ -21,14 +21,19 @@ use crate::dubp::BlockError;
 use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
+use dup_crypto::hashs::Hash;
 use dup_crypto::keys::PubKey;
 use durs_bc_db_reader::DbReader;
 use durs_bc_db_writer::*;
 use durs_wot::*;
 use std::collections::HashMap;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum InvalidBlockError {
+    _InvalidPow {
+        expected_pattern: String,
+        block_hash: Hash,
+    },
     NoPreviousBlock,
     VersionDecrease,
 }
@@ -67,4 +72,14 @@ where
     }
 
     Ok(())
+}
+
+fn _verify_pow<DB: DbReadable, R: DbReader>(
+    _db: &DB,
+    _r: &R,
+    _wot_id: WotId,
+    _block_hash: Hash,
+    _block_pow_min: u32,
+) -> Result<(), InvalidBlockError> {
+    unimplemented!();
 }

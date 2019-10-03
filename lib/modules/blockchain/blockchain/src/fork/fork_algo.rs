@@ -123,9 +123,6 @@ mod tests {
         // Insert mock blocks in forks_dbs
         db.write(|mut w| {
             for block in &main_branch {
-                durs_bc_db_writer::current_meta_datas::update_current_meta_datas(
-                    &db, &mut w, &block,
-                )?;
                 durs_bc_db_writer::blocks::insert_new_head_block(
                     &db,
                     &mut w,

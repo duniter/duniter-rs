@@ -27,7 +27,6 @@ use durs_bc_db_reader::DbValue;
 use unwrap::unwrap;
 
 /// Insert new head Block in databases
-/// Update MAIN_BLOCK only
 pub fn insert_new_head_block(
     db: &Db,
     w: &mut DbWriter,
@@ -46,6 +45,12 @@ pub fn insert_new_head_block(
         *dal_block.block.number(),
         &Db::db_value(&bin_dal_block)?,
     )?;
+
+    // Update current meta datas
+    crate::current_meta_datas::update_current_meta_datas(db, w, &dal_block.block)?;
+
+    // Update stores linked to MAIN_BLOCKS
+    crate::store_name::update_store_name(db, w, &dal_block.block)?;
 
     if let Some(fork_tree) = fork_tree {
         // Insert head block in fork tree

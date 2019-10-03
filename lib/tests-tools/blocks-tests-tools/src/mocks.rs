@@ -20,6 +20,7 @@ use dubp_common_doc::blockstamp::Blockstamp;
 use dubp_common_doc::{BlockHash, BlockNumber};
 use dubp_currency_params::CurrencyName;
 use dup_crypto::hashs::Hash;
+use dup_crypto::keys::PubKey;
 
 /// Generate n mock blockstamps
 pub fn generate_blockstamps(n: usize) -> Vec<Blockstamp> {
@@ -55,6 +56,18 @@ pub fn gen_empty_timed_blocks_v10(n: usize, time_step: u64) -> Vec<BlockDocument
         .collect()
 }
 
+/// Generate empty block v10 with issuer and pow_min
+pub fn gen_empty_block_v10_with_issuer_and_pow_min(
+    block_number: BlockNumber,
+    issuer: PubKey,
+    pow_min: usize,
+) -> BlockDocumentV10 {
+    let mut block = empty_block_v10(block_number);
+    block.issuers = vec![issuer];
+    block.pow_min = pow_min;
+    block
+}
+
 /// Generate empty timed block document
 /// (usefull for tests that only need blockstamp and median_time fields)
 pub fn gen_empty_timed_block_v10(
@@ -62,13 +75,21 @@ pub fn gen_empty_timed_block_v10(
     time: u64,
     previous_hash: Hash,
 ) -> BlockDocumentV10 {
+    let mut block = empty_block_v10(blockstamp.id);
+    block.median_time = time;
+    block.hash = Some(blockstamp.hash);
+    block.previous_hash = Some(previous_hash);
+    block
+}
+
+fn empty_block_v10(block_number: BlockNumber) -> BlockDocumentV10 {
     BlockDocumentV10 {
         version: 10,
         nonce: 0,
-        number: blockstamp.id,
+        number: block_number,
         pow_min: 0,
         time: 0,
-        median_time: time,
+        median_time: 0,
         members_count: 0,
         monetary_mass: 0,
         unit_base: 0,
@@ -78,9 +99,9 @@ pub fn gen_empty_timed_block_v10(
         currency: CurrencyName("test_currency".to_owned()),
         issuers: vec![],
         signatures: vec![],
-        hash: Some(blockstamp.hash),
+        hash: Some(BlockHash(Hash::default())),
         parameters: None,
-        previous_hash: Some(previous_hash),
+        previous_hash: None,
         previous_issuer: None,
         dividend: None,
         identities: vec![],

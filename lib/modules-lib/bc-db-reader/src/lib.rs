@@ -30,6 +30,7 @@
 pub mod blocks;
 pub mod constants;
 pub mod currency_params;
+pub mod current_frame;
 pub mod current_meta_datas;
 pub mod indexes;
 pub mod paging;

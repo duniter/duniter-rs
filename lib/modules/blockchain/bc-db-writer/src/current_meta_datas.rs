@@ -24,7 +24,7 @@ use durs_bc_db_reader::current_meta_datas::CurrentMetaDataKey;
 use durs_bc_db_reader::DbValue;
 
 /// Update CURRENT_META_DATAS
-pub fn update_current_meta_datas(
+pub(crate) fn update_current_meta_datas(
     db: &Db,
     w: &mut DbWriter,
     new_current_block: &BlockDocument,
