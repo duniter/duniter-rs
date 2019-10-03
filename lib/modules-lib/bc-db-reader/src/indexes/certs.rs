@@ -46,15 +46,9 @@ pub fn find_expire_certs<DB: DbReadable, R: DbReader>(
     Ok(all_expire_certs)
 }
 
+#[inline]
 fn cert_from_u64(cert: u64) -> (WotId, WotId) {
-    let mut source = [0u8; 4];
-    let mut target = [0u8; 4];
-    let cert_bytes = cert.to_be_bytes();
-    source.copy_from_slice(&cert_bytes[..4]);
-    target.copy_from_slice(&cert_bytes[4..]);
+    let (source, target) = durs_common_tools::fns::_u64::to_2_u32(cert);
 
-    (
-        WotId(u32::from_be_bytes(source) as usize),
-        WotId(u32::from_be_bytes(target) as usize),
-    )
+    (WotId(source as usize), WotId(target as usize))
 }

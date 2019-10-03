@@ -124,17 +124,9 @@ pub fn expire_certs(
     Ok(())
 }
 
+#[inline]
 fn cert_to_u64(source: WotId, target: WotId) -> u64 {
-    let source_bytes = (source.0 as u32).to_be_bytes();
-    let target_bytes = (target.0 as u32).to_be_bytes();
-    let mut cert_u64_bytes = [0u8; 8];
-    cert_u64_bytes[..4].copy_from_slice(&source_bytes[..4]);
-    cert_u64_bytes[4..8].copy_from_slice(&target_bytes[..4]);
-    /*for i in 0..4 {
-        cert_u64_bytes[i] = source_bytes[i];
-        cert_u64_bytes[i + 4] = target_bytes[i];
-    }*/
-    u64::from_be_bytes(cert_u64_bytes)
+    durs_common_tools::fns::_u64::from_2_u32(source.0 as u32, target.0 as u32)
 }
 
 #[cfg(test)]
