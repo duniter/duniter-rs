@@ -25,11 +25,12 @@ ed25519_sig = @{ base64{88} | (base64{87} ~ "=") | (base64{86} ~ "==") }
 // Endpoint v1 rules
 api_name = @{ (ASCII_ALPHA_UPPER | ASCII_DIGIT | "_")+ }
 node_id = @{ hexa_lower{1,8} }
-host = @{ ASCII_ALPHA_LOWER ~ (alphanum_lower | "-" | "_" | ".")* }
+host = _{ host_inner ~ " " }
+host_inner = @{ ASCII_ALPHA_LOWER ~ (alphanum_lower | "-" | "_" | ".")* }
 port = @{ u_int }
 path_inner = @{ (ASCII_ALPHANUMERIC | "-" | "_" | ".")+ }
 
-endpoint_v1 = ${ api_name ~ (" " ~ node_id)? ~ " " ~ (ip4 | ip6 | host) ~ " " ~ port ~ (" " ~ "/"? ~ path_inner)? ~ " "? }
+endpoint_v1 = ${ api_name ~ (" " ~ node_id)? ~ " " ~ (ip4 | ip6 | host) ~ port ~ (" " ~ "/"? ~ path_inner)? ~ " "? }
 
 // IP v6 rules 
 ip6_seg  = _{ hexa_lower{1,4} }

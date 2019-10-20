@@ -175,7 +175,9 @@ impl EndpointV1 {
                         None => None,
                     };
                 }
-                Rule::host => host_str = ep_pair.as_str(),
+                Rule::host_inner => host_str = ep_pair.as_str(),
+                Rule::ip4_inner => host_str = ep_pair.as_str(),
+                Rule::ip6_inner => host_str = ep_pair.as_str(),
                 Rule::port => port = ep_pair.as_str().parse().unwrap(),
                 Rule::path_inner => path = Some(String::from(ep_pair.as_str())),
                 _ => fatal_error!("unexpected rule: {:?}", ep_pair.as_rule()), // Grammar ensures that we never reach this line
@@ -561,6 +563,38 @@ mod tests {
     use super::*;
     use bincode::{deserialize, serialize};
     use maplit::hashset;
+    use unwrap::unwrap;
+
+    #[test]
+    fn test_parse_endpoint_v1_with_ip() -> Result<(), TextDocumentParseError> {
+        let issuer = PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+            "8iVdpXqFLCxGyPqgVx5YbFSkmWKkceXveRd2yvBKeARL",
+        )));
+        let parser_ep_v1 =
+            EndpointV1::parse_from_raw("WS2P e66254bf 91.121.157.13 20901", issuer, 0, 0)?;
+        assert_eq!(
+            EndpointV1 {
+                api: ApiName(String::from("WS2P")),
+                node_id: Some(NodeId::from("e66254bf")),
+                issuer,
+                hash_full_id: Some(
+                    Hash::from_hex(
+                        "B56286E3A423B1BD4A116F0358795870A4136C97CEE955F144C84C6EE27B8BFB"
+                    )
+                    .expect("wrong hard hash")
+                ),
+                host: String::from("91.121.157.13"),
+                port: 20901,
+                path: None,
+                raw_endpoint: String::from("WS2P e66254bf 91.121.157.13 20901"),
+                status: 0,
+                last_check: 0,
+            },
+            parser_ep_v1
+        );
+
+        Ok(())
+    }
 
     #[inline]
     fn api_part_1() -> ApiPart {
