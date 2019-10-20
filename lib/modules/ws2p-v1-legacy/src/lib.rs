@@ -145,6 +145,14 @@ impl Default for WS2PConf {
             prefered_pubkeys: HashSet::new(),
             sync_endpoints: vec![
                 unwrap!(EndpointV1::parse_from_raw(
+                    "WS2P e66254bf 91.121.157.13 20901",
+                    PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+                        "8iVdpXqFLCxGyPqgVx5YbFSkmWKkceXveRd2yvBKeARL",
+                    )),),
+                    0,
+                    0,
+                )),
+                unwrap!(EndpointV1::parse_from_raw(
                     "WS2P c1c39a0a ts.g1.librelois.fr 443 /ws2p",
                     PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
                         "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx",
@@ -435,9 +443,9 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
         if currency_name.is_some() && unwrap!(currency_name) == &CurrencyName("g1-test".to_owned())
         {
             conf.sync_endpoints = vec![unwrap!(EndpointV1::parse_from_raw(
-                "WS2P 3eaab4c7 ts.gt.librelois.fr 443 /ws2p",
+                "WS2P 17ae4dd9 ts.gt.elo.tf 80 ws2p",
                 PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
-                    "CrznBiyq8G4RVUprH9jHmAw1n1iuzw8y9FdJbrESnaX7",
+                    "42jMJtb8chXrpHMAMcreVdyPJK7LtWjEeRqkPw4eSEVp",
                 )),),
                 0,
                 0,
