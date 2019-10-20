@@ -32,9 +32,6 @@
 #[macro_use]
 extern crate log;
 
-#[macro_use]
-extern crate prettytable;
-
 mod constants;
 pub mod dbex;
 mod dubp;

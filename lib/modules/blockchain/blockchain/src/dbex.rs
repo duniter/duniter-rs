@@ -24,7 +24,6 @@ use durs_bc_db_reader::{BcDbRo, DbValue};
 use durs_wot::data::rusty::RustyWebOfTrust;
 use durs_wot::data::WebOfTrust;
 use durs_wot::operations::distance::{DistanceCalculator, WotDistance, WotDistanceParameters};
-use prettytable::Table;
 use std::str::FromStr;
 use std::time::*;
 use unwrap::unwrap;
@@ -171,18 +170,20 @@ pub fn dbex_bc(profile_path: PathBuf, _csv: bool, _query: DbExBcQuery) -> Result
                     }
                 }
             } else {
-                let mut table = Table::new();
-                table.add_row(row![&BLOCK, &USERNAME, &PUB_KEY]);
-                for (pub_key, v) in &vec {
-                    if let Ok(Some(identity)) =
+                //let mut table = Table::new();
+                //table.add_row(row![&BLOCK, &USERNAME, &PUB_KEY]);
+                for (pub_key, _v) in &vec {
+                    if let Ok(Some(_identity)) =
                         durs_bc_db_reader::indexes::identities::get_identity_by_pubkey(
                             &db, &pub_key,
                         )
                     {
-                        table.add_row(row![v, identity.idty_doc.username(), pub_key.to_string()]);
+                        //table.add_row(row![v, identity.idty_doc.username(), pub_key.to_string()]);
                     }
                 }
-                table.printstd();
+                //table.printstd();
+                println!("Feature temporarily disabled due to an audit problem on the \"table formatting\" crate \
+                (see https://github.com/phsym/prettytable-rs/issues/119)");
             }
         }
     }
