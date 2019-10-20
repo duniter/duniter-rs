@@ -228,15 +228,22 @@ mod tests {
 
         assert_eq!(Ok(expected_url.clone()), Url::from_str("g1.duniter.org"));
 
-        assert_eq!(
-            vec![
+        /*use std::net::ToSocketAddrs;
+        let addrs: Vec<SocketAddr> = ("g1.duniter.org", 20901u16)
+            .to_socket_addrs()
+            .expect("fail to resolve g1.duniter.org")
+            .collect();
+        println!("{:?}", addrs);*/
+
+        assert!(durs_common_tests_tools::collections::slice_same_elems(
+            &vec![
                 SocketAddr::V4(SocketAddrV4::new(ip4(), 80)),
-                SocketAddr::V6(SocketAddrV6::new(ip6(), 80, 0, 0))
+                SocketAddr::V6(SocketAddrV6::new(ip6(), 80, 0, 0)),
             ],
-            expected_url
+            &expected_url
                 .to_listenable_addr("ws")
-                .expect("Fail to get to_listenable_addr addr")
-        );
+                .expect("Fail to get to_listenable_addr addr"),
+        ));
 
         Ok(())
     }
@@ -245,14 +252,14 @@ mod tests {
     fn parse_url_with_scheme_and_host() -> Result<(), url::ParseError> {
         let url = Url::Url(url::Url::parse("wss://g1.duniter.org")?);
 
-        assert_eq!(
-            vec![
+        assert!(durs_common_tests_tools::collections::slice_same_elems(
+            &vec![
+                SocketAddr::V6(SocketAddrV6::new(ip6(), 443, 0, 0)),
                 SocketAddr::V4(SocketAddrV4::new(ip4(), 443)),
-                SocketAddr::V6(SocketAddrV6::new(ip6(), 443, 0, 0))
             ],
-            url.to_listenable_addr("ws")
+            &url.to_listenable_addr("ws")
                 .expect("Fail to get to_listenable_addr addr")
-        );
+        ));
 
         Ok(())
     }
@@ -272,15 +279,15 @@ mod tests {
             Url::from_str("g1.duniter.org:20901")
         );
 
-        assert_eq!(
-            vec![
+        assert!(durs_common_tests_tools::collections::slice_same_elems(
+            &vec![
+                SocketAddr::V6(SocketAddrV6::new(ip6(), 20901, 0, 0)),
                 SocketAddr::V4(SocketAddrV4::new(ip4(), 20901)),
-                SocketAddr::V6(SocketAddrV6::new(ip6(), 20901, 0, 0))
             ],
-            expected_url
+            &expected_url
                 .to_listenable_addr("ws")
                 .expect("Fail to get to_listenable_addr addr")
-        );
+        ));
 
         Ok(())
     }
@@ -289,14 +296,14 @@ mod tests {
     fn parse_url_with_scheme_and_host_and_port() -> Result<(), url::ParseError> {
         let url = Url::Url(url::Url::parse("ws://g1.duniter.org:20901")?);
 
-        assert_eq!(
-            vec![
+        assert!(durs_common_tests_tools::collections::slice_same_elems(
+            &vec![
+                SocketAddr::V6(SocketAddrV6::new(ip6(), 20901, 0, 0)),
                 SocketAddr::V4(SocketAddrV4::new(ip4(), 20901)),
-                SocketAddr::V6(SocketAddrV6::new(ip6(), 20901, 0, 0))
             ],
-            url.to_listenable_addr("ws")
+            &url.to_listenable_addr("ws")
                 .expect("Fail to get to_listenable_addr addr")
-        );
+        ));
 
         Ok(())
     }

@@ -746,6 +746,7 @@ dependencies = [
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
  "dup-crypto 0.7.0",
+ "durs-common-tests-tools 0.1.0",
  "durs-common-tools 0.2.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
