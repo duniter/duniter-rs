@@ -17,9 +17,9 @@
 
 use crate::commands::DursCoreOptions;
 use failure::Fail;
+use fern::colors::{Color, ColoredLevelConfig};
 use log::{Level, SetLoggerError};
-use simplelog::{CombinedLogger, Config, TermLogger, WriteLogger};
-use std::fs::{File, OpenOptions};
+use std::fs::File;
 use std::path::PathBuf;
 
 #[derive(Debug, Fail)]
@@ -65,36 +65,53 @@ pub fn init(
         File::create(log_file_path_str).map_err(InitLoggerError::FailCreateLogFile)?;
     }
 
-    // Open log file
-    let file_logger_opts = OpenOptions::new()
-        .write(true)
-        .append(true)
-        .open(log_file_path_str)
-        .map_err(InitLoggerError::FailOpenLogFile)?;
-
     // Get log level filter
     let logs_level_filter = durs_core_opts
         .logs_level
         .unwrap_or(Level::Info)
         .to_level_filter();
 
-    // Config logger
-    let logger_config = Config {
+    // Config loggers
+    let loggers_common_config = fern::Dispatch::new()
+        .level(logs_level_filter)
+        .level_for("ws", log::LevelFilter::Off)
+        .format(|out, message, record| {
+            let colors = ColoredLevelConfig::new()
+                .info(Color::Green)
+                .debug(Color::Cyan);
+            out.finish(format_args!(
+                "{}[{}][{}] {}",
+                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                record.target(),
+                colors.color(record.level()),
+                message
+            ))
+        });
+    let file_config = fern::Dispatch::new()
+        .chain(fern::log_file(log_file_path_str).map_err(InitLoggerError::FailOpenLogFile)?);
+    let term_config = fern::Dispatch::new().chain(std::io::stdout());
+
+    /*let logger_config = Config {
         time: Some(Level::Error),
         level: Some(Level::Error),
         target: Some(Level::Debug),
         location: Some(Level::Debug),
         time_format: Some("%Y-%m-%d %H:%M:%S%:z"),
-    };
+    };*/
 
     if durs_core_opts.log_stdout {
-        CombinedLogger::init(vec![
-            TermLogger::new(logs_level_filter, logger_config)
-                .ok_or(InitLoggerError::FailCreateTermLogger)?,
-            WriteLogger::new(logs_level_filter, logger_config, file_logger_opts),
-        ])?;
+        loggers_common_config
+            .chain(file_config)
+            .chain(term_config)
+            .apply()?;
+    /*CombinedLogger::init(vec![
+        TermLogger::new(logs_level_filter, logger_config)
+            .ok_or(InitLoggerError::FailCreateTermLogger)?,
+        WriteLogger::new(logs_level_filter, logger_config, file_logger_opts),
+    ])?;*/
     } else {
-        WriteLogger::init(logs_level_filter, logger_config, file_logger_opts)?;
+        loggers_common_config.chain(file_config).apply()?;
+        //WriteLogger::init(logs_level_filter, logger_config, file_logger_opts)?;
     }
 
     info!(

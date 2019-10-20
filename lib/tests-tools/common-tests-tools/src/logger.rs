@@ -15,11 +15,11 @@
 
 //! Common test tools for DURS project.
 
-use log::Level;
-use simplelog::{Config, LevelFilter, SimpleLogger, TermLogger};
+use fern::colors::{Color, ColoredLevelConfig};
+use log::LevelFilter;
 
-/// Initialize simple stdout logger
-pub fn init_logger_stdout() {
+/// Initialize stdout logger
+pub fn init_logger_stdout(off_targets: Vec<&'static str>) {
     let colors = match std::env::var("DURS_TESTS_LOG_COLOR")
         .unwrap_or_else(|_| String::from("no"))
         .as_str()
@@ -49,19 +49,38 @@ pub fn init_logger_stdout() {
     };
 
     // Config logger
-    let logger_config = Config {
-        time: Some(Level::Error),
-        level: Some(Level::Error),
-        target: Some(Level::Debug),
-        location: Some(Level::Debug),
-        time_format: Some("%Y-%m-%d %H:%M:%S%:z"),
-    };
+    let mut logger_config = fern::Dispatch::new()
+        .level(level_filter)
+        .format(move |out, message, record| {
+            if colors {
+                let colors_config = ColoredLevelConfig::new()
+                    .info(Color::Green)
+                    .debug(Color::Cyan);
+                out.finish(format_args!(
+                    "{}[{}][{}] {}",
+                    chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                    record.target(),
+                    colors_config.color(record.level()),
+                    message
+                ))
+            } else {
+                out.finish(format_args!(
+                    "{}[{}][{}] {}",
+                    chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                    record.target(),
+                    record.level(),
+                    message
+                ))
+            }
+        })
+        .chain(std::io::stdout());
+
+    for target in off_targets {
+        logger_config = logger_config.level_for(target, LevelFilter::Off);
+    }
 
     // Active stdout logger
-    if colors {
-        TermLogger::init(level_filter, logger_config).expect("TESTS: fail to init stdout logger !");
-    } else {
-        SimpleLogger::init(level_filter, logger_config)
-            .expect("TESTS: fail to init stdout logger !");
-    }
+    logger_config
+        .apply()
+        .expect("TESTS: fail to init stdout logger !");
 }
