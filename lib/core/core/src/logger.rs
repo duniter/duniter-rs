@@ -79,13 +79,25 @@ pub fn init(
             let colors = ColoredLevelConfig::new()
                 .info(Color::Green)
                 .debug(Color::Cyan);
-            out.finish(format_args!(
-                "{}[{}][{}] {}",
-                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
-                record.target(),
-                colors.color(record.level()),
-                message
-            ))
+            let level = record.level();
+            if level >= Level::Debug {
+                out.finish(format_args!(
+                    "{}[{}:{}][{}] {}",
+                    chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                    record.file_static().unwrap_or("unknown source file"),
+                    record.line().unwrap_or(0),
+                    colors.color(level),
+                    message
+                ))
+            } else {
+                out.finish(format_args!(
+                    "{}[{}][{}] {}",
+                    chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                    record.target(),
+                    colors.color(level),
+                    message
+                ))
+            }
         });
     let file_config = fern::Dispatch::new()
         .chain(fern::log_file(log_file_path_str).map_err(InitLoggerError::FailOpenLogFile)?);
