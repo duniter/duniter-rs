@@ -17,9 +17,18 @@
 
 use fern::colors::{Color, ColoredLevelConfig};
 use log::LevelFilter;
+use std::sync::Once;
+
+static ONCE: Once = Once::new();
 
 /// Initialize stdout logger
 pub fn init_logger_stdout(off_targets: Vec<&'static str>) {
+    ONCE.call_once(|| {
+        init_logger_stdout_(off_targets);
+    });
+}
+
+fn init_logger_stdout_(off_targets: Vec<&'static str>) {
     let colors = match std::env::var("DURS_TESTS_LOG_COLOR")
         .unwrap_or_else(|_| String::from("no"))
         .as_str()

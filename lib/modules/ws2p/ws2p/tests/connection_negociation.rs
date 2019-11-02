@@ -28,19 +28,11 @@ use durs_ws2p_protocol::controller::{WS2PControllerEvent, WebsocketActionOrder};
 use durs_ws2p_protocol::orchestrator::OrchestratorMsg;
 use durs_ws2p_protocol::MySelfWs2pNode;
 use std::sync::mpsc;
-use std::sync::Once;
 use std::thread;
 use std::time::Duration;
 
 static PORT: &'static u16 = &10899;
-static SETUP: Once = Once::new();
 static TIMEOUT_IN_MS: &'static u64 = &20_000;
-
-fn setup() {
-    SETUP.call_once(|| {
-        durs_common_tests_tools::logger::init_logger_stdout(vec!["ws"]);
-    });
-}
 
 pub fn currency() -> CurrencyName {
     CurrencyName(String::from("g1"))
@@ -82,7 +74,7 @@ fn client_node() -> MySelfWs2pNode {
 #[test]
 #[cfg(unix)]
 fn test_connection_negociation_denial() {
-    setup();
+    durs_common_tests_tools::logger::init_logger_stdout(vec!["ws"]);
 
     // ===== initialization =====
     // client and server are initialized and launched in separate threads
@@ -159,7 +151,7 @@ fn test_connection_negociation_denial() {
 #[test]
 #[cfg(unix)]
 fn test_connection_negociation_success() {
-    setup();
+    durs_common_tests_tools::logger::init_logger_stdout(vec!["ws"]);
 
     // ===== initialization =====
     // client and server are initialized and launched in separate threads
