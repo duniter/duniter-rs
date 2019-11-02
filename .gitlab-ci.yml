@@ -392,6 +392,7 @@ pages:
     untracked: true
     paths:
       - public
+    expire_in: 2 weeks
 
 .release_jobs:
   only:
