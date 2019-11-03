@@ -86,7 +86,7 @@ pub fn check_and_apply_block(
                 == bc.current_blockstamp.hash.0.to_string())
     {
         debug!(
-            "stackable_block : block {} chainable !",
+            "check_and_apply_block: block {} chainable!",
             block_doc.blockstamp()
         );
         // Detect expire_certs

@@ -70,10 +70,7 @@ pub fn apply_valid_block_v10<W: WebOfTrust>(
     wot_db: &BinFreeStructDb<W>,
     expire_certs: &HashMap<(WotId, WotId), BlockNumber>,
 ) -> Result<ValidBlockApplyReqs, ApplyValidBlockError> {
-    debug!(
-        "BlockchainModule : apply_valid_block({})",
-        block.blockstamp(),
-    );
+    trace!("apply_valid_block({})", block.blockstamp(),);
     let mut wot_dbs_requests = Vec::new();
     let mut currency_dbs_requests = Vec::new();
     let current_blockstamp = block.blockstamp();

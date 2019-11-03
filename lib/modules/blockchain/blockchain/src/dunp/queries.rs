@@ -65,11 +65,7 @@ pub fn request_blocks_to(
     } else {
         bc.current_blockstamp.id.0 + 1
     };
-    info!(
-        "BlockchainModule : request_blocks_to({}-{})",
-        bc.current_blockstamp.id.0 + 1,
-        to
-    );
+    info!("BlockchainModule : request_blocks_to({}-{})", from, to);
     if bc.current_blockstamp.id < to {
         let real_to = if (to.0 - bc.current_blockstamp.id.0) > *MAX_BLOCKS_REQUEST {
             bc.current_blockstamp.id.0 + *MAX_BLOCKS_REQUEST
