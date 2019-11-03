@@ -23,7 +23,6 @@ use rayon::prelude::*;
 use std::collections::HashSet;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc;
 use threadpool::ThreadPool;
 
 /// Number of chunk parsed before sending them to the apply workers
@@ -33,7 +32,7 @@ static CHUNKS_STEP: &usize = &16;
 pub fn json_reader_worker(
     pool: &ThreadPool,
     profile_path: PathBuf,
-    sender_sync_thread: mpsc::Sender<MessForSyncThread>,
+    sender_sync_thread: Sender<MessForSyncThread>,
     json_chunks_path: PathBuf,
     end: Option<u32>,
 ) {

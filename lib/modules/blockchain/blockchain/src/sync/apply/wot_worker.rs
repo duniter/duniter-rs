@@ -15,13 +15,12 @@
 
 use crate::sync::*;
 use std::ops::Deref;
-use std::sync::mpsc;
 
 pub fn execute(
     pool: &ThreadPool,
     profile_path: PathBuf,
-    sender_sync_thread: mpsc::Sender<MessForSyncThread>,
-    recv: mpsc::Receiver<SyncJobsMess>,
+    sender_sync_thread: Sender<MessForSyncThread>,
+    recv: Receiver<SyncJobsMess>,
 ) {
     // Launch wot_worker thread
     pool.execute(move || {

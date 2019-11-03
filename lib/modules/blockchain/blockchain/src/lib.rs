@@ -45,7 +45,7 @@ mod sync;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::str;
-use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::constants::*;
@@ -88,7 +88,7 @@ pub static DISTANCE_CALCULATOR: &RustyDistanceCalculator = &RustyDistanceCalcula
 /// Blockchain Module
 pub struct BlockchainModule {
     /// Router sender
-    pub router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
+    pub router_sender: Sender<RouterThreadMessage<DursMsg>>,
     ///Path to the user datas profile
     pub profile_path: PathBuf,
     /// Currency
@@ -177,7 +177,7 @@ impl BlockchainModule {
     /// Loading blockchain configuration
     pub fn load_blockchain_conf(
         db: Db,
-        router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
+        router_sender: Sender<RouterThreadMessage<DursMsg>>,
         profile_path: PathBuf,
         _keys: RequiredKeysContent,
     ) -> BlockchainModule {
@@ -251,7 +251,7 @@ impl BlockchainModule {
     /// Start blockchain module.
     pub fn start_blockchain(
         &mut self,
-        blockchain_receiver: &mpsc::Receiver<DursMsg>,
+        blockchain_receiver: &Receiver<DursMsg>,
         sync_opts: Option<SyncOpt>,
     ) {
         info!("BlockchainModule::start_blockchain()");
@@ -286,7 +286,7 @@ impl BlockchainModule {
     }
 
     /// Start blockchain main loop
-    pub fn main_loop(&mut self, blockchain_receiver: &mpsc::Receiver<DursMsg>) {
+    pub fn main_loop(&mut self, blockchain_receiver: &Receiver<DursMsg>) {
         // Init main loop datas
         let mut last_get_stackables_blocks = UNIX_EPOCH;
 
@@ -326,10 +326,10 @@ impl BlockchainModule {
                     }
                 }
                 Err(e) => match e {
-                    mpsc::RecvTimeoutError::Disconnected => {
+                    RecvTimeoutError::Disconnected => {
                         fatal_error!("Disconnected blockchain module !");
                     }
-                    mpsc::RecvTimeoutError::Timeout => {}
+                    RecvTimeoutError::Timeout => {}
                 },
             }
             // Try to apply local stackable blocks every 20 seconds

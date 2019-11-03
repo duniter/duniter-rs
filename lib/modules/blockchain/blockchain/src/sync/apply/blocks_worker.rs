@@ -15,12 +15,11 @@
 
 use crate::sync::*;
 use pbr::ProgressBar;
-use std::sync::mpsc;
 
 pub fn execute(
     pool: &ThreadPool,
-    sender_sync_thread: mpsc::Sender<MessForSyncThread>,
-    recv: mpsc::Receiver<SyncJobsMess>,
+    sender_sync_thread: Sender<MessForSyncThread>,
+    recv: Receiver<SyncJobsMess>,
     db: Db,
     target_blockstamp: Blockstamp,
     mut apply_pb: ProgressBar<std::io::Stdout>,

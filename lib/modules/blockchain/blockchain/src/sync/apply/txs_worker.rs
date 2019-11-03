@@ -14,13 +14,12 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::sync::*;
-use std::sync::mpsc;
 
 pub fn execute(
     pool: &ThreadPool,
     profile_path: PathBuf,
-    sender_sync_thread: mpsc::Sender<MessForSyncThread>,
-    recv: mpsc::Receiver<SyncJobsMess>,
+    sender_sync_thread: Sender<MessForSyncThread>,
+    recv: Receiver<SyncJobsMess>,
 ) {
     // Launch tx_worker thread
     pool.execute(move || {
