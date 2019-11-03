@@ -222,9 +222,12 @@ pub fn renewal_identity(
     revert: bool,
 ) -> Result<(), DbError> {
     // Get idty_datas
-    let mut idty_datas =
-        durs_bc_db_reader::indexes::identities::get_identity_by_wot_id(db, idty_wot_id)?
-            .expect("Fatal error : try to renewal unknow identity !");
+    let mut idty_datas = durs_bc_db_reader::indexes::identities::get_identity_by_wot_id(
+        db,
+        w.as_ref(),
+        idty_wot_id,
+    )?
+    .expect("Fatal error : try to renewal unknow identity !");
     // Calculate new state value
     idty_datas.state = if revert {
         match idty_datas.state {

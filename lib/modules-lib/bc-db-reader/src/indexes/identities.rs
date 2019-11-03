@@ -112,7 +112,7 @@ pub fn get_identities<DB: DbReadable>(
         db.read(|r| {
             let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db, r)?;
             for wot_id in 0..=greatest_wot_id.0 {
-                if let Some(db_idty) = get_identity_by_wot_id_(db, r, WotId(wot_id))? {
+                if let Some(db_idty) = get_identity_by_wot_id(db, r, WotId(wot_id))? {
                     if filters
                         .paging
                         .check_created_on(db_idty.idty_doc.blockstamp().id, current_block_id)
@@ -152,7 +152,7 @@ pub fn get_identity_by_pubkey_<DB: DbReadable, R: DbReader>(
     pubkey: &PubKey,
 ) -> Result<Option<DbIdentity>, DbError> {
     if let Some(wot_id) = get_wot_id_(db, r, pubkey)? {
-        get_identity_by_wot_id_(db, r, wot_id)
+        get_identity_by_wot_id(db, r, wot_id)
     } else {
         Ok(None)
     }
@@ -160,16 +160,7 @@ pub fn get_identity_by_pubkey_<DB: DbReadable, R: DbReader>(
 
 /// Get identity by pubkey
 #[inline]
-pub fn get_identity_by_wot_id<DB: DbReadable>(
-    db: &DB,
-    wot_id: WotId,
-) -> Result<Option<DbIdentity>, DbError> {
-    db.read(|r| get_identity_by_wot_id_(db, r, wot_id))
-}
-
-/// Get identity by pubkey
-#[inline]
-pub fn get_identity_by_wot_id_<DB: DbReadable, R: DbReader>(
+pub fn get_identity_by_wot_id<DB: DbReadable, R: DbReader>(
     db: &DB,
     r: &R,
     wot_id: WotId,
@@ -203,7 +194,7 @@ pub fn get_wot_id_from_uid<DB: DbReadable>(db: &DB, uid: &str) -> Result<Option<
     db.read(|r| {
         let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db, r)?;
         for wot_id in 0..=greatest_wot_id.0 {
-            if let Some(db_idty) = get_identity_by_wot_id_(db, r, WotId(wot_id))? {
+            if let Some(db_idty) = get_identity_by_wot_id(db, r, WotId(wot_id))? {
                 if db_idty.idty_doc.username() == uid {
                     return Ok(Some(WotId(wot_id)));
                 }
@@ -261,7 +252,7 @@ pub fn get_wot_uid_index<DB: DbReadable>(db: &DB) -> Result<HashMap<WotId, Strin
         let mut wot_uid_index = HashMap::new();
         let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db, r)?;
         for wot_id in 0..=greatest_wot_id.0 {
-            if let Some(db_idty) = get_identity_by_wot_id_(db, r, WotId(wot_id))? {
+            if let Some(db_idty) = get_identity_by_wot_id(db, r, WotId(wot_id))? {
                 wot_uid_index.insert(WotId(wot_id), db_idty.idty_doc.username().to_owned());
             }
         }

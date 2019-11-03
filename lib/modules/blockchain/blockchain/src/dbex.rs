@@ -457,10 +457,14 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
                 UidOrPubkey::Pubkey(ref pubkey) => wot_index.get(pubkey).copied(),
             };
             if let Some(wot_id) = wot_id_opt {
-                let idty =
-                    durs_bc_db_reader::indexes::identities::get_identity_by_wot_id(&db, wot_id)
-                        .expect("DB error: ")
-                        .expect("DB corrupted: all WotId must be point to an identity.");
+                let idty = db
+                    .read(|r| {
+                        durs_bc_db_reader::indexes::identities::get_identity_by_wot_id(
+                            &db, r, wot_id,
+                        )
+                    })
+                    .expect("DB error: ")
+                    .expect("DB corrupted: all WotId must be point to an identity.");
 
                 println!(
                     "{} : wot_id={}, pubkey={}.",

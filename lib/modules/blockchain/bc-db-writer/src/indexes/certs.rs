@@ -36,7 +36,7 @@ pub fn write_certification(
 ) -> Result<(), DbError> {
     // Get cert_chainable_on
     let mut member_datas =
-        durs_bc_db_reader::indexes::identities::get_identity_by_wot_id(db, source)?
+        durs_bc_db_reader::indexes::identities::get_identity_by_wot_id(db, w.as_ref(), source)?
             .expect("Try to write certification with unexist certifier.");
     // Push new cert_chainable_on
     member_datas
