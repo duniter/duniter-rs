@@ -402,12 +402,16 @@ pub fn dbex_wot(profile_path: PathBuf, csv: bool, query: &DbExWotQuery) {
             // Open blockchain database
             let db = durs_bc_db_reader::open_db_ro(&db_path.as_path()).expect("Fail to open DB.");
             // Get blocks_times
-            let all_blocks = durs_bc_db_reader::blocks::get_blocks_in_local_blockchain(
-                &db,
-                BlockNumber(0),
-                10_000_000,
-            )
-            .expect("Fail to get all blocks");
+            let all_blocks = db
+                .read(|r| {
+                    durs_bc_db_reader::blocks::get_blocks_in_local_blockchain(
+                        &db,
+                        r,
+                        BlockNumber(0),
+                        10_000_000,
+                    )
+                })
+                .expect("Fail to get all blocks");
             let current_bc_number = all_blocks.last().expect("empty blockchain").number();
             let current_bc_time = all_blocks.last().expect("empty blockchain").common_time();
             let blocks_times: HashMap<BlockNumber, u64> = all_blocks

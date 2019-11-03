@@ -95,18 +95,17 @@ pub fn already_have_block<DB: DbReadable>(
 }
 
 /// Get block
-pub fn get_block<DB: DbReadable>(
+pub fn get_block<DB: DbReadable, R: DbReader>(
     db: &DB,
+    r: &R,
     blockstamp: Blockstamp,
 ) -> Result<Option<DbBlock>, DbError> {
-    db.read(|r| {
-        let opt_dal_block = get_db_block_in_local_blockchain(db, r, blockstamp.id)?;
-        if opt_dal_block.is_none() {
-            get_fork_block(db, r, blockstamp)
-        } else {
-            Ok(opt_dal_block)
-        }
-    })
+    let opt_dal_block = get_dal_block_in_local_blockchain(db, r, blockstamp.id)?;
+    if opt_dal_block.is_none() {
+        get_fork_block(db, r, blockstamp)
+    } else {
+        Ok(opt_dal_block)
+    }
 }
 
 /// Get fork block
@@ -162,27 +161,26 @@ pub fn get_db_block_in_local_blockchain<DB: DbReadable, R: DbReader>(
 }
 
 /// Get several blocks in local blockchain
-pub fn get_blocks_in_local_blockchain<DB: DbReadable>(
+pub fn get_blocks_in_local_blockchain<DB: DbReadable, R: DbReader>(
     db: &DB,
+    r: &R,
     first_block_number: BlockNumber,
     mut count: u32,
 ) -> Result<Vec<BlockDocument>, DbError> {
-    db.read(|r| {
-        let bc_store = db.get_int_store(MAIN_BLOCKS);
-        let mut blocks = Vec::with_capacity(count as usize);
-        let mut current_block_number = first_block_number;
+    let bc_store = db.get_int_store(MAIN_BLOCKS);
+    let mut blocks = Vec::with_capacity(count as usize);
+    let mut current_block_number = first_block_number;
 
-        while let Some(v) = bc_store.get(r, current_block_number.0)? {
-            blocks.push(DB::from_db_value::<DbBlock>(v)?.block);
-            count -= 1;
-            if count > 0 {
-                current_block_number = BlockNumber(current_block_number.0 + 1);
-            } else {
-                return Ok(blocks);
-            }
+    while let Some(v) = bc_store.get(r, current_block_number.0)? {
+        blocks.push(DB::from_db_value::<DbBlock>(v)?.block);
+        count -= 1;
+        if count > 0 {
+            current_block_number = BlockNumber(current_block_number.0 + 1);
+        } else {
+            return Ok(blocks);
         }
-        Ok(blocks)
-    })
+    }
+    Ok(blocks)
 }
 
 /// Get several blocks in local blockchain by their number
@@ -208,11 +206,14 @@ pub fn get_current_frame<DB: DbReadable>(
 ) -> Result<HashMap<PubKey, usize>, DbError> {
     let frame_begin = current_block.number().0 - current_block.current_frame_size() as u32;
 
-    let blocks = get_blocks_in_local_blockchain(
-        db,
-        BlockNumber(frame_begin),
-        current_block.current_frame_size() as u32,
-    )?;
+    let blocks = db.read(|r| {
+        get_blocks_in_local_blockchain(
+            db,
+            r,
+            BlockNumber(frame_begin),
+            current_block.current_frame_size() as u32,
+        )
+    })?;
 
     let mut current_frame: HashMap<PubKey, usize> = HashMap::new();
     for block in blocks {

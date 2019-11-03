@@ -112,11 +112,14 @@ pub fn receive_req(
                     first_block_number, count
                 );
 
-                if let Ok(blocks) = durs_bc_db_reader::blocks::get_blocks_in_local_blockchain(
-                    bc.db(),
-                    first_block_number,
-                    count,
-                ) {
+                if let Ok(blocks) = bc.db().read(|r| {
+                    durs_bc_db_reader::blocks::get_blocks_in_local_blockchain(
+                        bc.db(),
+                        r,
+                        first_block_number,
+                        count,
+                    )
+                }) {
                     if blocks.is_empty() {
                         debug!(
                             "BlockchainModule : Req : not found chunk (#{}, {}) in bdd !",
