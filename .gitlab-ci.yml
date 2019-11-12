@@ -78,7 +78,7 @@ skip_ci:
 
 .rust_stable_win64:
   extends: .ci_conditions
-  image: registry.duniter.org/docker/rust/win64-builder:v1.37.1
+  image: registry.duniter.org/docker/rust/win64-builder:v1.39.0
   tags:
     - redshift-docker-runner
   before_script:
