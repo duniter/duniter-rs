@@ -66,17 +66,19 @@ fn init_logger_stdout_(off_targets: Vec<&'static str>) {
                     .info(Color::Green)
                     .debug(Color::Cyan);
                 out.finish(format_args!(
-                    "{}[{}][{}] {}",
+                    "{}[{}:{}][{}] {}",
                     chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
-                    record.target(),
+                    record.file_static().unwrap_or("unknown source file"),
+                    record.line().unwrap_or(0),
                     colors_config.color(record.level()),
                     message
                 ))
             } else {
                 out.finish(format_args!(
-                    "{}[{}][{}] {}",
+                    "{}[{}:{}][{}] {}",
                     chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
-                    record.target(),
+                    record.file_static().unwrap_or("unknown source file"),
+                    record.line().unwrap_or(0),
                     record.level(),
                     message
                 ))
