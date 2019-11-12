@@ -90,7 +90,7 @@ pub trait BlockDocumentTrait {
     /// Verify block hash
     fn verify_hash(&self) -> Result<(), VerifyBlockHashError>;
     /// Sign block
-    fn sign(&mut self, signator: SignatorEnum);
+    fn sign(&mut self, signator: &SignatorEnum);
 }
 
 impl BlockDocumentTrait for BlockDocument {
@@ -209,7 +209,7 @@ impl BlockDocumentTrait for BlockDocument {
         }
     }
     #[inline]
-    fn sign(&mut self, signator: SignatorEnum) {
+    fn sign(&mut self, signator: &SignatorEnum) {
         match self {
             BlockDocument::V10(block) => block.sign(signator),
         }
