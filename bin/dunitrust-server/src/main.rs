@@ -36,6 +36,7 @@ use durs_core::durs_plug;
 use log::error;
 use structopt::StructOpt;
 
+pub use durs_gva::GvaModule;
 #[cfg(unix)]
 pub use durs_tui::TuiModule;
 //pub use durs_skeleton::SkeletonModule;
@@ -63,7 +64,7 @@ macro_rules! durs_cli_main {
 fn main() {
     durs_cli_main!(durs_plug!(
         [WS2Pv1Module, WS2PModule],
-        [TuiModule /*, SkeletonModule ,DasaModule*/]
+        [TuiModule, GvaModule /*, SkeletonModule ,DasaModule*/]
     ))
 }
 #[cfg(unix)]

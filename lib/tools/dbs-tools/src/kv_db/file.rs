@@ -57,6 +57,7 @@ pub struct KvFileDbHandler {
 }
 
 /// Key-value file Database read-only handler
+#[derive(Debug)]
 pub struct KvFileDbRoHandler(KvFileDbHandler);
 
 impl KvFileDbRoHandler {

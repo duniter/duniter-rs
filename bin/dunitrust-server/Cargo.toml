@@ -14,6 +14,7 @@ edition = "2018"
 [dependencies]
 durs-network = { path = "../../lib/core/network" }
 durs-core = { path = "../../lib/core/core" }
+durs-gva = { path = "../../lib/modules/gva" }
 durs-module = { path = "../../lib/core/module" }
 #durs-skeleton = { path = "../../lib/modules/skeleton" }
 durs-ws2p = { path = "../../lib/modules/ws2p/ws2p" }

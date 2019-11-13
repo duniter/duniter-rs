@@ -1,0 +1,36 @@
+[package]
+name = "durs-gva"
+version = "0.1.0"
+authors = ["name <jm81@tuta.io>"]
+description = "Web client api"
+license = "AGPL-3.0"
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+proc-macro2 = "1.0.6"
+actix-web = "1.0.8"
+dubp-block-doc = { path = "../../dubp/block-doc"} #, version = "0.1.0" }
+durs-bc-db-reader = { path = "../../modules-lib/bc-db-reader" }
+durs-conf = { path = "../../core/conf" }
+durs-message =  { path = "../../core/message" }
+durs-module = { path = "../../core/module" }
+durs-network = { path = "../../core/network" }
+dubp-common-doc = { path = "../../dubp/common-doc"} #, version = "0.1.0" }
+durs-common-tools = { path = "../../tools/common-tools" }
+dubp-currency-params = { path = "../../dubp/currency-params" }
+failure = "0.1.5"
+futures = "0.1"
+futures-cpupool = "0.1"
+juniper = "0.14.0"
+
+juniper-from-schema =  "0.5.0"
+log = "0.4.8"
+serde = "1.0.102"
+serde_derive = "1.0.102"
+serde_json = "1.0.41"
+structopt= "0.2.18"
+
+[features]
