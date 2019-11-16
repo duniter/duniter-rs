@@ -44,9 +44,11 @@ extern crate structopt;
 extern crate juniper;
 
 mod context;
+mod errors;
 mod schema;
 mod webserver;
 
+use crate::errors::GvaError;
 use dubp_currency_params::CurrencyName;
 use durs_common_tools::fatal_error;
 use durs_common_tools::traits::merge::Merge;
@@ -60,6 +62,7 @@ use durs_module::{
 
 //use durs_module::*;
 use durs_network::events::NetworkEvent;
+use durs_network_documents::host::Host;
 
 use std::ops::Deref;
 use std::sync::mpsc;
@@ -68,30 +71,43 @@ use std::time::{Duration, SystemTime};
 
 static MODULE_NAME: &str = "gva";
 
+static DEFAULT_HOST: &str = "127.0.0.1";
+const DEFAULT_PORT: u16 = 10_901;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Gva Module Configuration
 pub struct GvaConf {
-    test_fake_conf_field: String,
+    host: String,
+    port: u16,
 }
 
 impl Default for GvaConf {
     fn default() -> Self {
         GvaConf {
-            test_fake_conf_field: String::from("default value"),
+            host: DEFAULT_HOST.to_owned(),
+            port: DEFAULT_PORT,
         }
+    }
+}
+
+impl std::fmt::Display for GvaConf {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(f, "host: {}\nport: {}", self.host, self.port,)
     }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Gva user Configuration
 pub struct GvaUserConf {
-    test_fake_conf_field: Option<String>,
+    host: Option<String>,
+    port: Option<u16>,
 }
 
 impl Merge for GvaUserConf {
     fn merge(self, other: Self) -> Self {
         GvaUserConf {
-            test_fake_conf_field: self.test_fake_conf_field.or(other.test_fake_conf_field),
+            host: self.host.or(other.host),
+            port: self.port.or(other.port),
         }
     }
 }
@@ -110,14 +126,15 @@ pub enum GvaMsg {
 }
 
 #[derive(StructOpt, Debug, Clone)]
-#[structopt(
-    name = "gva",
-    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-)]
+#[structopt(name = "gva", setting(structopt::clap::AppSettings::ColoredHelp))]
 /// Gva subcommand options
 pub struct GvaOpt {
-    /// Change test conf fake field
-    pub new_conf_field: String,
+    /// Change GVA API host listen
+    #[structopt(long = "host", parse(try_from_str = Host::parse))]
+    pub host: Option<Host>,
+    #[structopt(long = "port")]
+    /// Change GVA API port listen
+    pub port: Option<u16>,
 }
 
 #[derive(Debug, Clone)]
@@ -164,36 +181,49 @@ impl DursModule<DuRsConf, DursMsg> for GvaModule {
         let mut conf = GvaConf::default();
 
         if let Some(ref module_user_conf) = module_user_conf {
-            if let Some(ref test_fake_conf_field) = module_user_conf.test_fake_conf_field {
-                conf.test_fake_conf_field = test_fake_conf_field.to_owned();
+            if let Some(ref host) = module_user_conf.host {
+                conf.host = host.to_owned();
+            }
+            if let Some(port) = module_user_conf.port {
+                conf.port = port;
             }
         }
 
         Ok((conf, module_user_conf))
     }
     fn exec_subcommand(
-        _soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
+        soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
-        module_conf: Self::ModuleConf,
-        _module_user_conf: Option<Self::ModuleUserConf>,
+        _module_conf: Self::ModuleConf,
+        module_user_conf: Option<Self::ModuleUserConf>,
         subcommand_args: Self::ModuleOpt,
     ) -> Option<Self::ModuleUserConf> {
-        let new_gva_conf = GvaUserConf {
-            test_fake_conf_field: Some(subcommand_args.new_conf_field.to_owned()),
-        };
-        info!(
-            "Succesfully exec skeleton subcommand whit terminal name : {} and conf={:?}!",
-            subcommand_args.new_conf_field, module_conf
-        );
-        Some(new_gva_conf)
+        let new_gva_user_conf = GvaUserConf {
+            host: subcommand_args.host.map(|h| h.to_string()),
+            port: subcommand_args.port,
+        }
+        .merge(module_user_conf.unwrap_or_default());
+        match Self::generate_module_conf(
+            Some(&soft_meta_datas.conf.get_currency()),
+            &soft_meta_datas.conf.get_global_conf(),
+            Some(new_gva_user_conf.clone()),
+        ) {
+            Ok((new_gva_conf, _)) => println!("New GVA configuration:\n{}", new_gva_conf),
+            Err(e) => println!("Fail to change GVA confguration : {:?}", e),
+        }
+
+        Some(new_gva_user_conf)
     }
     fn start(
         soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
         _keys: RequiredKeysContent,
-        _conf: Self::ModuleConf,
+        conf: Self::ModuleConf,
         router_sender: mpsc::Sender<RouterThreadMessage<DursMsg>>,
     ) -> Result<(), failure::Error> {
         let _start_time = SystemTime::now();
+
+        // Check conf validity
+        let host = Host::parse(&conf.host).map_err(|_| GvaError::InvalidHost)?;
 
         // Instanciate Gva module datas
         let datas = GvaModuleDatas {
@@ -262,7 +292,7 @@ impl DursModule<DuRsConf, DursMsg> for GvaModule {
         let smd: SoftwareMetaDatas<DuRsConf> = soft_meta_datas.clone();
         let router_sender_clone = router_sender.clone();
         thread::spawn(move || {
-            if let Err(e) = webserver::start_web_server(&smd) {
+            if let Err(e) = webserver::start_web_server(&smd, host, conf.port) {
                 error!("GVA http web server error  : {}  ", e);
             } else {
                 info!("GVA http web server stop.")

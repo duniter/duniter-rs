@@ -279,6 +279,14 @@ impl DursConfTrait for DuRsConf {
             DuRsConf::V2 { .. } => 2,
         }
     }
+    fn get_currency(&self) -> CurrencyName {
+        match *self {
+            DuRsConf::V1(ref conf_v1) => conf_v1.currency.clone(),
+            DuRsConf::V2 {
+                ref global_conf, ..
+            } => global_conf.currency.clone(),
+        }
+    }
     fn set_currency(&mut self, new_currency: CurrencyName) {
         match *self {
             DuRsConf::V1(ref mut conf_v1) => conf_v1.currency = new_currency,

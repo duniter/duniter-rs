@@ -18,6 +18,7 @@ durs-conf = { path = "../../core/conf" }
 durs-message =  { path = "../../core/message" }
 durs-module = { path = "../../core/module" }
 durs-network = { path = "../../core/network" }
+durs-network-documents = { path = "../../dunp/network-documents" }
 dubp-common-doc = { path = "../../dubp/common-doc"} #, version = "0.1.0" }
 durs-common-tools = { path = "../../tools/common-tools" }
 dubp-currency-params = { path = "../../dubp/currency-params" }
@@ -31,6 +32,6 @@ log = "0.4.8"
 serde = "1.0.102"
 serde_derive = "1.0.102"
 serde_json = "1.0.41"
-structopt= "0.2.18"
+structopt= "0.3.4"
 
 [features]

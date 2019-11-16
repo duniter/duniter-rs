@@ -136,6 +136,8 @@ pub trait DursConfTrait:
     fn my_node_id(&self) -> u32 {
         self.get_global_conf().my_node_id()
     }
+    /// Get currency name
+    fn get_currency(&self) -> CurrencyName;
     /// Set currency
     fn set_currency(&mut self, new_currency: CurrencyName);
     /// Change module conf

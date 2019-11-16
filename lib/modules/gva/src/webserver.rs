@@ -20,6 +20,8 @@ use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer};
 use durs_common_tools::fatal_error;
 use durs_conf::DuRsConf;
 use durs_module::SoftwareMetaDatas;
+use durs_network_documents::host::Host;
+use durs_network_documents::url::Url;
 use futures::future::Future;
 use juniper::http::graphiql::graphiql_source;
 use juniper::http::GraphQLRequest;
@@ -27,7 +29,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 fn graphiql() -> HttpResponse {
-    let html = graphiql_source("http://127.0.0.1:3000/graphql");
+    let html = graphiql_source("/graphql");
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(html)
@@ -50,9 +52,15 @@ fn graphql(
     })
 }
 
-pub fn start_web_server(soft_meta_datas: &SoftwareMetaDatas<DuRsConf>) -> std::io::Result<()> {
-    info!("GVA web server start.");
-    let addr: SocketAddr = ([127, 0, 0, 1], 3000).into();
+pub fn start_web_server(
+    soft_meta_datas: &SoftwareMetaDatas<DuRsConf>,
+    host: Host,
+    port: u16,
+) -> std::io::Result<()> {
+    info!("GVA web server start...");
+
+    let addrs: Vec<SocketAddr> =
+        Url::from_host_port_path(host, port, None).to_listenable_addr("http")?;
 
     // Create Juniper schema
     let schema = std::sync::Arc::new(create_schema());
@@ -73,6 +81,6 @@ pub fn start_web_server(soft_meta_datas: &SoftwareMetaDatas<DuRsConf>) -> std::i
             .service(web::resource("/graphql").route(web::post().to_async(graphql)))
             .service(web::resource("/graphiql").route(web::get().to(graphiql)))
     })
-    .bind(addr)?
+    .bind(&addrs[..])?
     .run()
 }
