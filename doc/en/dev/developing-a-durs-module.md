@@ -86,7 +86,6 @@ This type represents your module's command line arguments. If it doesn't use any
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(
     name = "skeleton",
-    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
 )]
 /// YourModule subcommand options
 pub struct YourModuleOpt {}

@@ -16,9 +16,6 @@
 //! Durs-core cli : start subcommands.
 
 #[derive(StructOpt, Debug, Copy, Clone)]
-#[structopt(
-    name = "start",
-    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-)]
+#[structopt(name = "start", setting(structopt::clap::AppSettings::ColoredHelp))]
 /// start durs server
 pub struct StartOpt {}

@@ -23,10 +23,7 @@ use durs_module::*;
 use std::collections::HashSet;
 
 #[derive(StructOpt, Debug, Clone)]
-#[structopt(
-    name = "enable",
-    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-)]
+#[structopt(name = "enable", setting(structopt::clap::AppSettings::ColoredHelp))]
 /// Enable some module
 pub struct EnableOpt {
     #[structopt(parse(from_str))]
@@ -46,10 +43,7 @@ impl DursExecutableCoreCommand for EnableOpt {
 }
 
 #[derive(StructOpt, Debug, Clone)]
-#[structopt(
-    name = "disable",
-    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-)]
+#[structopt(name = "disable", setting(structopt::clap::AppSettings::ColoredHelp))]
 /// Disable some module
 pub struct DisableOpt {
     #[structopt(parse(from_str))]
@@ -69,10 +63,7 @@ impl DursExecutableCoreCommand for DisableOpt {
 }
 
 #[derive(StructOpt, Debug, Copy, Clone)]
-#[structopt(
-    name = "modules",
-    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-)]
+#[structopt(name = "modules", setting(structopt::clap::AppSettings::ColoredHelp))]
 /// list module
 pub struct ListModulesOpt {
     #[structopt(short = "d")]

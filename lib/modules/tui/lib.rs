@@ -86,10 +86,7 @@ pub enum TuiMess {
 pub struct TuiModule {}
 
 #[derive(StructOpt, Debug, Copy, Clone)]
-#[structopt(
-    name = "tui",
-    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-)]
+#[structopt(name = "tui", setting(structopt::clap::AppSettings::ColoredHelp))]
 /// Tui subcommand options
 pub struct TuiOpt {}
 

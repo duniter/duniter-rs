@@ -32,10 +32,7 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
-#[structopt(
-    name = "durs",
-    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-)]
+#[structopt(name = "durs", setting(structopt::clap::AppSettings::ColoredHelp))]
 /// Dunitrust command line options
 pub struct DursCliOpt {
     /// Dunitrust subcommand
@@ -49,7 +46,7 @@ pub struct DursCliOpt {
     keypairs_file: Option<PathBuf>,
     /// Set log level. (Defaults to INFO).
     /// Available levels: [ERROR, WARN, INFO, DEBUG, TRACE]
-    #[structopt(short = "l", long = "logs", raw(next_line_help = "true"))]
+    #[structopt(short = "l", long = "logs", next_line_help = true)]
     logs_level: Option<Level>,
     /// Print logs in standard output
     #[structopt(long = "log-stdout")]
@@ -132,40 +129,34 @@ impl DursCliOpt {
 /// Classic Dunitrust nodes subcommand
 pub enum DursCliSubCommand {
     /// Database explorer
-    #[structopt(
-        name = "dbex",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "dbex", setting(structopt::clap::AppSettings::ColoredHelp))]
     DbExOpt(DbExOpt),
     /// Disable a module
-    #[structopt(name = "disable")]
+    #[structopt(name = "disable", setting(structopt::clap::AppSettings::ColoredHelp))]
     DisableOpt(DisableOpt),
     /// Enable a module
-    #[structopt(name = "enable")]
+    #[structopt(name = "enable", setting(structopt::clap::AppSettings::ColoredHelp))]
     EnableOpt(EnableOpt),
     /// Keys operations
     #[structopt(
         name = "keys",
         author = "inso <inso@tuta.io>",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+        setting(structopt::clap::AppSettings::ColoredHelp)
     )]
     KeysOpt(KeysOpt),
     /// List available modules
-    #[structopt(name = "modules")]
+    #[structopt(name = "modules", setting(structopt::clap::AppSettings::ColoredHelp))]
     ListModulesOpt(ListModulesOpt),
     /// Reset data or conf or all
-    #[structopt(
-        name = "reset",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "reset", setting(structopt::clap::AppSettings::ColoredHelp))]
     ResetOpt(ResetOpt),
     /// Start node
-    #[structopt(name = "start")]
+    #[structopt(name = "start", setting(structopt::clap::AppSettings::ColoredHelp))]
     StartOpt(StartOpt),
     /// Synchronize
-    #[structopt(name = "sync")]
+    #[structopt(name = "sync", setting(structopt::clap::AppSettings::ColoredHelp))]
     SyncOpt(SyncOpt),
     /// WS2P1 module subcommand
-    #[structopt(name = "ws2p1")]
+    #[structopt(name = "ws2p1", setting(structopt::clap::AppSettings::ColoredHelp))]
     Ws2p1(WS2POpt),
 }

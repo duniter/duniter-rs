@@ -23,10 +23,7 @@ use prefered::Ws2pPreferedSubCommands;
 /// Ws2p1 subcommands
 pub enum WS2PSubCommands {
     /// Prefered keys
-    #[structopt(
-        name = "prefered",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "prefered", setting(structopt::clap::AppSettings::ColoredHelp))]
     Prefered {
         #[structopt(subcommand)]
         subcommand: Ws2pPreferedSubCommands,

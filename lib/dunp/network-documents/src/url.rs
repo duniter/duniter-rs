@@ -169,6 +169,13 @@ impl Url {
             Url::UrlWithoutScheme(url_without_scheme) => url_without_scheme.tls(),
         }
     }
+    pub fn from_host_port_path(host: Host, port: u16, path: Option<String>) -> Self {
+        Url::UrlWithoutScheme(UrlWithoutScheme {
+            host,
+            port: Some(port),
+            path,
+        })
+    }
     pub fn path(&self) -> &str {
         match self {
             Url::Url(url) => url.path(),

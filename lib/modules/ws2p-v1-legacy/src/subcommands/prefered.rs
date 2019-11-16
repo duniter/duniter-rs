@@ -26,44 +26,29 @@ use std::str::FromStr;
 /// Ws2p1 prefered subcommands
 pub enum Ws2pPreferedSubCommands {
     /// Add prefered pubkey
-    #[structopt(
-        name = "add",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "add", setting(structopt::clap::AppSettings::ColoredHelp))]
     Add {
         /// Public key to add
         public_keys: Vec<PubKey>,
     },
     /// Add prefered pubkeys from file (one pubkey per line)
-    #[structopt(
-        name = "add-file",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "add-file", setting(structopt::clap::AppSettings::ColoredHelp))]
     AddFromFile {
         /// File path
         #[structopt(parse(from_os_str))]
         file_path: PathBuf,
     },
     /// Clear prefered pubkeys
-    #[structopt(
-        name = "clear",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "clear", setting(structopt::clap::AppSettings::ColoredHelp))]
     Clear,
     /// Remove prefered pubkey
-    #[structopt(
-        name = "rem",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "rem", setting(structopt::clap::AppSettings::ColoredHelp))]
     Rem {
         /// Public key to remove
         public_keys: Vec<PubKey>,
     },
     /// Show prefered pubkeys
-    #[structopt(
-        name = "show",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "show", setting(structopt::clap::AppSettings::ColoredHelp))]
     Show,
 }
 

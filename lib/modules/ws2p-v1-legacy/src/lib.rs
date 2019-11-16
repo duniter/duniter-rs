@@ -389,10 +389,7 @@ impl NetworkModule<DuRsConf, DursMsg> for WS2Pv1Module {
 }
 
 #[derive(Clone, Debug, StructOpt)]
-#[structopt(
-    name = "ws2p",
-    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-)]
+#[structopt(name = "ws2p", setting(structopt::clap::AppSettings::ColoredHelp))]
 /// WS2P1 subcommand options
 pub struct WS2POpt {
     /// Ws2p1 subcommands

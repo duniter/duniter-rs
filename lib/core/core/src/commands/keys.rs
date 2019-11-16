@@ -26,7 +26,7 @@ use durs_conf::DuRsConf;
 #[structopt(
     name = "keys",
     author = "inso <inso@tuta.io>",
-    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+    setting(structopt::clap::AppSettings::ColoredHelp)
 )]
 /// keys management
 pub struct KeysOpt {
@@ -42,7 +42,7 @@ pub enum KeysSubCommand {
     #[structopt(
         name = "modify",
         author = "inso <inso@tuta.io>",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+        setting(structopt::clap::AppSettings::ColoredHelp)
     )]
     Modify(ModifyOpt),
 
@@ -50,7 +50,7 @@ pub enum KeysSubCommand {
     #[structopt(
         name = "clear",
         author = "inso <inso@tuta.io>",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+        setting(structopt::clap::AppSettings::ColoredHelp)
     )]
     Clear(ClearOpt),
 
@@ -58,14 +58,14 @@ pub enum KeysSubCommand {
     #[structopt(
         name = "show",
         author = "inso <inso@tuta.io>",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+        setting(structopt::clap::AppSettings::ColoredHelp)
     )]
     Show(ShowOpt),
 
     #[structopt(
         name = "wizard",
         author = "inso <inso@tuta.io>",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+        setting(structopt::clap::AppSettings::ColoredHelp)
     )]
     /// Keys generator wizard
     Wizard(WizardOpt),
@@ -82,17 +82,11 @@ pub struct ModifyOpt {
 #[derive(StructOpt, Debug, Clone)]
 /// keys modify subcommands
 pub enum ModifySubCommand {
-    #[structopt(
-        name = "member",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "member", setting(structopt::clap::AppSettings::ColoredHelp))]
     /// Salt and password of member key
     MemberSaltPassword(SaltPasswordOpt),
 
-    #[structopt(
-        name = "network",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "network", setting(structopt::clap::AppSettings::ColoredHelp))]
     /// Salt and password of network key    
     NetworkSaltPassword(SaltPasswordOpt),
 }

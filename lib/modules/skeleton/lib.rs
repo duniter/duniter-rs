@@ -92,10 +92,7 @@ pub enum SkeletonMsg {
 }
 
 #[derive(StructOpt, Debug, Clone)]
-#[structopt(
-    name = "skeleton",
-    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-)]
+#[structopt(name = "skeleton", setting(structopt::clap::AppSettings::ColoredHelp))]
 /// Skeleton subcommand options
 pub struct SkeletonOpt {
     /// Change test conf fake field

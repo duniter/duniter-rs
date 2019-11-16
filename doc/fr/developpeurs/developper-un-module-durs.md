@@ -95,7 +95,6 @@ Exemple de structure vide :
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(
     name = "skeleton",
-    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
 )]
 /// YourModule subcommand options
 pub struct YourModuleOpt {}

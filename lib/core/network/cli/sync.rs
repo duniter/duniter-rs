@@ -19,10 +19,7 @@ use durs_network_documents::url::Url;
 use std::path::PathBuf;
 
 #[derive(StructOpt, Debug, Clone)]
-#[structopt(
-    name = "sync",
-    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-)]
+#[structopt(name = "sync", setting(structopt::clap::AppSettings::ColoredHelp))]
 /// Synchronization from network
 pub struct SyncOpt {
     /// cautious mode (check all protocol rules, very slow)

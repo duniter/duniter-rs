@@ -23,10 +23,7 @@ use durs_blockchain::dbex::{DbExBcQuery, DbExQuery, DbExTxQuery, DbExWotQuery};
 use durs_conf::DuRsConf;
 
 #[derive(StructOpt, Debug, Clone)]
-#[structopt(
-    name = "dbex",
-    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-)]
+#[structopt(name = "dbex", setting(structopt::clap::AppSettings::ColoredHelp))]
 /// durs databases explorer
 pub struct DbExOpt {
     #[structopt(short = "c", long = "csv")]
@@ -41,40 +38,22 @@ pub struct DbExOpt {
 /// dbex subcommands
 pub enum DbExSubCommand {
     /// Pubkeys’ balances explorer
-    #[structopt(
-        name = "balance",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "balance", setting(structopt::clap::AppSettings::ColoredHelp))]
     BalanceOpt(BalanceOpt),
     /// Display blocks current frame
-    #[structopt(
-        name = "blocks",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "blocks", setting(structopt::clap::AppSettings::ColoredHelp))]
     BlocksOpt(BlocksOpt),
     /// Web of Trust distances explorer
-    #[structopt(
-        name = "distance",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "distance", setting(structopt::clap::AppSettings::ColoredHelp))]
     DistanceOpt(DistanceOpt),
     /// Forks tree explorer
-    #[structopt(
-        name = "forks",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "forks", setting(structopt::clap::AppSettings::ColoredHelp))]
     ForksOpt(ForksOpt),
     /// Member explorer
-    #[structopt(
-        name = "member",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "member", setting(structopt::clap::AppSettings::ColoredHelp))]
     MemberOpt(MemberOpt),
     /// Members explorer
-    #[structopt(
-        name = "members",
-        raw(setting = "structopt::clap::AppSettings::ColoredHelp")
-    )]
+    #[structopt(name = "members")]
     MembersOpt(MembersOpt),
 }
 
