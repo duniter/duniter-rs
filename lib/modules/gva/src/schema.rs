@@ -12,13 +12,15 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-//
-// model and resolvers implementation
 
+// ! model and resolvers implementation
+
+mod block;
+
+use self::block::Block;
 use crate::context::Context;
-use dubp_block_doc::block::BlockDocumentTrait;
-use dubp_common_doc::traits::Document;
-use durs_bc_db_reader::BcDbRo;
+use dubp_common_doc::BlockNumber;
+use durs_bc_db_reader::{BcDbRo, DbError, DbReadable};
 use juniper::Executor;
 use juniper::FieldResult;
 use juniper_from_schema::graphql_schema_from_file;
@@ -28,61 +30,85 @@ graphql_schema_from_file!("resources/schema.gql");
 
 pub struct Query;
 
-pub struct Block {
-    version: i32,
-    currency: String,
-    issuer: String,
-    number: i32,
+pub struct Summary {
+    software: &'static str,
+    version: &'static str,
+}
+
+pub struct Node {
+    summary: Summary,
+}
+
+fn db_err_to_juniper_err(e: DbError) -> juniper::FieldError {
+    juniper::FieldError::from(format!("Db error: {:?}", e))
 }
 
 impl QueryFields for Query {
+    fn field_node(
+        &self,
+        executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Node, Walked>,
+    ) -> FieldResult<Node> {
+        Ok(Node {
+            summary: Summary {
+                software: executor.context().get_software_name(),
+                version: executor.context().get_software_version(),
+            },
+        })
+    }
     fn field_current(
         &self,
-        _executor: &Executor<'_, Context>,
+        executor: &Executor<'_, Context>,
         _trail: &QueryTrail<'_, Block, Walked>,
     ) -> FieldResult<Option<Block>> {
-        let db: &BcDbRo = &_executor.context().get_db();
-        let current_blockstamp = durs_bc_db_reader::current_meta_datas::get_current_blockstamp(db);
+        let db: &BcDbRo = &executor.context().get_db();
 
-        match current_blockstamp {
-            Ok(option) => match option {
-                Some(v) => {
-                    let current_block = durs_bc_db_reader::blocks::get_block(db, v);
-                    match current_block {
-                        Ok(current_block_option) => match current_block_option {
-                            Some(block) => Ok(Some(Block {
-                                version: block.block.version() as i32,
-                                currency: block.block.currency().to_string(),
-                                issuer: block.block.issuers()[0].to_string(),
-                                number: block.block.number().0 as i32,
-                            })),
-                            None => Ok(None),
-                        },
-                        Err(_e) => Err(juniper::FieldError::from("No current block available")),
-                    }
-                }
-                None => Ok(None),
-            },
-            Err(_e) => Err(juniper::FieldError::from("No current block available")),
-        }
+        db.read(|r| {
+            if let Some(current_blockstamp) =
+                durs_bc_db_reader::current_meta_datas::get_current_blockstamp_(db, r)?
+            {
+                block::get_block(db, r, current_blockstamp.id)
+            } else {
+                Ok(None)
+            }
+        })
+        .map_err(db_err_to_juniper_err)
+    }
+    fn field_block(
+        &self,
+        executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Block, Walked>,
+        number: i32,
+    ) -> FieldResult<Option<Block>> {
+        let db: &BcDbRo = &executor.context().get_db();
+
+        let block_number = if number >= 0 {
+            BlockNumber(number as u32)
+        } else {
+            return Err(juniper::FieldError::from("Block number must be positive."));
+        };
+
+        db.read(|r| block::get_block(db, r, block_number))
+            .map_err(|e| juniper::FieldError::from(format!("Db error: {:?}", e)))
     }
 }
 
-impl BlockFields for Block {
-    fn field_version(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
-        Ok(&self.version)
+impl NodeFields for Node {
+    fn field_summary(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Summary, Walked>,
+    ) -> &Summary {
+        &self.summary
     }
+}
 
-    fn field_currency(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
-        Ok(&self.currency)
+impl SummaryFields for Summary {
+    fn field_software(&self, _executor: &Executor<'_, Context>) -> String {
+        self.software.to_owned()
     }
-
-    fn field_issuer(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
-        Ok(&self.issuer)
-    }
-
-    fn field_number(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
-        Ok(&self.number)
+    fn field_version(&self, _executor: &Executor<'_, Context>) -> String {
+        self.version.to_owned()
     }
 }
 

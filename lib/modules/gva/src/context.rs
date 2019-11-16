@@ -22,23 +22,37 @@ static mut CONTEXT: Option<Context> = None;
 #[derive(Debug)]
 pub struct Context {
     db: BcDbRo,
+    software_name: &'static str,
+    software_version: &'static str,
 }
 
 impl juniper::Context for Context {}
 
 impl Context {
-    pub fn new(db: BcDbRo) -> Self {
-        Context { db }
+    pub fn new(db: BcDbRo, software_name: &'static str, software_version: &'static str) -> Self {
+        Context {
+            db,
+            software_name,
+            software_version,
+        }
     }
 
     pub fn get_db(&self) -> &BcDbRo {
         &self.db
     }
+
+    pub fn get_software_name(&self) -> &'static str {
+        &self.software_name
+    }
+
+    pub fn get_software_version(&self) -> &'static str {
+        &self.software_version
+    }
 }
 
-pub fn init(db: BcDbRo) {
+pub fn init(db: BcDbRo, soft_name: &'static str, soft_version: &'static str) {
     unsafe {
-        CONTEXT.replace(Context::new(db));
+        CONTEXT.replace(Context::new(db, soft_name, soft_version));
     }
 }
 

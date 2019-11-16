@@ -68,7 +68,7 @@ pub fn start_web_server(
     // Instanciate the context
     let db_path = durs_conf::get_blockchain_db_path(soft_meta_datas.profile_path.clone());
     if let Ok(db) = durs_bc_db_reader::open_db_ro(&std::path::Path::new(&db_path)) {
-        context::init(db);
+        context::init(db, soft_meta_datas.soft_name, soft_meta_datas.soft_version);
     } else {
         fatal_error!("GVA: fail to open DB.");
     };

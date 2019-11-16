@@ -100,7 +100,7 @@ pub fn get_block<DB: DbReadable>(
     blockstamp: Blockstamp,
 ) -> Result<Option<DbBlock>, DbError> {
     db.read(|r| {
-        let opt_dal_block = get_dal_block_in_local_blockchain(db, r, blockstamp.id)?;
+        let opt_dal_block = get_db_block_in_local_blockchain(db, r, blockstamp.id)?;
         if opt_dal_block.is_none() {
             get_fork_block(db, r, blockstamp)
         } else {
@@ -145,11 +145,11 @@ pub fn get_block_in_local_blockchain<DB: DbReadable, R: DbReader>(
     r: &R,
     block_number: BlockNumber,
 ) -> Result<Option<BlockDocument>, DbError> {
-    Ok(get_dal_block_in_local_blockchain(db, r, block_number)?.map(|dal_block| dal_block.block))
+    Ok(get_db_block_in_local_blockchain(db, r, block_number)?.map(|dal_block| dal_block.block))
 }
 
 /// Get block in local blockchain
-pub fn get_dal_block_in_local_blockchain<DB: DbReadable, R: DbReader>(
+pub fn get_db_block_in_local_blockchain<DB: DbReadable, R: DbReader>(
     db: &DB,
     r: &R,
     block_number: BlockNumber,

@@ -39,9 +39,9 @@ pub use durs_dbs_tools::kv_db::{
     KvFileDbRead as DbReadable, KvFileDbRoHandler as BcDbRo, KvFileDbSchema, KvFileDbStoreType,
     KvFileDbValue as DbValue, Readable as DbReader,
 };
+pub use durs_dbs_tools::DbError;
 
 use constants::*;
-use durs_dbs_tools::DbError;
 use maplit::hashmap;
 use std::path::Path;
 

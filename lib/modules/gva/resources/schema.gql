@@ -5,16 +5,40 @@ schema {
 }
 
 type Query {
+  node: Node! @juniper(ownership: "owned")
   current: Block @juniper(ownership: "owned")
+  block(number: Int!): Block @juniper(ownership: "owned")
 }
 
 type Mutation {
   noop: Boolean!
 }
 
+#################################
+# NODE types
+#################################
+
+type Summary {
+  software: String! @juniper(infallible: true, ownership: "owned")
+  version: String! @juniper(infallible: true, ownership: "owned")
+}
+
+
+type Node {
+  summary: Summary! @juniper(infallible: true)
+}
+
+#################################
+# Block type
+#################################
+
+scalar DateTimeUtc @juniper(with_time_zone: false)
+
 type Block {
   version: Int!
   currency: String!
   issuer: String!
   number: Int!
+  hash: String!,
+  commonTime: DateTimeUtc!
 }
