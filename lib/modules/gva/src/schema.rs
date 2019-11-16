@@ -12,6 +12,8 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// model and resolvers implementation
 
 use crate::context::Context;
 use dubp_block_doc::block::BlockDocumentTrait;
@@ -21,6 +23,7 @@ use juniper::Executor;
 use juniper::FieldResult;
 use juniper_from_schema::graphql_schema_from_file;
 
+// generate schema from schema file
 graphql_schema_from_file!("resources/schema.gql");
 
 pub struct Query;

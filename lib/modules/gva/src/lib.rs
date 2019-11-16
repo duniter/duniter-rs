@@ -51,9 +51,14 @@ use dubp_currency_params::CurrencyName;
 use durs_common_tools::fatal_error;
 use durs_common_tools::traits::merge::Merge;
 use durs_conf::DuRsConf;
-use durs_message::events::*;
-use durs_message::*;
-use durs_module::*;
+use durs_message::events::{BlockchainEvent, DursEvent};
+use durs_message::DursMsg;
+use durs_module::{
+    DursConfTrait, DursModule, ModuleConfError, ModuleEvent, ModulePriority, ModuleRole,
+    ModuleStaticName, RequiredKeys, RequiredKeysContent, RouterThreadMessage, SoftwareMetaDatas,
+};
+
+//use durs_module::*;
 use durs_network::events::NetworkEvent;
 
 use std::ops::Deref;
@@ -257,13 +262,10 @@ impl DursModule<DuRsConf, DursMsg> for GvaModule {
         let smd: SoftwareMetaDatas<DuRsConf> = soft_meta_datas.clone();
         let router_sender_clone = router_sender.clone();
         thread::spawn(move || {
-            match webserver::start_web_server(&smd) {
-                Ok(_) => {
-                    info!("GVA http web server stop.");
-                }
-                Err(e) => {
-                    error!("GVA http web server error  : {}  ", e);
-                }
+            if let Err(e) = webserver::start_web_server(&smd) {
+                error!("GVA http web server error  : {}  ", e);
+            } else {
+                info!("GVA http web server stop.")
             }
             let _result =
                 router_sender_clone.send(RouterThreadMessage::ModuleMessage(DursMsg::Stop));

@@ -12,13 +12,14 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+// web server implementaion based on actix-web
 
 use crate::context;
-use crate::schema::*;
+use crate::schema::{create_schema, Schema};
 use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer};
 use durs_common_tools::fatal_error;
 use durs_conf::DuRsConf;
-use durs_module::*;
+use durs_module::SoftwareMetaDatas;
 use futures::future::Future;
 use juniper::http::graphiql::graphiql_source;
 use juniper::http::GraphQLRequest;
@@ -39,7 +40,7 @@ fn graphql(
     let context = crate::context::get_context();
     web::block(move || {
         let result = data.execute(&schema, context);
-        Ok::<_, serde_json::error::Error>(serde_json::to_string(&result)?)
+        serde_json::to_string(&result)
     })
     .map_err(Error::from)
     .and_then(|user| {
