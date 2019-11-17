@@ -54,4 +54,5 @@ type Block {
   number: Int!
   hash: String!,
   commonTime: DateTimeUtc!
+  powMin: Int!
 }

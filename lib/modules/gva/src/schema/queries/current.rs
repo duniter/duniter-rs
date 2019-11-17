@@ -60,6 +60,7 @@ mod tests {
                 Hash::default(),
             );
             current_block.issuers = vec![pubkey('B')];
+            current_block.pow_min = 70;
             Ok(Some(DbBlock {
                 block: BlockDocument::V10(current_block),
                 expire_certs: None,
@@ -70,7 +71,7 @@ mod tests {
 
         tests::test_gql_query(
             schema,
-            "{ current { commonTime, currency, hash, issuer, number, version } }",
+            "{ current { commonTime, currency, hash, issuer, number, powMin, version } }",
             json!({
                 "data": {
                     "current": {
@@ -79,6 +80,7 @@ mod tests {
                         "hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
                         "issuer": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
                         "number": 42,
+                        "powMin": 70,
                         "version": 10
                     }
                 }

@@ -276,6 +276,9 @@ Transactions:{transactions}
     fn number(&self) -> BlockNumber {
         self.number
     }
+    fn pow_min(&self) -> usize {
+        self.pow_min
+    }
     fn previous_blockstamp(&self) -> Blockstamp {
         if self.number.0 > 0 {
             Blockstamp {

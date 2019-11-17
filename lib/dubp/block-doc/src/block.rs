@@ -77,6 +77,8 @@ pub trait BlockDocumentTrait {
     fn issuers_count(&self) -> usize;
     /// Get block number
     fn number(&self) -> BlockNumber;
+    /// Get common difficulty (PoW)
+    fn pow_min(&self) -> usize;
     /// Get previous hash
     fn previous_hash(&self) -> Option<Hash>;
     /// Get previous blockstamp
@@ -168,6 +170,12 @@ impl BlockDocumentTrait for BlockDocument {
     fn number(&self) -> BlockNumber {
         match self {
             BlockDocument::V10(block) => block.number(),
+        }
+    }
+    #[inline]
+    fn pow_min(&self) -> usize {
+        match self {
+            BlockDocument::V10(block) => block.pow_min(),
         }
     }
     #[inline]

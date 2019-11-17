@@ -30,6 +30,7 @@ pub struct Block {
     number: i32,
     hash: String,
     common_time: NaiveDateTime,
+    pow_min: i32,
 }
 
 impl super::super::BlockFields for Block {
@@ -56,6 +57,10 @@ impl super::super::BlockFields for Block {
     fn field_common_time(&self, _executor: &Executor<'_, Context>) -> FieldResult<&NaiveDateTime> {
         Ok(&self.common_time)
     }
+
+    fn field_pow_min(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.pow_min)
+    }
 }
 
 impl Block {
@@ -71,6 +76,7 @@ impl Block {
                 .unwrap_or_else(|| fatal_error!("DbBlock without hash."))
                 .to_string(),
             common_time: NaiveDateTime::from_timestamp(db_block.block.common_time() as i64, 0),
+            pow_min: db_block.block.pow_min() as i32,
         }
     }
 }
