@@ -8,10 +8,23 @@ type Query {
   node: Node! @juniper(ownership: "owned")
   current: Block @juniper(ownership: "owned")
   block(number: Int!): Block @juniper(ownership: "owned")
+  blocks(paging: Paging): [Block!]! @juniper(ownership: "owned")
 }
 
 type Mutation {
   noop: Boolean!
+}
+
+#################################
+# Inputs
+#################################
+
+input Paging {
+  pageNumber: Int # default value: 0
+	pageSize: Int # default value: 50
+  fromBlock: Int # default value: 0
+  # If toBlock is null, current block number is used
+  toBlock: Int
 }
 
 #################################

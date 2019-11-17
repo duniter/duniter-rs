@@ -16,6 +16,7 @@
 // ! model and resolvers implementation
 
 mod block;
+mod paging;
 
 use self::block::Block;
 use crate::context::Context;
@@ -89,7 +90,26 @@ impl QueryFields for Query {
         };
 
         db.read(|r| block::get_block(db, r, block_number))
-            .map_err(|e| juniper::FieldError::from(format!("Db error: {:?}", e)))
+            .map_err(db_err_to_juniper_err)
+    }
+    fn field_blocks(
+        &self,
+        executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Block, Walked>,
+        paging_opt: Option<Paging>,
+    ) -> FieldResult<Vec<Block>> {
+        let db: &BcDbRo = &executor.context().get_db();
+        db.read(|r| {
+            paging::FilledPaging::new(db, r, paging_opt)?
+                .get_range()
+                .filter_map(|n| match block::get_block(db, r, BlockNumber(n)) {
+                    Ok(Some(db_block)) => Some(Ok(db_block)),
+                    Ok(None) => None,
+                    Err(e) => Some(Err(e)),
+                })
+                .collect::<Result<Vec<Block>, DbError>>()
+        })
+        .map_err(db_err_to_juniper_err)
     }
 }
 
