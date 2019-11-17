@@ -62,7 +62,6 @@ use durs_module::{
     ModuleStaticName, RequiredKeys, RequiredKeysContent, RouterThreadMessage, SoftwareMetaDatas,
 };
 
-//use durs_module::*;
 use durs_network::events::NetworkEvent;
 use durs_network_documents::host::Host;
 
@@ -114,19 +113,6 @@ impl Merge for GvaUserConf {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-/// Message from others thread of gva module
-pub enum GvaThreadMsg {}
-
-#[derive(Debug, Clone)]
-/// Format of messages received by the gva module
-pub enum GvaMsg {
-    /// Message from another module
-    DursMsg(Box<DursMsg>),
-    /// Message from others thread of gva module
-    GvaThreadMsg(GvaThreadMsg),
-}
-
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(name = "gva", setting(structopt::clap::AppSettings::ColoredHelp))]
 /// Gva subcommand options
@@ -139,14 +125,9 @@ pub struct GvaOpt {
     pub port: Option<u16>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 /// Data that the Gva module needs to cache
-pub struct GvaModuleDatas {
-    /// Sender of all child threads (except the proxy thread)
-    pub child_threads: Vec<mpsc::Sender<GvaMsg>>,
-    /// Any data
-    pub field: usize,
-}
+pub struct GvaModuleDatas {}
 
 #[derive(Debug, Copy, Clone)]
 /// Gva module
@@ -228,72 +209,31 @@ impl DursModule<DuRsConf, DursMsg> for GvaModule {
         let host = Host::parse(&conf.host).map_err(|_| GvaError::InvalidHost)?;
 
         // Instanciate Gva module datas
-        let datas = GvaModuleDatas {
-            child_threads: Vec::new(),
-            field: 3,
-        };
+        let _datas = GvaModuleDatas {};
 
         // Create gva main thread channel
-        let (gva_sender, gva_receiver): (mpsc::Sender<GvaMsg>, mpsc::Receiver<GvaMsg>) =
+        let (gva_sender, gva_receiver): (mpsc::Sender<DursMsg>, mpsc::Receiver<DursMsg>) =
             mpsc::channel();
 
-        // Create proxy channel
-        let (proxy_sender, proxy_receiver): (mpsc::Sender<DursMsg>, mpsc::Receiver<DursMsg>) =
-            mpsc::channel();
+        // Send gva module registration to router thread
+        router_sender
+            .send(RouterThreadMessage::ModuleRegistration {
+                static_name: ModuleStaticName(MODULE_NAME),
+                sender: gva_sender, // Messages sent by the router will be received by your proxy thread
+                roles: vec![ModuleRole::UserInterface], // Roles assigned to your module
+                events_subscription: vec![ModuleEvent::NewValidBlock], // Events to which your module subscribes
+                reserved_apis_parts: vec![],
+                endpoints: vec![],
+            })
+            .expect("Fatal error : gva module fail to register to router !"); // The registration of this module must be successful, in case of failure the program must be interrupted.
 
-        // Launch a proxy thread that transform DursMsgContent() to GvaMsg::DursMsgContent(DursMsgContent())
-        let router_sender_clone = router_sender.clone();
-        let gva_sender_clone = gva_sender.clone();
-        thread::spawn(move || {
-            // Send gva module registration to router thread
-            router_sender_clone
-                .send(RouterThreadMessage::ModuleRegistration {
-                    static_name: ModuleStaticName(MODULE_NAME),
-                    sender: proxy_sender, // Messages sent by the router will be received by your proxy thread
-                    roles: vec![ModuleRole::UserInterface], // Roles assigned to your module
-                    events_subscription: vec![ModuleEvent::NewValidBlock], // Events to which your module subscribes
-                    reserved_apis_parts: vec![],
-                    endpoints: vec![],
-                })
-                .expect("Fatal error : gva module fail to register to router !"); // The registration of your module must be successful, in case of failure the program must be interrupted.
-
-            // If we are here it means that your module has successfully registered, we indicate it in the debug level log, it can be helpful.
-            debug!("Send gva module registration to router thread.");
-
-            /*
-             * Main loop of your proxy thread
-             */
-            loop {
-                match proxy_receiver.recv() {
-                    Ok(message) => {
-                        let stop = if let DursMsg::Stop = message {
-                            true
-                        } else {
-                            false
-                        };
-                        if gva_sender_clone
-                            .send(GvaMsg::DursMsg(Box::new(message)))
-                            .is_err()
-                        {
-                            // Log error
-                            warn!("Gva proxy : fail to relay DursMsg to gva main thread !")
-                        }
-                        if stop {
-                            break;
-                        }
-                    }
-                    Err(e) => {
-                        // Log error
-                        warn!("{}", e);
-                        break;
-                    }
-                }
-            }
-        });
+        // If we are here it means that this module has successfully registered,
+        // we indicate it in the debug level log, it can be helpful.
+        debug!("Send gva module registration to router thread.");
 
         let smd: SoftwareMetaDatas<DuRsConf> = soft_meta_datas.clone();
         let router_sender_clone = router_sender.clone();
-        thread::spawn(move || {
+        let _webserver_thread = thread::spawn(move || {
             if let Err(e) = webserver::start_web_server(&smd, host, conf.port) {
                 error!("GVA http web server error  : {}  ", e);
             } else {
@@ -309,69 +249,53 @@ impl DursModule<DuRsConf, DursMsg> for GvaModule {
         loop {
             // Get messages
             match gva_receiver.recv_timeout(Duration::from_millis(250)) {
-                Ok(ref message) => match *message {
-                    GvaMsg::DursMsg(ref durs_message) => {
-                        match durs_message.deref() {
-                            DursMsg::Stop => {
-                                // Relay stop signal to all child threads
-                                let _result_stop_propagation: Result<(), mpsc::SendError<GvaMsg>> =
-                                    datas
-                                        .child_threads
-                                        .iter()
-                                        .map(|t| t.send(GvaMsg::DursMsg(Box::new(DursMsg::Stop))))
-                                        .collect();
-                                // Relay stop signal to router
-                                let _result = router_sender
-                                    .send(RouterThreadMessage::ModuleMessage(DursMsg::Stop));
-                                // Break main loop
-                                break;
+                Ok(durs_message) => match durs_message {
+                    DursMsg::Stop => {
+                        // Relay stop signal to router
+                        let _result =
+                            router_sender.send(RouterThreadMessage::ModuleMessage(DursMsg::Stop));
+                        // Break main loop
+                        break;
+                    }
+                    DursMsg::Event {
+                        ref event_content, ..
+                    } => match *event_content {
+                        DursEvent::BlockchainEvent(ref blockchain_event) => {
+                            match *blockchain_event.deref() {
+                                BlockchainEvent::StackUpValidBlock(ref _block) => {
+                                    // Do something when the node has stacked a new block at its local blockchain
+                                }
+                                BlockchainEvent::RevertBlocks(ref _blocks) => {
+                                    // Do something when the node has destacked blocks from its local blockchain (roll back)
+                                }
+                                _ => {} // Do nothing for events that don't concern this module.
                             }
-                            DursMsg::Event {
-                                ref event_content, ..
-                            } => match *event_content {
-                                DursEvent::BlockchainEvent(ref blockchain_event) => {
-                                    match *blockchain_event.deref() {
-                                        BlockchainEvent::StackUpValidBlock(ref _block) => {
-                                            // Do something when the node has stacked a new block at its local blockchain
-                                        }
-                                        BlockchainEvent::RevertBlocks(ref _blocks) => {
-                                            // Do something when the node has destacked blocks from its local blockchain (roll back)
-                                        }
-                                        _ => {} // Do nothing for events that don't concern your module.
-                                    }
-                                }
-                                DursEvent::NetworkEvent(ref network_event_box) => {
-                                    match *network_event_box.deref() {
-                                        NetworkEvent::ReceivePeers(ref _peers) => {
-                                            // Do something when the node receive peers cards from network
-                                        }
-                                        NetworkEvent::ReceiveDocuments(ref _bc_documents) => {
-                                            // Do something when the node receive blockchain documents from network
-                                        }
-                                        _ => {} // Do nothing for events that don't concern your module.
-                                    }
-                                }
-                                _ => {} // Do nothing for DursEvent variants that don't concern your module.
-                            },
-                            _ => {} // Do nothing for DursMsgContent variants that don't concern your module.
                         }
-                    }
-                    GvaMsg::GvaThreadMsg(ref _child_thread_msg) => {
-                        // Do something when receive a message from child thread.
-                    }
+                        DursEvent::NetworkEvent(ref network_event_box) => {
+                            match *network_event_box.deref() {
+                                NetworkEvent::ReceivePeers(ref _peers) => {
+                                    // Do something when the node receive peers cards from network
+                                }
+                                NetworkEvent::ReceiveDocuments(ref _bc_documents) => {
+                                    // Do something when the node receive blockchain documents from network
+                                }
+                                _ => {} // Do nothing for events that don't concern this module.
+                            }
+                        }
+                        _ => {} // Do nothing for DursEvent variants that don't concern this module.
+                    },
+                    _ => {} // Do nothing for DursMsgContent variants that don't concern this module.
                 },
                 Err(e) => match e {
                     mpsc::RecvTimeoutError::Disconnected => {
                         fatal_error!("Disconnected gva module !");
                     }
                     mpsc::RecvTimeoutError::Timeout => {
-                        // If you arrive here it's because your main thread did not receive anything at the end of the timeout.
+                        // If you arrive here it's because this main thread did not receive anything at the end of the timeout.
                         // This is quite normal and happens regularly when there is little activity, there is nothing particular to do.
                     }
                 },
             }
-            // If you want your module's main thread to do things even when it doesn't receive any messages, this is the place where it can do them.
-            // ...
         }
         // If we reach this point it means that the module has stopped correctly, so we return OK.
         Ok(())
