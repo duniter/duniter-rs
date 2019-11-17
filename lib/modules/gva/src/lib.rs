@@ -14,14 +14,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //! Gva Module
-// This module provides a graphql API implementation of the 0003 RFC
-//
-// /src/schema.gql contains schema description
-// /src/schema.rs contains model and resolvers implementation
-// /src/webserver.rs contains web server implementaion based on actix-web
-//
-// Graphiql web client is accessible at
-// http://127.0.0.1:3000/graphiql
+//! This module provides a graphql API implementation of the 0003 RFC
+//!
+//! /src/schema.gql contains schema description
+//! /src/schema.rs contains model and resolvers implementation
+//! /src/webserver.rs contains web server implementaion based on actix-web
+//!
+//! Graphiql web client is accessible at
+//! http://127.0.0.1:10901/graphiql
 
 #![deny(
     missing_docs,
@@ -44,7 +44,9 @@ extern crate structopt;
 extern crate juniper;
 
 mod context;
+mod db;
 mod errors;
+mod graphql;
 mod schema;
 mod webserver;
 

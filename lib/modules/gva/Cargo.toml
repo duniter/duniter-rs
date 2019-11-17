@@ -12,6 +12,7 @@ path = "src/lib.rs"
 [dependencies]
 actix-web = "1.0.8"
 dubp-block-doc = { path = "../../dubp/block-doc"} #, version = "0.1.0" }
+dup-crypto = { path = "../../crypto" }
 durs-bc-db-reader = { path = "../../modules-lib/bc-db-reader" }
 durs-conf = { path = "../../core/conf" }
 durs-message =  { path = "../../core/message" }
@@ -21,6 +22,7 @@ durs-network-documents = { path = "../../dunp/network-documents" }
 dubp-common-doc = { path = "../../dubp/common-doc"} #, version = "0.1.0" }
 durs-common-tools = { path = "../../tools/common-tools" }
 dubp-currency-params = { path = "../../dubp/currency-params" }
+cfg-if = "0.1.10"
 chrono = "0.4.9"
 failure = "0.1.5"
 futures = "0.1"
@@ -33,5 +35,11 @@ serde = "1.0.102"
 serde_derive = "1.0.102"
 serde_json = "1.0.41"
 structopt= "0.3.4"
+
+[dev-dependencies]
+dubp-blocks-tests-tools = { path = "../../tests-tools/blocks-tests-tools" }
+dup-crypto-tests-tools = { path = "../../tests-tools/crypto-tests-tools" }
+mockall = "0.5.2"
+pretty_assertions = "0.5.1"
 
 [features]

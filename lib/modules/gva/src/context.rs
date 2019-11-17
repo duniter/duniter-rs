@@ -13,15 +13,23 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#[cfg(not(test))]
 use durs_bc_db_reader::BcDbRo;
 use durs_common_tools::fatal_error;
+
+#[cfg(test)]
+use crate::db::MockBcDbTrait;
 
 /// GVA context (access to database)
 static mut CONTEXT: Option<Context> = None;
 
-#[derive(Debug)]
+#[cfg(not(test))]
+pub type DB = BcDbRo;
+#[cfg(test)]
+pub(crate) type DB = MockBcDbTrait;
+
 pub struct Context {
-    db: BcDbRo,
+    db: DB,
     software_name: &'static str,
     software_version: &'static str,
 }
@@ -29,7 +37,7 @@ pub struct Context {
 impl juniper::Context for Context {}
 
 impl Context {
-    pub fn new(db: BcDbRo, software_name: &'static str, software_version: &'static str) -> Self {
+    pub(crate) fn new(db: DB, software_name: &'static str, software_version: &'static str) -> Self {
         Context {
             db,
             software_name,
@@ -37,7 +45,7 @@ impl Context {
         }
     }
 
-    pub fn get_db(&self) -> &BcDbRo {
+    pub(crate) fn get_db(&self) -> &DB {
         &self.db
     }
 
@@ -50,7 +58,7 @@ impl Context {
     }
 }
 
-pub fn init(db: BcDbRo, soft_name: &'static str, soft_version: &'static str) {
+pub(crate) fn init(db: DB, soft_name: &'static str, soft_version: &'static str) {
     unsafe {
         CONTEXT.replace(Context::new(db, soft_name, soft_version));
     }

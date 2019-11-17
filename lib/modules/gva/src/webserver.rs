@@ -15,41 +15,26 @@
 // web server implementaion based on actix-web
 
 use crate::context;
-use crate::schema::{create_schema, Schema};
-use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer};
+use crate::graphql::graphql;
+use crate::schema::create_schema;
+use actix_web::{middleware, web, App, HttpResponse, HttpServer};
+#[cfg(not(test))]
 use durs_common_tools::fatal_error;
 use durs_conf::DuRsConf;
 use durs_module::SoftwareMetaDatas;
 use durs_network_documents::host::Host;
 use durs_network_documents::url::Url;
-use futures::future::Future;
 use juniper::http::graphiql::graphiql_source;
-use juniper::http::GraphQLRequest;
 use std::net::SocketAddr;
-use std::sync::Arc;
+
+#[cfg(test)]
+use crate::db::MockBcDbTrait;
 
 fn graphiql() -> HttpResponse {
     let html = graphiql_source("/graphql");
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(html)
-}
-
-fn graphql(
-    schema: web::Data<Arc<Schema>>,
-    data: web::Json<GraphQLRequest>,
-) -> impl Future<Item = HttpResponse, Error = Error> {
-    let context = crate::context::get_context();
-    web::block(move || {
-        let result = data.execute(&schema, context);
-        serde_json::to_string(&result)
-    })
-    .map_err(Error::from)
-    .and_then(|user| {
-        Ok(HttpResponse::Ok()
-            .content_type("application/json")
-            .body(user))
-    })
 }
 
 pub fn start_web_server(
@@ -65,13 +50,29 @@ pub fn start_web_server(
     // Create Juniper schema
     let schema = std::sync::Arc::new(create_schema());
 
-    // Instanciate the context
-    let db_path = durs_conf::get_blockchain_db_path(soft_meta_datas.profile_path.clone());
-    if let Ok(db) = durs_bc_db_reader::open_db_ro(&std::path::Path::new(&db_path)) {
-        context::init(db, soft_meta_datas.soft_name, soft_meta_datas.soft_version);
-    } else {
-        fatal_error!("GVA: fail to open DB.");
+    // Get DB
+    #[cfg(not(test))]
+    let db = {
+        let db_path = durs_conf::get_blockchain_db_path(soft_meta_datas.profile_path.clone());
+        if let Ok(db) = durs_bc_db_reader::open_db_ro(&std::path::Path::new(&db_path)) {
+            db
+        } else {
+            fatal_error!("GVA: fail to open DB.");
+        }
     };
+    #[cfg(test)]
+    let db = MockBcDbTrait::new();
+
+    cfg_if::cfg_if! {
+        if #[cfg(test)] {
+            MockBcDbTrait::new()
+        } else {
+
+        }
+    };
+
+    // Instanciate the context
+    context::init(db, soft_meta_datas.soft_name, soft_meta_datas.soft_version);
 
     // Start http server
     HttpServer::new(move || {

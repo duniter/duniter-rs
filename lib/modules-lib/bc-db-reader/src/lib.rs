@@ -36,8 +36,8 @@ pub mod paging;
 pub mod tools;
 
 pub use durs_dbs_tools::kv_db::{
-    KvFileDbRead as DbReadable, KvFileDbRoHandler as BcDbRo, KvFileDbSchema, KvFileDbStoreType,
-    KvFileDbValue as DbValue, Readable as DbReader,
+    KvFileDbRead as DbReadable, KvFileDbReader as Reader, KvFileDbRoHandler as BcDbRo,
+    KvFileDbSchema, KvFileDbStoreType, KvFileDbValue as DbValue, Readable as DbReader,
 };
 pub use durs_dbs_tools::DbError;
 
