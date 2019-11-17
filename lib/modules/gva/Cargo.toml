@@ -10,7 +10,7 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-actix-web = "1.0.8"
+actix-web = "1.0.9"
 dubp-block-doc = { path = "../../dubp/block-doc"} #, version = "0.1.0" }
 dup-crypto = { path = "../../crypto" }
 durs-bc-db-reader = { path = "../../modules-lib/bc-db-reader" }
@@ -22,15 +22,12 @@ durs-network-documents = { path = "../../dunp/network-documents" }
 dubp-common-doc = { path = "../../dubp/common-doc"} #, version = "0.1.0" }
 durs-common-tools = { path = "../../tools/common-tools" }
 dubp-currency-params = { path = "../../dubp/currency-params" }
-cfg-if = "0.1.10"
 chrono = "0.4.9"
 failure = "0.1.5"
 futures = "0.1"
-futures-cpupool = "0.1"
-juniper = "0.14.0"
-juniper-from-schema =  "0.5.0"
+juniper = "0.14.1"
+juniper-from-schema = "0.5.0"
 log = "0.4.8"
-proc-macro2 = "1.0.6"
 serde = "1.0.102"
 serde_derive = "1.0.102"
 serde_json = "1.0.41"

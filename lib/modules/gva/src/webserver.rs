@@ -63,14 +63,6 @@ pub fn start_web_server(
     #[cfg(test)]
     let db = MockBcDbTrait::new();
 
-    cfg_if::cfg_if! {
-        if #[cfg(test)] {
-            MockBcDbTrait::new()
-        } else {
-
-        }
-    };
-
     // Instanciate the context
     context::init(db, soft_meta_datas.soft_name, soft_meta_datas.soft_version);
 
