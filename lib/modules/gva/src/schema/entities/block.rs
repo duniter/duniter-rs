@@ -63,8 +63,8 @@ impl super::super::BlockFields for Block {
     }
 }
 
-impl Block {
-    pub fn from_db_block(db_block: DbBlock) -> Block {
+impl From<DbBlock> for Block {
+    fn from(db_block: DbBlock) -> Block {
         Block {
             version: db_block.block.version() as i32,
             currency: db_block.block.currency().to_string(),

@@ -19,8 +19,10 @@ use super::db_err_to_juniper_err;
 use crate::context::Context;
 use crate::db::BcDbTrait;
 use crate::schema::entities::block::Block;
-use crate::schema::paging;
+use crate::schema::inputs::paging::FilledPaging;
+use crate::schema::BlockInterval;
 use crate::schema::Paging;
+use dubp_common_doc::BlockNumber;
 use durs_bc_db_reader::blocks::DbBlock;
 use juniper::Executor;
 use juniper::FieldResult;
@@ -30,37 +32,47 @@ pub(crate) fn execute(
     executor: &Executor<'_, Context>,
     _trail: &QueryTrail<'_, Block, Walked>,
     paging_opt: Option<Paging>,
+    block_interval_opt: Option<BlockInterval>,
+    step: usize,
 ) -> FieldResult<Vec<Block>> {
     let db = executor.context().get_db();
 
+    // Get interval
+    let interval =
+        BlockInterval::get_range(db, block_interval_opt).map_err(db_err_to_juniper_err)?;
+
+    // Get blocks numbers that respect filters
+    let blocks_numbers: Vec<BlockNumber> =
+        interval.clone().map(|i| BlockNumber(i as u32)).collect(); // TODO
+
+    // Apply interval
+    let blocks_numbers: Vec<BlockNumber> = blocks_numbers
+        .into_iter()
+        .filter(|n| interval.contains(&(n.0 as usize)))
+        .collect();
+    let count = blocks_numbers.len();
+
+    // Apply paging and step
+    let paging = FilledPaging::from(paging_opt);
+    let page_range = paging.get_page_range(count, step);
+    let blocks_numbers: Vec<BlockNumber> = page_range
+        .step_by(step)
+        .map(|i| blocks_numbers[i])
+        .collect();
+
+    // Get blocks
     let blocks: Vec<DbBlock> = db
-        .get_db_blocks_in_local_blockchain(
-            paging::FilledPaging::new(db, paging_opt)
-                .map_err(db_err_to_juniper_err)?
-                .get_range(),
-        )
+        .get_db_blocks_in_local_blockchain(blocks_numbers)
         .map_err(db_err_to_juniper_err)?;
 
-    Ok(blocks.into_iter().map(Block::from_db_block).collect())
-
-    /*let db: &BcDbRo = &executor.context().get_db();
-    db.read(|r| {
-        paging::FilledPaging::new(db, paging_opt)?
-            .get_range()
-            .filter_map(|n| match block::get_block(db, r, BlockNumber(n)) {
-                Ok(Some(db_block)) => Some(Ok(db_block)),
-                Ok(None) => None,
-                Err(e) => Some(Err(e)),
-            })
-            .collect::<Result<Vec<Block>, DbError>>()
-    })
-    .map_err(db_err_to_juniper_err)*/
+    Ok(blocks.into_iter().map(Into::into).collect())
 }
 
 #[cfg(test)]
 mod tests {
     use crate::db::MockBcDbTrait;
     use crate::schema::queries::tests;
+    use dubp_block_doc::block::v10::BlockDocumentV10;
     use dubp_block_doc::block::BlockDocument;
     use dubp_blocks_tests_tools::mocks::gen_empty_timed_block_v10;
     use dubp_common_doc::traits::Document;
@@ -70,12 +82,8 @@ mod tests {
     use durs_bc_db_reader::blocks::DbBlock;
     use mockall::predicate::eq;
     use serde_json::json;
-    use std::ops::Range;
 
-    #[test]
-    fn test_graphql_blocks() {
-        let mut mock_db = MockBcDbTrait::new();
-
+    fn block_0() -> BlockDocumentV10 {
         let mut block_0 = gen_empty_timed_block_v10(
             Blockstamp {
                 id: BlockNumber(0),
@@ -85,6 +93,20 @@ mod tests {
             Hash::default(),
         );
         block_0.issuers = vec![pubkey('A')];
+        block_0
+    }
+    fn block_0_json() -> serde_json::Value {
+        json!({
+            "commonTime": 1_488_987_127.0,
+            "currency": "test_currency",
+            "hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "issuer": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "number": 0,
+            "version": 10
+        })
+    }
+
+    fn block_1() -> BlockDocumentV10 {
         let mut block_1 = gen_empty_timed_block_v10(
             Blockstamp {
                 id: BlockNumber(1),
@@ -94,7 +116,21 @@ mod tests {
             Hash::default(),
         );
         block_1.issuers = vec![pubkey('B')];
-        let mut current_block = gen_empty_timed_block_v10(
+        block_1
+    }
+    fn block_1_json() -> serde_json::Value {
+        json!({
+            "commonTime": 1_488_987_128.0,
+            "currency": "test_currency",
+            "hash": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "issuer": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "number": 1,
+            "version": 10
+        })
+    }
+
+    fn block_2() -> BlockDocumentV10 {
+        let mut block_2 = gen_empty_timed_block_v10(
             Blockstamp {
                 id: BlockNumber(2),
                 hash: BlockHash(hash('C')),
@@ -102,7 +138,73 @@ mod tests {
             1_488_987_129,
             Hash::default(),
         );
-        current_block.issuers = vec![pubkey('C')];
+        block_2.issuers = vec![pubkey('C')];
+        block_2
+    }
+    fn block_2_json() -> serde_json::Value {
+        json!({
+            "commonTime": 1_488_987_129.0,
+            "currency": "test_currency",
+            "hash": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "issuer": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            "number": 2,
+            "version": 10
+        })
+    }
+
+    fn block_3() -> BlockDocumentV10 {
+        let mut block_3 = gen_empty_timed_block_v10(
+            Blockstamp {
+                id: BlockNumber(3),
+                hash: BlockHash(hash('D')),
+            },
+            1_488_987_130,
+            Hash::default(),
+        );
+        block_3.issuers = vec![pubkey('D')];
+        block_3
+    }
+    fn block_3_json() -> serde_json::Value {
+        json!({
+            "commonTime": 1_488_987_130.0,
+            "currency": "test_currency",
+            "hash": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+            "issuer": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+            "number": 3,
+            "version": 10
+        })
+    }
+
+    fn block_4() -> BlockDocumentV10 {
+        let mut block_4 = gen_empty_timed_block_v10(
+            Blockstamp {
+                id: BlockNumber(4),
+                hash: BlockHash(hash('E')),
+            },
+            1_488_987_131,
+            Hash::default(),
+        );
+        block_4.issuers = vec![pubkey('E')];
+        block_4
+    }
+    fn block_4_json() -> serde_json::Value {
+        json!({
+            "commonTime": 1_488_987_131.0,
+            "currency": "test_currency",
+            "hash": "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+            "issuer": "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+            "number": 4,
+            "version": 10
+        })
+    }
+
+    #[test]
+    fn test_graphql_blocks_from_2() {
+        let mut mock_db = MockBcDbTrait::new();
+
+        let block_2 = block_2();
+        let block_3 = block_3();
+        let current_block = block_4();
 
         let current_blockstamp = current_block.blockstamp();
         mock_db
@@ -112,7 +214,115 @@ mod tests {
 
         mock_db
             .expect_get_db_blocks_in_local_blockchain()
-            .with(eq(Range { start: 0, end: 3 }))
+            .with(eq(vec![BlockNumber(2), BlockNumber(3), BlockNumber(4)]))
+            .returning(move |_| {
+                Ok(vec![
+                    DbBlock {
+                        block: BlockDocument::V10(block_2.clone()),
+                        expire_certs: None,
+                    },
+                    DbBlock {
+                        block: BlockDocument::V10(block_3.clone()),
+                        expire_certs: None,
+                    },
+                    DbBlock {
+                        block: BlockDocument::V10(current_block.clone()),
+                        expire_certs: None,
+                    },
+                ])
+            });
+
+        let schema = tests::setup(mock_db);
+
+        tests::test_gql_query(
+            schema,
+            "{ blocks(interval: { from: 2 }) { commonTime, currency, hash, issuer, number, version } }",
+            json!({
+                "data": {
+                    "blocks": [
+                        block_2_json(),
+                        block_3_json(),
+                        block_4_json(),
+                    ]
+                }
+            }),
+        );
+    }
+
+    #[test]
+    fn test_graphql_blocks_with_step_2() {
+        let mut mock_db = MockBcDbTrait::new();
+
+        let block_0 = block_0();
+        let current_block = block_2();
+
+        let current_blockstamp = current_block.blockstamp();
+        mock_db
+            .expect_get_current_blockstamp()
+            .times(1)
+            .returning(move || Ok(Some(current_blockstamp)));
+
+        mock_db
+            .expect_get_db_blocks_in_local_blockchain()
+            .with(eq(vec![BlockNumber(0), BlockNumber(2)]))
+            .returning(move |_| {
+                Ok(vec![
+                    DbBlock {
+                        block: BlockDocument::V10(block_0.clone()),
+                        expire_certs: None,
+                    },
+                    DbBlock {
+                        block: BlockDocument::V10(current_block.clone()),
+                        expire_certs: None,
+                    },
+                ])
+            });
+
+        let schema = tests::setup(mock_db);
+
+        tests::test_gql_query(
+            schema,
+            "{ blocks(step: 2) { commonTime, currency, hash, issuer, number, version } }",
+            json!({
+                "data": {
+                    "blocks": [{
+                        "commonTime": 1_488_987_127.0,
+                        "currency": "test_currency",
+                        "hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "issuer": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "number": 0,
+                        "version": 10
+                    },
+                    {
+                        "commonTime": 1_488_987_129.0,
+                        "currency": "test_currency",
+                        "hash": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+                        "issuer": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+                        "number": 2,
+                        "version": 10
+                    }]
+                }
+            }),
+        );
+    }
+
+    #[test]
+    fn test_graphql_blocks() {
+        let mut mock_db = MockBcDbTrait::new();
+
+        let block_0 = block_0();
+        let block_1 = block_1();
+        let current_block = block_2();
+
+        let current_blockstamp = current_block.blockstamp();
+        mock_db
+            .expect_get_current_blockstamp()
+            .times(1)
+            .returning(move || Ok(Some(current_blockstamp)));
+
+        mock_db
+            .expect_get_db_blocks_in_local_blockchain()
+            .with(eq(vec![BlockNumber(0), BlockNumber(1), BlockNumber(2)]))
             .returning(move |_| {
                 Ok(vec![
                     DbBlock {
@@ -137,30 +347,10 @@ mod tests {
             "{ blocks { commonTime, currency, hash, issuer, number, version } }",
             json!({
                 "data": {
-                    "blocks": [{
-                        "commonTime": 1_488_987_127.0,
-                        "currency": "test_currency",
-                        "hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                        "issuer": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                        "number": 0,
-                        "version": 10
-                    },
-                    {
-                        "commonTime": 1_488_987_128.0,
-                        "currency": "test_currency",
-                        "hash": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
-                        "issuer": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
-                        "number": 1,
-                        "version": 10
-                    },
-                    {
-                        "commonTime": 1_488_987_129.0,
-                        "currency": "test_currency",
-                        "hash": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
-                        "issuer": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
-                        "number": 2,
-                        "version": 10
-                    }]
+                    "blocks": [
+                    block_0_json(),
+                    block_1_json(),
+                    block_2_json()]
                 }
             }),
         );

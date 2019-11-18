@@ -20,7 +20,6 @@ pub use durs_bc_db_reader::DbError;
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use durs_bc_db_reader::blocks::DbBlock;
 use durs_bc_db_reader::{BcDbRo, DbReadable};
-use std::ops::Range;
 
 #[cfg(test)]
 use mockall::predicate::*;
@@ -35,8 +34,10 @@ pub(crate) trait BcDbTrait {
         &self,
         block_number: BlockNumber,
     ) -> Result<Option<DbBlock>, DbError>;
-    fn get_db_blocks_in_local_blockchain(&self, range: Range<u32>)
-        -> Result<Vec<DbBlock>, DbError>;
+    fn get_db_blocks_in_local_blockchain(
+        &self,
+        numbers: Vec<BlockNumber>,
+    ) -> Result<Vec<DbBlock>, DbError>;
 }
 
 impl<'a> BcDbTrait for BcDbRo {
@@ -70,16 +71,13 @@ impl<'a> BcDbTrait for BcDbRo {
     }
     fn get_db_blocks_in_local_blockchain(
         &self,
-        range: Range<u32>,
+        numbers: Vec<BlockNumber>,
     ) -> Result<Vec<DbBlock>, DbError> {
         self.read(|r| {
-            range
+            numbers
+                .into_iter()
                 .filter_map(|n| {
-                    match durs_bc_db_reader::blocks::get_db_block_in_local_blockchain(
-                        self,
-                        r,
-                        BlockNumber(n),
-                    ) {
+                    match durs_bc_db_reader::blocks::get_db_block_in_local_blockchain(self, r, n) {
                         Ok(Some(db_block)) => Some(Ok(db_block)),
                         Ok(None) => None,
                         Err(e) => Some(Err(e)),

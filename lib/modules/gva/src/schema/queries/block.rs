@@ -40,7 +40,7 @@ pub(crate) fn execute(
         .get_db()
         .get_db_block_in_local_blockchain(block_number)
         .map_err(db_err_to_juniper_err)
-        .map(|db_block_opt| db_block_opt.map(Block::from_db_block))
+        .map(|db_block_opt| db_block_opt.map(Into::into))
 }
 
 #[cfg(test)]

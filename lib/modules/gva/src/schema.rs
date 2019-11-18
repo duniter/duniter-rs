@@ -16,7 +16,7 @@
 // ! Module define GraphQl schema
 
 mod entities;
-mod paging;
+pub mod inputs;
 mod queries;
 
 use self::entities::block::Block;
@@ -62,9 +62,20 @@ impl QueryFields for Query {
         &self,
         executor: &Executor<'_, Context>,
         trail: &QueryTrail<'_, Block, Walked>,
+        block_interval_opt: Option<BlockInterval>,
         paging_opt: Option<Paging>,
+        mut step: i32,
     ) -> FieldResult<Vec<Block>> {
-        queries::blocks::execute(executor, trail, paging_opt)
+        if step <= 0 {
+            step = 1;
+        }
+        queries::blocks::execute(
+            executor,
+            trail,
+            paging_opt,
+            block_interval_opt,
+            step as usize,
+        )
     }
 }
 
