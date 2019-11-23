@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 // web server implementaion based on actix-web
 
-use crate::context;
+use crate::context::GlobalContext;
+use crate::db::BcDbRo;
 use crate::graphql::graphql;
 use crate::schema::create_schema;
 use actix_web::{middleware, web, App, HttpResponse, HttpServer};
@@ -27,8 +28,8 @@ use durs_network_documents::url::Url;
 use juniper::http::graphiql::graphiql_source;
 use std::net::SocketAddr;
 
-#[cfg(test)]
-use crate::db::MockBcDbTrait;
+/// Database readonly handler (access to database)
+static mut DB_RO_HANDLER: Option<BcDbRo> = None;
 
 fn graphiql() -> HttpResponse {
     let html = graphiql_source("/graphql");
@@ -44,11 +45,9 @@ pub fn start_web_server(
 ) -> std::io::Result<()> {
     info!("GVA web server start...");
 
+    // Define listen addrs
     let addrs: Vec<SocketAddr> =
         Url::from_host_port_path(host, port, None).to_listenable_addr("http")?;
-
-    // Create Juniper schema
-    let schema = std::sync::Arc::new(create_schema());
 
     // Get DB
     #[cfg(not(test))]
@@ -61,15 +60,23 @@ pub fn start_web_server(
         }
     };
     #[cfg(test)]
-    let db = MockBcDbTrait::new();
+    let db = BcDbRo::new();
 
-    // Instanciate the context
-    context::init(db, soft_meta_datas.soft_name, soft_meta_datas.soft_version);
+    // Give a static lifetime to the DB
+    let db = durs_common_tools::fns::r#static::to_static_ref(db, unsafe { &mut DB_RO_HANDLER });
+
+    // Create global context
+    let global_context = std::sync::Arc::new(GlobalContext::new(
+        db,
+        create_schema(),
+        soft_meta_datas.soft_name,
+        soft_meta_datas.soft_version,
+    ));
 
     // Start http server
     HttpServer::new(move || {
         App::new()
-            .data(schema.clone())
+            .data(global_context.clone())
             .wrap(middleware::Logger::default())
             .service(web::resource("/graphql").route(web::post().to_async(graphql)))
             .service(web::resource("/graphiql").route(web::get().to(graphiql)))

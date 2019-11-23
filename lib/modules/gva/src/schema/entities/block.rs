@@ -15,7 +15,7 @@
 
 // ! Module define graphql Block type
 
-use crate::context::Context;
+use crate::context::QueryContext;
 use chrono::NaiveDateTime;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::traits::Document;
@@ -34,31 +34,34 @@ pub struct Block {
 }
 
 impl super::super::BlockFields for Block {
-    fn field_version(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+    fn field_version(&self, _executor: &Executor<'_, QueryContext>) -> FieldResult<&i32> {
         Ok(&self.version)
     }
 
-    fn field_currency(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+    fn field_currency(&self, _executor: &Executor<'_, QueryContext>) -> FieldResult<&String> {
         Ok(&self.currency)
     }
 
-    fn field_issuer(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+    fn field_issuer(&self, _executor: &Executor<'_, QueryContext>) -> FieldResult<&String> {
         Ok(&self.issuer)
     }
 
-    fn field_number(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+    fn field_number(&self, _executor: &Executor<'_, QueryContext>) -> FieldResult<&i32> {
         Ok(&self.number)
     }
 
-    fn field_hash(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+    fn field_hash(&self, _executor: &Executor<'_, QueryContext>) -> FieldResult<&String> {
         Ok(&self.hash)
     }
 
-    fn field_common_time(&self, _executor: &Executor<'_, Context>) -> FieldResult<&NaiveDateTime> {
+    fn field_common_time(
+        &self,
+        _executor: &Executor<'_, QueryContext>,
+    ) -> FieldResult<&NaiveDateTime> {
         Ok(&self.common_time)
     }
 
-    fn field_pow_min(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+    fn field_pow_min(&self, _executor: &Executor<'_, QueryContext>) -> FieldResult<&i32> {
         Ok(&self.pow_min)
     }
 }

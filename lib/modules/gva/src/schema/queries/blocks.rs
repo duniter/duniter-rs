@@ -15,31 +15,24 @@
 
 // ! Module execute GraphQl schema blocks query
 
-use super::db_err_to_juniper_err;
-use crate::context::Context;
-use crate::db::BcDbTrait;
 use crate::schema::entities::block::Block;
 use crate::schema::inputs::paging::FilledPaging;
 use crate::schema::BlockInterval;
 use crate::schema::Paging;
 use dubp_common_doc::BlockNumber;
 use durs_bc_db_reader::blocks::DbBlock;
-use juniper::Executor;
-use juniper::FieldResult;
+use durs_bc_db_reader::{BcDbRoTrait, DbError};
 use juniper_from_schema::{QueryTrail, Walked};
 
-pub(crate) fn execute(
-    executor: &Executor<'_, Context>,
+pub(crate) fn execute<DB: BcDbRoTrait>(
+    db: &DB,
     _trail: &QueryTrail<'_, Block, Walked>,
     paging_opt: Option<Paging>,
     block_interval_opt: Option<BlockInterval>,
     step: usize,
-) -> FieldResult<Vec<Block>> {
-    let db = executor.context().get_db();
-
+) -> Result<Vec<Block>, DbError> {
     // Get interval
-    let interval =
-        BlockInterval::get_range(db, block_interval_opt).map_err(db_err_to_juniper_err)?;
+    let interval = BlockInterval::get_range(db, block_interval_opt)?;
 
     // Get blocks numbers that respect filters
     let blocks_numbers: Vec<BlockNumber> =
@@ -61,16 +54,14 @@ pub(crate) fn execute(
         .collect();
 
     // Get blocks
-    let blocks: Vec<DbBlock> = db
-        .get_db_blocks_in_local_blockchain(blocks_numbers)
-        .map_err(db_err_to_juniper_err)?;
+    let blocks: Vec<DbBlock> = db.get_db_blocks_in_local_blockchain(blocks_numbers)?;
 
     Ok(blocks.into_iter().map(Into::into).collect())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::db::MockBcDbTrait;
+    use crate::db::BcDbRo;
     use crate::schema::queries::tests;
     use dubp_block_doc::block::v10::BlockDocumentV10;
     use dubp_block_doc::block::BlockDocument;
@@ -198,9 +189,11 @@ mod tests {
         })
     }
 
+    static mut DB_TEST_BLOCKS_FROM_2: Option<BcDbRo> = None;
+
     #[test]
     fn test_graphql_blocks_from_2() {
-        let mut mock_db = MockBcDbTrait::new();
+        let mut mock_db = BcDbRo::new();
 
         let block_2 = block_2();
         let block_3 = block_3();
@@ -232,7 +225,7 @@ mod tests {
                 ])
             });
 
-        let schema = tests::setup(mock_db);
+        let schema = tests::setup(mock_db, unsafe { &mut DB_TEST_BLOCKS_FROM_2 });
 
         tests::test_gql_query(
             schema,
@@ -249,9 +242,11 @@ mod tests {
         );
     }
 
+    static mut DB_TEST_BLOCKS_STEP_2: Option<BcDbRo> = None;
+
     #[test]
     fn test_graphql_blocks_with_step_2() {
-        let mut mock_db = MockBcDbTrait::new();
+        let mut mock_db = BcDbRo::new();
 
         let block_0 = block_0();
         let current_block = block_2();
@@ -278,7 +273,7 @@ mod tests {
                 ])
             });
 
-        let schema = tests::setup(mock_db);
+        let schema = tests::setup(mock_db, unsafe { &mut DB_TEST_BLOCKS_STEP_2 });
 
         tests::test_gql_query(
             schema,
@@ -306,9 +301,11 @@ mod tests {
         );
     }
 
+    static mut DB_TEST_BLOCKS: Option<BcDbRo> = None;
+
     #[test]
     fn test_graphql_blocks() {
-        let mut mock_db = MockBcDbTrait::new();
+        let mut mock_db = BcDbRo::new();
 
         let block_0 = block_0();
         let block_1 = block_1();
@@ -340,7 +337,7 @@ mod tests {
                 ])
             });
 
-        let schema = tests::setup(mock_db);
+        let schema = tests::setup(mock_db, unsafe { &mut DB_TEST_BLOCKS });
 
         tests::test_gql_query(
             schema,

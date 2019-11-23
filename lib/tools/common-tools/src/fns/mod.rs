@@ -18,5 +18,6 @@
 pub mod _u64;
 pub mod arrays;
 pub mod bin_file;
+pub mod r#static;
 pub mod str_escape;
 pub mod time;

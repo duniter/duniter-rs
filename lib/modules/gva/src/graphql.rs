@@ -16,19 +16,19 @@
 
 //! Module that execute graphql queries
 
-use crate::schema::Schema;
+use crate::context::{GlobalContext, QueryContext};
 use actix_web::{web, Error, HttpResponse};
 use futures::future::Future;
 use juniper::http::GraphQLRequest;
 use std::sync::Arc;
 
 pub(crate) fn graphql(
-    schema: web::Data<Arc<Schema>>,
+    global_context: web::Data<Arc<GlobalContext>>,
     data: web::Json<GraphQLRequest>,
 ) -> impl Future<Item = HttpResponse, Error = Error> {
-    let context = crate::context::get_context();
+    let query_context = QueryContext::from(global_context.as_ref());
     web::block(move || {
-        let result = data.execute(&schema, context);
+        let result = data.execute(&global_context.schema, &query_context);
         serde_json::to_string(&result)
     })
     .map_err(Error::from)

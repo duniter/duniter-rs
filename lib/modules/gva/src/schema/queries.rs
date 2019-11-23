@@ -20,19 +20,13 @@ pub mod blocks;
 pub mod current;
 pub mod node;
 
-use durs_bc_db_reader::DbError;
-
-pub(crate) fn db_err_to_juniper_err(e: DbError) -> juniper::FieldError {
-    juniper::FieldError::from(format!("Db error: {:?}", e))
-}
-
 #[cfg(test)]
 mod tests {
 
-    use crate::context;
-    use crate::db::MockBcDbTrait;
+    use crate::context::GlobalContext;
+    use crate::db::BcDbRo;
     use crate::graphql::graphql;
-    use crate::schema::{create_schema, Schema};
+    use crate::schema::create_schema;
     use actix_web::dev::Body;
     use actix_web::http;
     use actix_web::test;
@@ -42,19 +36,29 @@ mod tests {
     use std::str::FromStr;
     use std::sync::Arc;
 
-    pub(crate) fn setup(mock_db: MockBcDbTrait) -> web::Data<Arc<Schema>> {
-        context::init(mock_db, "soft_name", "soft_version");
+    pub(crate) fn setup(
+        mock_db: BcDbRo,
+        db_container: &'static mut Option<BcDbRo>,
+    ) -> web::Data<Arc<GlobalContext>> {
+        // Give a static lifetime to the DB
+        let db = durs_common_tools::fns::r#static::to_static_ref(mock_db, db_container);
 
-        web::Data::new(std::sync::Arc::new(create_schema()))
+        // Init global context
+        web::Data::new(std::sync::Arc::new(GlobalContext::new(
+            db,
+            create_schema(),
+            "soft_name",
+            "soft_version",
+        )))
     }
 
     pub(crate) fn test_gql_query(
-        schema: web::Data<Arc<Schema>>,
+        global_context: web::Data<Arc<GlobalContext>>,
         gql_query: &str,
         expected_response: serde_json::Value,
     ) {
         let resp = test::block_on(graphql(
-            schema,
+            global_context,
             web::Json(GraphQLRequest::new(gql_query.to_owned(), None, None)),
         ))
         .unwrap();

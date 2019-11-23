@@ -13,39 +13,54 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#[cfg(not(test))]
-use durs_bc_db_reader::BcDbRo;
-use durs_common_tools::fatal_error;
+//! Context for graphql resolvers
 
-#[cfg(test)]
-use crate::db::MockBcDbTrait;
+use crate::db::BcDbRo;
+use crate::schema::Schema;
 
-/// GVA context (access to database)
-static mut CONTEXT: Option<Context> = None;
-
-#[cfg(not(test))]
-pub type DB = BcDbRo;
-#[cfg(test)]
-pub(crate) type DB = MockBcDbTrait;
-
-pub struct Context {
-    db: DB,
+pub struct GlobalContext {
+    db: &'static BcDbRo,
+    pub(crate) schema: Schema,
     software_name: &'static str,
     software_version: &'static str,
 }
 
-impl juniper::Context for Context {}
-
-impl Context {
-    pub(crate) fn new(db: DB, software_name: &'static str, software_version: &'static str) -> Self {
-        Context {
+impl GlobalContext {
+    pub(crate) fn new(
+        db: &'static BcDbRo,
+        schema: Schema,
+        software_name: &'static str,
+        software_version: &'static str,
+    ) -> Self {
+        GlobalContext {
             db,
+            schema,
             software_name,
             software_version,
         }
     }
+}
 
-    pub(crate) fn get_db(&self) -> &DB {
+pub struct QueryContext {
+    db: &'static BcDbRo,
+    software_name: &'static str,
+    software_version: &'static str,
+}
+
+impl juniper::Context for QueryContext {}
+
+impl From<&GlobalContext> for QueryContext {
+    fn from(global_context: &GlobalContext) -> Self {
+        QueryContext {
+            db: global_context.db,
+            software_name: global_context.software_name,
+            software_version: global_context.software_version,
+        }
+    }
+}
+
+impl QueryContext {
+    pub(crate) fn get_db(&self) -> &BcDbRo {
         &self.db
     }
 
@@ -55,21 +70,5 @@ impl Context {
 
     pub fn get_software_version(&self) -> &'static str {
         &self.software_version
-    }
-}
-
-pub(crate) fn init(db: DB, soft_name: &'static str, soft_version: &'static str) {
-    unsafe {
-        CONTEXT.replace(Context::new(db, soft_name, soft_version));
-    }
-}
-
-pub fn get_context() -> &'static Context {
-    unsafe {
-        if let Some(ref context) = CONTEXT {
-            context
-        } else {
-            fatal_error!("GVA: no context");
-        }
     }
 }

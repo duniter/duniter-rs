@@ -1,4 +1,4 @@
-//  Copyright (C) 2017-2019  The AXIOM TEAM Association.
+//  Copyright (C) 2019  Éloïs SANCHEZ
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,9 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Gva Module: database requests
+//! Common rust functions for static lifetime.
 
-#[cfg(not(test))]
-pub(crate) use durs_bc_db_reader::BcDbRo;
-#[cfg(test)]
-pub(crate) use durs_bc_db_reader::MockBcDbRoTrait as BcDbRo;
+/// Transforms any object into a static reference to that object
+pub fn to_static_ref<T>(value: T, container: &'static mut Option<T>) -> &'static T {
+    container.replace(value);
+    if let Some(ref value) = container {
+        value
+    } else {
+        unreachable!()
+    }
+}

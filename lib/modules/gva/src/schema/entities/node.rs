@@ -15,7 +15,7 @@
 
 // ! Module define graphql Node type and subtypes
 
-use crate::context::Context;
+use crate::context::QueryContext;
 use juniper::Executor;
 use juniper_from_schema::{QueryTrail, Walked};
 
@@ -31,7 +31,7 @@ pub struct Node {
 impl super::super::NodeFields for Node {
     fn field_summary(
         &self,
-        _executor: &Executor<'_, Context>,
+        _executor: &Executor<'_, QueryContext>,
         _trail: &QueryTrail<'_, Summary, Walked>,
     ) -> &Summary {
         &self.summary
@@ -39,10 +39,10 @@ impl super::super::NodeFields for Node {
 }
 
 impl super::super::SummaryFields for Summary {
-    fn field_software(&self, _executor: &Executor<'_, Context>) -> String {
+    fn field_software(&self, _executor: &Executor<'_, QueryContext>) -> String {
         self.software.to_owned()
     }
-    fn field_version(&self, _executor: &Executor<'_, Context>) -> String {
+    fn field_version(&self, _executor: &Executor<'_, QueryContext>) -> String {
         self.version.to_owned()
     }
 }

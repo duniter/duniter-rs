@@ -15,29 +15,21 @@
 
 // ! Module execute GraphQl schema current query
 
-use super::db_err_to_juniper_err;
-use crate::context::Context;
-use crate::db::BcDbTrait;
 use crate::schema::entities::block::Block;
-use juniper::Executor;
-use juniper::FieldResult;
+use durs_bc_db_reader::{BcDbRoTrait, DbError};
 use juniper_from_schema::{QueryTrail, Walked};
 
-pub(crate) fn execute(
-    executor: &Executor<'_, Context>,
+pub(crate) fn execute<DB: BcDbRoTrait>(
+    db: &DB,
     _trail: &QueryTrail<'_, Block, Walked>,
-) -> FieldResult<Option<Block>> {
-    executor
-        .context()
-        .get_db()
-        .get_current_block()
-        .map_err(db_err_to_juniper_err)
+) -> Result<Option<Block>, DbError> {
+    db.get_current_block()
         .map(|db_block_opt| db_block_opt.map(Into::into))
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::db::MockBcDbTrait;
+    use crate::db::BcDbRo;
     use crate::schema::queries::tests;
     use dubp_block_doc::block::BlockDocument;
     use dubp_blocks_tests_tools::mocks::gen_empty_timed_block_v10;
@@ -47,9 +39,11 @@ mod tests {
     use durs_bc_db_reader::blocks::DbBlock;
     use serde_json::json;
 
+    static mut DB_TEST_CURRENT_1: Option<BcDbRo> = None;
+
     #[test]
     fn test_graphql_current() {
-        let mut mock_db = MockBcDbTrait::new();
+        let mut mock_db = BcDbRo::new();
         mock_db.expect_get_current_block().returning(|| {
             let mut current_block = gen_empty_timed_block_v10(
                 Blockstamp {
@@ -67,7 +61,7 @@ mod tests {
             }))
         });
 
-        let schema = tests::setup(mock_db);
+        let schema = tests::setup(mock_db, unsafe { &mut DB_TEST_CURRENT_1 });
 
         tests::test_gql_query(
             schema,

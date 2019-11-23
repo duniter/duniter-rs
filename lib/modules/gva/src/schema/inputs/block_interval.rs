@@ -16,22 +16,21 @@
 // ! BlockInterval input methods
 
 use super::super::BlockInterval;
-use crate::db::BcDbTrait;
-use durs_bc_db_reader::DbError;
+use durs_bc_db_reader::{BcDbRoTrait, DbError};
 use std::ops::RangeInclusive;
 
 const DEFAULT_START: usize = 0;
 const END_WHEN_EMPTY_BLOCKCHAIN: usize = 0;
 
 impl BlockInterval {
-    fn get_default_end<DB: BcDbTrait>(db: &DB) -> Result<usize, DbError> {
+    fn get_default_end<DB: BcDbRoTrait>(db: &DB) -> Result<usize, DbError> {
         if let Some(current_blockstamp) = db.get_current_blockstamp()? {
             Ok(current_blockstamp.id.0 as usize)
         } else {
             Ok(END_WHEN_EMPTY_BLOCKCHAIN)
         }
     }
-    pub(crate) fn get_range<DB: BcDbTrait>(
+    pub(crate) fn get_range<DB: BcDbRoTrait>(
         db: &DB,
         block_interval_opt: Option<BlockInterval>,
     ) -> Result<RangeInclusive<usize>, DbError> {
@@ -68,12 +67,12 @@ impl BlockInterval {
 mod tests {
 
     use super::*;
-    use crate::db::MockBcDbTrait;
+    use crate::db::BcDbRo;
     use dubp_common_doc::{BlockHash, BlockNumber, Blockstamp};
 
     #[test]
     fn test_block_interval_get_range_with_short_bc() -> Result<(), DbError> {
-        let mut mock_db = MockBcDbTrait::new();
+        let mut mock_db = BcDbRo::new();
         mock_db
             .expect_get_current_blockstamp()
             .times(1)
@@ -92,7 +91,7 @@ mod tests {
 
     #[test]
     fn test_block_interval_get_range_with_long_bc() -> Result<(), DbError> {
-        let mut mock_db = MockBcDbTrait::new();
+        let mut mock_db = BcDbRo::new();
         mock_db
             .expect_get_current_blockstamp()
             .times(2)

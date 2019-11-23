@@ -15,33 +15,34 @@
 
 // ! Module execute GraphQl schema node query
 
-use crate::context::Context;
+use crate::context::QueryContext;
 use crate::schema::entities::node::{Node, Summary};
-use juniper::Executor;
 use juniper::FieldResult;
 use juniper_from_schema::{QueryTrail, Walked};
 
 pub(crate) fn execute(
-    executor: &Executor<'_, Context>,
+    context: &QueryContext,
     _trail: &QueryTrail<'_, Node, Walked>,
 ) -> FieldResult<Node> {
     Ok(Node {
         summary: Summary {
-            software: executor.context().get_software_name(),
-            version: executor.context().get_software_version(),
+            software: context.get_software_name(),
+            version: context.get_software_version(),
         },
     })
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::db::MockBcDbTrait;
+    use crate::db::BcDbRo;
     use crate::schema::queries::tests;
     use serde_json::json;
 
+    static mut DB_TEST_NODE_SUMMARY: Option<BcDbRo> = None;
+
     #[test]
-    fn test_graphql_current() {
-        let schema = tests::setup(MockBcDbTrait::new());
+    fn test_graphql_node_summary() {
+        let schema = tests::setup(BcDbRo::new(), unsafe { &mut DB_TEST_NODE_SUMMARY });
 
         tests::test_gql_query(
             schema,

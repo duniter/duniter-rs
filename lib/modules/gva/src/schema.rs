@@ -21,13 +21,15 @@ mod queries;
 
 use self::entities::block::Block;
 use self::entities::node::{Node, Summary};
-use crate::context::Context;
+use crate::context::QueryContext;
+#[cfg(not(test))]
+use durs_bc_db_reader::{BcDbRoWithReader, DbReadable};
 use juniper::Executor;
 use juniper::FieldResult;
 use juniper_from_schema::graphql_schema_from_file;
 
 // generate schema from schema file
-graphql_schema_from_file!("resources/schema.gql");
+graphql_schema_from_file!("resources/schema.gql", context_type: QueryContext);
 
 pub struct Query;
 
@@ -35,32 +37,46 @@ impl QueryFields for Query {
     #[inline]
     fn field_node(
         &self,
-        executor: &Executor<'_, Context>,
+        executor: &Executor<'_, QueryContext>,
         trail: &QueryTrail<'_, Node, Walked>,
     ) -> FieldResult<Node> {
-        queries::node::execute(executor, trail)
+        queries::node::execute(executor.context(), trail)
     }
     #[inline]
     fn field_current(
         &self,
-        executor: &Executor<'_, Context>,
+        executor: &Executor<'_, QueryContext>,
         trail: &QueryTrail<'_, Block, Walked>,
     ) -> FieldResult<Option<Block>> {
-        queries::current::execute(executor, trail)
+        let db = executor.context().get_db();
+        cfg_if::cfg_if! {
+            if #[cfg(not(test))] {
+                db.read(|r| queries::current::execute(&BcDbRoWithReader { db, r }, trail)).map_err(Into::into)
+            } else {
+                queries::current::execute(db, trail).map_err(Into::into)
+            }
+        }
     }
     #[inline]
     fn field_block(
         &self,
-        executor: &Executor<'_, Context>,
+        executor: &Executor<'_, QueryContext>,
         trail: &QueryTrail<'_, Block, Walked>,
         number: i32,
     ) -> FieldResult<Option<Block>> {
-        queries::block::execute(executor, trail, number)
+        let db = executor.context().get_db();
+        cfg_if::cfg_if! {
+            if #[cfg(not(test))] {
+                db.read(|r| queries::block::execute(&BcDbRoWithReader { db, r }, trail, number)).map_err(Into::into)
+            } else {
+                queries::block::execute(db, trail, number).map_err(Into::into)
+            }
+        }
     }
     #[inline]
     fn field_blocks(
         &self,
-        executor: &Executor<'_, Context>,
+        executor: &Executor<'_, QueryContext>,
         trail: &QueryTrail<'_, Block, Walked>,
         block_interval_opt: Option<BlockInterval>,
         paging_opt: Option<Paging>,
@@ -69,20 +85,37 @@ impl QueryFields for Query {
         if step <= 0 {
             step = 1;
         }
-        queries::blocks::execute(
-            executor,
-            trail,
-            paging_opt,
-            block_interval_opt,
-            step as usize,
-        )
+        let db = executor.context().get_db();
+        cfg_if::cfg_if! {
+            if #[cfg(not(test))] {
+                db.read(|r| {
+                    queries::blocks::execute(
+                        &BcDbRoWithReader { db, r },
+                        trail,
+                        paging_opt,
+                        block_interval_opt,
+                        step as usize,
+                    )
+                })
+                .map_err(Into::into)
+            } else {
+                queries::blocks::execute(
+                    db,
+                    trail,
+                    paging_opt,
+                    block_interval_opt,
+                    step as usize,
+                )
+                .map_err(Into::into)
+            }
+        }
     }
 }
 
 pub struct Mutation;
 
 impl MutationFields for Mutation {
-    fn field_noop(&self, _executor: &Executor<'_, Context>) -> FieldResult<&bool> {
+    fn field_noop(&self, _executor: &Executor<'_, QueryContext>) -> FieldResult<&bool> {
         Ok(&true)
     }
 }

@@ -185,6 +185,22 @@ pub fn get_blocks_in_local_blockchain<DB: DbReadable>(
     })
 }
 
+/// Get several blocks in local blockchain by their number
+pub fn get_blocks_in_local_blockchain_by_numbers<DB: DbReadable, R: DbReader>(
+    db: &DB,
+    r: &R,
+    numbers: Vec<BlockNumber>,
+) -> Result<Vec<DbBlock>, DbError> {
+    numbers
+        .into_iter()
+        .filter_map(|n| match get_db_block_in_local_blockchain(db, r, n) {
+            Ok(Some(db_block)) => Some(Ok(db_block)),
+            Ok(None) => None,
+            Err(e) => Some(Err(e)),
+        })
+        .collect::<Result<Vec<DbBlock>, DbError>>()
+}
+
 /// Get current frame of calculating members
 pub fn get_current_frame<DB: DbReadable>(
     current_block: &BlockDocument,

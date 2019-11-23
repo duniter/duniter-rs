@@ -17,7 +17,7 @@
 // ! Define read only trait
 
 use crate::blocks::DbBlock;
-use crate::{BcDbRo, DbReadable, Reader};
+use crate::{BcDbRo, Reader};
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use durs_dbs_tools::DbError;
 
@@ -39,49 +39,6 @@ pub trait BcDbRoTrait {
     ) -> Result<Vec<DbBlock>, DbError>;
 }
 
-impl BcDbRoTrait for BcDbRo {
-    #[inline]
-    fn get_current_blockstamp(&self) -> Result<Option<Blockstamp>, DbError> {
-        self.read(|r| crate::current_meta_datas::get_current_blockstamp_(self, r))
-    }
-    fn get_current_block(&self) -> Result<Option<DbBlock>, DbError> {
-        self.read(|r| {
-            if let Some(current_blockstamp) =
-                crate::current_meta_datas::get_current_blockstamp_(self, r)?
-            {
-                crate::blocks::get_db_block_in_local_blockchain(self, r, current_blockstamp.id)
-            } else {
-                Ok(None)
-            }
-        })
-    }
-    #[inline]
-    fn get_db_block_in_local_blockchain(
-        &self,
-        block_number: BlockNumber,
-    ) -> Result<Option<DbBlock>, DbError> {
-        self.read(|r| crate::blocks::get_db_block_in_local_blockchain(self, r, block_number))
-    }
-    #[cfg(feature = "client-indexer")]
-    fn get_db_blocks_in_local_blockchain(
-        &self,
-        numbers: Vec<BlockNumber>,
-    ) -> Result<Vec<DbBlock>, DbError> {
-        self.read(|r| {
-            numbers
-                .into_iter()
-                .filter_map(
-                    |n| match crate::blocks::get_db_block_in_local_blockchain(self, r, n) {
-                        Ok(Some(db_block)) => Some(Ok(db_block)),
-                        Ok(None) => None,
-                        Err(e) => Some(Err(e)),
-                    },
-                )
-                .collect::<Result<Vec<DbBlock>, DbError>>()
-        })
-    }
-}
-
 pub struct BcDbRoWithReader<'r, 'db: 'r> {
     pub db: &'db BcDbRo,
     pub r: Reader<'r>,
@@ -92,18 +49,24 @@ impl<'r, 'db: 'r> BcDbRoTrait for BcDbRoWithReader<'r, 'db> {
         crate::current_meta_datas::get_current_blockstamp_(self.db, self.r)
     }
     fn get_current_block(&self) -> Result<Option<DbBlock>, DbError> {
-        unimplemented!()
+        if let Some(current_blockstamp) =
+            crate::current_meta_datas::get_current_blockstamp_(self.db, self.r)?
+        {
+            crate::blocks::get_db_block_in_local_blockchain(self.db, self.r, current_blockstamp.id)
+        } else {
+            Ok(None)
+        }
     }
     fn get_db_block_in_local_blockchain(
         &self,
-        _block_number: BlockNumber,
+        block_number: BlockNumber,
     ) -> Result<Option<DbBlock>, DbError> {
-        unimplemented!()
+        crate::blocks::get_db_block_in_local_blockchain(self.db, self.r, block_number)
     }
     fn get_db_blocks_in_local_blockchain(
         &self,
-        _numbers: Vec<BlockNumber>,
+        numbers: Vec<BlockNumber>,
     ) -> Result<Vec<DbBlock>, DbError> {
-        unimplemented!()
+        crate::blocks::get_blocks_in_local_blockchain_by_numbers(self.db, self.r, numbers)
     }
 }
