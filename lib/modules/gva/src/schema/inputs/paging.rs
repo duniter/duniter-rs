@@ -15,7 +15,8 @@
 
 // ! Paging input methods
 
-use super::super::Paging;
+pub use crate::schema::Paging;
+
 use std::ops::Range;
 
 const DEFAULT_PAGE_NUMBER_I32: i32 = 0;

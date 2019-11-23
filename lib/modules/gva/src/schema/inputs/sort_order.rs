@@ -13,8 +13,23 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// ! Schema inputs methods
+// ! SortOrder input methods
 
-pub mod block_interval;
-pub mod paging;
-pub mod sort_order;
+pub use crate::schema::SortOrder;
+
+impl Default for SortOrder {
+    fn default() -> Self {
+        SortOrder::Asc
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_default_block_sort() {
+        assert_eq!(SortOrder::Asc, SortOrder::default())
+    }
+}

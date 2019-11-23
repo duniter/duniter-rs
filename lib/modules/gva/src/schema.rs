@@ -85,6 +85,7 @@ impl QueryFields for Query {
         block_interval_opt: Option<BlockInterval>,
         paging_opt: Option<Paging>,
         mut step: i32,
+        sort_order: SortOrder,
     ) -> FieldResult<Vec<Block>> {
         if step <= 0 {
             step = 1;
@@ -99,6 +100,7 @@ impl QueryFields for Query {
                         paging_opt,
                         block_interval_opt,
                         step as usize,
+                        sort_order,
                     )
                 })
                 .map_err(Into::into)
@@ -109,6 +111,7 @@ impl QueryFields for Query {
                     paging_opt,
                     block_interval_opt,
                     step as usize,
+                    sort_order,
                 )
                 .map_err(Into::into)
             }

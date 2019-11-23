@@ -15,7 +15,8 @@
 
 // ! BlockInterval input methods
 
-use super::super::BlockInterval;
+pub use crate::schema::BlockInterval;
+
 use durs_bc_db_reader::{BcDbRoTrait, DbError};
 use std::ops::RangeInclusive;
 

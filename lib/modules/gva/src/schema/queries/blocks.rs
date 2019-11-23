@@ -16,9 +16,9 @@
 // ! Module execute GraphQl schema blocks query
 
 use crate::schema::entities::block::Block;
-use crate::schema::inputs::paging::FilledPaging;
-use crate::schema::BlockInterval;
-use crate::schema::Paging;
+use crate::schema::inputs::block_interval::BlockInterval;
+use crate::schema::inputs::paging::{FilledPaging, Paging};
+use crate::schema::inputs::sort_order::SortOrder;
 use dubp_common_doc::BlockNumber;
 use durs_bc_db_reader::blocks::DbBlock;
 use durs_bc_db_reader::{BcDbRoTrait, DbError};
@@ -30,6 +30,7 @@ pub(crate) fn execute<DB: BcDbRoTrait>(
     paging_opt: Option<Paging>,
     block_interval_opt: Option<BlockInterval>,
     step: usize,
+    sort_order: SortOrder,
 ) -> Result<Vec<Block>, DbError> {
     // Get interval
     let interval = BlockInterval::get_range(db, block_interval_opt)?;
@@ -39,18 +40,30 @@ pub(crate) fn execute<DB: BcDbRoTrait>(
         interval.clone().map(|i| BlockNumber(i as u32)).collect(); // TODO
 
     // Apply interval
-    let blocks_numbers: Vec<BlockNumber> = blocks_numbers
+    let mut blocks_numbers: Vec<BlockNumber> = blocks_numbers
         .into_iter()
         .filter(|n| interval.contains(&(n.0 as usize)))
         .collect();
     let count = blocks_numbers.len();
 
+    // Apply sort
+    if let SortOrder::Desc = sort_order {
+        blocks_numbers = blocks_numbers.into_iter().rev().collect();
+    }
+
     // Apply paging and step
     let paging = FilledPaging::from(paging_opt);
     let page_range = paging.get_page_range(count, step);
+    let blocks_numbers_len = blocks_numbers.len();
     let blocks_numbers: Vec<BlockNumber> = page_range
         .step_by(step)
-        .map(|i| blocks_numbers[i])
+        .filter_map(|i| {
+            if i < blocks_numbers_len {
+                Some(blocks_numbers[i])
+            } else {
+                None
+            }
+        })
         .collect();
 
     // Get blocks
@@ -296,6 +309,59 @@ mod tests {
                         "number": 2,
                         "version": 10
                     }]
+                }
+            }),
+        );
+    }
+
+    static mut DB_TEST_BLOCKS_DESC: Option<BcDbRo> = None;
+
+    #[test]
+    fn test_graphql_blocks_order_desc() {
+        let mut mock_db = BcDbRo::new();
+
+        let current_block = block_2();
+        let block_1 = block_1();
+        let block_0 = block_0();
+
+        let current_blockstamp = current_block.blockstamp();
+        mock_db
+            .expect_get_current_blockstamp()
+            .times(1)
+            .returning(move || Ok(Some(current_blockstamp)));
+
+        mock_db
+            .expect_get_db_blocks_in_local_blockchain()
+            .with(eq(vec![BlockNumber(2), BlockNumber(1), BlockNumber(0)]))
+            .returning(move |_| {
+                Ok(vec![
+                    DbBlock {
+                        block: BlockDocument::V10(current_block.clone()),
+                        expire_certs: None,
+                    },
+                    DbBlock {
+                        block: BlockDocument::V10(block_1.clone()),
+                        expire_certs: None,
+                    },
+                    DbBlock {
+                        block: BlockDocument::V10(block_0.clone()),
+                        expire_certs: None,
+                    },
+                ])
+            });
+
+        let global_context = tests::setup(mock_db, unsafe { &mut DB_TEST_BLOCKS_DESC });
+
+        tests::test_gql_query(
+            global_context,
+            "{ blocks(sortOrder: DESC) { commonTime, currency, hash, issuer, number, version } }",
+            json!({
+                "data": {
+                    "blocks": [
+                        block_2_json(),
+                        block_1_json(),
+                        block_0_json()
+                    ]
                 }
             }),
         );

@@ -9,7 +9,12 @@ type Query {
   node: Node! @juniper(ownership: "owned")
   current: Block @juniper(ownership: "owned")
   block(number: Int!): Block @juniper(ownership: "owned")
-  blocks(interval: BlockInterval, paging: Paging, step: Int = 1): [Block!]! @juniper(ownership: "owned")
+  blocks(
+    interval: BlockInterval,
+    paging: Paging,
+    step: Int = 1,
+    sortOrder: SortOrder = ASC
+  ): [Block!]! @juniper(ownership: "owned")
 }
 
 type Mutation {
@@ -17,7 +22,7 @@ type Mutation {
 }
 
 #################################
-# Inputs
+# Interval inputs
 #################################
 
 input BlockInterval {
@@ -26,9 +31,22 @@ input BlockInterval {
   to: Int
 }
 
+#################################
+# Pagination inputs
+#################################
+
 input Paging {
   pageNumber: Int # default value: 0
 	pageSize: Int # default value: 50
+}
+
+#################################
+# Sort inputs
+#################################
+
+enum SortOrder {
+  ASC
+  DESC
 }
 
 #################################
