@@ -23,6 +23,7 @@ durs-dbs-tools = { path = "../../tools/dbs-tools" }
 durs-wot = { path = "../../dubp/wot" }
 log = "0.4.*"
 maplit = "1.0.1"
+mockall = { version = "0.5.2", optional = true }
 fnv = "1.0.6"
 serde = { version = "1.0.*", features = ["derive"] }
 unwrap = "1.2.1"
@@ -35,3 +36,5 @@ durs-common-tests-tools = { path = "../../tests-tools/common-tests-tools" }
 tempfile = "3.1.0"
 
 [features]
+client-indexer = []
+mock = ["mockall"]

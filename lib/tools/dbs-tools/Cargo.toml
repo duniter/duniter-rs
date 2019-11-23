@@ -12,6 +12,7 @@ path = "src/lib.rs"
 [dependencies]
 bincode = "1.0.*"
 durs-common-tools = { path = "../common-tools" }
+failure = "0.1.5"
 fnv = "1.0.6"
 log = "0.4.*"
 rkv = "0.9.7"

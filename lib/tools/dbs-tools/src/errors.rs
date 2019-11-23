@@ -16,33 +16,44 @@
 //! Common Datas Access Layer for Dunitrust project
 //! Errors manadgment
 
+use failure::Fail;
 use rustbreak::error::{RustbreakError, RustbreakErrorKind};
 
-#[derive(Debug)]
+#[derive(Debug, Fail)]
 /// Data Access Layer Error
 pub enum DbError {
     /// A database is corrupted, you have to reset the data completely
+    #[fail(display = "Database is corrupted, you have to reset the data completely")]
     DBCorrupted,
-    ///  Database not exist
+    /// Database not exist
+    #[fail(display = "Database not exist")]
     DBNotExist,
     /// Error in read operation
+    #[fail(display = "Error in read operation")]
     ReadError,
     /// Error with the file system
+    #[fail(display = "Error with the file system")]
     FileSystemError(std::io::Error),
     /// Serialization/Deserialization error
+    #[fail(display = "Serialization/Deserialization error: {}", _0)]
     SerdeError(String),
     /// Rkv store error
+    #[fail(display = "Store error: {}", _0)]
     StoreError(rkv::error::StoreError),
     /// Unknown error
+    #[fail(display = "Unknown error")]
     UnknowError,
     /// Abort write transaction
+    #[fail(display = "Abort write transaction, reason: {}", _0)]
     WriteAbort {
         /// Reason of transaction abort
         reason: String,
     },
     /// Error in write operation
+    #[fail(display = "Error in write operation")]
     WriteError,
     /// Capturing a panic signal during a write operation
+    #[fail(display = "Capturing a panic signal during a write operation")]
     WritePanic,
 }
 

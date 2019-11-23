@@ -17,7 +17,6 @@
 
 #![allow(clippy::large_enum_variant)]
 #![deny(
-    missing_docs,
     missing_copy_implementations,
     trivial_casts,
     trivial_numeric_casts,
@@ -34,12 +33,16 @@ pub mod current_meta_datas;
 pub mod indexes;
 pub mod paging;
 pub mod tools;
+pub mod r#trait;
 
 pub use durs_dbs_tools::kv_db::{
     KvFileDbRead as DbReadable, KvFileDbReader as Reader, KvFileDbRoHandler as BcDbRo,
     KvFileDbSchema, KvFileDbStoreType, KvFileDbValue as DbValue, Readable as DbReader,
 };
 pub use durs_dbs_tools::DbError;
+#[cfg(feature = "mock")]
+pub use r#trait::MockBcDbRoTrait;
+pub use r#trait::{BcDbRoTrait, BcDbRoWithReader};
 
 use constants::*;
 use maplit::hashmap;

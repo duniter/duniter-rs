@@ -29,6 +29,28 @@ use std::sync::{Arc, RwLock};
 /// Key-value database reader
 pub type KvFileDbReader<'a> = &'a rkv::Reader<'a>;
 
+/// Mock db reader
+pub struct MockKvFileDbReader;
+
+impl MockKvFileDbReader {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl rkv::Readable for MockKvFileDbReader {
+    fn get<K: AsRef<[u8]>>(
+        &self,
+        _db: rkv::Database,
+        _k: &K,
+    ) -> Result<Option<Value>, rkv::StoreError> {
+        unimplemented!()
+    }
+    fn open_ro_cursor(&self, _db: rkv::Database) -> Result<rkv::RoCursor, rkv::StoreError> {
+        unimplemented!()
+    }
+}
+
 /// Key-value database writer
 pub struct KvFileDbWriter<'a> {
     buffer: Vec<u8>,
