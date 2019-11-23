@@ -43,6 +43,7 @@ extern crate structopt;
 
 extern crate juniper;
 
+mod constants;
 mod context;
 mod db;
 mod errors;

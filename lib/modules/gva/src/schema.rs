@@ -35,6 +35,10 @@ pub struct Query;
 
 impl QueryFields for Query {
     #[inline]
+    fn field_api_version(&self, _executor: &Executor<'_, QueryContext>) -> &i32 {
+        &crate::constants::API_VERSION
+    }
+    #[inline]
     fn field_node(
         &self,
         executor: &Executor<'_, QueryContext>,

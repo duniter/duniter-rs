@@ -5,6 +5,7 @@ schema {
 }
 
 type Query {
+  apiVersion: Int! @juniper(infallible: true)
   node: Node! @juniper(ownership: "owned")
   current: Block @juniper(ownership: "owned")
   block(number: Int!): Block @juniper(ownership: "owned")
