@@ -14,7 +14,7 @@ edition = "2018"
 [dependencies]
 durs-network = { path = "../../lib/core/network" }
 durs-core = { path = "../../lib/core/core" }
-durs-gva = { path = "../../lib/modules/gva" }
+durs-gva = { path = "../../lib/modules/gva", optional = true }
 durs-module = { path = "../../lib/core/module" }
 #durs-skeleton = { path = "../../lib/modules/skeleton" }
 durs-ws2p = { path = "../../lib/modules/ws2p/ws2p" }
@@ -27,6 +27,8 @@ structopt= "0.3.4"
 durs-tui = { path = "../../lib/modules/tui" }
 
 [features]
+default = ["gva"]
+gva = ["durs-gva"]
 ssl = ["durs-ws2p-v1-legacy/ssl"]
 
 [package.metadata.deb]
