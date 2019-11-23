@@ -15,7 +15,7 @@
 
 //! BlockChain Datas Access Layer in Read-Only mode.
 
-#![allow(clippy::large_enum_variant)]
+#![allow(clippy::large_enum_variant, clippy::ptr_arg)]
 #![deny(
     missing_copy_implementations,
     trivial_casts,
