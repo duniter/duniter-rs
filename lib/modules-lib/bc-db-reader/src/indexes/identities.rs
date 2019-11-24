@@ -187,6 +187,17 @@ pub fn get_uid<DB: DbReadable>(db: &DB, pubkey: &PubKey) -> Result<Option<String
     Ok(get_identity_by_pubkey(db, pubkey)?.map(|db_idty| db_idty.idty_doc.username().to_owned()))
 }
 
+/// Get uid from pubkey
+#[inline]
+pub fn get_uid_<DB: DbReadable, R: DbReader>(
+    db: &DB,
+    r: &R,
+    pubkey: &PubKey,
+) -> Result<Option<String>, DbError> {
+    Ok(get_identity_by_pubkey_(db, r, pubkey)?
+        .map(|db_idty| db_idty.idty_doc.username().to_owned()))
+}
+
 /// Get wot id from uid
 pub fn get_wot_id_from_uid<DB: DbReadable>(db: &DB, uid: &str) -> Result<Option<WotId>, DbError> {
     db.read(|r| {

@@ -22,7 +22,7 @@ use juniper_from_schema::{QueryTrail, Walked};
 
 pub(crate) fn execute<DB: BcDbRoTrait>(
     db: &DB,
-    _trail: &QueryTrail<'_, Block, Walked>,
+    trail: &QueryTrail<'_, Block, Walked>,
     number: i32,
 ) -> Result<Option<Block>, DbError> {
     let block_number = if number >= 0 {
@@ -31,8 +31,10 @@ pub(crate) fn execute<DB: BcDbRoTrait>(
         BlockNumber(0)
     };
 
-    db.get_db_block_in_local_blockchain(block_number)
-        .map(|db_block_opt| db_block_opt.map(Into::into))
+    let ask_field_issuer_name = Block::ask_field_issuer_name(trail);
+    db.get_db_block_in_local_blockchain(block_number)?
+        .map(|block_db| Block::from_block_db(db, block_db, ask_field_issuer_name))
+        .transpose()
 }
 
 #[cfg(test)]
@@ -55,6 +57,7 @@ mod tests {
         let mut mock_db = BcDbRo::new();
         mock_db
             .expect_get_db_block_in_local_blockchain()
+            .times(1)
             .with(eq(BlockNumber(42)))
             .returning(|_| {
                 let mut block = gen_empty_timed_block_v10(
@@ -72,12 +75,17 @@ mod tests {
                     expire_certs: None,
                 }))
             });
+        mock_db
+            .expect_get_uid_from_pubkey()
+            .times(1)
+            .with(eq(pubkey('B')))
+            .returning(|_| Ok(Some("issuerName".to_owned())));
 
         let schema = tests::setup(mock_db, unsafe { &mut DB_BLOCK_1 });
 
         tests::test_gql_query(
             schema.clone(),
-            "{ block { commonTime, currency, hash, issuer, number, version } }",
+            "{ block { commonTime, currency, hash, issuer, issuerName, number, version } }",
             json!({
                 "errors": [{
                     "message": "Field \"block\" argument \"number\" of type \"Int!\" is required but not provided",
@@ -91,7 +99,7 @@ mod tests {
 
         tests::test_gql_query(
             schema,
-            "{ block(number: 42) { commonTime, currency, hash, issuer, number, powMin, version } }",
+            "{ block(number: 42) { commonTime, currency, hash, issuer, issuerName, number, powMin, version } }",
             json!({
                 "data": {
                     "block": {
@@ -99,6 +107,7 @@ mod tests {
                         "currency": "test_currency",
                         "hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
                         "issuer": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+                        "issuerName": "issuerName",
                         "number": 42,
                         "powMin": 70,
                         "version": 10

@@ -19,6 +19,7 @@
 use crate::blocks::DbBlock;
 use crate::{BcDbRo, Reader};
 use dubp_common_doc::{BlockNumber, Blockstamp};
+use dup_crypto::keys::PubKey;
 use durs_dbs_tools::DbError;
 
 #[cfg(feature = "mock")]
@@ -37,6 +38,7 @@ pub trait BcDbRoTrait {
         &self,
         numbers: Vec<BlockNumber>,
     ) -> Result<Vec<DbBlock>, DbError>;
+    fn get_uid_from_pubkey(&self, pubkey: &PubKey) -> Result<Option<String>, DbError>;
 }
 
 pub struct BcDbRoWithReader<'r, 'db: 'r> {
@@ -68,5 +70,8 @@ impl<'r, 'db: 'r> BcDbRoTrait for BcDbRoWithReader<'r, 'db> {
         numbers: Vec<BlockNumber>,
     ) -> Result<Vec<DbBlock>, DbError> {
         crate::blocks::get_blocks_in_local_blockchain_by_numbers(self.db, self.r, numbers)
+    }
+    fn get_uid_from_pubkey(&self, pubkey: &PubKey) -> Result<Option<String>, DbError> {
+        crate::indexes::identities::get_uid_(self.db, self.r, pubkey)
     }
 }

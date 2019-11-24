@@ -21,12 +21,13 @@ use crate::schema::inputs::block_interval::{BlockInterval, FilledBlockInterval};
 use crate::schema::inputs::paging::{FilledPaging, Paging};
 use crate::schema::inputs::sort_order::SortOrder;
 use dubp_common_doc::BlockNumber;
+use durs_bc_db_reader::blocks::DbBlock;
 use durs_bc_db_reader::{BcDbRoTrait, DbError};
 use juniper_from_schema::{QueryTrail, Walked};
 
 pub(crate) fn execute<DB: BcDbRoTrait>(
     db: &DB,
-    _trail: &QueryTrail<'_, BlocksPage, Walked>,
+    trail: &QueryTrail<'_, BlocksPage, Walked>,
     paging_opt: Option<Paging>,
     block_interval_opt: Option<BlockInterval>,
     step: usize,
@@ -75,11 +76,14 @@ pub(crate) fn execute<DB: BcDbRoTrait>(
         .collect();
 
     // Get blocks
-    let blocks: Vec<Block> = db
-        .get_db_blocks_in_local_blockchain(blocks_numbers)?
+    let blocks: Vec<DbBlock> = db.get_db_blocks_in_local_blockchain(blocks_numbers)?;
+
+    // Convert BlockDb (db entity) into Block (gva entity)
+    let ask_field_issuer_name = BlocksPage::ask_field_blocks_issuer_name(trail);
+    let blocks: Vec<Block> = blocks
         .into_iter()
-        .map(Into::into)
-        .collect();
+        .map(|block_db| Block::from_block_db(db, block_db, ask_field_issuer_name))
+        .collect::<Result<Vec<Block>, DbError>>()?;
 
     Ok(BlocksPage {
         blocks,

@@ -21,10 +21,12 @@ use juniper_from_schema::{QueryTrail, Walked};
 
 pub(crate) fn execute<DB: BcDbRoTrait>(
     db: &DB,
-    _trail: &QueryTrail<'_, Block, Walked>,
+    trail: &QueryTrail<'_, Block, Walked>,
 ) -> Result<Option<Block>, DbError> {
-    db.get_current_block()
-        .map(|db_block_opt| db_block_opt.map(Into::into))
+    let ask_field_issuer_name = Block::ask_field_issuer_name(trail);
+    db.get_current_block()?
+        .map(|block_db| Block::from_block_db(db, block_db, ask_field_issuer_name))
+        .transpose()
 }
 
 #[cfg(test)]
@@ -37,6 +39,7 @@ mod tests {
     use dup_crypto::hashs::Hash;
     use dup_crypto_tests_tools::mocks::{hash, pubkey};
     use durs_bc_db_reader::blocks::DbBlock;
+    use mockall::predicate::eq;
     use serde_json::json;
 
     static mut DB_TEST_CURRENT_1: Option<BcDbRo> = None;
@@ -44,7 +47,7 @@ mod tests {
     #[test]
     fn test_graphql_current() {
         let mut mock_db = BcDbRo::new();
-        mock_db.expect_get_current_block().returning(|| {
+        mock_db.expect_get_current_block().times(1).returning(|| {
             let mut current_block = gen_empty_timed_block_v10(
                 Blockstamp {
                     id: BlockNumber(42),
@@ -60,12 +63,17 @@ mod tests {
                 expire_certs: None,
             }))
         });
+        mock_db
+            .expect_get_uid_from_pubkey()
+            .times(1)
+            .with(eq(pubkey('B')))
+            .returning(|_| Ok(Some("issuerName".to_owned())));
 
         let schema = tests::setup(mock_db, unsafe { &mut DB_TEST_CURRENT_1 });
 
         tests::test_gql_query(
             schema,
-            "{ current { commonTime, currency, hash, issuer, number, powMin, version } }",
+            "{ current { commonTime, currency, hash, issuer, issuerName, number, powMin, version } }",
             json!({
                 "data": {
                     "current": {
@@ -73,6 +81,7 @@ mod tests {
                         "currency": "test_currency",
                         "hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
                         "issuer": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+                        "issuerName": "issuerName", 
                         "number": 42,
                         "powMin": 70,
                         "version": 10

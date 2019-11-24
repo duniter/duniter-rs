@@ -80,6 +80,7 @@ type Block {
   version: Int!
   currency: String!
   issuer: String!
+  issuerName: String,
   number: Int!
   hash: String!,
   commonTime: DateTimeUtc!

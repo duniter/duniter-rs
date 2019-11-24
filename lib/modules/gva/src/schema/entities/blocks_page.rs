@@ -17,6 +17,7 @@
 
 use crate::context::QueryContext;
 use crate::schema::entities::block::Block;
+use crate::schema::query_trails::QueryTrailBlocksPageExtensions;
 use juniper::{Executor, FieldResult};
 use juniper_from_schema::{QueryTrail, Walked};
 
@@ -27,6 +28,16 @@ pub struct BlocksPage {
     pub(crate) interval_to: i32,
     pub(crate) last_page_number: i32,
     pub(crate) total_blocks_count: i32,
+}
+
+impl BlocksPage {
+    pub(crate) fn ask_field_blocks_issuer_name(trail: &QueryTrail<'_, BlocksPage, Walked>) -> bool {
+        if let Some(block_trail) = trail.blocks().walk() {
+            Block::ask_field_issuer_name(&block_trail)
+        } else {
+            false
+        }
+    }
 }
 
 impl super::super::BlocksPageFields for BlocksPage {
