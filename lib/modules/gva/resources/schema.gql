@@ -14,7 +14,7 @@ type Query {
     paging: Paging,
     step: Int = 1,
     sortOrder: SortOrder = ASC
-  ): [Block!]! @juniper(ownership: "owned")
+  ): BlocksPage! @juniper(ownership: "owned")
 }
 
 type Mutation {
@@ -64,10 +64,17 @@ type Node {
 }
 
 #################################
-# Block type
+# Blocks types
 #################################
 
-scalar DateTimeUtc @juniper(with_time_zone: false)
+type BlocksPage {
+  blocks: [Block!]!
+  currentPageNumber: Int!
+  intervalFrom: Int!,
+  intervalTo: Int!,
+  lastPageNumber: Int!,
+  totalBlocksCount: Int!,
+}
 
 type Block {
   version: Int!
@@ -78,3 +85,9 @@ type Block {
   commonTime: DateTimeUtc!
   powMin: Int!
 }
+
+#################################
+# Custom scalars
+#################################
+
+scalar DateTimeUtc @juniper(with_time_zone: false)

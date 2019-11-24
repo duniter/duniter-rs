@@ -20,6 +20,7 @@ pub mod inputs;
 mod queries;
 
 use self::entities::block::Block;
+use self::entities::blocks_page::BlocksPage;
 use self::entities::node::{Node, Summary};
 use crate::context::QueryContext;
 #[cfg(not(test))]
@@ -81,12 +82,12 @@ impl QueryFields for Query {
     fn field_blocks(
         &self,
         executor: &Executor<'_, QueryContext>,
-        trail: &QueryTrail<'_, Block, Walked>,
+        trail: &QueryTrail<'_, BlocksPage, Walked>,
         block_interval_opt: Option<BlockInterval>,
         paging_opt: Option<Paging>,
         mut step: i32,
         sort_order: SortOrder,
-    ) -> FieldResult<Vec<Block>> {
+    ) -> FieldResult<BlocksPage> {
         if step <= 0 {
             step = 1;
         }

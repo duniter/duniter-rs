@@ -16,3 +16,13 @@
 //! Gva Module constants
 
 pub const API_VERSION: i32 = 0;
+
+pub const DEFAULT_PAGE_NUMBER_I32: i32 = 0;
+pub const DEFAULT_PAGE_NUMBER: isize = 0;
+pub const DEFAULT_PAGE_SIZE: usize = 50;
+
+pub const MIN_PAGE_SIZE: i32 = 1;
+pub const MAX_PAGE_SIZE: i32 = 1_000;
+
+pub const BLOCK_INTERVAL_MIN_FROM: usize = 0;
+pub const BLOCK_INTERVAL_MAX_SIZE: usize = 500_000;

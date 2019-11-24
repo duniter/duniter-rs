@@ -17,50 +17,83 @@
 
 pub use crate::schema::BlockInterval;
 
-use durs_bc_db_reader::{BcDbRoTrait, DbError};
+use crate::constants::*;
+use dubp_common_doc::BlockNumber;
+use std::cmp::{max, min};
 use std::ops::RangeInclusive;
 
-const DEFAULT_START: usize = 0;
-const END_WHEN_EMPTY_BLOCKCHAIN: usize = 0;
+pub struct FilledBlockInterval {
+    from: usize,
+    to: usize,
+}
 
-impl BlockInterval {
-    fn get_default_end<DB: BcDbRoTrait>(db: &DB) -> Result<usize, DbError> {
-        if let Some(current_blockstamp) = db.get_current_blockstamp()? {
-            Ok(current_blockstamp.id.0 as usize)
+impl FilledBlockInterval {
+    pub(crate) fn new(
+        block_interval_opt: Option<BlockInterval>,
+        current_block_number_opt: Option<BlockNumber>,
+    ) -> Self {
+        let current_block_number = current_block_number_opt.unwrap_or(BlockNumber(0)).0 as usize;
+
+        if let Some(block_interval) = block_interval_opt {
+            if let Some(from) = block_interval.from {
+                if let Some(to) = block_interval.to {
+                    Self::new_with_from_and_to(current_block_number, from, to)
+                } else {
+                    Self::new_with_from(current_block_number, from)
+                }
+            } else if let Some(to) = block_interval.to {
+                Self::new_with_to(current_block_number, to)
+            } else {
+                Self::new_with_nothing(current_block_number)
+            }
         } else {
-            Ok(END_WHEN_EMPTY_BLOCKCHAIN)
+            Self::new_with_nothing(current_block_number)
         }
     }
-    pub(crate) fn get_range<DB: BcDbRoTrait>(
-        db: &DB,
-        block_interval_opt: Option<BlockInterval>,
-    ) -> Result<RangeInclusive<usize>, DbError> {
-        if let Some(block_interval) = block_interval_opt {
-            let start = if let Some(from) = block_interval.from {
-                if from.is_negative() {
-                    0
-                } else {
-                    from as usize
-                }
-            } else {
-                DEFAULT_START
-            };
-            let mut end = if let Some(to) = block_interval.to {
-                if to.is_negative() {
-                    0
-                } else {
-                    to as usize
-                }
-            } else {
-                Self::get_default_end(db)?
-            };
-            if start > end {
-                end = start;
-            }
-            Ok(start..=end)
+    fn new_with_from(current_block_number: usize, from: i32) -> Self {
+        let mut from = max(from, 0) as usize;
+        let to = min(current_block_number, from + BLOCK_INTERVAL_MAX_SIZE);
+
+        from = min(from, to);
+
+        FilledBlockInterval { from, to }
+    }
+    fn new_with_to(current_block_number: usize, to: i32) -> Self {
+        let mut to = max(0, to) as usize;
+        to = min(current_block_number, to);
+        let mut from = if to >= BLOCK_INTERVAL_MAX_SIZE {
+            to - BLOCK_INTERVAL_MAX_SIZE
         } else {
-            Ok(DEFAULT_START..=Self::get_default_end(db)?)
+            BLOCK_INTERVAL_MIN_FROM
+        };
+
+        from = min(from, to);
+
+        FilledBlockInterval { from, to }
+    }
+    fn new_with_from_and_to(current_block_number: usize, from: i32, to: i32) -> Self {
+        let mut from = max(from, 0) as usize;
+        let mut to = max(0, to) as usize;
+        to = min(current_block_number, to);
+        from = min(from, to);
+
+        FilledBlockInterval { from, to }
+    }
+    fn new_with_nothing(current_block_number: usize) -> Self {
+        let filled_to = current_block_number;
+        let filled_from = if current_block_number >= BLOCK_INTERVAL_MAX_SIZE {
+            current_block_number - BLOCK_INTERVAL_MAX_SIZE
+        } else {
+            0
+        };
+        FilledBlockInterval {
+            from: filled_from,
+            to: filled_to,
         }
+    }
+    #[inline]
+    pub(crate) fn get_range(&self) -> RangeInclusive<usize> {
+        self.from..=self.to
     }
 }
 
@@ -68,62 +101,37 @@ impl BlockInterval {
 mod tests {
 
     use super::*;
-    use crate::db::BcDbRo;
-    use dubp_common_doc::{BlockHash, BlockNumber, Blockstamp};
+    use dubp_common_doc::BlockNumber;
 
     #[test]
-    fn test_block_interval_get_range_with_short_bc() -> Result<(), DbError> {
-        let mut mock_db = BcDbRo::new();
-        mock_db
-            .expect_get_current_blockstamp()
-            .times(1)
-            .returning(|| {
-                Ok(Some(Blockstamp {
-                    id: BlockNumber(42),
-                    hash: BlockHash(dup_crypto::hashs::Hash::default()),
-                }))
-            });
+    fn test_block_interval_get_range_with_short_bc() {
         assert_eq! {
             0..=42,
-            BlockInterval::get_range(&mock_db, None)?
+            FilledBlockInterval::new(None, Some(BlockNumber(42))).get_range()
         }
-        Ok(())
     }
 
     #[test]
-    fn test_block_interval_get_range_with_long_bc() -> Result<(), DbError> {
-        let mut mock_db = BcDbRo::new();
-        mock_db
-            .expect_get_current_blockstamp()
-            .times(2)
-            .returning(|| {
-                Ok(Some(Blockstamp {
-                    id: BlockNumber(750),
-                    hash: BlockHash(dup_crypto::hashs::Hash::default()),
-                }))
-            });
-
+    fn test_block_interval_get_range_with_long_bc() {
         assert_eq! {
             0..=750,
-            BlockInterval::get_range(&mock_db, None)?
+            FilledBlockInterval::new(None, Some(BlockNumber(750))).get_range()
         }
 
         assert_eq! {
             500..=750,
-            BlockInterval::get_range(&mock_db, Some(BlockInterval {
+            FilledBlockInterval::new(Some(BlockInterval {
                 from: Some(500),
                 to: None,
-            }))?
+            }), Some(BlockNumber(750))).get_range()
         }
 
         assert_eq! {
             500..=700,
-            BlockInterval::get_range(&mock_db, Some(BlockInterval {
+            FilledBlockInterval::new(Some(BlockInterval {
                 from: Some(500),
                 to: Some(700),
-            }))?
+            }), Some(BlockNumber(750))).get_range()
         }
-
-        Ok(())
     }
 }

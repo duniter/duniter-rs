@@ -16,4 +16,5 @@
 // ! Module define GraphQl schema entities
 
 pub mod block;
+pub mod blocks_page;
 pub mod node;

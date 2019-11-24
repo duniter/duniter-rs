@@ -17,14 +17,8 @@
 
 pub use crate::schema::Paging;
 
+use crate::constants::*;
 use std::ops::Range;
-
-const DEFAULT_PAGE_NUMBER_I32: i32 = 0;
-const DEFAULT_PAGE_NUMBER: isize = 0;
-const DEFAULT_PAGE_SIZE: usize = 50;
-
-const MIN_PAGE_SIZE: i32 = 1;
-const MAX_PAGE_SIZE: i32 = 500;
 
 #[derive(Debug, PartialEq)]
 pub struct FilledPaging {
@@ -65,7 +59,7 @@ impl From<Option<Paging>> for FilledPaging {
 }
 
 impl FilledPaging {
-    pub(crate) fn get_page_range(&self, count_elems: usize, step: usize) -> Range<usize> {
+    pub(crate) fn get_page_range(&self, count_elems: usize, step: usize) -> (Range<usize>, usize) {
         let page_extended_size = self.page_size * step;
         let mut count_pages = count_elems / page_extended_size;
         if count_elems % page_extended_size > 0 {
@@ -77,10 +71,13 @@ impl FilledPaging {
             self.page_number as usize
         };
 
-        Range {
-            start: std::cmp::min(count_elems, page_number * page_extended_size),
-            end: std::cmp::min(count_elems, (page_number + 1) * page_extended_size),
-        }
+        (
+            Range {
+                start: std::cmp::min(count_elems, page_number * page_extended_size),
+                end: std::cmp::min(count_elems, (page_number + 1) * page_extended_size),
+            },
+            count_pages,
+        )
     }
 }
 
@@ -148,7 +145,7 @@ mod tests {
     #[test]
     fn test_get_page_range() {
         assert_eq!(
-            Range { start: 10, end: 20 },
+            (Range { start: 10, end: 20 }, 500),
             FilledPaging {
                 page_number: 1,
                 page_size: 10,
@@ -156,10 +153,13 @@ mod tests {
             .get_page_range(5_000, 1),
         );
         assert_eq!(
-            Range {
-                start: 4_980,
-                end: 4_990
-            },
+            (
+                Range {
+                    start: 4_980,
+                    end: 4_990
+                },
+                500
+            ),
             FilledPaging {
                 page_number: -2,
                 page_size: 10,
@@ -167,7 +167,7 @@ mod tests {
             .get_page_range(5_000, 1),
         );
         assert_eq!(
-            Range { start: 10, end: 15 },
+            (Range { start: 10, end: 15 }, 2),
             FilledPaging {
                 page_number: 1,
                 page_size: 10,
@@ -175,7 +175,7 @@ mod tests {
             .get_page_range(15, 1),
         );
         assert_eq!(
-            Range { start: 15, end: 15 },
+            (Range { start: 15, end: 15 }, 2),
             FilledPaging {
                 page_number: 2,
                 page_size: 10,
@@ -183,7 +183,7 @@ mod tests {
             .get_page_range(15, 1),
         );
         assert_eq!(
-            Range { start: 20, end: 40 },
+            (Range { start: 20, end: 40 }, 250),
             FilledPaging {
                 page_number: 1,
                 page_size: 10,
@@ -191,10 +191,13 @@ mod tests {
             .get_page_range(5_000, 2),
         );
         assert_eq!(
-            Range {
-                start: 4_980,
-                end: 5_000
-            },
+            (
+                Range {
+                    start: 4_980,
+                    end: 5_000
+                },
+                250
+            ),
             FilledPaging {
                 page_number: -1,
                 page_size: 10,
@@ -202,7 +205,7 @@ mod tests {
             .get_page_range(5_000, 2),
         );
         assert_eq!(
-            Range { start: 0, end: 400 },
+            (Range { start: 0, end: 400 }, 1),
             FilledPaging {
                 page_number: -1,
                 page_size: 500,
@@ -210,10 +213,13 @@ mod tests {
             .get_page_range(400, 2),
         );
         assert_eq!(
-            Range {
-                start: 0,
-                end: 1_000
-            },
+            (
+                Range {
+                    start: 0,
+                    end: 1_000
+                },
+                1
+            ),
             FilledPaging {
                 page_number: -3,
                 page_size: 400,
@@ -221,10 +227,13 @@ mod tests {
             .get_page_range(1_000, 5),
         );
         assert_eq!(
-            Range {
-                start: 2_000,
-                end: 3_000
-            },
+            (
+                Range {
+                    start: 2_000,
+                    end: 3_000
+                },
+                2
+            ),
             FilledPaging {
                 page_number: -1,
                 page_size: 400,
@@ -232,7 +241,7 @@ mod tests {
             .get_page_range(3_000, 5),
         );
         assert_eq!(
-            Range { start: 40, end: 80 },
+            (Range { start: 40, end: 80 }, 3),
             FilledPaging {
                 page_number: -2,
                 page_size: 40,

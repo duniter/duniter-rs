@@ -16,24 +16,32 @@
 // ! Module execute GraphQl schema blocks query
 
 use crate::schema::entities::block::Block;
-use crate::schema::inputs::block_interval::BlockInterval;
+use crate::schema::entities::blocks_page::BlocksPage;
+use crate::schema::inputs::block_interval::{BlockInterval, FilledBlockInterval};
 use crate::schema::inputs::paging::{FilledPaging, Paging};
 use crate::schema::inputs::sort_order::SortOrder;
 use dubp_common_doc::BlockNumber;
-use durs_bc_db_reader::blocks::DbBlock;
 use durs_bc_db_reader::{BcDbRoTrait, DbError};
 use juniper_from_schema::{QueryTrail, Walked};
 
 pub(crate) fn execute<DB: BcDbRoTrait>(
     db: &DB,
-    _trail: &QueryTrail<'_, Block, Walked>,
+    _trail: &QueryTrail<'_, BlocksPage, Walked>,
     paging_opt: Option<Paging>,
     block_interval_opt: Option<BlockInterval>,
     step: usize,
     sort_order: SortOrder,
-) -> Result<Vec<Block>, DbError> {
+) -> Result<BlocksPage, DbError> {
+    // Get current block number opt
+    let current_block_number_opt = if let Some(current_blockstamp) = db.get_current_blockstamp()? {
+        Some(current_blockstamp.id)
+    } else {
+        None
+    };
+
     // Get interval
-    let interval = BlockInterval::get_range(db, block_interval_opt)?;
+    let interval =
+        FilledBlockInterval::new(block_interval_opt, current_block_number_opt).get_range();
 
     // Get blocks numbers that respect filters
     let blocks_numbers: Vec<BlockNumber> =
@@ -44,7 +52,7 @@ pub(crate) fn execute<DB: BcDbRoTrait>(
         .into_iter()
         .filter(|n| interval.contains(&(n.0 as usize)))
         .collect();
-    let count = blocks_numbers.len();
+    let total_blocks_count = blocks_numbers.len();
 
     // Apply sort
     if let SortOrder::Desc = sort_order {
@@ -53,7 +61,7 @@ pub(crate) fn execute<DB: BcDbRoTrait>(
 
     // Apply paging and step
     let paging = FilledPaging::from(paging_opt);
-    let page_range = paging.get_page_range(count, step);
+    let (page_range, count_pages) = paging.get_page_range(total_blocks_count, step);
     let blocks_numbers_len = blocks_numbers.len();
     let blocks_numbers: Vec<BlockNumber> = page_range
         .step_by(step)
@@ -67,9 +75,20 @@ pub(crate) fn execute<DB: BcDbRoTrait>(
         .collect();
 
     // Get blocks
-    let blocks: Vec<DbBlock> = db.get_db_blocks_in_local_blockchain(blocks_numbers)?;
+    let blocks: Vec<Block> = db
+        .get_db_blocks_in_local_blockchain(blocks_numbers)?
+        .into_iter()
+        .map(Into::into)
+        .collect();
 
-    Ok(blocks.into_iter().map(Into::into).collect())
+    Ok(BlocksPage {
+        blocks,
+        current_page_number: paging.page_number as i32,
+        interval_from: *interval.start() as i32,
+        interval_to: *interval.end() as i32,
+        last_page_number: (count_pages - 1) as i32,
+        total_blocks_count: (interval.end() - interval.start() + 1) as i32,
+    })
 }
 
 #[cfg(test)]
@@ -242,14 +261,24 @@ mod tests {
 
         tests::test_gql_query(
             schema,
-            "{ blocks(interval: { from: 2 }) { commonTime, currency, hash, issuer, number, version } }",
+            "{ blocks(interval: { from: 2 }) {
+                blocks { commonTime, currency, hash, issuer, number, version },
+                currentPageNumber, intervalFrom, intervalTo, lastPageNumber, totalBlocksCount
+            } }",
             json!({
                 "data": {
-                    "blocks": [
-                        block_2_json(),
-                        block_3_json(),
-                        block_4_json(),
-                    ]
+                    "blocks": {
+                        "blocks": [
+                            block_2_json(),
+                            block_3_json(),
+                            block_4_json(),
+                        ],
+                        "currentPageNumber": 0,
+                        "intervalFrom": 2,
+                        "intervalTo": 4,
+                        "lastPageNumber": 0,
+                        "totalBlocksCount": 3,
+                    }
                 }
             }),
         );
@@ -290,25 +319,35 @@ mod tests {
 
         tests::test_gql_query(
             schema,
-            "{ blocks(step: 2) { commonTime, currency, hash, issuer, number, version } }",
+            "{ blocks(step: 2) {
+                blocks { commonTime, currency, hash, issuer, number, version },
+                currentPageNumber, intervalFrom, intervalTo, lastPageNumber, totalBlocksCount
+            } }",
             json!({
                 "data": {
-                    "blocks": [{
-                        "commonTime": 1_488_987_127.0,
-                        "currency": "test_currency",
-                        "hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                        "issuer": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                        "number": 0,
-                        "version": 10
-                    },
-                    {
-                        "commonTime": 1_488_987_129.0,
-                        "currency": "test_currency",
-                        "hash": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
-                        "issuer": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
-                        "number": 2,
-                        "version": 10
-                    }]
+                    "blocks": {
+                        "blocks": [{
+                            "commonTime": 1_488_987_127.0,
+                            "currency": "test_currency",
+                            "hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "issuer": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "number": 0,
+                            "version": 10
+                        },
+                        {
+                            "commonTime": 1_488_987_129.0,
+                            "currency": "test_currency",
+                            "hash": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+                            "issuer": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+                            "number": 2,
+                            "version": 10
+                        }],
+                        "currentPageNumber": 0,
+                        "intervalFrom": 0,
+                        "intervalTo": 2,
+                        "lastPageNumber": 0,
+                        "totalBlocksCount": 3
+                    }
                 }
             }),
         );
@@ -354,14 +393,24 @@ mod tests {
 
         tests::test_gql_query(
             global_context,
-            "{ blocks(sortOrder: DESC) { commonTime, currency, hash, issuer, number, version } }",
+            "{ blocks(sortOrder: DESC) {
+                blocks { commonTime, currency, hash, issuer, number, version },
+                currentPageNumber, intervalFrom, intervalTo, lastPageNumber, totalBlocksCount
+            } }",
             json!({
                 "data": {
-                    "blocks": [
-                        block_2_json(),
-                        block_1_json(),
-                        block_0_json()
-                    ]
+                    "blocks": {
+                        "blocks": [
+                            block_2_json(),
+                            block_1_json(),
+                            block_0_json()
+                        ],
+                        "currentPageNumber": 0,
+                        "intervalFrom": 0,
+                        "intervalTo": 2,
+                        "lastPageNumber": 0,
+                        "totalBlocksCount": 3
+                    }
                 }
             }),
         );
@@ -407,13 +456,24 @@ mod tests {
 
         tests::test_gql_query(
             schema,
-            "{ blocks { commonTime, currency, hash, issuer, number, version } }",
+            "{ blocks {
+                blocks { commonTime, currency, hash, issuer, number, version },
+                currentPageNumber, intervalFrom, intervalTo, lastPageNumber, totalBlocksCount
+            } }",
             json!({
                 "data": {
-                    "blocks": [
-                    block_0_json(),
-                    block_1_json(),
-                    block_2_json()]
+                    "blocks": {
+                        "blocks": [
+                            block_0_json(),
+                            block_1_json(),
+                            block_2_json()
+                        ],
+                        "currentPageNumber": 0,
+                        "intervalFrom": 0,
+                        "intervalTo": 2,
+                        "lastPageNumber": 0,
+                        "totalBlocksCount": 3
+                    }
                 }
             }),
         );
