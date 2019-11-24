@@ -67,7 +67,7 @@ pub fn gen_empty_timed_issued_hashed_block_v10(
     signator: &dup_crypto::keys::SignatorEnum,
 ) -> BlockDocumentV10 {
     let mut block = gen_empty_block_v10(block_number);
-    block.time = time;
+    block.median_time = time;
     block.issuers = vec![signator.public_key()];
     block.previous_issuer = Some(previous_issuer);
     block.previous_hash = Some(previous_hash);

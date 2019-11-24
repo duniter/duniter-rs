@@ -170,49 +170,27 @@ pub enum SyncVerificationLevel {
 }
 
 impl BlockchainModule {
-    /// Return module identifier
-    pub fn name() -> ModuleStaticName {
-        ModuleStaticName(MODULE_NAME)
-    }
-    /// Loading blockchain configuration
-    pub fn load_blockchain_conf(
-        db: Db,
+    /// Instantiate blockchain module
+    pub fn new(
         router_sender: Sender<RouterThreadMessage<DursMsg>>,
         profile_path: PathBuf,
-        _keys: RequiredKeysContent,
-    ) -> BlockchainModule {
-        // Get db path
-        let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone());
-
-        // Open databases
-        let fork_tree = durs_bc_db_reader::current_meta_datas::get_fork_tree(&db)
-            .unwrap_or_else(|_| fatal_error!("Fail to get fork tree."));
-        let wot_databases = WotsV10DBs::open(Some(&dbs_path));
-
+        currency_name: Option<CurrencyName>,
+        currency_params: Option<CurrencyParameters>,
+        db: Db,
+        wot_databases: WotsV10DBs,
+    ) -> Result<BlockchainModule, DbError> {
         // Get current blockstamp
-        let current_blockstamp = durs_bc_db_reader::current_meta_datas::get_current_blockstamp(&db)
-            .expect("Fatal error : fail to read Blockchain DB !")
-            .unwrap_or_default();
+        let current_blockstamp =
+            durs_bc_db_reader::current_meta_datas::get_current_blockstamp(&db)?.unwrap_or_default();
 
-        // Get currency parameters
-        let (currency_name, currency_params) = if let Some((currency_name, currency_params)) =
-            dubp_currency_params::db::get_currency_params(durs_conf::get_datas_path(
-                profile_path.clone(),
-            ))
-            .expect("Fatal error : fail to read Blockchain DB !")
-        {
-            (Some(currency_name), Some(currency_params))
-        } else {
-            (None, None)
-        };
+        // Get fork tree
+        let fork_tree = durs_bc_db_reader::current_meta_datas::get_fork_tree(&db)?;
 
         // Get wot index
         let wot_index: HashMap<PubKey, WotId> =
-            durs_bc_db_reader::indexes::identities::get_wot_index(&db)
-                .expect("Fatal eror : get_wot_index : Fail to read blockchain databases");
+            durs_bc_db_reader::indexes::identities::get_wot_index(&db)?;
 
-        // Instanciate BlockchainModule
-        BlockchainModule {
+        Ok(BlockchainModule {
             router_sender,
             profile_path,
             currency: currency_name,
@@ -228,7 +206,48 @@ impl BlockchainModule {
             pending_network_requests: HashMap::new(),
             last_request_blocks: UNIX_EPOCH,
             last_request_fork_blocks: UNIX_EPOCH,
-        }
+        })
+    }
+    /// Return module identifier
+    pub fn name() -> ModuleStaticName {
+        ModuleStaticName(MODULE_NAME)
+    }
+    /// Loading blockchain configuration
+    pub fn load_blockchain_conf(
+        db: Db,
+        router_sender: Sender<RouterThreadMessage<DursMsg>>,
+        profile_path: PathBuf,
+        _keys: RequiredKeysContent,
+    ) -> BlockchainModule {
+        // Get db path
+        let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone());
+
+        // Open wot
+        let wot_databases = WotsV10DBs::open(Some(&dbs_path));
+
+        // Get currency parameters
+        let (currency_name, currency_params) = if let Some((currency_name, currency_params)) =
+            dubp_currency_params::db::get_currency_params(durs_conf::get_datas_path(
+                profile_path.clone(),
+            ))
+            .expect("Fatal error : fail to read Blockchain DB !")
+        {
+            (Some(currency_name), Some(currency_params))
+        } else {
+            (None, None)
+        };
+
+        // Instanciate BlockchainModule
+        // TODO ESZ
+        BlockchainModule::new(
+            router_sender,
+            profile_path,
+            currency_name,
+            currency_params,
+            db,
+            wot_databases,
+        )
+        .unwrap_or_else(|e| fatal_error!("Fail to instantiate BlockchainModule: {:?}", e))
     }
     /// Databases explorer
     pub fn dbex(profile_path: PathBuf, csv: bool, req: &DbExQuery) {
@@ -293,14 +312,14 @@ impl BlockchainModule {
         loop {
             let now = SystemTime::now();
             // Request Consensus
-            requests::sent::request_network_consensus(self);
+            //requests::sent::request_network_consensus(self);
             // Request next main blocks
             requests::sent::request_next_main_blocks(self, now);
             // Request fork blocks
             requests::sent::request_fork_blocks(self, now);
 
             // Listen received messages
-            match blockchain_receiver.recv_timeout(Duration::from_millis(1000)) {
+            match blockchain_receiver.recv_timeout(Duration::from_millis(2000)) {
                 Ok(durs_message) => {
                     match durs_message {
                         DursMsg::Request {
@@ -321,7 +340,10 @@ impl BlockchainModule {
                             res_content,
                             ..
                         } => responses::received::receive_response(self, req_id, res_content),
-                        DursMsg::Stop => break,
+                        DursMsg::Stop => {
+                            debug!("Receive Stop message.");
+                            break;
+                        }
                         _ => {} // Others DursMsg variants
                     }
                 }

@@ -628,7 +628,7 @@ impl TransactionDocument {
             hash
         } else {
             self.hash = Some(self.compute_hash());
-            self.hash.expect("Try to get hash of a reduce tx !")
+            self.hash.expect("unreach")
         }
     }
     /// Get transaction inputs
@@ -642,6 +642,7 @@ impl TransactionDocument {
     /// Lightens the transaction (for example to store it while minimizing the space required)
     /// WARNING: do not remove the hash as it's necessary to reverse the transaction !
     pub fn reduce(&mut self) {
+        self.hash = Some(self.compute_hash());
         self.text = None;
         for output in &mut self.outputs {
             output.reduce()
@@ -799,7 +800,7 @@ impl TextDocument for TransactionDocument {
         if let Some(ref text) = self.text {
             text
         } else {
-            fatal_error!("Try to get text of tx whti None text !")
+            fatal_error!("Try to get text of tx with None text !")
         }
     }
 

@@ -65,6 +65,7 @@ impl<'r, 'db: 'r> BcDbRoTrait for BcDbRoWithReader<'r, 'db> {
     ) -> Result<Option<DbBlock>, DbError> {
         crate::blocks::get_db_block_in_local_blockchain(self.db, self.r, block_number)
     }
+    #[cfg(feature = "client-indexer")]
     fn get_db_blocks_in_local_blockchain(
         &self,
         numbers: Vec<BlockNumber>,

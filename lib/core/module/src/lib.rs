@@ -164,7 +164,7 @@ pub struct SoftwareMetaDatas<DC: DursConfTrait> {
 
 /// The different modules of Duniter-rs can exchange messages with the type of their choice,
 /// provided that this type implements the ModuleMessage trait.
-pub trait ModuleMessage: Clone + Debug {}
+pub trait ModuleMessage: Clone + Debug + PartialEq {}
 
 /// List of the different roles that can be assigned to a module.
 /// This role list allows a module to send a message to all modules playing a specific role without knowing their name.
@@ -227,7 +227,7 @@ pub enum ModuleEvent {
     SyncEvent,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 /// Type sent by each module to the router during initialization
 pub enum RouterThreadMessage<M: ModuleMessage> {
     /// Number of expected modules

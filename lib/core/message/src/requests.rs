@@ -19,7 +19,7 @@ use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_network::requests::OldNetworkRequest;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 /// Modules request content
 pub enum DursReqContent {
     /// Request to the old network module
@@ -59,7 +59,7 @@ pub enum BlockchainRequest {
     UIDs(Vec<PubKey>),
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 /// Inter-module request for mem pool data
 pub enum MemPoolRequest {
     /// All pending identities with their pending certifications

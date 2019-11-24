@@ -17,20 +17,25 @@
 
 use crate::*;
 use dubp_common_doc::{BlockNumber, Blockstamp};
-use durs_network::requests::OldNetworkRequest;
 
-pub fn request_network_consensus(bc: &mut BlockchainModule) {
-    let req = OldNetworkRequest::GetConsensus(ModuleReqFullId(
-        BlockchainModule::name(),
-        ModuleReqId(bc.pending_network_requests.len() as u32),
-    ));
-    let req_id = dunp::queries::request_network(
-        bc,
-        ModuleReqId(bc.pending_network_requests.len() as u32),
-        &req,
-    );
-    bc.pending_network_requests.insert(req_id, req);
-}
+/*pub fn request_network_consensus(bc: &mut BlockchainModule) {
+    if now
+        .duration_since(bc.last_request_consensus)
+        .expect("duration_since error")
+        > Duration::from_secs(*REQUEST_CONSENSUS_FREQUENCY_IN_SEC)
+    {
+        let req = OldNetworkRequest::GetConsensus(ModuleReqFullId(
+            BlockchainModule::name(),
+            ModuleReqId(bc.pending_network_requests.len() as u32),
+        ));
+        let req_id = dunp::queries::request_network(
+            bc,
+            ModuleReqId(bc.pending_network_requests.len() as u32),
+            &req,
+        );
+        bc.pending_network_requests.insert(req_id, req);
+    }
+}*/
 
 pub fn request_orphan_previous(bc: &mut BlockchainModule, orphan_blockstamp: Blockstamp) {
     let new_pending_network_requests =

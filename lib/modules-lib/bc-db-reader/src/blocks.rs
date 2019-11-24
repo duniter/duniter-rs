@@ -100,7 +100,7 @@ pub fn get_block<DB: DbReadable, R: DbReader>(
     r: &R,
     blockstamp: Blockstamp,
 ) -> Result<Option<DbBlock>, DbError> {
-    let opt_dal_block = get_dal_block_in_local_blockchain(db, r, blockstamp.id)?;
+    let opt_dal_block = get_db_block_in_local_blockchain(db, r, blockstamp.id)?;
     if opt_dal_block.is_none() {
         get_fork_block(db, r, blockstamp)
     } else {
@@ -184,6 +184,7 @@ pub fn get_blocks_in_local_blockchain<DB: DbReadable, R: DbReader>(
 }
 
 /// Get several blocks in local blockchain by their number
+#[cfg(feature = "client-indexer")]
 pub fn get_blocks_in_local_blockchain_by_numbers<DB: DbReadable, R: DbReader>(
     db: &DB,
     r: &R,

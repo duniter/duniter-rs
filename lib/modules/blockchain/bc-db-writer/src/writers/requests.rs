@@ -64,22 +64,22 @@ impl BlocksDBsWriteQuery {
         sync_target: Option<Blockstamp>,
     ) -> Result<(), DbError> {
         match self {
-            BlocksDBsWriteQuery::WriteBlock(dal_block) => {
-                let dal_block: DbBlock = dal_block;
+            BlocksDBsWriteQuery::WriteBlock(mut block_db) => {
                 trace!("BlocksDBsWriteQuery::WriteBlock...");
-                crate::current_meta_datas::update_current_meta_datas(db, w, &dal_block.block)?;
+                block_db.block.reduce();
+                crate::current_meta_datas::update_current_meta_datas(db, w, &block_db.block)?;
                 if sync_target.is_none()
-                    || dal_block.blockstamp().id.0 + fork_window_size as u32
+                    || block_db.blockstamp().id.0 + fork_window_size as u32
                         >= sync_target.expect("safe unwrap").id.0
                 {
-                    crate::blocks::insert_new_head_block(db, w, Some(fork_tree), dal_block)?;
+                    crate::blocks::insert_new_head_block(db, w, Some(fork_tree), block_db)?;
                 } else {
-                    crate::blocks::insert_new_head_block(db, w, None, dal_block)?;
+                    crate::blocks::insert_new_head_block(db, w, None, block_db)?;
                 }
             }
-            BlocksDBsWriteQuery::RevertBlock(dal_block) => {
+            BlocksDBsWriteQuery::RevertBlock(block_db) => {
                 trace!("BlocksDBsWriteQuery::WriteBlock...");
-                crate::blocks::remove_block(db, w, dal_block.block.number())?;
+                crate::blocks::remove_block(db, w, block_db.block.number())?;
                 trace!("BlocksDBsWriteQuery::WriteBlock...finish");
             }
         }

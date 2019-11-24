@@ -15,7 +15,7 @@
 
 //! Sub-module that applies the content of a block to the indexes of the local blockchain.
 
-use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait, BlockDocumentV10};
+use dubp_block_doc::block::{BlockDocument, BlockDocumentV10};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
 use dubp_user_docs::documents::transaction::{TxAmount, TxBase};
@@ -65,7 +65,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
 pub fn apply_valid_block_v10<W: WebOfTrust>(
     db: &Db,
     w: &mut DbWriter,
-    mut block: BlockDocumentV10,
+    block: BlockDocumentV10,
     wot_index: &mut HashMap<PubKey, WotId>,
     wot_db: &BinFreeStructDb<W>,
     expire_certs: &HashMap<(WotId, WotId), BlockNumber>,
@@ -282,14 +282,13 @@ pub fn apply_valid_block_v10<W: WebOfTrust>(
         );
     }*/
     // Create DbBlock
-    block.reduce();
-    let dal_block = DbBlock {
+    let block_db = DbBlock {
         block: BlockDocument::V10(block),
         expire_certs: Some(expire_certs.clone()),
     };
     // Return DBs requests
     Ok(ValidBlockApplyReqs(
-        BlocksDBsWriteQuery::WriteBlock(dal_block),
+        BlocksDBsWriteQuery::WriteBlock(block_db),
         wot_dbs_requests,
         currency_dbs_requests,
     ))

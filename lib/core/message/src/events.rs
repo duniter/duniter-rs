@@ -20,7 +20,7 @@ use dubp_user_docs::documents::UserDocumentDUBP;
 use durs_network::events::NetworkEvent;
 
 /// The DURS event message.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum DursEvent {
     /// Arbitrary datas.
     ArbitraryDatas(ArbitraryDatas),
@@ -34,7 +34,7 @@ pub enum DursEvent {
     ReceiveValidDocsFromClient(Vec<UserDocumentDUBP>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 /// MemPool module events
 pub enum MemPoolEvent {
     /// FindNextBlock (local node find next block)
@@ -43,7 +43,7 @@ pub enum MemPoolEvent {
     StoreNewDocInPool(Box<UserDocumentDUBP>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 /// Blockchain module events
 pub enum BlockchainEvent {
     /// Currency parameters

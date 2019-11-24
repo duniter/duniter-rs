@@ -33,7 +33,7 @@ pub mod revocation;
 pub mod transaction;
 
 /// User document of DUBP (DUniter Blockhain Protocol)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum UserDocumentDUBP {
     /// Transaction document.
     Transaction(Box<TransactionDocument>),

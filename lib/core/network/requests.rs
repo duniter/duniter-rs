@@ -20,7 +20,7 @@ use dubp_block_doc::BlockDocument;
 use dubp_common_doc::blockstamp::Blockstamp;
 use dubp_user_docs::documents::UserDocumentDUBP;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 /// Type containing a request addressed to the network module
 pub enum OldNetworkRequest {
     /// Get a current block of a specific node
@@ -69,7 +69,7 @@ pub enum OldNetworkRequestError {
     ReceiverUnreachable(),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 /// Type containing the response to a network request
 pub enum NetworkResponse {
     /// CurrentBlock

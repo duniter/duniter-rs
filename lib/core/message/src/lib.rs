@@ -45,7 +45,7 @@ use crate::requests::*;
 use crate::responses::*;
 
 /// Message exchanged between Dunitrust modules
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum DursMsg {
     /// Dunitrust module event
     Event {
@@ -89,7 +89,7 @@ pub enum DursMsg {
 impl ModuleMessage for DursMsg {}
 
 /// Arbitrary datas
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ArbitraryDatas {
     /// Arbitrary text message
     Text(String),

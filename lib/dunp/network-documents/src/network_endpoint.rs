@@ -71,7 +71,7 @@ pub struct ApiName(pub String);
 pub struct ApiVersion(pub usize);
 
 /// Api parts
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ApiPart {
     pub name: ApiName,
     pub versions: HashSet<ApiVersion>,

@@ -23,7 +23,7 @@ use dubp_common_doc::blockstamp::Blockstamp;
 use dubp_user_docs::documents::UserDocumentDUBP;
 use durs_common_tools::Percent;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 /// Type containing a network event, each time a network event occurs it's relayed to all modules
 pub enum NetworkEvent {
     /// A connection has changed state(`u32` is the new state, `Option<String>` est l'uid du noeud)

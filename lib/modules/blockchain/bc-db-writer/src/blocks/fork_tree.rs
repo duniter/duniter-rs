@@ -56,6 +56,11 @@ pub fn insert_new_fork_block(
     blockstamp: Blockstamp,
     previous_hash: Hash,
 ) -> Result<bool, DbError> {
+    trace!(
+        "insert_new_fork_block #{} (previous_hash={})",
+        blockstamp,
+        previous_hash
+    );
     let previous_blockstamp = Blockstamp {
         id: BlockNumber(blockstamp.id.0 - 1),
         hash: BlockHash(previous_hash),

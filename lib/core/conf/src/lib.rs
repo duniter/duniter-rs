@@ -456,7 +456,7 @@ pub fn get_datas_path(profile_path: PathBuf) -> PathBuf {
     if !datas_path.as_path().exists() {
         if let Err(io_error) = fs::create_dir(datas_path.as_path()) {
             if io_error.kind() != std::io::ErrorKind::AlreadyExists {
-                fatal_error!("Impossible to create currency dir !");
+                fatal_error!("Impossible to create modules datas folder !");
             }
         }
     }

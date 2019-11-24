@@ -27,7 +27,7 @@ use durs_network::requests::NetworkResponse;
 use std::collections::HashMap;
 
 /// Dunitrust request response message
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum DursResContent {
     /// BlockchainResponse
     BlockchainResponse(BlockchainResponse),
@@ -39,7 +39,7 @@ pub enum DursResContent {
     ProverResponse(BlockNumber, Sig, u64),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 /// Pending identity datas
 pub struct PendingIdtyDatas {
     /// Identity document
@@ -54,7 +54,7 @@ pub struct PendingIdtyDatas {
     pub revocation: Option<RevocationDocumentV10>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 /// Response to a BlockchainReqBlockchain request
 pub enum BlockchainResponse {
     /// Current blockstamp
@@ -71,7 +71,7 @@ pub enum BlockchainResponse {
     Identities(Vec<IdentityDocument>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 /// Response to a MemPoolRequest request
 pub enum MemPoolResponse {
     /// All pending identities with their pending certifications

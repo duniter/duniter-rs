@@ -34,7 +34,7 @@ use crate::constants::*;
 pub use dubp_common_doc::CurrencyName;
 use genesis_block_params::v10::BlockV10Parameters;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 /// Currency parameters
 pub struct CurrencyParameters {
     /// Protocol version
