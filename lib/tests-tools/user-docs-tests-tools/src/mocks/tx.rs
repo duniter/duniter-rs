@@ -15,6 +15,7 @@
 
 //! Mocks for projects use dubp-user-docs
 
+use dubp_common_doc::parser::TextDocumentParser;
 use dubp_common_doc::traits::DocumentBuilder;
 use dubp_common_doc::Blockstamp;
 use dubp_user_docs::documents::transaction::*;
@@ -54,4 +55,42 @@ pub fn first_g1_tx_doc() -> TransactionDocument {
     expected_tx_builder.build_with_signature(vec![Sig::Ed25519(
                 ed25519::Signature::from_base64("fAH5Gor+8MtFzQZ++JaJO6U8JJ6+rkqKtPrRr/iufh3MYkoDGxmjzj6jCADQL+hkWBt8y8QzlgRkz0ixBcKHBw==").expect("Fail to parse sig !")
             )])
+}
+
+/// Generate mock transaction document
+pub fn gen_mock_tx_doc() -> TransactionDocument {
+    TransactionDocumentParser::parse("Version: 10
+Type: Transaction
+Currency: g1
+Blockstamp: 107982-000001242F6DA51C06A915A96C58BAA37AB3D1EB51F6E1C630C707845ACF764B
+Locktime: 0
+Issuers:
+8dkCwvAqSczUjKsoVMDPVbQ3i6bBQeBQYawL87kqTSQ3
+Inputs:
+1002:0:D:8dkCwvAqSczUjKsoVMDPVbQ3i6bBQeBQYawL87kqTSQ3:106345
+Unlocks:
+0:SIG(0)
+Outputs:
+1002:0:SIG(CitdnuQgZ45tNFCagay7Wh12gwwHM8VLej1sWmfHWnQX)
+Comment: DU symbolique pour demander le codage de nouvelles fonctionnalites cf. https://forum.monnaie-libre.fr/t/creer-de-nouvelles-fonctionnalites-dans-cesium-les-autres-applications/2025  Merci
+T0LlCcbIn7xDFws48H8LboN6NxxwNXXTovG4PROLf7tkUAueHFWjfwZFKQXeZEHxfaL1eYs3QspGtLWUHPRVCQ==").expect("Fail to parse tx1")
+}
+
+/// Generate mock transaction document with wrong version
+pub fn gen_mock_tx_doc_wrong_version() -> TransactionDocument {
+    TransactionDocumentParser::parse("Version: 12
+Type: Transaction
+Currency: g1
+Blockstamp: 107982-000001242F6DA51C06A915A96C58BAA37AB3D1EB51F6E1C630C707845ACF764B
+Locktime: 0
+Issuers:
+8dkCwvAqSczUjKsoVMDPVbQ3i6bBQeBQYawL87kqTSQ3
+Inputs:
+1002:0:D:8dkCwvAqSczUjKsoVMDPVbQ3i6bBQeBQYawL87kqTSQ3:106345
+Unlocks:
+0:SIG(0)
+Outputs:
+1002:0:SIG(CitdnuQgZ45tNFCagay7Wh12gwwHM8VLej1sWmfHWnQX)
+Comment: DU symbolique pour demander le codage de nouvelles fonctionnalites cf. https://forum.monnaie-libre.fr/t/creer-de-nouvelles-fonctionnalites-dans-cesium-les-autres-applications/2025  Merci
+T0LlCcbIn7xDFws48H8LboN6NxxwNXXTovG4PROLf7tkUAueHFWjfwZFKQXeZEHxfaL1eYs3QspGtLWUHPRVCQ==").expect("Fail to parse tx1")
 }

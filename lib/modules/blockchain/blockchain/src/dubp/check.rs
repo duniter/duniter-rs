@@ -1,4 +1,4 @@
-//  Copyright (C) 2019  Éloïs SANCHEZ
+//  Copyright (C) 2017-2019  The AXIOM TEAM Association.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,7 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Common rust traits for DURS project.
+//! Sub-module checking if a block complies with all the rules of the (DUBP DUniter Blockchain Protocol).
 
-pub mod bool_ext;
-pub mod merge;
+pub mod global;
+pub mod hashs;
+pub mod local;
+pub mod pow;
+
+#[derive(Debug)]
+pub enum InvalidBlockError {
+    Global(global::GlobalVerifyBlockError),
+    Hashs(dubp_block_doc::block::VerifyBlockHashError),
+    Local(local::LocalVerifyBlockError),
+    Pow(pow::BlockPoWError),
+}

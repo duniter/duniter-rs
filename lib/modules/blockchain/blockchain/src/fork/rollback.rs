@@ -127,7 +127,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                     Err(e) => {
                         new_branch_is_valid = false;
                         bc.invalid_forks.insert(*blockstamp);
-                        info!(
+                        warn!(
                             "Blockchain: abort rollback: block {} is invalid: {:?}",
                             blockstamp, e
                         );

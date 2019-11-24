@@ -15,31 +15,36 @@
 
 //! Sub-module checking if a block complies with all the rules of the (DUBP DUniter Blockchain Protocol).
 
-pub mod hashs;
-
-use crate::dubp::BlockError;
 use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
 use dup_crypto::keys::PubKey;
-use durs_bc_db_reader::DbReader;
-use durs_bc_db_writer::*;
+use durs_bc_db_reader::{DbError, DbReadable, DbReader};
+use durs_bc_db_writer::BinFreeStructDb;
+use durs_common_tools::traits::bool_ext::BoolExt;
 use durs_wot::*;
 use std::collections::HashMap;
 
-#[derive(Debug, Copy, Clone)]
-pub enum InvalidBlockError {
+#[derive(Debug)]
+pub enum GlobalVerifyBlockError {
+    DbError(DbError),
     NoPreviousBlock,
     VersionDecrease,
 }
 
-pub fn verify_block_validity<DB, R, W>(
+impl From<DbError> for GlobalVerifyBlockError {
+    fn from(err: DbError) -> Self {
+        GlobalVerifyBlockError::DbError(err)
+    }
+}
+
+pub fn verify_global_validity_block<DB, R, W>(
     block: &BlockDocument,
     db: &DB,
     r: &R,
     _wot_index: &HashMap<PubKey, WotId>,
     _wot_db: &BinFreeStructDb<W>,
-) -> Result<(), BlockError>
+) -> Result<(), GlobalVerifyBlockError>
 where
     DB: DbReadable,
     R: DbReader,
@@ -55,15 +60,14 @@ where
         )?;
 
         // Previous block must exist
-        if previous_block_opt.is_none() {
-            return Err(BlockError::InvalidBlock(InvalidBlockError::NoPreviousBlock));
-        }
+        previous_block_opt
+            .is_some()
+            .or_err(GlobalVerifyBlockError::NoPreviousBlock)?;
         let previous_block = previous_block_opt.expect("safe unwrap");
 
         // Block version must not decrease
-        if previous_block.version() > block.version() {
-            return Err(BlockError::InvalidBlock(InvalidBlockError::VersionDecrease));
-        }
+        (block.version() >= previous_block.version())
+            .or_err(GlobalVerifyBlockError::VersionDecrease)?;
     }
 
     Ok(())

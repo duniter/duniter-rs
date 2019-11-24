@@ -15,13 +15,21 @@
 
 //! Mocks for projects use dubp-block-doc
 
+pub mod block_params;
+
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_block_doc::{BlockDocument, BlockDocumentV10};
 use dubp_common_doc::blockstamp::Blockstamp;
+use dubp_common_doc::parser::TextDocumentParser;
+use dubp_common_doc::traits::text::*;
 use dubp_common_doc::{BlockHash, BlockNumber};
+use dubp_currency_params::genesis_block_params::v10::BlockV10Parameters;
 use dubp_currency_params::CurrencyName;
+use dubp_user_docs::documents::certification::*;
+use dubp_user_docs::documents::transaction::*;
+use dup_crypto::bases::b16::str_hex_to_32bytes;
 use dup_crypto::hashs::Hash;
-use dup_crypto::keys::{PubKey, Signator};
+use dup_crypto::keys::{ed25519, PubKey, PublicKey, Sig, Signator, Signature};
 
 /// Generate n mock blockstamps
 pub fn generate_blockstamps(n: usize) -> Vec<Blockstamp> {
@@ -67,6 +75,7 @@ pub fn gen_empty_timed_issued_hashed_block_v10(
     signator: &dup_crypto::keys::SignatorEnum,
 ) -> BlockDocumentV10 {
     let mut block = gen_empty_block_v10(block_number);
+    block.time = time;
     block.median_time = time;
     block.issuers = vec![signator.public_key()];
     block.previous_issuer = Some(previous_issuer);
@@ -123,4 +132,106 @@ fn gen_empty_block_v10(block_number: BlockNumber) -> BlockDocumentV10 {
         transactions: vec![],
         inner_hash: None,
     }
+}
+
+/// Generate mock block which is not a genesis block
+pub fn gen_mock_normal_block_v10() -> BlockDocumentV10 {
+    let cert1 = CertificationDocumentParser::parse("Version: 10
+Type: Certification
+Currency: g1
+Issuer: 6TAzLWuNcSqgNDNpAutrKpPXcGJwy1ZEMeVvZSZNs2e3
+IdtyIssuer: CYPsYTdt87Tx6cCiZs9KD4jqPgYxbcVEqVZpRgJ9jjoV
+IdtyUniqueID: PascaleM
+IdtyTimestamp: 97401-0000003821911909F98519CC773D2D3E5CFE3D5DBB39F4F4FF33B96B4D41800E
+IdtySignature: QncUVXxZ2NfARjdJOn6luILvDuG1NuK9qSoaU4CST2Ij8z7oeVtEgryHl+EXOjSe6XniALsCT0gU8wtadcA/Cw==
+CertTimestamp: 106669-000003682E6FE38C44433DCE92E8B2A26C69B6D7867A2BAED231E788DDEF4251
+UmseG2XKNwKcY8RFi6gUCT91udGnnNmSh7se10J1jeRVlwf+O2Tyb2Cccot9Dt7BO4+Kx2P6vFJB3oVGGHMxBA==").expect("Fail to parse cert1");
+    let CertificationDocument::V10(cert1) = cert1;
+
+    let tx1 = dubp_user_docs_tests_tools::mocks::tx::gen_mock_tx_doc();
+    let tx2 = TransactionDocumentParser::parse("Version: 10
+Type: Transaction
+Currency: g1
+Blockstamp: 107982-000001242F6DA51C06A915A96C58BAA37AB3D1EB51F6E1C630C707845ACF764B
+Locktime: 0
+Issuers:
+8dkCwvAqSczUjKsoVMDPVbQ3i6bBQeBQYawL87kqTSQ3
+Inputs:
+1002:0:D:8dkCwvAqSczUjKsoVMDPVbQ3i6bBQeBQYawL87kqTSQ3:106614
+Unlocks:
+0:SIG(0)
+Outputs:
+1002:0:SIG(78ZwwgpgdH5uLZLbThUQH7LKwPgjMunYfLiCfUCySkM8)
+Comment: DU symbolique pour demander le codage de nouvelles fonctionnalites cf. https://forum.monnaie-libre.fr/t/creer-de-nouvelles-fonctionnalites-dans-cesium-les-autres-applications/2025  Merci
+a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8xrNcCg==").expect("Fail to parse tx2");
+
+    BlockDocumentV10 {
+            nonce: 10_300_000_018_323,
+            version: 10,
+            number: BlockNumber(107_984),
+            pow_min: 88,
+            time: 1_522_685_861,
+            median_time: 1_522_683_184,
+            members_count: 896,
+            monetary_mass: 140_469_765,
+            unit_base: 0,
+            issuers_count: 42,
+            issuers_frame: 211,
+            issuers_frame_var: 0,
+            currency: CurrencyName(String::from("g1")),
+            issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58("DA4PYtXdvQqk1nCaprXH52iMsK5Ahxs1nRWbWKLhpVkQ").unwrap())],
+            signatures: vec![Sig::Ed25519(ed25519::Signature::from_base64("92id58VmkhgVNee4LDqBGSm8u/ooHzAD67JM6fhAE/CV8LCz7XrMF1DvRl+eRpmlaVkp6I+Iy8gmZ1WUM5C8BA==").unwrap())],
+            hash: None,
+            parameters: None,
+            previous_hash: Some(Hash::from_hex("000001144968D0C3516BE6225E4662F182E28956AF46DD7FB228E3D0F9413FEB").expect("fail to parse previous_hash")),
+            previous_issuer: Some(PubKey::Ed25519(ed25519::PublicKey::from_base58("D3krfq6J9AmfpKnS3gQVYoy7NzGCc61vokteTS8LJ4YH").unwrap())),
+            inner_hash: Some(Hash(
+                    str_hex_to_32bytes(
+                        "C8AB69E33ECE2612EADC7AB30D069B1F1A3D8C95EBBFD50DE583AC8E3666CCA1",
+                    ).unwrap() )),
+            dividend: None,
+            identities: Vec::new(),
+            joiners: Vec::new(),
+            actives: Vec::new(),
+            leavers: Vec::new(),
+            revoked: Vec::new(),
+            excluded: Vec::new(),
+            certifications: vec![TextDocumentFormat::Complete(cert1)],
+            transactions: vec![tx1, tx2],
+        }
+}
+
+/// Generate a mock genesis block
+pub fn gen_mock_genesis_block_v10() -> BlockDocumentV10 {
+    BlockDocumentV10 {
+            nonce: 0,
+            version: 10,
+            number: BlockNumber(0),
+            pow_min: 0,
+            time: 0,
+            median_time: 0,
+            members_count: 0,
+            monetary_mass: 0,
+            unit_base: 0,
+            issuers_count: 0,
+            issuers_frame: 0,
+            issuers_frame_var: 0,
+            currency: CurrencyName(String::from("g1")),
+            issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58("DA4PYtXdvQqk1nCaprXH52iMsK5Ahxs1nRWbWKLhpVkQ").unwrap())],
+            signatures: vec![Sig::Ed25519(ed25519::Signature::from_base64("92id58VmkhgVNee4LDqBGSm8u/ooHzAD67JM6fhAE/CV8LCz7XrMF1DvRl+eRpmlaVkp6I+Iy8gmZ1WUM5C8BA==").unwrap())],
+            hash: None,
+            parameters: Some(BlockV10Parameters::default()),
+            previous_hash: None,
+            previous_issuer: None,
+            inner_hash: None,
+            dividend: None,
+            identities: Vec::new(),
+            joiners: Vec::new(),
+            actives: Vec::new(),
+            leavers: Vec::new(),
+            revoked: Vec::new(),
+            excluded: Vec::new(),
+            certifications: Vec::new(),
+            transactions: Vec::new(),
+        }
 }

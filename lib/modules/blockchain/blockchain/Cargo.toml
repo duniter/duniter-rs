@@ -42,5 +42,6 @@ dup-crypto-tests-tools = { path = "../../../tests-tools/crypto-tests-tools" }
 dubp-user-docs-tests-tools = { path = "../../../tests-tools/user-docs-tests-tools" }
 dubp-blocks-tests-tools = { path = "../../../tests-tools/blocks-tests-tools" }
 durs-common-tests-tools = { path = "../../../tests-tools/common-tests-tools" }
+maplit = "1.0.1"
 pretty_assertions = "0.5.1"
 tempfile = "3.1.0"

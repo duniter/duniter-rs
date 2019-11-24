@@ -810,6 +810,7 @@ dependencies = [
 name = "dubp-user-docs-tests-tools"
 version = "0.1.0"
 dependencies = [
+ "dubp-block-doc 0.1.0",
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
@@ -941,6 +942,7 @@ dependencies = [
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "json-pest-parser 0.2.0",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "maplit 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 1.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "pbr 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "pretty_assertions 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
