@@ -18,15 +18,13 @@
 pub mod apply;
 pub mod check;
 
-use crate::dubp::apply::{apply_valid_block, ApplyValidBlockError, ValidBlockApplyReqs};
-use crate::dubp::check::global::verify_global_validity_block;
-use crate::dubp::check::local::verify_local_validity_block;
-use crate::dubp::check::InvalidBlockError;
+use crate::dubp::apply::{ApplyValidBlockError, WriteBlockQueries};
+use crate::dubp::check::CheckBlockError;
 use crate::BlockchainModule;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_block_doc::BlockDocument;
 use dubp_common_doc::traits::Document;
-use dubp_common_doc::{BlockNumber, Blockstamp};
+use dubp_common_doc::BlockNumber;
 use durs_bc_db_reader::blocks::DbBlock;
 use durs_bc_db_reader::DbError;
 use durs_bc_db_writer::{BcDbRwWithWriter, Db, DbWriter};
@@ -34,7 +32,7 @@ use unwrap::unwrap;
 
 #[derive(Debug, Clone)]
 pub enum CheckAndApplyBlockReturn {
-    ValidMainBlock(ValidBlockApplyReqs),
+    ValidMainBlock(WriteBlockQueries),
     ForkBlock,
     OrphanBlock,
 }
@@ -45,7 +43,7 @@ pub enum BlockError {
     ApplyValidBlockError(ApplyValidBlockError),
     BlockOrOutForkWindow,
     DbError(DbError),
-    InvalidBlock(InvalidBlockError),
+    InvalidBlock(CheckBlockError),
 }
 
 impl From<ApplyValidBlockError> for BlockError {
@@ -60,8 +58,8 @@ impl From<DbError> for BlockError {
     }
 }
 
-impl From<InvalidBlockError> for BlockError {
-    fn from(e: InvalidBlockError) -> Self {
+impl From<CheckBlockError> for BlockError {
+    fn from(e: CheckBlockError) -> Self {
         Self::InvalidBlock(e)
     }
 }
@@ -72,78 +70,63 @@ pub fn check_and_apply_block(
     w: &mut DbWriter,
     block_doc: BlockDocument,
 ) -> Result<CheckAndApplyBlockReturn, BlockError> {
-    // Get BlockDocument && check if already have block
-    let already_have_block = durs_bc_db_reader::blocks::already_have_block(
+    match check::check_block(bc, &BcDbRwWithWriter { db, w }, &block_doc)? {
+        check::BlockChainability::FullyValidAndChainableBLock => {
+            treat_chainable_block(bc, db, w, block_doc)
+        }
+        check::BlockChainability::LocalValidAndUnchainableBlock => {
+            treat_unchainable_block(bc, db, w, block_doc)
+        }
+    }
+}
+
+fn treat_chainable_block(
+    bc: &mut BlockchainModule,
+    db: &Db,
+    w: &mut DbWriter,
+    block_doc: BlockDocument,
+) -> Result<CheckAndApplyBlockReturn, BlockError> {
+    // Detect expire_certs
+    let blocks_expiring = Vec::with_capacity(0); // TODO
+    let expire_certs = durs_bc_db_reader::indexes::certs::find_expire_certs(
         &BcDbRwWithWriter { db, w },
-        block_doc.blockstamp(),
-        block_doc.previous_hash(),
+        blocks_expiring,
     )?;
 
-    // Verify proof of work
-    // The case where the block has none hash is captured by verify_block_hashs below
-    if let Some(hash) = block_doc.hash() {
-        self::check::pow::verify_hash_pattern(hash.0, block_doc.pow_min())
-            .map_err(InvalidBlockError::Pow)?;
+    // If we're in block genesis, get the currency parameters
+    if block_doc.number() == BlockNumber(0) {
+        // Open currency_params_db
+        let datas_path = durs_conf::get_datas_path(bc.profile_path.clone());
+        // Get and write currency params
+        bc.currency_params = Some(
+            durs_bc_db_reader::currency_params::get_and_write_currency_params(
+                &datas_path,
+                &block_doc,
+            ),
+        );
     }
 
-    // Verify block hashs
-    crate::dubp::check::hashs::verify_block_hashs(&block_doc).map_err(InvalidBlockError::Hashs)?;
+    let write_block_queries: WriteBlockQueries = crate::dubp::apply::apply_valid_block(
+        db,
+        w,
+        block_doc,
+        &mut bc.wot_index,
+        &bc.wot_databases.wot_db,
+        &expire_certs,
+    )?;
 
-    // Check block chainability
-    if (block_doc.number().0 == 0 && bc.current_blockstamp == Blockstamp::default())
-        || (block_doc.number().0 == bc.current_blockstamp.id.0 + 1
-            && unwrap!(block_doc.previous_hash()).to_string()
-                == bc.current_blockstamp.hash.0.to_string())
-    {
-        debug!(
-            "check_and_apply_block: block {} chainable!",
-            block_doc.blockstamp()
-        );
+    Ok(CheckAndApplyBlockReturn::ValidMainBlock(
+        write_block_queries,
+    ))
+}
 
-        // Local verification
-        verify_local_validity_block(&block_doc, bc.currency_params)
-            .map_err(InvalidBlockError::Local)?;
-
-        // Detect expire_certs
-        let blocks_expiring = Vec::with_capacity(0);
-        let expire_certs = durs_bc_db_reader::indexes::certs::find_expire_certs(
-            &BcDbRwWithWriter { db, w },
-            blocks_expiring,
-        )?;
-
-        // Verify block validity (check all protocol rule, very long !)
-        verify_global_validity_block(
-            &block_doc,
-            &BcDbRwWithWriter { db, w },
-            &bc.wot_index,
-            &bc.wot_databases.wot_db,
-        )
-        .map_err(InvalidBlockError::Global)?;
-
-        // If we're in block genesis, get the currency parameters
-        if block_doc.number() == BlockNumber(0) {
-            // Open currency_params_db
-            let datas_path = durs_conf::get_datas_path(bc.profile_path.clone());
-            // Get and write currency params
-            bc.currency_params = Some(
-                durs_bc_db_reader::currency_params::get_and_write_currency_params(
-                    &datas_path,
-                    &block_doc,
-                ),
-            );
-        }
-
-        Ok(CheckAndApplyBlockReturn::ValidMainBlock(apply_valid_block(
-            db,
-            w,
-            block_doc,
-            &mut bc.wot_index,
-            &bc.wot_databases.wot_db,
-            &expire_certs,
-        )?))
-    } else if already_have_block {
-        Err(BlockError::AlreadyHaveBlock)
-    } else if block_doc.number().0 >= bc.current_blockstamp.id.0
+fn treat_unchainable_block(
+    bc: &mut BlockchainModule,
+    db: &Db,
+    w: &mut DbWriter,
+    block_doc: BlockDocument,
+) -> Result<CheckAndApplyBlockReturn, BlockError> {
+    if block_doc.number().0 >= bc.current_blockstamp.id.0
         || (bc.current_blockstamp.id.0 - block_doc.number().0)
             < unwrap!(bc.currency_params).fork_window_size as u32
     {

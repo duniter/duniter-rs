@@ -20,19 +20,14 @@ use durs_common_tools::traits::bool_ext::BoolExt;
 
 static ZERO_STRING: &str = "0";
 
-/// Proof of Work error
+/// Invalid PoW pattern
 #[derive(Debug, PartialEq)]
-pub enum BlockPoWError {
-    /// Invalid pow_min
-    _InvalidPoWMin,
-    /// Invalid PoW pattern
-    InvalidHashPattern {
-        expected_pattern: String,
-        actual_hash: String,
-    },
+pub struct InvalidHashPattern {
+    expected_pattern: String,
+    actual_hash: String,
 }
 
-pub fn verify_hash_pattern(hash: Hash, diffi: usize) -> Result<(), BlockPoWError> {
+pub fn verify_hash_pattern(hash: Hash, diffi: usize) -> Result<(), InvalidHashPattern> {
     let hash_string = hash.to_hex();
     let nb_zeros = diffi / 16;
     let expected_pattern_last_hex_digit = 16 - (diffi % 16);
@@ -54,7 +49,7 @@ pub fn verify_hash_pattern(hash: Hash, diffi: usize) -> Result<(), BlockPoWError
         .expect("Hash type guarantees a valid hexadecimal string.");
         // remainder must be less than or equal to expected_end_pattern
         (actual_pattern_last_hex_digit <= expected_pattern_last_hex_digit).or_err(
-            BlockPoWError::InvalidHashPattern {
+            InvalidHashPattern {
                 expected_pattern: expected_pattern.clone(),
                 actual_hash: hash_string.clone(),
             },
@@ -65,7 +60,7 @@ pub fn verify_hash_pattern(hash: Hash, diffi: usize) -> Result<(), BlockPoWError
     };
     hash_string
         .starts_with(&repeated_zero_string)
-        .or_err(BlockPoWError::InvalidHashPattern {
+        .or_err(InvalidHashPattern {
             expected_pattern,
             actual_hash: hash_string,
         })?;
@@ -97,7 +92,7 @@ mod tests {
             )
         );
         assert_eq!(
-            Err(BlockPoWError::InvalidHashPattern {
+            Err(InvalidHashPattern {
                 expected_pattern: "0000[0-a]*".to_owned(),
                 actual_hash: "0000B3619ACBF80298F074D8339175901425BC97EF528ED02EBD73CD4CA5C559"
                     .to_owned(),
@@ -109,7 +104,7 @@ mod tests {
             )
         );
         assert_eq!(
-            Err(BlockPoWError::InvalidHashPattern {
+            Err(InvalidHashPattern {
                 expected_pattern: "0000[0-a]*".to_owned(),
                 actual_hash: "000313619ACBF80298F074D8339175901425BC97EF528ED02EBD73CD4CA5C559"
                     .to_owned(),
@@ -121,7 +116,7 @@ mod tests {
             )
         );
         assert_eq!(
-            Err(BlockPoWError::InvalidHashPattern {
+            Err(InvalidHashPattern {
                 expected_pattern: "00000".to_owned(),
                 actual_hash: "000313619ACBF80298F074D8339175901425BC97EF528ED02EBD73CD4CA5C559"
                     .to_owned(),
@@ -133,7 +128,7 @@ mod tests {
             )
         );
         assert_eq!(
-            Err(BlockPoWError::InvalidHashPattern {
+            Err(InvalidHashPattern {
                 expected_pattern: "0000".to_owned(),
                 actual_hash: "000313619ACBF80298F074D8339175901425BC97EF528ED02EBD73CD4CA5C559"
                     .to_owned(),

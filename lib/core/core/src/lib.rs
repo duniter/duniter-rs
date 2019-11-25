@@ -319,24 +319,34 @@ impl DursCore<DuRsConf> {
         // Get profile path
         let profile_path = self.soft_meta_datas.profile_path;
 
+        // Define sync_opts
+        let sync_opts_opt = if let Some(ServerMode::Sync(sync_opts)) = self.server_command {
+            Some(sync_opts)
+        } else {
+            None
+        };
+
+        // Define cautious mode
+        let cautious_mode = if let Some(ref sync_opts) = sync_opts_opt {
+            sync_opts.cautious_mode
+        } else {
+            true
+        };
+
         // Instantiate blockchain module and load is conf
         let mut blockchain_module = BlockchainModule::load_blockchain_conf(
             bc_db,
             router_sender.clone(),
             profile_path,
             RequiredKeysContent::MemberKeyPair(None),
+            cautious_mode,
         );
         info!("Success to load Blockchain module.");
 
         // Start blockchain module in thread
         let thread_builder = thread::Builder::new().name(BlockchainModule::name().0.into());
-        let sync_opts = if let Some(ServerMode::Sync(opts)) = self.server_command {
-            Some(opts)
-        } else {
-            None
-        };
         let blockchain_thread_handler = thread_builder
-            .spawn(move || blockchain_module.start_blockchain(&blockchain_receiver, sync_opts))
+            .spawn(move || blockchain_module.start_blockchain(&blockchain_receiver, sync_opts_opt))
             .expect("Fatal error: fail to spawn module main thread !");
 
         // Wait until all modules threads are finished

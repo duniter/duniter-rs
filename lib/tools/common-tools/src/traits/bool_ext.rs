@@ -22,7 +22,7 @@ pub trait BoolExt {
     /// Transform any type to result<T, E>
     fn as_result<T, E>(self, ok: T, err: E) -> Result<T, E>;
     /// Reverse bool
-    fn not(self) -> bool;
+    fn not(&self) -> bool;
 }
 
 impl BoolExt for bool {
@@ -43,7 +43,7 @@ impl BoolExt for bool {
         }
     }
     #[inline]
-    fn not(self) -> bool {
+    fn not(&self) -> bool {
         !self
     }
 }

@@ -18,7 +18,7 @@
 use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait, VerifyBlockHashError};
 
 /// Verify block hashs
-pub fn verify_block_hashs(block_doc: &BlockDocument) -> Result<(), VerifyBlockHashError> {
+pub fn check_block_hashes(block_doc: &BlockDocument) -> Result<(), VerifyBlockHashError> {
     trace!("complete_block #{}...", block_doc.number());
 
     match block_doc.verify_inner_hash() {

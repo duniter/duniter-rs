@@ -92,7 +92,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
                 new_branch_blocks.push(dal_block.clone());
                 match check_and_apply_block(bc, &db, &mut w, dal_block.block) {
                     Ok(check_and_apply_block_return) => match check_and_apply_block_return {
-                        CheckAndApplyBlockReturn::ValidMainBlock(ValidBlockApplyReqs(
+                        CheckAndApplyBlockReturn::ValidMainBlock(WriteBlockQueries(
                             bc_db_query,
                             wot_dbs_queries,
                             tx_dbs_queries,

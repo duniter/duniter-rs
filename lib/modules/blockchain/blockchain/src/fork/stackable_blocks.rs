@@ -45,7 +45,7 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
             let db = bc.take_db();
             let db_write_result = db.write(|mut w| {
                 match check_and_apply_block(bc, &db, &mut w, stackable_block.block) {
-                    Ok(CheckAndApplyBlockReturn::ValidMainBlock(ValidBlockApplyReqs(
+                    Ok(CheckAndApplyBlockReturn::ValidMainBlock(WriteBlockQueries(
                         bc_db_query,
                         wot_dbs_queries,
                         tx_dbs_queries,

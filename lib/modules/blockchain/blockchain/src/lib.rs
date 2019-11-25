@@ -50,7 +50,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::constants::*;
 use crate::dbex::DbExQuery;
-use crate::dubp::apply::ValidBlockApplyReqs;
+use crate::dubp::apply::WriteBlockQueries;
 use crate::dubp::*;
 use crate::fork::*;
 use dubp_block_doc::BlockDocument;
@@ -88,6 +88,8 @@ pub static DISTANCE_CALCULATOR: &RustyDistanceCalculator = &RustyDistanceCalcula
 
 /// Blockchain Module
 pub struct BlockchainModule {
+    /// Cautious mode
+    pub cautious_mode: bool,
     /// Router sender
     pub router_sender: Sender<RouterThreadMessage<DursMsg>>,
     ///Path to the user datas profile
@@ -173,6 +175,7 @@ pub enum SyncVerificationLevel {
 impl BlockchainModule {
     /// Instantiate blockchain module
     pub fn new(
+        cautious_mode: bool,
         router_sender: Sender<RouterThreadMessage<DursMsg>>,
         profile_path: PathBuf,
         currency_name: Option<CurrencyName>,
@@ -193,6 +196,7 @@ impl BlockchainModule {
             db.r(|db_r| durs_bc_db_reader::indexes::identities::get_wot_index(db_r))?;
 
         Ok(BlockchainModule {
+            cautious_mode,
             router_sender,
             profile_path,
             currency: currency_name,
@@ -220,6 +224,7 @@ impl BlockchainModule {
         router_sender: Sender<RouterThreadMessage<DursMsg>>,
         profile_path: PathBuf,
         _keys: RequiredKeysContent,
+        cautious_mode: bool,
     ) -> BlockchainModule {
         // Get db path
         let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone());
@@ -240,8 +245,8 @@ impl BlockchainModule {
         };
 
         // Instanciate BlockchainModule
-        // TODO ESZ
         BlockchainModule::new(
+            cautious_mode,
             router_sender,
             profile_path,
             currency_name,

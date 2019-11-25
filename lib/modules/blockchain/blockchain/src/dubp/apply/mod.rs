@@ -32,7 +32,7 @@ use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
 /// Stores all queries to apply in database to "apply" the block
-pub struct ValidBlockApplyReqs(
+pub struct WriteBlockQueries(
     pub BlocksDBsWriteQuery,
     pub Vec<WotsDBsWriteQuery>,
     pub Vec<CurrencyDBsWriteQuery>,
@@ -54,7 +54,7 @@ pub fn apply_valid_block<W: WebOfTrust>(
     wot_index: &mut HashMap<PubKey, WotId>,
     wot_db: &BinFreeStructDb<W>,
     expire_certs: &HashMap<(WotId, WotId), BlockNumber>,
-) -> Result<ValidBlockApplyReqs, ApplyValidBlockError> {
+) -> Result<WriteBlockQueries, ApplyValidBlockError> {
     match block {
         BlockDocument::V10(block_v10) => {
             apply_valid_block_v10(db, w, block_v10, wot_index, wot_db, expire_certs)
@@ -69,7 +69,7 @@ pub fn apply_valid_block_v10<W: WebOfTrust>(
     wot_index: &mut HashMap<PubKey, WotId>,
     wot_db: &BinFreeStructDb<W>,
     expire_certs: &HashMap<(WotId, WotId), BlockNumber>,
-) -> Result<ValidBlockApplyReqs, ApplyValidBlockError> {
+) -> Result<WriteBlockQueries, ApplyValidBlockError> {
     trace!("apply_valid_block({})", block.blockstamp(),);
     let mut wot_dbs_requests = Vec::new();
     let mut currency_dbs_requests = Vec::new();
@@ -287,7 +287,7 @@ pub fn apply_valid_block_v10<W: WebOfTrust>(
         expire_certs: Some(expire_certs.clone()),
     };
     // Return DBs requests
-    Ok(ValidBlockApplyReqs(
+    Ok(WriteBlockQueries(
         BlocksDBsWriteQuery::WriteBlock(block_db),
         wot_dbs_requests,
         currency_dbs_requests,

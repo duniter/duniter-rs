@@ -67,5 +67,6 @@ where
             .or_err(GlobalVerifyBlockError::VersionDecrease)?;
     }
 
+    // TODO BR_G100 - issuerIsMember
     Ok(())
 }

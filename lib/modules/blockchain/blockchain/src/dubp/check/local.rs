@@ -29,7 +29,6 @@ use dubp_common_doc::errors::DocumentSigsErr;
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
 use dubp_currency_params::CurrencyParameters;
-use durs_common_tools::fatal_error;
 
 #[derive(Debug, PartialEq)]
 /// Local verification of a block error
@@ -59,6 +58,8 @@ pub enum LocalVerifyBlockError {
     TooManyIssuers,
     /// Transaction Document Error
     TransactionDocumentError(TransactionDocumentError),
+    /// Receive not genesis block wityhout blockchain
+    RecvNotGenesisWithoutBlockchain,
 }
 
 impl From<LocalVerifyGenesisBlockError> for LocalVerifyBlockError {
@@ -91,7 +92,7 @@ pub fn verify_local_validity_block(
         // Check the local rules specific to non-genesis blocks
         self::not_genesis::local_validation_not_genesis_block(block, currency_parameters)?;
     } else {
-        fatal_error!("We must have currency parameters when we check a non-genesis block.");
+        return Err(LocalVerifyBlockError::RecvNotGenesisWithoutBlockchain);
     }
 
     match block {

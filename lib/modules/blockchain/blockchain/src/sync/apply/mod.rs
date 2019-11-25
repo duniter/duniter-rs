@@ -19,7 +19,7 @@ pub mod wot_worker;
 
 use crate::dubp;
 use crate::dubp::apply::apply_valid_block;
-use crate::dubp::apply::{ApplyValidBlockError, ValidBlockApplyReqs};
+use crate::dubp::apply::{ApplyValidBlockError, WriteBlockQueries};
 use crate::sync::SyncJobsMess;
 use crate::Db;
 use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
@@ -76,7 +76,7 @@ impl BlockApplicator {
         // Verify block hashs
         let verif_block_hashs_begin = SystemTime::now();
         if self.verif_inner_hash {
-            dubp::check::hashs::verify_block_hashs(&block_doc)
+            dubp::check::hashs::check_block_hashes(&block_doc)
                 .expect("Receive wrong block, please reset data and resync !");
         }
         self.all_verif_block_hashs_duration += SystemTime::now()
@@ -131,7 +131,7 @@ impl BlockApplicator {
         } else {
             fatal_error!("Dev error: BlockApplicator must have DB.")
         }
-        if let Ok(ValidBlockApplyReqs(block_req, wot_db_reqs, currency_db_reqs)) =
+        if let Ok(WriteBlockQueries(block_req, wot_db_reqs, currency_db_reqs)) =
             apply_valid_block_result
         {
             self.all_apply_valid_block_duration += SystemTime::now()

@@ -50,7 +50,7 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
         db.write(|mut w| {
             match check_and_apply_block(bc, &db, &mut w, block) {
                 Ok(check_block_return) => match check_block_return {
-                    CheckAndApplyBlockReturn::ValidMainBlock(ValidBlockApplyReqs(
+                    CheckAndApplyBlockReturn::ValidMainBlock(WriteBlockQueries(
                         bc_db_query,
                         wot_dbs_queries,
                         tx_dbs_queries,

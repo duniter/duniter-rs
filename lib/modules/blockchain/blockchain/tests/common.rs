@@ -57,12 +57,14 @@ pub fn init_bc_module(
     tmp_path: &Path,
 ) -> BlockchainModule {
     let currency_name = CurrencyName(TEST_CURRENCY.to_owned());
+    let cautious_mode = false;
     //let profile_path = tmp_profile_path.to_owned();
 
     //let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone());
     let db = durs_bc_db_writer::open_db(tmp_path).expect("Fail to open blockchain DB.");
 
     BlockchainModule::new(
+        cautious_mode,
         fake_router_sender,
         tmp_path.to_owned(),
         Some(currency_name.clone()),
