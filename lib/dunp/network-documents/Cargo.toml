@@ -30,7 +30,7 @@ unwrap = "1.2.1"
 url = "2.1.*"
 
 [dev-dependencies]
-bincode = "1.0.1"
+bincode = "1.2.0"
 maplit = "1.0.1"
 pretty_assertions = "0.5.1"
 

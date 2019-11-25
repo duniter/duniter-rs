@@ -12,7 +12,7 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-bincode = "1.0.1"
+bincode = "1.2.0"
 dubp-common-doc = { path = "../common-doc" } #, version = "0.1.0" }
 durs-common-tools = { path = "../../tools/common-tools", version = "0.2.0" }
 failure = "0.1.5"

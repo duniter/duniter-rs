@@ -20,6 +20,6 @@ rayon = "1.2.0"
 serde = { version = "1.0.*", features = ["derive"] }
 
 [dev-dependencies]
-bincode = "1.0.*"
+bincode = "1.2.0"
 
 [features]

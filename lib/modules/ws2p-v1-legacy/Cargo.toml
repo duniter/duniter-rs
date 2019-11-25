@@ -10,7 +10,7 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-bincode = "1.0.1"
+bincode = "1.2.0"
 dubp-block-doc = { path = "../../dubp/block-doc"} #, version = "0.1.0" }
 dubp-common-doc = { path = "../../dubp/common-doc"} #, version = "0.1.0" }
 dubp-currency-params = { path = "../../dubp/currency-params" }

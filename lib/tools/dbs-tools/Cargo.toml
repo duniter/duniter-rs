@@ -10,12 +10,12 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-bincode = "1.0.*"
+bincode = "1.2.0"
 durs-common-tools = { path = "../common-tools" }
 failure = "0.1.5"
 fnv = "1.0.6"
 log = "0.4.*"
-rkv = "0.9.7"
+rkv = "0.10.2"
 rustbreak = {version = "2.0.0-rc3", features = ["bin_enc"]}
 serde = { version = "1.0.*", features = ["derive"] }
 unwrap = "1.2.1"
