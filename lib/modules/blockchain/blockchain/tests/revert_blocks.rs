@@ -32,6 +32,7 @@ use durs_network::requests::OldNetworkRequest;
 use pretty_assertions::assert_eq;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
+#[cfg(unix)]
 #[test]
 fn test_revert_block() {
     // Init test
