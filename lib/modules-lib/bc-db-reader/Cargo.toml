@@ -37,4 +37,4 @@ tempfile = "3.1.0"
 
 [features]
 client-indexer = []
-mock = ["mockall"]
+mock = ["mockall", "durs-dbs-tools/mock"]

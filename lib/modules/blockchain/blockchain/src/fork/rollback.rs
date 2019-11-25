@@ -18,7 +18,6 @@ use crate::fork::revert_block::ValidBlockRevertReqs;
 use crate::*;
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::Blockstamp;
-use durs_bc_db_reader::BcDbRead;
 use durs_common_tools::fatal_error;
 use unwrap::unwrap;
 
@@ -36,12 +35,13 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
     let db_tx_result = db.write(|mut w| {
         // Rollback (revert old branch)
         while bc.current_blockstamp.id.0 > last_common_block_number {
-            if let Some(dal_block) = db
-                .r(|db_r| durs_bc_db_reader::blocks::get_fork_block(db_r, bc.current_blockstamp))
-                .unwrap_or_else(|_| {
-                    fatal_error!("revert block {} fail !", bc.current_blockstamp);
-                })
-            {
+            if let Some(dal_block) = durs_bc_db_reader::blocks::get_fork_block(
+                &BcDbRwWithWriter { db: &db, w: &w },
+                bc.current_blockstamp,
+            )
+            .unwrap_or_else(|_| {
+                fatal_error!("revert block {} fail !", bc.current_blockstamp);
+            }) {
                 let blockstamp = dal_block.block.blockstamp();
                 debug!("try to revert block #{}", blockstamp);
                 let ValidBlockRevertReqs {
@@ -85,9 +85,10 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
         // Apply new branch
         let mut new_branch_is_valid = true;
         for blockstamp in &new_bc_branch {
-            if let Ok(Some(dal_block)) =
-                db.r(|db_r| durs_bc_db_reader::blocks::get_fork_block(db_r, *blockstamp))
-            {
+            if let Ok(Some(dal_block)) = durs_bc_db_reader::blocks::get_fork_block(
+                &BcDbRwWithWriter { db: &db, w: &w },
+                *blockstamp,
+            ) {
                 new_branch_blocks.push(dal_block.clone());
                 match check_and_apply_block(bc, &db, &mut w, dal_block.block) {
                     Ok(check_and_apply_block_return) => match check_and_apply_block_return {

@@ -17,6 +17,8 @@
 
 mod file;
 
+#[cfg(feature = "mock")]
+pub use file::MockKvFileDbReader;
 pub use file::{
     from_db_value, KvFileDbHandler, KvFileDbRead, KvFileDbReader, KvFileDbRoHandler,
     KvFileDbSchema, KvFileDbStoreType, KvFileDbWriter,

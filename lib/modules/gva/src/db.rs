@@ -15,7 +15,7 @@
 
 //! Gva Module: database requests
 
-#[cfg(test)]
-pub(crate) use durs_bc_db_reader::BcDbInReadTx as BcDbRo;
 #[cfg(not(test))]
 pub(crate) use durs_bc_db_reader::BcDbRo;
+#[cfg(test)]
+pub(crate) use durs_bc_db_reader::MockBcDbInReadTx as BcDbRo;

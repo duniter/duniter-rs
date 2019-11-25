@@ -306,15 +306,14 @@ mod tests {
         // Check new UTXOS
         // TODO
         //db.get_store(UTXOS).iter_start()?
-        let count_utxos = db.read(|r| Ok(db.get_store(UTXOS).iter_start(r)?.count()))?;
+        let count_utxos = db.read(|r| Ok(db.get_store(UTXOS).iter_start(&r)?.count()))?;
         assert_eq!(2, count_utxos);
 
         // Revert first g1 tx
         db.write(|mut w| {
             if let Some(mut block_consumed_sources_opt) =
                 durs_bc_db_reader::indexes::sources::get_block_consumed_sources_(
-                    &db,
-                    w.as_ref(),
+                    &BcDbRwWithWriter { db: &db, w: &w },
                     BlockNumber(52),
                 )?
             {
@@ -326,7 +325,7 @@ mod tests {
         })?;
 
         // UTXOS must be empty
-        let count_utxos = db.read(|r| Ok(db.get_store(UTXOS).iter_start(r)?.count()))?;
+        let count_utxos = db.read(|r| Ok(db.get_store(UTXOS).iter_start(&r)?.count()))?;
         assert_eq!(0, count_utxos);
 
         Ok(())

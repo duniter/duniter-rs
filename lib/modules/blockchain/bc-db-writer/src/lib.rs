@@ -91,6 +91,8 @@ impl<'w, 'db: 'w> durs_bc_db_reader::BcDbWithReader for BcDbRwWithWriter<'w, 'db
     }
 }
 
+impl<'w, 'db: 'w> durs_common_tools::traits::NotMock for BcDbRwWithWriter<'w, 'db> {}
+
 #[derive(Debug)]
 /// Set of databases storing web of trust information
 pub struct WotsV10DBs {

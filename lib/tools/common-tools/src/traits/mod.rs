@@ -17,3 +17,7 @@
 
 pub mod bool_ext;
 pub mod merge;
+
+/// Allows to mark the real structure in order to differentiate it from the mocked structure,
+/// is essential in some special cases
+pub trait NotMock {}

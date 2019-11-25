@@ -16,10 +16,10 @@
 // ! Module execute GraphQl schema current query
 
 use crate::schema::entities::block::Block;
-use durs_bc_db_reader::{BcDbInReadTx_, BcDbWithReader, DbError};
+use durs_bc_db_reader::{BcDbInReadTx, DbError};
 use juniper_from_schema::{QueryTrail, Walked};
 
-pub(crate) fn execute<DB: BcDbWithReader>(
+pub(crate) fn execute<DB: BcDbInReadTx>(
     db: &DB,
     trail: &QueryTrail<'_, Block, Walked>,
 ) -> Result<Option<Block>, DbError> {

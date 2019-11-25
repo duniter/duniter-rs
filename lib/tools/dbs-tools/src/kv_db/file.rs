@@ -42,6 +42,25 @@ impl<'r> rkv::Readable for KvFileDbReader<'r> {
     }
 }
 
+#[cfg(feature = "mock")]
+#[derive(Clone, Copy, Debug)]
+/// Mock key-value database reader
+pub struct MockKvFileDbReader;
+
+#[cfg(feature = "mock")]
+impl rkv::Readable for MockKvFileDbReader {
+    fn get<K: AsRef<[u8]>>(
+        &self,
+        _: rkv::Database,
+        _: &K,
+    ) -> Result<Option<Value>, rkv::StoreError> {
+        unreachable!()
+    }
+    fn open_ro_cursor(&self, _: rkv::Database) -> Result<rkv::RoCursor, rkv::StoreError> {
+        unreachable!()
+    }
+}
+
 /// Key-value database writer
 pub struct KvFileDbWriter<'w> {
     buffer: Vec<u8>,
@@ -418,7 +437,7 @@ mod tests {
         key: u32,
     ) -> Result<Option<String>, DbError> {
         ro_db.read(|r| {
-            if let Some(Value::Str(v)) = ro_db.get_int_store(store_name).get(r, key)? {
+            if let Some(Value::Str(v)) = ro_db.get_int_store(store_name).get(&r, key)? {
                 Ok(Some(v.to_owned()))
             } else {
                 Ok(None)
@@ -436,7 +455,7 @@ mod tests {
         let store_test1 = db.get_int_store("test1");
 
         db.write(|mut w| {
-            store_test1.put(db.w.as_mut(), 3, &Value::Str("toto"))?;
+            store_test1.put(w.as_mut(), 3, &Value::Str("toto"))?;
             Ok(w)
         })?;
 
@@ -448,7 +467,7 @@ mod tests {
         );
 
         db.write(|mut w| {
-            store_test1.put(db.w.as_mut(), 3, &Value::Str("titi"))?;
+            store_test1.put(w.as_mut(), 3, &Value::Str("titi"))?;
             Ok(w)
         })?;
 
@@ -458,7 +477,7 @@ mod tests {
         );
 
         db.write(|mut w| {
-            store_test1.put(db.w.as_mut(), 3, &Value::Str("tutu"))?;
+            store_test1.put(w.as_mut(), 3, &Value::Str("tutu"))?;
             assert_eq!(
                 Some("titi".to_owned()),
                 get_int_store_str_val(&ro_db, "test1", 3)?

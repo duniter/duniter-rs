@@ -22,10 +22,10 @@ use crate::schema::inputs::paging::{FilledPaging, Paging};
 use crate::schema::inputs::sort_order::SortOrder;
 use dubp_common_doc::BlockNumber;
 use durs_bc_db_reader::blocks::DbBlock;
-use durs_bc_db_reader::{BcDbInReadTx_, BcDbWithReader, DbError};
+use durs_bc_db_reader::{BcDbInReadTx, DbError};
 use juniper_from_schema::{QueryTrail, Walked};
 
-pub(crate) fn execute<DB: BcDbWithReader>(
+pub(crate) fn execute<DB: BcDbInReadTx>(
     db: &DB,
     trail: &QueryTrail<'_, BlocksPage, Walked>,
     paging_opt: Option<Paging>,

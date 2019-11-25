@@ -48,10 +48,6 @@ where
     }
 }
 
-pub trait BcDbInReadTx: BcDbWithReader + BcDbInReadTx_ {}
-
-impl<T> BcDbInReadTx for T where T: BcDbWithReader + BcDbInReadTx_ {}
-
 pub trait BcDbWithReader {
     type DB: DbReadable;
     type R: DbReader;
@@ -60,8 +56,21 @@ pub trait BcDbWithReader {
     fn r(&self) -> &Self::R;
 }
 
+#[cfg(feature = "mock")]
+impl<'a> BcDbWithReader for MockBcDbInReadTx {
+    type DB = crate::BcDbRo;
+    type R = durs_dbs_tools::kv_db::MockKvFileDbReader;
+
+    fn db(&self) -> &Self::DB {
+        unreachable!()
+    }
+    fn r(&self) -> &Self::R {
+        unreachable!()
+    }
+}
+
 #[cfg_attr(feature = "mock", automock)]
-pub trait BcDbInReadTx_ {
+pub trait BcDbInReadTx: BcDbWithReader {
     fn get_current_blockstamp(&self) -> Result<Option<Blockstamp>, DbError>;
     fn get_current_block(&self) -> Result<Option<DbBlock>, DbError>;
     fn get_db_block_in_local_blockchain(
@@ -76,9 +85,9 @@ pub trait BcDbInReadTx_ {
     fn get_uid_from_pubkey(&self, pubkey: &PubKey) -> Result<Option<String>, DbError>;
 }
 
-impl<T> BcDbInReadTx_ for T
+impl<T> BcDbInReadTx for T
 where
-    T: BcDbWithReader,
+    T: BcDbWithReader + durs_common_tools::traits::NotMock,
 {
     fn get_current_blockstamp(&self) -> Result<Option<Blockstamp>, DbError> {
         crate::current_meta_datas::get_current_blockstamp(self)

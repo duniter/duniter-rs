@@ -140,10 +140,9 @@ mod tests {
 
         // Local blockchain must contain at least `fork_window_size +2` blocks
         assert!(db
-            .read(
-                |r| durs_bc_db_reader::blocks::get_block_in_local_blockchain(
-                    &db,
-                    r,
+            .r(
+                |db_r| durs_bc_db_reader::blocks::get_block_in_local_blockchain(
+                    db_r,
                     BlockNumber((fork_window_size + 1) as u32)
                 )
             )?
@@ -182,7 +181,7 @@ mod tests {
         assert_eq!(
             None,
             db.read(|r| fork_resolution_algo(
-                &BcDbRwWithReader { db, r },
+                &BcDbRwWithReader { db: &db, r },
                 &fork_tree,
                 fork_window_size,
                 current_blockstamp,
@@ -226,7 +225,7 @@ mod tests {
                 determining_blockstamp,
             ]),
             db.read(|r| fork_resolution_algo(
-                &BcDbRwWithReader { db, r },
+                &BcDbRwWithReader { db: &db, r },
                 &mut fork_tree,
                 fork_window_size,
                 current_blockstamp,
@@ -258,7 +257,7 @@ mod tests {
         assert_eq!(
             Some(new_main_blocks.iter().map(|b| b.blockstamp()).collect()),
             db.read(|r| fork_resolution_algo(
-                &BcDbRwWithReader { db, r },
+                &BcDbRwWithReader { db: &db, r },
                 &mut fork_tree,
                 fork_window_size,
                 current_blockstamp,

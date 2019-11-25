@@ -34,8 +34,8 @@ pub fn init() -> PathBuf {
 
 /// Stop and clear test
 pub fn stop_and_clean(
-    bc_sender: Sender<DursMsg>,
-    handle: JoinHandle<()>,
+    _bc_sender: Sender<DursMsg>,
+    _handle: JoinHandle<()>,
     tmp_profile_path: PathBuf,
 ) {
     // Send STOP signal to blockchain module

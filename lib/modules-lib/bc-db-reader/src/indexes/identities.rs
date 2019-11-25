@@ -287,12 +287,12 @@ mod test {
             let idty_bin = durs_dbs_tools::to_bytes(idty)?;
             db.write(|mut w| {
                 db.get_store(WOT_ID_INDEX).put(
-                    db.w.as_mut(),
+                    w.as_mut(),
                     &idty.idty_doc.issuers()[0].to_bytes_vector(),
                     &DbValue::U64(wot_id),
                 )?;
                 db.get_int_store(IDENTITIES).put(
-                    db.w.as_mut(),
+                    w.as_mut(),
                     wot_id as u32,
                     &KvFileDbHandler::db_value(&idty_bin)?,
                 )?;
@@ -304,7 +304,7 @@ mod test {
         // Write greatest wot id
         db.write(|mut w| {
             db.get_int_store(CURRENT_METAS_DATAS).put(
-                db.w.as_mut(),
+                w.as_mut(),
                 CurrentMetaDataKey::NextWotId.to_u32(),
                 &DbValue::U64(wot_id),
             )?;
@@ -315,18 +315,18 @@ mod test {
         let mut filters = IdentitiesFilter::default();
         assert!(slice_same_elems(
             &mock_identities,
-            &get_identities(&db, filters, BlockNumber(5))?
+            &db.r(|db_r| get_identities(db_r, filters, BlockNumber(5)))?
         ));
         // Test by pubkey filter
         filters = IdentitiesFilter::by_pubkey(pubkey('A'));
         assert_eq!(
             vec![mock_identities[0].clone()],
-            get_identities(&db, filters, BlockNumber(5))?
+            db.r(|db_r| get_identities(db_r, filters, BlockNumber(5)))?
         );
         filters = IdentitiesFilter::by_pubkey(pubkey('C'));
         assert_eq!(
             vec![mock_identities[2].clone()],
-            get_identities(&db, filters, BlockNumber(5))?
+            db.r(|db_r| get_identities(db_r, filters, BlockNumber(5)))?
         );
 
         // Test paging filter with little page size
@@ -341,7 +341,7 @@ mod test {
         };
         assert!(slice_same_elems(
             &vec![mock_identities[2].clone(), mock_identities[3].clone()],
-            &get_identities(&db, filters, BlockNumber(5))?
+            &db.r(|db_r| get_identities(db_r, filters, BlockNumber(5)))?
         ));
 
         // Test paging filter with limited interval
@@ -356,7 +356,7 @@ mod test {
         };
         assert_eq!(
             vec![mock_identities[2].clone()],
-            get_identities(&db, filters, BlockNumber(5))?
+            db.r(|db_r| get_identities(db_r, filters, BlockNumber(5)))?
         );
 
         Ok(())

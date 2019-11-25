@@ -42,8 +42,8 @@ pub use durs_dbs_tools::kv_db::{
 };
 pub use durs_dbs_tools::DbError;
 #[cfg(feature = "mock")]
-pub use traits::MockBcDbInReadTx_ as MockBcDbInReadTx;
-pub use traits::{BcDbInReadTx, BcDbInReadTx_, BcDbRead, BcDbWithReader};
+pub use traits::MockBcDbInReadTx;
+pub use traits::{BcDbInReadTx, BcDbRead, BcDbWithReader};
 
 use constants::*;
 use maplit::hashmap;
@@ -98,6 +98,11 @@ where
     fn r(&self) -> &Self::R {
         &self.r
     }
+}
+
+impl<'r, 'db: 'r, DB> durs_common_tools::traits::NotMock for BcDbWithReaderStruct<'r, 'db, DB> where
+    DB: DbReadable
+{
 }
 
 #[cfg(test)]
