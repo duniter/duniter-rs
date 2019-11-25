@@ -22,16 +22,16 @@ use durs_wot::WotId;
 use std::collections::HashMap;
 
 /// Find certifications that emitted in indicated blocks expiring
-pub fn find_expire_certs<DB: DbReadable, R: DbReader>(
+pub fn find_expire_certs<DB: BcDbInReadTx>(
     db: &DB,
-    r: &R,
     blocks_expiring: Vec<BlockNumber>,
 ) -> Result<HashMap<(WotId, WotId), BlockNumber>, DbError> {
     let mut all_expire_certs = HashMap::new();
     for expire_block_id in blocks_expiring {
         for entry_result in db
+            .db()
             .get_multi_int_store(CERTS_BY_CREATED_BLOCK)
-            .get(r, expire_block_id.0)?
+            .get(db.r(), expire_block_id.0)?
         {
             if let Some(value) = entry_result?.1 {
                 if let DbValue::U64(cert) = value {

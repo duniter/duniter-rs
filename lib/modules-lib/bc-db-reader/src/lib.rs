@@ -33,16 +33,17 @@ pub mod current_meta_datas;
 pub mod indexes;
 pub mod paging;
 pub mod tools;
-pub mod r#trait;
+pub mod traits;
 
 pub use durs_dbs_tools::kv_db::{
-    KvFileDbRead as DbReadable, KvFileDbReader as Reader, KvFileDbRoHandler as BcDbRo,
-    KvFileDbSchema, KvFileDbStoreType, KvFileDbValue as DbValue, Readable as DbReader,
+    from_db_value, KvFileDbRead as DbReadable, KvFileDbReader as Reader,
+    KvFileDbRoHandler as BcDbRo, KvFileDbSchema, KvFileDbStoreType, KvFileDbValue as DbValue,
+    Readable as DbReader,
 };
 pub use durs_dbs_tools::DbError;
 #[cfg(feature = "mock")]
-pub use r#trait::MockBcDbRoTrait;
-pub use r#trait::{BcDbRoTrait, BcDbRoWithReader};
+pub use traits::MockBcDbInReadTx_ as MockBcDbInReadTx;
+pub use traits::{BcDbInReadTx, BcDbInReadTx_, BcDbRead, BcDbWithReader};
 
 use constants::*;
 use maplit::hashmap;
@@ -72,6 +73,31 @@ pub fn bc_db_schema() -> KvFileDbSchema {
 #[inline]
 pub fn open_db_ro(path: &Path) -> Result<BcDbRo, DbError> {
     BcDbRo::open_db_ro(path, &bc_db_schema())
+}
+
+pub struct BcDbWithReaderStruct<'r, 'db: 'r, DB>
+where
+    DB: DbReadable,
+{
+    pub db: &'db DB,
+    pub r: Reader<'r>,
+}
+
+pub type BcDbRoWithReader<'r, 'db> = BcDbWithReaderStruct<'r, 'db, BcDbRo>;
+
+impl<'r, 'db: 'r, DB> BcDbWithReader for BcDbWithReaderStruct<'r, 'db, DB>
+where
+    DB: DbReadable,
+{
+    type DB = DB;
+    type R = Reader<'r>;
+
+    fn db(&self) -> &Self::DB {
+        self.db
+    }
+    fn r(&self) -> &Self::R {
+        &self.r
+    }
 }
 
 #[cfg(test)]

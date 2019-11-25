@@ -17,16 +17,51 @@
 // ! Define read only trait
 
 use crate::blocks::DbBlock;
-use crate::{BcDbRo, Reader};
+use crate::{BcDbWithReaderStruct, DbReadable, DbReader};
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use dup_crypto::keys::PubKey;
 use durs_dbs_tools::DbError;
-
 #[cfg(feature = "mock")]
 use mockall::*;
 
+pub trait BcDbRead<DB>
+where
+    DB: DbReadable,
+{
+    /// Read datas in Db
+    fn r<D, F>(&self, f: F) -> Result<D, DbError>
+    where
+        DB: DbReadable,
+        F: FnOnce(&BcDbWithReaderStruct<DB>) -> Result<D, DbError>;
+}
+
+impl<DB> BcDbRead<DB> for DB
+where
+    DB: DbReadable,
+{
+    fn r<D, F>(&self, f: F) -> Result<D, DbError>
+    where
+        DB: DbReadable,
+        F: FnOnce(&BcDbWithReaderStruct<DB>) -> Result<D, DbError>,
+    {
+        self.read(|r| f(&BcDbWithReaderStruct { db: self, r }))
+    }
+}
+
+pub trait BcDbInReadTx: BcDbWithReader + BcDbInReadTx_ {}
+
+impl<T> BcDbInReadTx for T where T: BcDbWithReader + BcDbInReadTx_ {}
+
+pub trait BcDbWithReader {
+    type DB: DbReadable;
+    type R: DbReader;
+
+    fn db(&self) -> &Self::DB;
+    fn r(&self) -> &Self::R;
+}
+
 #[cfg_attr(feature = "mock", automock)]
-pub trait BcDbRoTrait {
+pub trait BcDbInReadTx_ {
     fn get_current_blockstamp(&self) -> Result<Option<Blockstamp>, DbError>;
     fn get_current_block(&self) -> Result<Option<DbBlock>, DbError>;
     fn get_db_block_in_local_blockchain(
@@ -41,20 +76,16 @@ pub trait BcDbRoTrait {
     fn get_uid_from_pubkey(&self, pubkey: &PubKey) -> Result<Option<String>, DbError>;
 }
 
-pub struct BcDbRoWithReader<'r, 'db: 'r> {
-    pub db: &'db BcDbRo,
-    pub r: Reader<'r>,
-}
-
-impl<'r, 'db: 'r> BcDbRoTrait for BcDbRoWithReader<'r, 'db> {
+impl<T> BcDbInReadTx_ for T
+where
+    T: BcDbWithReader,
+{
     fn get_current_blockstamp(&self) -> Result<Option<Blockstamp>, DbError> {
-        crate::current_meta_datas::get_current_blockstamp_(self.db, self.r)
+        crate::current_meta_datas::get_current_blockstamp(self)
     }
     fn get_current_block(&self) -> Result<Option<DbBlock>, DbError> {
-        if let Some(current_blockstamp) =
-            crate::current_meta_datas::get_current_blockstamp_(self.db, self.r)?
-        {
-            crate::blocks::get_db_block_in_local_blockchain(self.db, self.r, current_blockstamp.id)
+        if let Some(current_blockstamp) = crate::current_meta_datas::get_current_blockstamp(self)? {
+            crate::blocks::get_db_block_in_local_blockchain(self, current_blockstamp.id)
         } else {
             Ok(None)
         }
@@ -63,16 +94,16 @@ impl<'r, 'db: 'r> BcDbRoTrait for BcDbRoWithReader<'r, 'db> {
         &self,
         block_number: BlockNumber,
     ) -> Result<Option<DbBlock>, DbError> {
-        crate::blocks::get_db_block_in_local_blockchain(self.db, self.r, block_number)
+        crate::blocks::get_db_block_in_local_blockchain(self, block_number)
     }
     #[cfg(feature = "client-indexer")]
     fn get_db_blocks_in_local_blockchain(
         &self,
         numbers: Vec<BlockNumber>,
     ) -> Result<Vec<DbBlock>, DbError> {
-        crate::blocks::get_blocks_in_local_blockchain_by_numbers(self.db, self.r, numbers)
+        crate::blocks::get_blocks_in_local_blockchain_by_numbers(self, numbers)
     }
     fn get_uid_from_pubkey(&self, pubkey: &PubKey) -> Result<Option<String>, DbError> {
-        crate::indexes::identities::get_uid_(self.db, self.r, pubkey)
+        crate::indexes::identities::get_uid_(self, pubkey)
     }
 }

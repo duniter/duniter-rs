@@ -23,7 +23,7 @@ use dubp_common_doc::traits::Document;
 use durs_bc_db_reader::blocks::fork_tree::ForkTree;
 use durs_bc_db_reader::blocks::DbBlock;
 use durs_bc_db_reader::constants::*;
-use durs_bc_db_reader::DbValue;
+use durs_bc_db_reader::{from_db_value, DbValue};
 use unwrap::unwrap;
 
 /// Insert new head Block in databases
@@ -101,9 +101,10 @@ pub fn insert_new_fork_block(
         )?;
 
         // As long as orphan blocks can succeed the last inserted block, they are inserted
-        for stackable_block in
-            durs_bc_db_reader::blocks::get_stackables_blocks(db, dal_block.blockstamp())?
-        {
+        for stackable_block in durs_bc_db_reader::blocks::get_stackables_blocks(
+            &BcDbRwWithWriter { db, w },
+            dal_block.blockstamp(),
+        )? {
             let _ = insert_new_fork_block(db, w, fork_tree, stackable_block);
         }
 
@@ -115,7 +116,7 @@ pub fn insert_new_fork_block(
         let mut orphan_blockstamps = if let Some(v) =
             orphan_blockstamps_store.get(w.as_ref(), &previous_blockstamp_bytes)?
         {
-            Db::from_db_value::<Vec<Blockstamp>>(v)?
+            from_db_value::<Vec<Blockstamp>>(v)?
         } else {
             vec![]
         };

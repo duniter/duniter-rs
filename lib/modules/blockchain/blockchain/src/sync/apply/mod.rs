@@ -27,7 +27,7 @@ use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use dup_crypto::keys::PubKey;
-use durs_bc_db_reader::DbReadable;
+use durs_bc_db_reader::BcDbRead;
 use durs_bc_db_writer::writers::requests::WotsDBsWriteQuery;
 use durs_bc_db_writer::WotsV10DBs;
 use durs_common_tools::fatal_error;
@@ -98,8 +98,8 @@ impl BlockApplicator {
         // Find expire_certs
         let expire_certs = if let Some(db) = self.db.take() {
             let expire_certs = db
-                .read(|r| {
-                    durs_bc_db_reader::indexes::certs::find_expire_certs(&db, r, blocks_expiring)
+                .r(|db_r| {
+                    durs_bc_db_reader::indexes::certs::find_expire_certs(db_r, blocks_expiring)
                 })
                 .expect("find_expire_certs() : DbError");
             self.db = Some(db);

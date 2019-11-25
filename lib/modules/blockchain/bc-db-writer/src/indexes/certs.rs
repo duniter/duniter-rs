@@ -15,13 +15,13 @@
 
 //! Certifications stored indexes: write requests.
 
-use crate::{Db, DbError, DbWriter};
+use crate::{BcDbRwWithWriter, Db, DbError, DbWriter};
 use dubp_common_doc::BlockNumber;
 use dubp_currency_params::CurrencyParameters;
 use dubp_user_docs::documents::certification::CompactCertificationDocumentV10;
 use durs_bc_db_reader::constants::*;
 use durs_bc_db_reader::indexes::identities::DbIdentity;
-use durs_bc_db_reader::{DbReadable, DbValue};
+use durs_bc_db_reader::{from_db_value, DbReadable, DbValue};
 use durs_wot::WotId;
 
 /// Apply "certification" event in databases
@@ -35,9 +35,11 @@ pub fn write_certification(
     written_timestamp: u64,
 ) -> Result<(), DbError> {
     // Get cert_chainable_on
-    let mut member_datas =
-        durs_bc_db_reader::indexes::identities::get_identity_by_wot_id(db, w.as_ref(), source)?
-            .expect("Try to write certification with unexist certifier.");
+    let mut member_datas = durs_bc_db_reader::indexes::identities::get_identity_by_wot_id(
+        &BcDbRwWithWriter { db, w },
+        source,
+    )?
+    .expect("Try to write certification with unexist certifier.");
     // Push new cert_chainable_on
     member_datas
         .cert_chainable_on
@@ -76,7 +78,7 @@ pub fn revert_write_cert(
     // Pop last cert_chainable_on
     let identities_store = db.get_int_store(IDENTITIES);
     if let Some(v) = identities_store.get(w.as_ref(), source.0 as u32)? {
-        let mut member_datas = Db::from_db_value::<DbIdentity>(v)?;
+        let mut member_datas = from_db_value::<DbIdentity>(v)?;
         member_datas.cert_chainable_on.pop();
         let bin_member_datas = durs_dbs_tools::to_bytes(&member_datas)?;
         identities_store.put(

@@ -89,8 +89,7 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                     CheckAndApplyBlockReturn::ForkBlock => {
                         info!("blockchain: new fork block(#{})", blockstamp);
                         if let Ok(Some(new_bc_branch)) = fork_algo::fork_resolution_algo(
-                            &db,
-                            w.as_ref(),
+                            &BcDbRwWithWriter { db: &db, w: &w },
                             &bc.fork_tree,
                             unwrap!(bc.currency_params).fork_window_size,
                             bc.current_blockstamp,

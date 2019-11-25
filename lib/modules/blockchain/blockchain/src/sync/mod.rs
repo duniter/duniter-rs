@@ -23,6 +23,7 @@ use dubp_common_doc::Blockstamp;
 use dubp_common_doc::{BlockHash, BlockNumber};
 use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use dup_crypto::keys::*;
+use durs_bc_db_reader::BcDbRead;
 use durs_bc_db_writer::writers::requests::*;
 use durs_common_tools::fatal_error;
 use durs_wot::WotId;
@@ -189,10 +190,10 @@ pub fn local_sync<DC: DursConfTrait>(
 
     // Get local current blockstamp
     debug!("Get local current blockstamp...");
-    let current_blockstamp: Blockstamp =
-        durs_bc_db_reader::current_meta_datas::get_current_blockstamp(&db)
-            .expect("DbError : fail to get current blockstamp !")
-            .unwrap_or_default();
+    let current_blockstamp: Blockstamp = db
+        .r(|db_r| durs_bc_db_reader::current_meta_datas::get_current_blockstamp(db_r))
+        .expect("DbError : fail to get current blockstamp !")
+        .unwrap_or_default();
     debug!("Success to get local current blockstamp.");
 
     // Node is already synchronized ?
@@ -202,9 +203,9 @@ pub fn local_sync<DC: DursConfTrait>(
     }
 
     // Get wot index
-    let wot_index: HashMap<PubKey, WotId> =
-        durs_bc_db_reader::indexes::identities::get_wot_index(&db)
-            .expect("Fatal eror : get_wot_index : Fail to read blockchain databases");
+    let wot_index: HashMap<PubKey, WotId> = db
+        .r(|db_r| durs_bc_db_reader::indexes::identities::get_wot_index(db_r))
+        .expect("Fatal eror : get_wot_index : Fail to read blockchain databases");
 
     // Start sync
     let sync_start_time = SystemTime::now();

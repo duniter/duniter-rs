@@ -52,84 +52,89 @@ impl DbBlock {
 }
 
 /// Return true if the node already knows this block
-pub fn already_have_block<DB: DbReadable>(
+pub fn already_have_block<DB: BcDbInReadTx>(
     db: &DB,
     blockstamp: Blockstamp,
     previous_hash: Option<Hash>,
 ) -> Result<bool, DbError> {
-    db.read(|r| {
-        let blockstamp_bytes: Vec<u8> = blockstamp.into();
-        if db
-            .get_store(FORK_BLOCKS)
-            .get(r, &blockstamp_bytes)?
-            .is_some()
+    let blockstamp_bytes: Vec<u8> = blockstamp.into();
+    if db
+        .db()
+        .get_store(FORK_BLOCKS)
+        .get(db.r(), &blockstamp_bytes)?
+        .is_some()
+    {
+        return Ok(true);
+    } else if blockstamp.id > BlockNumber(0) {
+        let previous_blockstamp_bytes: Vec<u8> = PreviousBlockstamp {
+            id: BlockNumber(blockstamp.id.0 - 1),
+            hash: BlockHash(previous_hash.expect("no genesis block must have previous hash")),
+        }
+        .into();
+        if let Some(v) = db
+            .db()
+            .get_store(ORPHAN_BLOCKSTAMP)
+            .get(db.r(), &previous_blockstamp_bytes)?
         {
-            return Ok(true);
-        } else if blockstamp.id > BlockNumber(0) {
-            let previous_blockstamp_bytes: Vec<u8> = PreviousBlockstamp {
-                id: BlockNumber(blockstamp.id.0 - 1),
-                hash: BlockHash(previous_hash.expect("no genesis block must have previous hash")),
-            }
-            .into();
-            if let Some(v) = db
-                .get_store(ORPHAN_BLOCKSTAMP)
-                .get(r, &previous_blockstamp_bytes)?
-            {
-                for orphan_blockstamp in DB::from_db_value::<Vec<Blockstamp>>(v)? {
-                    if orphan_blockstamp == blockstamp {
-                        return Ok(true);
-                    }
+            for orphan_blockstamp in from_db_value::<Vec<Blockstamp>>(v)? {
+                if orphan_blockstamp == blockstamp {
+                    return Ok(true);
                 }
             }
         }
-        if let Some(v) = db.get_int_store(MAIN_BLOCKS).get(r, blockstamp.id.0)? {
-            if DB::from_db_value::<DbBlock>(v)?.block.blockstamp() == blockstamp {
-                Ok(true)
-            } else {
-                Ok(false)
-            }
+    }
+    if let Some(v) = db
+        .db()
+        .get_int_store(MAIN_BLOCKS)
+        .get(db.r(), blockstamp.id.0)?
+    {
+        if from_db_value::<DbBlock>(v)?.block.blockstamp() == blockstamp {
+            Ok(true)
         } else {
             Ok(false)
         }
-    })
+    } else {
+        Ok(false)
+    }
 }
 
 /// Get block
-pub fn get_block<DB: DbReadable, R: DbReader>(
+pub fn get_block<DB: BcDbInReadTx>(
     db: &DB,
-    r: &R,
     blockstamp: Blockstamp,
 ) -> Result<Option<DbBlock>, DbError> {
-    let opt_dal_block = get_db_block_in_local_blockchain(db, r, blockstamp.id)?;
+    let opt_dal_block = get_db_block_in_local_blockchain(db, blockstamp.id)?;
     if opt_dal_block.is_none() {
-        get_fork_block(db, r, blockstamp)
+        get_fork_block(db, blockstamp)
     } else {
         Ok(opt_dal_block)
     }
 }
 
 /// Get fork block
-pub fn get_fork_block<DB: DbReadable, R: DbReader>(
+pub fn get_fork_block<DB: BcDbInReadTx>(
     db: &DB,
-    r: &R,
     blockstamp: Blockstamp,
 ) -> Result<Option<DbBlock>, DbError> {
     let blockstamp_bytes: Vec<u8> = blockstamp.into();
-    if let Some(v) = db.get_store(FORK_BLOCKS).get(r, &blockstamp_bytes)? {
-        Ok(Some(DB::from_db_value(v)?))
+    if let Some(v) = db
+        .db()
+        .get_store(FORK_BLOCKS)
+        .get(db.r(), &blockstamp_bytes)?
+    {
+        Ok(Some(from_db_value(v)?))
     } else {
         Ok(None)
     }
 }
 
 /// Get block hash
-pub fn get_block_hash<DB: DbReadable, R: DbReader>(
+pub fn get_block_hash<DB: BcDbInReadTx>(
     db: &DB,
-    r: &R,
     block_number: BlockNumber,
 ) -> Result<Option<BlockHash>, DbError> {
     Ok(
-        if let Some(block) = get_block_in_local_blockchain(db, r, block_number)? {
+        if let Some(block) = get_block_in_local_blockchain(db, block_number)? {
             block.hash()
         } else {
             None
@@ -139,40 +144,41 @@ pub fn get_block_hash<DB: DbReadable, R: DbReader>(
 
 /// Get block in local blockchain
 #[inline]
-pub fn get_block_in_local_blockchain<DB: DbReadable, R: DbReader>(
+pub fn get_block_in_local_blockchain<DB: BcDbInReadTx>(
     db: &DB,
-    r: &R,
     block_number: BlockNumber,
 ) -> Result<Option<BlockDocument>, DbError> {
-    Ok(get_db_block_in_local_blockchain(db, r, block_number)?.map(|dal_block| dal_block.block))
+    Ok(get_db_block_in_local_blockchain(db, block_number)?.map(|dal_block| dal_block.block))
 }
 
 /// Get block in local blockchain
-pub fn get_db_block_in_local_blockchain<DB: DbReadable, R: DbReader>(
+pub fn get_db_block_in_local_blockchain<DB: BcDbInReadTx>(
     db: &DB,
-    r: &R,
     block_number: BlockNumber,
 ) -> Result<Option<DbBlock>, DbError> {
-    if let Some(v) = db.get_int_store(MAIN_BLOCKS).get(r, block_number.0)? {
-        Ok(Some(DB::from_db_value(v)?))
+    if let Some(v) = db
+        .db()
+        .get_int_store(MAIN_BLOCKS)
+        .get(db.r(), block_number.0)?
+    {
+        Ok(Some(from_db_value(v)?))
     } else {
         Ok(None)
     }
 }
 
 /// Get several blocks in local blockchain
-pub fn get_blocks_in_local_blockchain<DB: DbReadable, R: DbReader>(
+pub fn get_blocks_in_local_blockchain<DB: BcDbInReadTx>(
     db: &DB,
-    r: &R,
     first_block_number: BlockNumber,
     mut count: u32,
 ) -> Result<Vec<BlockDocument>, DbError> {
-    let bc_store = db.get_int_store(MAIN_BLOCKS);
+    let bc_store = db.db().get_int_store(MAIN_BLOCKS);
     let mut blocks = Vec::with_capacity(count as usize);
     let mut current_block_number = first_block_number;
 
-    while let Some(v) = bc_store.get(r, current_block_number.0)? {
-        blocks.push(DB::from_db_value::<DbBlock>(v)?.block);
+    while let Some(v) = bc_store.get(db.r(), current_block_number.0)? {
+        blocks.push(from_db_value::<DbBlock>(v)?.block);
         count -= 1;
         if count > 0 {
             current_block_number = BlockNumber(current_block_number.0 + 1);
@@ -185,14 +191,13 @@ pub fn get_blocks_in_local_blockchain<DB: DbReadable, R: DbReader>(
 
 /// Get several blocks in local blockchain by their number
 #[cfg(feature = "client-indexer")]
-pub fn get_blocks_in_local_blockchain_by_numbers<DB: DbReadable, R: DbReader>(
+pub fn get_blocks_in_local_blockchain_by_numbers<DB: BcDbInReadTx>(
     db: &DB,
-    r: &R,
     numbers: Vec<BlockNumber>,
 ) -> Result<Vec<DbBlock>, DbError> {
     numbers
         .into_iter()
-        .filter_map(|n| match get_db_block_in_local_blockchain(db, r, n) {
+        .filter_map(|n| match get_db_block_in_local_blockchain(db, n) {
             Ok(Some(db_block)) => Some(Ok(db_block)),
             Ok(None) => None,
             Err(e) => Some(Err(e)),
@@ -201,20 +206,17 @@ pub fn get_blocks_in_local_blockchain_by_numbers<DB: DbReadable, R: DbReader>(
 }
 
 /// Get current frame of calculating members
-pub fn get_current_frame<DB: DbReadable>(
+pub fn get_current_frame<DB: BcDbInReadTx>(
     current_block: &BlockDocument,
     db: &DB,
 ) -> Result<HashMap<PubKey, usize>, DbError> {
     let frame_begin = current_block.number().0 - current_block.current_frame_size() as u32;
 
-    let blocks = db.read(|r| {
-        get_blocks_in_local_blockchain(
-            db,
-            r,
-            BlockNumber(frame_begin),
-            current_block.current_frame_size() as u32,
-        )
-    })?;
+    let blocks = get_blocks_in_local_blockchain(
+        db,
+        BlockNumber(frame_begin),
+        current_block.current_frame_size() as u32,
+    )?;
 
     let mut current_frame: HashMap<PubKey, usize> = HashMap::new();
     for block in blocks {
@@ -232,7 +234,7 @@ pub fn get_current_frame<DB: DbReadable>(
 
 /// Get stackables blocks
 #[inline]
-pub fn get_stackables_blocks<DB: DbReadable>(
+pub fn get_stackables_blocks<DB: BcDbInReadTx>(
     db: &DB,
     current_blockstamp: Blockstamp,
 ) -> Result<Vec<DbBlock>, DbError> {
@@ -240,26 +242,32 @@ pub fn get_stackables_blocks<DB: DbReadable>(
 }
 
 /// Get orphan blocks
-pub fn get_orphan_blocks<DB: DbReadable>(
+pub fn get_orphan_blocks<DB: BcDbInReadTx>(
     db: &DB,
     blockstamp: PreviousBlockstamp,
 ) -> Result<Vec<DbBlock>, DbError> {
     let blockstamp_bytes: Vec<u8> = blockstamp.into();
-    db.read(|r| {
-        if let Some(v) = db.get_store(ORPHAN_BLOCKSTAMP).get(r, &blockstamp_bytes)? {
-            let orphan_blockstamps = DB::from_db_value::<Vec<Blockstamp>>(v)?;
-            let mut orphan_blocks = Vec::with_capacity(orphan_blockstamps.len());
-            for orphan_blockstamp in orphan_blockstamps {
-                let orphan_blockstamp_bytes: Vec<u8> = orphan_blockstamp.into();
-                if let Some(v) = db.get_store(FORK_BLOCKS).get(r, &orphan_blockstamp_bytes)? {
-                    orphan_blocks.push(DB::from_db_value::<DbBlock>(v)?);
-                } else {
-                    return Err(DbError::DBCorrupted);
-                }
+    if let Some(v) = db
+        .db()
+        .get_store(ORPHAN_BLOCKSTAMP)
+        .get(db.r(), &blockstamp_bytes)?
+    {
+        let orphan_blockstamps = from_db_value::<Vec<Blockstamp>>(v)?;
+        let mut orphan_blocks = Vec::with_capacity(orphan_blockstamps.len());
+        for orphan_blockstamp in orphan_blockstamps {
+            let orphan_blockstamp_bytes: Vec<u8> = orphan_blockstamp.into();
+            if let Some(v) = db
+                .db()
+                .get_store(FORK_BLOCKS)
+                .get(db.r(), &orphan_blockstamp_bytes)?
+            {
+                orphan_blocks.push(from_db_value::<DbBlock>(v)?);
+            } else {
+                return Err(DbError::DBCorrupted);
             }
-            Ok(orphan_blocks)
-        } else {
-            Ok(vec![])
         }
-    })
+        Ok(orphan_blocks)
+    } else {
+        Ok(vec![])
+    }
 }

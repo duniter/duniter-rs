@@ -17,6 +17,7 @@
 
 use crate::*;
 //use dubp_user_docs::documents::identity::IdentityDocument;
+use durs_bc_db_reader::BcDbRead;
 use durs_message::requests::*;
 use durs_module::*;
 
@@ -37,10 +38,9 @@ pub fn receive_req(
             BlockchainRequest::CurrentBlock => {
                 debug!("BlockchainModule : receive BlockchainRequest::CurrentBlock()");
 
-                if let Ok(block_opt) = bc.db().read(|r| {
+                if let Ok(block_opt) = bc.db().r(|db_r| {
                     durs_bc_db_reader::blocks::get_block_in_local_blockchain(
-                        bc.db(),
-                        r,
+                        db_r,
                         bc.current_blockstamp.id,
                     )
                 }) {
@@ -73,12 +73,8 @@ pub fn receive_req(
                     block_number
                 );
 
-                if let Ok(block_opt) = bc.db().read(|r| {
-                    durs_bc_db_reader::blocks::get_block_in_local_blockchain(
-                        bc.db(),
-                        r,
-                        block_number,
-                    )
+                if let Ok(block_opt) = bc.db().r(|db_r| {
+                    durs_bc_db_reader::blocks::get_block_in_local_blockchain(db_r, block_number)
                 }) {
                     if let Some(block) = block_opt {
                         debug!(
@@ -112,10 +108,9 @@ pub fn receive_req(
                     first_block_number, count
                 );
 
-                if let Ok(blocks) = bc.db().read(|r| {
+                if let Ok(blocks) = bc.db().r(|db_r| {
                     durs_bc_db_reader::blocks::get_blocks_in_local_blockchain(
-                        bc.db(),
-                        r,
+                        db_r,
                         first_block_number,
                         count,
                     )
@@ -150,16 +145,22 @@ pub fn receive_req(
                     req_from,
                     req_id,
                     &BlockchainResponse::UIDs(
-                        pubkeys
-                            .into_iter()
-                            .map(|p| {
-                                (
-                                    p,
-                                    durs_bc_db_reader::indexes::identities::get_uid(bc.db(), &p)
-                                        .expect("Fatal error : get_uid : Fail to read WotV10DB !"),
-                                )
+                        bc.db()
+                            .r(|db_r| {
+                                Ok(pubkeys
+                                    .into_iter()
+                                    .map(|p| {
+                                        (
+                                            p,
+                                            durs_bc_db_reader::indexes::identities::get_uid(
+                                                db_r, &p,
+                                            )
+                                            .unwrap_or(None),
+                                        )
+                                    })
+                                    .collect())
                             })
-                            .collect(),
+                            .expect("Fatal error : get_uid : Fail to read DB !"),
                     ),
                 );
             } /*BlockchainRequest::GetIdentities(filters) => {

@@ -29,7 +29,7 @@ use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use durs_bc_db_reader::blocks::DbBlock;
 use durs_bc_db_reader::DbError;
-use durs_bc_db_writer::{Db, DbWriter};
+use durs_bc_db_writer::{BcDbRwWithWriter, Db, DbWriter};
 use unwrap::unwrap;
 
 #[derive(Debug, Clone)]
@@ -74,7 +74,7 @@ pub fn check_and_apply_block(
 ) -> Result<CheckAndApplyBlockReturn, BlockError> {
     // Get BlockDocument && check if already have block
     let already_have_block = durs_bc_db_reader::blocks::already_have_block(
-        db,
+        &BcDbRwWithWriter { db, w },
         block_doc.blockstamp(),
         block_doc.previous_hash(),
     )?;
@@ -106,14 +106,15 @@ pub fn check_and_apply_block(
 
         // Detect expire_certs
         let blocks_expiring = Vec::with_capacity(0);
-        let expire_certs =
-            durs_bc_db_reader::indexes::certs::find_expire_certs(db, w.as_ref(), blocks_expiring)?;
+        let expire_certs = durs_bc_db_reader::indexes::certs::find_expire_certs(
+            &BcDbRwWithWriter { db, w },
+            blocks_expiring,
+        )?;
 
         // Verify block validity (check all protocol rule, very long !)
         verify_global_validity_block(
             &block_doc,
-            db,
-            w.as_ref(),
+            &BcDbRwWithWriter { db, w },
             &bc.wot_index,
             &bc.wot_databases.wot_db,
         )

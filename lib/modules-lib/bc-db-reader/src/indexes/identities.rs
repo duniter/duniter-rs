@@ -96,7 +96,7 @@ pub struct DbIdentity {
 }
 
 /// Get identities in databases
-pub fn get_identities<DB: DbReadable>(
+pub fn get_identities<DB: BcDbInReadTx>(
     db: &DB,
     filters: IdentitiesFilter,
     current_block_id: BlockNumber,
@@ -109,20 +109,18 @@ pub fn get_identities<DB: DbReadable>(
         }
     } else {
         let mut identities: Vec<DbIdentity> = Vec::new();
-        db.read(|r| {
-            let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db, r)?;
-            for wot_id in 0..=greatest_wot_id.0 {
-                if let Some(db_idty) = get_identity_by_wot_id(db, r, WotId(wot_id))? {
-                    if filters
-                        .paging
-                        .check_created_on(db_idty.idty_doc.blockstamp().id, current_block_id)
-                    {
-                        identities.push(db_idty);
-                    }
+        let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db)?;
+        for wot_id in 0..=greatest_wot_id.0 {
+            if let Some(db_idty) = get_identity_by_wot_id(db, WotId(wot_id))? {
+                if filters
+                    .paging
+                    .check_created_on(db_idty.idty_doc.blockstamp().id, current_block_id)
+                {
+                    identities.push(db_idty);
                 }
             }
-            Ok(())
-        })?;
+        }
+
         identities.sort_by(|i1, i2| {
             i1.idty_doc
                 .blockstamp()
@@ -138,21 +136,20 @@ pub fn get_identities<DB: DbReadable>(
 }
 
 /// Get identity by pubkey in databases
-pub fn get_identity_by_pubkey<DB: DbReadable>(
+pub fn get_identity_by_pubkey<DB: BcDbInReadTx>(
     db: &DB,
     pubkey: &PubKey,
 ) -> Result<Option<DbIdentity>, DbError> {
-    db.read(|r| get_identity_by_pubkey_(db, r, pubkey))
+    get_identity_by_pubkey_(db, pubkey)
 }
 
 /// Get identity by pubkey
-pub fn get_identity_by_pubkey_<DB: DbReadable, R: DbReader>(
+pub fn get_identity_by_pubkey_<DB: BcDbInReadTx>(
     db: &DB,
-    r: &R,
     pubkey: &PubKey,
 ) -> Result<Option<DbIdentity>, DbError> {
-    if let Some(wot_id) = get_wot_id_(db, r, pubkey)? {
-        get_identity_by_wot_id(db, r, wot_id)
+    if let Some(wot_id) = get_wot_id(db, pubkey)? {
+        get_identity_by_wot_id(db, wot_id)
     } else {
         Ok(None)
     }
@@ -160,13 +157,16 @@ pub fn get_identity_by_pubkey_<DB: DbReadable, R: DbReader>(
 
 /// Get identity by pubkey
 #[inline]
-pub fn get_identity_by_wot_id<DB: DbReadable, R: DbReader>(
+pub fn get_identity_by_wot_id<DB: BcDbInReadTx>(
     db: &DB,
-    r: &R,
     wot_id: WotId,
 ) -> Result<Option<DbIdentity>, DbError> {
-    if let Some(v) = db.get_int_store(IDENTITIES).get(r, wot_id.0 as u32)? {
-        Ok(Some(DB::from_db_value(v)?))
+    if let Some(v) = db
+        .db()
+        .get_int_store(IDENTITIES)
+        .get(db.r(), wot_id.0 as u32)?
+    {
+        Ok(Some(from_db_value(v)?))
     } else {
         Ok(None)
     }
@@ -174,51 +174,35 @@ pub fn get_identity_by_wot_id<DB: DbReadable, R: DbReader>(
 
 /// Get uid from pubkey
 #[inline]
-pub fn get_uid<DB: DbReadable>(db: &DB, pubkey: &PubKey) -> Result<Option<String>, DbError> {
+pub fn get_uid<DB: BcDbInReadTx>(db: &DB, pubkey: &PubKey) -> Result<Option<String>, DbError> {
     Ok(get_identity_by_pubkey(db, pubkey)?.map(|db_idty| db_idty.idty_doc.username().to_owned()))
 }
 
 /// Get uid from pubkey
 #[inline]
-pub fn get_uid_<DB: DbReadable, R: DbReader>(
-    db: &DB,
-    r: &R,
-    pubkey: &PubKey,
-) -> Result<Option<String>, DbError> {
-    Ok(get_identity_by_pubkey_(db, r, pubkey)?
-        .map(|db_idty| db_idty.idty_doc.username().to_owned()))
+pub fn get_uid_<DB: BcDbInReadTx>(db: &DB, pubkey: &PubKey) -> Result<Option<String>, DbError> {
+    Ok(get_identity_by_pubkey_(db, pubkey)?.map(|db_idty| db_idty.idty_doc.username().to_owned()))
 }
 
 /// Get wot id from uid
-pub fn get_wot_id_from_uid<DB: DbReadable>(db: &DB, uid: &str) -> Result<Option<WotId>, DbError> {
-    db.read(|r| {
-        let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db, r)?;
-        for wot_id in 0..=greatest_wot_id.0 {
-            if let Some(db_idty) = get_identity_by_wot_id(db, r, WotId(wot_id))? {
-                if db_idty.idty_doc.username() == uid {
-                    return Ok(Some(WotId(wot_id)));
-                }
+pub fn get_wot_id_from_uid<DB: BcDbInReadTx>(db: &DB, uid: &str) -> Result<Option<WotId>, DbError> {
+    let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db)?;
+    for wot_id in 0..=greatest_wot_id.0 {
+        if let Some(db_idty) = get_identity_by_wot_id(db, WotId(wot_id))? {
+            if db_idty.idty_doc.username() == uid {
+                return Ok(Some(WotId(wot_id)));
             }
         }
-        Ok(None)
-    })
+    }
+    Ok(None)
 }
-
-/// Get identity wot_id
-pub fn get_wot_id<DB: DbReadable>(db: &DB, pubkey: &PubKey) -> Result<Option<WotId>, DbError> {
-    db.read(|r| get_wot_id_(db, r, pubkey))
-}
-
 /// Get identity wot_id
 #[inline]
-pub fn get_wot_id_<DB: DbReadable, R: DbReader>(
-    db: &DB,
-    r: &R,
-    pubkey: &PubKey,
-) -> Result<Option<WotId>, DbError> {
+pub fn get_wot_id<DB: BcDbInReadTx>(db: &DB, pubkey: &PubKey) -> Result<Option<WotId>, DbError> {
     if let Some(v) = db
+        .db()
         .get_store(WOT_ID_INDEX)
-        .get(r, &pubkey.to_bytes_vector())?
+        .get(db.r(), &pubkey.to_bytes_vector())?
     {
         if let DbValue::U64(wot_id) = v {
             Ok(Some(WotId(wot_id as usize)))
@@ -230,34 +214,30 @@ pub fn get_wot_id_<DB: DbReadable, R: DbReader>(
     }
 }
 /// Get wot_id index
-pub fn get_wot_index<DB: DbReadable>(db: &DB) -> Result<HashMap<PubKey, WotId>, DbError> {
-    db.read(|r| {
-        let mut wot_index = HashMap::new();
-        for entry in db.get_store(WOT_ID_INDEX).iter_start(r)? {
-            let (k, v_opt) = entry?;
-            if let Some(DbValue::U64(wot_id)) = v_opt {
-                wot_index.insert(
-                    PubKey::from_bytes(k).map_err(|_| DbError::DBCorrupted)?,
-                    WotId(wot_id as usize),
-                );
-            }
+pub fn get_wot_index<DB: BcDbInReadTx>(db: &DB) -> Result<HashMap<PubKey, WotId>, DbError> {
+    let mut wot_index = HashMap::new();
+    for entry in db.db().get_store(WOT_ID_INDEX).iter_start(db.r())? {
+        let (k, v_opt) = entry?;
+        if let Some(DbValue::U64(wot_id)) = v_opt {
+            wot_index.insert(
+                PubKey::from_bytes(k).map_err(|_| DbError::DBCorrupted)?,
+                WotId(wot_id as usize),
+            );
         }
-        Ok(wot_index)
-    })
+    }
+    Ok(wot_index)
 }
 
 /// Get wot_uid index
-pub fn get_wot_uid_index<DB: DbReadable>(db: &DB) -> Result<HashMap<WotId, String>, DbError> {
-    db.read(|r| {
-        let mut wot_uid_index = HashMap::new();
-        let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db, r)?;
-        for wot_id in 0..=greatest_wot_id.0 {
-            if let Some(db_idty) = get_identity_by_wot_id(db, r, WotId(wot_id))? {
-                wot_uid_index.insert(WotId(wot_id), db_idty.idty_doc.username().to_owned());
-            }
+pub fn get_wot_uid_index<DB: BcDbInReadTx>(db: &DB) -> Result<HashMap<WotId, String>, DbError> {
+    let mut wot_uid_index = HashMap::new();
+    let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db)?;
+    for wot_id in 0..=greatest_wot_id.0 {
+        if let Some(db_idty) = get_identity_by_wot_id(db, WotId(wot_id))? {
+            wot_uid_index.insert(WotId(wot_id), db_idty.idty_doc.username().to_owned());
         }
-        Ok(wot_uid_index)
-    })
+    }
+    Ok(wot_uid_index)
 }
 
 #[cfg(test)]
@@ -307,12 +287,12 @@ mod test {
             let idty_bin = durs_dbs_tools::to_bytes(idty)?;
             db.write(|mut w| {
                 db.get_store(WOT_ID_INDEX).put(
-                    w.as_mut(),
+                    db.w.as_mut(),
                     &idty.idty_doc.issuers()[0].to_bytes_vector(),
                     &DbValue::U64(wot_id),
                 )?;
                 db.get_int_store(IDENTITIES).put(
-                    w.as_mut(),
+                    db.w.as_mut(),
                     wot_id as u32,
                     &KvFileDbHandler::db_value(&idty_bin)?,
                 )?;
@@ -324,7 +304,7 @@ mod test {
         // Write greatest wot id
         db.write(|mut w| {
             db.get_int_store(CURRENT_METAS_DATAS).put(
-                w.as_mut(),
+                db.w.as_mut(),
                 CurrentMetaDataKey::NextWotId.to_u32(),
                 &DbValue::U64(wot_id),
             )?;

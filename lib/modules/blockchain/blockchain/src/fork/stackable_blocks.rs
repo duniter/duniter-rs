@@ -19,12 +19,16 @@ use crate::dubp::apply::exec_currency_queries;
 use crate::*;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::traits::Document;
+use durs_bc_db_reader::BcDbRead;
 use unwrap::unwrap;
 
 pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
     'blocks: loop {
         let stackable_blocks =
-            durs_bc_db_reader::blocks::get_stackables_blocks(bc.db(), bc.current_blockstamp)
+            bc.db()
+                .r(|db_r| {
+                    durs_bc_db_reader::blocks::get_stackables_blocks(db_r, bc.current_blockstamp)
+                })
                 .expect("Fatal error : Fail to read ForksDB !");
 
         if stackable_blocks.is_empty() {

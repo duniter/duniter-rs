@@ -27,34 +27,38 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
 /// Key-value database reader
-pub type KvFileDbReader<'a> = &'a rkv::Reader<'a>;
+pub struct KvFileDbReader<'r>(&'r rkv::Reader<'r>);
 
-/// Mock db reader
-pub struct MockKvFileDbReader;
-
-impl MockKvFileDbReader {
-    pub fn new() -> Self {
-        Self
-    }
-}
-
-impl rkv::Readable for MockKvFileDbReader {
+impl<'r> rkv::Readable for KvFileDbReader<'r> {
     fn get<K: AsRef<[u8]>>(
         &self,
-        _db: rkv::Database,
-        _k: &K,
+        db: rkv::Database,
+        k: &K,
     ) -> Result<Option<Value>, rkv::StoreError> {
-        unimplemented!()
+        self.0.get(db, k)
     }
-    fn open_ro_cursor(&self, _db: rkv::Database) -> Result<rkv::RoCursor, rkv::StoreError> {
-        unimplemented!()
+    fn open_ro_cursor(&self, db: rkv::Database) -> Result<rkv::RoCursor, rkv::StoreError> {
+        self.0.open_ro_cursor(db)
     }
 }
 
 /// Key-value database writer
-pub struct KvFileDbWriter<'a> {
+pub struct KvFileDbWriter<'w> {
     buffer: Vec<u8>,
-    writer: rkv::Writer<'a>,
+    writer: rkv::Writer<'w>,
+}
+
+impl<'w> rkv::Readable for KvFileDbWriter<'w> {
+    fn get<K: AsRef<[u8]>>(
+        &self,
+        db: rkv::Database,
+        k: &K,
+    ) -> Result<Option<Value>, rkv::StoreError> {
+        self.writer.get(db, k)
+    }
+    fn open_ro_cursor(&self, db: rkv::Database) -> Result<rkv::RoCursor, rkv::StoreError> {
+        self.writer.open_ro_cursor(db)
+    }
 }
 
 impl<'a> AsRef<rkv::Writer<'a>> for KvFileDbWriter<'a> {
@@ -66,6 +70,16 @@ impl<'a> AsRef<rkv::Writer<'a>> for KvFileDbWriter<'a> {
 impl<'a> AsMut<rkv::Writer<'a>> for KvFileDbWriter<'a> {
     fn as_mut(&mut self) -> &mut rkv::Writer<'a> {
         &mut self.writer
+    }
+}
+
+#[inline]
+/// Convert DB value to a rust type
+pub fn from_db_value<T: DeserializeOwned>(v: Value) -> Result<T, DbError> {
+    if let Value::Blob(bytes) = v {
+        Ok(bincode::deserialize::<T>(bytes)?)
+    } else {
+        Err(DbError::DBCorrupted)
     }
 }
 
@@ -150,9 +164,6 @@ impl KvFileDbRoHandler {
 
 /// Key-value file Database read operations
 pub trait KvFileDbRead: Sized {
-    /// Convert DB value to a rust type
-    fn from_db_value<T: DeserializeOwned>(v: Value) -> Result<T, DbError>;
-
     /// get a single store
     fn get_store(&self, store_name: &str) -> &super::SingleStore;
 
@@ -172,10 +183,6 @@ pub trait KvFileDbRead: Sized {
 }
 
 impl KvFileDbRead for KvFileDbRoHandler {
-    #[inline]
-    fn from_db_value<T: DeserializeOwned>(v: Value) -> Result<T, DbError> {
-        KvFileDbHandler::from_db_value(v)
-    }
     #[inline]
     fn get_store(&self, store_name: &str) -> &super::SingleStore {
         self.0.get_store(store_name)
@@ -245,14 +252,6 @@ impl Debug for KvFileDbStore {
 }
 
 impl KvFileDbRead for KvFileDbHandler {
-    #[inline]
-    fn from_db_value<T: DeserializeOwned>(v: Value) -> Result<T, DbError> {
-        if let Value::Blob(bytes) = v {
-            Ok(bincode::deserialize::<T>(bytes)?)
-        } else {
-            Err(DbError::DBCorrupted)
-        }
-    }
     fn get_int_store(&self, store_name: &str) -> &super::IntegerStore<u32> {
         if let Some(store_enum) = self.stores.get(store_name) {
             if let KvFileDbStore::SingleIntKey(store) = store_enum {
@@ -304,7 +303,7 @@ impl KvFileDbRead for KvFileDbHandler {
     where
         F: FnOnce(KvFileDbReader) -> Result<R, DbError>,
     {
-        Ok(f(&self.arc_clone().read()?.read()?)?)
+        Ok(f(KvFileDbReader(&self.arc_clone().read()?.read()?))?)
     }
 }
 
@@ -437,7 +436,7 @@ mod tests {
         let store_test1 = db.get_int_store("test1");
 
         db.write(|mut w| {
-            store_test1.put(w.as_mut(), 3, &Value::Str("toto"))?;
+            store_test1.put(db.w.as_mut(), 3, &Value::Str("toto"))?;
             Ok(w)
         })?;
 
@@ -449,7 +448,7 @@ mod tests {
         );
 
         db.write(|mut w| {
-            store_test1.put(w.as_mut(), 3, &Value::Str("titi"))?;
+            store_test1.put(db.w.as_mut(), 3, &Value::Str("titi"))?;
             Ok(w)
         })?;
 
@@ -459,7 +458,7 @@ mod tests {
         );
 
         db.write(|mut w| {
-            store_test1.put(w.as_mut(), 3, &Value::Str("tutu"))?;
+            store_test1.put(db.w.as_mut(), 3, &Value::Str("tutu"))?;
             assert_eq!(
                 Some("titi".to_owned()),
                 get_int_store_str_val(&ro_db, "test1", 3)?

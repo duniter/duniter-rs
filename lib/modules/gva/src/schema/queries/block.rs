@@ -17,10 +17,10 @@
 
 use crate::schema::entities::block::Block;
 use dubp_common_doc::BlockNumber;
-use durs_bc_db_reader::{BcDbRoTrait, DbError};
+use durs_bc_db_reader::{BcDbInReadTx_, BcDbWithReader, DbError};
 use juniper_from_schema::{QueryTrail, Walked};
 
-pub(crate) fn execute<DB: BcDbRoTrait>(
+pub(crate) fn execute<DB: BcDbWithReader>(
     db: &DB,
     trail: &QueryTrail<'_, Block, Walked>,
     number: i32,

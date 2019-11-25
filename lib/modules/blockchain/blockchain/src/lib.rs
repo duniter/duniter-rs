@@ -59,6 +59,7 @@ use dubp_common_doc::Blockstamp;
 use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use dup_crypto::keys::*;
 use durs_bc_db_reader::blocks::fork_tree::ForkTree;
+use durs_bc_db_reader::BcDbRead;
 use durs_bc_db_writer::*;
 use durs_common_tools::fatal_error;
 use durs_message::events::*;
@@ -180,15 +181,16 @@ impl BlockchainModule {
         wot_databases: WotsV10DBs,
     ) -> Result<BlockchainModule, DbError> {
         // Get current blockstamp
-        let current_blockstamp =
-            durs_bc_db_reader::current_meta_datas::get_current_blockstamp(&db)?.unwrap_or_default();
+        let current_blockstamp = db
+            .r(|db_r| durs_bc_db_reader::current_meta_datas::get_current_blockstamp(db_r))?
+            .unwrap_or_default();
 
         // Get fork tree
-        let fork_tree = durs_bc_db_reader::current_meta_datas::get_fork_tree(&db)?;
+        let fork_tree = db.r(|db_r| durs_bc_db_reader::current_meta_datas::get_fork_tree(db_r))?;
 
         // Get wot index
         let wot_index: HashMap<PubKey, WotId> =
-            durs_bc_db_reader::indexes::identities::get_wot_index(&db)?;
+            db.r(|db_r| durs_bc_db_reader::indexes::identities::get_wot_index(db_r))?;
 
         Ok(BlockchainModule {
             router_sender,

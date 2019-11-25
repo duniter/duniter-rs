@@ -19,7 +19,7 @@ use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
 use dup_crypto::keys::PubKey;
-use durs_bc_db_reader::{DbError, DbReadable, DbReader};
+use durs_bc_db_reader::{BcDbInReadTx, DbError};
 use durs_bc_db_writer::BinFreeStructDb;
 use durs_common_tools::traits::bool_ext::BoolExt;
 use durs_wot::*;
@@ -38,16 +38,14 @@ impl From<DbError> for GlobalVerifyBlockError {
     }
 }
 
-pub fn verify_global_validity_block<DB, R, W>(
+pub fn verify_global_validity_block<DB, W>(
     block: &BlockDocument,
     db: &DB,
-    r: &R,
     _wot_index: &HashMap<PubKey, WotId>,
     _wot_db: &BinFreeStructDb<W>,
 ) -> Result<(), GlobalVerifyBlockError>
 where
-    DB: DbReadable,
-    R: DbReader,
+    DB: BcDbInReadTx,
     W: WebOfTrust,
 {
     // Rules that do not concern genesis block
@@ -55,7 +53,6 @@ where
         // Get previous block
         let previous_block_opt = durs_bc_db_reader::blocks::get_block_in_local_blockchain(
             db,
-            r,
             BlockNumber(block.number().0 - 1),
         )?;
 

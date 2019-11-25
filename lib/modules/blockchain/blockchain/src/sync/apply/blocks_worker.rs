@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::sync::*;
+use durs_bc_db_reader::BcDbRead;
 use pbr::ProgressBar;
 
 pub fn execute(
@@ -29,8 +30,9 @@ pub fn execute(
         let blocks_job_begin = SystemTime::now();
 
         // Get fork tree
-        let mut fork_tree =
-            durs_bc_db_reader::current_meta_datas::get_fork_tree(&db).expect("Fail to read DB.");
+        let mut fork_tree = db
+            .r(|db_r| durs_bc_db_reader::current_meta_datas::get_fork_tree(db_r))
+            .expect("Fail to read DB.");
 
         // Listen db requets
         let mut chunk_index = 0;

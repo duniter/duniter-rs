@@ -17,7 +17,7 @@
 
 use dubp_user_docs::documents::transaction::*;
 use durs_bc_db_reader::constants::*;
-use durs_bc_db_reader::DbValue;
+use durs_bc_db_reader::{from_db_value, DbValue};
 use durs_common_tools::fatal_error;
 
 use crate::*;
@@ -145,7 +145,7 @@ pub fn apply_and_write_tx(
             .map(|utxo_id| {
                 let utxo_id_bytes: Vec<u8> = (*utxo_id).into();
                 if let Some(value) = db.get_store(UTXOS).get(w.as_ref(), &utxo_id_bytes)? {
-                    let utxo_content: TransactionOutput = Db::from_db_value(value)?;
+                    let utxo_content: TransactionOutput = from_db_value(value)?;
                     Ok((*utxo_id, utxo_content))
                 } else {
                     fatal_error!("Try to persist unexist consumed source.");
@@ -154,9 +154,12 @@ pub fn apply_and_write_tx(
             .collect::<Result<HashMap<UniqueIdUTXOv10, TransactionOutput>, DbError>>()?;
         let consumed_sources_bytes = durs_dbs_tools::to_bytes(&consumed_sources)?;
         let block_number =
-            durs_bc_db_reader::current_meta_datas::get_current_blockstamp_(db, w.as_ref())?
-                .unwrap_or_default()
-                .id;
+            durs_bc_db_reader::current_meta_datas::get_current_blockstamp(&BcDbRwWithWriter {
+                db,
+                w,
+            })?
+            .unwrap_or_default()
+            .id;
         db.get_int_store(CONSUMED_UTXOS).put(
             w.as_mut(),
             block_number.0,

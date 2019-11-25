@@ -24,7 +24,7 @@ use durs_bc_db_reader::blocks::DbBlock;
 use durs_bc_db_reader::indexes::sources::get_block_consumed_sources_;
 use durs_bc_db_reader::indexes::sources::SourceAmount;
 use durs_bc_db_writer::writers::requests::*;
-use durs_bc_db_writer::{BinFreeStructDb, Db, DbError, DbWriter};
+use durs_bc_db_writer::{BcDbRwWithWriter, BinFreeStructDb, Db, DbError, DbWriter};
 use durs_common_tools::fatal_error;
 use durs_wot::data::NewLinkResult;
 use durs_wot::{WebOfTrust, WotId};
@@ -302,7 +302,8 @@ pub fn exec_currency_queries(
     block_number: BlockNumber,
     currency_queries: Vec<CurrencyDBsWriteQuery>,
 ) -> Result<(), DbError> {
-    let mut block_consumed_sources = get_block_consumed_sources_(db, w.as_ref(), block_number)?;
+    let mut block_consumed_sources =
+        get_block_consumed_sources_(&BcDbRwWithWriter { db, w }, block_number)?;
     for query in &currency_queries {
         query.apply(db, w, block_consumed_sources.as_mut(), true)?;
     }

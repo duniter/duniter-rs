@@ -18,8 +18,8 @@
 mod file;
 
 pub use file::{
-    KvFileDbHandler, KvFileDbRead, KvFileDbReader, KvFileDbRoHandler, KvFileDbSchema,
-    KvFileDbStoreType, KvFileDbWriter,
+    from_db_value, KvFileDbHandler, KvFileDbRead, KvFileDbReader, KvFileDbRoHandler,
+    KvFileDbSchema, KvFileDbStoreType, KvFileDbWriter,
 };
 pub use rkv::{
     store::multi::Iter, IntegerStore, MultiIntegerStore, MultiStore,

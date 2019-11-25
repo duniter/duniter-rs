@@ -21,7 +21,7 @@ use chrono::NaiveDateTime;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::traits::Document;
 use durs_bc_db_reader::blocks::DbBlock;
-use durs_bc_db_reader::{BcDbRoTrait, DbError};
+use durs_bc_db_reader::{BcDbInReadTx_, BcDbWithReader, DbError};
 use durs_common_tools::fatal_error;
 use juniper::{Executor, FieldResult};
 use juniper_from_schema::{QueryTrail, Walked};
@@ -43,7 +43,7 @@ impl Block {
         trail.issuer_name()
     }
     // Convert BlockDb (db entity) into Block (gva entity)
-    pub(crate) fn from_block_db<DB: BcDbRoTrait>(
+    pub(crate) fn from_block_db<DB: BcDbWithReader>(
         db: &DB,
         block_db: DbBlock,
         ask_issuer_name: bool,

@@ -39,12 +39,12 @@ pub fn stop_and_clean(
     tmp_profile_path: PathBuf,
 ) {
     // Send STOP signal to blockchain module
-    bc_sender
+    /*bc_sender
         .send(DursMsg::Stop)
         .expect("Fail to send stop signal to blockchain module.");
     handle
         .join()
-        .expect("Blockchain module fail to stop correctly.");
+        .expect("Blockchain module fail to stop correctly.");*/
 
     // Clear user datas
     std::fs::remove_dir_all(tmp_profile_path).expect("Fail to remove tmp dir.");

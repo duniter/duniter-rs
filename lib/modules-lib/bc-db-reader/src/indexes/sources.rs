@@ -126,42 +126,29 @@ impl UTXO {
 }
 
 /// Get utxo v10
-pub fn get_utxo_v10<DB: DbReadable>(
+pub fn get_utxo_v10<DB: BcDbInReadTx>(
     db: &DB,
     utxo_id: UniqueIdUTXOv10,
 ) -> Result<Option<TransactionOutput>, DbError> {
     let utxo_id_bytes: Vec<u8> = utxo_id.into();
-    db.read(|r| {
-        if let Some(v) = db.get_store(UTXOS).get(r, &utxo_id_bytes)? {
-            Ok(Some(DB::from_db_value(v)?))
-        } else {
-            Ok(None)
-        }
-    })
-}
-
-/// Get utxo v10
-pub fn get_utxo_v10_<DB: DbReadable, R: DbReader>(
-    db: &DB,
-    r: &R,
-    utxo_id: UniqueIdUTXOv10,
-) -> Result<Option<TransactionOutput>, DbError> {
-    let utxo_id_bytes: Vec<u8> = utxo_id.into();
-    if let Some(v) = db.get_store(UTXOS).get(r, &utxo_id_bytes)? {
-        Ok(Some(DB::from_db_value(v)?))
+    if let Some(v) = db.db().get_store(UTXOS).get(db.r(), &utxo_id_bytes)? {
+        Ok(Some(from_db_value(v)?))
     } else {
         Ok(None)
     }
 }
 
 /// Get block consumed sources
-pub fn get_block_consumed_sources_<DB: DbReadable, R: DbReader>(
+pub fn get_block_consumed_sources_<DB: BcDbInReadTx>(
     db: &DB,
-    r: &R,
     block_number: BlockNumber,
 ) -> Result<Option<HashMap<UniqueIdUTXOv10, TransactionOutput>>, DbError> {
-    if let Some(v) = db.get_int_store(CONSUMED_UTXOS).get(r, block_number.0)? {
-        Ok(Some(DB::from_db_value(v)?))
+    if let Some(v) = db
+        .db()
+        .get_int_store(CONSUMED_UTXOS)
+        .get(db.r(), block_number.0)?
+    {
+        Ok(Some(from_db_value(v)?))
     } else {
         Ok(None)
     }

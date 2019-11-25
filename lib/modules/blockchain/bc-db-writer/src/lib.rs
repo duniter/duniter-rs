@@ -68,6 +68,29 @@ pub fn open_db(path: &Path) -> Result<Db, DbError> {
     Db::open_db(path, &durs_bc_db_reader::bc_db_schema())
 }
 
+/// R/W Database with reader
+pub type BcDbRwWithReader<'r, 'db> = durs_bc_db_reader::BcDbWithReaderStruct<'r, 'db, Db>;
+
+/// R/W Database with writer
+pub struct BcDbRwWithWriter<'w, 'db: 'w> {
+    /// R/W database handler
+    pub db: &'db Db,
+    /// Reader
+    pub w: &'w DbWriter<'w>,
+}
+
+impl<'w, 'db: 'w> durs_bc_db_reader::BcDbWithReader for BcDbRwWithWriter<'w, 'db> {
+    type DB = Db;
+    type R = DbWriter<'w>;
+
+    fn db(&self) -> &Self::DB {
+        self.db
+    }
+    fn r(&self) -> &Self::R {
+        self.w
+    }
+}
+
 #[derive(Debug)]
 /// Set of databases storing web of trust information
 pub struct WotsV10DBs {

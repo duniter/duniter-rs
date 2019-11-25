@@ -16,7 +16,7 @@
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::Blockstamp;
 use durs_bc_db_reader::blocks::fork_tree::ForkTree;
-use durs_bc_db_reader::{DbReadable, DbReader};
+use durs_bc_db_reader::BcDbInReadTx;
 use durs_bc_db_writer::DbError;
 use std::collections::HashSet;
 
@@ -25,15 +25,14 @@ pub static ADVANCE_BLOCKS: &u32 = &3;
 /// Advance blockchain time required (in seconds)
 pub static ADVANCE_TIME: &u64 = &900;
 
-pub fn fork_resolution_algo<DB: DbReadable, R: DbReader>(
+pub fn fork_resolution_algo<DB: BcDbInReadTx>(
     db: &DB,
-    r: &R,
     fork_tree: &ForkTree,
     fork_window_size: usize,
     current_blockstamp: Blockstamp,
     invalid_blocks: &HashSet<Blockstamp>,
 ) -> Result<Option<Vec<Blockstamp>>, DbError> {
-    let current_bc_time = durs_bc_db_reader::current_meta_datas::get_current_common_time_(db, r)?;
+    let current_bc_time = durs_bc_db_reader::current_meta_datas::get_current_common_time_(db)?;
 
     debug!(
         "fork_resolution_algo({}, {})",
@@ -54,7 +53,7 @@ pub fn fork_resolution_algo<DB: DbReadable, R: DbReader>(
 
             let branch_head_blockstamp = branch.last().expect("safe unwrap");
             let branch_head_median_time =
-                durs_bc_db_reader::blocks::get_fork_block(db, r, *branch_head_blockstamp)?
+                durs_bc_db_reader::blocks::get_fork_block(db, *branch_head_blockstamp)?
                     .unwrap_or_else(|| {
                         panic!(
                         "Db corrupted: fork block {} referenced in fork tree but not exist in db.",
@@ -183,8 +182,7 @@ mod tests {
         assert_eq!(
             None,
             db.read(|r| fork_resolution_algo(
-                &db,
-                r,
+                &BcDbRwWithReader { db, r },
                 &fork_tree,
                 fork_window_size,
                 current_blockstamp,
@@ -228,8 +226,7 @@ mod tests {
                 determining_blockstamp,
             ]),
             db.read(|r| fork_resolution_algo(
-                &db,
-                r,
+                &BcDbRwWithReader { db, r },
                 &mut fork_tree,
                 fork_window_size,
                 current_blockstamp,
@@ -261,8 +258,7 @@ mod tests {
         assert_eq!(
             Some(new_main_blocks.iter().map(|b| b.blockstamp()).collect()),
             db.read(|r| fork_resolution_algo(
-                &db,
-                r,
+                &BcDbRwWithReader { db, r },
                 &mut fork_tree,
                 fork_window_size,
                 current_blockstamp,
