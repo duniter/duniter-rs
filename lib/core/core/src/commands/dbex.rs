@@ -19,7 +19,7 @@ use crate::commands::DursExecutableCoreCommand;
 use crate::dbex;
 use crate::errors::DursCoreError;
 use crate::DursCore;
-use durs_blockchain::dbex::{DbExBcQuery, DbExQuery, DbExTxQuery, DbExWotQuery};
+use durs_bc::dbex::{DbExBcQuery, DbExQuery, DbExTxQuery, DbExWotQuery};
 use durs_conf::DuRsConf;
 
 #[derive(StructOpt, Debug, Clone)]

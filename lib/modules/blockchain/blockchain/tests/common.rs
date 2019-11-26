@@ -15,8 +15,8 @@
 
 use dubp_currency_params::genesis_block_params::v10::BlockV10Parameters;
 use dubp_currency_params::{CurrencyName, CurrencyParameters};
+use durs_bc::BlockchainModule;
 use durs_bc_db_writer::WotsV10DBs;
-use durs_blockchain::BlockchainModule;
 use durs_message::DursMsg;
 use durs_module::RouterThreadMessage;
 use std::path::{Path, PathBuf};

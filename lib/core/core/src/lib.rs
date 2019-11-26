@@ -42,7 +42,7 @@ mod router;
 use crate::commands::*;
 use crate::errors::DursCoreError;
 use dubp_currency_params::CurrencyName;
-use durs_blockchain::{dbex::DbExQuery, BlockchainModule};
+use durs_bc::{dbex::DbExQuery, BlockchainModule};
 use durs_common_tools::fatal_error;
 pub use durs_conf::{
     constants::KEYPAIRS_FILENAME, keys::*, ChangeGlobalConf, DuRsConf, DuniterKeyPairs,

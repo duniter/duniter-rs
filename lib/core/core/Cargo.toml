@@ -13,7 +13,7 @@ path = "src/lib.rs"
 chrono = "0.4"
 clear_on_drop = "0.2.3"
 dirs = "1.0.2"
-durs-blockchain = { path = "../../modules/blockchain/blockchain" }
+durs-bc = { path = "../../modules/blockchain/blockchain" }
 durs-common-tools = { path = "../../tools/common-tools" }
 durs-bc-db-reader = { path = "../../modules-lib/bc-db-reader" }
 durs-conf = { path = "../conf" }

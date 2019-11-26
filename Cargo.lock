@@ -861,6 +861,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "durs-bc"
+version = "0.3.0-dev"
+dependencies = [
+ "dirs 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dubp-block-doc 0.1.0",
+ "dubp-blocks-tests-tools 0.1.0",
+ "dubp-common-doc 0.1.0",
+ "dubp-currency-params 0.2.0",
+ "dubp-user-docs 0.14.0",
+ "dubp-user-docs-tests-tools 0.1.0",
+ "dup-crypto 0.7.0",
+ "dup-crypto-tests-tools 0.1.0",
+ "durs-bc-db-reader 0.3.0-dev",
+ "durs-bc-db-writer 0.3.0-dev",
+ "durs-common-tests-tools 0.1.0",
+ "durs-common-tools 0.2.0",
+ "durs-conf 0.3.0-dev",
+ "durs-message 0.3.0-dev",
+ "durs-module 0.3.0-dev",
+ "durs-network 0.3.0-dev",
+ "durs-network-documents 0.4.0",
+ "durs-wot 0.8.0-a0.9",
+ "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "json-pest-parser 0.2.0",
+ "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "maplit 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mockall 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num_cpus 1.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pbr 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pretty_assertions 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rayon 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rules-engine 0.1.0",
+ "serde 1.0.103 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.42 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tempfile 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "threadpool 1.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unwrap 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "durs-bc-db-reader"
 version = "0.3.0-dev"
 dependencies = [
@@ -917,46 +957,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "durs-blockchain"
-version = "0.3.0-dev"
-dependencies = [
- "dirs 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "dubp-block-doc 0.1.0",
- "dubp-blocks-tests-tools 0.1.0",
- "dubp-common-doc 0.1.0",
- "dubp-currency-params 0.2.0",
- "dubp-user-docs 0.14.0",
- "dubp-user-docs-tests-tools 0.1.0",
- "dup-crypto 0.7.0",
- "dup-crypto-tests-tools 0.1.0",
- "durs-bc-db-reader 0.3.0-dev",
- "durs-bc-db-writer 0.3.0-dev",
- "durs-common-tests-tools 0.1.0",
- "durs-common-tools 0.2.0",
- "durs-conf 0.3.0-dev",
- "durs-message 0.3.0-dev",
- "durs-module 0.3.0-dev",
- "durs-network 0.3.0-dev",
- "durs-network-documents 0.4.0",
- "durs-wot 0.8.0-a0.9",
- "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "json-pest-parser 0.2.0",
- "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "maplit 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "mockall 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "num_cpus 1.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "pbr 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "pretty_assertions 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "rayon 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "rules-engine 0.1.0",
- "serde 1.0.103 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.42 (registry+https://github.com/rust-lang/crates.io-index)",
- "tempfile 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "threadpool 1.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "unwrap 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "durs-common-tests-tools"
 version = "0.1.0"
 dependencies = [
@@ -999,8 +999,8 @@ dependencies = [
  "dirs 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "dubp-currency-params 0.2.0",
  "dup-crypto 0.7.0",
+ "durs-bc 0.3.0-dev",
  "durs-bc-db-reader 0.3.0-dev",
- "durs-blockchain 0.3.0-dev",
  "durs-common-tools 0.2.0",
  "durs-conf 0.3.0-dev",
  "durs-dbs-tools 0.1.0-a",

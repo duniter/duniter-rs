@@ -18,7 +18,7 @@ mod common;
 use crate::common::*;
 use dubp_block_doc::BlockDocument;
 use dubp_currency_params::genesis_block_params::v10::BlockV10Parameters;
-use durs_blockchain::BlockchainModule;
+use durs_bc::BlockchainModule;
 use durs_message::events::{BlockchainEvent, DursEvent};
 use durs_message::requests::DursReqContent;
 use durs_message::DursMsg;

@@ -20,7 +20,7 @@ use dubp_block_doc::{block::BlockDocumentTrait, BlockDocument};
 use dubp_common_doc::BlockNumber;
 use dubp_currency_params::genesis_block_params::v10::BlockV10Parameters;
 use dup_crypto::keys::{KeyPair, Signator, SignatorEnum};
-use durs_blockchain::BlockchainModule;
+use durs_bc::BlockchainModule;
 use durs_message::events::{BlockchainEvent, DursEvent};
 use durs_message::requests::DursReqContent;
 use durs_message::DursMsg;
