@@ -57,6 +57,9 @@ pub enum BaseConvertionError {
         /// Offset (=position)
         offset: usize,
     },
+    /// Unknown error
+    #[fail(display = "Unknown error.")]
+    UnknownError,
 }
 
 impl From<base64::DecodeError> for BaseConvertionError {

@@ -13,8 +13,8 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-base58 = "0.1.*"
 base64 = "0.10.*"
+bs58 = "0.3.0"
 byteorder = "1.2.3"
 chacha20-poly1305-aead = "0.1.2"
 clear_on_drop = "0.2.3"

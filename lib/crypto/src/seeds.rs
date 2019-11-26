@@ -15,8 +15,8 @@
 
 //! Provide wrappers around cryptographic seeds
 
+use crate::bases::b58::{bytes_to_str_base58, ToBase58};
 use crate::bases::*;
-use base58::ToBase58;
 use clear_on_drop::clear::Clear;
 use durs_common_tools::fatal_error;
 use log::error;
@@ -77,7 +77,7 @@ impl AsRef<[u8]> for Seed32 {
 
 impl ToBase58 for Seed32 {
     fn to_base58(&self) -> String {
-        self.0.to_base58()
+        bytes_to_str_base58(&self.0[..])
     }
 }
 

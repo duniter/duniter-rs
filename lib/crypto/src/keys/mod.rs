@@ -54,8 +54,8 @@ pub mod text_signable;
 
 pub use crate::seeds::Seed32;
 
+use crate::bases::b58::ToBase58;
 use crate::bases::BaseConvertionError;
-use base58::ToBase58;
 use durs_common_tools::fatal_error;
 use failure::Fail;
 use std::fmt::Debug;

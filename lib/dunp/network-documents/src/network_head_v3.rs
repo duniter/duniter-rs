@@ -17,11 +17,11 @@
 
 use crate::network_head::NetworkHead;
 use crate::*;
-use base58::ToBase58;
 use dubp_common_doc::blockstamp::Blockstamp;
 use dubp_common_doc::traits::ToStringObject;
 use dubp_common_doc::{BlockHash, BlockNumber};
 use dubp_currency_params::CurrencyName;
+use dup_crypto::bases::b58::ToBase58;
 use dup_crypto::keys::text_signable::TextSignable;
 use dup_crypto::keys::*;
 use pest::iterators::Pair;

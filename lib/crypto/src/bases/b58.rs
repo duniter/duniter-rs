@@ -15,14 +15,17 @@
 
 //! Provide base58 convertion tools
 
-pub use base58::ToBase58;
-
 use crate::bases::BaseConvertionError;
-use base58::{FromBase58, FromBase58Error};
+
+/// Convert to base58 string
+pub trait ToBase58 {
+    /// Convert to base58 string
+    fn to_base58(&self) -> String;
+}
 
 /// Create an array of 32 bytes from a Base58 string.
 pub fn str_base58_to_32bytes(base58_data: &str) -> Result<[u8; 32], BaseConvertionError> {
-    match base58_data.from_base58() {
+    match bs58::decode(base58_data).into_vec() {
         Ok(result) => {
             if result.len() == 32 {
                 let mut u8_array = [0; 32];
@@ -37,13 +40,22 @@ pub fn str_base58_to_32bytes(base58_data: &str) -> Result<[u8; 32], BaseConverti
                 })
             }
         }
-        Err(FromBase58Error::InvalidBase58Character(character, offset)) => {
-            Err(BaseConvertionError::InvalidCharacter { character, offset })
+        Err(bs58::decode::Error::InvalidCharacter { character, index }) => {
+            Err(BaseConvertionError::InvalidCharacter {
+                character,
+                offset: index,
+            })
         }
-        Err(FromBase58Error::InvalidBase58Length) => {
+        Err(bs58::decode::Error::BufferTooSmall) => {
             Err(BaseConvertionError::InvalidBaseConverterLength)
         }
+        _ => Err(BaseConvertionError::UnknownError),
     }
+}
+
+/// Create a Base58 string from a slice of bytes.
+pub fn bytes_to_str_base58(bytes: &[u8]) -> String {
+    bs58::encode(bytes).into_string()
 }
 
 /*/// Create an array of 64bytes from a Base58 string.

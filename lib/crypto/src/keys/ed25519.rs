@@ -20,9 +20,9 @@
 //! [`KeyPairGenerator`]: struct.KeyPairGenerator.html
 
 use super::PublicKey as PublicKeyMethods;
+use crate::bases::b58::{bytes_to_str_base58, ToBase58};
 use crate::bases::*;
 use crate::seeds::Seed32;
-use base58::ToBase58;
 use base64;
 use clear_on_drop::clear::Clear;
 use ring::signature::{Ed25519KeyPair as RingKeyPair, KeyPair, UnparsedPublicKey, ED25519};
@@ -148,13 +148,13 @@ pub struct PublicKey(pub [u8; 32]);
 
 impl ToBase58 for PublicKey {
     fn to_base58(&self) -> String {
-        self.0.to_base58()
+        bytes_to_str_base58(&self.0[..])
     }
 }
 
 impl Display for PublicKey {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}", self.to_base58())
+        write!(f, "{}", bytes_to_str_base58(&self.0[..]))
     }
 }
 
@@ -369,7 +369,6 @@ mod tests {
     use super::*;
     use crate::keys::{KeyPair, Sig, Signator, Signature};
     use crate::seeds::Seed32;
-    use base58::FromBase58;
     use bincode;
     use std::collections::hash_map::DefaultHasher;
 
@@ -430,7 +429,10 @@ mod tests {
                  "
             )
             .unwrap_err(),
-            BaseConvertionError::InvalidBaseConverterLength
+            BaseConvertionError::InvalidLength {
+                expected: 32,
+                found: 161
+            }
         );
     }
 
@@ -441,8 +443,8 @@ mod tests {
 
         // Test base58 encoding/decoding (loop for every bytes)
         assert_eq!(public_key.to_base58(), public58);
-        let public_raw = public58.from_base58().unwrap();
-        assert_eq!(public_raw, public_key.to_bytes_vector());
+        let public_raw = b58::str_base58_to_32bytes(public58).unwrap();
+        assert_eq!(public_raw.to_vec(), public_key.to_bytes_vector());
         for (key, raw) in public_key.0.iter().zip(public_raw.iter()) {
             assert_eq!(key, raw);
         }
@@ -488,7 +490,10 @@ mod tests {
                  "
             )
             .unwrap_err(),
-            BaseConvertionError::InvalidBaseConverterLength
+            BaseConvertionError::InvalidLength {
+                expected: 32,
+                found: 161
+            }
         );
     }
 
