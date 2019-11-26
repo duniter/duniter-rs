@@ -21,6 +21,7 @@ mod queries;
 
 use self::entities::block::Block;
 use self::entities::blocks_page::BlocksPage;
+use self::entities::current_ud::CurrentUd;
 use self::entities::node::{Node, Summary};
 use crate::context::QueryContext;
 #[cfg(not(test))]
@@ -115,6 +116,21 @@ impl QueryFields for Query {
                     sort_order,
                 )
                 .map_err(Into::into)
+            }
+        }
+    }
+    #[inline]
+    fn field_current_ud(
+        &self,
+        executor: &Executor<'_, QueryContext>,
+        trail: &QueryTrail<'_, CurrentUd, Walked>,
+    ) -> FieldResult<Option<CurrentUd>> {
+        let db = executor.context().get_db();
+        cfg_if::cfg_if! {
+            if #[cfg(not(test))] {
+                db.read(|r| queries::current_ud::execute(&BcDbRoWithReader { db, r }, trail)).map_err(Into::into)
+            } else {
+                queries::current_ud::execute(db, trail).map_err(Into::into)
             }
         }
     }

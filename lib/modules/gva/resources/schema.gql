@@ -15,6 +15,7 @@ type Query {
     step: Int = 1,
     sortOrder: SortOrder = ASC
   ): BlocksPage! @juniper(ownership: "owned")
+  currentUd: CurrentUd @juniper(ownership: "owned")
 }
 
 type Mutation {
@@ -93,3 +94,16 @@ type Block {
 #################################
 
 scalar DateTimeUtc @juniper(with_time_zone: false)
+
+#################################
+# CurrentUd types
+#################################
+
+type CurrentUd {
+  amount: Int!
+  base: Int!
+  blockNumber: Int!
+  commonTime: DateTimeUtc!
+  membersCount: Int!
+  monetaryMass: Int!
+}
