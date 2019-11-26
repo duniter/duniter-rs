@@ -17,7 +17,7 @@
 
 use dubp_block_doc::BlockDocument;
 use durs_bc_db_reader::blocks::fork_tree::ForkTree;
-use durs_bc_db_reader::blocks::DbBlock;
+use durs_bc_db_reader::blocks::BlockDb;
 use durs_bc_db_writer::blocks::{insert_new_fork_block, insert_new_head_block};
 use durs_bc_db_writer::current_meta_datas::update_current_meta_datas;
 use durs_bc_db_writer::{Db, DbError};
@@ -37,7 +37,7 @@ pub fn insert_main_block(
             &db_tmp,
             &mut w,
             fork_tree,
-            DbBlock {
+            BlockDb {
                 block,
                 expire_certs: None,
             },
@@ -58,7 +58,7 @@ pub fn insert_fork_block(
             db_tmp,
             &mut w,
             fork_tree,
-            DbBlock {
+            BlockDb {
                 block,
                 expire_certs: None,
             },

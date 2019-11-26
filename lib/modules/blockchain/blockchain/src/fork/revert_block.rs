@@ -20,7 +20,7 @@ use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use dubp_user_docs::documents::transaction::{TxAmount, TxBase};
 use dup_crypto::keys::*;
-use durs_bc_db_reader::blocks::DbBlock;
+use durs_bc_db_reader::blocks::BlockDb;
 use durs_bc_db_reader::indexes::sources::SourceAmount;
 use durs_bc_db_writer::writers::requests::*;
 use durs_bc_db_writer::{BinFreeStructDb, DbError};
@@ -54,7 +54,7 @@ impl From<DbError> for RevertValidBlockError {
 }
 
 pub fn revert_block<W: WebOfTrust>(
-    dal_block: DbBlock,
+    dal_block: BlockDb,
     wot_index: &mut HashMap<PubKey, WotId>,
     wot_db: &BinFreeStructDb<W>,
 ) -> Result<ValidBlockRevertReqs, RevertValidBlockError> {
@@ -246,7 +246,7 @@ pub fn revert_block_v10<W: WebOfTrust>(
     // Return DBs requests
     Ok(ValidBlockRevertReqs {
         new_current_blockstamp: block.previous_blockstamp(),
-        block_query: BlocksDBsWriteQuery::RevertBlock(DbBlock {
+        block_query: BlocksDBsWriteQuery::RevertBlock(BlockDb {
             block: BlockDocument::V10(block),
             expire_certs: Some(expire_certs),
         }),

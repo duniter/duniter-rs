@@ -21,7 +21,7 @@ use dubp_user_docs::documents::certification::CompactCertificationDocumentV10;
 use dubp_user_docs::documents::identity::IdentityDocumentV10;
 use dup_crypto::keys::PubKey;
 use durs_bc_db_reader::blocks::fork_tree::ForkTree;
-use durs_bc_db_reader::blocks::DbBlock;
+use durs_bc_db_reader::blocks::BlockDb;
 use durs_bc_db_reader::indexes::sources::SourceAmount;
 use durs_wot::WotId;
 use std::ops::Deref;
@@ -41,9 +41,9 @@ pub enum DBsWriteRequest {
 /// Contain a pending write request for blocks databases
 pub enum BlocksDBsWriteQuery {
     /// Write block
-    WriteBlock(DbBlock),
+    WriteBlock(BlockDb),
     /// Revert block
-    RevertBlock(DbBlock),
+    RevertBlock(BlockDb),
 }
 
 impl BlocksDBsWriteQuery {

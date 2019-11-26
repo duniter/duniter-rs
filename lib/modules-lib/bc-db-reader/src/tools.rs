@@ -15,7 +15,7 @@
 
 //! Data calculation tools
 
-use crate::blocks::DbBlock;
+use crate::blocks::BlockDb;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dup_crypto::keys::PubKey;
 use durs_common_tools::fatal_error;
@@ -24,7 +24,7 @@ use std::collections::HashMap;
 
 /// Compute median issuers frame
 pub fn compute_median_issuers_frame<S: std::hash::BuildHasher>(
-    current_block: &DbBlock,
+    current_block: &BlockDb,
     current_frame: &HashMap<PubKey, usize, S>,
 ) -> usize {
     if !current_frame.is_empty() {

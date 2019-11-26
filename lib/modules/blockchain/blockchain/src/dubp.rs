@@ -25,7 +25,7 @@ use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_block_doc::BlockDocument;
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
-use durs_bc_db_reader::blocks::DbBlock;
+use durs_bc_db_reader::blocks::BlockDb;
 use durs_bc_db_reader::DbError;
 use durs_bc_db_writer::{BcDbRwWithWriter, Db, DbWriter};
 use unwrap::unwrap;
@@ -135,7 +135,7 @@ fn treat_unchainable_block(
             block_doc.blockstamp()
         );
 
-        let dal_block = DbBlock {
+        let dal_block = BlockDb {
             block: block_doc.clone(),
             expire_certs: None,
         };

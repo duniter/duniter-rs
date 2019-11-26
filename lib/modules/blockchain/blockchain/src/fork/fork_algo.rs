@@ -101,7 +101,7 @@ mod tests {
     use crate::*;
     use dubp_block_doc::BlockDocument;
     use dubp_common_doc::{BlockHash, BlockNumber};
-    use durs_bc_db_reader::blocks::DbBlock;
+    use durs_bc_db_reader::blocks::BlockDb;
 
     #[test]
     fn test_fork_resolution_algo() -> Result<(), DbError> {
@@ -129,7 +129,7 @@ mod tests {
                     &db,
                     &mut w,
                     Some(&mut fork_tree),
-                    DbBlock {
+                    BlockDb {
                         block: block.clone(),
                         expire_certs: None,
                     },
@@ -201,7 +201,7 @@ mod tests {
                     &db,
                     &mut w,
                     &mut fork_tree,
-                    DbBlock {
+                    BlockDb {
                         block: BlockDocument::V10(
                             dubp_blocks_tests_tools::mocks::gen_empty_timed_block_v10(
                                 determining_blockstamp,
@@ -282,7 +282,7 @@ mod tests {
                         db,
                         &mut w,
                         fork_tree,
-                        DbBlock {
+                        BlockDb {
                             block: block.clone(),
                             expire_certs: None,
                         },

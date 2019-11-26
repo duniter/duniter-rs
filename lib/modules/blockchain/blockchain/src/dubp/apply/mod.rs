@@ -20,7 +20,7 @@ use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
 use dubp_user_docs::documents::transaction::{TxAmount, TxBase};
 use dup_crypto::keys::*;
-use durs_bc_db_reader::blocks::DbBlock;
+use durs_bc_db_reader::blocks::BlockDb;
 use durs_bc_db_reader::indexes::sources::get_block_consumed_sources_;
 use durs_bc_db_reader::indexes::sources::SourceAmount;
 use durs_bc_db_writer::writers::requests::*;
@@ -281,8 +281,8 @@ pub fn apply_valid_block_v10<W: WebOfTrust>(
             },
         );
     }*/
-    // Create DbBlock
-    let block_db = DbBlock {
+    // Create BlockDb
+    let block_db = BlockDb {
         block: BlockDocument::V10(block),
         expire_certs: Some(expire_certs.clone()),
     };

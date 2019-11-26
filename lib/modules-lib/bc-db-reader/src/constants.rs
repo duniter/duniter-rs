@@ -25,10 +25,10 @@ pub static DEFAULT_PAGE_SIZE: &usize = &50;
 /// Current meta datas (CurrentMetaDataKey, ?)
 pub static CURRENT_METAS_DATAS: &str = "cmd";
 
-/// Fork blocks referenced in tree or in orphan blockstamps (Blockstamp, DbBlock)
+/// Fork blocks referenced in tree or in orphan blockstamps (Blockstamp, BlockDb)
 pub static FORK_BLOCKS: &str = "fb";
 
-/// Blocks in main branch (BlockNumber, DbBlock)
+/// Blocks in main branch (BlockNumber, BlockDb)
 pub static MAIN_BLOCKS: &str = "bc";
 
 /// Blockstamp orphaned (no parent block) indexed by their previous blockstamp (PreviousBlockstamp, Vec<Blockstamp>)
@@ -37,7 +37,7 @@ pub static ORPHAN_BLOCKSTAMP: &str = "ob";
 /// Wot id index (PubKey, WotId)
 pub static WOT_ID_INDEX: &str = "wii";
 
-/// Identities (WotId, DbIdentity)
+/// Identities (WotId, IdentityDb)
 pub static IDENTITIES: &str = "idty";
 
 /// Memberships sorted by created block (BlockNumber, Vec<WotId>)

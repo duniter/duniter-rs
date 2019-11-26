@@ -21,7 +21,7 @@ mod br_g100;
 
 use dubp_block_doc::BlockDocument;
 //use dup_crypto::keys::PubKey;
-use durs_bc_db_reader::indexes::identities::DbIdentityState;
+use durs_bc_db_reader::indexes::identities::IdentityStateDb;
 use durs_bc_db_reader::{BcDbInReadTx, DbError};
 //use durs_wot::*;
 use failure::Fail;
@@ -52,7 +52,7 @@ pub enum InvalidRuleError {
     #[fail(display = "BR_G100: issuer is not a member (not exist)")]
     IssuerNotExist,
     #[fail(display = "BR_G100: issuer is not a member (issuer_state={:?})", _0)]
-    NotMemberIssuer(DbIdentityState),
+    NotMemberIssuer(IdentityStateDb),
     #[fail(display = "BR_G04: wrong issuers count")]
     _WrongIssuersCount,
     #[fail(display = "BR_G05: wrong issuers frame size")]

@@ -20,7 +20,7 @@ use dubp_common_doc::BlockNumber;
 use dubp_currency_params::CurrencyParameters;
 use dubp_user_docs::documents::certification::CompactCertificationDocumentV10;
 use durs_bc_db_reader::constants::*;
-use durs_bc_db_reader::indexes::identities::DbIdentity;
+use durs_bc_db_reader::indexes::identities::IdentityDb;
 use durs_bc_db_reader::{from_db_value, DbReadable, DbValue};
 use durs_wot::WotId;
 
@@ -78,7 +78,7 @@ pub fn revert_write_cert(
     // Pop last cert_chainable_on
     let identities_store = db.get_int_store(IDENTITIES);
     if let Some(v) = identities_store.get(w.as_ref(), source.0 as u32)? {
-        let mut member_datas = from_db_value::<DbIdentity>(v)?;
+        let mut member_datas = from_db_value::<IdentityDb>(v)?;
         member_datas.cert_chainable_on.pop();
         let bin_member_datas = durs_dbs_tools::to_bytes(&member_datas)?;
         identities_store.put(

@@ -20,7 +20,7 @@ use crate::schema::query_trails::QueryTrailBlockExtensions;
 use chrono::NaiveDateTime;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::traits::Document;
-use durs_bc_db_reader::blocks::DbBlock;
+use durs_bc_db_reader::blocks::BlockDb;
 use durs_bc_db_reader::{BcDbInReadTx, DbError};
 use durs_common_tools::fatal_error;
 use juniper::{Executor, FieldResult};
@@ -45,7 +45,7 @@ impl Block {
     // Convert BlockDb (db entity) into Block (gva entity)
     pub(crate) fn from_block_db<DB: BcDbInReadTx>(
         db: &DB,
-        block_db: DbBlock,
+        block_db: BlockDb,
         ask_issuer_name: bool,
     ) -> Result<Block, DbError> {
         Ok(Block {
@@ -61,7 +61,7 @@ impl Block {
             hash: block_db
                 .block
                 .hash()
-                .unwrap_or_else(|| fatal_error!("DbBlock without hash."))
+                .unwrap_or_else(|| fatal_error!("BlockDb without hash."))
                 .to_string(),
             common_time: NaiveDateTime::from_timestamp(block_db.block.common_time() as i64, 0),
             pow_min: block_db.block.pow_min() as i32,

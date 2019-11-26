@@ -31,7 +31,7 @@ use std::collections::HashMap;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// A block as it is saved in a database
-pub struct DbBlock {
+pub struct BlockDb {
     /// Block document
     pub block: BlockDocument,
     /// List of certifications that expire in this block.
@@ -40,7 +40,7 @@ pub struct DbBlock {
     pub expire_certs: Option<HashMap<(WotId, WotId), BlockNumber>>,
 }
 
-impl DbBlock {
+impl BlockDb {
     /// Get blockstamp
     pub fn blockstamp(&self) -> Blockstamp {
         self.block.blockstamp()
@@ -88,7 +88,7 @@ pub fn already_have_block<DB: BcDbInReadTx>(
         .get_int_store(MAIN_BLOCKS)
         .get(db.r(), blockstamp.id.0)?
     {
-        if from_db_value::<DbBlock>(v)?.block.blockstamp() == blockstamp {
+        if from_db_value::<BlockDb>(v)?.block.blockstamp() == blockstamp {
             Ok(true)
         } else {
             Ok(false)
@@ -102,7 +102,7 @@ pub fn already_have_block<DB: BcDbInReadTx>(
 pub fn get_block<DB: BcDbInReadTx>(
     db: &DB,
     blockstamp: Blockstamp,
-) -> Result<Option<DbBlock>, DbError> {
+) -> Result<Option<BlockDb>, DbError> {
     let opt_dal_block = get_db_block_in_local_blockchain(db, blockstamp.id)?;
     if opt_dal_block.is_none() {
         get_fork_block(db, blockstamp)
@@ -115,7 +115,7 @@ pub fn get_block<DB: BcDbInReadTx>(
 pub fn get_fork_block<DB: BcDbInReadTx>(
     db: &DB,
     blockstamp: Blockstamp,
-) -> Result<Option<DbBlock>, DbError> {
+) -> Result<Option<BlockDb>, DbError> {
     let blockstamp_bytes: Vec<u8> = blockstamp.into();
     if let Some(v) = db
         .db()
@@ -155,7 +155,7 @@ pub fn get_block_in_local_blockchain<DB: BcDbInReadTx>(
 pub fn get_db_block_in_local_blockchain<DB: BcDbInReadTx>(
     db: &DB,
     block_number: BlockNumber,
-) -> Result<Option<DbBlock>, DbError> {
+) -> Result<Option<BlockDb>, DbError> {
     if let Some(v) = db
         .db()
         .get_int_store(MAIN_BLOCKS)
@@ -178,7 +178,7 @@ pub fn get_blocks_in_local_blockchain<DB: BcDbInReadTx>(
     let mut current_block_number = first_block_number;
 
     while let Some(v) = bc_store.get(db.r(), current_block_number.0)? {
-        blocks.push(from_db_value::<DbBlock>(v)?.block);
+        blocks.push(from_db_value::<BlockDb>(v)?.block);
         count -= 1;
         if count > 0 {
             current_block_number = BlockNumber(current_block_number.0 + 1);
@@ -194,7 +194,7 @@ pub fn get_blocks_in_local_blockchain<DB: BcDbInReadTx>(
 pub fn get_blocks_in_local_blockchain_by_numbers<DB: BcDbInReadTx>(
     db: &DB,
     numbers: Vec<BlockNumber>,
-) -> Result<Vec<DbBlock>, DbError> {
+) -> Result<Vec<BlockDb>, DbError> {
     numbers
         .into_iter()
         .filter_map(|n| match get_db_block_in_local_blockchain(db, n) {
@@ -202,7 +202,7 @@ pub fn get_blocks_in_local_blockchain_by_numbers<DB: BcDbInReadTx>(
             Ok(None) => None,
             Err(e) => Some(Err(e)),
         })
-        .collect::<Result<Vec<DbBlock>, DbError>>()
+        .collect::<Result<Vec<BlockDb>, DbError>>()
 }
 
 /// Get current frame of calculating members
@@ -237,7 +237,7 @@ pub fn get_current_frame<DB: BcDbInReadTx>(
 pub fn get_stackables_blocks<DB: BcDbInReadTx>(
     db: &DB,
     current_blockstamp: Blockstamp,
-) -> Result<Vec<DbBlock>, DbError> {
+) -> Result<Vec<BlockDb>, DbError> {
     get_orphan_blocks(db, current_blockstamp)
 }
 
@@ -245,7 +245,7 @@ pub fn get_stackables_blocks<DB: BcDbInReadTx>(
 pub fn get_orphan_blocks<DB: BcDbInReadTx>(
     db: &DB,
     blockstamp: PreviousBlockstamp,
-) -> Result<Vec<DbBlock>, DbError> {
+) -> Result<Vec<BlockDb>, DbError> {
     let blockstamp_bytes: Vec<u8> = blockstamp.into();
     if let Some(v) = db
         .db()
@@ -261,7 +261,7 @@ pub fn get_orphan_blocks<DB: BcDbInReadTx>(
                 .get_store(FORK_BLOCKS)
                 .get(db.r(), &orphan_blockstamp_bytes)?
             {
-                orphan_blocks.push(from_db_value::<DbBlock>(v)?);
+                orphan_blocks.push(from_db_value::<BlockDb>(v)?);
             } else {
                 return Err(DbError::DBCorrupted);
             }

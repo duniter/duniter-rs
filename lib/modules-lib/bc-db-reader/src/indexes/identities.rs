@@ -57,7 +57,7 @@ impl IdentitiesFilter {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]
 /// Identity state
-pub enum DbIdentityState {
+pub enum IdentityStateDb {
     /// Member
     Member(Vec<usize>),
     /// Expire Member
@@ -72,11 +72,11 @@ pub enum DbIdentityState {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]
 /// Identity in database
-pub struct DbIdentity {
+pub struct IdentityDb {
     /// Identity hash
     pub hash: String,
     /// Identity state
-    pub state: DbIdentityState,
+    pub state: IdentityStateDb,
     /// Blockstamp the identity was written
     pub joined_on: Blockstamp,
     /// Blockstamp the identity was expired
@@ -100,7 +100,7 @@ pub fn get_identities<DB: BcDbInReadTx>(
     db: &DB,
     filters: IdentitiesFilter,
     current_block_id: BlockNumber,
-) -> Result<Vec<DbIdentity>, DbError> {
+) -> Result<Vec<IdentityDb>, DbError> {
     if let Some(pubkey) = filters.by_pubkey {
         if let Some(idty) = get_identity_by_pubkey(db, &pubkey)? {
             Ok(vec![idty])
@@ -108,7 +108,7 @@ pub fn get_identities<DB: BcDbInReadTx>(
             Ok(vec![])
         }
     } else {
-        let mut identities: Vec<DbIdentity> = Vec::new();
+        let mut identities: Vec<IdentityDb> = Vec::new();
         let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db)?;
         for wot_id in 0..=greatest_wot_id.0 {
             if let Some(db_idty) = get_identity_by_wot_id(db, WotId(wot_id))? {
@@ -139,7 +139,7 @@ pub fn get_identities<DB: BcDbInReadTx>(
 pub fn get_identity_by_pubkey<DB: BcDbInReadTx>(
     db: &DB,
     pubkey: &PubKey,
-) -> Result<Option<DbIdentity>, DbError> {
+) -> Result<Option<IdentityDb>, DbError> {
     if let Some(wot_id) = get_wot_id(db, pubkey)? {
         get_identity_by_wot_id(db, wot_id)
     } else {
@@ -152,7 +152,7 @@ pub fn get_identity_by_pubkey<DB: BcDbInReadTx>(
 pub fn get_identity_by_wot_id<DB: BcDbInReadTx>(
     db: &DB,
     wot_id: WotId,
-) -> Result<Option<DbIdentity>, DbError> {
+) -> Result<Option<IdentityDb>, DbError> {
     if let Some(v) = db
         .db()
         .get_int_store(IDENTITIES)
@@ -169,7 +169,7 @@ pub fn get_identity_by_wot_id<DB: BcDbInReadTx>(
 pub fn get_idty_state_by_pubkey<DB: BcDbInReadTx>(
     db: &DB,
     pubkey: &PubKey,
-) -> Result<Option<DbIdentityState>, DbError> {
+) -> Result<Option<IdentityStateDb>, DbError> {
     Ok(get_identity_by_pubkey(db, pubkey)?.map(|db_idty| db_idty.state))
 }
 
@@ -246,10 +246,10 @@ mod test {
     use durs_common_tests_tools::collections::slice_same_elems;
     use durs_dbs_tools::kv_db::KvFileDbHandler;
 
-    fn gen_mock_dal_idty(pubkey: PubKey, created_block_id: BlockNumber) -> DbIdentity {
-        DbIdentity {
+    fn gen_mock_dal_idty(pubkey: PubKey, created_block_id: BlockNumber) -> IdentityDb {
+        IdentityDb {
             hash: "".to_owned(),
-            state: DbIdentityState::Member(vec![]),
+            state: IdentityStateDb::Member(vec![]),
             joined_on: Blockstamp::default(),
             expired_on: None,
             revoked_on: None,

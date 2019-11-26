@@ -21,7 +21,7 @@ use crate::*;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_common_doc::traits::Document;
 use durs_bc_db_reader::blocks::fork_tree::ForkTree;
-use durs_bc_db_reader::blocks::DbBlock;
+use durs_bc_db_reader::blocks::BlockDb;
 use durs_bc_db_reader::constants::*;
 use durs_bc_db_reader::{from_db_value, DbValue};
 use unwrap::unwrap;
@@ -32,7 +32,7 @@ pub fn insert_new_head_block(
     db: &Db,
     w: &mut DbWriter,
     fork_tree: Option<&mut ForkTree>,
-    dal_block: DbBlock,
+    dal_block: BlockDb,
 ) -> Result<(), DbError> {
     // Serialize datas
     let bin_dal_block = durs_dbs_tools::to_bytes(&dal_block)?;
@@ -84,7 +84,7 @@ pub fn insert_new_fork_block(
     db: &Db,
     w: &mut DbWriter,
     fork_tree: &mut ForkTree,
-    dal_block: DbBlock,
+    dal_block: BlockDb,
 ) -> Result<bool, DbError> {
     let bin_dal_block = durs_dbs_tools::to_bytes(&dal_block)?;
     let blockstamp_bytes: Vec<u8> = dal_block.blockstamp().into();

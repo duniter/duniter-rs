@@ -16,8 +16,8 @@
 //! BlockChain Datas Access Layer in Read-Only mode.
 // ! Define read only trait
 
-use crate::blocks::DbBlock;
-use crate::indexes::identities::{DbIdentity, DbIdentityState};
+use crate::blocks::BlockDb;
+use crate::indexes::identities::{IdentityDb, IdentityStateDb};
 use crate::{BcDbWithReaderStruct, DbReadable, DbReader};
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use dup_crypto::keys::PubKey;
@@ -73,20 +73,20 @@ impl<'a> BcDbWithReader for MockBcDbInReadTx {
 #[cfg_attr(feature = "mock", automock)]
 pub trait BcDbInReadTx: BcDbWithReader {
     fn get_current_blockstamp(&self) -> Result<Option<Blockstamp>, DbError>;
-    fn get_current_block(&self) -> Result<Option<DbBlock>, DbError>;
+    fn get_current_block(&self) -> Result<Option<BlockDb>, DbError>;
     fn get_db_block_in_local_blockchain(
         &self,
         block_number: BlockNumber,
-    ) -> Result<Option<DbBlock>, DbError>;
+    ) -> Result<Option<BlockDb>, DbError>;
     #[cfg(feature = "client-indexer")]
     fn get_db_blocks_in_local_blockchain(
         &self,
         numbers: Vec<BlockNumber>,
-    ) -> Result<Vec<DbBlock>, DbError>;
+    ) -> Result<Vec<BlockDb>, DbError>;
     fn get_uid_from_pubkey(&self, pubkey: &PubKey) -> Result<Option<String>, DbError>;
     fn get_idty_state_by_pubkey(&self, pubkey: &PubKey)
-        -> Result<Option<DbIdentityState>, DbError>;
-    fn get_identity_by_pubkey(&self, pubkey: &PubKey) -> Result<Option<DbIdentity>, DbError>;
+        -> Result<Option<IdentityStateDb>, DbError>;
+    fn get_identity_by_pubkey(&self, pubkey: &PubKey) -> Result<Option<IdentityDb>, DbError>;
 }
 
 impl<T> BcDbInReadTx for T
@@ -98,7 +98,7 @@ where
         crate::current_meta_datas::get_current_blockstamp(self)
     }
     #[inline]
-    fn get_current_block(&self) -> Result<Option<DbBlock>, DbError> {
+    fn get_current_block(&self) -> Result<Option<BlockDb>, DbError> {
         if let Some(current_blockstamp) = crate::current_meta_datas::get_current_blockstamp(self)? {
             crate::blocks::get_db_block_in_local_blockchain(self, current_blockstamp.id)
         } else {
@@ -109,7 +109,7 @@ where
     fn get_db_block_in_local_blockchain(
         &self,
         block_number: BlockNumber,
-    ) -> Result<Option<DbBlock>, DbError> {
+    ) -> Result<Option<BlockDb>, DbError> {
         crate::blocks::get_db_block_in_local_blockchain(self, block_number)
     }
     #[cfg(feature = "client-indexer")]
@@ -117,7 +117,7 @@ where
     fn get_db_blocks_in_local_blockchain(
         &self,
         numbers: Vec<BlockNumber>,
-    ) -> Result<Vec<DbBlock>, DbError> {
+    ) -> Result<Vec<BlockDb>, DbError> {
         crate::blocks::get_blocks_in_local_blockchain_by_numbers(self, numbers)
     }
     #[inline]
@@ -128,11 +128,11 @@ where
     fn get_idty_state_by_pubkey(
         &self,
         pubkey: &PubKey,
-    ) -> Result<Option<DbIdentityState>, DbError> {
+    ) -> Result<Option<IdentityStateDb>, DbError> {
         crate::indexes::identities::get_idty_state_by_pubkey(self, pubkey)
     }
     #[inline]
-    fn get_identity_by_pubkey(&self, pubkey: &PubKey) -> Result<Option<DbIdentity>, DbError> {
+    fn get_identity_by_pubkey(&self, pubkey: &PubKey) -> Result<Option<IdentityDb>, DbError> {
         crate::indexes::identities::get_identity_by_pubkey(self, pubkey)
     }
 }

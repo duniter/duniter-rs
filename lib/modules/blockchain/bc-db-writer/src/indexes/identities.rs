@@ -25,7 +25,7 @@ use dup_crypto::keys::PublicKey;
 use durs_bc_db_reader::constants::*;
 use durs_bc_db_reader::current_meta_datas::CurrentMetaDataKey;
 use durs_bc_db_reader::indexes::identities::get_wot_id;
-use durs_bc_db_reader::indexes::identities::{DbIdentity, DbIdentityState};
+use durs_bc_db_reader::indexes::identities::{IdentityDb, IdentityStateDb};
 use durs_bc_db_reader::{DbReadable, DbValue};
 use durs_common_tools::fatal_error;
 use durs_wot::WotId;
@@ -86,9 +86,9 @@ pub fn create_identity(
 ) -> Result<(), DbError> {
     let mut idty_doc = idty_doc.clone();
     idty_doc.reduce();
-    let idty = DbIdentity {
+    let idty = IdentityDb {
         hash: "0".to_string(),
-        state: DbIdentityState::Member(vec![0]),
+        state: IdentityStateDb::Member(vec![0]),
         joined_on: current_blockstamp,
         expired_on: None,
         revoked_on: None,
@@ -131,15 +131,15 @@ pub fn exclude_identity(
     .expect("Try to exclude unexist idty.");
     idty_datas.state = if revert {
         match idty_datas.state {
-            DbIdentityState::ExpireMember(renewed_counts) => {
-                DbIdentityState::Member(renewed_counts)
+            IdentityStateDb::ExpireMember(renewed_counts) => {
+                IdentityStateDb::Member(renewed_counts)
             }
             _ => fatal_error!("Try to revert exclusion for a no excluded identity !"),
         }
     } else {
         match idty_datas.state {
-            DbIdentityState::Member(renewed_counts) => {
-                DbIdentityState::ExpireMember(renewed_counts)
+            IdentityStateDb::Member(renewed_counts) => {
+                IdentityStateDb::ExpireMember(renewed_counts)
             }
             _ => fatal_error!("Try to exclude for an already excluded/revoked identity !"),
         }
@@ -177,25 +177,25 @@ pub fn revoke_identity(
 
     member_datas.state = if revert {
         match member_datas.state {
-            DbIdentityState::ExplicitRevoked(renewed_counts) => {
-                DbIdentityState::Member(renewed_counts)
+            IdentityStateDb::ExplicitRevoked(renewed_counts) => {
+                IdentityStateDb::Member(renewed_counts)
             }
-            DbIdentityState::ExplicitExpireRevoked(renewed_counts)
-            | DbIdentityState::ImplicitRevoked(renewed_counts) => {
-                DbIdentityState::ExpireMember(renewed_counts)
+            IdentityStateDb::ExplicitExpireRevoked(renewed_counts)
+            | IdentityStateDb::ImplicitRevoked(renewed_counts) => {
+                IdentityStateDb::ExpireMember(renewed_counts)
             }
             _ => fatal_error!("Try to revert revoke_identity() for a no revoked idty !"),
         }
     } else {
         match member_datas.state {
-            DbIdentityState::ExpireMember(renewed_counts) => {
-                DbIdentityState::ExplicitExpireRevoked(renewed_counts)
+            IdentityStateDb::ExpireMember(renewed_counts) => {
+                IdentityStateDb::ExplicitExpireRevoked(renewed_counts)
             }
-            DbIdentityState::Member(renewed_counts) => {
+            IdentityStateDb::Member(renewed_counts) => {
                 if explicit {
-                    DbIdentityState::ExplicitRevoked(renewed_counts)
+                    IdentityStateDb::ExplicitRevoked(renewed_counts)
                 } else {
-                    DbIdentityState::ImplicitRevoked(renewed_counts)
+                    IdentityStateDb::ImplicitRevoked(renewed_counts)
                 }
             }
             _ => fatal_error!("Try to revert revoke an already revoked idty !"),
@@ -237,28 +237,28 @@ pub fn renewal_identity(
     // Calculate new state value
     idty_datas.state = if revert {
         match idty_datas.state {
-            DbIdentityState::Member(renewed_counts) => {
+            IdentityStateDb::Member(renewed_counts) => {
                 let mut new_renewed_counts = renewed_counts.clone();
                 new_renewed_counts[renewed_counts.len() - 1] -= 1;
                 if new_renewed_counts[renewed_counts.len() - 1] > 0 {
-                    DbIdentityState::Member(new_renewed_counts)
+                    IdentityStateDb::Member(new_renewed_counts)
                 } else {
-                    DbIdentityState::ExpireMember(new_renewed_counts)
+                    IdentityStateDb::ExpireMember(new_renewed_counts)
                 }
             }
             _ => fatal_error!("Try to revert renewal_identity() for an excluded or revoked idty !"),
         }
     } else {
         match idty_datas.state {
-            DbIdentityState::Member(renewed_counts) => {
+            IdentityStateDb::Member(renewed_counts) => {
                 let mut new_renewed_counts = renewed_counts.clone();
                 new_renewed_counts[renewed_counts.len() - 1] += 1;
-                DbIdentityState::Member(new_renewed_counts)
+                IdentityStateDb::Member(new_renewed_counts)
             }
-            DbIdentityState::ExpireMember(renewed_counts) => {
+            IdentityStateDb::ExpireMember(renewed_counts) => {
                 let mut new_renewed_counts = renewed_counts.clone();
                 new_renewed_counts.push(0);
-                DbIdentityState::Member(new_renewed_counts)
+                IdentityStateDb::Member(new_renewed_counts)
             }
             _ => fatal_error!("Try to renewed a revoked identity !"),
         }

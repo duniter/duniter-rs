@@ -17,7 +17,7 @@
 
 use super::{InvalidRuleError, RuleDatas, RuleNotSyncDatas};
 use dubp_common_doc::traits::Document;
-use durs_bc_db_reader::indexes::identities::DbIdentityState;
+use durs_bc_db_reader::indexes::identities::IdentityStateDb;
 use durs_bc_db_reader::BcDbInReadTx;
 use rules_engine::rule::{Rule, RuleFn, RuleNumber};
 use rules_engine::ProtocolVersion;
@@ -42,7 +42,7 @@ fn v10<DB: BcDbInReadTx>(
     let RuleNotSyncDatas { ref db } = not_sync_datas;
 
     if let Some(idty_state) = db.get_idty_state_by_pubkey(&block.issuers()[0])? {
-        if let DbIdentityState::Member(_) = idty_state {
+        if let IdentityStateDb::Member(_) = idty_state {
             Ok(())
         } else {
             Err(InvalidRuleError::NotMemberIssuer(idty_state))
@@ -98,7 +98,7 @@ mod tests {
             .expect_get_idty_state_by_pubkey()
             .times(1)
             .with(eq(pubkey))
-            .returning(|_| Ok(Some(DbIdentityState::Member(vec![1]))));
+            .returning(|_| Ok(Some(IdentityStateDb::Member(vec![1]))));
 
         let mut datas = RuleDatas {
             block: &block,

@@ -21,7 +21,7 @@ use crate::schema::inputs::block_interval::{BlockInterval, FilledBlockInterval};
 use crate::schema::inputs::paging::{FilledPaging, Paging};
 use crate::schema::inputs::sort_order::SortOrder;
 use dubp_common_doc::BlockNumber;
-use durs_bc_db_reader::blocks::DbBlock;
+use durs_bc_db_reader::blocks::BlockDb;
 use durs_bc_db_reader::{BcDbInReadTx, DbError};
 use juniper_from_schema::{QueryTrail, Walked};
 
@@ -76,7 +76,7 @@ pub(crate) fn execute<DB: BcDbInReadTx>(
         .collect();
 
     // Get blocks
-    let blocks: Vec<DbBlock> = db.get_db_blocks_in_local_blockchain(blocks_numbers)?;
+    let blocks: Vec<BlockDb> = db.get_db_blocks_in_local_blockchain(blocks_numbers)?;
 
     // Convert BlockDb (db entity) into Block (gva entity)
     let ask_field_issuer_name = BlocksPage::ask_field_blocks_issuer_name(trail);
@@ -106,7 +106,7 @@ mod tests {
     use dubp_common_doc::{BlockHash, BlockNumber, Blockstamp};
     use dup_crypto::hashs::Hash;
     use dup_crypto_tests_tools::mocks::{hash, pubkey};
-    use durs_bc_db_reader::blocks::DbBlock;
+    use durs_bc_db_reader::blocks::BlockDb;
     use mockall::predicate::eq;
     use serde_json::json;
 
@@ -246,15 +246,15 @@ mod tests {
             .with(eq(vec![BlockNumber(2), BlockNumber(3), BlockNumber(4)]))
             .returning(move |_| {
                 Ok(vec![
-                    DbBlock {
+                    BlockDb {
                         block: BlockDocument::V10(block_2.clone()),
                         expire_certs: None,
                     },
-                    DbBlock {
+                    BlockDb {
                         block: BlockDocument::V10(block_3.clone()),
                         expire_certs: None,
                     },
-                    DbBlock {
+                    BlockDb {
                         block: BlockDocument::V10(current_block.clone()),
                         expire_certs: None,
                     },
@@ -308,11 +308,11 @@ mod tests {
             .with(eq(vec![BlockNumber(0), BlockNumber(2)]))
             .returning(move |_| {
                 Ok(vec![
-                    DbBlock {
+                    BlockDb {
                         block: BlockDocument::V10(block_0.clone()),
                         expire_certs: None,
                     },
-                    DbBlock {
+                    BlockDb {
                         block: BlockDocument::V10(current_block.clone()),
                         expire_certs: None,
                     },
@@ -378,15 +378,15 @@ mod tests {
             .with(eq(vec![BlockNumber(2), BlockNumber(1), BlockNumber(0)]))
             .returning(move |_| {
                 Ok(vec![
-                    DbBlock {
+                    BlockDb {
                         block: BlockDocument::V10(current_block.clone()),
                         expire_certs: None,
                     },
-                    DbBlock {
+                    BlockDb {
                         block: BlockDocument::V10(block_1.clone()),
                         expire_certs: None,
                     },
-                    DbBlock {
+                    BlockDb {
                         block: BlockDocument::V10(block_0.clone()),
                         expire_certs: None,
                     },
@@ -441,15 +441,15 @@ mod tests {
             .with(eq(vec![BlockNumber(0), BlockNumber(1), BlockNumber(2)]))
             .returning(move |_| {
                 Ok(vec![
-                    DbBlock {
+                    BlockDb {
                         block: BlockDocument::V10(block_0.clone()),
                         expire_certs: None,
                     },
-                    DbBlock {
+                    BlockDb {
                         block: BlockDocument::V10(block_1.clone()),
                         expire_certs: None,
                     },
-                    DbBlock {
+                    BlockDb {
                         block: BlockDocument::V10(current_block.clone()),
                         expire_certs: None,
                     },
