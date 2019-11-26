@@ -82,17 +82,27 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                             bc,
                             &BlockchainEvent::StackUpValidBlock(Box::new(new_current_block)),
                         );
+                        Ok(w)
                     }
-                    Ok(re) => warn!(
-                        "fail to stackable_block({}) : {:?}",
-                        stackable_block_number, re
-                    ),
-                    Err(e) => warn!(
-                        "fail to stackable_block({}) : {:?}",
-                        stackable_block_number, e
-                    ),
+                    Ok(re) => {
+                        warn!(
+                            "fail to stackable_block({}) : {:?}",
+                            stackable_block_number, re
+                        );
+                        Err(DbError::WriteAbort {
+                            reason: format!("{:?}", re),
+                        })
+                    }
+                    Err(e) => {
+                        warn!(
+                            "fail to stackable_block({}) : {:?}",
+                            stackable_block_number, e
+                        );
+                        Err(DbError::WriteAbort {
+                            reason: format!("{:?}", e),
+                        })
+                    }
                 }
-                Ok(w)
             });
             bc.db = Some(db);
             match db_write_result {
