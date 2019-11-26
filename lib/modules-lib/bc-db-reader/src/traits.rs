@@ -17,6 +17,7 @@
 // ! Define read only trait
 
 use crate::blocks::BlockDb;
+use crate::current_metadata::current_ud::CurrentUdDb;
 use crate::indexes::identities::{IdentityDb, IdentityStateDb};
 use crate::{BcDbWithReaderStruct, DbReadable, DbReader};
 use dubp_common_doc::{BlockNumber, Blockstamp};
@@ -87,6 +88,7 @@ pub trait BcDbInReadTx: BcDbWithReader {
     fn get_idty_state_by_pubkey(&self, pubkey: &PubKey)
         -> Result<Option<IdentityStateDb>, DbError>;
     fn get_identity_by_pubkey(&self, pubkey: &PubKey) -> Result<Option<IdentityDb>, DbError>;
+    fn get_current_ud(&self) -> Result<Option<CurrentUdDb>, DbError>;
 }
 
 impl<T> BcDbInReadTx for T
@@ -134,5 +136,9 @@ where
     #[inline]
     fn get_identity_by_pubkey(&self, pubkey: &PubKey) -> Result<Option<IdentityDb>, DbError> {
         crate::indexes::identities::get_identity_by_pubkey(self, pubkey)
+    }
+    #[inline]
+    fn get_current_ud(&self) -> Result<Option<CurrentUdDb>, DbError> {
+        crate::current_metadata::get_current_ud(self)
     }
 }

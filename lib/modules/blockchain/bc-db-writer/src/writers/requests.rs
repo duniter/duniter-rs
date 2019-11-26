@@ -79,6 +79,7 @@ impl BlocksDBsWriteQuery {
             }
             BlocksDBsWriteQuery::RevertBlock(block_db) => {
                 trace!("BlocksDBsWriteQuery::WriteBlock...");
+                crate::current_metadata::revert_current_metadata(db, w, &block_db.block)?;
                 crate::blocks::remove_block(db, w, block_db.block.number())?;
                 trace!("BlocksDBsWriteQuery::WriteBlock...finish");
             }

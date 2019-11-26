@@ -15,6 +15,9 @@
 
 //! Current meta datas
 
+pub mod current_ud;
+
+use self::current_ud::{CurrentUdDb, CurrentUdDbInternal};
 use crate::blocks::fork_tree::ForkTree;
 use crate::constants::*;
 use crate::*;
@@ -38,6 +41,8 @@ pub enum CurrentMetaDataKey {
     ForkTree,
     /// Greatest wot id
     NextWotId,
+    /// Current Universal Dividend
+    CurrentUd,
 }
 
 impl CurrentMetaDataKey {
@@ -50,6 +55,7 @@ impl CurrentMetaDataKey {
             Self::CurrentBlockchainTime => 3,
             Self::ForkTree => 4,
             Self::NextWotId => 5,
+            Self::CurrentUd => 6,
         }
     }
 }
@@ -153,5 +159,18 @@ pub fn get_greatest_wot_id_<DB: BcDbInReadTx>(db: &DB) -> Result<WotId, DbError>
         }
     } else {
         Ok(WotId(0))
+    }
+}
+
+/// Get current UD
+pub fn get_current_ud<DB: BcDbInReadTx>(db: &DB) -> Result<Option<CurrentUdDb>, DbError> {
+    if let Some(v) = db
+        .db()
+        .get_int_store(CURRENT_METADATA)
+        .get(db.r(), CurrentMetaDataKey::CurrentUd.to_u32())?
+    {
+        Ok(from_db_value::<CurrentUdDbInternal>(v)?.into())
+    } else {
+        Ok(None)
     }
 }
