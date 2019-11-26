@@ -19,12 +19,12 @@ use crate::*;
 use dubp_common_doc::BlockHash;
 use durs_bc_db_reader::blocks::fork_tree::ForkTree;
 use durs_bc_db_reader::constants::*;
-use durs_bc_db_reader::current_meta_datas::CurrentMetaDataKey;
+use durs_bc_db_reader::current_metadata::CurrentMetaDataKey;
 
 /// SAve fork tree
 pub fn save_fork_tree(db: &Db, w: &mut DbWriter, fork_tree: &ForkTree) -> Result<(), DbError> {
     let bin_fork_tree = durs_dbs_tools::to_bytes(&fork_tree)?;
-    db.get_int_store(CURRENT_METAS_DATAS).put(
+    db.get_int_store(CURRENT_METADATA).put(
         w.as_mut(),
         CurrentMetaDataKey::ForkTree.to_u32(),
         &Db::db_value(&bin_fork_tree)?,

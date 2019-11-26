@@ -191,7 +191,7 @@ pub fn local_sync<DC: DursConfTrait>(
     // Get local current blockstamp
     debug!("Get local current blockstamp...");
     let current_blockstamp: Blockstamp = db
-        .r(|db_r| durs_bc_db_reader::current_meta_datas::get_current_blockstamp(db_r))
+        .r(|db_r| durs_bc_db_reader::current_metadata::get_current_blockstamp(db_r))
         .expect("DbError : fail to get current blockstamp !")
         .unwrap_or_default();
     debug!("Success to get local current blockstamp.");

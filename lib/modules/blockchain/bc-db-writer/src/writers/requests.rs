@@ -67,7 +67,7 @@ impl BlocksDBsWriteQuery {
             BlocksDBsWriteQuery::WriteBlock(mut block_db) => {
                 trace!("BlocksDBsWriteQuery::WriteBlock...");
                 block_db.block.reduce();
-                crate::current_meta_datas::update_current_meta_datas(db, w, &block_db.block)?;
+                crate::current_metadata::update_current_metadata(db, w, &block_db.block)?;
                 if sync_target.is_none()
                     || block_db.blockstamp().id.0 + fork_window_size as u32
                         >= sync_target.expect("safe unwrap").id.0

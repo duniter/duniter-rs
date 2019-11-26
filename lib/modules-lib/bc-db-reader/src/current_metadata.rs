@@ -58,7 +58,7 @@ impl CurrentMetaDataKey {
 pub fn get_db_version<DB: DbReadable>(db: &DB) -> Result<usize, DbError> {
     db.read(|r| {
         if let Some(v) = db
-            .get_int_store(CURRENT_METAS_DATAS)
+            .get_int_store(CURRENT_METADATA)
             .get(&r, CurrentMetaDataKey::DbVersion.to_u32())?
         {
             if let DbValue::U64(db_version) = v {
@@ -76,7 +76,7 @@ pub fn get_db_version<DB: DbReadable>(db: &DB) -> Result<usize, DbError> {
 pub fn get_currency_name<DB: BcDbInReadTx>(db: &DB) -> Result<Option<CurrencyName>, DbError> {
     if let Some(v) = db
         .db()
-        .get_int_store(CURRENT_METAS_DATAS)
+        .get_int_store(CURRENT_METADATA)
         .get(db.r(), CurrentMetaDataKey::CurrencyName.to_u32())?
     {
         if let DbValue::Str(curency_name) = v {
@@ -93,7 +93,7 @@ pub fn get_currency_name<DB: BcDbInReadTx>(db: &DB) -> Result<Option<CurrencyNam
 pub fn get_current_blockstamp<DB: BcDbInReadTx>(db: &DB) -> Result<Option<Blockstamp>, DbError> {
     if let Some(v) = db
         .db()
-        .get_int_store(CURRENT_METAS_DATAS)
+        .get_int_store(CURRENT_METADATA)
         .get(db.r(), CurrentMetaDataKey::CurrentBlockstamp.to_u32())?
     {
         if let DbValue::Blob(current_blockstamp_bytes) = v {
@@ -112,7 +112,7 @@ pub fn get_current_blockstamp<DB: BcDbInReadTx>(db: &DB) -> Result<Option<Blocks
 pub fn get_current_common_time_<DB: BcDbInReadTx>(db: &DB) -> Result<u64, DbError> {
     if let Some(v) = db
         .db()
-        .get_int_store(CURRENT_METAS_DATAS)
+        .get_int_store(CURRENT_METADATA)
         .get(db.r(), CurrentMetaDataKey::CurrentBlockchainTime.to_u32())?
     {
         if let DbValue::U64(current_common_time) = v {
@@ -129,7 +129,7 @@ pub fn get_current_common_time_<DB: BcDbInReadTx>(db: &DB) -> Result<u64, DbErro
 pub fn get_fork_tree<DB: BcDbInReadTx>(db: &DB) -> Result<ForkTree, DbError> {
     if let Some(v) = db
         .db()
-        .get_int_store(CURRENT_METAS_DATAS)
+        .get_int_store(CURRENT_METADATA)
         .get(db.r(), CurrentMetaDataKey::ForkTree.to_u32())?
     {
         Ok(from_db_value::<ForkTree>(v)?)
@@ -143,7 +143,7 @@ pub fn get_fork_tree<DB: BcDbInReadTx>(db: &DB) -> Result<ForkTree, DbError> {
 pub fn get_greatest_wot_id_<DB: BcDbInReadTx>(db: &DB) -> Result<WotId, DbError> {
     if let Some(v) = db
         .db()
-        .get_int_store(CURRENT_METAS_DATAS)
+        .get_int_store(CURRENT_METADATA)
         .get(db.r(), CurrentMetaDataKey::NextWotId.to_u32())?
     {
         if let DbValue::U64(greatest_wot_id) = v {

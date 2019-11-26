@@ -31,7 +31,7 @@ pub fn execute(
 
         // Get fork tree
         let mut fork_tree = db
-            .r(|db_r| durs_bc_db_reader::current_meta_datas::get_fork_tree(db_r))
+            .r(|db_r| durs_bc_db_reader::current_metadata::get_fork_tree(db_r))
             .expect("Fail to read DB.");
 
         // Listen db requets

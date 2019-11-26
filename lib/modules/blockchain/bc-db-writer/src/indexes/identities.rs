@@ -23,7 +23,7 @@ use dubp_user_docs::documents::identity::IdentityDocumentV10;
 use dup_crypto::keys::PubKey;
 use dup_crypto::keys::PublicKey;
 use durs_bc_db_reader::constants::*;
-use durs_bc_db_reader::current_meta_datas::CurrentMetaDataKey;
+use durs_bc_db_reader::current_metadata::CurrentMetaDataKey;
 use durs_bc_db_reader::indexes::identities::get_wot_id;
 use durs_bc_db_reader::indexes::identities::{IdentityDb, IdentityStateDb};
 use durs_bc_db_reader::{DbReadable, DbValue};
@@ -57,7 +57,7 @@ pub fn revert_create_identity(db: &Db, w: &mut DbWriter, pubkey: &PubKey) -> Res
 /// Create WotId
 pub fn create_wot_id(db: &Db, w: &mut DbWriter) -> Result<WotId, DbError> {
     let next_wot_id = if let Some(DbValue::U64(next_wot_id)) = db
-        .get_int_store(CURRENT_METAS_DATAS)
+        .get_int_store(CURRENT_METADATA)
         .get(w.as_ref(), CurrentMetaDataKey::NextWotId.to_u32())?
     {
         next_wot_id
@@ -65,7 +65,7 @@ pub fn create_wot_id(db: &Db, w: &mut DbWriter) -> Result<WotId, DbError> {
         0u64
     };
 
-    db.get_int_store(CURRENT_METAS_DATAS).put(
+    db.get_int_store(CURRENT_METADATA).put(
         w.as_mut(),
         CurrentMetaDataKey::NextWotId.to_u32(),
         &DbValue::U64(next_wot_id + 1),

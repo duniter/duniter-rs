@@ -109,7 +109,7 @@ pub fn get_identities<DB: BcDbInReadTx>(
         }
     } else {
         let mut identities: Vec<IdentityDb> = Vec::new();
-        let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db)?;
+        let greatest_wot_id = crate::current_metadata::get_greatest_wot_id_(db)?;
         for wot_id in 0..=greatest_wot_id.0 {
             if let Some(db_idty) = get_identity_by_wot_id(db, WotId(wot_id))? {
                 if filters
@@ -181,7 +181,7 @@ pub fn get_uid<DB: BcDbInReadTx>(db: &DB, pubkey: &PubKey) -> Result<Option<Stri
 
 /// Get wot id from uid
 pub fn get_wot_id_from_uid<DB: BcDbInReadTx>(db: &DB, uid: &str) -> Result<Option<WotId>, DbError> {
-    let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db)?;
+    let greatest_wot_id = crate::current_metadata::get_greatest_wot_id_(db)?;
     for wot_id in 0..=greatest_wot_id.0 {
         if let Some(db_idty) = get_identity_by_wot_id(db, WotId(wot_id))? {
             if db_idty.idty_doc.username() == uid {
@@ -226,7 +226,7 @@ pub fn get_wot_index<DB: BcDbInReadTx>(db: &DB) -> Result<HashMap<PubKey, WotId>
 /// Get wot_uid index
 pub fn get_wot_uid_index<DB: BcDbInReadTx>(db: &DB) -> Result<HashMap<WotId, String>, DbError> {
     let mut wot_uid_index = HashMap::new();
-    let greatest_wot_id = crate::current_meta_datas::get_greatest_wot_id_(db)?;
+    let greatest_wot_id = crate::current_metadata::get_greatest_wot_id_(db)?;
     for wot_id in 0..=greatest_wot_id.0 {
         if let Some(db_idty) = get_identity_by_wot_id(db, WotId(wot_id))? {
             wot_uid_index.insert(WotId(wot_id), db_idty.idty_doc.username().to_owned());
@@ -239,7 +239,7 @@ pub fn get_wot_uid_index<DB: BcDbInReadTx>(db: &DB) -> Result<HashMap<WotId, Str
 mod test {
 
     use super::*;
-    use crate::current_meta_datas::CurrentMetaDataKey;
+    use crate::current_metadata::CurrentMetaDataKey;
     use crate::paging::PagingFilter;
     use dubp_common_doc::Blockstamp;
     use dup_crypto_tests_tools::mocks::pubkey;
@@ -298,7 +298,7 @@ mod test {
 
         // Write greatest wot id
         db.write(|mut w| {
-            db.get_int_store(CURRENT_METAS_DATAS).put(
+            db.get_int_store(CURRENT_METADATA).put(
                 w.as_mut(),
                 CurrentMetaDataKey::NextWotId.to_u32(),
                 &DbValue::U64(wot_id),

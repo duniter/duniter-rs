@@ -31,7 +31,7 @@
 extern crate log;
 
 pub mod blocks;
-pub mod current_meta_datas;
+pub mod current_metadata;
 pub mod indexes;
 pub mod writers;
 

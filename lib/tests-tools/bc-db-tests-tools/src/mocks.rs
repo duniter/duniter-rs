@@ -19,7 +19,7 @@ use dubp_block_doc::BlockDocument;
 use durs_bc_db_reader::blocks::fork_tree::ForkTree;
 use durs_bc_db_reader::blocks::BlockDb;
 use durs_bc_db_writer::blocks::{insert_new_fork_block, insert_new_head_block};
-use durs_bc_db_writer::current_meta_datas::update_current_meta_datas;
+use durs_bc_db_writer::current_metadata::update_current_metadata;
 use durs_bc_db_writer::{Db, DbError};
 
 /// Warning : This function does not update the indexes and considers
@@ -32,7 +32,7 @@ pub fn insert_main_block(
     fork_tree: Option<&mut ForkTree>,
 ) -> Result<(), DbError> {
     db_tmp.write(|mut w| {
-        update_current_meta_datas(db_tmp, &mut w, &block)?;
+        update_current_metadata(db_tmp, &mut w, &block)?;
         insert_new_head_block(
             &db_tmp,
             &mut w,

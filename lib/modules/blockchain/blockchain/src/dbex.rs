@@ -142,7 +142,7 @@ pub fn dbex_bc(profile_path: PathBuf, _csv: bool, _query: DbExBcQuery) -> Result
     );
 
     if let Some(current_blockstamp) =
-        db.r(|db_r| durs_bc_db_reader::current_meta_datas::get_current_blockstamp(db_r))?
+        db.r(|db_r| durs_bc_db_reader::current_metadata::get_current_blockstamp(db_r))?
     {
         println!("Current block: #{}.", current_blockstamp);
         if let Some(current_block) = db.r(|db_r| {
@@ -210,7 +210,7 @@ pub fn dbex_fork_tree(profile_path: PathBuf, _csv: bool) {
         load_db_duration.subsec_millis()
     );
     let fork_tree = db
-        .r(|db_r| durs_bc_db_reader::current_meta_datas::get_fork_tree(db_r))
+        .r(|db_r| durs_bc_db_reader::current_metadata::get_fork_tree(db_r))
         .expect("fail to get fork tree");
     // Print all fork branches
     for (tree_node_id, blockstamp) in fork_tree.get_sheets() {

@@ -154,7 +154,7 @@ pub fn apply_and_write_tx(
             .collect::<Result<HashMap<UniqueIdUTXOv10, TransactionOutput>, DbError>>()?;
         let consumed_sources_bytes = durs_dbs_tools::to_bytes(&consumed_sources)?;
         let block_number =
-            durs_bc_db_reader::current_meta_datas::get_current_blockstamp(&BcDbRwWithWriter {
+            durs_bc_db_reader::current_metadata::get_current_blockstamp(&BcDbRwWithWriter {
                 db,
                 w,
             })?
@@ -218,7 +218,7 @@ mod tests {
     use super::*;
     use dubp_common_doc::traits::{Document, DocumentBuilder};
     use dubp_common_doc::BlockHash;
-    use durs_bc_db_reader::current_meta_datas::CurrentMetaDataKey;
+    use durs_bc_db_reader::current_metadata::CurrentMetaDataKey;
     use durs_bc_db_reader::indexes::sources::SourceAmount;
     use std::str::FromStr;
 
@@ -294,7 +294,7 @@ mod tests {
                 hash: BlockHash(Hash::default()),
             }
             .into();
-            db.get_int_store(CURRENT_METAS_DATAS).put(
+            db.get_int_store(CURRENT_METADATA).put(
                 w.as_mut(),
                 CurrentMetaDataKey::CurrentBlockstamp.to_u32(),
                 &DbValue::Blob(&new_current_blockstamp_bytes),

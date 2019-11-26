@@ -23,7 +23,7 @@ pub static DEFAULT_PAGE_SIZE: &usize = &50;
 ////////////////////////////////
 
 /// Current meta datas (CurrentMetaDataKey, ?)
-pub static CURRENT_METAS_DATAS: &str = "cmd";
+pub static CURRENT_METADATA: &str = "cmd";
 
 /// Fork blocks referenced in tree or in orphan blockstamps (Blockstamp, BlockDb)
 pub static FORK_BLOCKS: &str = "fb";

@@ -185,11 +185,11 @@ impl BlockchainModule {
     ) -> Result<BlockchainModule, DbError> {
         // Get current blockstamp
         let current_blockstamp = db
-            .r(|db_r| durs_bc_db_reader::current_meta_datas::get_current_blockstamp(db_r))?
+            .r(|db_r| durs_bc_db_reader::current_metadata::get_current_blockstamp(db_r))?
             .unwrap_or_default();
 
         // Get fork tree
-        let fork_tree = db.r(|db_r| durs_bc_db_reader::current_meta_datas::get_fork_tree(db_r))?;
+        let fork_tree = db.r(|db_r| durs_bc_db_reader::current_metadata::get_fork_tree(db_r))?;
 
         // Get wot index
         let wot_index: HashMap<PubKey, WotId> =

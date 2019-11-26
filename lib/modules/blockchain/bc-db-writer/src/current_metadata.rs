@@ -19,12 +19,12 @@ use crate::*;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_block_doc::BlockDocument;
 use dubp_common_doc::traits::Document;
-use durs_bc_db_reader::constants::CURRENT_METAS_DATAS;
-use durs_bc_db_reader::current_meta_datas::CurrentMetaDataKey;
+use durs_bc_db_reader::constants::CURRENT_METADATA;
+use durs_bc_db_reader::current_metadata::CurrentMetaDataKey;
 use durs_bc_db_reader::DbValue;
 
-/// Update CURRENT_META_DATAS
-pub fn update_current_meta_datas(
+/// Update CURRENT_METADATA
+pub fn update_current_metadata(
     db: &Db,
     w: &mut DbWriter,
     new_current_block: &BlockDocument,
@@ -32,13 +32,13 @@ pub fn update_current_meta_datas(
     let new_current_blockstamp_bytes: Vec<u8> = new_current_block.blockstamp().into();
 
     // Update current blockstamp
-    db.get_int_store(CURRENT_METAS_DATAS).put(
+    db.get_int_store(CURRENT_METADATA).put(
         w.as_mut(),
         CurrentMetaDataKey::CurrentBlockstamp.to_u32(),
         &DbValue::Blob(&new_current_blockstamp_bytes),
     )?;
     // Update current common time (also named "blockchain time")
-    db.get_int_store(CURRENT_METAS_DATAS).put(
+    db.get_int_store(CURRENT_METADATA).put(
         w.as_mut(),
         CurrentMetaDataKey::CurrentBlockchainTime.to_u32(),
         &DbValue::U64(new_current_block.common_time()),

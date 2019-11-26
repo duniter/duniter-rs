@@ -32,7 +32,7 @@ pub fn fork_resolution_algo<DB: BcDbInReadTx>(
     current_blockstamp: Blockstamp,
     invalid_blocks: &HashSet<Blockstamp>,
 ) -> Result<Option<Vec<Blockstamp>>, DbError> {
-    let current_bc_time = durs_bc_db_reader::current_meta_datas::get_current_common_time_(db)?;
+    let current_bc_time = durs_bc_db_reader::current_metadata::get_current_common_time_(db)?;
 
     debug!(
         "fork_resolution_algo({}, {})",
@@ -122,9 +122,7 @@ mod tests {
         // Insert mock blocks in forks_dbs
         db.write(|mut w| {
             for block in &main_branch {
-                durs_bc_db_writer::current_meta_datas::update_current_meta_datas(
-                    &db, &mut w, &block,
-                )?;
+                durs_bc_db_writer::current_metadata::update_current_metadata(&db, &mut w, &block)?;
                 durs_bc_db_writer::blocks::insert_new_head_block(
                     &db,
                     &mut w,

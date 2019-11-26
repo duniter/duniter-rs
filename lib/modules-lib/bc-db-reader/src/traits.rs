@@ -95,11 +95,11 @@ where
 {
     #[inline]
     fn get_current_blockstamp(&self) -> Result<Option<Blockstamp>, DbError> {
-        crate::current_meta_datas::get_current_blockstamp(self)
+        crate::current_metadata::get_current_blockstamp(self)
     }
     #[inline]
     fn get_current_block(&self) -> Result<Option<BlockDb>, DbError> {
-        if let Some(current_blockstamp) = crate::current_meta_datas::get_current_blockstamp(self)? {
+        if let Some(current_blockstamp) = crate::current_metadata::get_current_blockstamp(self)? {
             crate::blocks::get_db_block_in_local_blockchain(self, current_blockstamp.id)
         } else {
             Ok(None)

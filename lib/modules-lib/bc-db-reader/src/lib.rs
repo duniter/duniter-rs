@@ -29,7 +29,7 @@
 pub mod blocks;
 pub mod constants;
 pub mod currency_params;
-pub mod current_meta_datas;
+pub mod current_metadata;
 pub mod indexes;
 pub mod paging;
 pub mod tools;
@@ -54,7 +54,7 @@ use std::path::Path;
 pub fn bc_db_schema() -> KvFileDbSchema {
     KvFileDbSchema {
         stores: hashmap![
-            CURRENT_METAS_DATAS.to_owned() => KvFileDbStoreType::SingleIntKey,
+            CURRENT_METADATA.to_owned() => KvFileDbStoreType::SingleIntKey,
             MAIN_BLOCKS.to_owned() => KvFileDbStoreType::SingleIntKey,
             FORK_BLOCKS.to_owned() => KvFileDbStoreType::Single,
             ORPHAN_BLOCKSTAMP.to_owned() => KvFileDbStoreType::Single,
