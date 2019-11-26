@@ -91,6 +91,11 @@ impl RulesGroup {
         RulesGroup::Ser(vec![RuleNumber(rule_number)])
     }
     #[inline]
+    /// Create serial set of rules
+    pub fn ser(rules_numbers: Vec<usize>) -> Self {
+        RulesGroup::Ser(rules_numbers.into_iter().map(|n| RuleNumber(n)).collect())
+    }
+    #[inline]
     /// Create parallel set of rules
     pub fn pr(rules_numbers: Vec<usize>) -> Self {
         RulesGroup::Par(rules_numbers.into_iter().map(RulesGroup::s1).collect())
@@ -98,14 +103,14 @@ impl RulesGroup {
 }
 
 /// Rules engine
-pub struct RulesEngine<D: Debug + Sync, E: Eq + Fail + PartialEq> {
+pub struct RulesEngine<D: Sync, DNotSync, E: Eq + Fail + PartialEq> {
     /// All rules
-    all_rules: BTreeMap<RuleNumber, Rule<D, E>>,
+    all_rules: BTreeMap<RuleNumber, Rule<D, DNotSync, E>>,
 }
 
-impl<D: Debug + Sync, E: Eq + Fail + PartialEq> RulesEngine<D, E> {
+impl<D: Sync, DNotSync, E: Eq + Fail + PartialEq> RulesEngine<D, DNotSync, E> {
     /// Create new rules engine
-    pub fn new(all_rules: BTreeMap<RuleNumber, Rule<D, E>>) -> Self {
+    pub fn new(all_rules: BTreeMap<RuleNumber, Rule<D, DNotSync, E>>) -> Self {
         RulesEngine { all_rules }
     }
 
@@ -148,9 +153,15 @@ impl<D: Debug + Sync, E: Eq + Fail + PartialEq> RulesEngine<D, E> {
         protocol_version: ProtocolVersion,
         rule_number: RuleNumber,
         rule_datas: &mut D,
+        rule_datas_not_sync: &mut DNotSync,
     ) -> Result<(), EngineError<E>> {
         if let Some(rule) = self.all_rules.get(&rule_number) {
-            rule.execute_mut(protocol_version, rule_number, rule_datas)
+            rule.execute_mut(
+                protocol_version,
+                rule_number,
+                rule_datas,
+                rule_datas_not_sync,
+            )
         } else {
             Err(EngineError::RuleNotExist {
                 rule_number,
@@ -165,6 +176,7 @@ impl<D: Debug + Sync, E: Eq + Fail + PartialEq> RulesEngine<D, E> {
         protocol: Protocol,
         protocol_version: ProtocolVersion,
         rule_datas: &mut D,
+        rule_datas_not_sync: &mut DNotSync,
     ) -> Result<(), EngineError<E>> {
         if let Some(protocol_rules) = protocol.get(protocol_version) {
             for rules_group in &protocol_rules.0 {
@@ -172,7 +184,12 @@ impl<D: Debug + Sync, E: Eq + Fail + PartialEq> RulesEngine<D, E> {
                     RulesGroup::Ser(rules_numbers) => rules_numbers
                         .iter()
                         .map(|rule_number| {
-                            self.apply_rule_mut(protocol_version, *rule_number, rule_datas)
+                            self.apply_rule_mut(
+                                protocol_version,
+                                *rule_number,
+                                rule_datas,
+                                rule_datas_not_sync,
+                            )
                         })
                         .collect(),
                     RulesGroup::Par(rules_group) => rules_group
@@ -254,12 +271,17 @@ mod tests {
         i: usize,
     }
 
+    #[derive(Debug)]
+    struct DatasNotSync {
+        j: usize,
+    }
+
     #[derive(Debug, Eq, Fail, PartialEq)]
     #[fail(display = "")]
     struct Error {}
 
-    fn r2_v1(datas: &mut Datas) -> Result<(), Error> {
-        if datas.i == 0 {
+    fn r2_v1(datas: &mut Datas, datas_not_sync: &mut DatasNotSync) -> Result<(), Error> {
+        if datas.i == 0 && datas_not_sync.j < 2 {
             datas.i += 1;
             Ok(())
         } else {
@@ -275,8 +297,8 @@ mod tests {
         }
     }
 
-    fn get_test_engine() -> RulesEngine<Datas, Error> {
-        let all_rules: BTreeMap<RuleNumber, Rule<Datas, Error>> = btreemap![
+    fn get_test_engine() -> RulesEngine<Datas, DatasNotSync, Error> {
+        let all_rules: BTreeMap<RuleNumber, Rule<Datas, DatasNotSync, Error>> = btreemap![
             RuleNumber(2) => Rule::new(RuleNumber(2), btreemap![
                 ProtocolVersion(1) => RuleFn::RefMut(r2_v1),
             ]).expect("Fail to create rule n°2"),
@@ -290,7 +312,7 @@ mod tests {
 
     #[test]
     fn rule_without_impl() {
-        if let Err(err) = Rule::<Datas, Error>::new(RuleNumber(1), btreemap![]) {
+        if let Err(err) = Rule::<Datas, DatasNotSync, Error>::new(RuleNumber(1), btreemap![]) {
             assert_eq!(
                 RuleWithoutImpl {
                     rule_number: RuleNumber(1),
@@ -310,12 +332,18 @@ mod tests {
         let engine = get_test_engine();
 
         let mut datas = Datas { i: 0 };
+        let mut datas_not_sync = DatasNotSync { j: 1 };
 
         let protocol_empty: Protocol = Protocol::new(btreemap![
             ProtocolVersion(1) => Vec::<usize>::with_capacity(0).into()
         ]);
 
-        engine.apply_protocol(protocol_empty, ProtocolVersion(1), &mut datas)
+        engine.apply_protocol(
+            protocol_empty,
+            ProtocolVersion(1),
+            &mut datas,
+            &mut datas_not_sync,
+        )
     }
 
     #[test]
@@ -323,6 +351,7 @@ mod tests {
         let engine = get_test_engine();
 
         let mut datas = Datas { i: 0 };
+        let mut datas_not_sync = DatasNotSync { j: 1 };
 
         let protocol_empty: Protocol = Protocol::new(btreemap![
             ProtocolVersion(1) => Vec::<usize>::with_capacity(0).into()
@@ -332,7 +361,12 @@ mod tests {
             Err(EngineError::ProtocolVersionNotExist {
                 protocol_version: ProtocolVersion(2),
             }),
-            engine.apply_protocol(protocol_empty, ProtocolVersion(2), &mut datas)
+            engine.apply_protocol(
+                protocol_empty,
+                ProtocolVersion(2),
+                &mut datas,
+                &mut datas_not_sync
+            )
         )
     }
 
@@ -341,6 +375,7 @@ mod tests {
         let engine = get_test_engine();
 
         let mut datas = Datas { i: 0 };
+        let mut datas_not_sync = DatasNotSync { j: 1 };
 
         let protocol: Protocol = Protocol::new(btreemap![
             ProtocolVersion(1) => vec![1usize].into()
@@ -351,10 +386,16 @@ mod tests {
                 rule_number: RuleNumber(1),
                 protocol_version: ProtocolVersion(1)
             }),
-            engine.apply_protocol(protocol, ProtocolVersion(1), &mut datas)
+            engine.apply_protocol(
+                protocol,
+                ProtocolVersion(1),
+                &mut datas,
+                &mut datas_not_sync
+            )
         );
 
         let mut datas = Datas { i: 0 };
+        let mut datas_not_sync = DatasNotSync { j: 1 };
 
         let protocol_par: Protocol = Protocol::new(btreemap![
             ProtocolVersion(1) => vec![RulesGroup::pr(vec![1usize])].into()
@@ -365,7 +406,12 @@ mod tests {
                 rule_number: RuleNumber(1),
                 protocol_version: ProtocolVersion(1)
             }),
-            engine.apply_protocol(protocol_par, ProtocolVersion(1), &mut datas)
+            engine.apply_protocol(
+                protocol_par,
+                ProtocolVersion(1),
+                &mut datas,
+                &mut datas_not_sync
+            )
         );
     }
 
@@ -374,6 +420,7 @@ mod tests {
         let engine = get_test_engine();
 
         let mut datas = Datas { i: 1 };
+        let mut datas_not_sync = DatasNotSync { j: 1 };
 
         let protocol: Protocol = Protocol::new(btreemap![
             ProtocolVersion(1) => vec![2usize].into()
@@ -384,7 +431,12 @@ mod tests {
                 rule_number: RuleNumber(2),
                 cause: Error {},
             })),
-            engine.apply_protocol(protocol, ProtocolVersion(1), &mut datas)
+            engine.apply_protocol(
+                protocol,
+                ProtocolVersion(1),
+                &mut datas,
+                &mut datas_not_sync
+            )
         )
     }
 
@@ -393,6 +445,7 @@ mod tests {
         let engine = get_test_engine();
 
         let mut datas = Datas { i: 0 };
+        let mut datas_not_sync = DatasNotSync { j: 1 };
 
         let protocol: Protocol = Protocol::new(btreemap![
             ProtocolVersion(2) => vec![RulesGroup::pr(vec![3usize])].into()
@@ -403,7 +456,12 @@ mod tests {
                 rule_number: RuleNumber(3),
                 cause: Error {},
             })),
-            engine.apply_protocol(protocol, ProtocolVersion(2), &mut datas)
+            engine.apply_protocol(
+                protocol,
+                ProtocolVersion(2),
+                &mut datas,
+                &mut datas_not_sync
+            )
         )
     }
 
@@ -412,6 +470,7 @@ mod tests {
         let engine = get_test_engine();
 
         let mut datas = Datas { i: 0 };
+        let mut datas_not_sync = DatasNotSync { j: 1 };
 
         let protocol: Protocol = Protocol::new(btreemap![
             ProtocolVersion(1) => vec![2usize, 3].into()
@@ -422,7 +481,12 @@ mod tests {
                 protocol_version: ProtocolVersion(1),
                 rule_number: RuleNumber(3),
             }),
-            engine.apply_protocol(protocol, ProtocolVersion(1), &mut datas)
+            engine.apply_protocol(
+                protocol,
+                ProtocolVersion(1),
+                &mut datas,
+                &mut datas_not_sync
+            )
         )
     }
 
@@ -431,6 +495,7 @@ mod tests {
         let engine = get_test_engine();
 
         let mut datas = Datas { i: 0 };
+        let mut datas_not_sync = DatasNotSync { j: 1 };
 
         let protocol: Protocol = Protocol::new(btreemap![
             ProtocolVersion(1) => vec![RulesGroup::pr(vec![3])].into()
@@ -441,7 +506,12 @@ mod tests {
                 protocol_version: ProtocolVersion(1),
                 rule_number: RuleNumber(3),
             }),
-            engine.apply_protocol(protocol, ProtocolVersion(1), &mut datas)
+            engine.apply_protocol(
+                protocol,
+                ProtocolVersion(1),
+                &mut datas,
+                &mut datas_not_sync
+            )
         )
     }
 
@@ -450,6 +520,7 @@ mod tests {
         let engine = get_test_engine();
 
         let mut datas = Datas { i: 1 };
+        let mut datas_not_sync = DatasNotSync { j: 1 };
 
         let protocol: Protocol = Protocol::new(btreemap![
             ProtocolVersion(2) => vec![RulesGroup::pr(vec![2usize, 3])].into()
@@ -460,7 +531,12 @@ mod tests {
                 protocol_version: ProtocolVersion(2),
                 rule_number: RuleNumber(2),
             }),
-            engine.apply_protocol(protocol, ProtocolVersion(2), &mut datas)
+            engine.apply_protocol(
+                protocol,
+                ProtocolVersion(2),
+                &mut datas,
+                &mut datas_not_sync
+            )
         )
     }
 
@@ -469,11 +545,17 @@ mod tests {
         let engine = get_test_engine();
 
         let mut datas = Datas { i: 0 };
+        let mut datas_not_sync = DatasNotSync { j: 1 };
 
         let protocol: Protocol = Protocol::new(btreemap![
             ProtocolVersion(2) => vec![2usize, 3].into()
         ]);
 
-        engine.apply_protocol(protocol, ProtocolVersion(2), &mut datas)
+        engine.apply_protocol(
+            protocol,
+            ProtocolVersion(2),
+            &mut datas,
+            &mut datas_not_sync,
+        )
     }
 }

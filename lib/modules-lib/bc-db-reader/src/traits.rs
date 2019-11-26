@@ -17,6 +17,7 @@
 // ! Define read only trait
 
 use crate::blocks::DbBlock;
+use crate::indexes::identities::{DbIdentity, DbIdentityState};
 use crate::{BcDbWithReaderStruct, DbReadable, DbReader};
 use dubp_common_doc::{BlockNumber, Blockstamp};
 use dup_crypto::keys::PubKey;
@@ -83,15 +84,20 @@ pub trait BcDbInReadTx: BcDbWithReader {
         numbers: Vec<BlockNumber>,
     ) -> Result<Vec<DbBlock>, DbError>;
     fn get_uid_from_pubkey(&self, pubkey: &PubKey) -> Result<Option<String>, DbError>;
+    fn get_idty_state_by_pubkey(&self, pubkey: &PubKey)
+        -> Result<Option<DbIdentityState>, DbError>;
+    fn get_identity_by_pubkey(&self, pubkey: &PubKey) -> Result<Option<DbIdentity>, DbError>;
 }
 
 impl<T> BcDbInReadTx for T
 where
     T: BcDbWithReader + durs_common_tools::traits::NotMock,
 {
+    #[inline]
     fn get_current_blockstamp(&self) -> Result<Option<Blockstamp>, DbError> {
         crate::current_meta_datas::get_current_blockstamp(self)
     }
+    #[inline]
     fn get_current_block(&self) -> Result<Option<DbBlock>, DbError> {
         if let Some(current_blockstamp) = crate::current_meta_datas::get_current_blockstamp(self)? {
             crate::blocks::get_db_block_in_local_blockchain(self, current_blockstamp.id)
@@ -99,6 +105,7 @@ where
             Ok(None)
         }
     }
+    #[inline]
     fn get_db_block_in_local_blockchain(
         &self,
         block_number: BlockNumber,
@@ -106,13 +113,26 @@ where
         crate::blocks::get_db_block_in_local_blockchain(self, block_number)
     }
     #[cfg(feature = "client-indexer")]
+    #[inline]
     fn get_db_blocks_in_local_blockchain(
         &self,
         numbers: Vec<BlockNumber>,
     ) -> Result<Vec<DbBlock>, DbError> {
         crate::blocks::get_blocks_in_local_blockchain_by_numbers(self, numbers)
     }
+    #[inline]
     fn get_uid_from_pubkey(&self, pubkey: &PubKey) -> Result<Option<String>, DbError> {
-        crate::indexes::identities::get_uid_(self, pubkey)
+        crate::indexes::identities::get_uid(self, pubkey)
+    }
+    #[inline]
+    fn get_idty_state_by_pubkey(
+        &self,
+        pubkey: &PubKey,
+    ) -> Result<Option<DbIdentityState>, DbError> {
+        crate::indexes::identities::get_idty_state_by_pubkey(self, pubkey)
+    }
+    #[inline]
+    fn get_identity_by_pubkey(&self, pubkey: &PubKey) -> Result<Option<DbIdentity>, DbError> {
+        crate::indexes::identities::get_identity_by_pubkey(self, pubkey)
     }
 }

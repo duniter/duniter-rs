@@ -25,7 +25,7 @@ use crate::BlockchainModule;
 use dubp_block_doc::block::BlockDocumentTrait;
 use dubp_block_doc::BlockDocument;
 use dubp_common_doc::traits::Document;
-use dubp_common_doc::Blockstamp;
+use dubp_common_doc::{BlockNumber, Blockstamp};
 use durs_bc_db_reader::BcDbInReadTx;
 use durs_common_tools::traits::bool_ext::BoolExt;
 use unwrap::unwrap;
@@ -86,21 +86,28 @@ pub fn check_block<DB: BcDbInReadTx>(
             && unwrap!(block_doc.previous_hash()).to_string()
                 == bc.current_blockstamp.hash.0.to_string())
     {
-        debug!("check_block: block {} chainable!", block_doc.blockstamp());
-
         if bc.cautious_mode {
+            debug!("check_block: block {} chainable!", block_doc.blockstamp());
+
             // Local verification
             local::verify_local_validity_block(block_doc, bc.currency_params)
                 .map_err(CheckBlockError::Local)?;
 
             // Verify block validity (check all protocol rule, very long !)
-            global::verify_global_validity_block(
-                block_doc,
-                db,
-                &bc.wot_index,
-                &bc.wot_databases.wot_db,
-            )
-            .map_err(CheckBlockError::Global)?;
+            if block_doc.number() > BlockNumber(0) {
+                global::verify_global_validity_block(
+                    block_doc,
+                    db,
+                    &bc.wot_index,
+                    &bc.wot_databases.wot_db,
+                )
+                .map_err(CheckBlockError::Global)?;
+            }
+
+            debug!(
+                "check_block: block {} is fully valid.!",
+                block_doc.blockstamp()
+            );
         }
 
         Ok(BlockChainability::FullyValidAndChainableBLock)

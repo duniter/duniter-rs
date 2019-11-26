@@ -100,6 +100,14 @@ pub fn gen_empty_timed_block_v10(
     block
 }
 
+/// Generate empty issued block document
+/// (usefull for tests that only need issuer field)
+pub fn gen_empty_issued_block_v10(issuer: PubKey) -> BlockDocumentV10 {
+    let mut block = gen_empty_block_v10(BlockNumber(0));
+    block.issuers = vec![issuer];
+    block
+}
+
 fn gen_empty_block_v10(block_number: BlockNumber) -> BlockDocumentV10 {
     BlockDocumentV10 {
         version: 10,

@@ -15,6 +15,12 @@
 
 //! Sub-module checking if a block complies with all the rules of the (DUBP DUniter Blockchain Protocol).
 
+mod protocol_versions;
+mod rules;
+
+pub use self::rules::InvalidRuleError;
+
+use self::rules::RuleNotSyncDatas;
 use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
@@ -23,11 +29,13 @@ use durs_bc_db_reader::{BcDbInReadTx, DbError};
 use durs_bc_db_writer::BinFreeStructDb;
 use durs_common_tools::traits::bool_ext::BoolExt;
 use durs_wot::*;
+use rules_engine::{EngineError, ProtocolVersion, RulesEngine};
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub enum GlobalVerifyBlockError {
     DbError(DbError),
+    InvalidRule(EngineError<InvalidRuleError>),
     NoPreviousBlock,
     VersionDecrease,
 }
@@ -48,25 +56,39 @@ where
     DB: BcDbInReadTx,
     W: WebOfTrust,
 {
-    // Rules that do not concern genesis block
-    if block.number().0 > 0 {
-        // Get previous block
-        let previous_block_opt = durs_bc_db_reader::blocks::get_block_in_local_blockchain(
-            db,
-            BlockNumber(block.number().0 - 1),
-        )?;
+    // Get previous block
+    let previous_block_opt = durs_bc_db_reader::blocks::get_block_in_local_blockchain(
+        db,
+        BlockNumber(block.number().0 - 1),
+    )?;
 
-        // Previous block must exist
-        previous_block_opt
-            .is_some()
-            .or_err(GlobalVerifyBlockError::NoPreviousBlock)?;
-        let previous_block = previous_block_opt.expect("safe unwrap");
+    // Previous block must exist
+    previous_block_opt
+        .is_some()
+        .or_err(GlobalVerifyBlockError::NoPreviousBlock)?;
+    let previous_block = previous_block_opt.expect("safe unwrap");
 
-        // Block version must not decrease
-        (block.version() >= previous_block.version())
-            .or_err(GlobalVerifyBlockError::VersionDecrease)?;
-    }
+    // Block version must not decrease
+    (block.version() >= previous_block.version())
+        .or_err(GlobalVerifyBlockError::VersionDecrease)?;
 
-    // TODO BR_G100 - issuerIsMember
+    // Define rules datas
+    let mut rules_datas = rules::RuleDatas {
+        block,
+        previous_block: &previous_block,
+    };
+    let mut rules_not_sync_datas = RuleNotSyncDatas { db };
+
+    // Apply protocol v10
+    let engine = RulesEngine::new(rules::all_rules::get_all_rules());
+    engine
+        .apply_protocol(
+            protocol_versions::get_blockchain_protocol(),
+            ProtocolVersion(11),
+            &mut rules_datas,
+            &mut rules_not_sync_datas,
+        )
+        .map_err(GlobalVerifyBlockError::InvalidRule)?;
+
     Ok(())
 }

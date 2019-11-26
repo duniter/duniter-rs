@@ -55,9 +55,9 @@ pub fn init_bc_module(
     fake_router_sender: Sender<RouterThreadMessage<DursMsg>>,
     genesis_block_parameters: BlockV10Parameters,
     tmp_path: &Path,
+    cautious_mode: bool,
 ) -> BlockchainModule {
     let currency_name = CurrencyName(TEST_CURRENCY.to_owned());
-    let cautious_mode = false;
     //let profile_path = tmp_profile_path.to_owned();
 
     //let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone());

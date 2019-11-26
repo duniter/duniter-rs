@@ -135,16 +135,8 @@ pub fn get_identities<DB: BcDbInReadTx>(
     }
 }
 
-/// Get identity by pubkey in databases
-pub fn get_identity_by_pubkey<DB: BcDbInReadTx>(
-    db: &DB,
-    pubkey: &PubKey,
-) -> Result<Option<DbIdentity>, DbError> {
-    get_identity_by_pubkey_(db, pubkey)
-}
-
 /// Get identity by pubkey
-pub fn get_identity_by_pubkey_<DB: BcDbInReadTx>(
+pub fn get_identity_by_pubkey<DB: BcDbInReadTx>(
     db: &DB,
     pubkey: &PubKey,
 ) -> Result<Option<DbIdentity>, DbError> {
@@ -172,16 +164,19 @@ pub fn get_identity_by_wot_id<DB: BcDbInReadTx>(
     }
 }
 
-/// Get uid from pubkey
+/// Get identity state from pubkey
 #[inline]
-pub fn get_uid<DB: BcDbInReadTx>(db: &DB, pubkey: &PubKey) -> Result<Option<String>, DbError> {
-    Ok(get_identity_by_pubkey(db, pubkey)?.map(|db_idty| db_idty.idty_doc.username().to_owned()))
+pub fn get_idty_state_by_pubkey<DB: BcDbInReadTx>(
+    db: &DB,
+    pubkey: &PubKey,
+) -> Result<Option<DbIdentityState>, DbError> {
+    Ok(get_identity_by_pubkey(db, pubkey)?.map(|db_idty| db_idty.state))
 }
 
 /// Get uid from pubkey
 #[inline]
-pub fn get_uid_<DB: BcDbInReadTx>(db: &DB, pubkey: &PubKey) -> Result<Option<String>, DbError> {
-    Ok(get_identity_by_pubkey_(db, pubkey)?.map(|db_idty| db_idty.idty_doc.username().to_owned()))
+pub fn get_uid<DB: BcDbInReadTx>(db: &DB, pubkey: &PubKey) -> Result<Option<String>, DbError> {
+    Ok(get_identity_by_pubkey(db, pubkey)?.map(|db_idty| db_idty.idty_doc.username().to_owned()))
 }
 
 /// Get wot id from uid

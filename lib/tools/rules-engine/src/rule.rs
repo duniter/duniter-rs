@@ -44,12 +44,12 @@ pub struct RuleError<E: Eq + Fail + PartialEq> {
 pub type RuleFnRef<D, E> = fn(&D) -> Result<(), E>;
 
 /// Rule mutable execution function
-pub type RuleFnRefMut<D, E> = fn(&mut D) -> Result<(), E>;
+pub type RuleFnRefMut<D, DNotSync, E> = fn(&mut D, &mut DNotSync) -> Result<(), E>;
 
 /// Rule execution function
-pub enum RuleFn<D, E> {
+pub enum RuleFn<D, DNotSync, E> {
     Ref(RuleFnRef<D, E>),
-    RefMut(RuleFnRefMut<D, E>),
+    RefMut(RuleFnRefMut<D, DNotSync, E>),
 }
 
 #[derive(Debug, Copy, Clone, Eq, Fail, PartialEq)]
@@ -62,16 +62,16 @@ pub struct RuleWithoutImpl {
 }
 
 /// Rule
-pub struct Rule<D: Debug, E: Eq + Fail + PartialEq> {
+pub struct Rule<D, DNotSync, E: Eq + Fail + PartialEq> {
     /// Dictionary of the different versions of the rule execution function
-    rule_versions: BTreeMap<ProtocolVersion, RuleFn<D, E>>,
+    rule_versions: BTreeMap<ProtocolVersion, RuleFn<D, DNotSync, E>>,
 }
 
-impl<D: Debug, E: Eq + Fail + PartialEq> Rule<D, E> {
+impl<D, DNotSync, E: Eq + Fail + PartialEq> Rule<D, DNotSync, E> {
     /// Create new rule
     pub fn new(
         rule_number: RuleNumber,
-        rule_versions: BTreeMap<ProtocolVersion, RuleFn<D, E>>,
+        rule_versions: BTreeMap<ProtocolVersion, RuleFn<D, DNotSync, E>>,
     ) -> Result<Self, RuleWithoutImpl> {
         if rule_versions.is_empty() {
             Err(RuleWithoutImpl { rule_number })
@@ -86,7 +86,7 @@ impl<D: Debug, E: Eq + Fail + PartialEq> Rule<D, E> {
         rule_number: RuleNumber,
         rule_datas: &D,
     ) -> Result<(), EngineError<E>> {
-        let rule_opt: Option<(&ProtocolVersion, &RuleFn<D, E>)> =
+        let rule_opt: Option<(&ProtocolVersion, &RuleFn<D, DNotSync, E>)> =
             self.rule_versions.range(..=protocol_version).last();
         if let Some((_, rule_fn)) = rule_opt {
             match rule_fn {
@@ -114,13 +114,14 @@ impl<D: Debug, E: Eq + Fail + PartialEq> Rule<D, E> {
         protocol_version: ProtocolVersion,
         rule_number: RuleNumber,
         rule_datas: &mut D,
+        rule_datas_not_sync: &mut DNotSync,
     ) -> Result<(), EngineError<E>> {
-        let rule_opt: Option<(&ProtocolVersion, &RuleFn<D, E>)> =
+        let rule_opt: Option<(&ProtocolVersion, &RuleFn<D, DNotSync, E>)> =
             self.rule_versions.range(..=protocol_version).last();
         if let Some((_, rule_fn)) = rule_opt {
             match rule_fn {
                 RuleFn::Ref(rule_fn_ref) => rule_fn_ref(rule_datas),
-                RuleFn::RefMut(rule_fn_ref_mut) => rule_fn_ref_mut(rule_datas),
+                RuleFn::RefMut(rule_fn_ref_mut) => rule_fn_ref_mut(rule_datas, rule_datas_not_sync),
             }
             .map_err(|err| {
                 EngineError::RuleError(RuleError {
