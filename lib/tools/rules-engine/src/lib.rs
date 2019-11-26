@@ -93,7 +93,7 @@ impl RulesGroup {
     #[inline]
     /// Create serial set of rules
     pub fn ser(rules_numbers: Vec<usize>) -> Self {
-        RulesGroup::Ser(rules_numbers.into_iter().map(|n| RuleNumber(n)).collect())
+        RulesGroup::Ser(rules_numbers.into_iter().map(RuleNumber).collect())
     }
     #[inline]
     /// Create parallel set of rules
