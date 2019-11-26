@@ -74,7 +74,7 @@ pub fn init(
     // Config loggers
     let loggers_common_config = fern::Dispatch::new()
         .level(logs_level_filter)
-        .level_for("ws", log::LevelFilter::Off)
+        .level_for("ws", log::LevelFilter::Error)
         .format(|out, message, record| {
             let colors = ColoredLevelConfig::new()
                 .info(Color::Green)
