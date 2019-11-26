@@ -17,7 +17,7 @@
 
 use dubp_common_doc::errors::DocumentSigsErr;
 use dubp_common_doc::traits::text::CompactTextDocument;
-use dubp_common_doc::traits::Document;
+//use dubp_common_doc::traits::Document;
 use dubp_user_docs::documents::transaction::TransactionDocument;
 use durs_common_tools::traits::bool_ext::BoolExt;
 
@@ -32,7 +32,7 @@ pub enum TransactionDocumentError {
     /// There is no input
     MissingInput,
     /// Signature error    
-    TxSignatureError(DocumentSigsErr),
+    _TxSignatureError(DocumentSigsErr),
 }
 
 /// Local verification of a Tx Document
@@ -46,23 +46,15 @@ pub fn local_verify_tx_doc(tx_doc: &TransactionDocument) -> Result<(), Transacti
     // A transaction must have at least 1 input
     (tx_doc.get_inputs().is_empty().not()).or_err(TransactionDocumentError::MissingInput)?;
 
-    // A transaction cannot have `SIG(INDEX)` unlocks with `INDEX >= ` issuers count.
-    // Question : règle à pas vérifier
-    /*if y.get_unlocks().len() >= y.issuers().len() {
-        return Err(TransactionDocumentError(SignatureIssuerError));
-    }*/
-
-    // Signatures count must be the same as issuers count
-    // It's alreeady checked by `tx_doc.verify_signatures()`
-
     ////////////////////////////////////////////////////////////////////////////////////
     // A transaction **must** have signatures matching its content **for each issuer**
     // Signatures are ordered by issuer
     // Signatures are made over the transaction's content, signatures excepted
     ////////////////////////////////////////////////////////////////////////////////////
-    tx_doc
-        .verify_signatures()
-        .map_err(TransactionDocumentError::TxSignatureError)?;
+    // Temporary disabled due to #183
+    /*tx_doc
+    .verify_signatures()
+    .map_err(TransactionDocumentError::TxSignatureError)?;*/
 
     Ok(())
 }
@@ -195,7 +187,7 @@ mod tests {
         assert_eq!(expected, actual);
     }
 
-    #[test]
+    /*#[test]
     fn test_tx_invalid_sig() {
         let blockstamp = blockstamp();
         let issuers = issuers();
@@ -212,5 +204,5 @@ mod tests {
         ));
         let actual = local_verify_tx_doc(&tx);
         assert_eq!(expected, actual);
-    }
+    }*/
 }
