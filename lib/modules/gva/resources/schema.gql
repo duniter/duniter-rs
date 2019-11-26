@@ -81,6 +81,7 @@ type Block {
   currency: String!
   issuer: String!
   issuerName: String,
+  issuersCount: Int!
   number: Int!
   hash: String!,
   commonTime: DateTimeUtc!

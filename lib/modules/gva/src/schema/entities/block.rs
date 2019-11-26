@@ -31,6 +31,7 @@ pub struct Block {
     currency: String,
     issuer: String,
     issuer_name: Option<String>,
+    issuers_count: i32,
     number: i32,
     hash: String,
     common_time: NaiveDateTime,
@@ -57,6 +58,7 @@ impl Block {
             } else {
                 None
             },
+            issuers_count: block_db.block.issuers_count() as i32,
             number: block_db.block.number().0 as i32,
             hash: block_db
                 .block
@@ -107,5 +109,9 @@ impl super::super::BlockFields for Block {
     #[inline]
     fn field_pow_min(&self, _executor: &Executor<'_, QueryContext>) -> FieldResult<&i32> {
         Ok(&self.pow_min)
+    }
+    #[inline]
+    fn field_issuers_count(&self, _executor: &Executor<'_, QueryContext>) -> FieldResult<&i32> {
+        Ok(&self.issuers_count)
     }
 }
