@@ -273,6 +273,9 @@ Transactions:{transactions}
     fn issuers_count(&self) -> usize {
         self.issuers_count
     }
+    fn members_count(&self) -> usize {
+        self.members_count
+    }
     fn number(&self) -> BlockNumber {
         self.number
     }

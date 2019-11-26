@@ -75,6 +75,8 @@ pub trait BlockDocumentTrait {
     fn inner_hash(&self) -> Option<Hash>;
     /// Get number of compute members in the current frame
     fn issuers_count(&self) -> usize;
+    /// Get number of members in wot
+    fn members_count(&self) -> usize;
     /// Get block number
     fn number(&self) -> BlockNumber;
     /// Get common difficulty (PoW)
@@ -158,6 +160,12 @@ impl BlockDocumentTrait for BlockDocument {
     fn issuers_count(&self) -> usize {
         match self {
             BlockDocument::V10(block) => block.issuers_count(),
+        }
+    }
+    #[inline]
+    fn members_count(&self) -> usize {
+        match self {
+            BlockDocument::V10(block) => block.members_count(),
         }
     }
     #[inline]
