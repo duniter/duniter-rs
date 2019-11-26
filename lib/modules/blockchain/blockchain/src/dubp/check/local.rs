@@ -43,7 +43,7 @@ pub enum LocalVerifyBlockError {
     /// Not-genesis block specific rules
     LocalVerifyNotGenesisBlockError(LocalVerifyNotGenesisBlockError),
     /// Signature error
-    BlockSignatureError(DocumentSigsErr),
+    _BlockSignatureError(DocumentSigsErr),
     /// Identity signature error
     IdentitySignatureError(DocumentSigsErr),
     /// Joiner signature error
@@ -123,9 +123,10 @@ pub fn verify_local_validity_block_v10(
     // As it has been checked that block.issuers.len() == 1 and as
     // block.issuers.len() == block.signatures.len() is check in block.verify_signatures()
     // there is no need to check that block.signatures.len() == 1
-    block
-        .verify_signatures()
-        .map_err(LocalVerifyBlockError::BlockSignatureError)?;
+    // check bloc sig tmp disabled because #183
+    /*block
+    .verify_signatures()
+    .map_err(LocalVerifyBlockError::BlockSignatureError)?;*/
     for identity in &block.identities {
         identity
             .verify_signatures()

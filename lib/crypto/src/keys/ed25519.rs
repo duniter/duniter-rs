@@ -667,4 +667,20 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
             .sign(message.as_bytes());
         assert!(keypair.verify(message.as_bytes(), &sig).is_ok());
     }
+
+    /*#[test]
+    fn test_tmp() {
+        let message = "InnerHash: A9697A9954EA447BBDC88D1B22AA8B60B2D11986DE806319C1A5AAFEB348C213\nNonce: 10300000043648\n";
+
+        let pubkey =
+            PublicKey::from_base58("8kXygUHh1vLjmcRzXVM86t38EL8dfFJgfBeHmkaWLamu").unwrap();
+        let sig: super::Signature = Signature::from_base64("XDIvgPbJK02ZfMwrhrtNFmMVGhqazDBhnxPBvMXLsDgPbnh28NbUbOYIRHrsZlo/frAv/Oh0OUOQZD3JpSf8DQ==").unwrap();
+
+        let pubkey_hex = hex::encode(&pubkey.0[..]);
+        println!("{}", pubkey_hex);
+        let sig_hex = hex::encode(&sig.0[..]);
+        println!("{}", sig_hex);
+
+        assert!(pubkey.verify(message.as_bytes(), &sig).is_ok());
+    }*/
 }
