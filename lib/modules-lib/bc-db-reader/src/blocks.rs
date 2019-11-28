@@ -152,19 +152,16 @@ pub fn get_block_in_local_blockchain<DB: BcDbInReadTx>(
 }
 
 /// Get block in local blockchain
+#[inline]
 pub fn get_db_block_in_local_blockchain<DB: BcDbInReadTx>(
     db: &DB,
     block_number: BlockNumber,
 ) -> Result<Option<BlockDb>, DbError> {
-    if let Some(v) = db
-        .db()
+    db.db()
         .get_int_store(MAIN_BLOCKS)
         .get(db.r(), block_number.0)?
-    {
-        Ok(Some(from_db_value(v)?))
-    } else {
-        Ok(None)
-    }
+        .map(from_db_value)
+        .transpose()
 }
 
 /// Get several blocks in local blockchain
