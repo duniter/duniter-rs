@@ -58,6 +58,7 @@ mod tests {
             );
             current_block.issuers = vec![pubkey('B')];
             current_block.pow_min = 70;
+            current_block.members_count = 59;
             Ok(Some(BlockDb {
                 block: BlockDocument::V10(current_block),
                 expire_certs: None,
@@ -73,7 +74,7 @@ mod tests {
 
         tests::test_gql_query(
             schema,
-            "{ current { commonTime, currency, hash, issuer, issuerName, number, powMin, version } }",
+            "{ current { commonTime, currency, hash, issuer, issuerName, membersCount, number, powMin, version } }",
             json!({
                 "data": {
                     "current": {
@@ -81,7 +82,8 @@ mod tests {
                         "currency": "test_currency",
                         "hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
                         "issuer": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
-                        "issuerName": "issuerName", 
+                        "issuerName": "issuerName",
+                        "membersCount": 59, 
                         "number": 42,
                         "powMin": 70,
                         "version": 10

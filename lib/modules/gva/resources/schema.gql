@@ -83,6 +83,7 @@ type Block {
   issuer: String!
   issuerName: String,
   issuersCount: Int!
+  membersCount: Int!
   number: Int!
   hash: String!,
   commonTime: DateTimeUtc!
