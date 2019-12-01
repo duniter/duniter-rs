@@ -32,7 +32,7 @@ use std::thread;
 use std::time::Duration;
 
 static PORT: &'static u16 = &10899;
-static TIMEOUT_IN_MS: &'static u64 = &20_000;
+static TIMEOUT_IN_MS: &'static u64 = &30_000;
 
 pub fn currency() -> CurrencyName {
     CurrencyName(String::from("g1"))
