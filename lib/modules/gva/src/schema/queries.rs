@@ -32,8 +32,8 @@ mod tests {
     use actix_web::http;
     use actix_web::test;
     use actix_web::web;
+    use assert_json_diff::assert_json_eq;
     use juniper::http::GraphQLRequest;
-    use pretty_assertions::assert_eq;
     use std::str::FromStr;
     use std::sync::Arc;
 
@@ -65,7 +65,7 @@ mod tests {
         .unwrap();
         assert_eq!(resp.status(), http::StatusCode::OK);
         if let Some(Body::Bytes(ref body_bytes)) = resp.body().as_ref() {
-            assert_eq!(
+            assert_json_eq!(
                 expected_response,
                 serde_json::Value::from_str(
                     &String::from_utf8(body_bytes.to_vec())

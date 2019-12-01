@@ -35,10 +35,10 @@ serde_json = "1.0.41"
 structopt= "0.3.4"
 
 [dev-dependencies]
+assert-json-diff = "1.0.1"
 durs-bc-db-reader = { path = "../../modules-lib/bc-db-reader", features = ["client-indexer", "mock"] }
 dubp-blocks-tests-tools = { path = "../../tests-tools/blocks-tests-tools" }
 dup-crypto-tests-tools = { path = "../../tests-tools/crypto-tests-tools" }
 mockall = "0.5.2"
-pretty_assertions = "0.5.1"
 
 [features]
