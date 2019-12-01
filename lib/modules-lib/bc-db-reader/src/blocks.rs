@@ -117,15 +117,11 @@ pub fn get_fork_block<DB: BcDbInReadTx>(
     blockstamp: Blockstamp,
 ) -> Result<Option<BlockDb>, DbError> {
     let blockstamp_bytes: Vec<u8> = blockstamp.into();
-    if let Some(v) = db
-        .db()
+    db.db()
         .get_store(FORK_BLOCKS)
         .get(db.r(), &blockstamp_bytes)?
-    {
-        Ok(Some(from_db_value(v)?))
-    } else {
-        Ok(None)
-    }
+        .map(from_db_value)
+        .transpose()
 }
 
 /// Get block hash

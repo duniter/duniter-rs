@@ -153,15 +153,11 @@ pub fn get_identity_by_wot_id<DB: BcDbInReadTx>(
     db: &DB,
     wot_id: WotId,
 ) -> Result<Option<IdentityDb>, DbError> {
-    if let Some(v) = db
-        .db()
+    db.db()
         .get_int_store(IDENTITIES)
         .get(db.r(), wot_id.0 as u32)?
-    {
-        Ok(Some(from_db_value(v)?))
-    } else {
-        Ok(None)
-    }
+        .map(from_db_value)
+        .transpose()
 }
 
 /// Get identity state from pubkey
@@ -194,19 +190,17 @@ pub fn get_wot_id_from_uid<DB: BcDbInReadTx>(db: &DB, uid: &str) -> Result<Optio
 /// Get identity wot_id
 #[inline]
 pub fn get_wot_id<DB: BcDbInReadTx>(db: &DB, pubkey: &PubKey) -> Result<Option<WotId>, DbError> {
-    if let Some(v) = db
-        .db()
+    db.db()
         .get_store(WOT_ID_INDEX)
         .get(db.r(), &pubkey.to_bytes_vector())?
-    {
-        if let DbValue::U64(wot_id) = v {
-            Ok(Some(WotId(wot_id as usize)))
-        } else {
-            Err(DbError::DBCorrupted)
-        }
-    } else {
-        Ok(None)
-    }
+        .map(|v| {
+            if let DbValue::U64(wot_id) = v {
+                Ok(WotId(wot_id as usize))
+            } else {
+                Err(DbError::DBCorrupted)
+            }
+        })
+        .transpose()
 }
 /// Get wot_id index
 pub fn get_wot_index<DB: BcDbInReadTx>(db: &DB) -> Result<HashMap<PubKey, WotId>, DbError> {
