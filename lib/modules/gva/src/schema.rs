@@ -33,6 +33,26 @@ use juniper_from_schema::graphql_schema_from_file;
 // generate schema from schema file
 graphql_schema_from_file!("resources/schema.gql", context_type: QueryContext);
 
+/// Macro that execute a query resolver in db read transaction
+#[cfg(not(test))]
+macro_rules! exec_in_db_transaction {
+    ($f:ident($e:ident, $($param:expr),*)) => {
+        {
+            let db = $e.context().get_db();
+            db.read(|r| queries::$f::execute(&BcDbRoWithReader { db, r }$(, $param)*)).map_err(Into::into)
+        }
+    };
+}
+#[cfg(test)]
+macro_rules! exec_in_db_transaction {
+    ($f:ident($e:ident, $($param:expr),*)) => {
+        {
+            let db = $e.context().get_db();
+            queries::$f::execute(db$(, $param)*).map_err(Into::into)
+        }
+    };
+}
+
 pub struct Query;
 
 impl QueryFields for Query {
@@ -54,14 +74,7 @@ impl QueryFields for Query {
         executor: &Executor<'_, QueryContext>,
         trail: &QueryTrail<'_, Block, Walked>,
     ) -> FieldResult<Option<Block>> {
-        let db = executor.context().get_db();
-        cfg_if::cfg_if! {
-            if #[cfg(not(test))] {
-                db.read(|r| queries::current::execute(&BcDbRoWithReader { db, r }, trail)).map_err(Into::into)
-            } else {
-                queries::current::execute(db, trail).map_err(Into::into)
-            }
-        }
+        exec_in_db_transaction!(current(executor, trail))
     }
     #[inline]
     fn field_block(
@@ -70,14 +83,7 @@ impl QueryFields for Query {
         trail: &QueryTrail<'_, Block, Walked>,
         number: i32,
     ) -> FieldResult<Option<Block>> {
-        let db = executor.context().get_db();
-        cfg_if::cfg_if! {
-            if #[cfg(not(test))] {
-                db.read(|r| queries::block::execute(&BcDbRoWithReader { db, r }, trail, number)).map_err(Into::into)
-            } else {
-                queries::block::execute(db, trail, number).map_err(Into::into)
-            }
-        }
+        exec_in_db_transaction!(block(executor, trail, number))
     }
     #[inline]
     fn field_blocks(
@@ -92,32 +98,14 @@ impl QueryFields for Query {
         if step <= 0 {
             step = 1;
         }
-        let db = executor.context().get_db();
-        cfg_if::cfg_if! {
-            if #[cfg(not(test))] {
-                db.read(|r| {
-                    queries::blocks::execute(
-                        &BcDbRoWithReader { db, r },
-                        trail,
-                        paging_opt,
-                        block_interval_opt,
-                        step as usize,
-                        sort_order,
-                    )
-                })
-                .map_err(Into::into)
-            } else {
-                queries::blocks::execute(
-                    db,
-                    trail,
-                    paging_opt,
-                    block_interval_opt,
-                    step as usize,
-                    sort_order,
-                )
-                .map_err(Into::into)
-            }
-        }
+        exec_in_db_transaction!(blocks(
+            executor,
+            trail,
+            paging_opt,
+            block_interval_opt,
+            step as usize,
+            sort_order
+        ))
     }
     #[inline]
     fn field_current_ud(
@@ -125,14 +113,7 @@ impl QueryFields for Query {
         executor: &Executor<'_, QueryContext>,
         trail: &QueryTrail<'_, CurrentUd, Walked>,
     ) -> FieldResult<Option<CurrentUd>> {
-        let db = executor.context().get_db();
-        cfg_if::cfg_if! {
-            if #[cfg(not(test))] {
-                db.read(|r| queries::current_ud::execute(&BcDbRoWithReader { db, r }, trail)).map_err(Into::into)
-            } else {
-                queries::current_ud::execute(db, trail).map_err(Into::into)
-            }
-        }
+        exec_in_db_transaction!(current_ud(executor, trail))
     }
 }
 

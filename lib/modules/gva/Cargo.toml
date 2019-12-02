@@ -11,7 +11,6 @@ path = "src/lib.rs"
 
 [dependencies]
 actix-web = "1.0.9"
-cfg-if = "0.1.10"
 dubp-block-doc = { path = "../../dubp/block-doc"} #, version = "0.1.0" }
 dup-crypto = { path = "../../crypto" }
 durs-bc-db-reader = { path = "../../modules-lib/bc-db-reader", features = ["client-indexer"] }
