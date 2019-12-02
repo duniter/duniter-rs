@@ -211,6 +211,22 @@ package:test:lin64:deb:
       - work/bin/
     expire_in: 1 weeks
 
+package:dev:lin64:deb:
+  extends: .rust_stable_lin64
+  stage: package
+  only:
+    refs:
+      - dev
+  except:
+    refs:
+      - tags
+  script:
+    - bash "release/arch/linux-x64/build-deb.sh" "dev"
+  artifacts:
+    paths:
+      - work/bin/
+    expire_in: 1 weeks
+
 package:test:lin64:arch:
   extends: .rust_stable_lin64_arch
   stage: package
@@ -256,16 +272,16 @@ package:test:docker-test-image:
   variables:
     IMAGE_TAG: "test-image"
 
-package:test:docker:
-  extends: .docker-build-app-image
-  only:
-    refs:
-      - dev
-  except:
-    refs:
-      - tags
-  variables:
-    IMAGE_TAG: "dev"
+#package:dev:docker:
+#  extends: .docker-build-app-image
+#  only:
+#    refs:
+#      - dev
+#  except:
+#    refs:
+#      - tags
+#  variables:
+#    IMAGE_TAG: "dev"
 
 package:test:armv7:
   extends: .rust_stable_armv7
