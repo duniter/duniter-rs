@@ -124,7 +124,7 @@ mod tests {
     }
     fn block_0_json() -> serde_json::Value {
         json!({
-            "commonTime": 1_488_987_127.0,
+            "blockchainTime": 1_488_987_127.0,
             "currency": "test_currency",
             "hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
             "issuer": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -147,7 +147,7 @@ mod tests {
     }
     fn block_1_json() -> serde_json::Value {
         json!({
-            "commonTime": 1_488_987_128.0,
+            "blockchainTime": 1_488_987_128.0,
             "currency": "test_currency",
             "hash": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
             "issuer": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
@@ -170,7 +170,7 @@ mod tests {
     }
     fn block_2_json() -> serde_json::Value {
         json!({
-            "commonTime": 1_488_987_129.0,
+            "blockchainTime": 1_488_987_129.0,
             "currency": "test_currency",
             "hash": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
             "issuer": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
@@ -193,7 +193,7 @@ mod tests {
     }
     fn block_3_json() -> serde_json::Value {
         json!({
-            "commonTime": 1_488_987_130.0,
+            "blockchainTime": 1_488_987_130.0,
             "currency": "test_currency",
             "hash": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
             "issuer": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
@@ -216,7 +216,7 @@ mod tests {
     }
     fn block_4_json() -> serde_json::Value {
         json!({
-            "commonTime": 1_488_987_131.0,
+            "blockchainTime": 1_488_987_131.0,
             "currency": "test_currency",
             "hash": "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
             "issuer": "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
@@ -266,7 +266,7 @@ mod tests {
         tests::test_gql_query(
             schema,
             "{ blocks(interval: { from: 2 }) {
-                blocks { commonTime, currency, hash, issuer, number, version },
+                blocks { blockchainTime, currency, hash, issuer, number, version },
                 currentPageNumber, intervalFrom, intervalTo, lastPageNumber, totalBlocksCount
             } }",
             json!({
@@ -324,14 +324,14 @@ mod tests {
         tests::test_gql_query(
             schema,
             "{ blocks(step: 2) {
-                blocks { commonTime, currency, hash, issuer, number, version },
+                blocks { blockchainTime, currency, hash, issuer, number, version },
                 currentPageNumber, intervalFrom, intervalTo, lastPageNumber, totalBlocksCount
             } }",
             json!({
                 "data": {
                     "blocks": {
                         "blocks": [{
-                            "commonTime": 1_488_987_127.0,
+                            "blockchainTime": 1_488_987_127.0,
                             "currency": "test_currency",
                             "hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
                             "issuer": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -339,7 +339,7 @@ mod tests {
                             "version": 10
                         },
                         {
-                            "commonTime": 1_488_987_129.0,
+                            "blockchainTime": 1_488_987_129.0,
                             "currency": "test_currency",
                             "hash": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
                             "issuer": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
@@ -398,7 +398,7 @@ mod tests {
         tests::test_gql_query(
             global_context,
             "{ blocks(sortOrder: DESC) {
-                blocks { commonTime, currency, hash, issuer, number, version },
+                blocks { blockchainTime, currency, hash, issuer, number, version },
                 currentPageNumber, intervalFrom, intervalTo, lastPageNumber, totalBlocksCount
             } }",
             json!({
@@ -461,7 +461,7 @@ mod tests {
         tests::test_gql_query(
             schema,
             "{ blocks {
-                blocks { commonTime, currency, hash, issuer, number, version },
+                blocks { blockchainTime, currency, hash, issuer, number, version },
                 currentPageNumber, intervalFrom, intervalTo, lastPageNumber, totalBlocksCount
             } }",
             json!({

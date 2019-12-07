@@ -74,11 +74,11 @@ mod tests {
 
         tests::test_gql_query(
             schema,
-            "{ current { commonTime, currency, hash, issuer, issuerName, membersCount, number, powMin, version } }",
+            "{ current { blockchainTime, currency, hash, issuer, issuerName, membersCount, number, powMin, version } }",
             json!({
                 "data": {
                     "current": {
-                        "commonTime": 1_488_987_127.0,
+                        "blockchainTime": 1_488_987_127.0,
                         "currency": "test_currency",
                         "hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
                         "issuer": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",

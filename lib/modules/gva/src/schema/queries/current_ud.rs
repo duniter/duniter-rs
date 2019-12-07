@@ -56,14 +56,14 @@ mod tests {
 
         tests::test_gql_query(
             schema,
-            "{ currentUd { amount, base, blockNumber, commonTime, membersCount, monetaryMass } }",
+            "{ currentUd { amount, base, blockNumber, blockchainTime, membersCount, monetaryMass } }",
             json!({
                 "data": {
                     "currentUd": {
                         "amount": 1_000,
                         "base": 0,
                         "blockNumber": 1,
-                        "commonTime": 1_488_987_127.0,
+                        "blockchainTime": 1_488_987_127.0,
                         "membersCount": 59,
                         "monetaryMass": 59000
                     }

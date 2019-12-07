@@ -23,7 +23,7 @@ pub struct CurrentUd {
     pub amount: i32,
     pub base: i32,
     pub block_number: i32,
-    pub common_time: NaiveDateTime,
+    pub blockchain_time: NaiveDateTime,
     pub members_count: i32,
     pub monetary_mass: i32,
 }
@@ -35,7 +35,7 @@ impl CurrentUd {
             amount: current_du_db.amount as i32,
             base: current_du_db.base as i32,
             block_number: current_du_db.block_number.0 as i32,
-            common_time: NaiveDateTime::from_timestamp(current_du_db.common_time as i64, 0),
+            blockchain_time: NaiveDateTime::from_timestamp(current_du_db.common_time as i64, 0),
             members_count: current_du_db.members_count as i32,
             monetary_mass: current_du_db.monetary_mass as i32,
         }
@@ -56,11 +56,11 @@ impl super::super::CurrentUdFields for CurrentUd {
         Ok(&self.block_number)
     }
     #[inline]
-    fn field_common_time(
+    fn field_blockchain_time(
         &self,
         _executor: &Executor<'_, QueryContext>,
     ) -> FieldResult<&NaiveDateTime> {
-        Ok(&self.common_time)
+        Ok(&self.blockchain_time)
     }
     #[inline]
     fn field_members_count(&self, _executor: &Executor<'_, QueryContext>) -> FieldResult<&i32> {

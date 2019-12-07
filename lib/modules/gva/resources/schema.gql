@@ -86,7 +86,7 @@ type Block {
   membersCount: Int!
   number: Int!
   hash: String!,
-  commonTime: DateTimeUtc!
+  blockchainTime: DateTimeUtc!
   powMin: Int!
 }
 
@@ -104,7 +104,7 @@ type CurrentUd {
   amount: Int!
   base: Int!
   blockNumber: Int!
-  commonTime: DateTimeUtc!
+  blockchainTime: DateTimeUtc!
   membersCount: Int!
   monetaryMass: Int!
 }

@@ -86,7 +86,7 @@ mod tests {
 
         tests::test_gql_query(
             schema.clone(),
-            "{ block { commonTime, currency, hash, issuer, issuerName, number, version } }",
+            "{ block { blockchainTime, currency, hash, issuer, issuerName, number, version } }",
             json!({
                 "errors": [{
                     "message": "Field \"block\" argument \"number\" of type \"Int!\" is required but not provided",
@@ -100,11 +100,11 @@ mod tests {
 
         tests::test_gql_query(
             schema,
-            "{ block(number: 42) { commonTime, currency, hash, issuer, issuerName, issuersCount, number, powMin, version } }",
+            "{ block(number: 42) { blockchainTime, currency, hash, issuer, issuerName, issuersCount, number, powMin, version } }",
             json!({
                 "data": {
                     "block": {
-                        "commonTime": 1_488_987_127.0,
+                        "blockchainTime": 1_488_987_127.0,
                         "currency": "test_currency",
                         "hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
                         "issuer": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
