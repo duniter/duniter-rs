@@ -30,7 +30,6 @@ members = [
     "lib/tools/common-tools",
     "lib/tools/dbs-tools",
     "lib/tools/json-pest-parser",
-    "lib/tools/pkstl",
     "lib/tools/rules-engine",
 ]
 
