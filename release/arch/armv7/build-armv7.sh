@@ -59,9 +59,9 @@ build_extra_server() {
 # Parameters:
 # 1. Building type (either “desktop” or “server”).
 build_deb_pack() {
-	#cd "bin/dunitrust-${1}"
+	cd "bin/dunitrust-${1}"
 	#cargo build --release --target=armv7-unknown-linux-gnueabihf --features=ssl
-	cargo deb --manifest-path="bin/dunitrust-${1}/Cargo.toml" --target=${TARGET} --variant=arm --output "${BIN}/dunitrust-${1}-${DURS_TAG}-armv7.deb"
+	cargo deb --target=${TARGET} --variant=arm --output "${BIN}/dunitrust-${1}-${DURS_TAG}-armv7.deb"
 	create_desc "${BIN}/dunitrust-${1}-${DURS_TAG}-armv7.deb" "${1}" "Linux (Ubuntu/Debian/Raspbian)"
 }
 

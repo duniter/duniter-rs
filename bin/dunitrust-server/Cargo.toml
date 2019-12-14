@@ -52,7 +52,7 @@ section = "misc"
 priority = "optional"
 assets = [
     ["../../target/armv7-unknown-linux-gnueabihf/release/dunitrust", "usr/bin/", "755"],
-    ["../../images/duniter-rs.png", "usr/share/dunitrust/", "644"],
+    ["../../images/dunitrust.png", "usr/share/dunitrust/", "644"],
 ]
 default-features = false
 features = ["ssl"]
