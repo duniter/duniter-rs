@@ -30,7 +30,6 @@ use failure::Fail;
 use rayon::prelude::*;
 use rule::{Rule, RuleError, RuleNumber};
 use std::collections::BTreeMap;
-use std::fmt::Debug;
 
 #[derive(Copy, Clone, Debug, Ord, PartialEq, PartialOrd, Eq, Hash)]
 pub struct ProtocolVersion(pub usize);

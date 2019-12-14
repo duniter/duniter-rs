@@ -14,7 +14,6 @@ edition = "2018"
 [dependencies]
 durs-network = { path = "../../lib/core/network" }
 durs-core = { path = "../../lib/core/core" }
-durs-gva = { path = "../../lib/modules/gva", optional = true }
 durs-module = { path = "../../lib/core/module" }
 #durs-skeleton = { path = "../../lib/modules/skeleton" }
 durs-ws2p = { path = "../../lib/modules/ws2p/ws2p" }
@@ -26,9 +25,10 @@ structopt= "0.3.4"
 [target.'cfg(unix)'.dependencies]
 durs-tui = { path = "../../lib/modules/tui" }
 
+[target.'cfg(not(target_arch = "arm"))'.dependencies]
+durs-gva = { path = "../../lib/modules/gva" }
+
 [features]
-default = ["gva"]
-gva = ["durs-gva"]
 ssl = ["durs-ws2p-v1-legacy/ssl"]
 
 [package.metadata.deb]
@@ -54,6 +54,7 @@ assets = [
     ["../../target/armv7-unknown-linux-gnueabihf/release/dunitrust", "usr/bin/", "755"],
     ["../../images/duniter-rs.png", "usr/share/dunitrust/", "644"],
 ]
+default-features = false
 features = ["ssl"]
 
 [package.metadata.arch]

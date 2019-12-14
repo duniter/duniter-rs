@@ -33,12 +33,12 @@ mod init;
 use crate::cli::DursCliOpt;
 use crate::init::init;
 use durs_core::durs_plug;
-use log::error;
-use structopt::StructOpt;
-
+#[cfg(not(target_arch = "arm"))]
 pub use durs_gva::GvaModule;
 #[cfg(unix)]
 pub use durs_tui::TuiModule;
+use log::error;
+use structopt::StructOpt;
 //pub use durs_skeleton::SkeletonModule;
 pub use durs_ws2p::WS2PModule;
 pub use durs_ws2p_v1_legacy::WS2Pv1Module;

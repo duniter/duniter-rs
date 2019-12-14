@@ -25,6 +25,7 @@ use durs_core::commands::{
 };
 use durs_core::errors::DursCoreError;
 use durs_core::DursCore;
+#[cfg(not(target_arch = "arm"))]
 use durs_gva::{GvaModule, GvaOpt};
 use durs_network::cli::sync::SyncOpt;
 use durs_ws2p_v1_legacy::{WS2POpt, WS2Pv1Module};
@@ -69,6 +70,7 @@ impl ExecutableModuleCommand for DursCliOpt {
                     env!("CARGO_PKG_VERSION"),
                 )
             }
+            #[cfg(not(target_arch = "arm"))]
             DursCliSubCommand::Gva(module_opts) => DursCore::execute_module_command::<GvaModule>(
                 options,
                 module_opts,
@@ -164,6 +166,7 @@ pub enum DursCliSubCommand {
     #[structopt(name = "sync", setting(structopt::clap::AppSettings::ColoredHelp))]
     SyncOpt(SyncOpt),
     /// GVA module subcommand
+    #[cfg(not(target_arch = "arm"))]
     #[structopt(name = "gva", setting(structopt::clap::AppSettings::ColoredHelp))]
     Gva(GvaOpt),
     /// WS2P1 module subcommand

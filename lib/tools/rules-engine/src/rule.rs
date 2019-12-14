@@ -18,7 +18,6 @@
 use crate::{EngineError, ProtocolVersion};
 use failure::Fail;
 use std::collections::BTreeMap;
-use std::fmt::Debug;
 
 #[derive(Copy, Clone, Debug, Ord, PartialEq, PartialOrd, Eq, Hash)]
 /// Rule number
