@@ -21,7 +21,7 @@ pub fn unescape_str(source: &str) -> String {
     let mut str_result = String::with_capacity(source.len());
 
     for current_char in source.chars() {
-        if previous_char.is_some() && previous_char.unwrap() == '\\' {
+        if let Some('\\') = previous_char {
             match current_char {
                 '\\' => {} // Do nothing
                 _ => str_result.push(current_char),
@@ -40,7 +40,16 @@ mod tests {
     use super::*;
 
     #[test]
-    pub fn test_unescape_str() {
+    pub fn test_unescape_double_backslash() {
         assert_eq!("\\".to_owned(), unescape_str("\\\\"));
+    }
+
+    #[test]
+    pub fn test_no_unescape_single_backslash() {
+        assert_eq!("ab\\cd".to_owned(), unescape_str("ab\\cd"));
+    }
+    #[test]
+    pub fn test_unescape_str() {
+        assert_eq!("abcd".to_owned(), unescape_str("abcd"));
     }
 }
