@@ -18,6 +18,8 @@
 //! The grammar used is a copy of the grammar proposed in the "pest book".  
 
 #![deny(
+    clippy::option_unwrap_used,
+    clippy::result_unwrap_used,
     missing_debug_implementations,
     missing_copy_implementations,
     trivial_casts,
@@ -41,6 +43,7 @@ use pest::iterators::Pair;
 use pest::Parser;
 use std::collections::HashMap;
 use std::str::FromStr;
+use unwrap::unwrap;
 
 #[derive(Parser)]
 #[grammar = "json_grammar.pest"]
@@ -215,7 +218,10 @@ pub fn parse_json_string_with_specific_hasher<S: std::hash::BuildHasher + Defaul
     source: &str,
 ) -> Result<JSONValue<S>, ParseJsonError> {
     match JSONParser::parse(Rule::json, source) {
-        Ok(mut pair) => Ok(parse_value(pair.next().unwrap())),
+        Ok(mut pair) => Ok(parse_value(unwrap!(
+            pair.next(),
+            "Fail to parse Rule::json"
+        ))),
         Err(pest_error) => Err(ParseJsonError {
             cause: format!("{:?}", pest_error),
         }),
@@ -228,28 +234,39 @@ fn parse_value<S: std::hash::BuildHasher + Default>(pair: Pair<Rule>) -> JSONVal
             pair.into_inner()
                 .map(|pair| {
                     let mut inner_rules = pair.into_inner();
-                    let name = inner_rules
-                        .next()
-                        .unwrap()
-                        .into_inner()
-                        .next()
-                        .unwrap()
-                        .as_str();
-                    let value = parse_value(inner_rules.next().unwrap());
+                    let name = unwrap!(
+                        unwrap!(inner_rules.next(), "Fail to parse Rule::object::name")
+                            .into_inner()
+                            .next(),
+                        "Fail to parse Rule::object::name"
+                    )
+                    .as_str();
+                    let value = parse_value(unwrap!(
+                        inner_rules.next(),
+                        "Fail to parse Rule::object::value"
+                    ));
                     (name, value)
                 })
                 .collect(),
         ),
         Rule::array => JSONValue::Array(pair.into_inner().map(parse_value).collect()),
-        Rule::string => JSONValue::String(pair.into_inner().next().unwrap().as_str()),
+        Rule::string => JSONValue::String(
+            unwrap!(pair.into_inner().next(), "Fail to parse Rule::string").as_str(),
+        ),
         Rule::number => {
             if let Ok(number_u64) = u64::from_str(pair.as_str()) {
                 JSONValue::Number(Number::U64(number_u64))
             } else {
-                JSONValue::Number(Number::F64(pair.as_str().parse().unwrap()))
+                JSONValue::Number(Number::F64(unwrap!(
+                    pair.as_str().parse(),
+                    "Fail to parse Rule::number as u64 and f64"
+                )))
             }
         }
-        Rule::boolean => JSONValue::Boolean(pair.as_str().parse().unwrap()),
+        Rule::boolean => JSONValue::Boolean(unwrap!(
+            pair.as_str().parse(),
+            "Fail to parse Rule::boolean"
+        )),
         Rule::null => JSONValue::Null,
         Rule::json
         | Rule::EOI

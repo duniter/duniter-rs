@@ -16,6 +16,7 @@ path = "src/lib.rs"
 failure = "0.1.5"
 pest = "2.1.0"
 pest_derive = "2.1.0"
+unwrap = "1.2.1"
 
 [dev-dependencies]
 pretty_assertions = "0.6.1"
