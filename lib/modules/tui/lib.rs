@@ -17,6 +17,8 @@
 //! as well as the DursModule trait that all modules must implement.
 
 #![deny(
+    clippy::option_unwrap_used,
+    clippy::result_unwrap_used,
     missing_docs,
     missing_debug_implementations,
     missing_copy_implementations,
@@ -55,6 +57,7 @@ use termion::event::*;
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
 use termion::{clear, color, cursor, style};
+use unwrap::unwrap;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Tui Module Configuration (For future use)
@@ -126,7 +129,7 @@ impl TuiModuleDatas {
         heads_index: usize,
         out_connections_status: &HashMap<NodeFullId, Connection>,
         _in_connections_status: &HashMap<NodeFullId, Connection>,
-    ) {
+    ) -> Result<(), std::io::Error> {
         // Get Terminal size
         let (w, h) = termion::terminal_size().expect("Fail to get terminal size !");
 
@@ -170,8 +173,7 @@ impl TuiModuleDatas {
             color::Bg(color::Black),
             clear::All,
             cursor::Goto(1, 1)
-        )
-        .unwrap();
+        )?;
 
         // Draw headers
         let mut line = 1;
@@ -181,8 +183,7 @@ impl TuiModuleDatas {
             cursor::Goto(1, line),
             color::Fg(color::White),
             out_established_conns.len()
-        )
-        .unwrap();
+        )?;
         line += 1;
         write!(
             stdout,
@@ -190,8 +191,7 @@ impl TuiModuleDatas {
             cursor::Goto(1, line),
             color::Fg(color::White),
             style::Italic,
-        )
-        .unwrap();
+        )?;
 
         // Draw inter-nodes established connections
         if out_established_conns.is_empty() {
@@ -202,8 +202,7 @@ impl TuiModuleDatas {
                 cursor::Goto(2, line),
                 color::Fg(color::Red),
                 style::Bold,
-            )
-            .unwrap();
+            )?;
         } else {
             for (ref node_full_id, ref uid, ref url) in out_established_conns {
                 line += 1;
@@ -219,8 +218,7 @@ impl TuiModuleDatas {
                     node_full_id.to_human_string(),
                     uid_string,
                     url,
-                )
-                .unwrap();
+                )?;
             }
         }
 
@@ -237,8 +235,7 @@ impl TuiModuleDatas {
             out_trying_conns_count,
             out_denial_conns_count,
             out_disconnected_conns_count,
-        )
-        .unwrap();
+        )?;
 
         // Draw separated line
         line += 1;
@@ -252,8 +249,7 @@ impl TuiModuleDatas {
             cursor::Goto(1, line),
             color::Fg(color::White),
             separated_line,
-        )
-        .unwrap();
+        )?;
 
         // Draw HEADs
         line += 1;
@@ -263,8 +259,7 @@ impl TuiModuleDatas {
             cursor::Goto(1, line),
             color::Fg(color::White),
             heads.len()
-        )
-        .unwrap();
+        )?;
         line += 1;
         if heads_index > 0 {
             write!(
@@ -272,16 +267,14 @@ impl TuiModuleDatas {
                 "{}{}/\\",
                 cursor::Goto(35, line),
                 color::Fg(color::Green),
-            )
-            .unwrap();
+            )?;
         } else {
             write!(
                 stdout,
                 "{}{}/\\",
                 cursor::Goto(35, line),
                 color::Fg(color::Black),
-            )
-            .unwrap();
+            )?;
         }
         line += 1;
         write!(
@@ -289,7 +282,7 @@ impl TuiModuleDatas {
             "{}{}Step NodeId-Pubkey BlockId-BlockHash      Soft:Ver            Pre [ Api ] MeR:MiR uid",
             cursor::Goto(1, line),
             color::Fg(color::White)
-        ).unwrap();
+        )?;
         for head in &heads[heads_index..] {
             if line < (h - 2) {
                 line += 1;
@@ -300,8 +293,7 @@ impl TuiModuleDatas {
                         cursor::Goto(1, line),
                         color::Fg(color::Blue),
                         head.to_human_string(w as usize),
-                    )
-                    .unwrap();
+                    )?;
                 } else {
                     write!(
                         stdout,
@@ -309,8 +301,7 @@ impl TuiModuleDatas {
                         cursor::Goto(1, line),
                         color::Fg(color::Green),
                         head.to_human_string(w as usize),
-                    )
-                    .unwrap();
+                    )?;
                 }
             } else {
                 break;
@@ -323,16 +314,14 @@ impl TuiModuleDatas {
                 "{}{}\\/",
                 cursor::Goto(35, line),
                 color::Fg(color::Green),
-            )
-            .unwrap();
+            )?;
         } else {
             write!(
                 stdout,
                 "{}{}\\/",
                 cursor::Goto(35, line),
                 color::Fg(color::Black),
-            )
-            .unwrap();
+            )?;
         }
 
         // Draw footer
@@ -355,8 +344,7 @@ impl TuiModuleDatas {
             color::Bg(color::Blue),
             color::Fg(color::White),
             runtime_str,
-        )
-        .unwrap();
+        )?;
         write!(
             stdout,
             "{}{}{}q : quit{}",
@@ -364,11 +352,12 @@ impl TuiModuleDatas {
             color::Bg(color::Blue),
             color::Fg(color::White),
             cursor::Hide,
-        )
-        .unwrap();
+        )?;
 
         // Flush stdout (i.e. make the output appear).
-        stdout.flush().unwrap();
+        stdout.flush()?;
+
+        Ok(())
     }
     /// Restore Terminal
     fn restore_term<W: Write>(stdout: &RawTerminal<W>) {
@@ -477,18 +466,18 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
         // Enter raw mode.
         // Wait a short while before modifying stdout, in case errors should be reported regarding the launch of the other modules.
         thread::sleep(Duration::from_millis(500));
-        let mut stdout = MouseTerminal::from(stdout().into_raw_mode().unwrap());
+        let mut stdout = MouseTerminal::from(unwrap!(stdout().into_raw_mode()));
 
         // Initial draw
         let mut last_draw = SystemTime::now();
-        tui.draw_term(
+        unwrap!(tui.draw_term(
             &mut stdout,
             start_time,
             &tui.heads_cache,
             tui.heads_index,
             &tui.connections_status,
             &HashMap::with_capacity(0),
-        );
+        ));
 
         // Launch stdin thread
         let _stdin_thread = thread::spawn(move || {
@@ -513,7 +502,7 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
                 Ok(ref message) => match *message {
                     TuiMess::DursMsg(ref durs_message) => match durs_message.deref() {
                         DursMsg::Stop => {
-                            let _ = writeln!(
+                            unwrap!(writeln!(
                                 stdout,
                                 "{}{}{}{}{}",
                                 color::Fg(color::Reset),
@@ -521,7 +510,7 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
                                 color::Bg(color::Reset),
                                 cursor::Show,
                                 clear::All,
-                            );
+                            ));
                             break;
                         }
                         DursMsg::Event {
@@ -579,7 +568,7 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
                     TuiMess::TermionEvent(ref term_event) => match *term_event {
                         Event::Key(Key::Char('q')) => {
                             // Exit
-                            let _ = writeln!(
+                            unwrap!(writeln!(
                                 stdout,
                                 "{}{}{}{}{}",
                                 color::Fg(color::Reset),
@@ -587,7 +576,7 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
                                 color::Bg(color::Reset),
                                 cursor::Show,
                                 clear::All,
-                            );
+                            ));
                             TuiModuleDatas::restore_term(&stdout);
                             if tui
                                 .router_sender
@@ -651,14 +640,14 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
                     > 250_000_000
             {
                 last_draw = now;
-                tui.draw_term(
+                unwrap!(tui.draw_term(
                     &mut stdout,
                     start_time,
                     &tui.heads_cache,
                     tui.heads_index,
                     &tui.connections_status,
                     &HashMap::with_capacity(0),
-                );
+                ));
             }
         }
         Ok(())
