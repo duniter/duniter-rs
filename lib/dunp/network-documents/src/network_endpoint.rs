@@ -169,7 +169,10 @@ impl EndpointV1 {
             match ep_pair.as_rule() {
                 Rule::api_name => api_name = ep_pair.as_str(),
                 Rule::node_id => {
-                    node_id = Some(NodeId(u32::from_str_radix(ep_pair.as_str(), 16).unwrap()));
+                    node_id = Some(NodeId(unwrap!(
+                        u32::from_str_radix(ep_pair.as_str(), 16),
+                        "Fail to parse Rule::node_id"
+                    )));
                     hash_full_id = match node_id {
                         Some(node_id_) => Some(NodeFullId(node_id_, issuer).sha256()),
                         None => None,
@@ -178,7 +181,7 @@ impl EndpointV1 {
                 Rule::host_inner => host_str = ep_pair.as_str(),
                 Rule::ip4_inner => host_str = ep_pair.as_str(),
                 Rule::ip6_inner => host_str = ep_pair.as_str(),
-                Rule::port => port = ep_pair.as_str().parse().unwrap(),
+                Rule::port => port = unwrap!(ep_pair.as_str().parse(), "Fail to parse Rule::port"),
                 Rule::path_inner => path = Some(String::from(ep_pair.as_str())),
                 _ => fatal_error!("unexpected rule: {:?}", ep_pair.as_rule()), // Grammar ensures that we never reach this line
             }
@@ -206,7 +209,7 @@ impl EndpointV1 {
     ) -> Result<EndpointV1, TextDocumentParseError> {
         let mut ep_v1_pairs = NetworkDocsParser::parse(Rule::endpoint_v1, raw_endpoint)?;
         Ok(EndpointV1::from_pest_pair(
-            ep_v1_pairs.next().unwrap(),
+            unwrap!(ep_v1_pairs.next(), "Fail to parse Rule::endpoint_v1"),
             issuer,
             status,
             last_check,
@@ -365,10 +368,9 @@ impl EndpointV2 {
         let domain = if let Some(ref domain) = self.domain {
             domain.clone()
         } else if supported_ip_v6 && self.ip_v6.is_some() {
-            let ip_v6 = self.ip_v6.unwrap();
+            let ip_v6 = unwrap!(self.ip_v6, "Previously checked, cannot fail");
             format!("{}", ip_v6)
-        } else if self.ip_v4.is_some() {
-            let ip_v4 = self.ip_v4.unwrap();
+        } else if let Some(ip_v4) = self.ip_v4 {
             format!("{}", ip_v4)
         } else {
             println!("DEBUG: endpoint_v2={:?}", self);
@@ -389,7 +391,7 @@ impl EndpointV2 {
         }
     }
     /// Generate from pest pair
-    pub fn from_pest_pair(pair: Pair<Rule>) -> Result<EndpointV2, AddrParseError> {
+    pub fn from_pest_pair(pair: Pair<Rule>) -> Result<EndpointV2, TextDocumentParseError> {
         let mut api_str = "";
         let mut api_version = 0;
         let mut network_features = EndpointV2NetworkFeatures(vec![0u8]);
@@ -402,19 +404,30 @@ impl EndpointV2 {
         for field in pair.into_inner() {
             match field.as_rule() {
                 Rule::api_name => api_str = field.as_str(),
-                Rule::api_version_inner => api_version = field.as_str().parse().unwrap(),
+                Rule::api_version_inner => {
+                    api_version = unwrap!(
+                        field.as_str().parse(),
+                        "Fail to parse Rule::api_version_inner"
+                    )
+                }
                 Rule::http => network_features.0[0] |= 0b_0000_0001,
                 Rule::ws => network_features.0[0] |= 0b_0000_0010,
                 Rule::tls => network_features.0[0] |= 0b_0000_0100,
                 Rule::tor => network_features.0[0] |= 0b_0000_1000,
                 Rule::api_features_inner => {
                     api_features = if field.as_str().len() == 1 {
-                        ApiFeatures(hex::decode(&format!("0{}", field.as_str())).unwrap())
+                        ApiFeatures(unwrap!(
+                            hex::decode(&format!("0{}", field.as_str())),
+                            "Fail to parse Rule::api_features_inner"
+                        ))
                     } else {
-                        ApiFeatures(hex::decode(field.as_str()).unwrap())
+                        ApiFeatures(unwrap!(
+                            hex::decode(field.as_str()),
+                            "Fail to parse Rule::api_features_inner"
+                        ))
                     };
                 }
-                Rule::port => port = field.as_str().parse().unwrap(),
+                Rule::port => port = unwrap!(field.as_str().parse(), "Fail to parse Rule::port"),
                 Rule::domain_name_inner => domain = Some(String::from(field.as_str())),
                 Rule::ip4_inner => ip_v4 = Some(Ipv4Addr::from_str(field.as_str())?),
                 Rule::ip6_inner => ip_v6 = Some(Ipv6Addr::from_str(field.as_str())?),
@@ -441,9 +454,10 @@ impl EndpointV2 {
     /// parse from raw ascii format
     pub fn parse_from_raw(raw_endpoint: &str) -> Result<EndpointEnum, TextDocumentParseError> {
         let mut ep_v2_pairs = NetworkDocsParser::parse(Rule::endpoint_v2, raw_endpoint)?;
-        Ok(EndpointEnum::V2(EndpointV2::from_pest_pair(
-            ep_v2_pairs.next().unwrap(),
-        )?))
+        Ok(EndpointEnum::V2(EndpointV2::from_pest_pair(unwrap!(
+            ep_v2_pairs.next(),
+            "Fail to parse Rule::endpoint_v2"
+        ))?))
     }
 }
 
@@ -783,7 +797,7 @@ mod tests {
             api_version: 2,
             network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
-            ip_v4: Some(Ipv4Addr::from_str("84.16.72.210").unwrap()),
+            ip_v4: Some(unwrap!(Ipv4Addr::from_str("84.16.72.210"))),
             ip_v6: None,
             domain: None,
             port: 443u16,
@@ -801,7 +815,7 @@ mod tests {
             network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
             ip_v4: None,
-            ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
+            ip_v6: Some(unwrap!(Ipv6Addr::from_str("2001:41d0:8:c5aa::1"))),
             domain: None,
             port: 443u16,
             path: Some(String::from("ws2p")),
@@ -817,8 +831,8 @@ mod tests {
             api_version: 2,
             network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
-            ip_v4: Some(Ipv4Addr::from_str("5.135.188.170").unwrap()),
-            ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
+            ip_v4: Some(unwrap!(Ipv4Addr::from_str("5.135.188.170"))),
+            ip_v6: Some(unwrap!(Ipv6Addr::from_str("2001:41d0:8:c5aa::1"))),
             domain: None,
             port: 443u16,
             path: Some(String::from("ws2p")),
@@ -835,8 +849,8 @@ mod tests {
             api_version: 2,
             network_features: EndpointV2NetworkFeatures(vec![4u8]),
             api_features: ApiFeatures(vec![7u8]),
-            ip_v4: Some(Ipv4Addr::from_str("5.135.188.170").unwrap()),
-            ip_v6: Some(Ipv6Addr::from_str("2001:41d0:8:c5aa::1").unwrap()),
+            ip_v4: Some(unwrap!(Ipv4Addr::from_str("5.135.188.170"))),
+            ip_v6: Some(unwrap!(Ipv6Addr::from_str("2001:41d0:8:c5aa::1"))),
             domain: Some(String::from("g1.dunitrust.org")),
             port: 443u16,
             path: Some(String::from("ws2p")),

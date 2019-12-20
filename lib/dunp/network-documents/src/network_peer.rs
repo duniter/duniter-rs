@@ -69,21 +69,31 @@ impl PeerCardV11 {
         for field in pair.into_inner() {
             match field.as_rule() {
                 Rule::currency => currency_str = field.as_str(),
-                Rule::node_id => node_id = NodeId(field.as_str().parse().unwrap()),
-                Rule::pubkey => {
-                    issuer = Some(PubKey::Ed25519(
-                        ed25519::PublicKey::from_base58(field.as_str()).unwrap(),
+                Rule::node_id => {
+                    node_id = NodeId(unwrap!(
+                        field.as_str().parse(),
+                        "Fail to parse Rule::node_id"
                     ))
                 }
+                Rule::pubkey => {
+                    issuer = Some(PubKey::Ed25519(unwrap!(
+                        ed25519::PublicKey::from_base58(field.as_str()),
+                        "Fail to parse Rule::pubkey"
+                    )))
+                }
                 Rule::block_id => {
-                    created_on = Some(BlockNumber(field.as_str().parse().unwrap()));
+                    created_on = Some(BlockNumber(unwrap!(
+                        field.as_str().parse(),
+                        "Fail to parse Rule::block_id"
+                    )));
                     // Grammar ensures that we have a digits string.
                 }
                 Rule::endpoint_v2 => endpoints.push(EndpointV2::from_pest_pair(field)?),
                 Rule::ed25519_sig => {
-                    sig = Some(Sig::Ed25519(
-                        ed25519::Signature::from_base64(field.as_str()).unwrap(),
-                    ))
+                    sig = Some(Sig::Ed25519(unwrap!(
+                        ed25519::Signature::from_base64(field.as_str()),
+                        "Fail to parse Rule::ed25519_sig"
+                    )))
                 }
                 _ => fatal_error!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
             }
@@ -92,10 +102,15 @@ impl PeerCardV11 {
 
         Ok(PeerCardV11 {
             currency_name: CurrencyName(currency_str.to_owned()),
-            issuer: issuer.expect("Grammar must ensure that peer v11 have valid issuer pubkey !"),
+            issuer: unwrap!(
+                issuer,
+                "Grammar must ensure that peer v11 have valid issuer pubkey !"
+            ),
             node_id,
-            created_on: created_on
-                .expect("Grammar must ensure that peer v11 have valid field created_on !"),
+            created_on: unwrap!(
+                created_on,
+                "Grammar must ensure that peer v11 have valid field created_on !"
+            ),
             endpoints,
             endpoints_str: Vec::with_capacity(endpoints_len),
             sig,
@@ -180,10 +195,10 @@ impl TextDocumentParser<Rule> for PeerCard {
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
         let mut peer_v11_pairs = NetworkDocsParser::parse(Rule::peer_v11, doc)?;
-        Ok(Self::from_versioned_pest_pair(
+        Self::from_versioned_pest_pair(
             11,
-            peer_v11_pairs.next().unwrap(),
-        )?)
+            unwrap!(peer_v11_pairs.next(), "Fail to parse Rule::peer_v11"),
+        )
     }
 
     #[inline]
@@ -209,7 +224,7 @@ impl TextDocumentParser<Rule> for PeerCard {
 impl PeerCardV11 {
     /// Convert to JSON String
     pub fn to_json_peer(&self) -> Result<String, serde_json::Error> {
-        Ok(serde_json::to_string_pretty(&JsonPeerCardV11 {
+        serde_json::to_string_pretty(&JsonPeerCardV11 {
             version: 11,
             currency_name: &self.currency_name.0,
             node_id: self.node_id,
@@ -222,7 +237,7 @@ impl PeerCardV11 {
             } else {
                 None
             },
-        })?)
+        })
     }
 }
 
@@ -306,7 +321,7 @@ mod tests {
             api_version: 2,
             network_features: EndpointV2NetworkFeatures(vec![1u8]),
             api_features: ApiFeatures(vec![7u8]),
-            ip_v4: Some(Ipv4Addr::from_str("84.16.72.210").unwrap()),
+            ip_v4: Some(unwrap!(Ipv4Addr::from_str("84.16.72.210"))),
             ip_v6: None,
             domain: None,
             port: 443u16,
@@ -317,8 +332,10 @@ mod tests {
     #[test]
     fn peer_card_v11_sign_and_verify() {
         let keypair1 = keypair1();
-        let signator =
-            SignatorEnum::Ed25519(keypair1.generate_signator().expect("Fail to gen signator"));
+        let signator = SignatorEnum::Ed25519(unwrap!(
+            keypair1.generate_signator(),
+            "Fail to gen signator"
+        ));
         let mut peer_card_v11 = PeerCardV11 {
             currency_name: CurrencyName(String::from("g1")),
             issuer: PubKey::Ed25519(keypair1.public_key()),
@@ -330,14 +347,18 @@ mod tests {
         };
         // Sign
         let sign_result = peer_card_v11.sign(&signator);
-        if let Ok(peer_card_v11_raw) = sign_result {
-            println!("{}", peer_card_v11_raw);
-            assert_eq!(
-                PeerCard::V11(peer_card_v11.clone()),
-                PeerCard::parse(&peer_card_v11_raw).expect("Fail to parse peer card v11 !")
-            )
-        } else {
-            panic!("fail to sign peer card : {:?}", sign_result.err().unwrap())
+        match sign_result {
+            Ok(peer_card_v11_raw) => {
+                println!("{}", peer_card_v11_raw);
+                assert_eq!(
+                    PeerCard::V11(peer_card_v11.clone()),
+                    unwrap!(
+                        PeerCard::parse(&peer_card_v11_raw),
+                        "Fail to parse peer card v11 !"
+                    )
+                )
+            }
+            Err(e) => panic!("fail to sign peer card : {:?}", e),
         }
         // Verify signature
         peer_card_v11

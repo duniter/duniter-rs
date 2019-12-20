@@ -16,6 +16,8 @@
 //! Implements the Documents of DUNP (DUniter Network Protocol).
 
 #![deny(
+    clippy::option_unwrap_used,
+    clippy::result_unwrap_used,
     missing_debug_implementations,
     missing_copy_implementations,
     trivial_casts,
@@ -53,7 +55,7 @@ use pest::iterators::Pair;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Error, Formatter};
-use std::net::AddrParseError;
+use unwrap::unwrap;
 
 #[derive(Parser)]
 #[grammar = "network_documents.pest"]
@@ -74,9 +76,14 @@ impl TextDocumentParser<Rule> for NetworkDocument {
 
     fn parse(doc: &str) -> Result<NetworkDocument, TextDocumentParseError> {
         let mut net_doc_pairs = NetworkDocsParser::parse(Rule::network_document, doc)?;
-        Ok(NetworkDocument::from_pest_pair(
-            net_doc_pairs.next().unwrap().into_inner().next().unwrap(), // get and unwrap the `network_document` rule; never fails
-        )?)
+        NetworkDocument::from_pest_pair(
+            unwrap!(
+                unwrap!(net_doc_pairs.next(), "Fail to parse Rule::network_document")
+                    .into_inner()
+                    .next(),
+                "Fail to parse Rule::network_document"
+            ), // get and unwrap the `network_document` rule; never fails
+        )
     }
     fn from_pest_pair(pair: Pair<Rule>) -> Result<NetworkDocument, TextDocumentParseError> {
         Ok(match pair.as_rule() {
@@ -127,10 +134,9 @@ impl Default for NodeFullId {
     fn default() -> NodeFullId {
         NodeFullId(
             NodeId::default(),
-            PubKey::Ed25519(
-                ed25519::PublicKey::from_base58("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-                    .unwrap(),
-            ),
+            PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+            ))),
         )
     }
 }
@@ -169,11 +175,10 @@ mod tests {
 
     #[test]
     fn parse_endpoint() {
-        let issuer = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx")
-                .unwrap(),
-        );
-        let node_id = NodeId(u32::from_str_radix("c1c39a0a", 16).unwrap());
+        let issuer = PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+            "D9D2zaJoWYWveii1JRYLVK3J4Z7ZH3QczoKrnQeiM6mx"
+        )));
+        let node_id = NodeId(u32::from_str_radix("c1c39a0a", 16).expect("Fail to parse u32"));
         let full_id = NodeFullId(node_id, issuer);
         assert_eq!(
             EndpointV1::parse_from_raw("WS2P c1c39a0a i3.ifee.fr 80 /ws2p", issuer, 0, 0),
@@ -194,11 +199,10 @@ mod tests {
 
     #[test]
     fn parse_endpoint2() {
-        let issuer = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("5gJYnQp8v7bWwk7EWRoL8vCLof1r3y9c6VDdnGSM1GLv")
-                .unwrap(),
-        );
-        let node_id = NodeId(u32::from_str_radix("cb06a19b", 16).unwrap());
+        let issuer = PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+            "5gJYnQp8v7bWwk7EWRoL8vCLof1r3y9c6VDdnGSM1GLv"
+        )));
+        let node_id = NodeId(unwrap!(u32::from_str_radix("cb06a19b", 16)));
         let full_id = NodeFullId(node_id, issuer);
         assert_eq!(
             EndpointV1::parse_from_raw("WS2P cb06a19b g1.imirhil.fr 53012", issuer, 0, 0),

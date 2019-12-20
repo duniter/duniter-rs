@@ -27,6 +27,7 @@ use dup_crypto::keys::*;
 use pest::iterators::Pair;
 use pest::Parser;
 use std::cmp::Ordering;
+use unwrap::unwrap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// Head V3
@@ -75,34 +76,70 @@ impl NetworkHeadV3 {
         for field in pair.into_inner() {
             match field.as_rule() {
                 Rule::currency => currency_str = field.as_str(),
-                Rule::api_outgoing_conf => api_outgoing_conf = field.as_str().parse().unwrap(),
-                Rule::api_incoming_conf => api_incoming_conf = field.as_str().parse().unwrap(),
-                Rule::free_member_rooms => free_member_rooms = field.as_str().parse().unwrap(),
-                Rule::free_mirror_rooms => free_mirror_rooms = field.as_str().parse().unwrap(),
-                Rule::node_id => node_id = NodeId(field.as_str().parse().unwrap()),
-                Rule::pubkey => {
-                    pubkey = Some(PubKey::Ed25519(
-                        ed25519::PublicKey::from_base58(field.as_str()).unwrap(),
+                Rule::api_outgoing_conf => {
+                    api_outgoing_conf = unwrap!(
+                        field.as_str().parse(),
+                        "Fail to parse Rule::api_outgoing_conf"
+                    )
+                }
+                Rule::api_incoming_conf => {
+                    api_incoming_conf = unwrap!(
+                        field.as_str().parse(),
+                        "Fail to parse Rule::api_incoming_conf"
+                    )
+                }
+                Rule::free_member_rooms => {
+                    free_member_rooms = unwrap!(
+                        field.as_str().parse(),
+                        "Fail to parse Rule::free_member_rooms"
+                    )
+                }
+                Rule::free_mirror_rooms => {
+                    free_mirror_rooms = unwrap!(
+                        field.as_str().parse(),
+                        "Fail to parse Rule::free_mirror_rooms"
+                    )
+                }
+                Rule::node_id => {
+                    node_id = NodeId(unwrap!(
+                        field.as_str().parse(),
+                        "Fail to parse Rule::node_id"
                     ))
+                }
+                Rule::pubkey => {
+                    pubkey = Some(PubKey::Ed25519(unwrap!(
+                        ed25519::PublicKey::from_base58(field.as_str()),
+                        "Fail to parse Rule::pubkey"
+                    )))
                 }
                 Rule::blockstamp => {
                     let mut inner_rules = field.into_inner(); // { block_id ~ "-" ~ hash }
 
-                    let block_id: &str = inner_rules.next().unwrap().as_str();
-                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                    let block_id: &str =
+                        unwrap!(inner_rules.next(), "Fail to parse Rule::blockstamp::id").as_str();
+                    let block_hash: &str =
+                        unwrap!(inner_rules.next(), "Fail to parse Rule::blockstamp::hash")
+                            .as_str();
                     blockstamp = Some(Blockstamp {
-                        id: BlockNumber(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
-                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                        id: BlockNumber(unwrap!(
+                            block_id.parse(),
+                            "Fail to parse Rule::blockstamp::id"
+                        )), // Grammar ensures that we have a digits string.
+                        hash: BlockHash(unwrap!(
+                            Hash::from_hex(block_hash),
+                            "Fail to parse Rule::blockstamp::hash"
+                        )), // Grammar ensures that we have an hexadecimal string.
                     });
                 }
                 Rule::software => software = field.as_str(),
                 Rule::soft_version => soft_version = field.as_str(),
                 Rule::ed25519_sig => {
-                    signature = Some(Sig::Ed25519(
-                        ed25519::Signature::from_base64(field.as_str()).unwrap(),
-                    ))
+                    signature = Some(Sig::Ed25519(unwrap!(
+                        ed25519::Signature::from_base64(field.as_str()),
+                        "Fail to parse Rule::ed25519_sig"
+                    )))
                 }
-                Rule::step => step = field.as_str().parse().unwrap(),
+                Rule::step => step = unwrap!(field.as_str().parse(), "Fail to parse Rule::step"),
                 _ => fatal_error!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
             }
         }
@@ -114,9 +151,14 @@ impl NetworkHeadV3 {
             free_member_rooms,
             free_mirror_rooms,
             node_id,
-            pubkey: pubkey.expect("Grammar must ensure that head v3 have valid issuer pubkey !"),
-            blockstamp: blockstamp
-                .expect("Grammar must ensure that head v3 have valid blockstamp!"),
+            pubkey: unwrap!(
+                pubkey,
+                "Grammar must ensure that head v3 have valid issuer pubkey !"
+            ),
+            blockstamp: unwrap!(
+                blockstamp,
+                "Grammar must ensure that head v3 have valid blockstamp!"
+            ),
             software: software.to_owned(),
             soft_version: soft_version.to_owned(),
             signature,
@@ -170,10 +212,10 @@ impl TextDocumentParser<Rule> for NetworkHead {
 
     fn parse(doc: &str) -> Result<NetworkHead, TextDocumentParseError> {
         let mut head_v3_pairs = NetworkDocsParser::parse(Rule::head_v3, doc)?;
-        Ok(Self::from_versioned_pest_pair(
+        Self::from_versioned_pest_pair(
             3,
-            head_v3_pairs.next().unwrap(),
-        )?)
+            head_v3_pairs.next().expect("Fail to parse Rule::head_v3"),
+        )
     }
     #[inline]
     fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
@@ -243,10 +285,9 @@ mod tests {
             free_member_rooms: 0u8,
             node_id: NodeId(0),
             pubkey: PubKey::Ed25519(keypair.public_key()),
-            blockstamp: Blockstamp::from_string(
+            blockstamp: unwrap!(Blockstamp::from_string(
                 "50-000005B1CEB4EC5245EF7E33101A330A1C9A358EC45A25FC13F78BB58C9E7370",
-            )
-            .unwrap(),
+            )),
             software: String::from("dunitrust"),
             soft_version: String::from("0.3.0-alpha3.14"),
             signature: None,
@@ -254,14 +295,15 @@ mod tests {
         };
         // Sign
         let sign_result = head_v3.sign(&signator);
-        if let Ok(head_v3_raw) = sign_result {
-            println!("{}", head_v3_raw);
-            assert_eq!(
-                NetworkHead::V3(Box::new(head_v3.clone())),
-                NetworkHead::parse(&head_v3_raw).expect("Fail to parse head v3 !")
-            )
-        } else {
-            panic!("fail to sign head v3 : {:?}", sign_result.err().unwrap())
+        match sign_result {
+            Ok(head_v3_raw) => {
+                println!("{}", head_v3_raw);
+                assert_eq!(
+                    NetworkHead::V3(Box::new(head_v3.clone())),
+                    NetworkHead::parse(&head_v3_raw).expect("Fail to parse head v3 !")
+                )
+            }
+            Err(e) => panic!("fail to sign head v3 : {:?}", e),
         }
         // Verify signature
         head_v3.verify().expect("HEADv3 : Invalid signature !");

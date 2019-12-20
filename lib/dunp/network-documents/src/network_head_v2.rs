@@ -251,8 +251,8 @@ impl ToString for NetworkHeadMessageV2 {
                 self.software,
                 self.soft_version,
                 self.prefix,
-                self.free_member_room.unwrap(),
-                self.free_mirror_room.unwrap()
+                self.free_member_room.unwrap_or(0),
+                self.free_mirror_room.unwrap_or(0)
             ),
             _ => fatal_error!("NetworkHeadMessage is wrongly parsed !"),
         }
