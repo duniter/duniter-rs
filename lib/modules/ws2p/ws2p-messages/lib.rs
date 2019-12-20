@@ -17,6 +17,8 @@
 
 #![allow(clippy::large_enum_variant)]
 #![deny(
+    clippy::option_unwrap_used,
+    clippy::result_unwrap_used,
     missing_docs,
     missing_debug_implementations,
     missing_copy_implementations,
@@ -173,6 +175,7 @@ mod tests {
     use durs_network_documents::*;
     use std::net::Ipv4Addr;
     use std::str::FromStr;
+    use unwrap::unwrap;
 
     pub fn keypair1() -> ed25519::Ed25519KeyPair {
         let seed = Seed32::new([
@@ -201,7 +204,7 @@ mod tests {
             api_version: 2,
             network_features: EndpointV2NetworkFeatures(vec![1u8]),
             api_features: ApiFeatures(vec![7u8]),
-            ip_v4: Some(Ipv4Addr::from_str("84.16.72.210").unwrap()),
+            ip_v4: Some(unwrap!(Ipv4Addr::from_str("84.16.72.210"))),
             ip_v6: None,
             domain: None,
             port: 443u16,
@@ -235,54 +238,46 @@ mod tests {
         });
 
         let sign_result = ws2p_message.sign(&signator);
-        if let Ok(bin_msg) = sign_result {
-            // Test binarization
-            assert_eq!(
-                serialize(&ws2p_message).expect("Fail to serialize WS2Pv2Message !"),
-                bin_msg
-            );
-            // Test sign
-            ws2p_message
-                .verify()
-                .expect("WS2Pv2Message : Invalid signature !");
-            // Test debinarization
-            let debinarization_result: Result<WS2PMessage, bincode::Error> = deserialize(&bin_msg);
-            if let Ok(ws2p_message2) = debinarization_result {
-                assert_eq!(ws2p_message, ws2p_message2);
-            } else {
-                panic!(
-                    "Fail to debinarize ws2p_message : {:?}",
-                    debinarization_result.err().unwrap()
+        match sign_result {
+            Ok(bin_msg) => {
+                // Test binarization
+                assert_eq!(
+                    serialize(&ws2p_message).expect("Fail to serialize WS2Pv2Message !"),
+                    bin_msg
                 );
+                // Test sign
+                ws2p_message
+                    .verify()
+                    .expect("WS2Pv2Message : Invalid signature !");
+                // Test debinarization
+                let debinarization_result: Result<WS2PMessage, bincode::Error> =
+                    deserialize(&bin_msg);
+                match debinarization_result {
+                    Ok(ws2p_message2) => assert_eq!(ws2p_message, ws2p_message2),
+                    Err(e) => panic!("Fail to debinarize ws2p_message : {:?}", e),
+                };
             }
-        } else {
-            panic!(
-                "Fail to sign ws2p_message : {:?}",
-                sign_result.err().unwrap()
-            );
-        }
+            Err(e) => panic!("Fail to sign ws2p_message : {:?}", e),
+        };
     }
 
     pub fn create_cert_doc() -> CompactCertificationDocumentV10 {
-        let sig = Sig::Ed25519(ed25519::Signature::from_base64(
+        let sig = Sig::Ed25519(unwrap!(ed25519::Signature::from_base64(
             "qfR6zqT1oJbqIsppOi64gC9yTtxb6g6XA9RYpulkq9ehMvqg2VYVigCbR0yVpqKFsnYiQTrnjgFuFRSJCJDfCw==",
-        ).unwrap());
+        )));
 
-        let target = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
-                .unwrap(),
-        );
+        let target = PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+            "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV"
+        )));
 
-        let blockstamp = Blockstamp::from_string(
-            "36-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B865",
-        )
-        .unwrap();
+        let blockstamp = unwrap!(Blockstamp::from_string(
+            "36-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B865"
+        ));
 
         CompactCertificationDocumentV10 {
-            issuer: PubKey::Ed25519(
-                ed25519::PublicKey::from_base58("4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR")
-                    .unwrap(),
-            ),
+            issuer: PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+                "4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR"
+            ))),
             target,
             block_number: blockstamp.id,
             signature: sig,

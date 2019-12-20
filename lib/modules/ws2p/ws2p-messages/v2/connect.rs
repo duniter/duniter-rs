@@ -165,6 +165,7 @@ mod tests {
     use crate::tests::*;
     use dubp_common_doc::Blockstamp;
     use dup_crypto::keys::text_signable::TextSignable;
+    use unwrap::unwrap;
 
     #[test]
     fn test_ws2p_connect_flags() {
@@ -192,19 +193,15 @@ mod tests {
         let mut peer = create_peer_card_v11();
         peer.sign(&signator).expect("Fail to sign peer card !");
         let connect_msg = WS2Pv2ConnectMsg {
-            challenge: Hash::from_hex(
+            challenge: unwrap!(Hash::from_hex(
                 "000007722B243094269E548F600BD34D73449F7578C05BD370A6D301D20B5F10",
-            )
-            .unwrap(),
+            )),
             api_features: WS2PFeatures([7u8, 0, 0, 0]),
             flags_queries: WS2PConnectFlags(vec![]),
             peer_card: Some(peer),
-            chunkstamp: Some(
-                Blockstamp::from_string(
-                    "499-000011BABEEE1020B1F6B2627E2BC1C35BCD24375E114349634404D2C266D84F",
-                )
-                .unwrap(),
-            ),
+            chunkstamp: Some(unwrap!(Blockstamp::from_string(
+                "499-000011BABEEE1020B1F6B2627E2BC1C35BCD24375E114349634404D2C266D84F",
+            ))),
         };
         test_ws2p_message(WS2Pv2MessagePayload::Connect(Box::new(connect_msg)));
     }

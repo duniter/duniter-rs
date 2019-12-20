@@ -64,6 +64,7 @@ mod tests {
     use super::*;
     use crate::tests::*;
     use dubp_common_doc::Blockstamp;
+    use unwrap::unwrap;
 
     #[test]
     fn test_ws2p_message_req_res_none() {
@@ -86,10 +87,9 @@ mod tests {
 
     #[test]
     fn test_ws2p_message_req_res_current() {
-        let blockstamp = Blockstamp::from_string(
+        let blockstamp = unwrap!(Blockstamp::from_string(
             "499-000011BABEEE1020B1F6B2627E2BC1C35BCD24375E114349634404D2C266D84F",
-        )
-        .unwrap();
+        ));
         let response = WS2Pv2ReqRes {
             id: 28,
             body: WS2Pv2ReqResBody::Current(blockstamp),
@@ -100,10 +100,12 @@ mod tests {
     #[test]
     fn test_ws2p_message_req_res_blocks_hashs() {
         let hashs = vec![
-            Hash::from_hex("000011BABEEE1020B1F6B2627E2BC1C35BCD24375E114349634404D2C266D84F")
-                .unwrap(),
-            Hash::from_hex("0000007F8D3CCAF77CB77C5C025C4AED8A82BA2DBD2156FD92C9634DAB59BD7E")
-                .unwrap(),
+            unwrap!(Hash::from_hex(
+                "000011BABEEE1020B1F6B2627E2BC1C35BCD24375E114349634404D2C266D84F"
+            )),
+            unwrap!(Hash::from_hex(
+                "0000007F8D3CCAF77CB77C5C025C4AED8A82BA2DBD2156FD92C9634DAB59BD7E"
+            )),
         ];
         let response = WS2Pv2ReqRes {
             id: 29,

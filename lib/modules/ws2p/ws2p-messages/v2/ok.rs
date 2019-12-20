@@ -51,25 +51,23 @@ mod tests {
     use crate::tests::*;
     use dubp_common_doc::Blockstamp;
     use std::num::NonZeroU16;
+    use unwrap::unwrap;
 
     #[test]
     fn test_ws2p_message_ok() {
         let ok_msg = WS2Pv2OkMsg {
             prefix: NonZeroU16::new(1),
             sync_target: Some(WS2Pv2SyncTarget {
-                target_blockstamp: Blockstamp::from_string(
+                target_blockstamp: unwrap!(Blockstamp::from_string(
                     "500-000011BABEEE1020B1F6B2627E2BC1C35BCD24375E114349634404D2C266D84F",
-                )
-                .unwrap(),
+                )),
                 chunks_hash: vec![
-                    Hash::from_hex(
+                    unwrap!(Hash::from_hex(
                         "000007722B243094269E548F600BD34D73449F7578C05BD370A6D301D20B5F10",
-                    )
-                    .unwrap(),
-                    Hash::from_hex(
+                    )),
+                    unwrap!(Hash::from_hex(
                         "0000095FD4C8EA96DE2844E3A4B62FD18761E9B4C13A74FAB716A4C81F438D91",
-                    )
-                    .unwrap(),
+                    )),
                 ],
             }),
         };
