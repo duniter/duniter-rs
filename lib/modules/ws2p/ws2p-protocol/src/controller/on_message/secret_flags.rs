@@ -22,7 +22,6 @@ use durs_module::ModuleMessage;
 //use durs_ws2p_messages::v2::connect::WS2Pv2ConnectType;
 use durs_ws2p_messages::v2::secret_flags::WS2Pv2SecretFlagsMsg;
 //use log::error;
-//use unwrap::unwrap;
 
 pub fn process_ws2p_v2p_secret_flags_msg<M: ModuleMessage>(
     controller: &mut WS2PController<M>,

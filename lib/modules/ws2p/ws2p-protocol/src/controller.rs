@@ -31,8 +31,7 @@ use durs_ws2p_messages::v2::connect::WS2Pv2ConnectType;
 use durs_ws2p_messages::WS2PMessage;
 use failure::Fail;
 use std::sync::mpsc::{Receiver, SendError, Sender};
-use std::time::SystemTime;
-use unwrap::unwrap;
+use std::time::Instant;
 
 #[derive(Copy, Clone, Debug, Hash)]
 /// WS2P Controller unique identitier
@@ -141,10 +140,10 @@ impl WebsocketActionOrder {
 impl<M: ModuleMessage> WS2PController<M> {
     /// Check timeouts
     pub fn check_timeouts(&mut self) -> Option<WebsocketActionOrder> {
-        let now = SystemTime::now();
+        let now = Instant::now();
 
         if self.meta_datas.state == WS2PConnectionState::Established {
-            if unwrap!(now.duration_since(self.meta_datas.last_mess_time)).as_secs()
+            if now.duration_since(self.meta_datas.last_mess_time).as_secs()
                 > *constants::WS2P_EXPIRE_TIMEOUT_IN_SECS
             {
                 Some(WebsocketActionOrder {
@@ -157,7 +156,7 @@ impl<M: ModuleMessage> WS2PController<M> {
             } else {
                 None
             }
-        } else if unwrap!(now.duration_since(self.meta_datas.creation_time)).as_secs()
+        } else if now.duration_since(self.meta_datas.creation_time).as_secs()
             > *constants::WS2P_NEGOTIATION_TIMEOUT_IN_SECS
         {
             Some(WebsocketActionOrder {

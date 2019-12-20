@@ -33,19 +33,17 @@ use durs_ws2p_messages::WS2PMessage;
 use log::error;
 use std::ops::Deref;
 use std::thread;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant};
 
 pub fn process<M: ModuleMessage>(
     controller: &mut WS2PController<M>,
     msg: WebsocketMessage,
 ) -> Result<Option<WebsocketActionOrder>, WS2PControllerProcessError> {
     // Update last_mess_time
-    controller.meta_datas.last_mess_time = SystemTime::now();
+    controller.meta_datas.last_mess_time = Instant::now();
 
     // Spam ?
-    if SystemTime::now()
-        .duration_since(controller.meta_datas.last_mess_time)
-        .unwrap()
+    if controller.meta_datas.last_mess_time.elapsed()
         > Duration::new(*constants::WS2P_SPAM_INTERVAL_IN_MILLI_SECS, 0)
     {
         if controller.meta_datas.spam_interval {
@@ -63,7 +61,7 @@ pub fn process<M: ModuleMessage>(
         thread::sleep(Duration::from_millis(
             *constants::WS2P_SPAM_SLEEP_TIME_IN_SEC,
         ));
-        controller.meta_datas.last_mess_time = SystemTime::now();
+        controller.meta_datas.last_mess_time = Instant::now();
         return Ok(None);
     }
 

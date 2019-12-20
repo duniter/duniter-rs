@@ -27,7 +27,7 @@ use durs_network_documents::NodeFullId;
 use durs_ws2p_messages::v2::api_features::WS2PFeatures;
 use durs_ws2p_messages::v2::connect::WS2Pv2ConnectType;
 use log::error;
-use std::time::SystemTime;
+use std::time::Instant;
 
 #[derive(Debug)]
 /// WS2p Connection meta datas
@@ -41,13 +41,13 @@ pub struct WS2PControllerMetaDatas {
     /// Currency name
     pub currency: CurrencyName,
     /// Controller creation time
-    pub creation_time: SystemTime,
+    pub creation_time: Instant,
     /// Connection features
     pub features: Option<WS2PFeatures>,
     /// Signator
     pub signator: SignatorEnum,
     /// Timestamp of last received message
-    pub last_mess_time: SystemTime,
+    pub last_mess_time: Instant,
     /// Local node properties
     pub local_node: MySelfWs2pNode,
     /// Remote connect type
@@ -81,9 +81,9 @@ impl WS2PControllerMetaDatas {
             connect_type,
             count_invalid_msgs: 0,
             currency,
-            creation_time: SystemTime::now(),
+            creation_time: Instant::now(),
             features: None,
-            last_mess_time: SystemTime::now(),
+            last_mess_time: Instant::now(),
             local_node,
             remote_connect_type: None,
             remote_node: None,
