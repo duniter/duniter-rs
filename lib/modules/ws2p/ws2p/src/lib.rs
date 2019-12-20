@@ -16,6 +16,8 @@
 //! WebSocketToPeer API for the Duniter project.
 
 #![deny(
+    clippy::option_unwrap_used,
+    clippy::result_unwrap_used,
     missing_docs,
     missing_debug_implementations,
     missing_copy_implementations,
@@ -51,6 +53,7 @@ use durs_network::*;
 use durs_network_documents::network_endpoint::*;
 use maplit::hashset;
 use std::sync::mpsc;
+use unwrap::unwrap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// WS2P Configuration
@@ -84,8 +87,12 @@ impl Default for WS2PConf {
         WS2PConf {
             outcoming_quota: *constants::WS2P_DEFAULT_OUTCOMING_QUOTA,
             sync_endpoints: vec![
-                EndpointV2::parse_from_raw("WS2P 2 g1.dunitrust.org 443 ws2p").unwrap(),
-                EndpointV2::parse_from_raw("WS2P 2 rs.g1.librelois.fr 443 ws2p").unwrap(),
+                unwrap!(EndpointV2::parse_from_raw(
+                    "WS2P 2 g1.dunitrust.org 443 ws2p"
+                )),
+                unwrap!(EndpointV2::parse_from_raw(
+                    "WS2P 2 rs.g1.librelois.fr 443 ws2p"
+                )),
             ],
         }
     }
