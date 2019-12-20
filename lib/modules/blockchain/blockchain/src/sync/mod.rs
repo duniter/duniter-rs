@@ -31,7 +31,7 @@ use failure::Fail;
 use pbr::ProgressBar;
 use std::collections::{HashMap, VecDeque};
 use std::sync::mpsc;
-use std::time::SystemTime;
+use std::time::Instant;
 use std::{fs, thread};
 use threadpool::ThreadPool;
 use unwrap::unwrap;
@@ -208,7 +208,7 @@ pub fn local_sync<DC: DursConfTrait>(
         .expect("Fatal eror : get_wot_index : Fail to read blockchain databases");
 
     // Start sync
-    let sync_start_time = SystemTime::now();
+    let sync_start_time = Instant::now();
 
     // Count number of blocks and chunks
     let count_blocks = target_blockstamp.id.0 + 1 - current_blockstamp.id.0;
@@ -261,7 +261,7 @@ pub fn local_sync<DC: DursConfTrait>(
         recv_tx_thread,
     );
 
-    let main_job_begin = SystemTime::now();
+    let main_job_begin = Instant::now();
 
     // Open databases
     let dbs_path = durs_conf::get_blockchain_db_path(profile_path.clone());
@@ -285,7 +285,7 @@ pub fn local_sync<DC: DursConfTrait>(
         certs_count: 0,
         blocks_not_expiring: VecDeque::with_capacity(200_000),
         last_block_expiring: -1,
-        wait_begin: SystemTime::now(),
+        wait_begin: Instant::now(),
         all_wait_duration: Duration::from_millis(0),
         all_verif_block_hashs_duration: Duration::from_millis(0),
         all_apply_valid_block_duration: Duration::from_millis(0),
@@ -355,8 +355,7 @@ pub fn local_sync<DC: DursConfTrait>(
         .save()
         .expect("Fail to save wot db");
 
-    let main_job_duration = SystemTime::now().duration_since(main_job_begin).unwrap()
-        - block_applicator.all_wait_duration;
+    let main_job_duration = main_job_begin.elapsed() - block_applicator.all_wait_duration;
     info!(
         "main_job_duration={},{:03} seconds.",
         main_job_duration.as_secs(),
@@ -404,7 +403,7 @@ pub fn local_sync<DC: DursConfTrait>(
 
     // Log sync duration
     debug!("certs_count={}", block_applicator.certs_count);
-    let sync_duration = SystemTime::now().duration_since(sync_start_time).unwrap();
+    let sync_duration = sync_start_time.elapsed();
     println!(
         "Sync {} blocks in {}.{:03} seconds.",
         count_blocks,

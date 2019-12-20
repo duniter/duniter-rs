@@ -23,35 +23,34 @@ pub fn execute(
 ) {
     // Launch tx_worker thread
     pool.execute(move || {
-        let tx_job_begin = SystemTime::now();
+        let tx_job_begin = Instant::now();
         // Open databases
         let db_path = durs_conf::get_blockchain_db_path(profile_path);
         let db = open_db(db_path.as_path()).expect("Fail to open blockchain DB.");
 
         // Listen db requets
         let mut all_wait_duration = Duration::from_millis(0);
-        let mut wait_begin = SystemTime::now();
+        let mut wait_begin = Instant::now();
         while let Ok(SyncJobsMess::CurrencyDBsWriteQuery {
             in_fork_window,
             req,
         }) = recv.recv()
         {
-            all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
+            all_wait_duration += wait_begin.elapsed();
             // Apply db request
             db.write(|mut w| {
                 req.apply(&db, &mut w, None, in_fork_window)?;
                 Ok(w)
             })
             .expect("Fatal error : Fail to apply CurrencyDBsWriteQuery !");
-            wait_begin = SystemTime::now();
+            wait_begin = Instant::now();
         }
 
         // Send finish signal
         sender_sync_thread
             .send(MessForSyncThread::ApplyFinish(None))
             .expect("Fatal error : sync_thread unrechable !");
-        let tx_job_duration =
-            SystemTime::now().duration_since(tx_job_begin).unwrap() - all_wait_duration;
+        let tx_job_duration = tx_job_begin.elapsed() - all_wait_duration;
         info!(
             "tx_job_duration={},{:03} seconds.",
             tx_job_duration.as_secs(),

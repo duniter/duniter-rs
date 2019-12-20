@@ -37,7 +37,7 @@ use durs_wot::data::WotId;
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::mpsc;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant};
 use unwrap::unwrap;
 
 // récupérer les métadonnées entre deux utilisation
@@ -63,7 +63,7 @@ pub struct BlockApplicator {
     pub wot_index: HashMap<PubKey, WotId>,
     pub wot_databases: WotsV10DBs,
     // time measurement
-    pub wait_begin: SystemTime,
+    pub wait_begin: Instant,
     pub all_wait_duration: Duration,
     pub all_verif_block_hashs_duration: Duration,
     pub all_apply_valid_block_duration: Duration,
@@ -71,17 +71,15 @@ pub struct BlockApplicator {
 
 impl BlockApplicator {
     pub fn apply(&mut self, block_doc: BlockDocument) {
-        self.all_wait_duration += SystemTime::now().duration_since(self.wait_begin).unwrap();
+        self.all_wait_duration += self.wait_begin.elapsed();
 
         // Verify block hashs
-        let verif_block_hashs_begin = SystemTime::now();
+        let verif_block_hashs_begin = Instant::now();
         if self.verif_inner_hash {
             dubp::check::hashs::check_block_hashes(&block_doc)
                 .expect("Receive wrong block, please reset data and resync !");
         }
-        self.all_verif_block_hashs_duration += SystemTime::now()
-            .duration_since(verif_block_hashs_begin)
-            .unwrap();
+        self.all_verif_block_hashs_duration += verif_block_hashs_begin.elapsed();
 
         // Push block common_time in blocks_not_expiring
         self.blocks_not_expiring.push_back(block_doc.common_time());
@@ -112,7 +110,7 @@ impl BlockApplicator {
         let blockstamp = block_doc.blockstamp();
 
         // Apply block
-        let apply_valid_block_begin = SystemTime::now();
+        let apply_valid_block_begin = Instant::now();
         let mut apply_valid_block_result = Err(ApplyValidBlockError::DBsCorrupted);
         if let Some(db) = self.db.take() {
             db.write(|mut w| {
@@ -134,9 +132,7 @@ impl BlockApplicator {
         if let Ok(WriteBlockQueries(block_req, wot_db_reqs, currency_db_reqs)) =
             apply_valid_block_result
         {
-            self.all_apply_valid_block_duration += SystemTime::now()
-                .duration_since(apply_valid_block_begin)
-                .unwrap();
+            self.all_apply_valid_block_duration += apply_valid_block_begin.elapsed();
             self.current_blockstamp = blockstamp;
             debug!("Apply db requests...");
             // Send block request to blocks worker thread
@@ -199,6 +195,6 @@ impl BlockApplicator {
                 self.current_blockstamp.id.0 + 1
             )
         }
-        self.wait_begin = SystemTime::now();
+        self.wait_begin = Instant::now();
     }
 }

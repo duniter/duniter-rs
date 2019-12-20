@@ -24,16 +24,16 @@ pub fn execute(
 ) {
     // Launch wot_worker thread
     pool.execute(move || {
-        let wot_job_begin = SystemTime::now();
+        let wot_job_begin = Instant::now();
         // Open databases
         let db_path = durs_conf::get_blockchain_db_path(profile_path);
         let db = open_db(&db_path).expect("Fail to open DB.");
 
         // Listen db requets
         let mut all_wait_duration = Duration::from_millis(0);
-        let mut wait_begin = SystemTime::now();
+        let mut wait_begin = Instant::now();
         while let Ok(mess) = recv.recv() {
-            all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
+            all_wait_duration += wait_begin.elapsed();
             match mess {
                 SyncJobsMess::WotsDBsWriteQuery(blockstamp, currency_params, req) => {
                     db.write(|mut w| {
@@ -47,15 +47,14 @@ pub fn execute(
                 SyncJobsMess::End => break,
                 _ => {}
             }
-            wait_begin = SystemTime::now();
+            wait_begin = Instant::now();
         }
 
         // Send finish signal
         sender_sync_thread
             .send(MessForSyncThread::ApplyFinish(None))
             .expect("Fatal error : sync_thread unrechable !");
-        let wot_job_duration =
-            SystemTime::now().duration_since(wot_job_begin).unwrap() - all_wait_duration;
+        let wot_job_duration = wot_job_begin.elapsed() - all_wait_duration;
         info!(
             "wot_job_duration={},{:03} seconds.",
             wot_job_duration.as_secs(),

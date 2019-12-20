@@ -81,6 +81,7 @@ mod tests {
     use dup_crypto::hashs::Hash;
     use dup_crypto::keys::*;
     use std::str::FromStr;
+    use unwrap::unwrap;
 
     #[inline]
     fn blockstamp() -> Blockstamp {
@@ -101,9 +102,8 @@ mod tests {
 
     #[inline]
     fn sig1() -> Sig {
-        Sig::Ed25519(ed25519::Signature::from_base64(
-            "cq86RugQlqAEyS8zFkB9o0PlWPSb+a6D/MEnLe8j+okyFYf/WzI6pFiBkQ9PSOVn5I0dwzVXg7Q4N1apMWeGAg==",
-        ).unwrap())
+        Sig::Ed25519(unwrap!(ed25519::Signature::from_base64(
+            "cq86RugQlqAEyS8zFkB9o0PlWPSb+a6D/MEnLe8j+okyFYf/WzI6pFiBkQ9PSOVn5I0dwzVXg7Q4N1apMWeGAg==")))
     }
 
     #[inline]

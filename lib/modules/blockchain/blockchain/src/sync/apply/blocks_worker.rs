@@ -27,7 +27,7 @@ pub fn execute(
 ) {
     // Launch blocks_worker thread
     pool.execute(move || {
-        let blocks_job_begin = SystemTime::now();
+        let blocks_job_begin = Instant::now();
 
         // Get fork tree
         let mut fork_tree = db
@@ -37,7 +37,7 @@ pub fn execute(
         // Listen db requets
         let mut chunk_index = 0;
         let mut all_wait_duration = Duration::from_millis(0);
-        let mut wait_begin = SystemTime::now();
+        let mut wait_begin = Instant::now();
 
         if let Ok(SyncJobsMess::ForkWindowSize(fork_window_size)) = recv.recv() {
             log::info!(
@@ -47,7 +47,7 @@ pub fn execute(
             loop {
                 match recv.recv() {
                     Ok(SyncJobsMess::BlocksDBsWriteQuery(req)) => {
-                        all_wait_duration += SystemTime::now().duration_since(wait_begin).unwrap();
+                        all_wait_duration += wait_begin.elapsed();
 
                         // Apply db request
                         db.write(|mut w| {
@@ -67,7 +67,7 @@ pub fn execute(
                             chunk_index = 0;
                             apply_pb.inc();
                         }
-                        wait_begin = SystemTime::now();
+                        wait_begin = Instant::now();
                     }
                     Ok(SyncJobsMess::End) | Err(_) => {
                         log::info!("Sync: block worker channel closed.");
@@ -99,8 +99,7 @@ pub fn execute(
         sender_sync_thread
             .send(MessForSyncThread::ApplyFinish(Some(db)))
             .expect("Fatal error : sync_thread unrechable !");
-        let blocks_job_duration =
-            SystemTime::now().duration_since(blocks_job_begin).unwrap() - all_wait_duration;
+        let blocks_job_duration = blocks_job_begin.elapsed() - all_wait_duration;
         info!(
             "blocks_job_duration={},{:03} seconds.",
             blocks_job_duration.as_secs(),
