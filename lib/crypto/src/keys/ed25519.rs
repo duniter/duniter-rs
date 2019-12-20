@@ -371,6 +371,7 @@ mod tests {
     use crate::seeds::Seed32;
     use bincode;
     use std::collections::hash_map::DefaultHasher;
+    use unwrap::unwrap;
 
     #[test]
     fn base58_seed() {
@@ -439,11 +440,11 @@ mod tests {
     #[test]
     fn base58_public_key() {
         let public58 = "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV";
-        let public_key = super::PublicKey::from_base58(public58).unwrap();
+        let public_key = unwrap!(super::PublicKey::from_base58(public58));
 
         // Test base58 encoding/decoding (loop for every bytes)
         assert_eq!(public_key.to_base58(), public58);
-        let public_raw = b58::str_base58_to_32bytes(public58).unwrap();
+        let public_raw = unwrap!(b58::str_base58_to_32bytes(public58));
         assert_eq!(public_raw.to_vec(), public_key.to_bytes_vector());
         for (key, raw) in public_key.0.iter().zip(public_raw.iter()) {
             assert_eq!(key, raw);
@@ -501,11 +502,11 @@ mod tests {
     fn base64_signature() {
         let signature64 = "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FG\
                            MMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==";
-        let signature = super::Signature::from_base64(signature64).unwrap();
+        let signature = unwrap!(super::Signature::from_base64(signature64));
 
         // Test signature base64 encoding/decoding (loop for every bytes)
         assert_eq!(signature.to_base64(), signature64);
-        let signature_raw = base64::decode(signature64).unwrap();
+        let signature_raw = unwrap!(base64::decode(signature64));
         for (sig, raw) in signature.0.iter().zip(signature_raw.iter()) {
             assert_eq!(sig, raw);
         }
@@ -584,12 +585,13 @@ mod tests {
 
     #[test]
     fn message_sign_verify() {
-        let seed = Seed32::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV").unwrap();
+        let seed = unwrap!(Seed32::from_base58(
+            "DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV"
+        ));
 
-        let expected_signature = super::Signature::from_base64(
+        let expected_signature = unwrap!(super::Signature::from_base64(
             "9ARKYkEAwp+kQ01rgvWUwJLchVLpZvHg3t/3H32XwWOoG119NiVCtfPSPtR4GDOeOz6Y+29drOLahqhzy+ciBw==",
-        )
-        .unwrap();
+        ));
 
         let message = "Version: 10
 Type: Identity
@@ -677,9 +679,10 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
     fn test_tmp() {
         let message = "InnerHash: A9697A9954EA447BBDC88D1B22AA8B60B2D11986DE806319C1A5AAFEB348C213\nNonce: 10300000043648\n";
 
-        let pubkey =
-            PublicKey::from_base58("8kXygUHh1vLjmcRzXVM86t38EL8dfFJgfBeHmkaWLamu").unwrap();
-        let sig: super::Signature = Signature::from_base64("XDIvgPbJK02ZfMwrhrtNFmMVGhqazDBhnxPBvMXLsDgPbnh28NbUbOYIRHrsZlo/frAv/Oh0OUOQZD3JpSf8DQ==").unwrap();
+        let pubkey = unwrap!(PublicKey::from_base58("8kXygUHh1vLjmcRzXVM86t38EL8dfFJgfBeHmkaWLamu"));
+        let sig: super::Signature = unwrap!(Signature::from_base64(
+            "XDIvgPbJK02ZfMwrhrtNFmMVGhqazDBhnxPBvMXLsDgPbnh28NbUbOYIRHrsZlo/frAv/Oh0OUOQZD3JpSf8DQ=="
+        ));
 
         let pubkey_hex = hex::encode(&pubkey.0[..]);
         println!("{}", pubkey_hex);

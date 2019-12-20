@@ -25,6 +25,7 @@ serde = "1.0.*"
 serde_derive = "1.0.*"
 durs-common-tools = { path = "../tools/common-tools", version = "0.2.0" }
 log = "0.4.*"
+unwrap = "1.2.1"
 
 [dev-dependencies]
 bincode = "1.2.0"
