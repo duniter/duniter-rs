@@ -221,19 +221,18 @@ mod tests {
     use durs_bc_db_reader::current_metadata::CurrentMetaDataKey;
     use durs_bc_db_reader::indexes::sources::SourceAmount;
     use std::str::FromStr;
+    use unwrap::unwrap;
 
     fn build_first_tx_of_g1() -> TransactionDocument {
-        let pubkey = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ")
-                .unwrap(),
-        );
-        let sig = Sig::Ed25519(ed25519::Signature::from_base64(
+        let pubkey = PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+            "2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ"
+        )));
+        let sig = Sig::Ed25519(unwrap!(ed25519::Signature::from_base64(
             "fAH5Gor+8MtFzQZ++JaJO6U8JJ6+rkqKtPrRr/iufh3MYkoDGxmjzj6jCADQL+hkWBt8y8QzlgRkz0ixBcKHBw==",
-        ).unwrap());
-        let block = Blockstamp::from_string(
+        ), "fail to parse Signature"));
+        let block = unwrap!(Blockstamp::from_string(
             "50-00001DAA4559FEDB8320D1040B0F22B631459F36F237A0D9BC1EB923C12A12E7",
-        )
-        .unwrap();
+        ));
         let builder = TransactionDocumentBuilder {
             currency: "g1",
             blockstamp: &block,
@@ -268,10 +267,9 @@ mod tests {
         let tx_doc = build_first_tx_of_g1();
         assert_eq!(tx_doc.verify_signatures(), Ok(()));
         // Get pubkey of receiver
-        let tortue_pubkey = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("Com8rJukCozHZyFao6AheSsfDQdPApxQRnz7QYFf64mm")
-                .unwrap(),
-        );
+        let tortue_pubkey = PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+            "Com8rJukCozHZyFao6AheSsfDQdPApxQRnz7QYFf64mm"
+        )));
         // Open blockchain DB
         let db = crate::tests::open_tmp_db()?;
         // Create first g1 UD for cgeek and tortue
