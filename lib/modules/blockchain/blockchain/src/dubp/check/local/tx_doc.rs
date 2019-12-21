@@ -17,7 +17,7 @@
 
 use dubp_common_doc::errors::DocumentSigsErr;
 use dubp_common_doc::traits::text::CompactTextDocument;
-//use dubp_common_doc::traits::Document;
+use dubp_common_doc::traits::Document;
 use dubp_user_docs::documents::transaction::TransactionDocument;
 use durs_common_tools::traits::bool_ext::BoolExt;
 
@@ -32,11 +32,14 @@ pub enum TransactionDocumentError {
     /// There is no input
     MissingInput,
     /// Signature error    
-    _TxSignatureError(DocumentSigsErr),
+    TxSignatureError(DocumentSigsErr),
 }
 
 /// Local verification of a Tx Document
-pub fn local_verify_tx_doc(tx_doc: &TransactionDocument) -> Result<(), TransactionDocumentError> {
+pub fn local_verify_tx_doc(
+    dubp_version: usize,
+    tx_doc: &TransactionDocument,
+) -> Result<(), TransactionDocumentError> {
     // A transaction in compact format must measure less than 100 lines
     (tx_doc.as_compact_text().lines().count() < 100).or_err(TransactionDocumentError::TooLong {
         expected_max_length: 100,
@@ -52,9 +55,11 @@ pub fn local_verify_tx_doc(tx_doc: &TransactionDocument) -> Result<(), Transacti
     // Signatures are made over the transaction's content, signatures excepted
     ////////////////////////////////////////////////////////////////////////////////////
     // Temporary disabled due to #183
-    /*tx_doc
-    .verify_signatures()
-    .map_err(TransactionDocumentError::TxSignatureError)?;*/
+    if dubp_version >= 12 {
+        tx_doc
+            .verify_signatures()
+            .map_err(TransactionDocumentError::TxSignatureError)?;
+    }
 
     Ok(())
 }
@@ -151,7 +156,7 @@ mod tests {
     #[test]
     fn test_tx_valid() {
         let tx = gen_mock_tx_doc();
-        assert_eq!(Ok(()), local_verify_tx_doc(&tx));
+        assert_eq!(Ok(()), local_verify_tx_doc(10, &tx));
     }
 
     #[test]
@@ -165,7 +170,7 @@ mod tests {
         let tx = tx_builder.build_with_signature(vec![sig1()]);
 
         let expected = Err(TransactionDocumentError::MissingInput);
-        let actual = local_verify_tx_doc(&tx);
+        let actual = local_verify_tx_doc(10, &tx);
         assert_eq!(expected, actual);
     }
 
@@ -183,7 +188,7 @@ mod tests {
             expected_max_length: 100,
             actual_length: 107,
         });
-        let actual = local_verify_tx_doc(&tx);
+        let actual = local_verify_tx_doc(10, &tx);
         assert_eq!(expected, actual);
     }
 

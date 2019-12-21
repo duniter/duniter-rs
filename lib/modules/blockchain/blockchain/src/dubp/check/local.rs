@@ -26,7 +26,7 @@ use self::tx_doc::TransactionDocumentError;
 use dubp_block_doc::block::v10::BlockDocumentV10;
 use dubp_block_doc::{block::BlockDocumentTrait, BlockDocument};
 use dubp_common_doc::errors::DocumentSigsErr;
-//use dubp_common_doc::traits::Document;
+use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
 use dubp_currency_params::CurrencyParameters;
 
@@ -43,15 +43,15 @@ pub enum LocalVerifyBlockError {
     /// Not-genesis block specific rules
     LocalVerifyNotGenesisBlockError(LocalVerifyNotGenesisBlockError),
     /// Signature error
-    _BlockSignatureError(DocumentSigsErr),
+    BlockSignatureError(DocumentSigsErr),
     /// Identity signature error
-    _IdentitySignatureError(DocumentSigsErr),
+    IdentitySignatureError(DocumentSigsErr),
     /// Joiner signature error
-    _JoinerSignatureError(DocumentSigsErr),
+    JoinerSignatureError(DocumentSigsErr),
     /// Active signature error
-    _ActiveSignatureError(DocumentSigsErr),
+    ActiveSignatureError(DocumentSigsErr),
     /// Leaver signature error
-    _LeaverSignatureError(DocumentSigsErr),
+    LeaverSignatureError(DocumentSigsErr),
     /// Missing issuer
     MissingIssuer,
     /// Too many issuers (> 1)
@@ -123,10 +123,11 @@ pub fn verify_local_validity_block_v10(
     // As it has been checked that block.issuers.len() == 1 and as
     // block.issuers.len() == block.signatures.len() is check in block.verify_signatures()
     // there is no need to check that block.signatures.len() == 1
-    // Temporary disabled due to #183
-    /*block
-    .verify_signatures()
-    .map_err(LocalVerifyBlockError::BlockSignatureError)?;
+    if block.version >= 12 {
+        block
+            .verify_signatures()
+            .map_err(LocalVerifyBlockError::BlockSignatureError)?;
+    }
     for identity in &block.identities {
         identity
             .verify_signatures()
@@ -146,11 +147,11 @@ pub fn verify_local_validity_block_v10(
         leaver
             .verify_signatures()
             .map_err(LocalVerifyBlockError::LeaverSignatureError)?;
-    }*/
+    }
 
     // Check transactions
     for tx in &block.transactions {
-        self::tx_doc::local_verify_tx_doc(tx)?;
+        self::tx_doc::local_verify_tx_doc(block.version(), tx)?;
     }
 
     Ok(())
