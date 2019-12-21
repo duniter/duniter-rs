@@ -257,7 +257,7 @@ pub fn local_sync<DC: DursConfTrait>(
     apply::txs_worker::execute(
         &pool,
         profile_path.clone(),
-        sender_sync_thread.clone(),
+        sender_sync_thread,
         recv_tx_thread,
     );
 

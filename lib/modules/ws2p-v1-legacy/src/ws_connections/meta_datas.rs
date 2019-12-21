@@ -75,7 +75,7 @@ impl WS2PConnectionMetaDatas {
                                 WS2PConnectionState::WaitingConnectMess => {
                                     debug!("CONNECT sig is valid.");
                                     self.state = WS2PConnectionState::ConnectMessOk;
-                                    self.remote_challenge = message.challenge.clone();
+                                    self.remote_challenge = message.challenge;
                                     let mut response = WS2PAckMessageV1 {
                                         currency: currency.to_string(),
                                         pubkey: signator.public_key(),

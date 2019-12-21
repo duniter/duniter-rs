@@ -136,7 +136,7 @@ fn treat_unchainable_block(
         );
 
         let dal_block = BlockDb {
-            block: block_doc.clone(),
+            block: block_doc,
             expire_certs: None,
         };
 

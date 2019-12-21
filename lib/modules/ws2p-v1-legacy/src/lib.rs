@@ -572,7 +572,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
         // Create proxy channel
         let (proxy_sender, proxy_receiver): (mpsc::Sender<DursMsg>, mpsc::Receiver<DursMsg>) =
             mpsc::channel();
-        let proxy_sender_clone = proxy_sender.clone();
+        let proxy_sender_clone = proxy_sender;
 
         // Launch a proxy thread that transform DursMsg to WS2PThreadSignal(DursMsg)
         thread::spawn(move || {

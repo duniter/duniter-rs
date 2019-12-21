@@ -193,7 +193,7 @@ impl DursModule<DuRsConf, DursMsg> for SkeletonModule {
 
         // Launch a proxy thread that transform DursMsgContent() to SkeleonMsg::DursMsgContent(DursMsgContent())
         let router_sender_clone = router_sender.clone();
-        let skeleton_sender_clone = skeleton_sender.clone();
+        let skeleton_sender_clone = skeleton_sender;
         thread::spawn(move || {
             // Send skeleton module registration to router thread
             router_sender_clone

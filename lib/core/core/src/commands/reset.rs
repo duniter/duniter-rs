@@ -66,7 +66,7 @@ impl DursExecutableCoreCommand for ResetOpt {
                     .map_err(DursCoreError::FailRemoveDatasDir)
             }
             ResetType::Conf => {
-                let mut conf_file_path = profile_path.clone();
+                let mut conf_file_path = profile_path;
                 conf_file_path.push(durs_conf::constants::CONF_FILENAME);
                 fs::remove_file(conf_file_path.as_path()).map_err(DursCoreError::FailRemoveConfFile)
             }

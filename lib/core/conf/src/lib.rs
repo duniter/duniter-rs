@@ -504,7 +504,7 @@ pub fn get_profile_path(profiles_path: &Option<PathBuf>, profile_name: &str) -> 
 /// Get keypairs file path
 pub fn keypairs_filepath(profiles_path: &Option<PathBuf>, profile: &str) -> PathBuf {
     let profile_path = get_profile_path(profiles_path, profile);
-    let mut conf_keys_path = profile_path.clone();
+    let mut conf_keys_path = profile_path;
     conf_keys_path.push(constants::KEYPAIRS_FILENAME);
     conf_keys_path
 }
@@ -515,7 +515,7 @@ pub fn load_conf(
     keypairs_file_path: &Option<PathBuf>,
 ) -> Result<(DuRsConf, DuniterKeyPairs), DursConfFileError> {
     // Load conf
-    let (conf, keypairs) = load_conf_at_path(profile_path.clone(), keypairs_file_path)?;
+    let (conf, keypairs) = load_conf_at_path(profile_path, keypairs_file_path)?;
 
     // Return conf and keypairs
     Ok((conf, keypairs))

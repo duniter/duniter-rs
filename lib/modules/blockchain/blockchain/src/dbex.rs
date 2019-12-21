@@ -229,7 +229,7 @@ pub fn dbex_fork_tree(profile_path: PathBuf, _csv: bool) {
 /// Execute DbExTxQuery
 pub fn dbex_tx(profile_path: PathBuf, _csv: bool, _query: &DbExTxQuery) {
     // Get db path
-    let _db_path = durs_conf::get_blockchain_db_path(profile_path.clone());
+    let _db_path = durs_conf::get_blockchain_db_path(profile_path);
 
     unimplemented!();
 

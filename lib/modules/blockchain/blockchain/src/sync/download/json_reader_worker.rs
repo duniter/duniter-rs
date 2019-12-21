@@ -244,7 +244,7 @@ fn get_chunks_set(dir: &Path) -> HashSet<usize> {
 fn open_json_chunk_file(
     json_chunks_path: &PathBuf,
     chunk_number: usize,
-) -> std::io::Result<(String)> {
+) -> std::io::Result<String> {
     let mut chunk_file_path = json_chunks_path.clone();
     chunk_file_path.push(&format!(
         "{}{}{}",

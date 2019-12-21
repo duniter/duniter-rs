@@ -89,7 +89,7 @@ pub fn connect_to_ws2p_endpoint(
             ws,
             conductor_sender: conductor_sender.clone(),
             currency: String::from(currency),
-            connect_message: connect_message.clone(),
+            connect_message,
             conn_meta_datas: conn_meta_datas.clone(),
             last_mess_time: SystemTime::now(),
             signator,

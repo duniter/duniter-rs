@@ -236,9 +236,9 @@ pub fn renewal_identity(
     .expect("Fatal error : try to renewal unknow identity !");
     // Calculate new state value
     idty_datas.state = if revert {
-        match idty_datas.state {
-            IdentityStateDb::Member(renewed_counts) => {
-                let mut new_renewed_counts = renewed_counts.clone();
+        match &idty_datas.state {
+            IdentityStateDb::Member(ref renewed_counts) => {
+                let mut new_renewed_counts = renewed_counts.to_vec();
                 new_renewed_counts[renewed_counts.len() - 1] -= 1;
                 if new_renewed_counts[renewed_counts.len() - 1] > 0 {
                     IdentityStateDb::Member(new_renewed_counts)
@@ -249,14 +249,14 @@ pub fn renewal_identity(
             _ => fatal_error!("Try to revert renewal_identity() for an excluded or revoked idty !"),
         }
     } else {
-        match idty_datas.state {
-            IdentityStateDb::Member(renewed_counts) => {
-                let mut new_renewed_counts = renewed_counts.clone();
+        match &idty_datas.state {
+            IdentityStateDb::Member(ref renewed_counts) => {
+                let mut new_renewed_counts = renewed_counts.to_vec();
                 new_renewed_counts[renewed_counts.len() - 1] += 1;
                 IdentityStateDb::Member(new_renewed_counts)
             }
-            IdentityStateDb::ExpireMember(renewed_counts) => {
-                let mut new_renewed_counts = renewed_counts.clone();
+            IdentityStateDb::ExpireMember(ref renewed_counts) => {
+                let mut new_renewed_counts = renewed_counts.to_vec();
                 new_renewed_counts.push(0);
                 IdentityStateDb::Member(new_renewed_counts)
             }

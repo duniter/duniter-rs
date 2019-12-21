@@ -179,7 +179,7 @@ impl DursCore<DuRsConf> {
 
                 durs_core.router_sender = Some(router::start_router(
                     0,
-                    profile_path.clone(),
+                    profile_path,
                     durs_core.soft_meta_datas.conf.clone(),
                 ));
                 plug_modules(&mut durs_core)
@@ -189,7 +189,7 @@ impl DursCore<DuRsConf> {
 
                 durs_core.router_sender = Some(router::start_router(
                     durs_core.run_duration_in_secs,
-                    profile_path.clone(),
+                    profile_path,
                     durs_core.soft_meta_datas.conf.clone(),
                 ));
                 plug_modules(&mut durs_core)?;
@@ -201,7 +201,7 @@ impl DursCore<DuRsConf> {
                     BlockchainModule::local_sync(
                         &durs_core.soft_meta_datas.conf,
                         durs_core.currency_name.as_ref(),
-                        profile_path.clone(),
+                        profile_path,
                         opts,
                     )
                     .map_err(DursCoreError::Error)?;
@@ -211,7 +211,7 @@ impl DursCore<DuRsConf> {
 
                     durs_core.router_sender = Some(router::start_router(
                         durs_core.run_duration_in_secs,
-                        profile_path.clone(),
+                        profile_path,
                         durs_core.soft_meta_datas.conf.clone(),
                     ));
                     plug_modules(&mut durs_core)?;

@@ -141,7 +141,7 @@ impl BlockApplicator {
             debug!("Apply db requests...");
             // Send block request to blocks worker thread
             self.sender_blocks_thread
-                .send(SyncJobsMess::BlocksDBsWriteQuery(block_req.clone()))
+                .send(SyncJobsMess::BlocksDBsWriteQuery(block_req))
                 .expect(
                     "Fail to communicate with blocks worker thread, please reset data & resync !",
                 );
