@@ -27,6 +27,8 @@
 //! [js-tests]: https://github.com/duniter/wot/blob/master/wotcpp/webOfTrust.cpp
 
 #![deny(
+    clippy::option_unwrap_used,
+    clippy::result_unwrap_used,
     missing_docs,
     missing_debug_implementations,
     missing_copy_implementations,

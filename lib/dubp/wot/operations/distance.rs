@@ -97,7 +97,7 @@ impl<T: WebOfTrust + Sync> DistanceCalculator<T> for RustyDistanceCalculator {
                 .par_iter()
                 .map(|&id| {
                     wot.get_links_source(id)
-                        .unwrap()
+                        .expect("get_links_source must return a value")
                         .iter()
                         .filter(|source| !area.contains(source))
                         .cloned()
@@ -116,7 +116,10 @@ impl<T: WebOfTrust + Sync> DistanceCalculator<T> for RustyDistanceCalculator {
         let mut success = area.iter().filter(|n| sentries.contains(n)).count() as u32;
         let success_at_border = border.iter().filter(|n| sentries.contains(n)).count() as u32;
         let mut sentries = sentries.len() as u32;
-        if wot.is_sentry(node, sentry_requirement as usize).unwrap() {
+        if wot
+            .is_sentry(node, sentry_requirement as usize)
+            .expect("is_sentry must return a value")
+        {
             sentries -= 1;
             success -= 1;
         }

@@ -52,7 +52,10 @@ impl<T: WebOfTrust> PathFinder<T> for RustyPathFinder {
             let mut next_border = HashSet::new();
 
             for node in border {
-                for source in &wot.get_links_source(node).unwrap() {
+                for source in &wot
+                    .get_links_source(node)
+                    .expect("links source must not be None")
+                {
                     match graph[source.0].0 {
                         path_distance if path_distance > distance => {
                             // shorter path, we replace
@@ -80,7 +83,7 @@ impl<T: WebOfTrust> PathFinder<T> for RustyPathFinder {
             let mut new_paths = vec![];
 
             for path in &paths {
-                let node = path.last().unwrap();
+                let node = path.last().expect("path should not be empty");
 
                 if node == &to {
                     // If path is complete, we keep it.

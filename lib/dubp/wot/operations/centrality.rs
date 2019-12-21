@@ -50,8 +50,7 @@ impl<T: WebOfTrust> CentralitiesCalculator<T> for UlrikBrandesCentralityCalculat
             sigma[s.0] = 1.0;
             d[s.0] = 0;
             q.push_back(s);
-            while !q.is_empty() {
-                let v = q.pop_front().unwrap();
+            while let Some(v) = q.pop_front() {
                 stack.push(v);
                 for w in wot.get_links_source(v).expect("v don't have any source !") {
                     // w found for the first time ?
@@ -68,8 +67,7 @@ impl<T: WebOfTrust> CentralitiesCalculator<T> for UlrikBrandesCentralityCalculat
             }
             let mut delta = vec![0.0; wot_size];
             // stack returns vertices in order of non-increasing distance from s
-            while !stack.is_empty() {
-                let w = stack.pop().unwrap();
+            while let Some(w) = stack.pop() {
                 if paths.contains_key(&w) {
                     for v in paths.get(&w).expect("Not found w in p !") {
                         if enabled_nodes.contains(&w) {
@@ -103,8 +101,7 @@ impl<T: WebOfTrust> CentralitiesCalculator<T> for UlrikBrandesCentralityCalculat
             sigma[s.0] = 1.0;
             d[s.0] = 0;
             q.push_back(s);
-            while !q.is_empty() {
-                let v = q.pop_front().unwrap();
+            while let Some(v) = q.pop_front() {
                 stack.push(v);
                 for w in wot.get_links_source(v).expect("v don't have any source !") {
                     // w found for the first time ?
@@ -121,8 +118,7 @@ impl<T: WebOfTrust> CentralitiesCalculator<T> for UlrikBrandesCentralityCalculat
             }
             let mut delta = vec![0.0; wot_size];
             // stack returns vertices in order of non-increasing distance from s
-            while !stack.is_empty() {
-                let w = stack.pop().unwrap();
+            while let Some(w) = stack.pop() {
                 if paths.contains_key(&w) {
                     for v in paths.get(&w).expect("Not found w in p !") {
                         if enabled_nodes.contains(&w) {
@@ -156,8 +152,7 @@ impl<T: WebOfTrust> CentralitiesCalculator<T> for UlrikBrandesCentralityCalculat
             sigma[s.0] = 1.0;
             d[s.0] = 0;
             q.push_back(s);
-            while !q.is_empty() {
-                let v = q.pop_front().unwrap();
+            while let Some(v) = q.pop_front() {
                 stack.push(v);
                 if d[v.0] < step_max as isize {
                     for w in wot.get_links_source(v).expect("v don't have any source !") {
@@ -176,8 +171,7 @@ impl<T: WebOfTrust> CentralitiesCalculator<T> for UlrikBrandesCentralityCalculat
             }
             let mut delta = vec![0.0; wot_size];
             // stack returns vertices in order of non-increasing distance from s
-            while !stack.is_empty() {
-                let w = stack.pop().unwrap();
+            while let Some(w) = stack.pop() {
                 if paths.contains_key(&w) {
                     for v in paths.get(&w).expect("Not found w in p !") {
                         if enabled_nodes.contains(&w) {
