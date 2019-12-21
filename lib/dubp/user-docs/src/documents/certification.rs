@@ -42,9 +42,9 @@ impl Document for CertificationDocument {
     type PublicKey = PubKey;
 
     #[inline]
-    fn version(&self) -> u16 {
+    fn version(&self) -> usize {
         match self {
-            CertificationDocument::V10(_) => 10u16,
+            CertificationDocument::V10(_) => 10,
         }
     }
 

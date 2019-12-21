@@ -369,7 +369,7 @@ impl Document for BlockDocumentV10 {
 
     #[inline]
     fn version(&self) -> usize {
-        self.version as u16
+        self.version as usize
     }
 
     #[inline]

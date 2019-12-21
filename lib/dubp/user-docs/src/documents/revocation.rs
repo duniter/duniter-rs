@@ -51,9 +51,9 @@ impl Document for RevocationDocument {
     type PublicKey = PubKey;
 
     #[inline]
-    fn version(&self) -> u16 {
+    fn version(&self) -> usize {
         match self {
-            RevocationDocument::V10(_) => 10u16,
+            RevocationDocument::V10(_) => 10,
         }
     }
 

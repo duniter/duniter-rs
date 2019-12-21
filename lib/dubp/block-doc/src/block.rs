@@ -227,7 +227,7 @@ impl BlockDocumentTrait for BlockDocument {
 impl Document for BlockDocument {
     type PublicKey = PubKey;
 
-    fn version(&self) -> u16 {
+    fn version(&self) -> usize {
         match self {
             BlockDocument::V10(block_v10_12) => block_v10_12.version(),
         }

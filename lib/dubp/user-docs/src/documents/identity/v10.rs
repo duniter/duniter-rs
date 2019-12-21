@@ -135,7 +135,7 @@ impl IdentityDocumentV10 {
 impl Document for IdentityDocumentV10 {
     type PublicKey = PubKey;
 
-    fn version(&self) -> u16 {
+    fn version(&self) -> usize {
         10
     }
 

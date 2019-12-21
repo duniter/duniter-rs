@@ -181,7 +181,7 @@ mod tests {
     impl Document for PlainTextDocument {
         type PublicKey = PubKey;
 
-        fn version(&self) -> u16 {
+        fn version(&self) -> usize {
             unimplemented!()
         }
 

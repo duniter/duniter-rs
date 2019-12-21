@@ -36,9 +36,9 @@ impl Document for IdentityDocument {
     type PublicKey = PubKey;
 
     #[inline]
-    fn version(&self) -> u16 {
+    fn version(&self) -> usize {
         match self {
-            IdentityDocument::V10(_) => 10u16,
+            IdentityDocument::V10(_) => 10,
         }
     }
 

@@ -38,9 +38,9 @@ impl Document for MembershipDocument {
     type PublicKey = PubKey;
 
     #[inline]
-    fn version(&self) -> u16 {
+    fn version(&self) -> usize {
         match self {
-            MembershipDocument::V10(_) => 10u16,
+            MembershipDocument::V10(_) => 10,
         }
     }
 

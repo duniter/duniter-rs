@@ -109,7 +109,7 @@ pub trait Document: Debug + Clone + PartialEq + Eq {
     }
 
     /// Get document version.
-    fn version(&self) -> u16;
+    fn version(&self) -> usize;
 }
 
 /// Trait helper for building new documents.
