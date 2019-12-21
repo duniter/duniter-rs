@@ -368,8 +368,8 @@ impl Document for BlockDocumentV10 {
     type PublicKey = PubKey;
 
     #[inline]
-    fn version(&self) -> u16 {
-        10
+    fn version(&self) -> usize {
+        self.version as u16
     }
 
     #[inline]

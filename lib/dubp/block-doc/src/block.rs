@@ -229,7 +229,7 @@ impl Document for BlockDocument {
 
     fn version(&self) -> u16 {
         match self {
-            BlockDocument::V10(_) => 10u16,
+            BlockDocument::V10(block_v10_12) => block_v10_12.version(),
         }
     }
 
