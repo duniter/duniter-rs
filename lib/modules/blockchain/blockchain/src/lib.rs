@@ -356,7 +356,7 @@ impl BlockchainModule {
                 }
                 Err(e) => match e {
                     RecvTimeoutError::Disconnected => {
-                        fatal_error!("Disconnected blockchain module !");
+                        fatal_error!("Disconnected router !");
                     }
                     RecvTimeoutError::Timeout => {}
                 },
