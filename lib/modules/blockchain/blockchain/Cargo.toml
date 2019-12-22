@@ -47,5 +47,5 @@ durs-bc-db-reader = { path = "../../../modules-lib/bc-db-reader", features = ["m
 durs-common-tests-tools = { path = "../../../tests-tools/common-tests-tools" }
 maplit = "1.0.1"
 mockall = "0.5.2"
-pretty_assertions = "0.5.1"
+pretty_assertions = "0.6.1"
 tempfile = "3.1.0"

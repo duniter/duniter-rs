@@ -15,4 +15,4 @@ path = "src/lib.rs"
 [dependencies]
 
 [dev-dependencies]
-pretty_assertions = "0.5.1"
+pretty_assertions = "0.6.1"

@@ -25,6 +25,6 @@ shrinkwraprs = "0.2.*"
 unwrap = "1.2.1"
 
 [dev-dependencies]
-pretty_assertions = "0.5.1"
+pretty_assertions = "0.6.1"
 
 [features]

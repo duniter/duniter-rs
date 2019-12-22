@@ -29,7 +29,7 @@ log = "0.4.*"
 unwrap = "1.2.1"
 
 [dev-dependencies]
-pretty_assertions = "0.5.1"
+pretty_assertions = "0.6.1"
 dubp-user-docs-tests-tools = { path = "../../tests-tools/user-docs-tests-tools" }
 
 [features]
