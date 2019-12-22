@@ -19,7 +19,7 @@ dup-crypto = { path = "../../crypto" }
 durs-common-tests-tools = { path = "../../tests-tools/common-tests-tools" }
 durs-common-tools = { path = "../../tools/common-tools" }
 failure = "0.1.5"
-hex = "0.3.*"
+hex = "0.4.*"
 log = "0.4.*"
 pest = "2.1.0"
 pest_derive = "2.1.0"
