@@ -17,10 +17,12 @@ use dubp_currency_params::genesis_block_params::v10::BlockV10Parameters;
 use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use durs_bc::BlockchainModule;
 use durs_bc_db_writer::WotsV10DBs;
+use durs_message::requests::DursReqContent;
 use durs_message::DursMsg;
-use durs_module::RouterThreadMessage;
+use durs_module::{ModuleReqFullId, ModuleReqId, ModuleRole, RouterThreadMessage};
+use durs_network::requests::OldNetworkRequest;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Receiver, Sender};
 use std::thread::JoinHandle;
 use tempfile::TempDir;
 
@@ -76,4 +78,33 @@ pub fn init_bc_module(
         WotsV10DBs::open(None),
     )
     .expect("Fail to init BlockchainModule with empty blockchain.")
+}
+
+pub fn recv_n_queries_get_blocks(
+    n: usize,
+    router_receiver: &Receiver<RouterThreadMessage<DursMsg>>,
+) {
+    for i in 0..n {
+        let msg = router_receiver
+            .recv()
+            .expect("blockchain module disconnected.");
+        if let RouterThreadMessage::ModuleMessage(durs_msg) = msg {
+            assert_eq!(
+                DursMsg::Request {
+                    req_from: BlockchainModule::name(),
+                    req_to: ModuleRole::InterNodesNetwork,
+                    req_id: ModuleReqId(i as u32),
+                    req_content: DursReqContent::OldNetworkRequest(OldNetworkRequest::GetBlocks(
+                        ModuleReqFullId(BlockchainModule::name(), ModuleReqId(i as u32)),
+                        50,
+                        (i * 50) as u32
+                    )),
+                },
+                durs_msg
+            );
+            log::info!("Router receive: {:?}", durs_msg);
+        } else {
+            panic!("Expect ModuleMesage, found: {:?}", msg)
+        }
+    }
 }

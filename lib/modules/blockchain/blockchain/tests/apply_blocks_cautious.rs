@@ -18,15 +18,10 @@ mod common;
 use crate::common::*;
 use dubp_block_doc::BlockDocument;
 use dubp_currency_params::genesis_block_params::v10::BlockV10Parameters;
-use durs_bc::BlockchainModule;
 use durs_message::events::{BlockchainEvent, DursEvent};
-use durs_message::requests::DursReqContent;
 use durs_message::DursMsg;
-use durs_module::{
-    ModuleEvent, ModuleReqFullId, ModuleReqId, ModuleRole, ModuleStaticName, RouterThreadMessage,
-};
+use durs_module::{ModuleEvent, ModuleStaticName, RouterThreadMessage};
 use durs_network::events::NetworkEvent;
-use durs_network::requests::OldNetworkRequest;
 use pretty_assertions::assert_eq;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
@@ -56,29 +51,7 @@ fn test_apply_blocks_cautious() {
     });
 
     // Receive 11 requests GetBlocks
-    for i in 0..11 {
-        let msg = router_receiver
-            .recv()
-            .expect("blockchain module disconnected.");
-        if let RouterThreadMessage::ModuleMessage(durs_msg) = msg {
-            assert_eq!(
-                DursMsg::Request {
-                    req_from: BlockchainModule::name(),
-                    req_to: ModuleRole::InterNodesNetwork,
-                    req_id: ModuleReqId(i),
-                    req_content: DursReqContent::OldNetworkRequest(OldNetworkRequest::GetBlocks(
-                        ModuleReqFullId(BlockchainModule::name(), ModuleReqId(i)),
-                        50,
-                        i * 50
-                    )),
-                },
-                durs_msg
-            );
-            log::info!("Router receive: {:?}", durs_msg);
-        } else {
-            panic!("Expect ModuleMesage, found: {:?}", msg)
-        }
-    }
+    recv_n_queries_get_blocks(11, &router_receiver);
 
     // Receive first g1-test chunk
     let gt_chunk_0 = dubp_blocks_tests_tools::gt::get_gt_chunk(0);
