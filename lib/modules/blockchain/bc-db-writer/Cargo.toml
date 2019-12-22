@@ -22,7 +22,6 @@ durs-conf = { path = "../../../core/conf" }
 durs-dbs-tools = { path = "../../../tools/dbs-tools" }
 durs-module = { path = "../../../core/module" }
 durs-wot = { path = "../../../dubp/wot" }
-fnv = "1.0.6"
 log = "0.4.*"
 serde = "1.0.*"
 serde_derive = "1.0.*"
