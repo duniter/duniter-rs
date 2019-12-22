@@ -13,12 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! G1-test blocks
+//! G1 blocks
 
 use dubp_block_doc::BlockDocument;
 
-/// Give g1-test chunks (packages of 250 blocks)
-pub fn get_gt_chunk(chunk_number: usize) -> Vec<BlockDocument> {
+/// Give g1 chunks (packages of 250 blocks)
+pub fn get_g1_chunk(chunk_number: usize) -> Vec<BlockDocument> {
     let mut gt_json_chunks_path = std::env::current_exe().expect("Fail to get current exe path.");
     gt_json_chunks_path.pop();
     gt_json_chunks_path.pop();
@@ -28,6 +28,6 @@ pub fn get_gt_chunk(chunk_number: usize) -> Vec<BlockDocument> {
     gt_json_chunks_path.push("tests-tools");
     gt_json_chunks_path.push("blocks-tests-tools");
     gt_json_chunks_path.push("rsc");
-    gt_json_chunks_path.push("gt-chunks");
+    gt_json_chunks_path.push("g1-chunks");
     crate::json_chunk_parser::open_and_parse_one_json_chunk(&gt_json_chunks_path, chunk_number).1
 }

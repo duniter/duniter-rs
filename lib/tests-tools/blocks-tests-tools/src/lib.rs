@@ -26,6 +26,7 @@
     unused_import_braces
 )]
 
+pub mod g1;
 pub mod gt;
 pub mod json_chunk_parser;
 pub mod mocks;
