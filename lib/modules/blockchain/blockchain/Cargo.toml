@@ -46,6 +46,6 @@ dubp-blocks-tests-tools = { path = "../../../tests-tools/blocks-tests-tools" }
 durs-bc-db-reader = { path = "../../../modules-lib/bc-db-reader", features = ["mock"] }
 durs-common-tests-tools = { path = "../../../tests-tools/common-tests-tools" }
 maplit = "1.0.1"
-mockall = "0.5.2"
+mockall = "0.6.0"
 pretty_assertions = "0.6.1"
 tempfile = "3.1.0"
