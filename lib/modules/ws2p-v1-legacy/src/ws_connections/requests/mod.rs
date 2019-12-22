@@ -39,7 +39,7 @@ impl WS2Pv1ReqId {
 }
 
 impl std::str::FromStr for WS2Pv1ReqId {
-    type Err = uuid::parser::ParseError;
+    type Err = uuid::Error;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
         Ok(WS2Pv1ReqId(Uuid::parse_str(source)?))
