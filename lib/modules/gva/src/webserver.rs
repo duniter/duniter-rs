@@ -32,7 +32,7 @@ use std::net::SocketAddr;
 /// Database readonly handler (access to database)
 static mut DB_RO_HANDLER: Option<BcDbRo> = None;
 
-fn graphiql() -> HttpResponse {
+async fn graphiql() -> HttpResponse {
     let html = graphiql_source("/graphql");
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
@@ -75,22 +75,25 @@ pub fn start_web_server(
     ));
 
     // Start http server
-    HttpServer::new(move || {
-        App::new()
-            .data(global_context.clone())
-            .wrap(
-                Cors::new()
-                    .allowed_headers(vec![
-                        header::AUTHORIZATION,
-                        header::ACCEPT,
-                        header::ACCESS_CONTROL_ALLOW_ORIGIN,
-                    ])
-                    .allowed_methods(vec!["GET", "POST", "OPTIONS"]),
-            )
-            .wrap(middleware::Logger::default())
-            .service(web::resource("/graphql").route(web::post().to_async(graphql)))
-            .service(web::resource("/graphiql").route(web::get().to(graphiql)))
-    })
-    .bind(&addrs[..])?
-    .run()
+    actix_rt::System::new("gva").block_on(
+        HttpServer::new(move || {
+            App::new()
+                .data(global_context.clone())
+                .wrap(
+                    Cors::new()
+                        .allowed_headers(vec![
+                            header::AUTHORIZATION,
+                            header::ACCEPT,
+                            header::ACCESS_CONTROL_ALLOW_ORIGIN,
+                        ])
+                        .allowed_methods(vec!["GET", "POST", "OPTIONS"])
+                        .finish(),
+                )
+                .wrap(middleware::Logger::default())
+                .service(web::resource("/graphql").route(web::post().to(graphql)))
+                .service(web::resource("/graphiql").route(web::get().to(graphiql)))
+        })
+        .bind(&addrs[..])?
+        .start(),
+    )
 }

@@ -28,13 +28,9 @@ mod tests {
     use crate::db::BcDbRo;
     use crate::graphql::graphql;
     use crate::schema::create_schema;
-    use actix_web::dev::Body;
-    use actix_web::http;
-    use actix_web::test;
     use actix_web::web;
     use assert_json_diff::assert_json_eq;
     use juniper::http::GraphQLRequest;
-    use std::str::FromStr;
     use std::sync::Arc;
 
     pub(crate) fn setup(
@@ -58,23 +54,13 @@ mod tests {
         gql_query: &str,
         expected_response: serde_json::Value,
     ) {
-        let resp = test::block_on(graphql(
-            global_context,
-            web::Json(GraphQLRequest::new(gql_query.to_owned(), None, None)),
-        ))
-        .unwrap();
-        assert_eq!(resp.status(), http::StatusCode::OK);
-        if let Some(Body::Bytes(ref body_bytes)) = resp.body().as_ref() {
-            assert_json_eq!(
-                expected_response,
-                serde_json::Value::from_str(
-                    &String::from_utf8(body_bytes.to_vec())
-                        .expect("response have invalid utf8 format.")
-                )
-                .expect("response have invalid JSON format.")
-            )
-        } else {
-            panic!("Response must contain body in bytes format.")
-        }
+        let resp = actix_rt::Runtime::new()
+            .expect("fail to start async executor")
+            .block_on(graphql(
+                global_context,
+                web::Json(GraphQLRequest::new(gql_query.to_owned(), None, None)),
+            ))
+            .expect("async executor crashed");
+        assert_json_eq!(expected_response, resp.0)
     }
 }
