@@ -10,7 +10,7 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-dirs = "1.0.2"
+dirs = "2.0.2"
 durs-conf = { path = "../../../core/conf" }
 dubp-block-doc = { path = "../../../dubp/block-doc"} #, version = "0.1.0" }
 dubp-common-doc = { path = "../../../dubp/common-doc"} #, version = "0.1.0" }

@@ -12,7 +12,7 @@ path = "src/lib.rs"
 [dependencies]
 chrono = "0.4"
 clear_on_drop = "0.2.3"
-dirs = "1.0.2"
+dirs = "2.0.2"
 durs-bc = { path = "../../modules/blockchain/blockchain" }
 durs-common-tools = { path = "../../tools/common-tools" }
 durs-bc-db-reader = { path = "../../modules-lib/bc-db-reader" }
