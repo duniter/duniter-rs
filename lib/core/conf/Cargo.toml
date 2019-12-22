@@ -18,7 +18,7 @@ durs-module = { path = "../module" }
 durs-common-tools = { path = "../../tools/common-tools" }
 failure = "0.1.5"
 log = "0.4.*"
-rpassword = "1.0.0"
+rpassword = "4.0.3"
 serde = "1.0.*"
 serde_derive = "1.0.*"
 serde_json = "1.0.*"
