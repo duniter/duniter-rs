@@ -53,14 +53,18 @@ impl<T: WebOfTrust> PathFinder<T> for RustyPathFinder {
 
             for node in border {
                 for source in &wot.get_links_source(node).unwrap() {
-                    if graph[source.0].0 > distance {
-                        // shorter path, we replace
-                        graph[source.0] = (distance, vec![node]);
-                        next_border.insert(*source);
-                    } else if graph[source.0].0 == distance {
-                        // same length, we combine
-                        graph[source.0].1.push(node);
-                        next_border.insert(*source);
+                    match graph[source.0].0 {
+                        path_distance if path_distance > distance => {
+                            // shorter path, we replace
+                            graph[source.0] = (distance, vec![node]);
+                            next_border.insert(*source);
+                        }
+                        path_distance if path_distance == distance => {
+                            // same length, we combine
+                            graph[source.0].1.push(node);
+                            next_border.insert(*source);
+                        }
+                        _ => unreachable!(),
                     }
                 }
             }
