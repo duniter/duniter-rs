@@ -23,48 +23,6 @@ use log::error;
 use ring::rand;
 use std::fmt::{self, Debug, Display, Formatter};
 
-/// Store a 48 bytes seed used to generate keys.
-#[derive(Default)]
-pub struct Seed48(InnerSeed48);
-
-struct InnerSeed48([u8; 48]);
-
-impl Default for InnerSeed48 {
-    fn default() -> Self {
-        InnerSeed48([0u8; 48])
-    }
-}
-
-impl AsRef<[u8]> for Seed48 {
-    fn as_ref(&self) -> &[u8] {
-        &(self.0).0
-    }
-}
-
-impl Drop for Seed48 {
-    #[inline]
-    fn drop(&mut self) {
-        <InnerSeed48 as Clear>::clear(&mut self.0);
-    }
-}
-
-impl Seed48 {
-    #[inline]
-    /// Create new seed
-    pub fn new(seed_bytes: [u8; 48]) -> Seed48 {
-        Seed48(InnerSeed48(seed_bytes))
-    }
-    #[inline]
-    /// Generate random seed
-    pub fn random() -> Seed48 {
-        if let Ok(random_bytes) = rand::generate::<[u8; 48]>(&rand::SystemRandom::new()) {
-            Seed48::new(random_bytes.expose())
-        } else {
-            fatal_error!("System error: fail to generate random seed !")
-        }
-    }
-}
-
 /// Store a 32 bytes seed used to generate keys.
 #[derive(Clone, Default, Deserialize, PartialEq, Eq, Hash, Serialize)]
 pub struct Seed32([u8; 32]);
