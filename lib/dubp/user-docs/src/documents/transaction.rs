@@ -81,29 +81,28 @@ impl ToString for TransactionInput {
 
 impl TransactionInput {
     fn from_pest_pair(mut pairs: Pairs<Rule>) -> TransactionInput {
-        let tx_input_type_pair = pairs.next().unwrap();
+        let tx_input_type_pair = unwrap!(pairs.next());
         match tx_input_type_pair.as_rule() {
             Rule::tx_input_du => {
                 let mut inner_rules = tx_input_type_pair.into_inner(); // ${ tx_amount ~ ":" ~ tx_amount_base ~ ":D:" ~ pubkey ~ ":" ~ du_block_id }
 
                 TransactionInput::D(
-                    TxAmount(inner_rules.next().unwrap().as_str().parse().unwrap()),
-                    TxBase(inner_rules.next().unwrap().as_str().parse().unwrap()),
-                    PubKey::Ed25519(
-                        ed25519::PublicKey::from_base58(inner_rules.next().unwrap().as_str())
-                            .unwrap(),
-                    ),
-                    BlockNumber(inner_rules.next().unwrap().as_str().parse().unwrap()),
+                    TxAmount(unwrap!(unwrap!(inner_rules.next()).as_str().parse())),
+                    TxBase(unwrap!(unwrap!(inner_rules.next()).as_str().parse())),
+                    PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+                        unwrap!(inner_rules.next()).as_str()
+                    ))),
+                    BlockNumber(unwrap!(unwrap!(inner_rules.next()).as_str().parse())),
                 )
             }
             Rule::tx_input_tx => {
                 let mut inner_rules = tx_input_type_pair.into_inner(); // ${ tx_amount ~ ":" ~ tx_amount_base ~ ":D:" ~ pubkey ~ ":" ~ du_block_id }
 
                 TransactionInput::T(
-                    TxAmount(inner_rules.next().unwrap().as_str().parse().unwrap()),
-                    TxBase(inner_rules.next().unwrap().as_str().parse().unwrap()),
-                    Hash::from_hex(inner_rules.next().unwrap().as_str()).unwrap(),
-                    OutputIndex(inner_rules.next().unwrap().as_str().parse().unwrap()),
+                    TxAmount(unwrap!(unwrap!(inner_rules.next()).as_str().parse())),
+                    TxBase(unwrap!(unwrap!(inner_rules.next()).as_str().parse())),
+                    unwrap!(Hash::from_hex(unwrap!(inner_rules.next()).as_str())),
+                    OutputIndex(unwrap!(unwrap!(inner_rules.next()).as_str().parse())),
                 )
             }
             _ => fatal_error!("unexpected rule: {:?}", tx_input_type_pair.as_rule()), // Grammar ensures that we never reach this line
@@ -117,7 +116,7 @@ impl FromStr for TransactionInput {
     fn from_str(source: &str) -> Result<Self, Self::Err> {
         match DocumentsParser::parse(Rule::tx_input, source) {
             Ok(mut pairs) => Ok(TransactionInput::from_pest_pair(
-                pairs.next().unwrap().into_inner(),
+                unwrap!(pairs.next()).into_inner(),
             )),
             Err(_) => Err(TextDocumentParseError::InvalidInnerFormat(
                 "Invalid unlocks !".to_owned(),
@@ -211,18 +210,16 @@ impl TransactionInputUnlocks {
         for unlock_field in pairs {
             // ${ input_index ~ ":" ~ unlock_cond ~ (" " ~ unlock_cond)* }
             match unlock_field.as_rule() {
-                Rule::input_index => input_index = unlock_field.as_str().parse().unwrap(),
-                Rule::unlock_sig => unlock_conds.push(TransactionUnlockProof::Sig(
-                    unlock_field
+                Rule::input_index => input_index = unwrap!(unlock_field.as_str().parse()),
+                Rule::unlock_sig => {
+                    unlock_conds.push(TransactionUnlockProof::Sig(unwrap!(unwrap!(unlock_field
                         .into_inner()
-                        .next()
-                        .unwrap()
-                        .as_str()
-                        .parse()
-                        .unwrap(),
-                )),
+                        .next())
+                    .as_str()
+                    .parse())))
+                }
                 Rule::unlock_xhx => unlock_conds.push(TransactionUnlockProof::Xhx(String::from(
-                    unlock_field.into_inner().next().unwrap().as_str(),
+                    unwrap!(unlock_field.into_inner().next()).as_str(),
                 ))),
                 _ => fatal_error!("unexpected rule: {:?}", unlock_field.as_rule()), // Grammar ensures that we never reach this line
             }
@@ -240,7 +237,7 @@ impl FromStr for TransactionInputUnlocks {
     fn from_str(source: &str) -> Result<Self, Self::Err> {
         match DocumentsParser::parse(Rule::tx_unlock, source) {
             Ok(mut pairs) => Ok(TransactionInputUnlocks::from_pest_pair(
-                pairs.next().unwrap().into_inner(),
+                unwrap!(pairs.next()).into_inner(),
             )),
             Err(_) => Err(TextDocumentParseError::InvalidInnerFormat(
                 "Invalid unlocks !".to_owned(),
@@ -331,8 +328,8 @@ macro_rules! utxo_conds_wrap_op_chain {
                     Box::new(conds_subgroups[1].clone()),
                 )
             } else if conds_subgroups.len() > 2 {
-                let last_subgroup = conds_subgroups.pop().unwrap();
-                let previous_last_subgroup = conds_subgroups.pop().unwrap();
+                let last_subgroup = unwrap!(conds_subgroups.pop());
+                let previous_last_subgroup = unwrap!(conds_subgroups.pop());
                 conds_subgroups.push($op(
                     Box::new(previous_last_subgroup),
                     Box::new(last_subgroup),
@@ -373,23 +370,26 @@ impl UTXOConditionsGroup {
                     &mut conds_subgroups,
                 )))
             }
-            Rule::output_cond_sig => {
-                UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(PubKey::Ed25519(
-                    ed25519::PublicKey::from_base58(pair.into_inner().next().unwrap().as_str())
-                        .unwrap(),
-                )))
-            }
+            Rule::output_cond_sig => UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(
+                PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+                    unwrap!(pair.into_inner().next()).as_str()
+                ))),
+            )),
             Rule::output_cond_xhx => UTXOConditionsGroup::Single(TransactionOutputCondition::Xhx(
-                Hash::from_hex(pair.into_inner().next().unwrap().as_str()).unwrap(),
+                unwrap!(Hash::from_hex(unwrap!(pair.into_inner().next()).as_str())),
             )),
-            Rule::output_cond_csv => UTXOConditionsGroup::Single(TransactionOutputCondition::Csv(
-                pair.into_inner().next().unwrap().as_str().parse().unwrap(),
-            )),
-            Rule::output_cond_cltv => {
-                UTXOConditionsGroup::Single(TransactionOutputCondition::Cltv(
-                    pair.into_inner().next().unwrap().as_str().parse().unwrap(),
-                ))
+            Rule::output_cond_csv => {
+                UTXOConditionsGroup::Single(TransactionOutputCondition::Csv(unwrap!(unwrap!(pair
+                    .into_inner()
+                    .next())
+                .as_str()
+                .parse())))
             }
+            Rule::output_cond_cltv => UTXOConditionsGroup::Single(
+                TransactionOutputCondition::Cltv(unwrap!(unwrap!(pair.into_inner().next())
+                    .as_str()
+                    .parse())),
+            ),
             _ => fatal_error!("unexpected rule: {:?}", pair.as_rule()), // Grammar ensures that we never reach this line
         }
     }
@@ -451,9 +451,9 @@ impl ToString for TransactionOutput {
 
 impl TransactionOutput {
     fn from_pest_pair(mut utxo_pairs: Pairs<Rule>) -> TransactionOutput {
-        let amount = TxAmount(utxo_pairs.next().unwrap().as_str().parse().unwrap());
-        let base = TxBase(utxo_pairs.next().unwrap().as_str().parse().unwrap());
-        let conditions_pairs = utxo_pairs.next().unwrap();
+        let amount = TxAmount(unwrap!(unwrap!(utxo_pairs.next()).as_str().parse()));
+        let base = TxBase(unwrap!(unwrap!(utxo_pairs.next()).as_str().parse()));
+        let conditions_pairs = unwrap!(utxo_pairs.next());
         let conditions_origin_str = conditions_pairs.as_str();
         TransactionOutput {
             amount,
@@ -490,14 +490,14 @@ impl FromStr for TransactionOutput {
         match DocumentsParser::parse(Rule::tx_output, &str_to_parse) {
             Ok(mut utxo_pairs) => {
                 let mut output =
-                    TransactionOutput::from_pest_pair(utxo_pairs.next().unwrap().into_inner());
+                    TransactionOutput::from_pest_pair(unwrap!(utxo_pairs.next()).into_inner());
                 output.conditions.origin_str = conditions_origin_str.map(ToString::to_string);
                 Ok(output)
             }
             Err(_) => match DocumentsParser::parse(Rule::tx_output, source) {
                 Ok(mut utxo_pairs) => {
                     let mut output =
-                        TransactionOutput::from_pest_pair(utxo_pairs.next().unwrap().into_inner());
+                        TransactionOutput::from_pest_pair(unwrap!(utxo_pairs.next()).into_inner());
                     output.conditions.origin_str = conditions_origin_str.map(ToString::to_string);
                     Ok(output)
                 }
@@ -667,16 +667,16 @@ impl TransactionDocument {
                 Rule::blockstamp => {
                     let mut inner_rules = field.into_inner(); // ${ block_id ~ "-" ~ hash }
 
-                    let block_id: &str = inner_rules.next().unwrap().as_str();
-                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                    let block_id: &str = unwrap!(inner_rules.next()).as_str();
+                    let block_hash: &str = unwrap!(inner_rules.next()).as_str();
                     blockstamp = Blockstamp {
-                        id: BlockNumber(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
-                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                        id: BlockNumber(unwrap!(block_id.parse())), // Grammar ensures that we have a digits string.
+                        hash: BlockHash(unwrap!(Hash::from_hex(block_hash))), // Grammar ensures that we have an hexadecimal string.
                     };
                 }
-                Rule::tx_locktime => locktime = field.as_str().parse().unwrap(), // Grammar ensures that we have digits characters.
+                Rule::tx_locktime => locktime = unwrap!(field.as_str().parse()), // Grammar ensures that we have digits characters.
                 Rule::pubkey => issuers.push(PubKey::Ed25519(
-                    ed25519::PublicKey::from_base58(field.as_str()).unwrap(), // Grammar ensures that we have a base58 string.
+                    unwrap!(ed25519::PublicKey::from_base58(field.as_str())), // Grammar ensures that we have a base58 string.
                 )),
                 Rule::tx_input => inputs.push(TransactionInput::from_pest_pair(field.into_inner())),
                 Rule::tx_unlock => {
@@ -688,7 +688,7 @@ impl TransactionDocument {
                 Rule::tx_comment => comment = field.as_str(),
                 Rule::ed25519_sig => {
                     sigs.push(Sig::Ed25519(
-                        ed25519::Signature::from_base64(field.as_str()).unwrap(), // Grammar ensures that we have a base64 string.
+                        unwrap!(ed25519::Signature::from_base64(field.as_str())), // Grammar ensures that we have a base64 string.
                     ));
                 }
                 Rule::EOI => (),
@@ -915,15 +915,15 @@ impl TextDocumentParser<Rule> for TransactionDocumentParser {
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
         let mut tx_pairs = DocumentsParser::parse(Rule::tx, doc)?;
-        let tx_pair = tx_pairs.next().unwrap(); // get and unwrap the `tx` rule; never fails
+        let tx_pair = unwrap!(tx_pairs.next()); // get and unwrap the `tx` rule; never fails
         Self::from_pest_pair(tx_pair)
     }
     #[inline]
     fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
-        let tx_vx_pair = pair.into_inner().next().unwrap(); // get and unwrap the `tx_vX` rule; never fails
+        let tx_vx_pair = unwrap!(pair.into_inner().next()); // get and unwrap the `tx_vX` rule; never fails
 
         match tx_vx_pair.as_rule() {
-            Rule::tx_v10 => Ok(TransactionDocument::from_pest_pair(tx_vx_pair)?),
+            Rule::tx_v10 => TransactionDocument::from_pest_pair(tx_vx_pair),
             _ => Err(TextDocumentParseError::UnexpectedRule(format!(
                 "{:#?}",
                 tx_vx_pair.as_rule()
@@ -952,21 +952,24 @@ mod tests {
 
     #[test]
     fn generate_real_document() {
-        let keypair = ed25519::KeyPairFromSeed32Generator::generate(
-            Seed32::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV").unwrap(),
-        );
+        let keypair = ed25519::KeyPairFromSeed32Generator::generate(unwrap!(
+            Seed32::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV"),
+            "Fail to parse Seed32"
+        ));
         let pubkey = PubKey::Ed25519(keypair.public_key());
         let signator =
             SignatorEnum::Ed25519(keypair.generate_signator().expect("fail to gen signator"));
 
-        let sig = Sig::Ed25519(ed25519::Signature::from_base64(
+        let sig = Sig::Ed25519(unwrap!(ed25519::Signature::from_base64(
             "cq86RugQlqAEyS8zFkB9o0PlWPSb+a6D/MEnLe8j+okyFYf/WzI6pFiBkQ9PSOVn5I0dwzVXg7Q4N1apMWeGAg==",
-        ).unwrap());
+        ), "Fail to parse Signature"));
 
-        let block = Blockstamp::from_string(
-            "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
-        )
-        .unwrap();
+        let block = unwrap!(
+            Blockstamp::from_string(
+                "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+            ),
+            "Fail to parse blockstamp"
+        );
 
         let builder = TransactionDocumentBuilder {
             currency: "duniter_unit_test_currency",
@@ -976,10 +979,10 @@ mod tests {
             inputs: &vec![TransactionInput::D(
                 TxAmount(10),
                 TxBase(0),
-                PubKey::Ed25519(
-                    ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
-                        .unwrap(),
-                ),
+                PubKey::Ed25519(unwrap!(
+                    ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV"),
+                    "Fail to parse PublicKey"
+                )),
                 BlockNumber(0),
             )],
             unlocks: &vec![TransactionInputUnlocks {
@@ -1013,19 +1016,21 @@ mod tests {
 
     #[test]
     fn compute_transaction_hash() {
-        let pubkey = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("FEkbc4BfJukSWnCU6Hed6dgwwTuPFTVdgz5LpL4iHr9J")
-                .unwrap(),
-        );
+        let pubkey = PubKey::Ed25519(unwrap!(
+            ed25519::PublicKey::from_base58("FEkbc4BfJukSWnCU6Hed6dgwwTuPFTVdgz5LpL4iHr9J"),
+            "Fail to parse PublicKey"
+        ));
 
-        let sig = Sig::Ed25519(ed25519::Signature::from_base64(
+        let sig = Sig::Ed25519(unwrap!(ed25519::Signature::from_base64(
             "XEwKwKF8AI1gWPT7elR4IN+bW3Qn02Dk15TEgrKtY/S2qfZsNaodsLofqHLI24BBwZ5aadpC88ntmjo/UW9oDQ==",
-        ).unwrap());
+        ), "Fail to parse Signature"));
 
-        let block = Blockstamp::from_string(
-            "60-00001FE00410FCD5991EDD18AA7DDF15F4C8393A64FA92A1DB1C1CA2E220128D",
-        )
-        .unwrap();
+        let block = unwrap!(
+            Blockstamp::from_string(
+                "60-00001FE00410FCD5991EDD18AA7DDF15F4C8393A64FA92A1DB1C1CA2E220128D",
+            ),
+            "Fail to parse Blockstamp"
+        );
 
         let builder = TransactionDocumentBuilder {
             currency: "g1",
@@ -1035,8 +1040,12 @@ mod tests {
             inputs: &vec![TransactionInput::T(
                 TxAmount(950),
                 TxBase(0),
-                Hash::from_hex("2CF1ACD8FE8DC93EE39A1D55881C50D87C55892AE8E4DB71D4EBAB3D412AA8FD")
-                    .unwrap(),
+                unwrap!(
+                    Hash::from_hex(
+                        "2CF1ACD8FE8DC93EE39A1D55881C50D87C55892AE8E4DB71D4EBAB3D412AA8FD"
+                    ),
+                    "Fail to parse Hash"
+                ),
                 OutputIndex(1),
             )],
             unlocks: &vec![

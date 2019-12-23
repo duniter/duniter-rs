@@ -25,6 +25,7 @@ use dubp_common_doc::traits::ToStringObject;
 use durs_common_tools::fatal_error;
 use pest::iterators::Pair;
 use pest::Parser;
+use unwrap::unwrap;
 
 pub mod certification;
 pub mod identity;
@@ -99,16 +100,16 @@ impl TextDocumentParser<Rule> for UserDocumentDUBP {
 
     fn parse(doc: &str) -> Result<UserDocumentDUBP, TextDocumentParseError> {
         match DocumentsParser::parse(Rule::document, doc) {
-            Ok(mut doc_pairs) => Ok(UserDocumentDUBP::from_pest_pair(doc_pairs.next().unwrap())?), // get and unwrap the `document` rule; never fails
+            Ok(mut doc_pairs) => UserDocumentDUBP::from_pest_pair(unwrap!(doc_pairs.next())), // get and unwrap the `document` rule; never fails
             Err(pest_error) => Err(pest_error.into()),
         }
     }
     #[inline]
     fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
-        let doc_vx_pair = pair.into_inner().next().unwrap(); // get and unwrap the `document_vX` rule; never fails
+        let doc_vx_pair = unwrap!(pair.into_inner().next()); // get and unwrap the `document_vX` rule; never fails
 
         match doc_vx_pair.as_rule() {
-            Rule::document_v10 => Ok(UserDocumentDUBP::from_versioned_pest_pair(10, doc_vx_pair)?),
+            Rule::document_v10 => UserDocumentDUBP::from_versioned_pest_pair(10, doc_vx_pair),
             _ => fatal_error!("unexpected rule: {:?}", doc_vx_pair.as_rule()), // Grammar ensures that we never reach this line
         }
     }
@@ -131,7 +132,7 @@ impl UserDocumentDUBP {
     pub fn from_pest_pair_v10(
         pair: Pair<Rule>,
     ) -> Result<UserDocumentDUBP, TextDocumentParseError> {
-        let doc_type_v10_pair = pair.into_inner().next().unwrap(); // get and unwrap the `{DOC_TYPE}_v10` rule; never fails
+        let doc_type_v10_pair = unwrap!(pair.into_inner().next()); // get and unwrap the `{DOC_TYPE}_v10` rule; never fails
 
         match doc_type_v10_pair.as_rule() {
             Rule::idty_v10 => Ok(UserDocumentDUBP::Identity(IdentityDocument::V10(
@@ -158,15 +159,10 @@ impl UserDocumentDUBP {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use dubp_common_doc::parser::TextDocumentParser;
     use dubp_common_doc::traits::Document;
     use dubp_common_doc::Blockstamp;
-
-    use super::certification::CertificationDocumentParser;
-    use super::identity::IdentityDocumentParser;
-    use super::membership::MembershipDocumentParser;
-    use super::revocation::RevocationDocumentParser;
-    use super::transaction::TransactionDocumentParser;
 
     use dup_crypto::keys::*;
 
@@ -217,32 +213,32 @@ Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 ";
 
         // good pair
-        let issuer1 = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
-                .unwrap(),
-        );
+        let issuer1 = PubKey::Ed25519(unwrap!(
+            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV"),
+            "Fail to parse PublicKey from base58"
+        ));
 
-        let sig1 = Sig::Ed25519(
+        let sig1 = Sig::Ed25519(unwrap!(
             ed25519::Signature::from_base64(
                 "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMM\
                  mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
-            )
-            .unwrap(),
-        );
+            ),
+            "Fail to parse Signature from base64"
+        ));
 
         // incorrect pair
-        let issuer2 = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt32bzHbA3NJR46DeQYCS2qQdLV")
-                .unwrap(),
-        );
+        let issuer2 = PubKey::Ed25519(unwrap!(
+            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt32bzHbA3NJR46DeQYCS2qQdLV"),
+            "Fail to parse PublicKey from base58"
+        ));
 
-        let sig2 = Sig::Ed25519(
+        let sig2 = Sig::Ed25519(unwrap!(
             ed25519::Signature::from_base64(
                 "1eubHHbuNfilHHH0G2bI30iZzebQ2cQ1PC7uPAw08FGMM\
                  mQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
-            )
-            .unwrap(),
-        );
+            ),
+            "Fail to parse Signature from base64"
+        ));
 
         {
             let doc = PlainTextDocument {
@@ -317,7 +313,10 @@ UniqueID: elois
 Timestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 Ydnclvw76/JHcKSmU9kl9Ie0ne5/X8NYOqPqbGnufIK3eEPRYYdEYaQh+zffuFhbtIRjv6m/DkVLH5cLy/IyAg==";
 
-        let doc = IdentityDocumentParser::parse(text).unwrap();
+        let doc = unwrap!(
+            IdentityDocumentParser::parse(text),
+            "Fail to parse IdentityDocument"
+        );
         println!("Doc : {:?}", doc);
         assert!(doc.verify_signatures().is_ok());
     }
@@ -334,7 +333,10 @@ UserID: elois
 CertTS: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 FFeyrvYio9uYwY5aMcDGswZPNjGLrl8THn9l3EPKSNySD3SDSHjCljSfFEwb87sroyzJQoVzPwER0sW/cbZMDg==";
 
-        let doc = MembershipDocumentParser::parse(text).unwrap();
+        let doc = unwrap!(
+            MembershipDocumentParser::parse(text),
+            "Fail to parse MembershipDocument"
+        );
         println!("Doc : {:?}", doc);
         assert!(doc.verify_signatures().is_ok());
     }
@@ -352,7 +354,10 @@ IdtySignature: DjeipIeb/RF0tpVCnVnuw6mH1iLJHIsDfPGLR90Twy3PeoaDz6Yzhc/UjLWqHCi5Y
 CertTimestamp: 99956-00000472758331FDA8388E30E50CA04736CBFD3B7C21F34E74707107794B56DD
 Hkps1QU4HxIcNXKT8YmprYTVByBhPP1U2tIM7Z8wENzLKIWAvQClkAvBE7pW9dnVa18sJIJhVZUcRrPAZfmjBA==";
 
-        let doc = CertificationDocumentParser::parse(text).unwrap();
+        let doc = unwrap!(
+            CertificationDocumentParser::parse(text),
+            "Fail to parse CertificationDocument"
+        );
         println!("Doc : {:?}", doc);
         assert!(doc.verify_signatures().is_ok());
     }
@@ -368,7 +373,10 @@ IdtyTimestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B85
 IdtySignature: 1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==
 XXOgI++6qpY9O31ml/FcfbXCE6aixIrgkT5jL7kBle3YOMr+8wrp7Rt+z9hDVjrNfYX2gpeJsuMNfG4T/fzVDQ==";
 
-        let doc = RevocationDocumentParser::parse(text).unwrap();
+        let doc = unwrap!(
+            RevocationDocumentParser::parse(text),
+            "Fail to parse RevocationDocument"
+        );
         println!("Doc : {:?}", doc);
         assert!(doc.verify_signatures().is_ok());
     }
@@ -393,7 +401,10 @@ Outputs:
 Comment: c est pour 2 mois d adhesion ressourcerie
 lnpuFsIymgz7qhKF/GsZ3n3W8ZauAAfWmT4W0iJQBLKJK2GFkesLWeMj/+GBfjD6kdkjreg9M6VfkwIZH+hCCQ==";
 
-        let doc = TransactionDocumentParser::parse(text).unwrap();
+        let doc = unwrap!(
+            TransactionDocumentParser::parse(text),
+            "Fail to parse TransactionDocument"
+        );
         println!("Doc : {:?}", doc);
         assert!(doc.verify_signatures().is_ok());
     }

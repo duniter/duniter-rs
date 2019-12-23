@@ -161,11 +161,11 @@ impl MembershipDocumentV10 {
                 Rule::blockstamp => {
                     let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
 
-                    let block_id: &str = inner_rules.next().unwrap().as_str();
-                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                    let block_id: &str = unwrap!(inner_rules.next()).as_str();
+                    let block_hash: &str = unwrap!(inner_rules.next()).as_str();
                     blockstamps.push(Blockstamp {
-                        id: BlockNumber(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
-                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                        id: BlockNumber(unwrap!(block_id.parse())), // Grammar ensures that we have a digits string.
+                        hash: BlockHash(unwrap!(Hash::from_hex(block_hash))), // Grammar ensures that we have an hexadecimal string.
                     });
                 }
                 Rule::ed25519_sig => sig_str = field.as_str(),
@@ -176,17 +176,17 @@ impl MembershipDocumentV10 {
 
         Ok(MembershipDocumentV10 {
             text: Some(doc.to_owned()),
-            issuers: vec![PubKey::Ed25519(
-                ed25519::PublicKey::from_base58(pubkey_str).unwrap(),
-            )], // Grammar ensures that we have a base58 string.
+            issuers: vec![PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
+                pubkey_str
+            )))], // Grammar ensures that we have a base58 string.
             currency: currency.to_owned(),
             blockstamp: blockstamps[0],
             membership,
             identity_username: uid.to_owned(),
             identity_blockstamp: blockstamps[1],
-            signatures: vec![Sig::Ed25519(
-                ed25519::Signature::from_base64(sig_str).unwrap(),
-            )], // Grammar ensures that we have a base64 string.
+            signatures: vec![Sig::Ed25519(unwrap!(ed25519::Signature::from_base64(
+                sig_str
+            )))], // Grammar ensures that we have a base64 string.
         })
     }
 }
@@ -335,24 +335,27 @@ mod tests {
 
     #[test]
     fn generate_real_document() {
-        let keypair = ed25519::KeyPairFromSeed32Generator::generate(
-            Seed32::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV").unwrap(),
-        );
+        let keypair = ed25519::KeyPairFromSeed32Generator::generate(unwrap!(
+            Seed32::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV"),
+            "fail to build Seed32"
+        ));
         let pubkey = PubKey::Ed25519(keypair.public_key());
         let signator =
             SignatorEnum::Ed25519(keypair.generate_signator().expect("fail to gen signator"));
 
         let sig = Sig::Ed25519(
-            ed25519::Signature::from_base64(
+            unwrap!(ed25519::Signature::from_base64(
                 "cUgoc8AI+Tae/AZmRfTnW+xq3XFtmYoUi2LXlmXr8/7LaXiUccQb8+Ds1nZoBp/8+t031HMwqAUpVIqww2FGCg==",
             )
-            .unwrap(),
+            , "fail to build Signature"),
         );
 
-        let block = Blockstamp::from_string(
-            "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
-        )
-        .unwrap();
+        let block = unwrap!(
+            Blockstamp::from_string(
+                "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+            ),
+            "fail to build Blockstamp"
+        );
 
         let builder = MembershipDocumentV10Builder {
             currency: "duniter_unit_test_currency",
@@ -394,7 +397,8 @@ UserID: tic
 CertTS: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 s2hUbokkibTAWGEwErw6hyXSWlWFQ2UWs2PWx8d/kkElAyuuWaQq4Tsonuweh1xn4AC1TVWt4yMR3WrDdkhnAw==";
 
-        let doc = MembershipDocumentParser::parse(doc).unwrap();
+        let doc =
+            MembershipDocumentParser::parse(doc).expect("fail to parse test membership document !");
         println!("Doc : {:?}", doc);
         assert!(doc.verify_signatures().is_ok());
         assert_eq!(

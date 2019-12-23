@@ -115,15 +115,18 @@ impl TextDocumentParser<Rule> for MembershipDocumentParser {
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
         let mut ms_pairs = DocumentsParser::parse(Rule::membership, doc)?;
-        let ms_pair = ms_pairs.next().unwrap(); // get and unwrap the `membership` rule; never fails
+        let ms_pair = unwrap!(ms_pairs.next(), "Fail to parse Rule::membership"); // get and unwrap the `membership` rule; never fails
         Self::from_pest_pair(ms_pair)
     }
     #[inline]
     fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
-        let ms_vx_pair = pair.into_inner().next().unwrap(); // get and unwrap the `membership_vX` rule; never fails
+        let ms_vx_pair = unwrap!(
+            pair.into_inner().next(),
+            "Fail to parse Rule::membership_vX"
+        ); // get and unwrap the `membership_vX` rule; never fails
 
         match ms_vx_pair.as_rule() {
-            Rule::membership_v10 => Ok(Self::from_versioned_pest_pair(10, ms_vx_pair)?),
+            Rule::membership_v10 => Self::from_versioned_pest_pair(10, ms_vx_pair),
             _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
                 "{:#?}",
                 ms_vx_pair.as_rule()

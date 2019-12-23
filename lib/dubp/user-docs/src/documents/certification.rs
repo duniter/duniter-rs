@@ -94,20 +94,19 @@ impl TextDocumentParser<Rule> for CertificationDocumentParser {
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
         match DocumentsParser::parse(Rule::cert, doc) {
             Ok(mut cert_pairs) => {
-                let cert_pair = cert_pairs.next().unwrap(); // get and unwrap the `cert` rule; never fails
+                let cert_pair = unwrap!(cert_pairs.next()); // get and unwrap the `cert` rule; never fails
                 Self::from_pest_pair(cert_pair)
             }
             Err(pest_error) => fatal_error!("{}", pest_error), //Err(TextDocumentParseError::PestError()),
         }
     }
     fn from_pest_pair(cert_pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
-        let cert_vx_pair = cert_pair.into_inner().next().unwrap(); // get and unwrap the `cert_vX` rule; never fails
+        let cert_vx_pair = unwrap!(cert_pair.into_inner().next()); // get and unwrap the `cert_vX` rule; never fails
 
         match cert_vx_pair.as_rule() {
-            Rule::cert_v10 => Ok(CertificationDocumentParser::from_versioned_pest_pair(
-                10,
-                cert_vx_pair,
-            )?),
+            Rule::cert_v10 => {
+                CertificationDocumentParser::from_versioned_pest_pair(10, cert_vx_pair)
+            }
             _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
                 "{:#?}",
                 cert_vx_pair.as_rule()

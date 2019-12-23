@@ -154,7 +154,7 @@ impl RevocationDocumentV10 {
             match field.as_rule() {
                 Rule::currency => currency = field.as_str(),
                 Rule::pubkey => pubkeys.push(PubKey::Ed25519(
-                    ed25519::PublicKey::from_base58(field.as_str()).unwrap(), // Grammar ensures that we have a base58 string.
+                    unwrap!(ed25519::PublicKey::from_base58(field.as_str())), // Grammar ensures that we have a base58 string.
                 )),
                 Rule::uid => {
                     uid = field.as_str();
@@ -162,16 +162,16 @@ impl RevocationDocumentV10 {
                 Rule::blockstamp => {
                     let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
 
-                    let block_id: &str = inner_rules.next().unwrap().as_str();
-                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                    let block_id: &str = unwrap!(inner_rules.next()).as_str();
+                    let block_hash: &str = unwrap!(inner_rules.next()).as_str();
                     blockstamps.push(Blockstamp {
-                        id: BlockNumber(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
-                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                        id: BlockNumber(unwrap!(block_id.parse())), // Grammar ensures that we have a digits string.
+                        hash: BlockHash(unwrap!(Hash::from_hex(block_hash))), // Grammar ensures that we have an hexadecimal string.
                     });
                 }
                 Rule::ed25519_sig => {
                     sigs.push(Sig::Ed25519(
-                        ed25519::Signature::from_base64(field.as_str()).unwrap(), // Grammar ensures that we have a base64 string.
+                        unwrap!(ed25519::Signature::from_base64(field.as_str())), // Grammar ensures that we have a base64 string.
                     ));
                 }
                 Rule::EOI => (),
@@ -303,25 +303,28 @@ mod tests {
 
     #[test]
     fn generate_real_document() {
-        let keypair = ed25519::KeyPairFromSeed32Generator::generate(
-            Seed32::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV").unwrap(),
-        );
+        let keypair = ed25519::KeyPairFromSeed32Generator::generate(unwrap!(
+            Seed32::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV"),
+            "fail to build Seed32"
+        ));
         let pubkey = PubKey::Ed25519(keypair.public_key());
         let signator =
             SignatorEnum::Ed25519(keypair.generate_signator().expect("fail to gen signator"));
 
-        let sig = Sig::Ed25519(ed25519::Signature::from_base64(
+        let sig = Sig::Ed25519(unwrap!(ed25519::Signature::from_base64(
             "gBD2mCr7E/tW8u3wqVK7IWtQB6IKxddg13UMl9ypVsv/VhqhAFTBba9BwoK5t6H9eqF1d+4sCB3WY2eJ/yuUAg==",
-        ).unwrap());
+        ), "Fail to build Signature"));
 
-        let identity_blockstamp = Blockstamp::from_string(
-            "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
-        )
-        .unwrap();
+        let identity_blockstamp = unwrap!(
+            Blockstamp::from_string(
+                "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+            ),
+            "Fail to build Blockstamp"
+        );
 
-        let identity_sig = Sig::Ed25519(ed25519::Signature::from_base64(
+        let identity_sig = Sig::Ed25519(unwrap!(ed25519::Signature::from_base64(
             "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
-        ).unwrap());
+        ), "Fail to build Signature"));
 
         let builder = RevocationDocumentV10Builder {
             currency: "g1",
@@ -362,7 +365,8 @@ IdtyTimestamp: 0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B85
 IdtySignature: 1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==
 XXOgI++6qpY9O31ml/FcfbXCE6aixIrgkT5jL7kBle3YOMr+8wrp7Rt+z9hDVjrNfYX2gpeJsuMNfG4T/fzVDQ==";
 
-        let doc = RevocationDocumentParser::parse(doc).unwrap();
+        let doc =
+            RevocationDocumentParser::parse(doc).expect("fail to parse test revocation document !");
         println!("Doc : {:?}", doc);
         assert!(doc.verify_signatures().is_ok())
     }

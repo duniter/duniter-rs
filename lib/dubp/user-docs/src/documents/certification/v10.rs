@@ -171,7 +171,7 @@ impl CertificationDocumentV10 {
             match field.as_rule() {
                 Rule::currency => currency = field.as_str(),
                 Rule::pubkey => pubkeys.push(PubKey::Ed25519(
-                    ed25519::PublicKey::from_base58(field.as_str()).unwrap(), // Grammar ensures that we have a base58 string.
+                    unwrap!(ed25519::PublicKey::from_base58(field.as_str())), // Grammar ensures that we have a base58 string.
                 )),
                 Rule::uid => {
                     uid = field.as_str();
@@ -179,16 +179,16 @@ impl CertificationDocumentV10 {
                 Rule::blockstamp => {
                     let mut inner_rules = field.into_inner(); // { integer ~ "-" ~ hash }
 
-                    let block_id: &str = inner_rules.next().unwrap().as_str();
-                    let block_hash: &str = inner_rules.next().unwrap().as_str();
+                    let block_id: &str = unwrap!(inner_rules.next()).as_str();
+                    let block_hash: &str = unwrap!(inner_rules.next()).as_str();
                     blockstamps.push(Blockstamp {
-                        id: BlockNumber(block_id.parse().unwrap()), // Grammar ensures that we have a digits string.
-                        hash: BlockHash(Hash::from_hex(block_hash).unwrap()), // Grammar ensures that we have an hexadecimal string.
+                        id: BlockNumber(unwrap!(block_id.parse())), // Grammar ensures that we have a digits string.
+                        hash: BlockHash(unwrap!(Hash::from_hex(block_hash))), // Grammar ensures that we have an hexadecimal string.
                     });
                 }
                 Rule::ed25519_sig => {
                     sigs.push(Sig::Ed25519(
-                        ed25519::Signature::from_base64(field.as_str()).unwrap(), // Grammar ensures that we have a base64 string.
+                        unwrap!(ed25519::Signature::from_base64(field.as_str())), // Grammar ensures that we have a base64 string.
                     ));
                 }
                 Rule::EOI => (),
@@ -339,34 +339,41 @@ mod tests {
 
     #[test]
     fn generate_real_certification_document() {
-        let seed = Seed32::from_base58("4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR").unwrap();
+        let seed = unwrap!(
+            Seed32::from_base58("4tNQ7d9pj2Da5wUVoW9mFn7JjuPoowF977au8DdhEjVR"),
+            "fail to build Seed32"
+        );
         let keypair = ed25519::KeyPairFromSeed32Generator::generate(seed);
         let pubkey = PubKey::Ed25519(keypair.public_key());
         let signator =
             SignatorEnum::Ed25519(keypair.generate_signator().expect("fail to gen signator"));
 
-        let sig = Sig::Ed25519(ed25519::Signature::from_base64(
+        let sig = Sig::Ed25519(unwrap!(ed25519::Signature::from_base64(
             "sYbaZp3pP9F/CveT1LPiJXECTBHlNurDXqmBo71N7JX/rvmHw6m/sid9bGdIa8cUq+vDD4DMB/F7r7As1p4rAg==",
-        ).unwrap());
+        ), "Fail to build Signature"));
 
-        let target = PubKey::Ed25519(
-            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV")
-                .unwrap(),
+        let target = PubKey::Ed25519(unwrap!(
+            ed25519::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLV"),
+            "Fail to build PublicKey"
+        ));
+
+        let identity_blockstamp = unwrap!(
+            Blockstamp::from_string(
+                "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+            ),
+            "Fail to build Blockstamp"
         );
 
-        let identity_blockstamp = Blockstamp::from_string(
-            "0-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
-        )
-        .unwrap();
-
-        let identity_sig = Sig::Ed25519(ed25519::Signature::from_base64(
+        let identity_sig = Sig::Ed25519(unwrap!(ed25519::Signature::from_base64(
             "1eubHHbuNfilHMM0G2bI30iZzebQ2cQ1PC7uPAw08FGMMmQCRerlF/3pc4sAcsnexsxBseA/3lY03KlONqJBAg==",
-        ).unwrap());
+        ), "Fail to build Signature"));
 
-        let blockstamp = Blockstamp::from_string(
-            "36-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B865",
-        )
-        .unwrap();
+        let blockstamp = unwrap!(
+            Blockstamp::from_string(
+                "36-E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B865",
+            ),
+            "Fail to build Blockstamp"
+        );
 
         let builder = CertificationDocumentV10Builder {
             currency: "duniter_unit_test_currency",
@@ -411,7 +418,8 @@ IdtySignature: SmSweUD4lEMwiZfY8ux9maBjrQQDkC85oMNsin6oSQCPdXG8sFCZ4FisUaWqKsfOl
 CertTimestamp: 167884-0001DFCA28002A8C96575E53B8CEF8317453A7B0BA255542CCF0EC8AB5E99038
 wqZxPEGxLrHGv8VdEIfUGvUcf+tDdNTMXjLzVRCQ4UhlhDRahOMjfcbP7byNYr5OfIl83S1MBxF7VJgu8YasCA==";
 
-        let doc = CertificationDocumentParser::parse(doc).unwrap();
+        let doc = CertificationDocumentParser::parse(doc)
+            .expect("fail to parse test certification document !");
         println!("Doc : {:?}", doc);
         assert!(doc.verify_signatures().is_ok());
         /*assert_eq!(

@@ -87,15 +87,15 @@ impl TextDocumentParser<Rule> for IdentityDocumentParser {
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
         let mut doc_pairs = DocumentsParser::parse(Rule::idty, doc)?;
-        let idty_pair = doc_pairs.next().unwrap(); // get and unwrap the `idty` rule; never fails
+        let idty_pair = unwrap!(doc_pairs.next()); // get and unwrap the `idty` rule; never fails
         Self::from_pest_pair(idty_pair)
     }
     #[inline]
     fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
-        let idty_vx_pair = pair.into_inner().next().unwrap(); // get and unwrap the `idty_vx` rule; never fails
+        let idty_vx_pair = unwrap!(pair.into_inner().next()); // get and unwrap the `idty_vx` rule; never fails
 
         match idty_vx_pair.as_rule() {
-            Rule::idty_v10 => Ok(Self::from_versioned_pest_pair(10, idty_vx_pair)?),
+            Rule::idty_v10 => Self::from_versioned_pest_pair(10, idty_vx_pair),
             _ => Err(TextDocumentParseError::UnexpectedVersion(format!(
                 "{:#?}",
                 idty_vx_pair.as_rule()

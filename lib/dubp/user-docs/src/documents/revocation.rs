@@ -102,12 +102,12 @@ impl TextDocumentParser<Rule> for RevocationDocumentParser {
 
     fn parse(doc: &str) -> Result<Self::DocumentType, TextDocumentParseError> {
         let mut revoc_pairs = DocumentsParser::parse(Rule::revoc, doc)?;
-        let revoc_pair = revoc_pairs.next().unwrap(); // get and unwrap the `revoc` rule; never fails
+        let revoc_pair = unwrap!(revoc_pairs.next(), "Fail to parse Rule::revoc"); // get and unwrap the `revoc` rule; never fails
         Self::from_pest_pair(revoc_pair)
     }
     #[inline]
     fn from_pest_pair(pair: Pair<Rule>) -> Result<Self::DocumentType, TextDocumentParseError> {
-        let revoc_vx_pair = pair.into_inner().next().unwrap(); // get and unwrap the `revoc_vX` rule; never fails
+        let revoc_vx_pair = unwrap!(pair.into_inner().next(), "Fail to parse Rule::revoc_vX"); // get and unwrap the `revoc_vX` rule; never fails
 
         match revoc_vx_pair.as_rule() {
             Rule::revoc_v10 => Self::from_versioned_pest_pair(10, revoc_vx_pair),
