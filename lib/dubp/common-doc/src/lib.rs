@@ -29,7 +29,6 @@
 extern crate pest_derive;
 
 pub mod blockstamp;
-pub mod currencies_codes;
 pub mod errors;
 pub mod parser;
 pub mod traits;
