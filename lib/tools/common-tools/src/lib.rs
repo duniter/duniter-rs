@@ -57,3 +57,18 @@ impl Into<u8> for Percent {
         self.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_percent() {
+        assert_eq!(Percent::new(101), Err(PercentError::TooLarge(101)));
+
+        let percent = Percent::new(100).expect("wrong percent");
+        let percent_value: u8 = percent.into();
+        assert_eq!(percent_value, 100u8);
+    }
+}

@@ -35,3 +35,23 @@ pub fn to_2_u32(u64_: u64) -> (u32, u32) {
 
     (u32::from_be_bytes(a), u32::from_be_bytes(b))
 }
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_from_2_u32() {
+        assert_eq!(1u64, from_2_u32(0, 1));
+        assert_eq!(2_623u64, from_2_u32(0, 2_623));
+        assert_eq!((std::u32::MAX as u64) + 1, from_2_u32(1, 0));
+    }
+
+    #[test]
+    fn test_to_2_u32() {
+        assert_eq!(to_2_u32(1), (0, 1));
+        assert_eq!(to_2_u32(2_623), (0, 2_623));
+        assert_eq!(to_2_u32(std::u32::MAX as u64 + 1), (1, 0));
+    }
+}
