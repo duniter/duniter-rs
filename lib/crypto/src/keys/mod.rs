@@ -684,6 +684,12 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "Schnorr algo not yet supported !")]
+    fn key_pair_schnorr_generate_signator() {
+        let _ = KeyPairEnum::Schnorr().generate_signator();
+    }
+
+    #[test]
+    #[should_panic(expected = "Schnorr algo not yet supported !")]
     fn key_pair_schnorr_get_pubkey() {
         let key_pair = KeyPairEnum::Schnorr();
         key_pair.public_key();
@@ -715,5 +721,20 @@ mod tests {
     fn signator_schnorr_sign() {
         let signator = SignatorEnum::Schnorr();
         signator.sign(b"message");
+    }
+
+    #[test]
+    fn pubkey_from_bytes() {
+        assert_eq!(
+            Err(PubkeyFromBytesError::InvalidBytesLen {
+                expected: *ed25519::PUBKEY_SIZE_IN_BYTES,
+                found: 2,
+            }),
+            PubKey::from_bytes(&[0u8, 1u8]),
+        );
+        assert_eq!(
+            Ok(PubKey::Ed25519(ed25519::PublicKey([0u8; 32]))),
+            PubKey::from_bytes(&[0u8; 32]),
+        );
     }
 }
