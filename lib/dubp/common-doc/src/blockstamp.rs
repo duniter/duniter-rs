@@ -161,20 +161,20 @@ impl Blockstamp {
     pub fn from_string(src: &str) -> Result<Blockstamp, BlockstampParseError> {
         let mut split = src.split('-');
 
-        if split.clone().count() != 2 {
-            Err(BlockstampParseError::InvalidFormat())
-        } else {
-            let id = split.next().unwrap().parse::<u32>();
-            let hash = Hash::from_hex(split.next().unwrap())?;
+        match (split.next(), split.next(), split.next()) {
+            (Some(id), Some(hash), None) => {
+                let hash = Hash::from_hex(hash)?;
 
-            if let Ok(id) = id {
-                Ok(Blockstamp {
-                    id: BlockNumber(id),
-                    hash: BlockHash(hash),
-                })
-            } else {
-                Err(BlockstampParseError::InvalidBlockNumber())
+                if let Ok(id) = id.parse::<u32>() {
+                    Ok(Blockstamp {
+                        id: BlockNumber(id),
+                        hash: BlockHash(hash),
+                    })
+                } else {
+                    Err(BlockstampParseError::InvalidBlockNumber())
+                }
             }
+            _ => Err(BlockstampParseError::InvalidFormat()),
         }
     }
 }
