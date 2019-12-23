@@ -60,3 +60,14 @@ pub fn open_free_struct_db<D: Serialize + DeserializeOwned + Debug + Default + C
         Ok(BinFreeStructDb::Mem(open_free_struct_memory_db::<D>()?))
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_open_unexist_free_struct_db() {
+        assert!(open_free_struct_db::<usize>(Some(&PathBuf::new()), "").is_err())
+    }
+}
