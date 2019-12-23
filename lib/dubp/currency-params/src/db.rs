@@ -42,11 +42,7 @@ pub fn get_currency_name(
 ) -> Result<Option<CurrencyName>, CurrencyParamsDbError> {
     let db_datas: CurrencyParamsDbDatas = read_currency_params_db(datas_path)?;
 
-    if let Some((currency_name, _genesis_block_params)) = db_datas {
-        Ok(Some(currency_name))
-    } else {
-        Ok(None)
-    }
+    Ok(db_datas.map(|(currency_name, _genesis_block_params)| currency_name))
 }
 
 /// Get currency parameters
@@ -55,16 +51,14 @@ pub fn get_currency_params(
 ) -> Result<Option<(CurrencyName, CurrencyParameters)>, CurrencyParamsDbError> {
     let db_datas: CurrencyParamsDbDatas = read_currency_params_db(datas_path)?;
 
-    if let Some((currency_name, genesis_block_params)) = db_datas {
+    Ok(db_datas.map(|(currency_name, genesis_block_params)| {
         let currency_params = match genesis_block_params {
             GenesisBlockParams::V10(genesis_block_v10_params) => {
                 CurrencyParameters::from((&currency_name, genesis_block_v10_params))
             }
         };
-        Ok(Some((currency_name, currency_params)))
-    } else {
-        Ok(None)
-    }
+        (currency_name, currency_params)
+    }))
 }
 
 fn read_currency_params_db(

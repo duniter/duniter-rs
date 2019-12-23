@@ -129,13 +129,10 @@ pub fn get_block_hash<DB: BcDbInReadTx>(
     db: &DB,
     block_number: BlockNumber,
 ) -> Result<Option<BlockHash>, DbError> {
-    Ok(
-        if let Some(block) = get_block_in_local_blockchain(db, block_number)? {
-            block.hash()
-        } else {
-            None
-        },
-    )
+    Ok(get_block_in_local_blockchain(db, block_number)?
+        .as_ref()
+        .map(BlockDocument::hash)
+        .flatten())
 }
 
 /// Get block in local blockchain

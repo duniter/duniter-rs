@@ -140,11 +140,10 @@ pub fn get_identity_by_pubkey<DB: BcDbInReadTx>(
     db: &DB,
     pubkey: &PubKey,
 ) -> Result<Option<IdentityDb>, DbError> {
-    if let Some(wot_id) = get_wot_id(db, pubkey)? {
-        get_identity_by_wot_id(db, wot_id)
-    } else {
-        Ok(None)
-    }
+    Ok(get_wot_id(db, pubkey)?
+        .map(|wot_id| get_identity_by_wot_id(db, wot_id))
+        .transpose()?
+        .flatten())
 }
 
 /// Get identity by pubkey

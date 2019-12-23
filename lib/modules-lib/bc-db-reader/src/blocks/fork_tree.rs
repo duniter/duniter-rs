@@ -199,11 +199,7 @@ impl ForkTree {
     /// Get main branch node
     #[inline]
     pub fn get_main_branch_node_id(&self, block_id: BlockNumber) -> Option<TreeNodeId> {
-        if let Some(node_id) = self.main_branch.get(&block_id) {
-            Some(*node_id)
-        } else {
-            None
-        }
+        self.main_branch.get(&block_id).copied()
     }
     /// Get main branch block hash
     #[inline]

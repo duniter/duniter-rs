@@ -73,11 +73,9 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
             "signature",
         )?)?)],
         hash: Some(BlockHash(Hash::from_hex(get_str(json_block, "hash")?)?)),
-        parameters: if let Some(params) = get_optional_str_not_empty(json_block, "parameters")? {
-            Some(BlockV10Parameters::from_str(params)?)
-        } else {
-            None
-        },
+        parameters: get_optional_str_not_empty(json_block, "parameters")?
+            .map(BlockV10Parameters::from_str)
+            .transpose()?,
         previous_hash: if block_number == 0 {
             None
         } else {

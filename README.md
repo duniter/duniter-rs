@@ -5,7 +5,7 @@
 [![Latest Version](https://img.shields.io/badge/latest-v0.1.1--a1-orange.svg)](https://git.duniter.org/nodes/rust/duniter-rs/tags/v0.1.1-a1)
 [![docs](https://librelois.fr/img/docs-read%20now-green.svg)](https://nodes.duniter.io/rust/duniter-rs/dunitrust/)
 [![build status](https://git.duniter.org/nodes/rust/duniter-rs/badges/dev/build.svg)](https://git.duniter.org/nodes/rust/duniter-rs/commits/dev)
-[![Minimum rustc version](https://img.shields.io/badge/rustc-1.37.0+-yellow.svg)](https://github.com/rust-lang/rust/blob/master/RELEASES.md)
+[![Minimum rustc version](https://img.shields.io/badge/rustc-1.40.0+-yellow.svg)](https://github.com/rust-lang/rust/blob/master/RELEASES.md)
 
 ## What is Duniter
 

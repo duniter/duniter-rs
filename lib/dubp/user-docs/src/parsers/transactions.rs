@@ -67,11 +67,9 @@ pub fn parse_json_transaction(
             .map(|i| TransactionOutput::from_str(i))
             .collect::<Result<Vec<TransactionOutput>, TextDocumentParseError>>()?,
         comment: &durs_common_tools::fns::str_escape::unescape_str(get_str(json_tx, "comment")?),
-        hash: if let Some(hash_str) = get_optional_str(json_tx, "hash")? {
-            Some(Hash::from_hex(hash_str)?)
-        } else {
-            None
-        },
+        hash: get_optional_str(json_tx, "hash")?
+            .map(Hash::from_hex)
+            .transpose()?,
     };
 
     Ok(tx_doc_builder.build_with_signature(

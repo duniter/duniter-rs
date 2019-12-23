@@ -131,11 +131,11 @@ pub fn get_utxo_v10<DB: BcDbInReadTx>(
     utxo_id: UniqueIdUTXOv10,
 ) -> Result<Option<TransactionOutput>, DbError> {
     let utxo_id_bytes: Vec<u8> = utxo_id.into();
-    if let Some(v) = db.db().get_store(UTXOS).get(db.r(), &utxo_id_bytes)? {
-        Ok(Some(from_db_value(v)?))
-    } else {
-        Ok(None)
-    }
+    db.db()
+        .get_store(UTXOS)
+        .get(db.r(), &utxo_id_bytes)?
+        .map(from_db_value)
+        .transpose()
 }
 
 /// Get block consumed sources
@@ -143,13 +143,9 @@ pub fn get_block_consumed_sources_<DB: BcDbInReadTx>(
     db: &DB,
     block_number: BlockNumber,
 ) -> Result<Option<HashMap<UniqueIdUTXOv10, TransactionOutput>>, DbError> {
-    if let Some(v) = db
-        .db()
+    db.db()
         .get_int_store(CONSUMED_UTXOS)
         .get(db.r(), block_number.0)?
-    {
-        Ok(Some(from_db_value(v)?))
-    } else {
-        Ok(None)
-    }
+        .map(from_db_value)
+        .transpose()
 }

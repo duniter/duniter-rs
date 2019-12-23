@@ -91,13 +91,10 @@ impl WS2POutgoingOrchestrator {
     pub fn connect_to_ws2p_v2_endpoint(
         &self,
         endpoint: &EndpointEnum,
-        remote_node_id: Option<NodeId>,
+        remote_node_id_opt: Option<NodeId>,
     ) -> Result<(), WsError> {
-        let expected_remote_full_id = if let Some(remote_node_id) = remote_node_id {
-            Some(NodeFullId(remote_node_id, endpoint.pubkey()))
-        } else {
-            None
-        };
+        let expected_remote_full_id =
+            remote_node_id_opt.map(|remote_node_id| NodeFullId(remote_node_id, endpoint.pubkey()));
         match controllers::outgoing_connections::connect_to_ws2p_v2_endpoint(
             &self.currency,
             &self.sender,
