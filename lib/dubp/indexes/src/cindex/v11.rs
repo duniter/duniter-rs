@@ -22,7 +22,7 @@ use dup_crypto::keys::{PubKey, Sig};
 /// CINDEX datas
 pub type CIndexV11 = Index<(PubKey, PubKey), CIndexV11Line>;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 /// CINDEX line
 pub struct CIndexV11Line {
     op: IndexLineOp,
@@ -53,5 +53,61 @@ impl MergeIndexLine for CIndexV11Line {
         index_line
             .replayable_on
             .map(|v| self.replayable_on.replace(v));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use dubp_common_doc::{BlockHash, BlockNumber};
+    use dup_crypto::hashs::Hash;
+
+    #[test]
+    fn test_iindex_merge_2_lines() {
+        let mut line1 = CIndexV11Line {
+            op: IndexLineOp(true),
+            issuer: PubKey::default(),
+            receiver: PubKey::default(),
+            created_on: Some(Blockstamp::default()),
+            written_on: Some(Blockstamp::default()),
+            sig: None,
+            expires_on: Some(5),
+            expired_on: 0,
+            chainable_on: Some(1),
+            replayable_on: Some(2),
+        };
+        let b2 = Blockstamp {
+            id: BlockNumber(2),
+            hash: BlockHash(Hash::default()),
+        };
+        let line2 = CIndexV11Line {
+            op: IndexLineOp(false),
+            issuer: PubKey::default(),
+            receiver: PubKey::default(),
+            created_on: None,
+            written_on: Some(b2),
+            sig: None,
+            expires_on: Some(7),
+            expired_on: 0,
+            chainable_on: Some(3),
+            replayable_on: Some(4),
+        };
+        line1.merge_index_line(line2);
+        assert_eq!(
+            line1,
+            CIndexV11Line {
+                op: IndexLineOp(false),
+                issuer: PubKey::default(),
+                receiver: PubKey::default(),
+                created_on: Some(Blockstamp::default()),
+                written_on: Some(b2),
+                sig: None,
+                expires_on: Some(7),
+                expired_on: 0,
+                chainable_on: Some(3),
+                replayable_on: Some(4),
+            }
+        )
     }
 }

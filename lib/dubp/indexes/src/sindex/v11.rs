@@ -24,7 +24,7 @@ use dup_crypto::hashs::Hash;
 /// SINDEX datas
 pub type SIndexV11 = Index<SourceUniqueIdV10, SIndexV11Line>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 /// SINDEX line
 ///
 /// computed fields :
@@ -52,5 +52,65 @@ impl MergeIndexLine for SIndexV11Line {
         self.locktime = index_line.locktime;
         self.conditions = index_line.conditions;
         self.written_on = index_line.written_on;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use dubp_common_doc::{BlockHash, BlockNumber};
+    use dubp_user_docs::documents::transaction::{TransactionOutputCondition, UTXOConditionsGroup};
+    use dup_crypto::keys::PubKey;
+
+    #[test]
+    fn test_iindex_merge_2_lines() {
+        let cond = UTXOConditions {
+            origin_str: None,
+            conditions: UTXOConditionsGroup::Single(TransactionOutputCondition::Sig(
+                PubKey::default(),
+            )),
+        };
+        let mut line1 = SIndexV11Line {
+            op: IndexLineOp(true),
+            tx: None,
+            identifier_and_pos: SourceUniqueIdV10::UD(PubKey::default(), BlockNumber(0)),
+            created_on: Some(Blockstamp::default()),
+            amount: TxAmount(10),
+            base: TxBase(0),
+            locktime: 0,
+            conditions: cond.clone(),
+            written_on: Blockstamp::default(),
+        };
+        let b1 = Blockstamp {
+            id: BlockNumber(1),
+            hash: BlockHash(Hash::default()),
+        };
+        let line2 = SIndexV11Line {
+            op: IndexLineOp(false),
+            tx: None,
+            identifier_and_pos: SourceUniqueIdV10::UD(PubKey::default(), BlockNumber(0)),
+            created_on: None,
+            amount: TxAmount(10),
+            base: TxBase(0),
+            locktime: 0,
+            conditions: cond.clone(),
+            written_on: b1,
+        };
+        line1.merge_index_line(line2);
+        assert_eq!(
+            line1,
+            SIndexV11Line {
+                op: IndexLineOp(false),
+                tx: None,
+                identifier_and_pos: SourceUniqueIdV10::UD(PubKey::default(), BlockNumber(0)),
+                created_on: Some(Blockstamp::default()),
+                amount: TxAmount(10),
+                base: TxBase(0),
+                locktime: 0,
+                conditions: cond,
+                written_on: b1,
+            }
+        )
     }
 }

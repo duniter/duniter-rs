@@ -25,7 +25,7 @@ use std::str::FromStr;
 
 const USERNAME_MAX_LEN: usize = 100;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default, PartialEq)]
 /// Identity username
 pub struct Username {
     chars: UsernameChars,
@@ -40,6 +40,17 @@ impl Debug for Username {
 
 #[derive(Copy, Clone)]
 struct UsernameChars([char; USERNAME_MAX_LEN]);
+
+impl PartialEq for UsernameChars {
+    fn eq(&self, other: &Self) -> bool {
+        for i in 0..USERNAME_MAX_LEN {
+            if self.0[i] != other.0[i] {
+                return false;
+            }
+        }
+        true
+    }
+}
 
 impl AsMut<[char]> for UsernameChars {
     fn as_mut(&mut self) -> &mut [char] {
@@ -67,7 +78,7 @@ impl ToString for Username {
 }
 
 /// Error when parsing username
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ParseUsernameErr {
     /// username too long
     UsernameTooLong,
@@ -93,5 +104,31 @@ impl FromStr for Username {
             chars: copy_into_array(&chars[..]),
             real_len,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_username() {
+        let too_long_str = ".............................................................................................................................";
+        assert_eq!(
+            Username::from_str(too_long_str),
+            Err(ParseUsernameErr::UsernameTooLong)
+        );
+
+        let username = Username::from_str("toto").expect("fail to parse username");
+        assert_eq!(username.to_string(), String::from("toto"));
+        assert_ne!(username, Username::default());
+    }
+
+    #[test]
+    fn test_default_username() {
+        let default_username = Username::default();
+        println!("default_username={:?}", default_username);
+        assert_eq!(default_username.to_string(), String::default())
     }
 }

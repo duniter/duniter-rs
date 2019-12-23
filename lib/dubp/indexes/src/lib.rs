@@ -41,7 +41,7 @@ use std::hash::Hash;
 /// Stored in a boolean :
 /// CREATE encoded as true
 /// UPDATE encoded as false
-#[derive(Clone, Copy, Debug, Shrinkwrap)]
+#[derive(Clone, Copy, Debug, PartialEq, Shrinkwrap)]
 pub struct IndexLineOp(bool);
 
 /// Generic INDEX
@@ -62,6 +62,17 @@ where
     /// Get entity state
     pub fn get_state(&self, entity_id: &ID) -> Option<IndexLine> {
         self.get_events(entity_id).map(Self::reduce)
+    }
+}
+
+impl<ID, IndexLine> Index<ID, IndexLine>
+where
+    ID: Clone + Debug + Eq + Hash,
+    IndexLine: Clone + Debug + MergeIndexLine,
+{
+    /// Get entity state
+    pub fn get_state_by_cloning(&self, entity_id: &ID) -> Option<IndexLine> {
+        self.get_events(entity_id).map(Self::reduce_by_cloning)
     }
 }
 
@@ -136,5 +147,104 @@ pub trait ReduceNotCopyableIndexLines {
         }
 
         entity_state
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    type TestIndex = Index<usize, TestIndexLine>;
+    type TestIndexNotCopyable = Index<usize, TestIndexLineNotCopyable>;
+
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    struct TestIndexLine {
+        op: IndexLineOp,
+        id: usize,
+        field: Option<bool>,
+    }
+
+    impl MergeIndexLine for TestIndexLine {
+        fn merge_index_line(&mut self, index_line: Self) {
+            self.op = index_line.op;
+            index_line.field.map(|v| self.field.replace(v));
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct TestIndexLineNotCopyable {
+        op: IndexLineOp,
+        id: usize,
+        field: Option<String>,
+    }
+
+    impl MergeIndexLine for TestIndexLineNotCopyable {
+        fn merge_index_line(&mut self, index_line: Self) {
+            self.op = index_line.op;
+            index_line.field.map(|v| self.field.replace(v));
+        }
+    }
+
+    fn new_test_index() -> TestIndex {
+        let index_lines = vec![
+            TestIndexLine {
+                op: IndexLineOp(true),
+                id: 0,
+                field: Some(true),
+            },
+            TestIndexLine {
+                op: IndexLineOp(false),
+                id: 0,
+                field: None,
+            },
+        ];
+        let mut datas = HashMap::new();
+        datas.insert(0, index_lines);
+        TestIndex { datas }
+    }
+
+    fn new_test_index_not_copyable() -> TestIndexNotCopyable {
+        let index_lines = vec![
+            TestIndexLineNotCopyable {
+                op: IndexLineOp(true),
+                id: 0,
+                field: Some("toto".to_owned()),
+            },
+            TestIndexLineNotCopyable {
+                op: IndexLineOp(false),
+                id: 0,
+                field: None,
+            },
+        ];
+        let mut datas = HashMap::new();
+        datas.insert(0, index_lines);
+        TestIndexNotCopyable { datas }
+    }
+
+    #[test]
+    fn test_reduce_copyable_index() {
+        let index = new_test_index();
+        assert_eq!(
+            Some(TestIndexLine {
+                op: IndexLineOp(false),
+                id: 0,
+                field: Some(true),
+            }),
+            index.get_state(&0)
+        )
+    }
+
+    #[test]
+    fn test_reduce_not_copyable_index() {
+        let index = new_test_index_not_copyable();
+        assert_eq!(
+            Some(TestIndexLineNotCopyable {
+                op: IndexLineOp(false),
+                id: 0,
+                field: Some("toto".to_owned()),
+            }),
+            index.get_state_by_cloning(&0)
+        )
     }
 }

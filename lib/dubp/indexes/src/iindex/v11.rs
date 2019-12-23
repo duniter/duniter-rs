@@ -24,7 +24,7 @@ use dup_crypto::keys::{PubKey, Sig};
 /// IINDEX datas
 pub type IIndexV11 = Index<PubKey, IIndexV11Line>;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 /// IINDEX line
 ///
 /// computed fields :
@@ -52,5 +52,53 @@ impl MergeIndexLine for IIndexV11Line {
         index_line.sig.map(|v| self.sig.replace(v));
         index_line.member.map(|v| self.member.replace(v));
         index_line.kick.map(|v| self.kick.replace(v));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_iindex_merge_2_lines() {
+        let mut line1 = IIndexV11Line {
+            op: IndexLineOp(true),
+            uid: Some(Username::from_str("toto").expect("wrong username")),
+            r#pub: PubKey::default(),
+            hash: Some(Hash::default()),
+            sig: None,
+            created_on: Some(Blockstamp::default()),
+            written_on: Blockstamp::default(),
+            member: Some(true),
+            kick: Some(false),
+        };
+        let line2 = IIndexV11Line {
+            op: IndexLineOp(false),
+            uid: None,
+            r#pub: PubKey::default(),
+            hash: None,
+            sig: None,
+            created_on: None,
+            written_on: Blockstamp::default(),
+            member: Some(false),
+            kick: Some(false),
+        };
+        line1.merge_index_line(line2);
+        assert_eq!(
+            line1,
+            IIndexV11Line {
+                op: IndexLineOp(false),
+                uid: Some(Username::from_str("toto").expect("wrong username")),
+                r#pub: PubKey::default(),
+                hash: Some(Hash::default()),
+                sig: None,
+                created_on: Some(Blockstamp::default()),
+                written_on: Blockstamp::default(),
+                member: Some(false),
+                kick: Some(false),
+            }
+        )
     }
 }

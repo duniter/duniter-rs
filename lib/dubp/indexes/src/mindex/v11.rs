@@ -22,7 +22,7 @@ use dup_crypto::keys::{PubKey, Sig};
 /// MINDEX datas
 pub type MIndexV11 = Index<PubKey, MIndexV11Line>;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 /// MINDEX line
 ///
 /// computed fields :
@@ -55,5 +55,58 @@ impl MergeIndexLine for MIndexV11Line {
         index_line
             .chainable_on
             .map(|v| self.chainable_on.replace(v));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_iindex_merge_2_lines() {
+        let mut line1 = MIndexV11Line {
+            op: IndexLineOp(true),
+            r#pub: PubKey::default(),
+            created_on: Some(Blockstamp::default()),
+            written_on: Blockstamp::default(),
+            expires_on: Some(0),
+            expired_on: None,
+            revokes_on: None,
+            revoked_on: None,
+            leaving: Some(false),
+            revocation: None,
+            chainable_on: Some(0),
+        };
+        let line2 = MIndexV11Line {
+            op: IndexLineOp(false),
+            r#pub: PubKey::default(),
+            created_on: None,
+            written_on: Blockstamp::default(),
+            expires_on: Some(1),
+            expired_on: None,
+            revokes_on: None,
+            revoked_on: None,
+            leaving: None,
+            revocation: None,
+            chainable_on: Some(0),
+        };
+        line1.merge_index_line(line2);
+        assert_eq!(
+            line1,
+            MIndexV11Line {
+                op: IndexLineOp(false),
+                r#pub: PubKey::default(),
+                created_on: Some(Blockstamp::default()),
+                written_on: Blockstamp::default(),
+                expires_on: Some(1),
+                expired_on: None,
+                revokes_on: None,
+                revoked_on: None,
+                leaving: Some(false),
+                revocation: None,
+                chainable_on: Some(0),
+            }
+        )
     }
 }
