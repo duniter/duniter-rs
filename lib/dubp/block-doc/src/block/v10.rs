@@ -595,6 +595,7 @@ mod tests {
     };
     use dubp_user_docs::documents::membership::{MembershipDocument, MembershipDocumentParser};
     use dubp_user_docs::documents::transaction::TransactionDocumentParser;
+    use unwrap::unwrap;
 
     #[test]
     fn generate_and_verify_empty_block() {
@@ -612,12 +613,12 @@ mod tests {
             issuers_frame: 41,
             issuers_frame_var: 0,
             currency: CurrencyName(String::from("g1-test")),
-            issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58("39Fnossy1GrndwCnAXGDw3K5UYXhNXAFQe7yhYZp8ELP").unwrap())],
-            signatures: vec![Sig::Ed25519(ed25519::Signature::from_base64("lqXrNOopjM39oM7hgB7Vq13uIohdCuLlhh/q8RVVEZ5UVASphow/GXikCdhbWID19Bn0XrXzTbt/R7akbE9xAg==").unwrap())],
+            issuers: vec![PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58("39Fnossy1GrndwCnAXGDw3K5UYXhNXAFQe7yhYZp8ELP"), "Fail to build PublicKey from base58"))],
+            signatures: vec![Sig::Ed25519(unwrap!(ed25519::Signature::from_base64("lqXrNOopjM39oM7hgB7Vq13uIohdCuLlhh/q8RVVEZ5UVASphow/GXikCdhbWID19Bn0XrXzTbt/R7akbE9xAg=="), "Fail to build Signature from base64"))],
             hash: None,
             parameters: None,
             previous_hash: Some(Hash::from_hex("0000A7D4361B9EBF4CE974A521149A73E8A5DE9B73907AB3BC918726AED7D40A").expect("fail to parse previous_hash")),
-            previous_issuer: Some(PubKey::Ed25519(ed25519::PublicKey::from_base58("EPKuZA1Ek5y8S1AjAmAPtGrVCMFqUGzUEAa7Ei62CY2L").unwrap())),
+            previous_issuer: Some(PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58("EPKuZA1Ek5y8S1AjAmAPtGrVCMFqUGzUEAa7Ei62CY2L"), "Fail to build PublicKey from base58"))),
             inner_hash: None,
             dividend: None,
             identities: Vec::new(),
@@ -715,12 +716,12 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
             issuers_frame: 211,
             issuers_frame_var: 0,
             currency: CurrencyName(String::from("g1")),
-            issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58("DA4PYtXdvQqk1nCaprXH52iMsK5Ahxs1nRWbWKLhpVkQ").unwrap())],
-            signatures: vec![Sig::Ed25519(ed25519::Signature::from_base64("92id58VmkhgVNee4LDqBGSm8u/ooHzAD67JM6fhAE/CV8LCz7XrMF1DvRl+eRpmlaVkp6I+Iy8gmZ1WUM5C8BA==").unwrap())],
+            issuers: vec![PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58("DA4PYtXdvQqk1nCaprXH52iMsK5Ahxs1nRWbWKLhpVkQ"), "Fail to build PublicKey from base58"))],
+            signatures: vec![Sig::Ed25519(unwrap!(ed25519::Signature::from_base64("92id58VmkhgVNee4LDqBGSm8u/ooHzAD67JM6fhAE/CV8LCz7XrMF1DvRl+eRpmlaVkp6I+Iy8gmZ1WUM5C8BA=="), "Fail to build Signature from base64"))],
             hash: None,
             parameters: None,
             previous_hash: Some(Hash::from_hex("000001144968D0C3516BE6225E4662F182E28956AF46DD7FB228E3D0F9413FEB").expect("fail to parse previous_hash")),
-            previous_issuer: Some(PubKey::Ed25519(ed25519::PublicKey::from_base58("D3krfq6J9AmfpKnS3gQVYoy7NzGCc61vokteTS8LJ4YH").unwrap())),
+            previous_issuer: Some(PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58("D3krfq6J9AmfpKnS3gQVYoy7NzGCc61vokteTS8LJ4YH"), "Fail to build PublicKey from base58"))),
             inner_hash: None,
             dividend: None,
             identities: Vec::new(),
@@ -897,12 +898,12 @@ nxr4exGrt16jteN9ZX3XZPP9l+X0OUbZ1o/QjE1hbWQNtVU3HhH9SJoEvNj2iVl3gCRr9u2OA9uj9vCy
             issuers_frame: 186,
             issuers_frame_var: 0,
             currency: CurrencyName(String::from("g1")),
-            issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58("A4pc9Uuk4NXkWG8CibicjjPpEPdiup1mhjMoRWUZsonq").unwrap())],
-            signatures: vec![Sig::Ed25519(ed25519::Signature::from_base64("2Z/+9ADdZvHXs19YR8+qDzgfl8WJlBG5PcbFvBG9TOuUJbjAdxhcgxrFrSRIABGWcCrIgLkB805fZVLP8jOjBA==").unwrap())],
+            issuers: vec![PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58("A4pc9Uuk4NXkWG8CibicjjPpEPdiup1mhjMoRWUZsonq"), "Fail to build PublicKey from base58"))],
+            signatures: vec![Sig::Ed25519(unwrap!(ed25519::Signature::from_base64("2Z/+9ADdZvHXs19YR8+qDzgfl8WJlBG5PcbFvBG9TOuUJbjAdxhcgxrFrSRIABGWcCrIgLkB805fZVLP8jOjBA=="), "Fail to build Signature from base64"))],
             hash: None,
             parameters: None,
             previous_hash: Some(Hash::from_hex("000003E78FA4133F2C13B416F330C8DFB5A41EB87E37190615DB334F2C914A51").expect("fail to parse previous_hash")),
-            previous_issuer: Some(PubKey::Ed25519(ed25519::PublicKey::from_base58("8NmGZmGjL1LUgJQRg282yQF7KTdQuRNAg8QfSa2qvd65").unwrap())),
+            previous_issuer: Some(PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58("8NmGZmGjL1LUgJQRg282yQF7KTdQuRNAg8QfSa2qvd65"), "Fail to build PublicKey from base58"))),
             inner_hash: None,//Some(Hash::from_hex("3B49ECC1475549CFD94CA7B399311548A0FD0EC93C8EDD5670DAA5A958A41846").expect("fail to parse inner_hash")),
             dividend: None,
             identities: vec![],
