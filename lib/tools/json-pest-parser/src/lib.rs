@@ -441,33 +441,76 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_wrong_json_string() {
+        let json_string = "{";
+        assert!(parse_json_string(json_string).is_err());
+    }
+
+    #[test]
     fn test_parse_json_string() {
         let json_string = "{
             \"name\": \"toto\",
             \"age\": 25,
+            \"legalAge\": true,
+            \"ratio\": 0.5,
             \"friends\": [
                 \"titi\",
                 \"tata\"
-            ]
+            ],
+            \"car\": null
         }";
 
         let json_value = parse_json_string(json_string).expect("Fail to parse json string !");
 
+        assert_eq!(
+            json_value.to_string(),
+            "{\"name\":\"toto\",\"legalAge\":true,\"ratio\":0.5,\"age\":25,\"friends\":[\"titi\",\"tata\"],\"car\":null}"
+        );
+
         assert!(json_value.is_object());
+        assert!(!json_value.is_array());
+        assert!(!json_value.is_str());
+        assert!(!json_value.is_number());
+        assert!(!json_value.is_bool());
+        assert!(!json_value.is_null());
+        assert_eq!(None, json_value.to_array());
+        assert_eq!(None, json_value.to_str());
+        assert_eq!(None, json_value.to_f64());
+        assert_eq!(None, json_value.to_u64());
+        assert_eq!(None, json_value.to_bool());
 
         let json_object = json_value.to_object().expect("safe unwrap");
 
-        assert_eq!(json_object.get("name"), Some(&JSONValue::String("toto")));
-        assert_eq!(
-            json_object.get("age"),
-            Some(&JSONValue::Number(Number::U64(25u64)))
-        );
+        let name_field = json_object.get("name").expect("name field must be exist");
+        assert!(name_field.is_str());
+        assert_eq!(name_field, &JSONValue::String("toto"));
 
-        let friends = json_object
+        let age_field = json_object.get("age").expect("age field must be exist");
+        assert!(age_field.is_number());
+        assert_eq!(age_field.to_f64(), Some(25.0f64));
+        assert_eq!(age_field.to_u64(), Some(25u64));
+
+        let legal_age_field = json_object
+            .get("legalAge")
+            .expect("legalAge field must be exist");
+        assert!(legal_age_field.is_bool());
+        assert_eq!(legal_age_field.to_bool(), Some(true));
+
+        let ratio_field = json_object.get("ratio").expect("ratio field must be exist");
+        assert!(ratio_field.is_number());
+        assert_eq!(ratio_field.to_f64(), Some(0.5f64));
+        assert_eq!(ratio_field.to_u64(), None);
+
+        let friends_field = json_object
             .get("friends")
-            .expect("frinds field must be exist")
+            .expect("friends field must be exist");
+        assert!(!friends_field.is_object());
+        assert_eq!(None, friends_field.to_object());
+        assert!(friends_field.is_array());
+
+        let friends = friends_field
             .to_array()
-            .expect("frinds field must be an array");
+            .expect("frinds_field must be an array");
 
         assert_eq!(2, friends.len());
         assert_eq!(
@@ -482,5 +525,8 @@ mod tests {
                 .to_str()
                 .expect("friends field must be an array of String")
         );
+
+        let car_field = json_object.get("car").expect("car field must be exist");
+        assert!(car_field.is_null());
     }
 }
