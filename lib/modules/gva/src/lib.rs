@@ -24,6 +24,7 @@
 //! http://127.0.0.1:10901/graphiql
 
 #![deny(
+    clippy::option_unwrap_used,
     missing_docs,
     missing_debug_implementations,
     missing_copy_implementations,

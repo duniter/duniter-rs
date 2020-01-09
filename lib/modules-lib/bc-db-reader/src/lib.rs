@@ -17,6 +17,8 @@
 
 #![allow(clippy::large_enum_variant, clippy::ptr_arg)]
 #![deny(
+    clippy::option_unwrap_used,
+    clippy::result_unwrap_used,
     missing_copy_implementations,
     trivial_casts,
     trivial_numeric_casts,

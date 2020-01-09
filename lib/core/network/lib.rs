@@ -16,6 +16,7 @@
 //! Defined all aspects of the inter-node network that concern all modules and are therefore independent of one implementation or another of this network layer.
 
 #![deny(
+    clippy::option_unwrap_used,
     missing_docs,
     missing_debug_implementations,
     missing_copy_implementations,
