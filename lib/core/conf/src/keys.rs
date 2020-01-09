@@ -16,8 +16,14 @@
 //! Dunitrust keys configuration module
 
 #![deny(
-    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
-    trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    trivial_casts,
+    trivial_numeric_casts,
+    unsafe_code,
+    unstable_features,
+    unused_import_braces,
     unused_qualifications
 )]
 
@@ -169,6 +175,8 @@ pub fn key_wizard(mut key_pairs: DuniterKeyPairs) -> Result<DuniterKeyPairs, Wiz
 mod tests {
     use super::*;
 
+    use unwrap::unwrap;
+
     static BASE58_SEED_INIT: &'static str = "4iXXx5GgRkZ85BVPwn8vFXvztdXAAa5yB573ErcAnngA";
     static BASE58_PUB_INIT: &'static str = "otDgSpKvKAPPmE1MUYxc3UQ3RtEnKYz4iGD3BmwKPzM";
     //static SALT_INIT: &'static str = "initsalt";
@@ -207,21 +215,21 @@ mod tests {
 
         // We expect member key to update as intended
         assert_eq!(
-            result_key_pairs
-                .member_keypair
-                .clone()
-                .unwrap()
-                .public_key(),
-            PubKey::Ed25519(
-                ed25519::PublicKey::from_base58(BASE58_PUB_TEST)
-                    .expect("Wrong data in BASE58_PUB_TEST")
+            unwrap!(
+                result_key_pairs.member_keypair.clone(),
+                "conf: member_keypair must have a value"
             )
+            .public_key(),
+            PubKey::Ed25519(unwrap!(
+                ed25519::PublicKey::from_base58(BASE58_PUB_TEST),
+                "Wrong data in BASE58_PUB_TEST"
+            ))
         );
         assert_eq!(
             result_key_pairs
                 .member_keypair
                 .clone()
-                .unwrap()
+                .expect("conf: member_keypair must have a value")
                 .seed()
                 .clone(),
             Seed32::from_base58(BASE58_SEED_TEST).expect("Wrong data in BASE58_SEED_TEST"),
@@ -284,16 +292,19 @@ mod tests {
         );
         assert_ne!(
             result_key_pairs.network_keypair.seed().clone(),
-            Seed32::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_TEST")
+            unwrap!(
+                Seed32::from_base58(BASE58_SEED_INIT),
+                "Wrong data in BASE58_SEED_TEST"
+            )
         );
 
         // We expect member key not to change
         assert_eq!(
-            result_key_pairs
-                .member_keypair
-                .clone()
-                .unwrap()
-                .public_key(),
+            unwrap!(
+                result_key_pairs.member_keypair.clone(),
+                "conf: result_keypair must have a value"
+            )
+            .public_key(),
             PubKey::Ed25519(
                 ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
                     .expect("Wrong data in BASE58_PUB_TEST")
@@ -303,7 +314,7 @@ mod tests {
             result_key_pairs
                 .member_keypair
                 .clone()
-                .unwrap()
+                .expect("conf: result_keypair must have a value")
                 .seed()
                 .clone(),
             Seed32::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_TEST")

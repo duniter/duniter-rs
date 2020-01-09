@@ -22,5 +22,6 @@ rpassword = "4.0.3"
 serde = "1.0.*"
 serde_derive = "1.0.*"
 serde_json = "1.0.*"
+unwrap = "1.2.1"
 
 [features]
