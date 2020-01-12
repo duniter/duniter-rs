@@ -94,6 +94,6 @@ pub fn start_web_server(
                 .service(web::resource("/graphiql").route(web::get().to(graphiql)))
         })
         .bind(&addrs[..])?
-        .start(),
+        .run(),
     )
 }

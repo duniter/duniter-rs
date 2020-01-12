@@ -12,7 +12,7 @@ path = "src/lib.rs"
 [dependencies]
 actix-cors = "0.2.0"
 actix-rt = "1.0.0"
-actix-web = "2.0.0-rc"
+actix-web = "2.0.0"
 dubp-block-doc = { path = "../../dubp/block-doc"} #, version = "0.1.0" }
 dup-crypto = { path = "../../crypto" }
 durs-bc-db-reader = { path = "../../modules-lib/bc-db-reader", features = ["client-indexer"] }
