@@ -157,20 +157,20 @@ fn start_broadcasting_thread(
                         local_node_endpoints.append(&mut module_endpoints);
 
                         // If all modules registered
-                        if expected_registrations_count.is_some()
-                            && registrations_count == expected_registrations_count.unwrap()
-                        {
-                            // Get list of InterNodesNetwork modules
-                            let receivers = roles
-                                .get(&ModuleRole::InterNodesNetwork)
-                                .expect("Fatal error : no module with role InterNodesNetwork !")
-                                .to_vec();
-                            // Send endpoints to network module
-                            send_msg_to_several_receivers(
-                                DursMsg::ModulesEndpoints(local_node_endpoints.clone()),
-                                &receivers,
-                                &modules_senders,
-                            );
+                        if let Some(expected_regs_count) = expected_registrations_count {
+                            if registrations_count == expected_regs_count {
+                                // Get list of InterNodesNetwork modules
+                                let receivers = roles
+                                    .get(&ModuleRole::InterNodesNetwork)
+                                    .expect("Fatal error : no module with role InterNodesNetwork !")
+                                    .to_vec();
+                                // Send endpoints to network module
+                                send_msg_to_several_receivers(
+                                    DursMsg::ModulesEndpoints(local_node_endpoints.clone()),
+                                    &receivers,
+                                    &modules_senders,
+                                );
+                            }
                         }
                         // Add this sender to modules_senders
                         modules_senders.insert(module_static_name, module_sender);
@@ -215,18 +215,24 @@ fn start_broadcasting_thread(
                 RecvTimeoutError::Disconnected => fatal_error!("router thread disconnnected !"),
             },
         }
-        if (expected_registrations_count.is_none()
-            || registrations_count < expected_registrations_count.unwrap())
-            && SystemTime::now()
-                .duration_since(start_time)
-                .expect("Duration error !")
-                .as_secs()
-                > *MAX_REGISTRATION_DELAY
-        {
+        if let Some(expected_regs_count) = expected_registrations_count {
+            if registrations_count < expected_regs_count
+                && SystemTime::now()
+                    .duration_since(start_time)
+                    .expect("Duration error !")
+                    .as_secs()
+                    > *MAX_REGISTRATION_DELAY
+            {
+                fatal_error!(
+                    "{} modules have registered, but expected {} !",
+                    registrations_count,
+                    expected_regs_count
+                );
+            }
+        } else {
             fatal_error!(
-                "{} modules have registered, but expected {} !",
-                registrations_count,
-                expected_registrations_count.unwrap_or(0)
+                "{} modules have registered, but none expected !",
+                registrations_count
             );
         }
     }

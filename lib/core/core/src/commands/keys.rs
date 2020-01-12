@@ -143,7 +143,7 @@ impl DursExecutableCoreCommand for KeysOpt {
 
         match self.subcommand {
             KeysSubCommand::Wizard(_) => {
-                let new_keypairs = key_wizard(keypairs).unwrap();
+                let new_keypairs = key_wizard(keypairs)?;
                 save_keypairs(profile_path, &keypairs_file, new_keypairs)
                     .map_err(DursCoreError::FailWriteKeypairsFile)
             }
