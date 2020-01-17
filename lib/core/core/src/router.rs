@@ -215,24 +215,18 @@ fn start_broadcasting_thread(
                 RecvTimeoutError::Disconnected => fatal_error!("router thread disconnnected !"),
             },
         }
-        if let Some(expected_regs_count) = expected_registrations_count {
-            if registrations_count < expected_regs_count
-                && SystemTime::now()
-                    .duration_since(start_time)
-                    .expect("Duration error !")
-                    .as_secs()
-                    > *MAX_REGISTRATION_DELAY
-            {
-                fatal_error!(
-                    "{} modules have registered, but expected {} !",
-                    registrations_count,
-                    expected_regs_count
-                );
-            }
-        } else {
+        if (expected_registrations_count.is_none()
+            || registrations_count < unwrap::unwrap!(expected_registrations_count))
+            && SystemTime::now()
+                .duration_since(start_time)
+                .expect("Duration error !")
+                .as_secs()
+                > *MAX_REGISTRATION_DELAY
+        {
             fatal_error!(
-                "{} modules have registered, but none expected !",
-                registrations_count
+                "{} modules have registered, but expected {} !",
+                registrations_count,
+                expected_registrations_count.unwrap_or(0)
             );
         }
     }
