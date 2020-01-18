@@ -112,7 +112,6 @@ impl NetworkHead {
         match *self {
             NetworkHead::V2(ref head_v2) => match head_v2.message_v2 {
                 NetworkHeadMessage::V2(ref head_message_v2) => head_message_v2.pubkey,
-                _ => fatal_error!("This HEAD message version is not supported !"),
             },
             _ => fatal_error!("This HEAD version is not supported !"),
         }
@@ -245,7 +244,6 @@ impl NetworkHead {
                 },
                 uid: None,
             }))),
-            _ => Err(NetworkHeadParseErr::InvalidMessageVersion()),
         }
     }
     /// To human readable string

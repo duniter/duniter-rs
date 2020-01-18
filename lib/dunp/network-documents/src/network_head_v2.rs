@@ -136,8 +136,6 @@ impl NetworkHeadMessageV2 {
 pub enum NetworkHeadMessage {
     /// Head Message V2
     V2(NetworkHeadMessageV2),
-    /// Do not use
-    Other(),
 }
 
 /// NetworkHeadMessage parse error
@@ -203,28 +201,24 @@ impl NetworkHeadMessage {
     pub fn to_human_string(&self, max_len: usize, uid: Option<String>) -> String {
         match *self {
             NetworkHeadMessage::V2(ref mess_v2) => mess_v2.deref().to_human_string(max_len, uid),
-            _ => fatal_error!("NetworkHead version not supported !"),
         }
     }
     /// Get head blockcstamp
     pub fn blockstamp(&self) -> Blockstamp {
         match *self {
             NetworkHeadMessage::V2(ref head_message_v2) => head_message_v2.blockstamp,
-            _ => fatal_error!("This HEAD version is not supported !"),
         }
     }
     /// Get head node id
     pub fn node_uuid(&self) -> NodeId {
         match *self {
             NetworkHeadMessage::V2(ref head_message_v2) => head_message_v2.node_uuid,
-            _ => fatal_error!("This HEAD version is not supported !"),
         }
     }
     /// Get head issuer public key
     fn _pubkey(&self) -> PubKey {
         match *self {
             NetworkHeadMessage::V2(ref head_message_v2) => head_message_v2.pubkey,
-            _ => fatal_error!("This HEAD version is not supported !"),
         }
     }
 }
@@ -263,7 +257,6 @@ impl ToString for NetworkHeadMessage {
     fn to_string(&self) -> String {
         match *self {
             NetworkHeadMessage::V2(ref head_message) => head_message.to_string(),
-            _ => fatal_error!("This HEADMessage version is not supported !"),
         }
     }
 }
