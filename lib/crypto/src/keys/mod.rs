@@ -58,6 +58,7 @@ use crate::bases::b58::ToBase58;
 use crate::bases::BaseConvertionError;
 use durs_common_tools::fatal_error;
 use failure::Fail;
+use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Error;
@@ -249,17 +250,9 @@ pub enum PubkeyFromBytesError {
 
 impl PubKey {
     /// Create pubkey from bytes
+    #[inline]
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PubkeyFromBytesError> {
-        if bytes.len() != *ed25519::PUBKEY_SIZE_IN_BYTES {
-            Err(PubkeyFromBytesError::InvalidBytesLen {
-                expected: *ed25519::PUBKEY_SIZE_IN_BYTES,
-                found: bytes.len(),
-            })
-        } else {
-            let mut pubkey_buffer = [0u8; 32];
-            pubkey_buffer.copy_from_slice(bytes);
-            Ok(PubKey::Ed25519(ed25519::PublicKey(pubkey_buffer)))
-        }
+        Ok(PubKey::Ed25519(ed25519::PublicKey::try_from(bytes)?))
     }
     /// Compute PubKey size in bytes
     pub fn size_in_bytes(&self) -> usize {
@@ -272,10 +265,7 @@ impl PubKey {
 
 impl Default for PubKey {
     fn default() -> Self {
-        PubKey::Ed25519(ed25519::PublicKey([
-            0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0,
-        ]))
+        PubKey::Ed25519(ed25519::PublicKey::default())
     }
 }
 
@@ -478,6 +468,7 @@ impl Signator for SignatorEnum {
 mod tests {
 
     use super::*;
+    use unwrap::unwrap;
 
     pub fn valid_key_pair_1() -> KeyPairEnum {
         KeyPairEnum::Ed25519(ed25519::KeyPairFromSeed32Generator::generate(Seed32::new(
@@ -516,10 +507,10 @@ mod tests {
             0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0,
         ];
-        let pubkey_str_b58 = "11111111111111111111111111111111".to_owned();
-        let pubkey = PubKey::Ed25519(ed25519::PublicKey(pubkey_bytes));
-
+        let pubkey = PubKey::Ed25519(unwrap!(ed25519::PublicKey::try_from(&pubkey_bytes[..])));
         assert_eq!(pubkey_default, pubkey);
+
+        let pubkey_str_b58 = "11111111111111111111111111111111".to_owned();
         assert_eq!(
             pubkey_default,
             PubKey::from_str(&pubkey_str_b58).expect("Fail to parse pubkey !")
@@ -730,10 +721,20 @@ mod tests {
                 expected: *ed25519::PUBKEY_SIZE_IN_BYTES,
                 found: 2,
             }),
-            PubKey::from_bytes(&[0u8, 1u8]),
+            PubKey::from_bytes(&[0u8, 1]),
         );
         assert_eq!(
-            Ok(PubKey::Ed25519(ed25519::PublicKey([0u8; 32]))),
+            Err(PubkeyFromBytesError::InvalidBytesLen {
+                expected: *ed25519::PUBKEY_SIZE_IN_BYTES,
+                found: 33,
+            }),
+            PubKey::from_bytes(&[
+                0u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+                23, 24, 25, 26, 27, 28, 29, 30, 31, 31
+            ]),
+        );
+        assert_eq!(
+            Ok(PubKey::Ed25519(ed25519::PublicKey::default())),
             PubKey::from_bytes(&[0u8; 32]),
         );
     }

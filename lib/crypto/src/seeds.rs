@@ -67,7 +67,7 @@ impl Seed32 {
     #[inline]
     /// Create seed from base58 str
     pub fn from_base58(base58_str: &str) -> Result<Self, BaseConvertionError> {
-        Ok(Seed32::new(b58::str_base58_to_32bytes(base58_str)?))
+        Ok(Seed32::new(b58::str_base58_to_32bytes(base58_str)?.0))
     }
     #[inline]
     /// Generate random seed

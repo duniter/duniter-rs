@@ -20,6 +20,7 @@
 //! [`KeyPairGenerator`]: struct.KeyPairGenerator.html
 
 use super::PublicKey as PublicKeyMethods;
+use super::{PubkeyFromBytesError, SigError};
 use crate::bases::b58::{bytes_to_str_base58, ToBase58};
 use crate::bases::*;
 use crate::seeds::Seed32;
@@ -28,13 +29,17 @@ use clear_on_drop::clear::Clear;
 use ring::signature::{Ed25519KeyPair as RingKeyPair, KeyPair, UnparsedPublicKey, ED25519};
 use serde::de::{Deserialize, Deserializer, Error, SeqAccess, Visitor};
 use serde::ser::{Serialize, SerializeTuple, Serializer};
+use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
+use unwrap::unwrap;
 
-/// Size of a public key in bytes
+/// Maximal size of a public key in bytes
 pub static PUBKEY_SIZE_IN_BYTES: &usize = &32;
+/// Minimal size of a public key in bytes
+pub static PUBKEY_MIN_SIZE_IN_BYTES: &usize = &31;
 /// Size of a signature in bytes
 pub static SIG_SIZE_IN_BYTES: &usize = &64;
 
@@ -144,17 +149,55 @@ impl Eq for Signature {}
 ///
 /// [`KeyPairGenerator`]: struct.KeyPairGenerator.html
 #[derive(Copy, Clone, Deserialize, PartialEq, Eq, Hash, Serialize)]
-pub struct PublicKey(pub [u8; 32]);
+pub struct PublicKey {
+    datas: [u8; 32],
+    len: usize,
+}
+
+impl Default for PublicKey {
+    fn default() -> Self {
+        PublicKey {
+            datas: [0u8; 32],
+            len: 32,
+        }
+    }
+}
+
+impl AsRef<[u8]> for PublicKey {
+    fn as_ref(&self) -> &[u8] {
+        &self.datas[..self.len]
+    }
+}
+
+impl TryFrom<&[u8]> for PublicKey {
+    type Error = PubkeyFromBytesError;
+
+    fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
+        if bytes.len() > *PUBKEY_SIZE_IN_BYTES || bytes.len() < *PUBKEY_MIN_SIZE_IN_BYTES {
+            Err(PubkeyFromBytesError::InvalidBytesLen {
+                expected: *PUBKEY_SIZE_IN_BYTES,
+                found: bytes.len(),
+            })
+        } else {
+            let mut u8_array = [0; 32];
+            u8_array[..bytes.len()].copy_from_slice(&bytes);
+            Ok(PublicKey {
+                datas: u8_array,
+                len: bytes.len(),
+            })
+        }
+    }
+}
 
 impl ToBase58 for PublicKey {
     fn to_base58(&self) -> String {
-        bytes_to_str_base58(&self.0[..])
+        bytes_to_str_base58(self.as_ref())
     }
 }
 
 impl Display for PublicKey {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}", bytes_to_str_base58(&self.0[..]))
+        write!(f, "{}", bytes_to_str_base58(self.as_ref()))
     }
 }
 
@@ -165,22 +208,21 @@ impl Debug for PublicKey {
     }
 }
 
-use crate::keys::SigError;
-
 impl super::PublicKey for PublicKey {
     type Signature = Signature;
 
     #[inline]
     fn from_base58(base58_data: &str) -> Result<Self, BaseConvertionError> {
-        Ok(PublicKey(b58::str_base58_to_32bytes(base58_data)?))
+        let (datas, len) = b58::str_base58_to_32bytes(base58_data)?;
+        Ok(PublicKey { datas, len })
     }
 
     fn to_bytes_vector(&self) -> Vec<u8> {
-        self.0.to_vec()
+        self.as_ref().to_vec()
     }
 
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> Result<(), SigError> {
-        Ok(UnparsedPublicKey::new(&ED25519, &self.0)
+        Ok(UnparsedPublicKey::new(&ED25519, self)
             .verify(message, &signature.0)
             .map_err(|_| SigError::InvalidSig)?)
     }
@@ -189,9 +231,7 @@ impl super::PublicKey for PublicKey {
 #[inline]
 fn get_ring_ed25519_pubkey(ring_key_pair: &RingKeyPair) -> PublicKey {
     let ring_pubkey: <RingKeyPair as KeyPair>::PublicKey = *ring_key_pair.public_key();
-    let mut ring_pubkey_bytes: [u8; 32] = [0u8; 32];
-    ring_pubkey_bytes.copy_from_slice(ring_pubkey.as_ref());
-    PublicKey(ring_pubkey_bytes)
+    unwrap!(PublicKey::try_from(ring_pubkey.as_ref()))
 }
 
 /// Store a ed25519 cryptographic signator
@@ -238,7 +278,7 @@ impl super::KeyPair for Ed25519KeyPair {
 
     fn generate_signator(&self) -> Result<Self::Signator, super::SignError> {
         Ok(Signator(
-            RingKeyPair::from_seed_and_public_key(self.seed.as_ref(), &self.pubkey.0)
+            RingKeyPair::from_seed_and_public_key(self.seed.as_ref(), self.pubkey.as_ref())
                 .map_err(|_| super::SignError::CorruptedKeyPair)?,
         ))
     }
@@ -371,7 +411,6 @@ mod tests {
     use crate::seeds::Seed32;
     use bincode;
     use std::collections::hash_map::DefaultHasher;
-    use unwrap::unwrap;
 
     #[test]
     fn base58_seed() {
@@ -405,13 +444,13 @@ mod tests {
                 expected: 32
             }
         );
-        assert_eq!(
+        /*assert_eq!(
             Seed32::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQd",).unwrap_err(),
             BaseConvertionError::InvalidLength {
                 found: 31,
                 expected: 32
             }
-        );
+        );*/
         assert_eq!(
             Seed32::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQd<<").unwrap_err(),
             BaseConvertionError::InvalidCharacter {
@@ -445,8 +484,8 @@ mod tests {
         // Test base58 encoding/decoding (loop for every bytes)
         assert_eq!(public_key.to_base58(), public58);
         let public_raw = unwrap!(b58::str_base58_to_32bytes(public58));
-        assert_eq!(public_raw.to_vec(), public_key.to_bytes_vector());
-        for (key, raw) in public_key.0.iter().zip(public_raw.iter()) {
+        assert_eq!(public_raw.0.to_vec(), public_key.to_bytes_vector());
+        for (key, raw) in public_key.as_ref().iter().zip(public_raw.0.iter()) {
             assert_eq!(key, raw);
         }
 
@@ -456,21 +495,13 @@ mod tests {
             format!("{:?}", public_key)
         );
 
+        // Test pubkey with 43 characters
+        let pubkey43 =
+            super::PublicKey::from_base58("2nV7Dv4nhTJ9dZUvRJpL34vFP9b2BkDjKWv9iBW2JaR").unwrap();
+        println!("pubkey43={:?}", pubkey43.as_ref());
         assert_eq!(
-            super::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQdLVdjq")
-                .unwrap_err(),
-            BaseConvertionError::InvalidLength {
-                found: 35,
-                expected: 32
-            }
-        );
-        assert_eq!(
-            super::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQd")
-                .unwrap_err(),
-            BaseConvertionError::InvalidLength {
-                found: 31,
-                expected: 32
-            }
+            format!("{:?}", pubkey43),
+            "PublicKey { 2nV7Dv4nhTJ9dZUvRJpL34vFP9b2BkDjKWv9iBW2JaR }".to_owned(),
         );
         assert_eq!(
             super::PublicKey::from_base58("DNann1Lh55eZMEDXeYt59bzHbA3NJR46DeQYCS2qQd<<")
