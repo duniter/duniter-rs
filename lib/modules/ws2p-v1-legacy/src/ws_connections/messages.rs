@@ -146,7 +146,7 @@ pub fn ws2p_recv_message_pretreatment(
                         return WS2PSignal::WSError(ws2p_full_id);
                     }
                 } else {
-                    fatal_error!("Fatal error : no websocket for {} !", ws2p_full_id);
+                    debug!("Websocket for {} closed on engociation !", ws2p_full_id);
                 }
             }
         }
