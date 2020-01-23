@@ -40,7 +40,7 @@ pub struct DursCoreOptions {
     /// Keypairs file path
     pub keypairs_file: Option<PathBuf>,
     /// Set log level.
-    pub logs_level: Option<Level>,
+    pub logs_level: Level,
     /// Print logs in standard output
     pub log_stdout: bool,
     /// Set a custom user profile name

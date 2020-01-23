@@ -33,6 +33,11 @@ use log::Level;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
+// Default log level is "info".
+const LOG_LEVEL_DEFAULT: usize = 2;
+
+static LOG_LEVEL_NAMES: [&str; 5] = ["error", "warn", "info", "debug", "trace"];
+
 #[derive(StructOpt, Debug)]
 #[structopt(name = "durs", setting(structopt::clap::AppSettings::ColoredHelp))]
 /// Dunitrust command line options
@@ -46,10 +51,9 @@ pub struct DursCliOpt {
     /// Keypairs file path
     #[structopt(long = "keypairs-file", parse(from_os_str))]
     keypairs_file: Option<PathBuf>,
-    /// Set log level. (Defaults to INFO).
-    /// Available levels: [ERROR, WARN, INFO, DEBUG, TRACE]
-    #[structopt(short = "l", long = "logs", next_line_help = true)]
-    logs_level: Option<Level>,
+    /// Change logs level.
+    #[structopt(short = "l", long = "logs", default_value = LOG_LEVEL_NAMES[LOG_LEVEL_DEFAULT], possible_values = &LOG_LEVEL_NAMES)]
+    logs_level: Level,
     /// Print logs in standard output
     #[structopt(long = "log-stdout")]
     log_stdout: bool,

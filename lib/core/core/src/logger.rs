@@ -66,10 +66,7 @@ pub fn init(
     }
 
     // Get log level filter
-    let logs_level_filter = durs_core_opts
-        .logs_level
-        .unwrap_or(Level::Info)
-        .to_level_filter();
+    let logs_level_filter = durs_core_opts.logs_level.to_level_filter();
 
     // Config loggers
     let loggers_common_config = fern::Dispatch::new()
