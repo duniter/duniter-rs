@@ -71,16 +71,46 @@ pub fn modify_member_keys(
     key_pairs
 }
 
-/// Clear keys command
-pub fn clear_keys(network: bool, member: bool, mut key_pairs: DuniterKeyPairs) -> DuniterKeyPairs {
+/// Ask user for confirmation and Clear keys command
+pub fn clear_keys(network: bool, member: bool, key_pairs: DuniterKeyPairs) -> DuniterKeyPairs {
+    inner_clear_keys(
+        if network {
+            match question_prompt("Clear your network keypair?", &["y", "n"]) {
+                Ok(answer) if answer == "y" => {
+                    println!("Generating a new network keypair!");
+                    true
+                }
+                _ => false,
+            }
+        } else {
+            false
+        },
+        if member {
+            match question_prompt("Clear your member keypair?", &["y", "n"]) {
+                Ok(answer) if answer == "y" => {
+                    println!("Deleting member keypair!");
+                    true
+                }
+                _ => false,
+            }
+        } else {
+            false
+        },
+        key_pairs,
+    )
+}
+
+/// Private function to Clear keys
+fn inner_clear_keys(
+    network: bool,
+    member: bool,
+    mut key_pairs: DuniterKeyPairs,
+) -> DuniterKeyPairs {
     if network {
         key_pairs.network_keypair = generate_random_keypair(KeysAlgo::Ed25519);
     }
     if member {
-        key_pairs.member_keypair = None;
-    }
-    if !network && !member {
-        println!("No key was cleared. Please specify a key to clear.")
+        key_pairs.member_keypair = None
     }
     key_pairs
 }
@@ -111,7 +141,7 @@ pub fn save_keypairs(
     Ok(())
 }
 
-fn question_prompt(question: &str, answers: Vec<String>) -> Result<String, WizardError> {
+fn question_prompt<'a>(question: &str, answers: &[&'a str]) -> Result<&'a str, WizardError> {
     let mut buf = String::new();
 
     println!("{} ({}):", question, answers.join("/"));
@@ -119,9 +149,9 @@ fn question_prompt(question: &str, answers: Vec<String>) -> Result<String, Wizar
 
     match res {
         Ok(_) => {
-            let answer = answers.into_iter().find(|x| x == buf.trim());
+            let answer = answers.iter().find(|x| **x == buf.trim());
             match answer {
-                Some(value) => Ok(value),
+                Some(&value) => Ok(value),
                 None => Err(WizardError::Canceled),
             }
         }
@@ -149,18 +179,12 @@ fn salt_password_prompt() -> Result<KeyPairEnum, WizardError> {
 
 /// The wizard key function
 pub fn key_wizard(mut key_pairs: DuniterKeyPairs) -> Result<DuniterKeyPairs, WizardError> {
-    let mut answer = question_prompt(
-        "Modify your network keypair?",
-        vec!["y".to_string(), "n".to_string()],
-    )?;
+    let mut answer = question_prompt("Modify your network keypair?", &["y", "n"])?;
     if answer == "y" {
         key_pairs.network_keypair = salt_password_prompt()?;
     }
 
-    answer = question_prompt(
-        "Modify your member keypair?",
-        vec!["y".to_string(), "n".to_string(), "d".to_string()],
-    )?;
+    answer = question_prompt("Modify your member keypair?", &["y", "n", "d"])?;
     if answer == "y" {
         key_pairs.member_keypair = Some(salt_password_prompt()?);
     } else if answer == "d" {
@@ -281,7 +305,7 @@ mod tests {
                     .expect("conf : keypairs file : fail to parse network_pub !"),
             })),
         };
-        let result_key_pairs = clear_keys(true, false, key_pairs);
+        let result_key_pairs = inner_clear_keys(true, false, key_pairs);
         // We expect network key to be reset to a new random key
         assert_ne!(
             result_key_pairs.network_keypair.public_key(),
@@ -337,7 +361,7 @@ mod tests {
                     .expect("conf : keypairs file : fail to parse network_pub !"),
             })),
         };
-        let result_key_pairs = clear_keys(false, true, key_pairs);
+        let result_key_pairs = inner_clear_keys(false, true, key_pairs);
         // We expect network key not to change
         assert_eq!(
             result_key_pairs.network_keypair.public_key(),

@@ -18,6 +18,7 @@
 use crate::commands::DursExecutableCoreCommand;
 use crate::errors::DursCoreError;
 use crate::DursCore;
+use clap::arg_enum;
 use clear_on_drop::clear::Clear;
 use durs_conf::keys::*;
 use durs_conf::DuRsConf;
@@ -91,20 +92,33 @@ pub enum ModifySubCommand {
     NetworkSaltPassword(SaltPasswordOpt),
 }
 
+arg_enum! {
+    /// KeyKind
+    #[derive(Debug, Copy, Clone, PartialEq)]
+    enum KeyKind {
+        MEMBER,
+        NETWORK,
+        ALL,
+    }
+}
+
+impl KeyKind {
+    /// Returns if key kind is member
+    pub fn is_member(self) -> bool {
+        self == KeyKind::MEMBER || self == KeyKind::ALL
+    }
+    /// Returns if key kind is network
+    pub fn is_network(self) -> bool {
+        self == KeyKind::NETWORK || self == KeyKind::ALL
+    }
+}
+
 #[derive(StructOpt, Debug, Copy, Clone)]
 /// ClearOpt
 pub struct ClearOpt {
-    #[structopt(short = "m", long = "member")]
-    /// True if we change member key
-    pub member: bool,
-
-    #[structopt(short = "n", long = "network")]
-    /// True if we change network key
-    pub network: bool,
-
-    #[structopt(short = "a", long = "all")]
-    /// True if we change member and network key
-    pub all: bool,
+    /// Key to clear
+    #[structopt(possible_values = &KeyKind::variants(), case_insensitive = true)]
+    key: KeyKind,
 }
 
 #[derive(StructOpt, Debug, Clone)]
@@ -169,8 +183,8 @@ impl DursExecutableCoreCommand for KeysOpt {
             },
             KeysSubCommand::Clear(clear_opt) => {
                 let new_keypairs = clear_keys(
-                    clear_opt.network || clear_opt.all,
-                    clear_opt.member || clear_opt.all,
+                    clear_opt.key.is_network(),
+                    clear_opt.key.is_member(),
                     keypairs,
                 );
                 save_keypairs(profile_path, &keypairs_file, new_keypairs)
