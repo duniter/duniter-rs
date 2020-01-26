@@ -214,7 +214,14 @@ impl super::PublicKey for PublicKey {
     #[inline]
     fn from_base58(base58_data: &str) -> Result<Self, BaseConvertionError> {
         let (datas, len) = b58::str_base58_to_32bytes(base58_data)?;
-        Ok(PublicKey { datas, len })
+        if len < *PUBKEY_MIN_SIZE_IN_BYTES {
+            Err(BaseConvertionError::InvalidLength {
+                expected: *PUBKEY_SIZE_IN_BYTES,
+                found: len,
+            })
+        } else {
+            Ok(PublicKey { datas, len })
+        }
     }
 
     fn to_bytes_vector(&self) -> Vec<u8> {
@@ -222,7 +229,7 @@ impl super::PublicKey for PublicKey {
     }
 
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> Result<(), SigError> {
-        Ok(UnparsedPublicKey::new(&ED25519, self)
+        Ok(UnparsedPublicKey::new(&ED25519, self.as_ref())
             .verify(message, &signature.0)
             .map_err(|_| SigError::InvalidSig)?)
     }

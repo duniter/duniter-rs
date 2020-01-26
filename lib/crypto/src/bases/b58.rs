@@ -28,22 +28,17 @@ pub fn str_base58_to_32bytes(base58_data: &str) -> Result<([u8; 32], usize), Bas
     debug!("str_base58_to_32bytes({});", base58_data);
     match bs58::decode(base58_data).into_vec() {
         Ok(result) => {
-            if result.len() == 32 {
+            let len = result.len();
+            if len <= 32 {
                 let mut u8_array = [0; 32];
 
-                u8_array[..32].clone_from_slice(&result[..32]);
+                u8_array[..len].clone_from_slice(&result[..len]);
 
-                Ok((u8_array, 32))
-            } else if result.len() == 31 {
-                let mut u8_array = [0; 32];
-
-                u8_array[..31].clone_from_slice(&result[..31]);
-
-                Ok((u8_array, 31))
+                Ok((u8_array, len))
             } else {
                 Err(BaseConvertionError::InvalidLength {
                     expected: 32,
-                    found: result.len(),
+                    found: len,
                 })
             }
         }
