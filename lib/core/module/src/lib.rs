@@ -362,6 +362,9 @@ pub enum ModuleConfError {
         /// Cause
         cause: String,
     },
+    /// Error when get conf from environment variables
+    #[fail(display = "Error when get conf from environment variables: {}", _0)]
+    EnvyErr(envy::Error),
     /// Invalid field
     #[fail(display = "Field '{}' is invalid: {}", field_name, cause)]
     InvalidField {

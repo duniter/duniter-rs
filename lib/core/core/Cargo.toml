@@ -24,6 +24,7 @@ durs-message =  { path = "../message" }
 durs-module = { path = "../module" }
 durs-network = { path = "../network" }
 durs-network-documents = { path = "../../dunp/network-documents" }
+envy = "0.4.1"
 failure = "0.1.5"
 fern = { version = "0.5.8", features = ["colored"] }
 log = "0.4.*"

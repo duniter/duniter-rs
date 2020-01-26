@@ -44,6 +44,7 @@ use crate::errors::DursCoreError;
 use dubp_currency_params::CurrencyName;
 use durs_bc::{dbex::DbExQuery, BlockchainModule};
 use durs_common_tools::fatal_error;
+use durs_common_tools::traits::merge::Merge;
 pub use durs_conf::{
     constants::KEYPAIRS_FILENAME, keypairs::cli::*, ChangeGlobalConf, DuRsConf, DuniterKeyPairs,
 };
@@ -574,19 +575,42 @@ pub fn get_module_conf_and_keys<M: DursModule<DuRsConf, DursMsg>>(
     ))
 }
 
+fn get_env_module_user_conf<ModuleUserConf: serde::de::DeserializeOwned>(
+    module_name: ModuleStaticName,
+) -> Result<ModuleUserConf, ModuleConfError> {
+    let prefix = format!(
+        "{}{}",
+        durs_conf::constants::DURS_ENV_PREFIX,
+        module_name.0.to_ascii_uppercase()
+    );
+
+    envy::prefixed(prefix)
+        .from_env::<ModuleUserConf>()
+        .map_err(ModuleConfError::EnvyErr)
+}
+
 /// get module conf
 pub fn get_module_conf<M: DursModule<DuRsConf, DursMsg>>(
     currency_name: Option<&CurrencyName>,
     global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
     module_conf_json: Option<serde_json::Value>,
 ) -> Result<(M::ModuleConf, Option<M::ModuleUserConf>), ModuleConfError> {
-    if let Some(module_conf_json) = module_conf_json {
-        let module_user_conf: Option<M::ModuleUserConf> =
+    let file_module_user_conf: M::ModuleUserConf = if let Some(module_conf_json) = module_conf_json
+    {
+        let file_module_user_conf_opt: Option<M::ModuleUserConf> =
             serde_json::from_str(module_conf_json.to_string().as_str())?;
-        M::generate_module_conf(currency_name, global_conf, module_user_conf)
+        file_module_user_conf_opt.unwrap_or_default()
     } else {
-        M::generate_module_conf(currency_name, global_conf, None)
-    }
+        M::ModuleUserConf::default()
+    };
+
+    let env_module_user_conf = get_env_module_user_conf::<M::ModuleUserConf>(M::name())?;
+
+    M::generate_module_conf(
+        currency_name,
+        global_conf,
+        Some(file_module_user_conf.merge(env_module_user_conf)),
+    )
 }
 
 /// Launch databases explorer

@@ -15,6 +15,7 @@ dubp-currency-params = { path = "../../dubp/currency-params" }
 dubp-user-docs = { path = "../../dubp/user-docs" }
 durs-common-tools = { path = "../../tools/common-tools" }
 durs-network-documents = { path = "../../dunp/network-documents" }
+envy = "0.4.1"
 failure = "0.1.5"
 log = "0.4.*"
 serde = "1.0.*"
