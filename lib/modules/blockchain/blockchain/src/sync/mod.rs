@@ -180,7 +180,7 @@ pub fn local_sync<DC: DursConfTrait>(
     // Write new conf
     let mut conf_path = profile_path.clone();
     conf_path.push(durs_conf::constants::CONF_FILENAME);
-    durs_conf::write_conf_file(conf_path.as_path(), &conf).expect("Fail to write new conf !");
+    durs_conf::file::write_conf_file(conf_path.as_path(), &conf).expect("Fail to write new conf !");
 
     // Open database
     let db = open_db(&db_path.as_path()).map_err(|_| LocalSyncError::FailToOpenDB)?;

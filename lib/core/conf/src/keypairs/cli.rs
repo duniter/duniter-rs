@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Dunitrust keys configuration module
+//! Dunitrust keypairs cli commands
 
 #![deny(
     missing_docs,
@@ -75,23 +75,21 @@ pub fn modify_member_keys(
 pub fn clear_keys(network: bool, member: bool, key_pairs: DuniterKeyPairs) -> DuniterKeyPairs {
     inner_clear_keys(
         if network {
-            match question_prompt("Clear your network keypair?", &["y", "n"]) {
-                Ok(answer) if answer == "y" => {
-                    println!("Generating a new network keypair!");
-                    true
-                }
-                _ => false,
+            if let Ok("y") = question_prompt("Clear your network keypair?", &["y", "n"]) {
+                println!("Generating a new network keypair!");
+                true
+            } else {
+                false
             }
         } else {
             false
         },
         if member {
-            match question_prompt("Clear your member keypair?", &["y", "n"]) {
-                Ok(answer) if answer == "y" => {
-                    println!("Deleting member keypair!");
-                    true
-                }
-                _ => false,
+            if let Ok("y") = question_prompt("Clear your member keypair?", &["y", "n"]) {
+                println!("Deleting member keypair!");
+                true
+            } else {
+                false
             }
         } else {
             false
@@ -107,7 +105,7 @@ fn inner_clear_keys(
     mut key_pairs: DuniterKeyPairs,
 ) -> DuniterKeyPairs {
     if network {
-        key_pairs.network_keypair = generate_random_keypair(KeysAlgo::Ed25519);
+        key_pairs.network_keypair = super::generate_random_keypair(KeysAlgo::Ed25519);
     }
     if member {
         key_pairs.member_keypair = None
@@ -137,7 +135,7 @@ pub fn save_keypairs(
         conf_keys_path.push(crate::constants::KEYPAIRS_FILENAME);
         conf_keys_path
     };
-    write_keypairs_file(&conf_keys_path, &key_pairs)?;
+    super::write_keypairs_file(&conf_keys_path, &key_pairs)?;
     Ok(())
 }
 

@@ -34,6 +34,6 @@ pub fn change_global_conf<DC: DursConfTrait>(
     }
 
     // Write new conf
-    durs_conf::write_conf_file(&durs_conf::get_conf_path(profile_path), conf)
+    durs_conf::file::write_conf_file(&durs_conf::file::get_conf_path(profile_path), conf)
         .map_err(DursCoreError::FailUpdateConf)
 }

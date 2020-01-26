@@ -238,13 +238,13 @@ fn start_conf_thread(
     mut conf: DuRsConf,
     receiver: &mpsc::Receiver<DursMsg>,
 ) {
-    let conf_path = durs_conf::get_conf_path(&profile_path);
+    let conf_path = durs_conf::file::get_conf_path(&profile_path);
     loop {
         match receiver.recv() {
             Ok(msg) => {
                 if let DursMsg::SaveNewModuleConf(module_static_name, new_json_conf) = msg {
                     conf.set_module_conf(ModuleName(module_static_name.to_string()), new_json_conf);
-                    durs_conf::write_conf_file(&conf_path, &conf)
+                    durs_conf::file::write_conf_file(&conf_path, &conf)
                         .expect("Fail to write new module conf in conf file ! ");
                 }
             }

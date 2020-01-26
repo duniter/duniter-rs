@@ -17,16 +17,13 @@
 
 use crate::logger::InitLoggerError;
 use dubp_currency_params::db::CurrencyParamsDbError;
-use durs_conf::keys::WizardError;
+use durs_conf::keypairs::cli::WizardError;
 use durs_module::{ModuleStaticName, PlugModuleError};
 use failure::{Error, Fail};
 
 #[derive(Debug, Fail)]
 /// Dunitrust server error
 pub enum DursCoreError {
-    /// Error with configuration file
-    #[fail(display = "Error with configuration file: {}", _0)]
-    ConfFileError(durs_conf::DursConfFileError),
     /// Generic error that impl Fail
     #[fail(display = "{}", _0)]
     Error(Error),
@@ -54,6 +51,9 @@ pub enum DursCoreError {
     /// Error on initialization of the logger
     #[fail(display = "Error on initialization of the logger: {}", _0)]
     InitLoggerError(InitLoggerError),
+    /// Error at configuration loading
+    #[fail(display = "Error at configuration loading: {}", _0)]
+    LoadConfError(durs_conf::DursConfError),
     /// Plug module error
     #[fail(display = "Error on loading module '{}': {}", module_name, error)]
     PlugModuleError {

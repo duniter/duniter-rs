@@ -45,7 +45,7 @@ use dubp_currency_params::CurrencyName;
 use durs_bc::{dbex::DbExQuery, BlockchainModule};
 use durs_common_tools::fatal_error;
 pub use durs_conf::{
-    constants::KEYPAIRS_FILENAME, keys::*, ChangeGlobalConf, DuRsConf, DuniterKeyPairs,
+    constants::KEYPAIRS_FILENAME, keypairs::cli::*, ChangeGlobalConf, DuRsConf, DuniterKeyPairs,
 };
 use durs_message::*;
 use durs_module::*;
@@ -246,7 +246,7 @@ impl DursCore<DuRsConf> {
         // Load global conf
         let (conf, keypairs) =
             durs_conf::load_conf(profile_path.clone(), &durs_core_opts.keypairs_file)
-                .map_err(DursCoreError::ConfFileError)?;
+                .map_err(DursCoreError::LoadConfError)?;
         info!("Success to load global conf.");
 
         // Get currency name

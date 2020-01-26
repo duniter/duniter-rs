@@ -20,7 +20,7 @@ use crate::errors::DursCoreError;
 use crate::DursCore;
 use clap::arg_enum;
 use clear_on_drop::clear::Clear;
-use durs_conf::keys::*;
+use durs_conf::keypairs::cli::*;
 use durs_conf::DuRsConf;
 
 #[derive(StructOpt, Debug, Clone)]

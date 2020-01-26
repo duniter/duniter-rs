@@ -109,6 +109,9 @@ impl ToString for ModuleReqFullId {
 pub trait DursGlobalConfTrait:
     Clone + Debug + PartialEq + Serialize + DeserializeOwned + Send + ToOwned
 {
+    /// Global user configuration
+    type GlobalUserConf;
+
     /// Get node id
     fn my_node_id(&self) -> u32;
     /// Get default sync module
@@ -130,16 +133,21 @@ pub trait DursConfTrait:
     fn enable(&mut self, module: ModuleName);
     /// Get enabled modules
     fn enabled_modules(&self) -> HashSet<ModuleName>;
+    /// Get currency name
+    fn get_currency(&self) -> CurrencyName;
     /// Get global conf
     fn get_global_conf(&self) -> Self::GlobalConf;
+    /// Override global configuration
+    fn override_global_conf(
+        self,
+        global_user_conf: <Self::GlobalConf as DursGlobalConfTrait>::GlobalUserConf,
+    ) -> Self;
     /// Get modules conf
     fn modules(&self) -> serde_json::Value;
     /// Get node id
     fn my_node_id(&self) -> u32 {
         self.get_global_conf().my_node_id()
     }
-    /// Get currency name
-    fn get_currency(&self) -> CurrencyName;
     /// Set currency
     fn set_currency(&mut self, new_currency: CurrencyName);
     /// Change module conf
