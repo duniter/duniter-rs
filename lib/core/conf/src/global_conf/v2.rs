@@ -32,7 +32,7 @@ pub struct DuRsGlobalUserConfV2 {
     /// Name of the module used by default for synchronization
     pub default_sync_module: Option<ModuleName>,
     /// Ressources usage
-    pub ressources_usage: Option<ResourcesUsage>,
+    pub resources_usage: Option<ResourcesUsage>,
     /// Disabled modules
     pub disabled: Option<HashSet<ModuleName>>,
     /// Enabled modules
@@ -49,7 +49,7 @@ pub struct DuRsGlobalConfV2 {
     /// Name of the module used by default for synchronization
     pub default_sync_module: ModuleName,
     /// Ressources usage
-    pub ressources_usage: ResourcesUsage,
+    pub resources_usage: ResourcesUsage,
     /// Disabled modules
     pub disabled: HashSet<ModuleName>,
     /// Enabled modules
@@ -62,7 +62,7 @@ impl Default for DuRsGlobalConfV2 {
             currency: CurrencyName(String::from(constants::DEFAULT_CURRENCY)),
             my_node_id: crate::generate_random_node_id(),
             default_sync_module: ModuleName(String::from(constants::DEFAULT_DEFAULT_SYNC_MODULE)),
-            ressources_usage: ResourcesUsage::default(),
+            resources_usage: ResourcesUsage::default(),
             disabled: HashSet::with_capacity(0),
             enabled: HashSet::with_capacity(0),
         }
@@ -75,7 +75,7 @@ impl From<DuRsConfV1> for DuRsGlobalConfV2 {
             currency: conf_v1.currency,
             my_node_id: conf_v1.my_node_id,
             default_sync_module: ModuleName(String::from(constants::DEFAULT_DEFAULT_SYNC_MODULE)),
-            ressources_usage: ResourcesUsage::default(),
+            resources_usage: ResourcesUsage::default(),
             disabled: conf_v1.disabled,
             enabled: conf_v1.enabled,
         }
@@ -91,9 +91,9 @@ impl DuRsGlobalConfV2 {
             default_sync_module: global_user_conf
                 .default_sync_module
                 .unwrap_or(self.default_sync_module),
-            ressources_usage: global_user_conf
-                .ressources_usage
-                .unwrap_or(self.ressources_usage),
+            resources_usage: global_user_conf
+                .resources_usage
+                .unwrap_or(self.resources_usage),
             disabled: global_user_conf.disabled.unwrap_or(self.disabled),
             enabled: global_user_conf.enabled.unwrap_or(self.enabled),
         }

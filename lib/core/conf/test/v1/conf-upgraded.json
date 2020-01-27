@@ -4,7 +4,7 @@
       "currency": "g1",
       "my_node_id": 1191678020,
       "default_sync_module": "ws2p1",
-      "ressources_usage": {
+      "resources_usage": {
         "cpu_usage": "Large",
         "network_usage": "Large",
         "memory_usage": "Large",
