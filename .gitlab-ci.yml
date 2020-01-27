@@ -161,28 +161,13 @@ clippy:
   script:
     - cargo clippy --all -- -D warnings --verbose
 
-audit:manual:
+audit_dependencies:
   extends: .rust_stable_lin64
   before_script:
-    - cargo install --force cargo-audit
+    - cargo deny -V
   stage: quality
   script:
-    - cargo audit
-  when: manual
-  except:
-    refs:
-      - dev
-
-audit:
-  extends: .rust_stable_lin64
-  before_script:
-    - cargo install --force cargo-audit
-  stage: quality
-  script:
-    - cargo audit
-  only:
-    refs:
-      - dev
+    - cargo deny check
 
 publish:crate:
   extends: .rust_stable_lin64
