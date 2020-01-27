@@ -5,10 +5,10 @@
       "my_node_id": 1191678020,
       "default_sync_module": "ws2p1",
       "resources_usage": {
-        "cpu_usage": "Large",
-        "network_usage": "Large",
-        "memory_usage": "Large",
-        "disk_space_usage": "Large"
+        "cpu_usage": "large",
+        "network_usage": "large",
+        "memory_usage": "large",
+        "disk_space_usage": "large"
       },
       "disabled": [],
       "enabled": []

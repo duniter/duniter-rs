@@ -19,6 +19,7 @@ use crate::constants;
 use crate::errors::DursConfEnvError;
 use crate::global_conf::v2::DuRsGlobalUserConfV2;
 use crate::global_conf::DuRsGlobalUserConf;
+use crate::resources::ResourcesUsage;
 
 /// Load global user configuration from environment variables
 pub fn load_env_global_user_conf() -> Result<DuRsGlobalUserConf, DursConfEnvError> {
@@ -27,11 +28,17 @@ pub fn load_env_global_user_conf() -> Result<DuRsGlobalUserConf, DursConfEnvErro
             .parse::<usize>()
             .map_err(DursConfEnvError::ConfVersionParseErr)?
         {
-            2 => Ok(DuRsGlobalUserConf::V2(
-                envy::prefixed(constants::DURS_ENV_PREFIX)
+            2 => {
+                let resources_usage =
+                    envy::prefixed(&format!("{}RESOURCES_USAGE_", constants::DURS_ENV_PREFIX))
+                        .from_env::<ResourcesUsage>()
+                        .map_err(DursConfEnvError::EnvyErr)?;
+                let mut global_user_conf_v2 = envy::prefixed(constants::DURS_ENV_PREFIX)
                     .from_env::<DuRsGlobalUserConfV2>()
-                    .map_err(DursConfEnvError::EnvyErr)?,
-            )),
+                    .map_err(DursConfEnvError::EnvyErr)?;
+                global_user_conf_v2.resources_usage = Some(resources_usage);
+                Ok(DuRsGlobalUserConf::V2(global_user_conf_v2))
+            }
             v => Err(DursConfEnvError::UnsupportedVersion {
                 expected: vec![2],
                 found: v,
@@ -46,6 +53,7 @@ pub fn load_env_global_user_conf() -> Result<DuRsGlobalUserConf, DursConfEnvErro
 mod tests {
 
     use super::*;
+    use crate::resources::ResourceUsage;
     use dubp_currency_params::CurrencyName;
     use durs_module::ModuleName;
     use maplit::hashset;
@@ -92,13 +100,22 @@ mod tests {
             &format!("{}DISABLED", constants::DURS_ENV_PREFIX),
             "tui,gva",
         );
+        std::env::set_var(
+            &format!("{}RESOURCES_USAGE_MEMORY_USAGE", constants::DURS_ENV_PREFIX),
+            "medium",
+        );
 
         assert_eq!(
             DuRsGlobalUserConf::V2(DuRsGlobalUserConfV2 {
                 currency: Some(CurrencyName(String::from("g1"))),
                 my_node_id: None,
                 default_sync_module: None,
-                ressources_usage: None,
+                resources_usage: Some(ResourcesUsage {
+                    cpu_usage: ResourceUsage::Large,
+                    network_usage: ResourceUsage::Large,
+                    memory_usage: ResourceUsage::Medium,
+                    disk_space_usage: ResourceUsage::Large,
+                }),
                 disabled: Some(hashset![
                     ModuleName("tui".to_owned()),
                     ModuleName("gva".to_owned())

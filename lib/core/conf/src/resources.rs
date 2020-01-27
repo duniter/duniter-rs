@@ -17,6 +17,7 @@
 
 #[derive(Debug, Copy, Clone, Deserialize, PartialEq, Serialize)]
 /// Ressource usage
+#[serde(rename_all = "lowercase")]
 pub enum ResourceUsage {
     /// Minimal use of the resource, to the detriment of performance
     Minimal,
@@ -28,26 +29,25 @@ pub enum ResourceUsage {
     Infinite,
 }
 
-#[derive(Debug, Copy, Clone, Deserialize, PartialEq, Serialize)]
+impl Default for ResourceUsage {
+    fn default() -> Self {
+        ResourceUsage::Large
+    }
+}
+
+#[derive(Debug, Default, Copy, Clone, Deserialize, PartialEq, Serialize)]
 /// Ressources usage
 pub struct ResourcesUsage {
     /// Cpu usage
+    #[serde(default)]
     pub cpu_usage: ResourceUsage,
     /// Network usage
+    #[serde(default)]
     pub network_usage: ResourceUsage,
     /// Memory usage
+    #[serde(default)]
     pub memory_usage: ResourceUsage,
     /// Disk space usage
+    #[serde(default)]
     pub disk_space_usage: ResourceUsage,
-}
-
-impl Default for ResourcesUsage {
-    fn default() -> Self {
-        ResourcesUsage {
-            cpu_usage: ResourceUsage::Large,
-            network_usage: ResourceUsage::Large,
-            memory_usage: ResourceUsage::Large,
-            disk_space_usage: ResourceUsage::Large,
-        }
-    }
 }
