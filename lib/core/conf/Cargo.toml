@@ -14,6 +14,7 @@ dirs = "2.0.2"
 dup-crypto = { path = "../../crypto" }
 dubp-currency-params = { path = "../../dubp/currency-params" }
 dubp-user-docs= { path = "../../dubp/user-docs" }
+durs-message =  { path = "../message" }
 durs-module = { path = "../module" }
 durs-common-tools = { path = "../../tools/common-tools" }
 envy = "0.4.1"

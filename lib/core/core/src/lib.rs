@@ -44,7 +44,6 @@ use crate::errors::DursCoreError;
 use dubp_currency_params::CurrencyName;
 use durs_bc::{dbex::DbExQuery, BlockchainModule};
 use durs_common_tools::fatal_error;
-use durs_common_tools::traits::merge::Merge;
 pub use durs_conf::{
     constants::KEYPAIRS_FILENAME, keypairs::cli::*, ChangeGlobalConf, DuRsConf, DuniterKeyPairs,
 };
@@ -124,16 +123,17 @@ impl DursCore<DuRsConf> {
             .get(&M::name().to_string().as_str())
             .cloned();
 
-        let ((module_conf, module_user_conf), required_keys) = get_module_conf_and_keys::<M>(
-            durs_core.currency_name.as_ref(),
-            &durs_core.soft_meta_datas.conf.get_global_conf(),
-            module_conf_json,
-            durs_core.keypairs,
-        )
-        .map_err(|e| DursCoreError::PlugModuleError {
-            module_name: M::name(),
-            error: e.into(),
-        })?;
+        let ((module_conf, module_user_conf), required_keys) =
+            durs_conf::modules_conf::get_module_conf_and_keys::<M>(
+                durs_core.currency_name.as_ref(),
+                &durs_core.soft_meta_datas.conf.get_global_conf(),
+                module_conf_json,
+                durs_core.keypairs,
+            )
+            .map_err(|e| DursCoreError::PlugModuleError {
+                module_name: M::name(),
+                error: e.into(),
+            })?;
         // Execute module subcommand
         let new_module_conf = M::exec_subcommand(
             &durs_core.soft_meta_datas,
@@ -411,12 +411,13 @@ impl DursCore<DuRsConf> {
                         .cloned();
 
                     // Load module conf and keys
-                    let ((module_conf, _), required_keys) = get_module_conf_and_keys::<NM>(
-                        self.currency_name.as_ref(),
-                        &soft_meta_datas.conf.get_global_conf(),
-                        module_conf_json,
-                        self.keypairs.clone(),
-                    )?;
+                    let ((module_conf, _), required_keys) =
+                        durs_conf::modules_conf::get_module_conf_and_keys::<NM>(
+                            self.currency_name.as_ref(),
+                            &soft_meta_datas.conf.get_global_conf(),
+                            module_conf_json,
+                            self.keypairs.clone(),
+                        )?;
 
                     let sync_params = network_sync.clone();
                     let thread_builder = thread::Builder::new().name(NM::name().0.into());
@@ -495,12 +496,13 @@ impl DursCore<DuRsConf> {
                     .get(&M::name().to_string().as_str())
                     .cloned();
                 // Load module conf and keys
-                let ((module_conf, _), required_keys) = get_module_conf_and_keys::<M>(
-                    self.currency_name.as_ref(),
-                    &soft_meta_datas.conf.get_global_conf(),
-                    module_conf_json,
-                    self.keypairs.clone(),
-                )?;
+                let ((module_conf, _), required_keys) =
+                    durs_conf::modules_conf::get_module_conf_and_keys::<M>(
+                        self.currency_name.as_ref(),
+                        &soft_meta_datas.conf.get_global_conf(),
+                        module_conf_json,
+                        self.keypairs.clone(),
+                    )?;
 
                 let thread_builder = thread::Builder::new().name(M::name().0.into());
                 self.threads.insert(
@@ -551,66 +553,6 @@ impl DursCore<DuRsConf> {
         }
         Ok(())
     }
-}
-
-/// Module configurations and required keys
-pub type ModuleConfsAndKeys<M> = (
-    (
-        <M as DursModule<DuRsConf, DursMsg>>::ModuleConf,
-        Option<<M as DursModule<DuRsConf, DursMsg>>::ModuleUserConf>,
-    ),
-    RequiredKeysContent,
-);
-
-/// Get module conf and keys
-pub fn get_module_conf_and_keys<M: DursModule<DuRsConf, DursMsg>>(
-    currency_name: Option<&CurrencyName>,
-    global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
-    module_conf_json: Option<serde_json::Value>,
-    keypairs: DuniterKeyPairs,
-) -> Result<ModuleConfsAndKeys<M>, ModuleConfError> {
-    Ok((
-        get_module_conf::<M>(currency_name, global_conf, module_conf_json)?,
-        DuniterKeyPairs::get_required_keys_content(M::ask_required_keys(), keypairs),
-    ))
-}
-
-fn get_env_module_user_conf<ModuleUserConf: serde::de::DeserializeOwned>(
-    module_name: ModuleStaticName,
-) -> Result<ModuleUserConf, ModuleConfError> {
-    let prefix = format!(
-        "{}{}",
-        durs_conf::constants::DURS_ENV_PREFIX,
-        module_name.0.to_ascii_uppercase()
-    );
-
-    envy::prefixed(prefix)
-        .from_env::<ModuleUserConf>()
-        .map_err(ModuleConfError::EnvyErr)
-}
-
-/// get module conf
-pub fn get_module_conf<M: DursModule<DuRsConf, DursMsg>>(
-    currency_name: Option<&CurrencyName>,
-    global_conf: &<DuRsConf as DursConfTrait>::GlobalConf,
-    module_conf_json: Option<serde_json::Value>,
-) -> Result<(M::ModuleConf, Option<M::ModuleUserConf>), ModuleConfError> {
-    let file_module_user_conf: M::ModuleUserConf = if let Some(module_conf_json) = module_conf_json
-    {
-        let file_module_user_conf_opt: Option<M::ModuleUserConf> =
-            serde_json::from_str(module_conf_json.to_string().as_str())?;
-        file_module_user_conf_opt.unwrap_or_default()
-    } else {
-        M::ModuleUserConf::default()
-    };
-
-    let env_module_user_conf = get_env_module_user_conf::<M::ModuleUserConf>(M::name())?;
-
-    M::generate_module_conf(
-        currency_name,
-        global_conf,
-        Some(file_module_user_conf.merge(env_module_user_conf)),
-    )
 }
 
 /// Launch databases explorer

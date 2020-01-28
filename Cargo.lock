@@ -997,6 +997,7 @@ dependencies = [
  "dubp-user-docs 0.14.0",
  "dup-crypto 0.7.0",
  "durs-common-tools 0.2.0",
+ "durs-message 0.3.0-dev",
  "durs-module 0.3.0-dev",
  "envy 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",

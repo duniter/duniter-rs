@@ -40,7 +40,7 @@ pub mod errors;
 pub mod file;
 mod global_conf;
 pub mod keypairs;
-mod modules_conf;
+pub mod modules_conf;
 mod resources;
 mod v1;
 
