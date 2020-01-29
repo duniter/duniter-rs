@@ -30,12 +30,15 @@ use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
 use dubp_currency_params::CurrencyParameters;
 
+const COUNT_ALLOWED_BLOCK_VERSIONS: usize = 3;
+static ALLOWED_BLOCK_VERSIONS: [usize; COUNT_ALLOWED_BLOCK_VERSIONS] = [10, 11, 12];
+
 #[derive(Debug, PartialEq)]
 /// Local verification of a block error
 pub enum LocalVerifyBlockError {
     /// Wrong block version
     Version {
-        expected_version: Vec<usize>,
+        expected_version: [usize; COUNT_ALLOWED_BLOCK_VERSIONS],
         actual_version: u32,
     },
     /// Genesis block specific rules
@@ -105,9 +108,9 @@ pub fn verify_local_validity_block_v10(
     block: &BlockDocumentV10,
 ) -> Result<(), LocalVerifyBlockError> {
     // Version
-    if !(block.version == 10 || block.version == 11) {
+    if !ALLOWED_BLOCK_VERSIONS.contains(&(block.version as usize)) {
         return Err(LocalVerifyBlockError::Version {
-            expected_version: vec![10, 11],
+            expected_version: ALLOWED_BLOCK_VERSIONS,
             actual_version: block.version,
         });
     }
@@ -181,7 +184,7 @@ mod tests {
         block.version = 14;
 
         let expected = Err(LocalVerifyBlockError::Version {
-            expected_version: vec![10, 11],
+            expected_version: ALLOWED_BLOCK_VERSIONS,
             actual_version: 14,
         });
         let actual = verify_local_validity_block(&BlockDocument::V10(block), Some(currency_params));
