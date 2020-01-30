@@ -178,7 +178,7 @@ As above, you just have to return a variant. For example, if you don't need any 
 
 ```rust
     fn ask_required_keys() -> RequiredKeys {
-        RequiredKeys::None()
+        RequiredKeys::None
     }
 ```
 

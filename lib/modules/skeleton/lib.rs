@@ -131,7 +131,7 @@ impl DursModule<DuRsConf, DursMsg> for SkeletonModule {
         ModulePriority::Optional()
     }
     fn ask_required_keys() -> RequiredKeys {
-        RequiredKeys::None()
+        RequiredKeys::None
     }
     fn have_subcommand() -> bool {
         true

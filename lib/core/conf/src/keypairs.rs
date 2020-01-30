@@ -72,23 +72,23 @@ impl DuniterKeyPairs {
         keypairs: DuniterKeyPairs,
     ) -> RequiredKeysContent {
         match required_keys {
-            RequiredKeys::MemberKeyPair() => {
+            RequiredKeys::MemberKeyPair => {
                 RequiredKeysContent::MemberKeyPair(keypairs.member_keypair)
             }
-            RequiredKeys::MemberPublicKey() => {
+            RequiredKeys::MemberPublicKey => {
                 RequiredKeysContent::MemberPublicKey(if let Some(keys) = keypairs.member_keypair {
                     Some(keys.public_key())
                 } else {
                     None
                 })
             }
-            RequiredKeys::NetworkKeyPair() => {
+            RequiredKeys::NetworkKeyPair => {
                 RequiredKeysContent::NetworkKeyPair(keypairs.network_keypair)
             }
-            RequiredKeys::NetworkPublicKey() => {
+            RequiredKeys::NetworkPublicKey => {
                 RequiredKeysContent::NetworkPublicKey(keypairs.network_keypair.public_key())
             }
-            RequiredKeys::None() => RequiredKeysContent::None(),
+            RequiredKeys::None => RequiredKeysContent::None,
         }
     }
 }

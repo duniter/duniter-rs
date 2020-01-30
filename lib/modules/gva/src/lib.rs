@@ -153,7 +153,7 @@ impl DursModule<DuRsConf, DursMsg> for GvaModule {
         ModulePriority::Recommended()
     }
     fn ask_required_keys() -> RequiredKeys {
-        RequiredKeys::None()
+        RequiredKeys::None
     }
     fn have_subcommand() -> bool {
         false

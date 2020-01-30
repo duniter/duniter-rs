@@ -379,7 +379,7 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
         ModulePriority::Recommended()
     }
     fn ask_required_keys() -> RequiredKeys {
-        RequiredKeys::None()
+        RequiredKeys::None
     }
     fn generate_module_conf(
         _currency_name: Option<&CurrencyName>,

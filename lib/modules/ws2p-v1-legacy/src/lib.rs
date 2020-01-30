@@ -423,7 +423,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
         ModulePriority::Essential()
     }
     fn ask_required_keys() -> RequiredKeys {
-        RequiredKeys::NetworkKeyPair()
+        RequiredKeys::NetworkKeyPair
     }
     fn have_subcommand() -> bool {
         true

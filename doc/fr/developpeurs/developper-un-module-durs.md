@@ -187,7 +187,7 @@ Il suffit de choisir la variante de l'énumération qui vous convient puis de la
 
 ```rust
     fn ask_required_keys() -> RequiredKeys {
-        RequiredKeys::None()
+        RequiredKeys::None
     }
 ```
 

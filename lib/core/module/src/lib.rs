@@ -265,15 +265,15 @@ pub enum RouterThreadMessage<M: ModuleMessage> {
 /// Indicates which keys the module needs to operate
 pub enum RequiredKeys {
     /// The module needs the member keypair (private key included).
-    MemberKeyPair(),
+    MemberKeyPair,
     /// The module only needs the member public key.
-    MemberPublicKey(),
+    MemberPublicKey,
     /// The module needs the network keypair (private key included).
-    NetworkKeyPair(),
+    NetworkKeyPair,
     /// The module only needs the network public key.
-    NetworkPublicKey(),
+    NetworkPublicKey,
     /// The module does not need any key
-    None(),
+    None,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -288,7 +288,7 @@ pub enum RequiredKeysContent {
     /// Contains the network public key.
     NetworkPublicKey(<<KeyPairEnum as KeyPair>::Signator as Signator>::PublicKey),
     /// Does not contain any keys
-    None(),
+    None,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -340,7 +340,7 @@ pub fn module_valid_filters<
         return false;
     }
     if filters.contains(&ModulesFilter::RequireMemberPrivKey())
-        && M::ask_required_keys() != RequiredKeys::MemberKeyPair()
+        && M::ask_required_keys() != RequiredKeys::MemberKeyPair
     {
         return false;
     }
