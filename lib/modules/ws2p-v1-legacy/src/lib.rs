@@ -420,7 +420,7 @@ impl DursModule<DuRsConf, DursMsg> for WS2Pv1Module {
         ModuleStaticName(MODULE_NAME)
     }
     fn priority() -> ModulePriority {
-        ModulePriority::Essential()
+        ModulePriority::Essential
     }
     fn ask_required_keys() -> RequiredKeys {
         RequiredKeys::NetworkKeyPair

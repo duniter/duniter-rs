@@ -127,8 +127,8 @@ impl DursModule<DuRsConf, DursMsg> for SkeletonModule {
         ModuleStaticName(MODULE_NAME)
     }
     fn priority() -> ModulePriority {
-        //ModulePriority::Recommended()
-        ModulePriority::Optional()
+        //ModulePriority::Recommended
+        ModulePriority::Optional
     }
     fn ask_required_keys() -> RequiredKeys {
         RequiredKeys::None

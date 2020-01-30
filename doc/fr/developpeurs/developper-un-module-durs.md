@@ -168,7 +168,7 @@ Il suffit de choisir la variante de l'énumération qui vous convient puis de la
 
 ```rust
     fn priority() -> ModulePriority {
-        ModulePriority::Optional()
+        ModulePriority::Optional
     }
 ```
 

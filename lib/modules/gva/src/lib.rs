@@ -150,7 +150,7 @@ impl DursModule<DuRsConf, DursMsg> for GvaModule {
         ModuleStaticName(MODULE_NAME)
     }
     fn priority() -> ModulePriority {
-        ModulePriority::Recommended()
+        ModulePriority::Recommended
     }
     fn ask_required_keys() -> RequiredKeys {
         RequiredKeys::None

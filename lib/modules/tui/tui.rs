@@ -376,7 +376,7 @@ impl DursModule<DuRsConf, DursMsg> for TuiModule {
         ModuleStaticName("tui")
     }
     fn priority() -> ModulePriority {
-        ModulePriority::Recommended()
+        ModulePriority::Recommended
     }
     fn ask_required_keys() -> RequiredKeys {
         RequiredKeys::None

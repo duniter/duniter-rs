@@ -33,6 +33,9 @@
 #[macro_use]
 extern crate serde_derive;
 
+#[cfg(feature = "module-test")]
+pub mod module_test;
+
 use dubp_currency_params::CurrencyName;
 use dup_crypto::keys::{KeyPair, KeyPairEnum, Signator};
 use durs_common_tools::fatal_error;
@@ -295,11 +298,11 @@ pub enum RequiredKeysContent {
 /// Defined the priority level of the module
 pub enum ModulePriority {
     /// This module is necessary for Duniter-Rs to work properly, impossible to disable it.
-    Essential(),
+    Essential,
     /// This module is recommended but it's not essential, it's enabled by default but can be disabled by the user.
-    Recommended(),
+    Recommended,
     /// This module is disabled by default, it must be explicitly enabled by the user.
-    Optional(),
+    Optional,
 }
 
 /// Determines if a module is activated or not
@@ -307,9 +310,9 @@ pub fn enabled<DC: DursConfTrait, Mess: ModuleMessage, M: DursModule<DC, Mess>>(
     let disabled_modules = conf.disabled_modules();
     let enabled_modules = conf.enabled_modules();
     match M::priority() {
-        ModulePriority::Essential() => true,
-        ModulePriority::Recommended() => !disabled_modules.contains(&ModuleName::from(M::name())),
-        ModulePriority::Optional() => enabled_modules.contains(&ModuleName::from(M::name())),
+        ModulePriority::Essential => true,
+        ModulePriority::Recommended => !disabled_modules.contains(&ModuleName::from(M::name())),
+        ModulePriority::Optional => enabled_modules.contains(&ModuleName::from(M::name())),
     }
 }
 

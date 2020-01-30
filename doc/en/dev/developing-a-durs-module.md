@@ -159,7 +159,7 @@ You just have to choose one of the three variants and return it. For example, if
 
 ```rust
     fn priority() -> ModulePriority {
-        ModulePriority::Optional()
+        ModulePriority::Optional
     }
 ```
 
