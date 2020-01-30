@@ -46,8 +46,10 @@ impl Merge for ModuleTestUserConf {
 /// Module test config
 #[derive(Clone, Debug, Default, Deserialize, PartialEq)]
 pub struct ModuleTestConf {
-    field1: String,
-    field2: usize,
+    /// Field 1
+    pub field1: String,
+    /// Field 2
+    pub field2: usize,
 }
 
 #[derive(StructOpt, Debug, Clone)]
@@ -79,12 +81,18 @@ impl<DC: DursConfTrait, M: ModuleMessage> DursModule<DC, M> for ModuleTest<DC, M
     fn generate_module_conf(
         _currency_name: Option<&CurrencyName>,
         _global_conf: &<DC as DursConfTrait>::GlobalConf,
-        _module_user_conf: Option<Self::ModuleUserConf>,
+        module_user_conf_opt: Option<Self::ModuleUserConf>,
     ) -> Result<(Self::ModuleConf, Option<Self::ModuleUserConf>), ModuleConfError> {
-        Ok((
-            ModuleTestConf::default(),
-            Some(ModuleTestUserConf::default()),
-        ))
+        let module_conf = if let Some(module_user_conf) = module_user_conf_opt.clone() {
+            ModuleTestConf {
+                field1: module_user_conf.field1.unwrap_or_default(),
+                field2: module_user_conf.field2.unwrap_or_default(),
+            }
+        } else {
+            ModuleTestConf::default()
+        };
+
+        Ok((module_conf, module_user_conf_opt))
     }
     fn exec_subcommand(
         _soft_meta_datas: &SoftwareMetaDatas<DC>,

@@ -20,7 +20,7 @@ durs-ws2p = { path = "../../lib/modules/ws2p/ws2p" }
 durs-ws2p-v1-legacy = { path = "../../lib/modules/ws2p-v1-legacy" }
 #human-panic = "1.0.1"
 log = "0.4.8"
-structopt= "0.3.4"
+structopt = "0.3.4"
 
 [target.'cfg(unix)'.dependencies]
 durs-tui = { path = "../../lib/modules/tui" }
