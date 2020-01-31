@@ -27,12 +27,17 @@ use durs_ws2p_protocol::connection_state::WS2PConnectionState;
 use durs_ws2p_protocol::controller::{WS2PControllerEvent, WebsocketActionOrder};
 use durs_ws2p_protocol::orchestrator::OrchestratorMsg;
 use durs_ws2p_protocol::MySelfWs2pNode;
+use once_cell::sync::Lazy;
 use std::sync::mpsc;
+use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 
 static PORT: &'static u16 = &10899;
 static TIMEOUT_IN_MS: &'static u64 = &30_000;
+
+// Empty mutex used to ensure that only one test runs at a time
+static MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 pub fn currency() -> CurrencyName {
     CurrencyName(String::from("g1"))
@@ -75,6 +80,7 @@ fn client_node() -> MySelfWs2pNode {
 #[cfg(unix)]
 fn test_connection_negociation_denial() {
     durs_common_tests_tools::logger::init_logger_stdout(vec!["ws"]);
+    let _lock = MUTEX.lock().expect("MUTEX poisoned");
 
     // ===== initialization =====
     // client and server are initialized and launched in separate threads
@@ -152,6 +158,7 @@ fn test_connection_negociation_denial() {
 #[cfg(unix)]
 fn test_connection_negociation_success() {
     durs_common_tests_tools::logger::init_logger_stdout(vec!["ws"]);
+    let _lock = MUTEX.lock().expect("MUTEX poisoned");
 
     // ===== initialization =====
     // client and server are initialized and launched in separate threads
