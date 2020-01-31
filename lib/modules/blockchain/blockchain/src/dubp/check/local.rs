@@ -154,7 +154,7 @@ pub fn verify_local_validity_block_v10(
 
     // Check transactions
     for tx in &block.transactions {
-        self::tx_doc::local_verify_tx_doc(block.version(), tx)?;
+        self::tx_doc::local_verify_tx_doc_v10(block.version(), tx)?;
     }
 
     Ok(())

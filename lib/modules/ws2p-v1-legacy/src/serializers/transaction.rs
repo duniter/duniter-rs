@@ -16,9 +16,18 @@
 //! Sub-module that serialize TransactionDocument into WS2Pv1 json format
 
 use super::IntoWS2Pv1Json;
+use dubp_user_docs::documents::transaction::v10::TransactionDocumentV10Stringified;
 use dubp_user_docs::documents::transaction::TransactionDocumentStringified;
 
 impl IntoWS2Pv1Json for TransactionDocumentStringified {
+    fn into_ws2p_v1_json(self) -> serde_json::Value {
+        match self {
+            TransactionDocumentStringified::V10(tx_doc_v10) => tx_doc_v10.into_ws2p_v1_json(),
+        }
+    }
+}
+
+impl IntoWS2Pv1Json for TransactionDocumentV10Stringified {
     fn into_ws2p_v1_json(self) -> serde_json::Value {
         json!( {
             "blockstamp": self.blockstamp,

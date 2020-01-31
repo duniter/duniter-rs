@@ -18,7 +18,7 @@
 use dubp_block_doc::block::{BlockDocument, BlockDocumentV10};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
-use dubp_user_docs::documents::transaction::{TxAmount, TxBase};
+use dubp_user_docs::documents::transaction::{TransactionDocument, TxAmount, TxBase};
 use dup_crypto::keys::*;
 use durs_bc_db_reader::blocks::BlockDb;
 use durs_bc_db_reader::indexes::sources::get_block_consumed_sources_;
@@ -230,7 +230,9 @@ pub fn apply_valid_block_v10<W: WebOfTrust>(
     }
 
     for tx in &block.transactions {
-        currency_dbs_requests.push(CurrencyDBsWriteQuery::WriteTx(Box::new(tx.clone())));
+        currency_dbs_requests.push(CurrencyDBsWriteQuery::WriteTx(Box::new(
+            TransactionDocument::V10(tx.clone()),
+        )));
     }
 
     /*// Calculate the state of the wot

@@ -44,14 +44,16 @@ pub fn revert_tx<S: std::hash::BuildHasher>(
     db: &Db,
     w: &mut DbWriter,
     tx_doc: &TransactionDocument,
-    block_consumed_sources: &mut HashMap<UniqueIdUTXOv10, TransactionOutput, S>,
+    block_consumed_sources: &mut HashMap<UniqueIdUTXOv10, TransactionOutputV10, S>,
 ) -> Result<(), DbError> {
     let tx_hash = tx_doc
         .get_hash_opt()
         .unwrap_or_else(|| tx_doc.compute_hash());
 
+    let TransactionDocument::V10(tx_doc_v10) = tx_doc;
+
     // Index created utxos
-    let created_utxos: Vec<UTXOV10> = tx_doc
+    let created_utxos: Vec<UTXOV10> = tx_doc_v10
         .get_outputs()
         .iter()
         .enumerate()
@@ -68,14 +70,14 @@ pub fn revert_tx<S: std::hash::BuildHasher>(
         db.get_store(UTXOS).delete(w.as_mut(), &utxo_id_bytes)?;
     }
     // Index consumed sources
-    let consumed_sources_ids: HashSet<SourceUniqueIdV10> = tx_doc
+    let consumed_sources_ids: HashSet<SourceUniqueIdV10> = tx_doc_v10
         .get_inputs()
         .iter()
         .map(|input| match *input {
-            TransactionInput::D(_tx_amout, _tx_amout_base, pubkey, block_id) => {
+            TransactionInputV10::D(_tx_amout, _tx_amout_base, pubkey, block_id) => {
                 SourceUniqueIdV10::UD(pubkey, block_id)
             }
-            TransactionInput::T(_tx_amout, _tx_amout_base, hash, tx_index) => {
+            TransactionInputV10::T(_tx_amout, _tx_amout_base, hash, tx_index) => {
                 SourceUniqueIdV10::UTXO(UniqueIdUTXOv10(hash, tx_index))
             }
         })
@@ -118,15 +120,17 @@ pub fn apply_and_write_tx(
     let tx_hash = tx_doc
         .get_hash_opt()
         .unwrap_or_else(|| tx_doc.compute_hash());
+
+    let TransactionDocument::V10(tx_doc_v10) = tx_doc;
     // Index consumed sources
-    let consumed_sources_ids: HashSet<SourceUniqueIdV10> = tx_doc
+    let consumed_sources_ids: HashSet<SourceUniqueIdV10> = tx_doc_v10
         .get_inputs()
         .iter()
         .map(|input| match *input {
-            TransactionInput::D(_tx_amout, _tx_amout_base, pubkey, block_id) => {
+            TransactionInputV10::D(_tx_amout, _tx_amout_base, pubkey, block_id) => {
                 SourceUniqueIdV10::UD(pubkey, block_id)
             }
-            TransactionInput::T(_tx_amout, _tx_amout_base, hash, tx_index) => {
+            TransactionInputV10::T(_tx_amout, _tx_amout_base, hash, tx_index) => {
                 SourceUniqueIdV10::UTXO(UniqueIdUTXOv10(hash, tx_index))
             }
         })
@@ -145,13 +149,13 @@ pub fn apply_and_write_tx(
             .map(|utxo_id| {
                 let utxo_id_bytes: Vec<u8> = (*utxo_id).into();
                 if let Some(value) = db.get_store(UTXOS).get(w.as_ref(), &utxo_id_bytes)? {
-                    let utxo_content: TransactionOutput = from_db_value(value)?;
+                    let utxo_content: TransactionOutputV10 = from_db_value(value)?;
                     Ok((*utxo_id, utxo_content))
                 } else {
                     fatal_error!("Try to persist unexist consumed source.");
                 }
             })
-            .collect::<Result<HashMap<UniqueIdUTXOv10, TransactionOutput>, DbError>>()?;
+            .collect::<Result<HashMap<UniqueIdUTXOv10, TransactionOutputV10>, DbError>>()?;
         let consumed_sources_bytes = durs_dbs_tools::to_bytes(&consumed_sources)?;
         let block_number =
             durs_bc_db_reader::current_metadata::get_current_blockstamp(&BcDbRwWithWriter {
@@ -189,7 +193,7 @@ pub fn apply_and_write_tx(
                 })?;
         }
     }
-    let created_utxos: Vec<UTXOV10> = tx_doc
+    let created_utxos: Vec<UTXOV10> = tx_doc_v10
         .get_outputs()
         .iter()
         .enumerate()
@@ -218,6 +222,7 @@ mod tests {
     use super::*;
     use dubp_common_doc::traits::{Document, DocumentBuilder};
     use dubp_common_doc::BlockHash;
+    use dubp_user_docs::documents::transaction::v10::TransactionInputUnlocksV10;
     use durs_bc_db_reader::current_metadata::CurrentMetaDataKey;
     use durs_bc_db_reader::indexes::sources::SourceAmount;
     use std::str::FromStr;
@@ -233,24 +238,24 @@ mod tests {
         let block = unwrap!(Blockstamp::from_string(
             "50-00001DAA4559FEDB8320D1040B0F22B631459F36F237A0D9BC1EB923C12A12E7",
         ));
-        let builder = TransactionDocumentBuilder {
+        let builder = TransactionDocumentV10Builder {
             currency: "g1",
             blockstamp: &block,
             locktime: &0,
             issuers: &vec![pubkey],
-            inputs: &vec![TransactionInput::from_str(
+            inputs: &vec![TransactionInputV10::from_str(
                 "1000:0:D:2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ:1",
             )
             .expect("fail to parse input !")],
             unlocks: &vec![
-                TransactionInputUnlocks::from_str("0:SIG(0)").expect("fail to parse unlock !")
+                TransactionInputUnlocksV10::from_str("0:SIG(0)").expect("fail to parse unlock !")
             ],
             outputs: &vec![
-                TransactionOutput::from_str(
+                TransactionOutputV10::from_str(
                     "1:0:SIG(Com8rJukCozHZyFao6AheSsfDQdPApxQRnz7QYFf64mm)",
                 )
                 .expect("fail to parse output !"),
-                TransactionOutput::from_str(
+                TransactionOutputV10::from_str(
                     "999:0:SIG(2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ)",
                 )
                 .expect("fail to parse output !"),
@@ -258,7 +263,7 @@ mod tests {
             comment: "TEST",
             hash: None,
         };
-        builder.build_with_signature(vec![sig])
+        TransactionDocumentBuilder::V10(builder).build_with_signature(vec![sig])
     }
 
     #[test]

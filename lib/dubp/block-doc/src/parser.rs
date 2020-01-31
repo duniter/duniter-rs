@@ -20,7 +20,6 @@ use dubp_common_doc::{BlockHash, BlockNumber};
 use dubp_currency_params::genesis_block_params::v10::BlockV10Parameters;
 use dubp_currency_params::CurrencyName;
 use dubp_user_docs::documents::membership::v10::MembershipType;
-use dubp_user_docs::documents::transaction::TransactionDocument;
 use dubp_user_docs::parsers::{serde_json_value_to_pest_json_value, DefaultHasher};
 use dup_crypto::bases::BaseConvertionError;
 use dup_crypto::hashs::Hash;
@@ -121,19 +120,10 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
         certifications: dubp_user_docs::parsers::certifications::parse_certifications_into_compact(
             &get_str_array(json_block, "certifications")?,
         ),
-        transactions: json_block
-            .get("transactions")
-            .ok_or_else(|| ParseJsonError {
-                cause: "Fail to parse json block : field 'transactions' must exist !".to_owned(),
-            })?
-            .to_array()
-            .ok_or_else(|| ParseJsonError {
-                cause: "Fail to parse json block : field 'transactions' must be an array !"
-                    .to_owned(),
-            })?
-            .iter()
-            .map(|tx| dubp_user_docs::parsers::transactions::parse_json_transaction(tx))
-            .collect::<Result<Vec<TransactionDocument>, Error>>()?,
+        transactions: dubp_user_docs::parsers::transactions::parse_json_transactions(&get_array(
+            json_block,
+            "transactions",
+        )?)?,
     }))
 }
 
@@ -141,6 +131,7 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
 mod tests {
     use super::*;
     use crate::block::*;
+    use dubp_user_docs::documents::transaction::TransactionDocument;
 
     #[test]
     fn parse_empty_json_block() {
@@ -351,7 +342,9 @@ mod tests {
                 revoked: vec![],
                 excluded: vec![],
                 certifications: vec![],
-                transactions: vec![dubp_user_docs_tests_tools::mocks::tx::first_g1_tx_doc()],
+                transactions: vec![match dubp_user_docs_tests_tools::mocks::tx::first_g1_tx_doc() {
+                    TransactionDocument::V10(tx_doc) => tx_doc,
+                }],
             });
         assert_eq!(
             expected_block,

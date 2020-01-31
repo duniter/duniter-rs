@@ -156,8 +156,8 @@ CertTimestamp: 106669-000003682E6FE38C44433DCE92E8B2A26C69B6D7867A2BAED231E788DD
 UmseG2XKNwKcY8RFi6gUCT91udGnnNmSh7se10J1jeRVlwf+O2Tyb2Cccot9Dt7BO4+Kx2P6vFJB3oVGGHMxBA==").expect("Fail to parse cert1");
     let CertificationDocument::V10(cert1) = cert1;
 
-    let tx1 = dubp_user_docs_tests_tools::mocks::tx::gen_mock_tx_doc();
-    let tx2 = TransactionDocumentParser::parse("Version: 10
+    let TransactionDocument::V10(tx1) = dubp_user_docs_tests_tools::mocks::tx::gen_mock_tx_doc();
+    let TransactionDocument::V10(tx2) = TransactionDocumentParser::parse("Version: 10
 Type: Transaction
 Currency: g1
 Blockstamp: 107982-000001242F6DA51C06A915A96C58BAA37AB3D1EB51F6E1C630C707845ACF764B

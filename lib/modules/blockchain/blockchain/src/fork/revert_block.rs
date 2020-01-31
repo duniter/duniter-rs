@@ -18,7 +18,7 @@
 use dubp_block_doc::block::{BlockDocument, BlockDocumentTrait, BlockDocumentV10};
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::{BlockNumber, Blockstamp};
-use dubp_user_docs::documents::transaction::{TxAmount, TxBase};
+use dubp_user_docs::documents::transaction::{TransactionDocument, TxAmount, TxBase};
 use dup_crypto::keys::*;
 use durs_bc_db_reader::blocks::BlockDb;
 use durs_bc_db_reader::indexes::sources::SourceAmount;
@@ -82,7 +82,9 @@ pub fn revert_block_v10<W: WebOfTrust>(
     let mut currency_dbs_requests = Vec::new();
     // Revert transactions
     for tx_doc in block.transactions.iter().rev() {
-        currency_dbs_requests.push(CurrencyDBsWriteQuery::RevertTx(Box::new(tx_doc.clone())));
+        currency_dbs_requests.push(CurrencyDBsWriteQuery::RevertTx(Box::new(
+            TransactionDocument::V10(tx_doc.clone()),
+        )));
     }
     // Revert UD
     if let Some(du_amount) = block.dividend {

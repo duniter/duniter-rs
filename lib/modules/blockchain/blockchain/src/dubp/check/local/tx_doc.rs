@@ -18,7 +18,8 @@
 use dubp_common_doc::errors::DocumentSigsErr;
 use dubp_common_doc::traits::text::CompactTextDocument;
 use dubp_common_doc::traits::Document;
-use dubp_user_docs::documents::transaction::TransactionDocument;
+use dubp_user_docs::documents::transaction::v10::TransactionDocumentV10;
+use dubp_user_docs::documents::transaction::TransactionDocumentTrait;
 use durs_common_tools::traits::bool_ext::BoolExt;
 
 #[derive(Debug, PartialEq)]
@@ -36,9 +37,9 @@ pub enum TransactionDocumentError {
 }
 
 /// Local verification of a Tx Document
-pub fn local_verify_tx_doc(
+pub fn local_verify_tx_doc_v10(
     dubp_version: usize,
-    tx_doc: &TransactionDocument,
+    tx_doc: &TransactionDocumentV10,
 ) -> Result<(), TransactionDocumentError> {
     // A transaction in compact format must measure less than 100 lines
     (tx_doc.as_compact_text().lines().count() < 100).or_err(TransactionDocumentError::TooLong {
@@ -69,11 +70,12 @@ mod tests {
     use super::*;
     use dubp_common_doc::traits::DocumentBuilder;
     use dubp_common_doc::Blockstamp;
+    use dubp_user_docs::documents::transaction::v10::TransactionDocumentV10Builder;
+    use dubp_user_docs::documents::transaction::v10::TransactionInputUnlocksV10;
+    use dubp_user_docs::documents::transaction::v10::TransactionInputV10;
+    use dubp_user_docs::documents::transaction::v10::TransactionOutputV10;
     use dubp_user_docs::documents::transaction::OutputIndex;
-    use dubp_user_docs::documents::transaction::TransactionDocumentBuilder;
-    use dubp_user_docs::documents::transaction::TransactionInput;
-    use dubp_user_docs::documents::transaction::TransactionInputUnlocks;
-    use dubp_user_docs::documents::transaction::TransactionOutput;
+    use dubp_user_docs::documents::transaction::TransactionDocument;
     use dubp_user_docs::documents::transaction::TransactionUnlockProof;
     use dubp_user_docs::documents::transaction::TxAmount;
     use dubp_user_docs::documents::transaction::TxBase;
@@ -107,8 +109,8 @@ mod tests {
     }
 
     #[inline]
-    fn input1() -> TransactionInput {
-        TransactionInput::T(
+    fn input1() -> TransactionInputV10 {
+        TransactionInputV10::T(
             TxAmount(950),
             TxBase(0),
             Hash::from_hex("2CF1ACD8FE8DC93EE39A1D55881C50D87C55892AE8E4DB71D4EBAB3D412AA8FD")
@@ -118,29 +120,29 @@ mod tests {
     }
 
     #[inline]
-    fn unlocks() -> Vec<TransactionInputUnlocks> {
-        vec![TransactionInputUnlocks {
+    fn unlocks() -> Vec<TransactionInputUnlocksV10> {
+        vec![TransactionInputUnlocksV10 {
             index: 0,
             unlocks: vec![TransactionUnlockProof::Sig(0)],
         }]
     }
 
     #[inline]
-    fn outputs() -> Vec<TransactionOutput> {
-        vec![
-            TransactionOutput::from_str("10:0:SIG(FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa)")
-                .expect("fail to parse output !"),
-        ]
+    fn outputs() -> Vec<TransactionOutputV10> {
+        vec![TransactionOutputV10::from_str(
+            "10:0:SIG(FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa)",
+        )
+        .expect("fail to parse output !")]
     }
 
     fn tx_builder<'a>(
         blockstamp: &'a Blockstamp,
         issuers: &'a Vec<PubKey>,
-        inputs: &'a Vec<TransactionInput>,
-        unlocks: &'a Vec<TransactionInputUnlocks>,
-        outputs: &'a Vec<TransactionOutput>,
-    ) -> TransactionDocumentBuilder<'a> {
-        TransactionDocumentBuilder {
+        inputs: &'a Vec<TransactionInputV10>,
+        unlocks: &'a Vec<TransactionInputUnlocksV10>,
+        outputs: &'a Vec<TransactionOutputV10>,
+    ) -> TransactionDocumentV10Builder<'a> {
+        TransactionDocumentV10Builder {
             currency: "duniter_unit_test_currency",
             blockstamp,
             locktime: &0,
@@ -155,8 +157,8 @@ mod tests {
 
     #[test]
     fn test_tx_valid() {
-        let tx = gen_mock_tx_doc();
-        assert_eq!(Ok(()), local_verify_tx_doc(10, &tx));
+        let TransactionDocument::V10(tx) = gen_mock_tx_doc();
+        assert_eq!(Ok(()), local_verify_tx_doc_v10(10, &tx));
     }
 
     #[test]
@@ -170,7 +172,7 @@ mod tests {
         let tx = tx_builder.build_with_signature(vec![sig1()]);
 
         let expected = Err(TransactionDocumentError::MissingInput);
-        let actual = local_verify_tx_doc(10, &tx);
+        let actual = local_verify_tx_doc_v10(10, &tx);
         assert_eq!(expected, actual);
     }
 
@@ -188,7 +190,7 @@ mod tests {
             expected_max_length: 100,
             actual_length: 107,
         });
-        let actual = local_verify_tx_doc(10, &tx);
+        let actual = local_verify_tx_doc_v10(10, &tx);
         assert_eq!(expected, actual);
     }
 

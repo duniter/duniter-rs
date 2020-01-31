@@ -31,7 +31,9 @@ use dubp_user_docs::documents::membership::v10::{
 };
 use dubp_user_docs::documents::revocation::v10::CompactRevocationDocumentV10Stringified;
 use dubp_user_docs::documents::revocation::RevocationDocumentV10;
-use dubp_user_docs::documents::transaction::{TransactionDocument, TransactionDocumentStringified};
+use dubp_user_docs::documents::transaction::v10::{
+    TransactionDocumentV10, TransactionDocumentV10Stringified,
+};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
@@ -100,7 +102,7 @@ pub struct BlockDocumentV10 {
     /// Certifications
     pub certifications: Vec<TextDocumentFormat<CertificationDocumentV10>>,
     /// Transactions
-    pub transactions: Vec<TransactionDocument>,
+    pub transactions: Vec<TransactionDocumentV10>,
 }
 
 impl BlockDocumentTrait for BlockDocumentV10 {
@@ -502,7 +504,7 @@ pub struct BlockDocumentV10Stringified {
     /// Certifications
     pub certifications: Vec<CompactCertificationDocumentV10Stringified>,
     /// Transactions
-    pub transactions: Vec<TransactionDocumentStringified>,
+    pub transactions: Vec<TransactionDocumentV10Stringified>,
 }
 
 impl ToStringObject for BlockDocumentV10 {
@@ -594,7 +596,7 @@ mod tests {
         CertificationDocument, CertificationDocumentParser,
     };
     use dubp_user_docs::documents::membership::{MembershipDocument, MembershipDocumentParser};
-    use dubp_user_docs::documents::transaction::TransactionDocumentParser;
+    use dubp_user_docs::documents::transaction::{TransactionDocument, TransactionDocumentParser};
     use unwrap::unwrap;
 
     #[test]
@@ -670,7 +672,7 @@ UmseG2XKNwKcY8RFi6gUCT91udGnnNmSh7se10J1jeRVlwf+O2Tyb2Cccot9Dt7BO4+Kx2P6vFJB3oVG
             CertificationDocument::V10(cert_v10) => cert_v10,
         };
 
-        let tx1 = TransactionDocumentParser::parse("Version: 10
+        let TransactionDocument::V10(tx1) = TransactionDocumentParser::parse("Version: 10
 Type: Transaction
 Currency: g1
 Blockstamp: 107982-000001242F6DA51C06A915A96C58BAA37AB3D1EB51F6E1C630C707845ACF764B
@@ -686,7 +688,7 @@ Outputs:
 Comment: DU symbolique pour demander le codage de nouvelles fonctionnalites cf. https://forum.monnaie-libre.fr/t/creer-de-nouvelles-fonctionnalites-dans-cesium-les-autres-applications/2025  Merci
 T0LlCcbIn7xDFws48H8LboN6NxxwNXXTovG4PROLf7tkUAueHFWjfwZFKQXeZEHxfaL1eYs3QspGtLWUHPRVCQ==").expect("Fail to parse tx1");
 
-        let tx2 = TransactionDocumentParser::parse("Version: 10
+        let TransactionDocument::V10(tx2) = TransactionDocumentParser::parse("Version: 10
 Type: Transaction
 Currency: g1
 Blockstamp: 107982-000001242F6DA51C06A915A96C58BAA37AB3D1EB51F6E1C630C707845ACF764B
@@ -821,7 +823,7 @@ gvaZ1QnJf8FjjRDJ0cYusgpBgQ8r0NqEz39BooH6DtIrgX+WTeXuLSnjZDl35VCBjokvyjry+v0OkTT8
             MembershipDocument::V10(ms_v10) => ms_v10,
         };
 
-        let tx1 = TransactionDocumentParser::parse(
+        let TransactionDocument::V10(tx1) = TransactionDocumentParser::parse(
             "Version: 10
 Type: Transaction
 Currency: g1
@@ -853,7 +855,7 @@ Comment: Panier mixte plus 40 pommes merci
         )
         .expect("Fail to parse tx1");
 
-        let tx2 = TransactionDocumentParser::parse(
+        let TransactionDocument::V10(tx2) = TransactionDocumentParser::parse(
             "Version: 10
 Type: Transaction
 Currency: g1

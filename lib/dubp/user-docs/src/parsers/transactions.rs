@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::documents::transaction::v10::*;
 use crate::documents::transaction::*;
 use crate::parsers::DefaultHasher;
 use crate::*;
@@ -32,6 +33,20 @@ pub enum ParseTxError {
     WrongFormat,
 }
 
+/// Parse transactions documents from array of str
+pub fn parse_json_transactions(
+    array_transactions: &[&JSONValue<DefaultHasher>],
+) -> Result<Vec<TransactionDocumentV10>, Error> {
+    array_transactions
+        .iter()
+        .map(|tx| {
+            parse_json_transaction(tx).map(|tx_doc| match tx_doc {
+                TransactionDocument::V10(tx_doc_v10) => tx_doc_v10,
+            })
+        })
+        .collect::<Result<Vec<TransactionDocumentV10>, Error>>()
+}
+
 /// Parse transaction from json value
 pub fn parse_json_transaction(
     json_tx: &JSONValue<DefaultHasher>,
@@ -45,40 +60,49 @@ pub fn parse_json_transaction(
 
     let json_tx = json_tx.to_object().expect("safe unwrap");
 
-    let tx_doc_builder = TransactionDocumentBuilder {
-        currency: get_str(json_tx, "currency")?,
-        blockstamp: &Blockstamp::from_string(get_str(json_tx, "blockstamp")?)?,
-        locktime: &(get_number(json_tx, "locktime")?.trunc() as u64),
-        issuers: &get_str_array(json_tx, "issuers")?
-            .iter()
-            .map(|p| ed25519::PublicKey::from_base58(p))
-            .map(|p| p.map(PubKey::Ed25519))
-            .collect::<Result<Vec<PubKey>, BaseConvertionError>>()?,
-        inputs: &get_str_array(json_tx, "inputs")?
-            .iter()
-            .map(|i| TransactionInput::from_str(i))
-            .collect::<Result<Vec<TransactionInput>, TextDocumentParseError>>()?,
-        unlocks: &get_str_array(json_tx, "unlocks")?
-            .iter()
-            .map(|i| TransactionInputUnlocks::from_str(i))
-            .collect::<Result<Vec<TransactionInputUnlocks>, TextDocumentParseError>>()?,
-        outputs: &get_str_array(json_tx, "outputs")?
-            .iter()
-            .map(|i| TransactionOutput::from_str(i))
-            .collect::<Result<Vec<TransactionOutput>, TextDocumentParseError>>()?,
-        comment: &durs_common_tools::fns::str_escape::unescape_str(get_str(json_tx, "comment")?),
-        hash: get_optional_str(json_tx, "hash")?
-            .map(Hash::from_hex)
-            .transpose()?,
-    };
-
-    Ok(tx_doc_builder.build_with_signature(
-        get_str_array(json_tx, "signatures")?
-            .iter()
-            .map(|p| ed25519::Signature::from_base64(p))
-            .map(|p| p.map(Sig::Ed25519))
-            .collect::<Result<Vec<Sig>, BaseConvertionError>>()?,
-    ))
+    match get_u64(json_tx, "version")? {
+        10 => Ok(
+            TransactionDocumentBuilder::V10(TransactionDocumentV10Builder {
+                currency: get_str(json_tx, "currency")?,
+                blockstamp: &Blockstamp::from_string(get_str(json_tx, "blockstamp")?)?,
+                locktime: &(get_number(json_tx, "locktime")?.trunc() as u64),
+                issuers: &get_str_array(json_tx, "issuers")?
+                    .iter()
+                    .map(|p| ed25519::PublicKey::from_base58(p))
+                    .map(|p| p.map(PubKey::Ed25519))
+                    .collect::<Result<Vec<PubKey>, BaseConvertionError>>()?,
+                inputs: &get_str_array(json_tx, "inputs")?
+                    .iter()
+                    .map(|i| TransactionInputV10::from_str(i))
+                    .collect::<Result<Vec<TransactionInputV10>, TextDocumentParseError>>()?,
+                unlocks: &get_str_array(json_tx, "unlocks")?
+                    .iter()
+                    .map(|i| TransactionInputUnlocksV10::from_str(i))
+                    .collect::<Result<Vec<TransactionInputUnlocksV10>, TextDocumentParseError>>()?,
+                outputs: &get_str_array(json_tx, "outputs")?
+                    .iter()
+                    .map(|i| TransactionOutputV10::from_str(i))
+                    .collect::<Result<Vec<TransactionOutputV10>, TextDocumentParseError>>()?,
+                comment: &durs_common_tools::fns::str_escape::unescape_str(get_str(
+                    json_tx, "comment",
+                )?),
+                hash: get_optional_str(json_tx, "hash")?
+                    .map(Hash::from_hex)
+                    .transpose()?,
+            })
+            .build_with_signature(
+                get_str_array(json_tx, "signatures")?
+                    .iter()
+                    .map(|p| ed25519::Signature::from_base64(p))
+                    .map(|p| p.map(Sig::Ed25519))
+                    .collect::<Result<Vec<Sig>, BaseConvertionError>>()?,
+            ),
+        ),
+        version => Err(ParseJsonError {
+            cause: format!("Unhandled json transaction version: {} !", version),
+        }
+        .into()),
+    }
 }
 
 #[cfg(test)]
@@ -89,7 +113,7 @@ mod tests {
     use std::str::FromStr;
 
     pub fn first_g1_tx_doc() -> TransactionDocument {
-        let expected_tx_builder = TransactionDocumentBuilder {
+        let expected_tx_builder = TransactionDocumentV10Builder {
             currency: &"g1",
             blockstamp: &Blockstamp::from_string(
                 "50-00001DAA4559FEDB8320D1040B0F22B631459F36F237A0D9BC1EB923C12A12E7",
@@ -100,19 +124,19 @@ mod tests {
                 ed25519::PublicKey::from_base58("2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ")
                     .expect("Fail to parse issuer !"),
             )],
-            inputs: &vec![TransactionInput::from_str(
+            inputs: &vec![TransactionInputV10::from_str(
                 "1000:0:D:2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ:1",
             )
             .expect("Fail to parse inputs")],
             unlocks: &vec![
-                TransactionInputUnlocks::from_str("0:SIG(0)").expect("Fail to parse unlocks")
+                TransactionInputUnlocksV10::from_str("0:SIG(0)").expect("Fail to parse unlocks")
             ],
             outputs: &vec![
-                TransactionOutput::from_str(
+                TransactionOutputV10::from_str(
                     "1:0:SIG(Com8rJukCozHZyFao6AheSsfDQdPApxQRnz7QYFf64mm)",
                 )
                 .expect("Fail to parse outputs"),
-                TransactionOutput::from_str(
+                TransactionOutputV10::from_str(
                     "999:0:SIG(2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ)",
                 )
                 .expect("Fail to parse outputs"),
@@ -121,7 +145,7 @@ mod tests {
             hash: None,
         };
 
-        expected_tx_builder.build_with_signature(vec![Sig::Ed25519(
+        TransactionDocumentBuilder::V10(expected_tx_builder).build_with_signature(vec![Sig::Ed25519(
                 ed25519::Signature::from_base64("fAH5Gor+8MtFzQZ++JaJO6U8JJ6+rkqKtPrRr/iufh3MYkoDGxmjzj6jCADQL+hkWBt8y8QzlgRkz0ixBcKHBw==").expect("Fail to parse sig !")
             )])
     }

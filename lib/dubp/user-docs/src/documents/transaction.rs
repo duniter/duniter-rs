@@ -15,21 +15,22 @@
 
 //! Wrappers around Transaction documents.
 
+pub mod v10;
+
 use crate::documents::*;
 use dubp_common_doc::blockstamp::Blockstamp;
 use dubp_common_doc::parser::{DocumentsParser, TextDocumentParseError, TextDocumentParser};
 use dubp_common_doc::traits::text::*;
 use dubp_common_doc::traits::{Document, DocumentBuilder, ToStringObject};
-use dubp_common_doc::{BlockHash, BlockNumber};
 use dup_crypto::hashs::*;
 use dup_crypto::keys::*;
-use durs_common_tools::fatal_error;
-use pest::iterators::Pair;
-use pest::iterators::Pairs;
-use pest::Parser;
 use std::ops::{Add, Deref, Sub};
-use std::str::FromStr;
 use unwrap::unwrap;
+
+pub use v10::{
+    TransactionDocumentV10, TransactionDocumentV10Builder, TransactionDocumentV10Parser,
+    TransactionDocumentV10Stringified, TransactionInputV10, TransactionOutputV10,
+};
 
 /// Wrap a transaction amount
 #[derive(Debug, Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Deserialize, Hash, Serialize)]
@@ -57,113 +58,6 @@ pub struct TxBase(pub usize);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct OutputIndex(pub usize);
 
-/// Wrap a transaction input
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
-pub enum TransactionInput {
-    /// Universal Dividend Input
-    D(TxAmount, TxBase, PubKey, BlockNumber),
-    /// Previous Transaction Input
-    T(TxAmount, TxBase, Hash, OutputIndex),
-}
-
-impl ToString for TransactionInput {
-    fn to_string(&self) -> String {
-        match *self {
-            TransactionInput::D(amount, base, pubkey, block_number) => {
-                format!("{}:{}:D:{}:{}", amount.0, base.0, pubkey, block_number.0)
-            }
-            TransactionInput::T(amount, base, ref tx_hash, tx_index) => {
-                format!("{}:{}:T:{}:{}", amount.0, base.0, tx_hash, tx_index.0)
-            }
-        }
-    }
-}
-
-impl TransactionInput {
-    fn from_pest_pair(mut pairs: Pairs<Rule>) -> TransactionInput {
-        let tx_input_type_pair = unwrap!(pairs.next());
-        match tx_input_type_pair.as_rule() {
-            Rule::tx_input_du => {
-                let mut inner_rules = tx_input_type_pair.into_inner(); // ${ tx_amount ~ ":" ~ tx_amount_base ~ ":D:" ~ pubkey ~ ":" ~ du_block_id }
-
-                TransactionInput::D(
-                    TxAmount(unwrap!(unwrap!(inner_rules.next()).as_str().parse())),
-                    TxBase(unwrap!(unwrap!(inner_rules.next()).as_str().parse())),
-                    PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58(
-                        unwrap!(inner_rules.next()).as_str()
-                    ))),
-                    BlockNumber(unwrap!(unwrap!(inner_rules.next()).as_str().parse())),
-                )
-            }
-            Rule::tx_input_tx => {
-                let mut inner_rules = tx_input_type_pair.into_inner(); // ${ tx_amount ~ ":" ~ tx_amount_base ~ ":D:" ~ pubkey ~ ":" ~ du_block_id }
-
-                TransactionInput::T(
-                    TxAmount(unwrap!(unwrap!(inner_rules.next()).as_str().parse())),
-                    TxBase(unwrap!(unwrap!(inner_rules.next()).as_str().parse())),
-                    unwrap!(Hash::from_hex(unwrap!(inner_rules.next()).as_str())),
-                    OutputIndex(unwrap!(unwrap!(inner_rules.next()).as_str().parse())),
-                )
-            }
-            _ => fatal_error!("unexpected rule: {:?}", tx_input_type_pair.as_rule()), // Grammar ensures that we never reach this line
-        }
-    }
-}
-
-impl FromStr for TransactionInput {
-    type Err = TextDocumentParseError;
-
-    fn from_str(source: &str) -> Result<Self, Self::Err> {
-        match DocumentsParser::parse(Rule::tx_input, source) {
-            Ok(mut pairs) => Ok(TransactionInput::from_pest_pair(
-                unwrap!(pairs.next()).into_inner(),
-            )),
-            Err(_) => Err(TextDocumentParseError::InvalidInnerFormat(
-                "Invalid unlocks !".to_owned(),
-            )),
-        }
-    }
-}
-
-/*impl TransactionInput {
-    /// Parse Transaction Input from string.
-    pub fn from_str(source: &str) -> Result<TransactionInput, TextDocumentParseError> {
-        if let Some(caps) = D_INPUT_REGEX.captures(source) {
-            let amount = &caps["amount"];
-            let base = &caps["base"];
-            let pubkey = &caps["pubkey"];
-            let block_number = &caps["block_number"];
-            Ok(TransactionInput::D(
-                TxAmount(amount.parse().expect("fail to parse input amount !")),
-                TxBase(base.parse().expect("fail to parse input base !")),
-                PubKey::Ed25519(
-                    ed25519::PublicKey::from_base58(pubkey).expect("fail to parse input pubkey !"),
-                ),
-                BlockNumber(
-                    block_number
-                        .parse()
-                        .expect("fail to parse input block_number !"),
-                ),
-            ))
-        //Ok(TransactionInput::D(10, 0, PubKey::Ed25519(ed25519::PublicKey::from_base58("FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa").unwrap(), 0)))
-        } else if let Some(caps) = T_INPUT_REGEX.captures(source) {
-            let amount = &caps["amount"];
-            let base = &caps["base"];
-            let tx_hash = &caps["tx_hash"];
-            let tx_index = &caps["tx_index"];
-            Ok(TransactionInput::T(
-                TxAmount(amount.parse().expect("fail to parse input amount")),
-                TxBase(base.parse().expect("fail to parse base amount")),
-                Hash::from_hex(tx_hash).expect("fail to parse tx_hash"),
-                OutputIndex(tx_index.parse().expect("fail to parse tx_index amount")),
-            ))
-        } else {
-            println!("Fail to parse this input = {:?}", source);
-            Err(TextDocumentParseError::InvalidInnerFormat("Transaction2"))
-        }
-    }
-}*/
-
 /// Wrap a transaction unlock proof
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum TransactionUnlockProof {
@@ -178,70 +72,6 @@ impl ToString for TransactionUnlockProof {
         match *self {
             TransactionUnlockProof::Sig(ref index) => format!("SIG({})", index),
             TransactionUnlockProof::Xhx(ref hash) => format!("XHX({})", hash),
-        }
-    }
-}
-
-/// Wrap a transaction unlocks input
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-pub struct TransactionInputUnlocks {
-    /// Input index
-    pub index: usize,
-    /// List of proof to unlock funds
-    pub unlocks: Vec<TransactionUnlockProof>,
-}
-
-impl ToString for TransactionInputUnlocks {
-    fn to_string(&self) -> String {
-        let mut result: String = format!("{}:", self.index);
-        for unlock in &self.unlocks {
-            result.push_str(&format!("{} ", unlock.to_string()));
-        }
-        let new_size = result.len() - 1;
-        result.truncate(new_size);
-        result
-    }
-}
-
-impl TransactionInputUnlocks {
-    fn from_pest_pair(pairs: Pairs<Rule>) -> TransactionInputUnlocks {
-        let mut input_index = 0;
-        let mut unlock_conds = Vec::new();
-        for unlock_field in pairs {
-            // ${ input_index ~ ":" ~ unlock_cond ~ (" " ~ unlock_cond)* }
-            match unlock_field.as_rule() {
-                Rule::input_index => input_index = unwrap!(unlock_field.as_str().parse()),
-                Rule::unlock_sig => {
-                    unlock_conds.push(TransactionUnlockProof::Sig(unwrap!(unwrap!(unlock_field
-                        .into_inner()
-                        .next())
-                    .as_str()
-                    .parse())))
-                }
-                Rule::unlock_xhx => unlock_conds.push(TransactionUnlockProof::Xhx(String::from(
-                    unwrap!(unlock_field.into_inner().next()).as_str(),
-                ))),
-                _ => fatal_error!("unexpected rule: {:?}", unlock_field.as_rule()), // Grammar ensures that we never reach this line
-            }
-        }
-        TransactionInputUnlocks {
-            index: input_index,
-            unlocks: unlock_conds,
-        }
-    }
-}
-
-impl FromStr for TransactionInputUnlocks {
-    type Err = TextDocumentParseError;
-
-    fn from_str(source: &str) -> Result<Self, Self::Err> {
-        match DocumentsParser::parse(Rule::tx_unlock, source) {
-            Ok(mut pairs) => Ok(TransactionInputUnlocks::from_pest_pair(
-                unwrap!(pairs.next()).into_inner(),
-            )),
-            Err(_) => Err(TextDocumentParseError::InvalidInnerFormat(
-                "Invalid unlocks !".to_owned(),
-            )),
         }
     }
 }
@@ -351,13 +181,12 @@ impl UTXOConditionsGroup {
     utxo_conds_wrap_op_chain!(UTXOConditionsGroup::Or, new_or_chain);
 
     /// Wrap UTXO conditions
-    pub fn wrap_utxo_conds(pair: Pair<Rule>) -> UTXOConditionsGroup {
+    pub fn from_pest_pair(pair: Pair<Rule>) -> UTXOConditionsGroup {
         match pair.as_rule() {
             Rule::output_and_group => {
                 let and_pairs = pair.into_inner();
-                let mut conds_subgroups: Vec<UTXOConditionsGroup> = and_pairs
-                    .map(UTXOConditionsGroup::wrap_utxo_conds)
-                    .collect();
+                let mut conds_subgroups: Vec<UTXOConditionsGroup> =
+                    and_pairs.map(UTXOConditionsGroup::from_pest_pair).collect();
                 UTXOConditionsGroup::Brackets(Box::new(UTXOConditionsGroup::new_and_chain(
                     &mut conds_subgroups,
                 )))
@@ -365,7 +194,7 @@ impl UTXOConditionsGroup {
             Rule::output_or_group => {
                 let or_pairs = pair.into_inner();
                 let mut conds_subgroups: Vec<UTXOConditionsGroup> =
-                    or_pairs.map(UTXOConditionsGroup::wrap_utxo_conds).collect();
+                    or_pairs.map(UTXOConditionsGroup::from_pest_pair).collect();
                 UTXOConditionsGroup::Brackets(Box::new(UTXOConditionsGroup::new_or_chain(
                     &mut conds_subgroups,
                 )))
@@ -416,189 +245,37 @@ impl ToString for UTXOConditionsGroup {
     }
 }
 
-/// Wrap a transaction ouput
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-pub struct TransactionOutput {
-    /// Amount
-    pub amount: TxAmount,
-    /// Base
-    pub base: TxBase,
-    /// List of conditions for consum this output
-    pub conditions: UTXOConditions,
-}
-
-impl TransactionOutput {
-    /// Lightens the TransactionOutput (for example to store it while minimizing the space required)
-    fn reduce(&mut self) {
-        self.conditions.reduce()
-    }
-    /// Check validity of this output
-    pub fn check(&self) -> bool {
-        self.conditions.check()
-    }
-}
-
-impl ToString for TransactionOutput {
-    fn to_string(&self) -> String {
-        format!(
-            "{}:{}:{}",
-            self.amount.0,
-            self.base.0,
-            self.conditions.to_string()
-        )
-    }
-}
-
-impl TransactionOutput {
-    fn from_pest_pair(mut utxo_pairs: Pairs<Rule>) -> TransactionOutput {
-        let amount = TxAmount(unwrap!(unwrap!(utxo_pairs.next()).as_str().parse()));
-        let base = TxBase(unwrap!(unwrap!(utxo_pairs.next()).as_str().parse()));
-        let conditions_pairs = unwrap!(utxo_pairs.next());
-        let conditions_origin_str = conditions_pairs.as_str();
-        TransactionOutput {
-            amount,
-            base,
-            conditions: UTXOConditions {
-                origin_str: Some(String::from(conditions_origin_str)),
-                conditions: UTXOConditionsGroup::wrap_utxo_conds(conditions_pairs),
-            },
-        }
-    }
-}
-
-impl FromStr for TransactionOutput {
-    type Err = TextDocumentParseError;
-
-    fn from_str(source: &str) -> Result<Self, Self::Err> {
-        let output_parts: Vec<&str> = source.split(':').collect();
-        let amount = output_parts.get(0);
-        let base = output_parts.get(1);
-        let conditions_origin_str = output_parts.get(2);
-
-        let str_to_parse = if amount.is_some() && base.is_some() && conditions_origin_str.is_some()
-        {
-            format!(
-                "{}:{}:({})",
-                unwrap!(amount),
-                unwrap!(base),
-                unwrap!(conditions_origin_str)
-            )
-        } else {
-            source.to_owned()
-        };
-
-        match DocumentsParser::parse(Rule::tx_output, &str_to_parse) {
-            Ok(mut utxo_pairs) => {
-                let mut output =
-                    TransactionOutput::from_pest_pair(unwrap!(utxo_pairs.next()).into_inner());
-                output.conditions.origin_str = conditions_origin_str.map(ToString::to_string);
-                Ok(output)
-            }
-            Err(_) => match DocumentsParser::parse(Rule::tx_output, source) {
-                Ok(mut utxo_pairs) => {
-                    let mut output =
-                        TransactionOutput::from_pest_pair(unwrap!(utxo_pairs.next()).into_inner());
-                    output.conditions.origin_str = conditions_origin_str.map(ToString::to_string);
-                    Ok(output)
-                }
-                Err(e) => Err(TextDocumentParseError::InvalidInnerFormat(format!(
-                    "Invalid output : {}",
-                    e
-                ))),
-            },
-        }
-    }
+pub trait TransactionDocumentTrait<'a> {
+    type Input: 'a;
+    type Inputs: AsRef<[Self::Input]>;
+    type Output: 'a;
+    type Outputs: AsRef<[Self::Output]>;
+    fn get_inputs(&'a self) -> Self::Inputs;
+    fn get_outputs(&'a self) -> Self::Outputs;
 }
 
 /// Wrap a Transaction document.
 ///
 /// Must be created by parsing a text document or using a builder.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-pub struct TransactionDocument {
-    /// Document as text.
-    ///
-    /// Is used to check signatures, and other values
-    /// must be extracted from it.
-    text: Option<String>,
-
-    /// Currency.
-    currency: String,
-    /// Blockstamp
-    blockstamp: Blockstamp,
-    /// Locktime
-    locktime: u64,
-    /// Document issuer (there should be only one).
-    issuers: Vec<PubKey>,
-    /// Transaction inputs.
-    inputs: Vec<TransactionInput>,
-    /// Inputs unlocks.
-    unlocks: Vec<TransactionInputUnlocks>,
-    /// Transaction outputs.
-    outputs: Vec<TransactionOutput>,
-    /// Transaction comment
-    comment: String,
-    /// Document signature (there should be only one).
-    signatures: Vec<Sig>,
-    /// Transaction hash
-    hash: Option<Hash>,
+pub enum TransactionDocument {
+    V10(TransactionDocumentV10),
 }
 
 #[derive(Clone, Debug, Deserialize, Hash, Serialize, PartialEq, Eq)]
 /// Transaction document stringifed
-pub struct TransactionDocumentStringified {
-    /// Currency.
-    pub currency: String,
-    /// Blockstamp
-    pub blockstamp: String,
-    /// Locktime
-    pub locktime: u64,
-    /// Document issuer (there should be only one).
-    pub issuers: Vec<String>,
-    /// Transaction inputs.
-    pub inputs: Vec<String>,
-    /// Inputs unlocks.
-    pub unlocks: Vec<String>,
-    /// Transaction outputs.
-    pub outputs: Vec<String>,
-    /// Transaction comment
-    pub comment: String,
-    /// Document signatures
-    pub signatures: Vec<String>,
-    /// Transaction hash
-    pub hash: Option<String>,
+pub enum TransactionDocumentStringified {
+    V10(TransactionDocumentV10Stringified),
 }
 
 impl ToStringObject for TransactionDocument {
     type StringObject = TransactionDocumentStringified;
 
     fn to_string_object(&self) -> TransactionDocumentStringified {
-        TransactionDocumentStringified {
-            currency: self.currency.clone(),
-            blockstamp: format!("{}", self.blockstamp),
-            locktime: self.locktime,
-            issuers: self.issuers.iter().map(|p| format!("{}", p)).collect(),
-            inputs: self
-                .inputs
-                .iter()
-                .map(TransactionInput::to_string)
-                .collect(),
-            unlocks: self
-                .unlocks
-                .iter()
-                .map(TransactionInputUnlocks::to_string)
-                .collect(),
-            outputs: self
-                .outputs
-                .iter()
-                .map(TransactionOutput::to_string)
-                .collect(),
-            comment: self.comment.clone(),
-            signatures: self.signatures.iter().map(|s| format!("{}", s)).collect(),
-            hash: if let Some(hash) = self.hash {
-                Some(hash.to_string())
-            } else {
-                None
-            },
+        match self {
+            TransactionDocument::V10(tx_v10) => {
+                TransactionDocumentStringified::V10(tx_v10.to_string_object())
+            }
         }
     }
 }
@@ -606,109 +283,28 @@ impl ToStringObject for TransactionDocument {
 impl TransactionDocument {
     /// Compute transaction hash
     pub fn compute_hash(&self) -> Hash {
-        let mut hashing_text = if let Some(ref text) = self.text {
-            text.clone()
-        } else {
-            fatal_error!("Try to compute_hash of tx with None text !")
-        };
-        for sig in &self.signatures {
-            hashing_text.push_str(&sig.to_string());
-            hashing_text.push_str("\n");
+        match self {
+            TransactionDocument::V10(tx_v10) => tx_v10.compute_hash(),
         }
-        //println!("tx_text_hasing={}", hashing_text);
-        Hash::compute_str(&hashing_text)
     }
     /// get transaction hash option
     pub fn get_hash_opt(&self) -> Option<Hash> {
-        self.hash
+        match self {
+            TransactionDocument::V10(tx_v10) => tx_v10.get_hash_opt(),
+        }
     }
     /// Get transaction hash
     pub fn get_hash(&mut self) -> Hash {
-        if let Some(hash) = self.hash {
-            hash
-        } else {
-            self.hash = Some(self.compute_hash());
-            self.hash.expect("unreach")
+        match self {
+            TransactionDocument::V10(tx_v10) => tx_v10.get_hash(),
         }
-    }
-    /// Get transaction inputs
-    pub fn get_inputs(&self) -> &[TransactionInput] {
-        &self.inputs
-    }
-    /// Get transaction outputs
-    pub fn get_outputs(&self) -> &[TransactionOutput] {
-        &self.outputs
     }
     /// Lightens the transaction (for example to store it while minimizing the space required)
     /// WARNING: do not remove the hash as it's necessary to reverse the transaction !
     pub fn reduce(&mut self) {
-        self.hash = Some(self.compute_hash());
-        self.text = None;
-        for output in &mut self.outputs {
-            output.reduce()
-        }
-    }
-    /// from pest parser pair
-    pub fn from_pest_pair(pair: Pair<Rule>) -> Result<TransactionDocument, TextDocumentParseError> {
-        let doc = pair.as_str();
-        let mut currency = "";
-        let mut blockstamp = Blockstamp::default();
-        let mut locktime = 0;
-        let mut issuers = Vec::new();
-        let mut inputs = Vec::new();
-        let mut unlocks = Vec::new();
-        let mut outputs = Vec::new();
-        let mut comment = "";
-        let mut sigs = Vec::new();
-
-        for field in pair.into_inner() {
-            match field.as_rule() {
-                Rule::currency => currency = field.as_str(),
-                Rule::blockstamp => {
-                    let mut inner_rules = field.into_inner(); // ${ block_id ~ "-" ~ hash }
-
-                    let block_id: &str = unwrap!(inner_rules.next()).as_str();
-                    let block_hash: &str = unwrap!(inner_rules.next()).as_str();
-                    blockstamp = Blockstamp {
-                        id: BlockNumber(unwrap!(block_id.parse())), // Grammar ensures that we have a digits string.
-                        hash: BlockHash(unwrap!(Hash::from_hex(block_hash))), // Grammar ensures that we have an hexadecimal string.
-                    };
-                }
-                Rule::tx_locktime => locktime = unwrap!(field.as_str().parse()), // Grammar ensures that we have digits characters.
-                Rule::pubkey => issuers.push(PubKey::Ed25519(
-                    unwrap!(ed25519::PublicKey::from_base58(field.as_str())), // Grammar ensures that we have a base58 string.
-                )),
-                Rule::tx_input => inputs.push(TransactionInput::from_pest_pair(field.into_inner())),
-                Rule::tx_unlock => {
-                    unlocks.push(TransactionInputUnlocks::from_pest_pair(field.into_inner()))
-                }
-                Rule::tx_output => {
-                    outputs.push(TransactionOutput::from_pest_pair(field.into_inner()))
-                }
-                Rule::tx_comment => comment = field.as_str(),
-                Rule::ed25519_sig => {
-                    sigs.push(Sig::Ed25519(
-                        unwrap!(ed25519::Signature::from_base64(field.as_str())), // Grammar ensures that we have a base64 string.
-                    ));
-                }
-                Rule::EOI => (),
-                _ => fatal_error!("unexpected rule: {:?}", field.as_rule()), // Grammar ensures that we never reach this line
-            }
-        }
-
-        Ok(TransactionDocument {
-            text: Some(doc.to_owned()),
-            currency: currency.to_owned(),
-            blockstamp,
-            locktime,
-            issuers,
-            inputs,
-            unlocks,
-            outputs,
-            comment: comment.to_owned(),
-            signatures: sigs,
-            hash: None,
-        })
+        match self {
+            TransactionDocument::V10(tx_v10) => tx_v10.reduce(),
+        };
     }
 }
 
@@ -716,80 +312,47 @@ impl Document for TransactionDocument {
     type PublicKey = PubKey;
 
     fn version(&self) -> usize {
-        10
+        match self {
+            TransactionDocument::V10(tx_v10) => tx_v10.version(),
+        }
     }
 
     fn currency(&self) -> &str {
-        &self.currency
+        match self {
+            TransactionDocument::V10(tx_v10) => tx_v10.currency(),
+        }
     }
 
     fn blockstamp(&self) -> Blockstamp {
-        self.blockstamp
+        match self {
+            TransactionDocument::V10(tx_v10) => tx_v10.blockstamp(),
+        }
     }
 
     fn issuers(&self) -> &Vec<PubKey> {
-        &self.issuers
+        match self {
+            TransactionDocument::V10(tx_v10) => tx_v10.issuers(),
+        }
     }
 
     fn signatures(&self) -> &Vec<Sig> {
-        &self.signatures
+        match self {
+            TransactionDocument::V10(tx_v10) => tx_v10.signatures(),
+        }
     }
 
     fn as_bytes(&self) -> &[u8] {
-        self.as_text_without_signature().as_bytes()
+        match self {
+            TransactionDocument::V10(tx_v10) => tx_v10.as_bytes(),
+        }
     }
 }
 
 impl CompactTextDocument for TransactionDocument {
     fn as_compact_text(&self) -> String {
-        let mut issuers_str = String::from("");
-        for issuer in self.issuers.clone() {
-            issuers_str.push_str("\n");
-            issuers_str.push_str(&issuer.to_string());
+        match self {
+            TransactionDocument::V10(tx_v10) => tx_v10.as_compact_text(),
         }
-        let mut inputs_str = String::from("");
-        for input in self.inputs.clone() {
-            inputs_str.push_str("\n");
-            inputs_str.push_str(&input.to_string());
-        }
-        let mut unlocks_str = String::from("");
-        for unlock in self.unlocks.clone() {
-            unlocks_str.push_str("\n");
-            unlocks_str.push_str(&unlock.to_string());
-        }
-        let mut outputs_str = String::from("");
-        for output in self.outputs.clone() {
-            outputs_str.push_str("\n");
-            outputs_str.push_str(&output.to_string());
-        }
-        let mut comment_str = self.comment.clone();
-        if !comment_str.is_empty() {
-            comment_str.push_str("\n");
-        }
-        let mut signatures_str = String::from("");
-        for sig in self.signatures.clone() {
-            signatures_str.push_str(&sig.to_string());
-            signatures_str.push_str("\n");
-        }
-        // Remove end line step
-        signatures_str.pop();
-        format!(
-            "TX:10:{issuers_count}:{inputs_count}:{unlocks_count}:{outputs_count}:{has_comment}:{locktime}
-{blockstamp}{issuers}{inputs}{unlocks}{outputs}\n{comment}{signatures}",
-            issuers_count = self.issuers.len(),
-            inputs_count = self.inputs.len(),
-            unlocks_count = self.unlocks.len(),
-            outputs_count = self.outputs.len(),
-            has_comment = if self.comment.is_empty() { 0 } else { 1 },
-            locktime = self.locktime,
-            blockstamp = self.blockstamp,
-            issuers = issuers_str,
-            inputs = inputs_str,
-            unlocks = unlocks_str,
-            outputs = outputs_str,
-            comment = comment_str,
-            signatures = signatures_str,
-        )
     }
 }
 
@@ -797,10 +360,8 @@ impl TextDocument for TransactionDocument {
     type CompactTextDocument_ = TransactionDocument;
 
     fn as_text(&self) -> &str {
-        if let Some(ref text) = self.text {
-            text
-        } else {
-            fatal_error!("Try to get text of tx with None text !")
+        match self {
+            TransactionDocument::V10(tx_v10) => tx_v10.as_text(),
         }
     }
 
@@ -811,43 +372,8 @@ impl TextDocument for TransactionDocument {
 
 /// Transaction document builder.
 #[derive(Debug, Copy, Clone)]
-pub struct TransactionDocumentBuilder<'a> {
-    /// Document currency.
-    pub currency: &'a str,
-    /// Reference blockstamp.
-    pub blockstamp: &'a Blockstamp,
-    /// Locktime
-    pub locktime: &'a u64,
-    /// Transaction Document issuers.
-    pub issuers: &'a Vec<PubKey>,
-    /// Transaction inputs.
-    pub inputs: &'a Vec<TransactionInput>,
-    /// Inputs unlocks.
-    pub unlocks: &'a Vec<TransactionInputUnlocks>,
-    /// Transaction ouputs.
-    pub outputs: &'a Vec<TransactionOutput>,
-    /// Transaction comment
-    pub comment: &'a str,
-    /// Transaction hash
-    pub hash: Option<Hash>,
-}
-
-impl<'a> TransactionDocumentBuilder<'a> {
-    fn build_with_text_and_sigs(self, text: String, signatures: Vec<Sig>) -> TransactionDocument {
-        TransactionDocument {
-            text: Some(text),
-            currency: self.currency.to_string(),
-            blockstamp: *self.blockstamp,
-            locktime: *self.locktime,
-            issuers: self.issuers.clone(),
-            inputs: self.inputs.clone(),
-            unlocks: self.unlocks.clone(),
-            outputs: self.outputs.clone(),
-            comment: String::from(self.comment),
-            signatures,
-            hash: self.hash,
-        }
-    }
+pub enum TransactionDocumentBuilder<'a> {
+    V10(TransactionDocumentV10Builder<'a>),
 }
 
 impl<'a> DocumentBuilder for TransactionDocumentBuilder<'a> {
@@ -855,60 +381,34 @@ impl<'a> DocumentBuilder for TransactionDocumentBuilder<'a> {
     type Signator = SignatorEnum;
 
     fn build_with_signature(&self, signatures: Vec<Sig>) -> TransactionDocument {
-        self.build_with_text_and_sigs(self.generate_text(), signatures)
+        match self {
+            TransactionDocumentBuilder::V10(tx_v10_builder) => {
+                TransactionDocument::V10(tx_v10_builder.build_with_signature(signatures))
+            }
+        }
     }
-
     fn build_and_sign(&self, private_keys: Vec<SignatorEnum>) -> TransactionDocument {
-        let (text, signatures) = self.build_signed_text(private_keys);
-        self.build_with_text_and_sigs(text, signatures)
+        match self {
+            TransactionDocumentBuilder::V10(tx_v10_builder) => {
+                TransactionDocument::V10(tx_v10_builder.build_and_sign(private_keys))
+            }
+        }
     }
 }
 
 impl<'a> TextDocumentBuilder for TransactionDocumentBuilder<'a> {
     fn generate_text(&self) -> String {
-        let mut issuers_string: String = "".to_owned();
-        let mut inputs_string: String = "".to_owned();
-        let mut unlocks_string: String = "".to_owned();
-        let mut outputs_string: String = "".to_owned();
-        for issuer in self.issuers {
-            issuers_string.push_str(&format!("{}\n", issuer.to_string()))
+        match self {
+            TransactionDocumentBuilder::V10(tx_v10_builder) => tx_v10_builder.generate_text(),
         }
-        for input in self.inputs {
-            inputs_string.push_str(&format!("{}\n", input.to_string()))
-        }
-        for unlock in self.unlocks {
-            unlocks_string.push_str(&format!("{}\n", unlock.to_string()))
-        }
-        for output in self.outputs {
-            outputs_string.push_str(&format!("{}\n", output.to_string()))
-        }
-        format!(
-            "Version: 10
-Type: Transaction
-Currency: {currency}
-Blockstamp: {blockstamp}
-Locktime: {locktime}
-Issuers:
-{issuers}Inputs:
-{inputs}Unlocks:
-{unlocks}Outputs:
-{outputs}Comment: {comment}
-",
-            currency = self.currency,
-            blockstamp = self.blockstamp,
-            locktime = self.locktime,
-            issuers = issuers_string,
-            inputs = inputs_string,
-            unlocks = unlocks_string,
-            outputs = outputs_string,
-            comment = self.comment,
-        )
     }
 }
 
 /// Transaction document parser
 #[derive(Debug, Clone, Copy)]
-pub struct TransactionDocumentParser;
+pub enum TransactionDocumentParser {
+    V10(TransactionDocumentV10Parser),
+}
 
 impl TextDocumentParser<Rule> for TransactionDocumentParser {
     type DocumentType = TransactionDocument;
@@ -923,7 +423,9 @@ impl TextDocumentParser<Rule> for TransactionDocumentParser {
         let tx_vx_pair = unwrap!(pair.into_inner().next()); // get and unwrap the `tx_vX` rule; never fails
 
         match tx_vx_pair.as_rule() {
-            Rule::tx_v10 => TransactionDocument::from_pest_pair(tx_vx_pair),
+            Rule::tx_v10 => {
+                TransactionDocumentV10::from_pest_pair(tx_vx_pair).map(TransactionDocument::V10)
+            }
             _ => Err(TextDocumentParseError::UnexpectedRule(format!(
                 "{:#?}",
                 tx_vx_pair.as_rule()
@@ -936,7 +438,8 @@ impl TextDocumentParser<Rule> for TransactionDocumentParser {
         pair: Pair<Rule>,
     ) -> Result<Self::DocumentType, TextDocumentParseError> {
         match version {
-            10 => Ok(TransactionDocument::from_pest_pair(pair)?),
+            10 => TransactionDocumentV10Parser::from_versioned_pest_pair(version, pair)
+                .map(TransactionDocument::V10),
             v => Err(TextDocumentParseError::UnexpectedVersion(format!(
                 "Unsupported version: {}",
                 v
@@ -949,6 +452,9 @@ impl TextDocumentParser<Rule> for TransactionDocumentParser {
 mod tests {
     use super::*;
     use dubp_common_doc::traits::Document;
+    use dubp_common_doc::BlockNumber;
+    use std::str::FromStr;
+    use v10::{TransactionInputUnlocksV10, TransactionOutputV10};
 
     #[test]
     fn generate_real_document() {
@@ -971,12 +477,12 @@ mod tests {
             "Fail to parse blockstamp"
         );
 
-        let builder = TransactionDocumentBuilder {
+        let builder = TransactionDocumentV10Builder {
             currency: "duniter_unit_test_currency",
             blockstamp: &block,
             locktime: &0,
             issuers: &vec![pubkey],
-            inputs: &vec![TransactionInput::D(
+            inputs: &vec![TransactionInputV10::D(
                 TxAmount(10),
                 TxBase(0),
                 PubKey::Ed25519(unwrap!(
@@ -985,25 +491,17 @@ mod tests {
                 )),
                 BlockNumber(0),
             )],
-            unlocks: &vec![TransactionInputUnlocks {
+            unlocks: &vec![TransactionInputUnlocksV10 {
                 index: 0,
                 unlocks: vec![TransactionUnlockProof::Sig(0)],
             }],
-            outputs: &vec![TransactionOutput::from_str(
+            outputs: &vec![TransactionOutputV10::from_str(
                 "10:0:SIG(FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa)",
             )
             .expect("fail to parse output !")],
             comment: "test",
             hash: None,
         };
-        /*println!(
-            "Signatures = {:?}",
-            builder
-                .build_and_sign(vec![SignatorEnum::Ed25519(
-                    keypair.generate_signator().expect("fail to gen signator")
-                )])
-                .signatures()
-        );*/
         assert!(builder
             .build_with_signature(vec![sig])
             .verify_signatures()
@@ -1032,12 +530,12 @@ mod tests {
             "Fail to parse Blockstamp"
         );
 
-        let builder = TransactionDocumentBuilder {
+        let builder = TransactionDocumentV10Builder {
             currency: "g1",
             blockstamp: &block,
             locktime: &0,
             issuers: &vec![pubkey],
-            inputs: &vec![TransactionInput::T(
+            inputs: &vec![TransactionInputV10::T(
                 TxAmount(950),
                 TxBase(0),
                 unwrap!(
@@ -1049,14 +547,14 @@ mod tests {
                 OutputIndex(1),
             )],
             unlocks: &vec![
-                TransactionInputUnlocks::from_str("0:SIG(0)").expect("fail to parse unlock !")
+                TransactionInputUnlocksV10::from_str("0:SIG(0)").expect("fail to parse unlock !")
             ],
             outputs: &vec![
-                TransactionOutput::from_str(
+                TransactionOutputV10::from_str(
                     "30:0:SIG(38MEAZN68Pz1DTvT3tqgxx4yQP6snJCQhPqEFxbDk4aE)",
                 )
                 .expect("fail to parse output !"),
-                TransactionOutput::from_str(
+                TransactionOutputV10::from_str(
                     "920:0:SIG(FEkbc4BfJukSWnCU6Hed6dgwwTuPFTVdgz5LpL4iHr9J)",
                 )
                 .expect("fail to parse output !"),
@@ -1064,9 +562,9 @@ mod tests {
             comment: "Pour cesium merci",
             hash: None,
         };
-        let mut tx_doc = builder.build_with_signature(vec![sig]);
-        tx_doc.hash = None;
+        let mut tx_doc = TransactionDocument::V10(builder.build_with_signature(vec![sig]));
         assert!(tx_doc.verify_signatures().is_ok());
+        assert!(tx_doc.get_hash_opt().is_none());
         assert_eq!(
             tx_doc.get_hash(),
             Hash::from_hex("876D2430E0B66E2CE4467866D8F923D68896CACD6AA49CDD8BDD0096B834DEF1")

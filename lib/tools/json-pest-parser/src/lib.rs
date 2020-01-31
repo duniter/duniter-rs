@@ -408,6 +408,24 @@ pub fn get_str_array<'a, S: std::hash::BuildHasher>(
         .collect()
 }
 
+pub fn get_array<'a, S: std::hash::BuildHasher>(
+    json_block: &'a HashMap<&str, JSONValue<S>, S>,
+    field: &str,
+) -> Result<Vec<&'a JSONValue<'a, S>>, ParseJsonError> {
+    Ok(json_block
+        .get(field)
+        .ok_or_else(|| ParseJsonError {
+            cause: format!("Fail to parse json : field '{}' must exist !", field),
+        })?
+        .to_array()
+        .ok_or_else(|| ParseJsonError {
+            cause: format!("Fail to parse json : field '{}' must be an array !", field),
+        })?
+        .iter()
+        .map(|v| v)
+        .collect())
+}
+
 pub fn get_object_array<'a, S: std::hash::BuildHasher>(
     json_block: &'a JsonObject<'a, S>,
     field: &str,

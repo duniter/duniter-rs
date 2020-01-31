@@ -85,7 +85,7 @@ impl Sub for SourceAmount {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 /// V10 Unused Transaction Output
-pub struct UTXOV10(pub UniqueIdUTXOv10, pub TransactionOutput);
+pub struct UTXOV10(pub UniqueIdUTXOv10, pub TransactionOutputV10);
 
 impl UTXOV10 {
     /// UTXO conditions
@@ -128,7 +128,7 @@ impl UTXO {
 pub fn get_utxo_v10<DB: BcDbInReadTx>(
     db: &DB,
     utxo_id: UniqueIdUTXOv10,
-) -> Result<Option<TransactionOutput>, DbError> {
+) -> Result<Option<TransactionOutputV10>, DbError> {
     let utxo_id_bytes: Vec<u8> = utxo_id.into();
     db.db()
         .get_store(UTXOS)
@@ -141,7 +141,7 @@ pub fn get_utxo_v10<DB: BcDbInReadTx>(
 pub fn get_block_consumed_sources_<DB: BcDbInReadTx>(
     db: &DB,
     block_number: BlockNumber,
-) -> Result<Option<HashMap<UniqueIdUTXOv10, TransactionOutput>>, DbError> {
+) -> Result<Option<HashMap<UniqueIdUTXOv10, TransactionOutputV10>>, DbError> {
     db.db()
         .get_int_store(CONSUMED_UTXOS)
         .get(db.r(), block_number.0)?

@@ -264,7 +264,7 @@ impl CurrencyDBsWriteQuery {
         &self,
         db: &Db,
         w: &mut DbWriter,
-        block_consumed_sources_opt: Option<&mut HashMap<UniqueIdUTXOv10, TransactionOutput>>,
+        block_consumed_sources_opt: Option<&mut HashMap<UniqueIdUTXOv10, TransactionOutputV10>>,
         in_fork_window: bool,
     ) -> Result<(), DbError> {
         match *self {
