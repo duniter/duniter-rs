@@ -17,7 +17,6 @@
 
 use crate::bases::*;
 use durs_common_tools::fatal_error;
-use log::error;
 use ring::{digest, rand};
 use std::fmt::{Debug, Display, Error, Formatter};
 

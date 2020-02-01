@@ -41,7 +41,6 @@ use durs_common_tools::fatal_error;
 use durs_common_tools::traits::merge::Merge;
 use durs_network_documents::network_endpoint::{ApiPart, EndpointEnum};
 use failure::Fail;
-use log::error;
 use serde::de::DeserializeOwned;
 use serde::ser::{Serialize, Serializer};
 use std::collections::HashSet;

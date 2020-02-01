@@ -35,8 +35,6 @@ extern crate pretty_assertions;*/
 
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
-extern crate log;
 
 /// WS2Pv2 Messages
 pub mod v2;

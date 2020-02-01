@@ -22,7 +22,6 @@ use crate::controller::{
 use durs_common_tools::fatal_error;
 use durs_module::ModuleMessage;
 use durs_ws2p_messages::v2::connect::WS2Pv2ConnectType;
-use log::error;
 use unwrap::unwrap;
 
 /// Process WS2P v2+ OK Message

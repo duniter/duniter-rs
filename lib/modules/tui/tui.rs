@@ -40,7 +40,7 @@ use durs_module::*;
 use durs_network::events::NetworkEvent;
 use durs_network_documents::network_head::NetworkHead;
 use durs_network_documents::NodeFullId;
-use log::{debug, error, trace, warn};
+use log::{debug, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{stdout, Write};

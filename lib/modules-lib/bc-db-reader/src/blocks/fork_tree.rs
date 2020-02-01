@@ -16,7 +16,6 @@
 //! Blocks fork tree: define entity and read requests.
 
 use dubp_common_doc::{BlockHash, BlockNumber, Blockstamp};
-use log::error;
 use serde::de::{self, Deserializer, Visitor};
 use serde::{Deserialize, Serialize, Serializer};
 use std::collections::{HashMap, HashSet};

@@ -25,7 +25,6 @@ use durs_network_documents::NodeFullId;
 use durs_ws2p_messages::v2::connect::{WS2Pv2ConnectMsg, WS2Pv2ConnectType};
 use durs_ws2p_messages::v2::payload_container::WS2Pv2MessagePayload;
 use durs_ws2p_messages::v2::WS2Pv2Message;
-use log::error;
 use unwrap::unwrap;
 
 /// Process WS2P v2+ CONNECT Message

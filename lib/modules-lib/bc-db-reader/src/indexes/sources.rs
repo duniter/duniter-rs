@@ -22,7 +22,6 @@ use dubp_indexes::sindex::UniqueIdUTXOv10;
 use dubp_user_docs::documents::transaction::*;
 use durs_common_tools::fatal_error;
 use durs_dbs_tools::DbError;
-use log::error;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::HashMap;

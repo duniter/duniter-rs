@@ -20,15 +20,15 @@
 #[macro_export]
 macro_rules! fatal_error {
     ($msg:expr) => ({
-        error!("{}", &dbg!($msg));
+        log::error!("{}", &dbg!($msg));
         panic!($msg);
     });
     ($msg:expr,) => ({
-        error!("{}", &dbg!($msg));
+        log::error!("{}", &dbg!($msg));
         panic!($msg);
     });
     ($fmt:expr, $($arg:tt)+) => ({
-        error!("{}", dbg!(format!($fmt, $($arg)+)));
+        log::error!("{}", dbg!(format!($fmt, $($arg)+)));
         panic!($fmt, $($arg)+);
     });
 }

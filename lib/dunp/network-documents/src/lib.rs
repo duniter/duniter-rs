@@ -32,8 +32,6 @@ extern crate pest_derive;
 #[cfg(test)]
 #[macro_use]
 extern crate pretty_assertions;
-#[macro_use]
-extern crate log;
 
 pub mod host;
 pub mod network_endpoint;

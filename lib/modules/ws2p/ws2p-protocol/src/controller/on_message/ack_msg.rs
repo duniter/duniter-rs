@@ -24,7 +24,6 @@ use durs_module::ModuleMessage;
 use durs_ws2p_messages::v2::ok::WS2Pv2OkMsg;
 use durs_ws2p_messages::v2::payload_container::WS2Pv2MessagePayload;
 use durs_ws2p_messages::v2::WS2Pv2Message;
-use log::error;
 
 /// Process WS2P v2+ ACK Message
 pub fn process_ws2p_v2p_ack_msg<M: ModuleMessage>(

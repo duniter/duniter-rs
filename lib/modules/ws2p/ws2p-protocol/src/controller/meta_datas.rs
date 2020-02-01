@@ -26,7 +26,6 @@ use durs_network_documents::network_peer::PeerCardV11;
 use durs_network_documents::NodeFullId;
 use durs_ws2p_messages::v2::api_features::WS2PFeatures;
 use durs_ws2p_messages::v2::connect::WS2Pv2ConnectType;
-use log::error;
 use std::time::Instant;
 
 #[derive(Debug)]

@@ -19,7 +19,6 @@ use crate::bases::b58::{bytes_to_str_base58, ToBase58};
 use crate::bases::*;
 use clear_on_drop::clear::Clear;
 use durs_common_tools::fatal_error;
-use log::error;
 use ring::rand;
 use std::fmt::{self, Debug, Display, Formatter};
 

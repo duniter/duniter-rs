@@ -17,7 +17,6 @@
 
 use byteorder::ByteOrder;
 use durs_common_tools::fatal_error;
-use log::error;
 use ring::rand;
 
 #[inline]

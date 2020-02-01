@@ -30,7 +30,6 @@ use durs_module::ModuleMessage;
 use durs_network_documents::NodeFullId;
 use durs_ws2p_messages::v2::payload_container::WS2Pv2MessagePayload;
 use durs_ws2p_messages::WS2PMessage;
-use log::error;
 use std::ops::Deref;
 use std::thread;
 use std::time::{Duration, Instant};

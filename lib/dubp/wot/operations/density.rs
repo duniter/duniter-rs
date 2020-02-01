@@ -17,7 +17,6 @@
 
 use crate::data::WebOfTrust;
 use durs_common_tools::fatal_error;
-use log::error;
 
 /// Compute average density
 pub fn calculate_average_density<T: WebOfTrust>(wot: &T) -> usize {

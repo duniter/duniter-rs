@@ -22,7 +22,6 @@ use crate::constants::*;
 use crate::*;
 use dup_crypto::keys::*;
 use durs_common_tools::fatal_error;
-use log::error;
 use std::sync::mpsc;
 #[allow(deprecated)]
 use ws::util::{Timeout, Token};

@@ -24,7 +24,6 @@ use durs_module::ModuleMessage;
 use durs_ws2p_messages::v2::connect::generate_connect_message;
 use durs_ws2p_messages::v2::payload_container::WS2Pv2MessagePayload;
 use durs_ws2p_messages::v2::WS2Pv2Message;
-use log::error;
 use std::net::SocketAddr;
 
 pub fn process<M: ModuleMessage>(

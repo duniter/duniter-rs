@@ -21,7 +21,6 @@ use dubp_currency_params::db::write_currency_params;
 use dubp_currency_params::genesis_block_params::GenesisBlockParams;
 use dubp_currency_params::CurrencyParameters;
 use durs_common_tools::fatal_error;
-use log::error;
 use std::path::PathBuf;
 use unwrap::unwrap;
 
