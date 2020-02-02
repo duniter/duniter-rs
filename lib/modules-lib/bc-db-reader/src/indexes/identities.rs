@@ -237,7 +237,7 @@ mod test {
     use dubp_common_doc::Blockstamp;
     use dup_crypto_tests_tools::mocks::pubkey;
     use durs_common_tests_tools::collections::slice_same_elems;
-    use durs_dbs_tools::kv_db::KvFileDbHandler;
+    use durs_dbs_tools::kv_db_old::KvFileDbHandler;
 
     fn gen_mock_dal_idty(pubkey: PubKey, created_block_id: BlockNumber) -> IdentityDb {
         IdentityDb {

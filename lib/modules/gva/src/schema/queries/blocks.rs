@@ -28,8 +28,8 @@ use juniper_from_schema::{QueryTrail, Walked};
 pub(crate) fn execute<DB: BcDbInReadTx>(
     db: &DB,
     trail: &QueryTrail<'_, BlocksPage, Walked>,
-    paging_opt: Option<Paging>,
-    block_interval_opt: Option<BlockInterval>,
+    paging_opt: Option<&Paging>,
+    block_interval_opt: Option<&BlockInterval>,
     step: usize,
     sort_order: SortOrder,
 ) -> Result<BlocksPage, DbError> {

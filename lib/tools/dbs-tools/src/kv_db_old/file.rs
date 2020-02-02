@@ -198,7 +198,7 @@ pub trait KvFileDbRead: Sized {
     /// Read datas in transaction database
     fn read<F, R>(&self, f: F) -> Result<R, DbError>
     where
-        F: FnOnce(KvFileDbReader) -> Result<R, DbError>;
+        F: Fn(KvFileDbReader) -> Result<R, DbError>;
 }
 
 impl KvFileDbRead for KvFileDbRoHandler {
@@ -221,7 +221,7 @@ impl KvFileDbRead for KvFileDbRoHandler {
     #[inline]
     fn read<F, R>(&self, f: F) -> Result<R, DbError>
     where
-        F: FnOnce(KvFileDbReader) -> Result<R, DbError>,
+        F: Fn(KvFileDbReader) -> Result<R, DbError>,
     {
         self.0.read(f)
     }
@@ -320,7 +320,7 @@ impl KvFileDbRead for KvFileDbHandler {
     }
     fn read<F, R>(&self, f: F) -> Result<R, DbError>
     where
-        F: FnOnce(KvFileDbReader) -> Result<R, DbError>,
+        F: Fn(KvFileDbReader) -> Result<R, DbError>,
     {
         Ok(f(KvFileDbReader(&self.arc_clone().read()?.read()?))?)
     }

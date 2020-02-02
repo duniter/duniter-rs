@@ -148,12 +148,12 @@ pub fn receive_req(
                         bc.db()
                             .r(|db_r| {
                                 Ok(pubkeys
-                                    .into_iter()
+                                    .iter()
                                     .map(|p| {
                                         (
-                                            p,
+                                            *p,
                                             durs_bc_db_reader::indexes::identities::get_uid(
-                                                db_r, &p,
+                                                db_r, p,
                                             )
                                             .unwrap_or(None),
                                         )

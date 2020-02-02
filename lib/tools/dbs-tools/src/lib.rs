@@ -31,7 +31,8 @@
 
 mod errors;
 mod free_struct_db;
-pub mod kv_db;
+/// module a supprimer
+pub mod kv_db_old;
 
 pub use errors::DbError;
 pub use free_struct_db::{open_free_struct_file_db, open_free_struct_memory_db, BinFreeStructDb};

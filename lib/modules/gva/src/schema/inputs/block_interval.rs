@@ -29,7 +29,7 @@ pub struct FilledBlockInterval {
 
 impl FilledBlockInterval {
     pub(crate) fn new(
-        block_interval_opt: Option<BlockInterval>,
+        block_interval_opt: Option<&BlockInterval>,
         current_block_number_opt: Option<BlockNumber>,
     ) -> Self {
         let current_block_number = current_block_number_opt.unwrap_or(BlockNumber(0)).0 as usize;
@@ -120,7 +120,7 @@ mod tests {
 
         assert_eq! {
             500..=750,
-            FilledBlockInterval::new(Some(BlockInterval {
+            FilledBlockInterval::new(Some(&BlockInterval {
                 from: Some(500),
                 to: None,
             }), Some(BlockNumber(750))).get_range()
@@ -128,7 +128,7 @@ mod tests {
 
         assert_eq! {
             500..=700,
-            FilledBlockInterval::new(Some(BlockInterval {
+            FilledBlockInterval::new(Some(&BlockInterval {
                 from: Some(500),
                 to: Some(700),
             }), Some(BlockNumber(750))).get_range()

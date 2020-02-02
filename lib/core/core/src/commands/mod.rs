@@ -26,7 +26,7 @@ use crate::errors::DursCoreError;
 use crate::DursCore;
 pub use dbex::*;
 use durs_conf::DuRsConf;
-use durs_dbs_tools::kv_db::KvFileDbHandler;
+use durs_dbs_tools::kv_db_old::KvFileDbHandler;
 pub use durs_network::cli::sync::SyncOpt;
 pub use keys::KeysOpt;
 use log::Level;
@@ -94,7 +94,7 @@ pub enum DursCommandEnum<T: ExecutableModuleCommand> {
 impl<T: ExecutableModuleCommand> DursCommand<T> {
     fn open_bc_db(&self, profile_path: &PathBuf) -> Result<KvFileDbHandler, DursCoreError> {
         let bc_db_path = durs_conf::get_blockchain_db_path(profile_path.clone());
-        durs_dbs_tools::kv_db::KvFileDbHandler::open_db(
+        durs_dbs_tools::kv_db_old::KvFileDbHandler::open_db(
             bc_db_path.as_path(),
             &durs_bc_db_reader::bc_db_schema(),
         )

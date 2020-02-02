@@ -37,7 +37,7 @@ pub mod paging;
 pub mod tools;
 pub mod traits;
 
-pub use durs_dbs_tools::kv_db::{
+pub use durs_dbs_tools::kv_db_old::{
     from_db_value, KvFileDbRead as DbReadable, KvFileDbReader as Reader,
     KvFileDbRoHandler as BcDbRo, KvFileDbSchema, KvFileDbStoreType, KvFileDbValue as DbValue,
     Readable as DbReader,
@@ -111,7 +111,7 @@ impl<'r, 'db: 'r, DB> durs_common_tools::traits::NotMock for BcDbWithReaderStruc
 pub mod tests {
 
     use super::*;
-    use durs_dbs_tools::kv_db::KvFileDbHandler;
+    use durs_dbs_tools::kv_db_old::KvFileDbHandler;
     use tempfile::tempdir;
 
     #[inline]

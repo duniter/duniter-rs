@@ -224,7 +224,7 @@ mod tests {
             ]),
             db.read(|r| fork_resolution_algo(
                 &BcDbRwWithReader { db: &db, r },
-                &mut fork_tree,
+                &fork_tree,
                 fork_window_size,
                 current_blockstamp,
                 &invalid_blocks
@@ -256,7 +256,7 @@ mod tests {
             Some(new_main_blocks.iter().map(|b| b.blockstamp()).collect()),
             db.read(|r| fork_resolution_algo(
                 &BcDbRwWithReader { db: &db, r },
-                &mut fork_tree,
+                &fork_tree,
                 fork_window_size,
                 current_blockstamp,
                 &invalid_blocks

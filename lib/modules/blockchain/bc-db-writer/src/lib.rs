@@ -37,7 +37,7 @@ pub mod current_metadata;
 pub mod indexes;
 pub mod writers;
 
-pub use durs_dbs_tools::kv_db::{
+pub use durs_dbs_tools::kv_db_old::{
     KvFileDbHandler, KvFileDbRead as DbReadable, KvFileDbRoHandler, KvFileDbSchema,
     KvFileDbStoreType, KvFileDbValue, KvFileDbWriter as DbWriter,
 };

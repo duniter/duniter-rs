@@ -24,7 +24,7 @@ use std::collections::HashMap;
 /// Find certifications that emitted in indicated blocks expiring
 pub fn find_expire_certs<DB: BcDbInReadTx>(
     db: &DB,
-    blocks_expiring: Vec<BlockNumber>,
+    blocks_expiring: &[BlockNumber],
 ) -> Result<HashMap<(WotId, WotId), BlockNumber>, DbError> {
     let mut all_expire_certs = HashMap::new();
     for expire_block_id in blocks_expiring {
@@ -36,7 +36,7 @@ pub fn find_expire_certs<DB: BcDbInReadTx>(
             if let Some(value) = entry_result?.1 {
                 if let DbValue::U64(cert) = value {
                     let (source, target) = cert_from_u64(cert);
-                    all_expire_certs.insert((source, target), expire_block_id);
+                    all_expire_certs.insert((source, target), *expire_block_id);
                 } else {
                     return Err(DbError::DBCorrupted);
                 }

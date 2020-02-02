@@ -90,7 +90,7 @@ fn treat_chainable_block(
     let blocks_expiring = Vec::with_capacity(0); // TODO
     let expire_certs = durs_bc_db_reader::indexes::certs::find_expire_certs(
         &BcDbRwWithWriter { db, w },
-        blocks_expiring,
+        &blocks_expiring,
     )?;
 
     // If we're in block genesis, get the currency parameters

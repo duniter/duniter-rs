@@ -35,11 +35,14 @@ impl Default for FilledPaging {
     }
 }
 
-impl From<Option<Paging>> for FilledPaging {
-    fn from(paging_opt: Option<Paging>) -> Self {
+impl From<Option<&Paging>> for FilledPaging {
+    fn from(paging_opt: Option<&Paging>) -> Self {
         if let Some(paging) = paging_opt {
             FilledPaging {
-                page_number: paging.page_number.unwrap_or(DEFAULT_PAGE_NUMBER_I32) as isize,
+                page_number: paging
+                    .page_number
+                    .clone()
+                    .unwrap_or(DEFAULT_PAGE_NUMBER_I32) as isize,
                 page_size: if let Some(page_size) = paging.page_size {
                     if page_size < MIN_PAGE_SIZE {
                         MIN_PAGE_SIZE as usize
@@ -115,7 +118,7 @@ mod tests {
                 page_number: 0,
                 page_size: 10,
             },
-            FilledPaging::from(Some(Paging {
+            FilledPaging::from(Some(&Paging {
                 page_number: None,
                 page_size: Some(10)
             })),
@@ -125,7 +128,7 @@ mod tests {
                 page_number: 1,
                 page_size: 50,
             },
-            FilledPaging::from(Some(Paging {
+            FilledPaging::from(Some(&Paging {
                 page_number: Some(1),
                 page_size: None
             })),
@@ -135,7 +138,7 @@ mod tests {
                 page_number: 1,
                 page_size: 10,
             },
-            FilledPaging::from(Some(Paging {
+            FilledPaging::from(Some(&Paging {
                 page_number: Some(1),
                 page_size: Some(10)
             })),

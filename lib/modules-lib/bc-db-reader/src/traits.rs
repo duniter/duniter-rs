@@ -34,7 +34,7 @@ where
     fn r<D, F>(&self, f: F) -> Result<D, DbError>
     where
         DB: DbReadable,
-        F: FnOnce(&BcDbWithReaderStruct<DB>) -> Result<D, DbError>;
+        F: Fn(&BcDbWithReaderStruct<DB>) -> Result<D, DbError>;
 }
 
 impl<DB> BcDbRead<DB> for DB
@@ -44,7 +44,7 @@ where
     fn r<D, F>(&self, f: F) -> Result<D, DbError>
     where
         DB: DbReadable,
-        F: FnOnce(&BcDbWithReaderStruct<DB>) -> Result<D, DbError>,
+        F: Fn(&BcDbWithReaderStruct<DB>) -> Result<D, DbError>,
     {
         self.read(|r| f(&BcDbWithReaderStruct { db: self, r }))
     }
@@ -61,7 +61,7 @@ pub trait BcDbWithReader {
 #[cfg(feature = "mock")]
 impl<'a> BcDbWithReader for MockBcDbInReadTx {
     type DB = crate::BcDbRo;
-    type R = durs_dbs_tools::kv_db::MockKvFileDbReader;
+    type R = durs_dbs_tools::kv_db_old::MockKvFileDbReader;
 
     fn db(&self) -> &Self::DB {
         unreachable!()

@@ -101,8 +101,8 @@ impl QueryFields for Query {
         exec_in_db_transaction!(blocks(
             executor,
             trail,
-            paging_opt,
-            block_interval_opt,
+            paging_opt.as_ref(),
+            block_interval_opt.as_ref(),
             step as usize,
             sort_order
         ))

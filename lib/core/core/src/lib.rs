@@ -155,7 +155,7 @@ impl DursCore<DuRsConf> {
 
     /// Execute core command
     pub fn execute_core_command<PlugFunc>(
-        bc_db: durs_dbs_tools::kv_db::KvFileDbHandler,
+        bc_db: durs_dbs_tools::kv_db_old::KvFileDbHandler,
         core_command: DursCoreCommand,
         durs_core_opts: DursCoreOptions,
         mut plug_modules: PlugFunc,
@@ -278,7 +278,7 @@ impl DursCore<DuRsConf> {
     /// Start durs server
     pub fn start(
         mut self,
-        bc_db: durs_dbs_tools::kv_db::KvFileDbHandler,
+        bc_db: durs_dbs_tools::kv_db_old::KvFileDbHandler,
     ) -> Result<(), DursCoreError> {
         if self.network_modules_count == 0 {
             fatal_error!(

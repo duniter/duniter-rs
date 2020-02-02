@@ -97,7 +97,7 @@ impl BlockApplicator {
         let expire_certs = if let Some(db) = self.db.take() {
             let expire_certs = db
                 .r(|db_r| {
-                    durs_bc_db_reader::indexes::certs::find_expire_certs(db_r, blocks_expiring)
+                    durs_bc_db_reader::indexes::certs::find_expire_certs(db_r, &blocks_expiring)
                 })
                 .expect("find_expire_certs() : DbError");
             self.db = Some(db);
