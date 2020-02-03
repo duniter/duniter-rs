@@ -77,12 +77,11 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                         .expect("DB error : Fail to save fork tree !");
                         debug!("success to stackable_block({})", stackable_block_number);
 
-                        bc.current_blockstamp = stackable_block_blockstamp;
                         events::sent::send_event(
                             bc,
                             &BlockchainEvent::StackUpValidBlock(Box::new(new_current_block)),
                         );
-                        Ok(w)
+                        Ok(WriteResp::new(w, stackable_block_blockstamp))
                     }
                     Ok(re) => {
                         warn!(
@@ -105,8 +104,12 @@ pub fn apply_stackable_blocks(bc: &mut BlockchainModule) {
                 }
             });
             bc.db = Some(db);
+
             match db_write_result {
-                Ok(()) => continue 'blocks,
+                Ok(new_current_blockstamp) => {
+                    bc.current_blockstamp = new_current_blockstamp;
+                    continue 'blocks;
+                }
                 Err(e) => {
                     debug!(
                         "Invalid stackable block {}: {:?}",

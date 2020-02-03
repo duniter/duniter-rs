@@ -38,7 +38,7 @@ pub fn execute(
                 SyncJobsMess::WotsDBsWriteQuery(blockstamp, currency_params, req) => {
                     db.write(|mut w| {
                         req.apply(&db, &mut w, &blockstamp, &currency_params.deref())?;
-                        Ok(w)
+                        Ok(WriteResp::from(w))
                     })
                     .unwrap_or_else(|_| {
                         fatal_error!("Fail to apply WotsDBsWriteQuery ({})", blockstamp)

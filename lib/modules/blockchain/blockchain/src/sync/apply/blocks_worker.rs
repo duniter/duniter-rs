@@ -58,7 +58,7 @@ pub fn execute(
                                 fork_window_size,
                                 Some(target_blockstamp),
                             )?;
-                            Ok(w)
+                            Ok(WriteResp::from(w))
                         })
                         .expect("Fatal error : Fail to apply BlocksDBsWriteQuery !");
 
@@ -91,7 +91,7 @@ pub fn execute(
         info!("Save db...");
         db.write(|mut w| {
             durs_bc_db_writer::blocks::fork_tree::save_fork_tree(&db, &mut w, &fork_tree)?;
-            Ok(w)
+            Ok(WriteResp::from(w))
         })
         .unwrap_or_else(|_| fatal_error!("DB corrupted, please reset data."));
 

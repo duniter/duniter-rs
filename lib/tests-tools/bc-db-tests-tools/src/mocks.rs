@@ -20,7 +20,7 @@ use durs_bc_db_reader::blocks::fork_tree::ForkTree;
 use durs_bc_db_reader::blocks::BlockDb;
 use durs_bc_db_writer::blocks::{insert_new_fork_block, insert_new_head_block};
 use durs_bc_db_writer::current_metadata::update_current_metadata;
-use durs_bc_db_writer::{Db, DbError};
+use durs_bc_db_writer::{Db, DbError, WriteResp};
 
 /// Warning : This function does not update the indexes and considers
 /// that your block is valid (so chainable on the main chain).
@@ -42,7 +42,7 @@ pub fn insert_main_block(
                 expire_certs: None,
             },
         )?;
-        Ok(w)
+        Ok(WriteResp::from(w))
     })
 }
 
@@ -63,7 +63,7 @@ pub fn insert_fork_block(
                 expire_certs: None,
             },
         )?;
-        Ok(w)
+        Ok(WriteResp::from(w))
     })?;
     Ok(orphan)
 }

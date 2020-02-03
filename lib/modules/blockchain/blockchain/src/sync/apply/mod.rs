@@ -29,7 +29,7 @@ use dubp_currency_params::{CurrencyName, CurrencyParameters};
 use dup_crypto::keys::PubKey;
 use durs_bc_db_reader::BcDbRead;
 use durs_bc_db_writer::writers::requests::WotsDBsWriteQuery;
-use durs_bc_db_writer::WotsV10DBs;
+use durs_bc_db_writer::{WotsV10DBs, WriteResp};
 use durs_common_tools::fatal_error;
 use durs_network_documents::url::Url;
 use durs_wot::data::rusty::RustyWebOfTrust;
@@ -122,7 +122,7 @@ impl BlockApplicator {
                     &self.wot_databases.wot_db,
                     &expire_certs,
                 );
-                Ok(w)
+                Ok(WriteResp::from(w))
             })
             .expect("Fail to apply valid block.");
             self.db = Some(db);

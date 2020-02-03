@@ -284,7 +284,7 @@ mod test {
                     wot_id as u32,
                     &KvFileDbHandler::db_value(&idty_bin)?,
                 )?;
-                Ok(w)
+                Ok(WriteResp::from(w))
             })?;
             wot_id += 1;
         }
@@ -296,7 +296,7 @@ mod test {
                 CurrentMetaDataKey::NextWotId.to_u32(),
                 &DbValue::U64(wot_id),
             )?;
-            Ok(w)
+            Ok(WriteResp::from(w))
         })?;
 
         // Test default filters

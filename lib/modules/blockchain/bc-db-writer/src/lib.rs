@@ -39,7 +39,7 @@ pub mod writers;
 
 pub use durs_dbs_tools::kv_db_old::{
     KvFileDbHandler, KvFileDbRead as DbReadable, KvFileDbRoHandler, KvFileDbSchema,
-    KvFileDbStoreType, KvFileDbValue, KvFileDbWriter as DbWriter,
+    KvFileDbStoreType, KvFileDbValue, KvFileDbWriter as DbWriter, WriteResp,
 };
 pub use durs_dbs_tools::{
     open_free_struct_db, open_free_struct_file_db, open_free_struct_memory_db,

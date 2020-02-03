@@ -40,7 +40,7 @@ pub fn execute(
             // Apply db request
             db.write(|mut w| {
                 req.apply(&db, &mut w, None, in_fork_window)?;
-                Ok(w)
+                Ok(WriteResp::from(w))
             })
             .expect("Fatal error : Fail to apply CurrencyDBsWriteQuery !");
             wait_begin = Instant::now();

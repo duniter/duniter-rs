@@ -157,7 +157,7 @@ pub fn apply_rollback(bc: &mut BlockchainModule, new_bc_branch: Vec<Blockstamp>)
             }
             durs_bc_db_writer::blocks::fork_tree::save_fork_tree(&db, &mut w, &bc.fork_tree)?;
 
-            Ok(w)
+            Ok(WriteResp::from(w))
         } else {
             Err(DbError::WriteAbort {
                 reason: "Abort rollback: new branch is invalid.".to_owned(),

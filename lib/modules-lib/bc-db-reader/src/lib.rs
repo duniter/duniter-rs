@@ -40,7 +40,7 @@ pub mod traits;
 pub use durs_dbs_tools::kv_db_old::{
     from_db_value, KvFileDbRead as DbReadable, KvFileDbReader as Reader,
     KvFileDbRoHandler as BcDbRo, KvFileDbSchema, KvFileDbStoreType, KvFileDbValue as DbValue,
-    Readable as DbReader,
+    Readable as DbReader, WriteResp,
 };
 pub use durs_dbs_tools::DbError;
 #[cfg(feature = "mock")]

@@ -282,7 +282,7 @@ mod tests {
                 &vec![tx_doc.issuers()[0], tortue_pubkey],
                 false,
             )?;
-            Ok(w)
+            Ok(WriteResp::from(w))
         })?;
 
         db.write(|mut w| {
@@ -299,7 +299,7 @@ mod tests {
             )?;
             // Apply first g1 transaction
             apply_and_write_tx(&db, &mut w, &tx_doc, true)?;
-            Ok(w)
+            Ok(WriteResp::from(w))
         })?;
         // Check new UTXOS
         // TODO
@@ -319,7 +319,7 @@ mod tests {
             } else {
                 panic!(dbg!("No block consumed sources"));
             }
-            Ok(w)
+            Ok(WriteResp::from(w))
         })?;
 
         // UTXOS must be empty

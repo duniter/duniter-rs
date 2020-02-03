@@ -133,7 +133,7 @@ mod tests {
                     },
                 )?;
             }
-            Ok(w)
+            Ok(WriteResp::from(w))
         })?;
 
         // Local blockchain must contain at least `fork_window_size +2` blocks
@@ -211,7 +211,7 @@ mod tests {
                     },
                 )?,
             );
-            Ok(w)
+            Ok(WriteResp::from(w))
         })?;
 
         // Must fork
@@ -287,7 +287,7 @@ mod tests {
                     )?,
                 );
             }
-            Ok(w)
+            Ok(WriteResp::from(w))
         })
     }
 }

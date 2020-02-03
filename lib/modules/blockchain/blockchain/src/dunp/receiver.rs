@@ -136,7 +136,7 @@ pub fn receive_blocks(bc: &mut BlockchainModule, blocks: Vec<BlockDocument>) {
                     }
                 },
             }
-            Ok(w)
+            Ok(WriteResp::from(w))
         })
         .unwrap_or_else(|_| fatal_error!("Fail to check or apply block: {}.", blockstamp));
         bc.db = Some(db);

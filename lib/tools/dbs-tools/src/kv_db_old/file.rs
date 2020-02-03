@@ -410,18 +410,38 @@ impl KvFileDbHandler {
     }
     /// Write datas in database
     /// /!\ The written data are visible to readers but not persisted on the disk until a save() is performed.
-    pub fn write<F>(&self, f: F) -> Result<(), DbError>
+    pub fn write<D, F>(&self, f: F) -> Result<D, DbError>
     where
-        F: FnOnce(KvFileDbWriter) -> Result<KvFileDbWriter, DbError>,
+        F: FnOnce(KvFileDbWriter) -> Result<WriteResp<D>, DbError>,
     {
         f(KvFileDbWriter {
             buffer: Vec::with_capacity(0),
             writer: self.arc().read()?.write()?,
         })?
-        .writer
-        .commit()?;
+        .commit()
+    }
+}
 
-        Ok(())
+/// Write transaction response
+pub struct WriteResp<'w, D> {
+    writer: KvFileDbWriter<'w>,
+    datas: D,
+}
+
+impl<'w, D> WriteResp<'w, D> {
+    fn commit(self) -> Result<D, DbError> {
+        self.writer.writer.commit()?;
+        Ok(self.datas)
+    }
+    /// Instantiate WriteResp
+    pub fn new(writer: KvFileDbWriter<'w>, datas: D) -> WriteResp<'w, D> {
+        WriteResp { writer, datas }
+    }
+}
+
+impl<'w> From<KvFileDbWriter<'w>> for WriteResp<'w, ()> {
+    fn from(writer: KvFileDbWriter<'w>) -> WriteResp<'w, ()> {
+        WriteResp { writer, datas: () }
     }
 }
 
@@ -456,7 +476,7 @@ mod tests {
 
         db.write(|mut w| {
             store_test1.put(w.as_mut(), 3, &Value::Str("toto"))?;
-            Ok(w)
+            Ok(WriteResp::from(w))
         })?;
 
         let ro_db = KvFileDbRoHandler::open_db_ro(tmp_dir.path(), &schema)?;
@@ -468,7 +488,7 @@ mod tests {
 
         db.write(|mut w| {
             store_test1.put(w.as_mut(), 3, &Value::Str("titi"))?;
-            Ok(w)
+            Ok(WriteResp::from(w))
         })?;
 
         assert_eq!(
@@ -482,7 +502,7 @@ mod tests {
                 Some("titi".to_owned()),
                 get_int_store_str_val(&ro_db, "test1", 3)?
             );
-            Ok(w)
+            Ok(WriteResp::from(w))
         })?;
 
         let db_path = tmp_dir.path().to_owned();
