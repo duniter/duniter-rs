@@ -29,7 +29,7 @@ maplit = "1.0.1"
 serde = "1.0.*"
 serde_derive = "1.0.*"
 serde_json = "1.0.*"
-structopt= "0.3.4"
+structopt= "0.3.9"
 unwrap = "1.2.1"
 ws = { version = "0.9.*", features = ["permessage-deflate"] }
 
