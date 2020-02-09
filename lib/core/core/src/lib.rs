@@ -17,6 +17,8 @@
 
 //#![cfg_attr(feature = "cargo-clippy", allow(implicit_hasher))]
 #![deny(
+    clippy::option_unwrap_used,
+    clippy::result_unwrap_used,
     missing_docs,
     missing_copy_implementations,
     trivial_casts,
