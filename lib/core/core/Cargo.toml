@@ -12,7 +12,6 @@ path = "src/lib.rs"
 [dependencies]
 chrono = "0.4"
 clap = "2.33.0"
-clear_on_drop = "0.2.3"
 durs-bc = { path = "../../modules/blockchain/blockchain" }
 durs-common-tools = { path = "../../tools/common-tools" }
 durs-bc-db-reader = { path = "../../modules-lib/bc-db-reader" }
@@ -33,5 +32,6 @@ serde_derive = "1.0.*"
 serde_json = "1.0.*"
 structopt= "0.3.9"
 unwrap = "1.2.1"
+zeroize = { version = "1.1.0", features = ["zeroize_derive"] }
 
 [features]

@@ -19,9 +19,9 @@ use crate::commands::DursExecutableCoreCommand;
 use crate::errors::DursCoreError;
 use crate::DursCore;
 use clap::arg_enum;
-use clear_on_drop::clear::Clear;
 use durs_conf::keypairs::cli::*;
 use durs_conf::DuRsConf;
+use zeroize::Zeroize;
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(
@@ -121,7 +121,8 @@ pub struct ClearOpt {
     key: KeyKind,
 }
 
-#[derive(StructOpt, Debug, Clone)]
+#[derive(StructOpt, Debug, Clone, Zeroize)]
+#[zeroize(drop)]
 /// SaltPasswordOpt
 pub struct SaltPasswordOpt {
     #[structopt(long = "salt")]
@@ -131,14 +132,6 @@ pub struct SaltPasswordOpt {
     #[structopt(long = "password")]
     /// Password of key generator
     pub password: String,
-}
-
-impl Drop for SaltPasswordOpt {
-    #[inline]
-    fn drop(&mut self) {
-        <String as Clear>::clear(&mut self.salt);
-        <String as Clear>::clear(&mut self.password);
-    }
 }
 
 #[derive(StructOpt, Debug, Copy, Clone)]

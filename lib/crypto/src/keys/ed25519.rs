@@ -25,7 +25,6 @@ use crate::bases::b58::{bytes_to_str_base58, ToBase58};
 use crate::bases::*;
 use crate::seeds::Seed32;
 use base64;
-use clear_on_drop::clear::Clear;
 use ring::signature::{Ed25519KeyPair as RingKeyPair, KeyPair, UnparsedPublicKey, ED25519};
 use serde::de::{Deserialize, Deserializer, Error, SeqAccess, Visitor};
 use serde::ser::{Serialize, SerializeTuple, Serializer};
@@ -35,6 +34,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use unwrap::unwrap;
+use zeroize::Zeroize;
 
 /// Maximal size of a public key in bytes
 pub static PUBKEY_SIZE_IN_BYTES: &usize = &32;
@@ -333,6 +333,8 @@ impl KeyPairFromSeed32Generator {
     }
 }
 
+#[derive(Zeroize)]
+#[zeroize(drop)]
 /// Salted password
 pub struct SaltedPassword {
     salt: String,
@@ -343,14 +345,6 @@ impl SaltedPassword {
     /// Create new salted password
     pub fn new(salt: String, password: String) -> SaltedPassword {
         SaltedPassword { salt, password }
-    }
-}
-
-impl Drop for SaltedPassword {
-    #[inline]
-    fn drop(&mut self) {
-        <String as Clear>::clear(&mut self.salt);
-        <String as Clear>::clear(&mut self.password);
     }
 }
 

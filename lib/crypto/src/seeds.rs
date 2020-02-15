@@ -17,13 +17,14 @@
 
 use crate::bases::b58::{bytes_to_str_base58, ToBase58};
 use crate::bases::*;
-use clear_on_drop::clear::Clear;
 use durs_common_tools::fatal_error;
 use ring::rand;
 use std::fmt::{self, Debug, Display, Formatter};
+use zeroize::Zeroize;
 
 /// Store a 32 bytes seed used to generate keys.
-#[derive(Clone, Default, Deserialize, PartialEq, Eq, Hash, Serialize)]
+#[derive(Clone, Default, Deserialize, PartialEq, Eq, Hash, Serialize, Zeroize)]
+#[zeroize(drop)]
 pub struct Seed32([u8; 32]);
 
 impl AsRef<[u8]> for Seed32 {
@@ -47,13 +48,6 @@ impl Debug for Seed32 {
 impl Display for Seed32 {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.to_base58())
-    }
-}
-
-impl Drop for Seed32 {
-    #[inline]
-    fn drop(&mut self) {
-        <[u8; 32] as Clear>::clear(&mut self.0);
     }
 }
 
