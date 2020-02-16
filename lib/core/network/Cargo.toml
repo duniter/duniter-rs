@@ -13,7 +13,7 @@ path = "lib.rs"
 dubp-block-doc = { path = "../../dubp/block-doc"} #, version = "0.1.0" }
 dubp-common-doc = { path = "../../dubp/common-doc"} #, version = "0.1.0" }
 dubp-user-docs= { path = "../../dubp/user-docs" }
-dup-crypto = { path = "../../crypto" }
+dup-crypto = "0.8.0"
 durs-common-tools = { path = "../../tools/common-tools" }
 durs-module = { path = "../module" }
 durs-network-documents = { path = "../../dunp/network-documents" }

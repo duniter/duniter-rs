@@ -14,7 +14,7 @@ path = "src/lib.rs"
 
 [dependencies]
 dubp-common-doc = { path = "../common-doc"} #, version = "0.1.0" }
-dup-crypto = { path = "../../crypto", version = "0.8.0" }
+dup-crypto = "0.8.0"
 durs-common-tools = { path = "../../tools/common-tools", version = "0.2.0" }
 failure = "0.1.5"
 json-pest-parser = { path = "../../tools/json-pest-parser", version = "0.2.0" }

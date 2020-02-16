@@ -6,7 +6,6 @@ members = [
     "lib/core/message",
     "lib/core/module",
     "lib/core/network",
-    "lib/crypto",
     "lib/dubp/block-doc",
     "lib/dubp/common-doc",
     "lib/dubp/currency-params",
