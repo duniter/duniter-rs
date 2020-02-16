@@ -73,7 +73,7 @@ mod tests {
         let keypair1 = keypair1();
         let signator =
             SignatorEnum::Ed25519(keypair1.generate_signator().expect("fail to gen signator"));
-        let challenge = Hash::random();
+        let challenge = Hash::random().expect("unspecified rand error");
         let msg = WS2Pv2SecretFlagsMsg {
             secret_flags: WS2Pv2SecretFlags(vec![]),
             member_proof: Some(MemberProof {

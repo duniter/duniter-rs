@@ -25,7 +25,6 @@ pub trait ToBase58 {
 
 /// Create an array of 32 bytes from a Base58 string.
 pub fn str_base58_to_32bytes(base58_data: &str) -> Result<([u8; 32], usize), BaseConvertionError> {
-    debug!("str_base58_to_32bytes({});", base58_data);
     match bs58::decode(base58_data).into_vec() {
         Ok(result) => {
             let len = result.len();

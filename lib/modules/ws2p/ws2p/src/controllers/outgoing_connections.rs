@@ -53,7 +53,7 @@ pub fn connect_to_ws2p_v2_endpoint(
                 expected_remote_full_id,
             },
             WS2PControllerMetaDatas::new(
-                Hash::random(),
+                Hash::random().expect("unspecified rand error"),
                 WS2Pv2ConnectType::OutgoingServer,
                 currency.clone(),
                 self_node.clone(),

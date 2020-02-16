@@ -43,7 +43,7 @@ pub fn listen_on_ws2p_v2_endpoint<A: ToSocketAddrs + Debug>(
         match WS2PController::<DursMsg>::try_new(
             WS2PControllerId::Incoming,
             WS2PControllerMetaDatas::new(
-                Hash::random(),
+                Hash::random().expect("unspecified rand error"),
                 WS2Pv2ConnectType::Incoming,
                 currency.clone(),
                 self_node.clone(),

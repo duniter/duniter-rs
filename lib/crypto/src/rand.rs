@@ -16,18 +16,14 @@
 //! Manage random generation.
 
 use byteorder::ByteOrder;
-use durs_common_tools::fatal_error;
 use ring::rand;
 
 #[inline]
 /// Generate random u32
-pub fn gen_u32() -> u32 {
+pub fn gen_u32() -> Result<u32, crate::errors::Unspecified> {
     let rng = rand::SystemRandom::new();
-    if let Ok(random_bytes) = rand::generate::<[u8; 4]>(&rng) {
-        byteorder::BigEndian::read_u32(&random_bytes.expose())
-    } else {
-        fatal_error!("System error: fail to generate random boolean !")
-    }
+    let random_bytes = rand::generate::<[u8; 4]>(&rng)?;
+    Ok(byteorder::BigEndian::read_u32(&random_bytes.expose()))
 }
 
 #[cfg(test)]

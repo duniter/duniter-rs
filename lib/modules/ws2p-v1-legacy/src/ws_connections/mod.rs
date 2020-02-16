@@ -171,7 +171,7 @@ pub fn close_connection(
 pub fn get_random_connection<S: ::std::hash::BuildHasher>(
     connections: HashSet<&NodeFullId, S>,
 ) -> NodeFullId {
-    let random_usize = rand::gen_u32() as usize;
+    let random_usize = rand::gen_u32().expect("unspecified rand error") as usize;
     let mut count = random_usize % connections.len();
     let mut last_node_full_id = None;
     for node_full_id in &connections {

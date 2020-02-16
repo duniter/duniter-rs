@@ -66,6 +66,7 @@ fn test_revert_blocks_g1() {
     // Generate 6 forks blocks from 62 to 67 included
     let signator = SignatorEnum::Ed25519(
         dup_crypto::keys::ed25519::Ed25519KeyPair::generate_random()
+            .expect("unspecified rand error")
             .generate_signator()
             .expect("fail to generatye signator"),
     );
@@ -139,6 +140,7 @@ fn test_revert_blocks_gt() {
     // Generate 7 forks blocks from 547 to 553 included
     let signator = SignatorEnum::Ed25519(
         dup_crypto::keys::ed25519::Ed25519KeyPair::generate_random()
+            .expect("unspecified rand error")
             .generate_signator()
             .expect("fail to generatye signator"),
     );

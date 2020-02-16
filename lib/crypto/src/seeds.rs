@@ -17,7 +17,6 @@
 
 use crate::bases::b58::{bytes_to_str_base58, ToBase58};
 use crate::bases::*;
-use durs_common_tools::fatal_error;
 use ring::rand;
 use std::fmt::{self, Debug, Display, Formatter};
 use zeroize::Zeroize;
@@ -64,12 +63,9 @@ impl Seed32 {
     }
     #[inline]
     /// Generate random seed
-    pub fn random() -> Seed32 {
-        if let Ok(random_bytes) = rand::generate::<[u8; 32]>(&rand::SystemRandom::new()) {
-            Seed32::new(random_bytes.expose())
-        } else {
-            fatal_error!("System error: fail to generate random seed !")
-        }
+    pub fn random() -> Result<Seed32, crate::errors::Unspecified> {
+        let random_bytes = rand::generate::<[u8; 32]>(&rand::SystemRandom::new())?;
+        Ok(Seed32::new(random_bytes.expose()))
     }
 }
 

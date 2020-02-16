@@ -142,7 +142,9 @@ mod tests {
 
     fn keypairs() -> DuniterKeyPairs {
         DuniterKeyPairs {
-            network_keypair: KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair::generate_random()),
+            network_keypair: KeyPairEnum::Ed25519(
+                ed25519::Ed25519KeyPair::generate_random().expect("unspecified rand error"),
+            ),
             member_keypair: None,
         }
     }

@@ -128,7 +128,7 @@ pub struct WS2Pv2ConnectMsg {
 impl Default for WS2Pv2ConnectMsg {
     fn default() -> Self {
         WS2Pv2ConnectMsg {
-            challenge: Hash::random(),
+            challenge: Hash::random().expect("unspecified rand error"),
             api_features: WS2PFeatures([0u8; 4]),
             flags_queries: WS2PConnectFlags(vec![]),
             peer_card: None,

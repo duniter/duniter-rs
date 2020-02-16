@@ -15,6 +15,20 @@
 
 //! Manage cryptographic errors.
 
-#[derive(Clone, Copy, Debug)]
-/// Cryptographic error
-pub enum CryptoError {}
+/// An error with absolutely no details.
+///
+/// *dup-crypto* uses this unit type as the error type in most of its results
+/// because (a) usually the specific reasons for a failure are obvious or are
+/// not useful to know, and/or (b) providing more details about a failure might
+/// provide a dangerous side channel, and/or (c) it greatly simplifies the
+/// error handling logic.
+///
+/// Experience with using and implementing other crypto libraries like has
+/// shown that sophisticated error reporting facilities often cause significant
+/// bugs themselves, both within the crypto library and within users of the
+/// crypto library. This approach attempts to minimize complexity in the hopes
+/// of avoiding such problems. In some cases, this approach may be too extreme,
+/// and it may be important for an operation to provide some details about the
+/// cause of a failure. Users of *dup-crypto* are encouraged to report such cases so
+/// that they can be addressed individually.
+pub type Unspecified = ring::error::Unspecified;

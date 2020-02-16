@@ -91,7 +91,7 @@ mod tests {
     #[test]
     fn test_ws2p_message_ack() {
         test_ws2p_message(WS2Pv2MessagePayload::Ack {
-            challenge: Hash::random(),
+            challenge: Hash::random().expect("unspecified rand error"),
         });
     }
 

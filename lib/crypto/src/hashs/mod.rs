@@ -16,7 +16,6 @@
 //! Provide wrappers for cryptographic hashs
 
 use crate::bases::*;
-use durs_common_tools::fatal_error;
 use ring::{digest, rand};
 use std::fmt::{Debug, Display, Error, Formatter};
 
@@ -50,12 +49,9 @@ impl Hash {
 
     /// Generate a random Hash
     #[inline]
-    pub fn random() -> Self {
-        if let Ok(random_bytes) = rand::generate::<[u8; 32]>(&rand::SystemRandom::new()) {
-            Hash(random_bytes.expose())
-        } else {
-            fatal_error!("System error: fail to generate random hash !")
-        }
+    pub fn random() -> Result<Self, crate::errors::Unspecified> {
+        let random_bytes = rand::generate::<[u8; 32]>(&rand::SystemRandom::new())?;
+        Ok(Hash(random_bytes.expose()))
     }
 
     /// Compute hash of any binary datas

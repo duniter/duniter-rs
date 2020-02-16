@@ -230,7 +230,7 @@ impl DursConfTrait for DuRsConf {
 
 #[inline]
 fn generate_random_node_id() -> u32 {
-    rand::gen_u32()
+    rand::gen_u32().expect("unspecified rand error")
 }
 
 /// Return the user datas folder name

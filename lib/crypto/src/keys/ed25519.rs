@@ -309,8 +309,8 @@ impl super::KeyPair for Ed25519KeyPair {
 
 impl Ed25519KeyPair {
     /// Generate random keypair
-    pub fn generate_random() -> Self {
-        KeyPairFromSeed32Generator::generate(Seed32::random())
+    pub fn generate_random() -> Result<Self, crate::errors::Unspecified> {
+        Ok(KeyPairFromSeed32Generator::generate(Seed32::random()?))
     }
 }
 
