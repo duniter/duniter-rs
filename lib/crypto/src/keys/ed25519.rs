@@ -23,11 +23,13 @@ use super::PublicKey as PublicKeyMethods;
 use super::{PubkeyFromBytesError, SigError};
 use crate::bases::b58::{bytes_to_str_base58, ToBase58};
 use crate::bases::*;
+use crate::rand::UnspecifiedRandError;
 use crate::seeds::Seed32;
 use base64;
 use ring::signature::{Ed25519KeyPair as RingKeyPair, KeyPair, UnparsedPublicKey, ED25519};
-use serde::de::{Deserialize, Deserializer, Error, SeqAccess, Visitor};
-use serde::ser::{Serialize, SerializeTuple, Serializer};
+use serde::de::{Deserializer, Error, SeqAccess, Visitor};
+use serde::ser::{SerializeTuple, Serializer};
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
@@ -309,7 +311,7 @@ impl super::KeyPair for Ed25519KeyPair {
 
 impl Ed25519KeyPair {
     /// Generate random keypair
-    pub fn generate_random() -> Result<Self, crate::errors::Unspecified> {
+    pub fn generate_random() -> Result<Self, UnspecifiedRandError> {
         Ok(KeyPairFromSeed32Generator::generate(Seed32::random()?))
     }
 }

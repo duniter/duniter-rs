@@ -20,6 +20,9 @@ use serde::{Deserialize, Serialize};
 
 /// Signatureable in binary format
 pub trait BinSignable<'de>: Serialize + Deserialize<'de> {
+    /// Error when serialize self into binary
+    type SerdeError: std::error::Error;
+
     /// Return entity issuer pubkey
     fn issuer_pubkey(&self) -> PubKey;
     /// Return signature
@@ -27,7 +30,7 @@ pub trait BinSignable<'de>: Serialize + Deserialize<'de> {
     /// Change signature
     fn set_signature(&mut self, _signature: Sig);
     /// Get binary datas without signature
-    fn get_bin_without_sig(&self) -> Result<Vec<u8>, failure::Error>;
+    fn get_bin_without_sig(&self) -> Result<Vec<u8>, Self::SerdeError>;
     /// Add signature to bin datas
     fn add_sig_to_bin_datas(&self, bin_datas: &mut Vec<u8>);
     /// Sign entity with a signator
@@ -90,13 +93,15 @@ mod tests {
     }
 
     impl BinSignable<'_> for BinSignableTestImpl {
+        type SerdeError = bincode::Error;
+
         #[inline]
         fn add_sig_to_bin_datas(&self, bin_datas: &mut Vec<u8>) {
             bin_datas
                 .extend_from_slice(&bincode::serialize(&self.sig).expect("Fail to binarize sig !"));
         }
         #[inline]
-        fn get_bin_without_sig(&self) -> Result<Vec<u8>, failure::Error> {
+        fn get_bin_without_sig(&self) -> Result<Vec<u8>, bincode::Error> {
             let mut bin_msg = bincode::serialize(&self)?;
             let sig_size = bincode::serialized_size(&self.signature())?;
             let bin_msg_len = bin_msg.len();

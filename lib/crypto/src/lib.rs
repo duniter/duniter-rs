@@ -29,13 +29,7 @@
 )]
 #![allow(non_camel_case_types)]
 
-#[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate serde_derive;
-
 pub mod bases;
-pub mod errors;
 pub mod hashs;
 pub mod keys;
 pub mod rand;

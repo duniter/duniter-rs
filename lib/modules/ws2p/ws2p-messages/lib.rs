@@ -116,6 +116,8 @@ impl WS2PMessage {
 }
 
 impl<'de> BinSignable<'de> for WS2PMessage {
+    type SerdeError = bincode::Error;
+
     #[inline]
     fn add_sig_to_bin_datas(&self, bin_datas: &mut Vec<u8>) {
         bin_datas.extend_from_slice(
@@ -123,7 +125,7 @@ impl<'de> BinSignable<'de> for WS2PMessage {
         );
     }
     #[inline]
-    fn get_bin_without_sig(&self) -> Result<Vec<u8>, failure::Error> {
+    fn get_bin_without_sig(&self) -> Result<Vec<u8>, bincode::Error> {
         let mut bin_msg = bincode::serialize(&self)?;
         let sig_size = bincode::serialized_size(&self.signature())?;
         let bin_msg_len = bin_msg.len();

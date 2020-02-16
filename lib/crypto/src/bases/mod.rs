@@ -15,6 +15,8 @@
 
 //! Provide base convertion tools
 
+use thiserror::Error;
+
 /// Base16 conversion tools
 pub mod b16;
 
@@ -25,12 +27,9 @@ pub mod b58;
 pub mod b64;
 
 /// Errors enumeration for Base58/64 strings convertion.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Fail)]
+#[derive(Clone, Copy, Debug, Error, Eq, PartialEq)]
 pub enum BaseConvertionError {
-    #[fail(
-        display = "Data have invalid key length : expected {}, found {}.",
-        expected, found
-    )]
+    #[error("Data have invalid key length : expected {expected:?}, found {found:?}.")]
     /// Data have invalid length.
     InvalidLength {
         /// Expected length
@@ -38,7 +37,7 @@ pub enum BaseConvertionError {
         /// Actual length
         found: usize,
     },
-    #[fail(display = "Invalid character '{}' at offset {}.", character, offset)]
+    #[error("Invalid character '{character:?}' at offset {offset:?}.")]
     /// Base58/64 have an invalid character.
     InvalidCharacter {
         /// Character
@@ -46,10 +45,10 @@ pub enum BaseConvertionError {
         /// Offset (=position)
         offset: usize,
     },
-    #[fail(display = "Invalid base converter length.")]
+    #[error("Invalid base converter length.")]
     /// Base58/64 have invalid lendth
     InvalidBaseConverterLength,
-    #[fail(display = "Invalid last symbol '{}' at offset {}.", symbol, offset)]
+    #[error("Invalid last symbol '{symbol:?}' at offset {offset:?}.")]
     /// Base64 have invalid last symbol (symbol, offset)
     InvalidLastSymbol {
         /// Symbol
@@ -58,7 +57,7 @@ pub enum BaseConvertionError {
         offset: usize,
     },
     /// Unknown error
-    #[fail(display = "Unknown error.")]
+    #[error("Unknown error.")]
     UnknownError,
 }
 

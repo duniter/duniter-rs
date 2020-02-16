@@ -16,7 +16,9 @@
 //! Provide wrappers for cryptographic hashs
 
 use crate::bases::*;
+use crate::rand::UnspecifiedRandError;
 use ring::{digest, rand};
+use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Error, Formatter};
 
 /// A hash wrapper.
@@ -49,8 +51,9 @@ impl Hash {
 
     /// Generate a random Hash
     #[inline]
-    pub fn random() -> Result<Self, crate::errors::Unspecified> {
-        let random_bytes = rand::generate::<[u8; 32]>(&rand::SystemRandom::new())?;
+    pub fn random() -> Result<Self, UnspecifiedRandError> {
+        let random_bytes = rand::generate::<[u8; 32]>(&rand::SystemRandom::new())
+            .map_err(|_| UnspecifiedRandError)?;
         Ok(Hash(random_bytes.expose()))
     }
 

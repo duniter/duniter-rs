@@ -56,7 +56,7 @@ pub use crate::seeds::Seed32;
 
 use crate::bases::b58::ToBase58;
 use crate::bases::BaseConvertionError;
-use failure::Fail;
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::fmt::Display;
@@ -64,6 +64,7 @@ use std::fmt::Error;
 use std::fmt::Formatter;
 use std::hash::Hash;
 use std::str::FromStr;
+use thiserror::Error;
 
 /// Cryptographic keys algorithms list
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
@@ -81,39 +82,39 @@ pub trait GetKeysAlgo: Clone + Debug + PartialEq + Eq {
 }
 
 /// Errors enumeration for signature verification.
-#[derive(Debug, Eq, Fail, PartialEq)]
+#[derive(Debug, Eq, Error, PartialEq)]
 pub enum SigError {
     /// Signature and pubkey are not the same algo
-    #[fail(display = "Signature and pubkey are not the same algo.")]
+    #[error("Signature and pubkey are not the same algo.")]
     NotSameAlgo,
     /// Invalid signature
-    #[fail(display = "Invalid signature.")]
+    #[error("Invalid signature.")]
     InvalidSig,
     /// Absence of signature
-    #[fail(display = "Absence of signature.")]
+    #[error("Absence of signature.")]
     NotSig,
     /// Serialization error
-    #[fail(display = "Serialization error: {}", _0)]
+    #[error("Serialization error: {0}")]
     SerdeError(String),
 }
 
 /// SignError
-#[derive(Debug, Eq, Fail, PartialEq)]
+#[derive(Debug, Eq, Error, PartialEq)]
 pub enum SignError {
     /// Corrupted key pair
-    #[fail(display = "Corrupted key pair.")]
+    #[error("Corrupted key pair.")]
     CorruptedKeyPair,
     /// WrongAlgo
-    #[fail(display = "Wrong algo.")]
+    #[error("Wrong algo.")]
     WrongAlgo,
     /// WrongPrivkey
-    #[fail(display = "Wrong private key.")]
+    #[error("Wrong private key.")]
     WrongPrivkey,
     /// AlreadySign
-    #[fail(display = "Already signed.")]
+    #[error("Already signed.")]
     AlreadySign,
     /// Serialization error
-    #[fail(display = "Serialization error: {}", _0)]
+    #[error("Serialization error: {0}")]
     SerdeError(String),
 }
 
@@ -596,14 +597,13 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "Try to verify a signature with key pair of a different algorithm !\n\
-                    Signature=Schnorr\nKeyPair=(4zvwRjXUKGfvwnParsHAS3HuSVzV5cA4McphgmoCtajS, hidden)"
-    )]
     fn key_pair_verify_wrong_sig_algo() {
         let false_key_pair_ed25519 = false_key_pair_ed25519();
         let false_key_pair = KeyPairEnum::Ed25519(false_key_pair_ed25519);
-        let _ = false_key_pair.verify(b"message", &Sig::Schnorr());
+        assert_eq!(
+            Err(SigError::NotSameAlgo),
+            false_key_pair.verify(b"message", &Sig::Schnorr()),
+        );
     }
 
     #[test]
@@ -656,13 +656,12 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "Try to verify a signature with public key of a different algorithm !\n\
-        Signature=Schnorr\nPublickey=Ed25519(PublicKey { 11111111111111111111111111111111 })"
-    )]
     fn pubkey_verify_sig_wrong_algo() {
         let pubkey = PubKey::default();
-        let _ = pubkey.verify(b"message", &Sig::Schnorr());
+        assert_eq!(
+            Err(SigError::NotSameAlgo),
+            pubkey.verify(b"message", &Sig::Schnorr()),
+        );
     }
 
     #[test]
