@@ -165,6 +165,7 @@ mod tests {
     use dubp_common_doc::Blockstamp;
 
     use dup_crypto::keys::*;
+    use durs_common_tools::UsizeSer32;
 
     // simple text document for signature testing
     #[derive(Debug, Clone, PartialEq, Eq)]
@@ -177,7 +178,7 @@ mod tests {
     impl Document for PlainTextDocument {
         type PublicKey = PubKey;
 
-        fn version(&self) -> usize {
+        fn version(&self) -> UsizeSer32 {
             unimplemented!()
         }
 

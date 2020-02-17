@@ -39,6 +39,7 @@ use dubp_common_doc::traits::text::*;
 use dubp_common_doc::traits::{Document, DocumentBuilder, ToStringObject};
 use dubp_common_doc::{BlockHash, BlockNumber};
 use dup_crypto::hashs::Hash;
+use durs_common_tools::UsizeSer32;
 
 #[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq)]
 /// Wrap an Compact Revocation document (in block content)
@@ -193,8 +194,8 @@ impl RevocationDocumentV10 {
 impl Document for RevocationDocumentV10 {
     type PublicKey = PubKey;
 
-    fn version(&self) -> usize {
-        10
+    fn version(&self) -> UsizeSer32 {
+        UsizeSer32(10)
     }
 
     fn currency(&self) -> &str {

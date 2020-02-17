@@ -20,6 +20,7 @@ dubp-user-docs = { path = "../../dubp/user-docs" }
 dup-crypto = "0.8.1"
 dup-crypto-tests-tools = { path = "../crypto-tests-tools" }
 dubp-user-docs-tests-tools = { path = "../user-docs-tests-tools" }
+durs-common-tools = { path = "../../tools/common-tools" }
 json-pest-parser = { path = "../../tools/json-pest-parser" }
 failure = "0.1.5"
 

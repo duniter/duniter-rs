@@ -22,6 +22,7 @@ use dubp_common_doc::traits::{Document, ToStringObject};
 use dubp_common_doc::{BlockHash, BlockNumber};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::{PubKey, PublicKey, SignatorEnum};
+use durs_common_tools::UsizeSer32;
 
 pub use v10::{BlockDocumentV10, BlockDocumentV10Stringified};
 
@@ -60,7 +61,7 @@ pub trait BlockDocumentTrait {
     /// Compute the character string that will be signed
     fn compute_will_signed_string(&self) -> String;
     /// Get current frame size (in blocks)
-    fn current_frame_size(&self) -> usize;
+    fn current_frame_size(&self) -> UsizeSer32;
     /// Generate compact inner text (for compute inner_hash)
     fn generate_compact_inner_text(&self) -> String;
     /// Compute hash and save it in document
@@ -74,13 +75,13 @@ pub trait BlockDocumentTrait {
     /// Get block inner hash
     fn inner_hash(&self) -> Option<Hash>;
     /// Get number of compute members in the current frame
-    fn issuers_count(&self) -> usize;
+    fn issuers_count(&self) -> UsizeSer32;
     /// Get number of members in wot
-    fn members_count(&self) -> usize;
+    fn members_count(&self) -> UsizeSer32;
     /// Get block number
     fn number(&self) -> BlockNumber;
     /// Get common difficulty (PoW)
-    fn pow_min(&self) -> usize;
+    fn pow_min(&self) -> UsizeSer32;
     /// Get previous hash
     fn previous_hash(&self) -> Option<Hash>;
     /// Get previous blockstamp
@@ -115,7 +116,7 @@ impl BlockDocumentTrait for BlockDocument {
         }
     }
     #[inline]
-    fn current_frame_size(&self) -> usize {
+    fn current_frame_size(&self) -> UsizeSer32 {
         match self {
             BlockDocument::V10(block) => block.current_frame_size(),
         }
@@ -157,13 +158,13 @@ impl BlockDocumentTrait for BlockDocument {
         }
     }
     #[inline]
-    fn issuers_count(&self) -> usize {
+    fn issuers_count(&self) -> UsizeSer32 {
         match self {
             BlockDocument::V10(block) => block.issuers_count(),
         }
     }
     #[inline]
-    fn members_count(&self) -> usize {
+    fn members_count(&self) -> UsizeSer32 {
         match self {
             BlockDocument::V10(block) => block.members_count(),
         }
@@ -181,7 +182,7 @@ impl BlockDocumentTrait for BlockDocument {
         }
     }
     #[inline]
-    fn pow_min(&self) -> usize {
+    fn pow_min(&self) -> UsizeSer32 {
         match self {
             BlockDocument::V10(block) => block.pow_min(),
         }
@@ -227,7 +228,7 @@ impl BlockDocumentTrait for BlockDocument {
 impl Document for BlockDocument {
     type PublicKey = PubKey;
 
-    fn version(&self) -> usize {
+    fn version(&self) -> UsizeSer32 {
         match self {
             BlockDocument::V10(block_v10_12) => block_v10_12.version(),
         }

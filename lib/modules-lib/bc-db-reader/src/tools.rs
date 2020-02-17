@@ -31,12 +31,13 @@ pub fn compute_median_issuers_frame<S: std::hash::BuildHasher>(
         current_frame_vec.sort_unstable();
 
         // Calculate median
-        let mut median_index = match current_block.block.issuers_count() % 2 {
-            1 => (current_block.block.issuers_count() / 2) + 1,
-            _ => current_block.block.issuers_count() / 2,
+        let current_block_issuers_count = usize::from(current_block.block.issuers_count());
+        let mut median_index = match current_block_issuers_count % 2 {
+            1 => (current_block_issuers_count / 2) + 1,
+            _ => current_block_issuers_count / 2,
         };
-        if median_index >= current_block.block.issuers_count() {
-            median_index = current_block.block.issuers_count() - 1;
+        if median_index >= current_block_issuers_count {
+            median_index = current_block_issuers_count - 1;
         }
         current_frame_vec[median_index]
 

@@ -47,6 +47,7 @@ mod tests {
     use dup_crypto::hashs::Hash;
     use dup_crypto_tests_tools::mocks::{hash, pubkey};
     use durs_bc_db_reader::blocks::BlockDb;
+    use durs_common_tools::UsizeSer32;
     use mockall::predicate::eq;
     use serde_json::json;
 
@@ -69,8 +70,8 @@ mod tests {
                     Hash::default(),
                 );
                 block.issuers = vec![pubkey('B')];
-                block.issuers_count = 3;
-                block.pow_min = 70;
+                block.issuers_count = UsizeSer32(3);
+                block.pow_min = UsizeSer32(70);
                 Ok(Some(BlockDb {
                     block: BlockDocument::V10(block),
                     expire_certs: None,

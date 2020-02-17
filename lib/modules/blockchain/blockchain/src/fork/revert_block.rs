@@ -24,7 +24,7 @@ use durs_bc_db_reader::blocks::BlockDb;
 use durs_bc_db_reader::indexes::sources::SourceAmount;
 use durs_bc_db_writer::writers::requests::*;
 use durs_bc_db_writer::{BinFreeStructDb, DbError};
-use durs_common_tools::fatal_error;
+use durs_common_tools::{fatal_error, UsizeSer32};
 use durs_wot::data::{NewLinkResult, RemLinkResult};
 use durs_wot::{WebOfTrust, WotId};
 use std::collections::HashMap;
@@ -87,7 +87,7 @@ pub fn revert_block_v10<W: WebOfTrust>(
         )));
     }
     // Revert UD
-    if let Some(du_amount) = block.dividend {
+    if let Some(UsizeSer32(du_amount)) = block.dividend {
         if du_amount > 0 {
             let members_wot_ids = wot_db
                 .read(WebOfTrust::get_enabled)
@@ -99,7 +99,7 @@ pub fn revert_block_v10<W: WebOfTrust>(
                 }
             }
             currency_dbs_requests.push(CurrencyDBsWriteQuery::RevertUD(
-                SourceAmount(TxAmount(du_amount as isize), TxBase(block.unit_base)),
+                SourceAmount(TxAmount(du_amount as isize), TxBase(block.unit_base.into())),
                 block.number,
                 members_pubkeys,
             ));

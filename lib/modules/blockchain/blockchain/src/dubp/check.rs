@@ -67,7 +67,7 @@ pub fn check_block<DB: BcDbInReadTx>(
             // Verify proof of work
             // The case where the block has none hash is captured by check_block_hashes below
             if let Some(hash) = block_doc.hash() {
-                pow::verify_hash_pattern(hash.0, block_doc.pow_min())
+                pow::verify_hash_pattern(hash.0, block_doc.pow_min().into())
                     .map_err(CheckBlockError::Pow)?;
             }
             // Check block hashes.

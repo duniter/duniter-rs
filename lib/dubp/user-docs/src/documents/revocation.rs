@@ -22,6 +22,7 @@ use dubp_common_doc::blockstamp::Blockstamp;
 use dubp_common_doc::parser::{DocumentsParser, TextDocumentParseError, TextDocumentParser};
 use dubp_common_doc::traits::{Document, ToStringObject};
 use dup_crypto::keys::*;
+use durs_common_tools::UsizeSer32;
 use pest::Parser;
 
 pub use v10::{
@@ -51,9 +52,9 @@ impl Document for RevocationDocument {
     type PublicKey = PubKey;
 
     #[inline]
-    fn version(&self) -> usize {
+    fn version(&self) -> UsizeSer32 {
         match self {
-            RevocationDocument::V10(_) => 10,
+            RevocationDocument::V10(revoc_10) => revoc_10.version(),
         }
     }
 

@@ -17,6 +17,7 @@
 
 use dubp_block_doc::BlockDocument;
 use dubp_common_doc::BlockNumber;
+use durs_common_tools::UsizeSer32;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -25,7 +26,7 @@ pub struct CurrentUdDb {
     pub base: usize,
     pub block_number: BlockNumber,
     pub members_count: usize,
-    pub monetary_mass: usize,
+    pub monetary_mass: u64,
     pub common_time: u64,
 }
 
@@ -44,13 +45,13 @@ impl Into<Option<CurrentUdDb>> for CurrentUdDbInternal {
 impl CurrentUdDbInternal {
     pub fn update(&mut self, block_doc: &BlockDocument) {
         let BlockDocument::V10(ref block_doc_v10) = block_doc;
-        if let Some(dividend) = block_doc_v10.dividend {
+        if let Some(UsizeSer32(dividend)) = block_doc_v10.dividend {
             self.previous = self.current;
             self.current = Some(CurrentUdDb {
                 amount: dividend,
-                base: block_doc_v10.unit_base,
+                base: block_doc_v10.unit_base.into(),
                 block_number: block_doc_v10.number,
-                members_count: block_doc_v10.members_count,
+                members_count: block_doc_v10.members_count.into(),
                 monetary_mass: block_doc_v10.monetary_mass,
                 common_time: block_doc_v10.median_time,
             })

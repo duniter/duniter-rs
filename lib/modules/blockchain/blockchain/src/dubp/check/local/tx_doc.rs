@@ -21,6 +21,7 @@ use dubp_common_doc::traits::Document;
 use dubp_user_docs::documents::transaction::v10::TransactionDocumentV10;
 use dubp_user_docs::documents::transaction::TransactionDocumentTrait;
 use durs_common_tools::traits::bool_ext::BoolExt;
+use durs_common_tools::UsizeSer32;
 
 #[derive(Debug, PartialEq)]
 /// Transaction Document Error
@@ -38,7 +39,7 @@ pub enum TransactionDocumentError {
 
 /// Local verification of a Tx Document
 pub fn local_verify_tx_doc_v10(
-    dubp_version: usize,
+    dubp_version: UsizeSer32,
     tx_doc: &TransactionDocumentV10,
 ) -> Result<(), TransactionDocumentError> {
     // A transaction in compact format must measure less than 100 lines
@@ -56,7 +57,7 @@ pub fn local_verify_tx_doc_v10(
     // Signatures are made over the transaction's content, signatures excepted
     ////////////////////////////////////////////////////////////////////////////////////
     // Temporary disabled due to #183
-    if dubp_version >= 12 {
+    if usize::from(dubp_version) >= 12 {
         tx_doc
             .verify_signatures()
             .map_err(TransactionDocumentError::TxSignatureError)?;
@@ -158,7 +159,7 @@ mod tests {
     #[test]
     fn test_tx_valid() {
         let TransactionDocument::V10(tx) = gen_mock_tx_doc();
-        assert_eq!(Ok(()), local_verify_tx_doc_v10(10, &tx));
+        assert_eq!(Ok(()), local_verify_tx_doc_v10(UsizeSer32(10), &tx));
     }
 
     #[test]
@@ -172,7 +173,7 @@ mod tests {
         let tx = tx_builder.build_with_signature(vec![sig1()]);
 
         let expected = Err(TransactionDocumentError::MissingInput);
-        let actual = local_verify_tx_doc_v10(10, &tx);
+        let actual = local_verify_tx_doc_v10(UsizeSer32(10), &tx);
         assert_eq!(expected, actual);
     }
 
@@ -190,7 +191,7 @@ mod tests {
             expected_max_length: 100,
             actual_length: 107,
         });
-        let actual = local_verify_tx_doc_v10(10, &tx);
+        let actual = local_verify_tx_doc_v10(UsizeSer32(10), &tx);
         assert_eq!(expected, actual);
     }
 

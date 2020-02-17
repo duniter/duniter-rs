@@ -36,7 +36,7 @@ use dubp_user_docs::documents::transaction::v10::{
 };
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
-use durs_common_tools::fatal_error;
+use durs_common_tools::{fatal_error, UsizeSer32};
 use unwrap::unwrap;
 
 /// Wrap a Block document.
@@ -45,27 +45,27 @@ use unwrap::unwrap;
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct BlockDocumentV10 {
     /// Version
-    pub version: u32,
+    pub version: UsizeSer32,
     /// Nonce
     pub nonce: u64,
     /// number
     pub number: BlockNumber,
     /// Minimal proof of work difficulty
-    pub pow_min: usize,
+    pub pow_min: UsizeSer32,
     /// Local time of the block issuer
     pub time: u64,
     /// Average time
     pub median_time: u64,
     /// Members count
-    pub members_count: usize,
+    pub members_count: UsizeSer32,
     /// Monetary mass
-    pub monetary_mass: usize,
+    pub monetary_mass: u64,
     /// Unit base (power of ten)
-    pub unit_base: usize,
+    pub unit_base: UsizeSer32,
     /// Number of compute members in the current frame
-    pub issuers_count: usize,
+    pub issuers_count: UsizeSer32,
     /// Current frame size (in blocks)
-    pub issuers_frame: usize,
+    pub issuers_frame: UsizeSer32,
     /// Current frame variation buffer
     pub issuers_frame_var: isize,
     /// Currency.
@@ -86,7 +86,7 @@ pub struct BlockDocumentV10 {
     /// Hash of the deterministic content of the block
     pub inner_hash: Option<Hash>,
     /// Amount of new dividend created at this block, None if no dividend is created at this block
-    pub dividend: Option<usize>,
+    pub dividend: Option<UsizeSer32>,
     /// Identities
     pub identities: Vec<IdentityDocumentV10>,
     /// joiners
@@ -128,7 +128,7 @@ impl BlockDocumentTrait for BlockDocumentV10 {
             self.nonce
         )
     }
-    fn current_frame_size(&self) -> usize {
+    fn current_frame_size(&self) -> UsizeSer32 {
         self.issuers_frame
     }
     fn generate_compact_inner_text(&self) -> String {
@@ -178,7 +178,7 @@ impl BlockDocumentTrait for BlockDocumentV10 {
             transactions_str.push_str(&transaction.generate_compact_text());
         }
         let mut dividend_str = String::from("");
-        if let Some(dividend) = self.dividend {
+        if let Some(UsizeSer32(dividend)) = self.dividend {
             if dividend > 0 {
                 dividend_str.push_str("UniversalDividend: ");
                 dividend_str.push_str(&dividend.to_string());
@@ -272,16 +272,16 @@ Transactions:{transactions}
     fn inner_hash(&self) -> Option<Hash> {
         self.inner_hash
     }
-    fn issuers_count(&self) -> usize {
+    fn issuers_count(&self) -> UsizeSer32 {
         self.issuers_count
     }
-    fn members_count(&self) -> usize {
+    fn members_count(&self) -> UsizeSer32 {
         self.members_count
     }
     fn number(&self) -> BlockNumber {
         self.number
     }
-    fn pow_min(&self) -> usize {
+    fn pow_min(&self) -> UsizeSer32 {
         self.pow_min
     }
     fn previous_blockstamp(&self) -> Blockstamp {
@@ -370,8 +370,8 @@ impl Document for BlockDocumentV10 {
     type PublicKey = PubKey;
 
     #[inline]
-    fn version(&self) -> usize {
-        self.version as usize
+    fn version(&self) -> UsizeSer32 {
+        self.version
     }
 
     #[inline]
@@ -467,7 +467,7 @@ pub struct BlockDocumentV10Stringified {
     /// Number of compute members in the current frame
     pub issuers_count: u64,
     /// Current frame size (in blocks)
-    pub issuers_frame: i64,
+    pub issuers_frame: u64,
     /// Current frame variation buffer
     pub issuers_frame_var: i64,
     /// Currency.
@@ -512,17 +512,17 @@ impl ToStringObject for BlockDocumentV10 {
     /// Transforms an object into a json object
     fn to_string_object(&self) -> BlockDocumentV10Stringified {
         BlockDocumentV10Stringified {
-            version: u64::from(self.version),
+            version: self.version.into(),
             nonce: self.nonce,
             number: u64::from(self.number.0),
-            pow_min: self.pow_min as u64,
+            pow_min: self.pow_min.into(),
             time: self.time,
             median_time: self.median_time,
-            members_count: self.members_count as u64,
-            monetary_mass: self.monetary_mass as u64,
-            unit_base: self.unit_base as u64,
-            issuers_count: self.issuers_count as u64,
-            issuers_frame: self.issuers_frame as i64,
+            members_count: self.members_count.into(),
+            monetary_mass: self.monetary_mass,
+            unit_base: self.unit_base.into(),
+            issuers_count: self.issuers_count.into(),
+            issuers_frame: self.issuers_frame.into(),
             issuers_frame_var: self.issuers_frame_var as i64,
             currency: self.currency.to_string(),
             issuers: self.issuers.iter().map(ToString::to_string).collect(),
@@ -532,7 +532,7 @@ impl ToStringObject for BlockDocumentV10 {
             previous_hash: self.previous_hash.map(|hash| hash.to_string()),
             previous_issuer: self.previous_issuer.map(|p| p.to_string()),
             inner_hash: self.inner_hash.map(|hash| hash.to_string()),
-            dividend: self.dividend.map(|dividend| dividend as u64),
+            dividend: self.dividend.map(Into::into),
             identities: self
                 .identities
                 .iter()
@@ -603,16 +603,16 @@ mod tests {
     fn generate_and_verify_empty_block() {
         let mut block = BlockDocumentV10 {
             nonce: 100_010_200_000_006_940,
-            version: 10,
+            version: UsizeSer32(10),
             number: BlockNumber(174_260),
-            pow_min: 68,
+            pow_min: UsizeSer32(68),
             time: 1_525_296_873,
             median_time: 1_525_292_577,
-            members_count: 33,
+            members_count: UsizeSer32(33),
             monetary_mass: 15_633_687,
-            unit_base: 0,
-            issuers_count: 8,
-            issuers_frame: 41,
+            unit_base: UsizeSer32(0),
+            issuers_count: UsizeSer32(8),
+            issuers_frame: UsizeSer32(41),
             issuers_frame_var: 0,
             currency: CurrencyName(String::from("g1-test")),
             issuers: vec![PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58("39Fnossy1GrndwCnAXGDw3K5UYXhNXAFQe7yhYZp8ELP"), "Fail to build PublicKey from base58"))],
@@ -704,16 +704,16 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
 
         let mut block = BlockDocumentV10 {
             nonce: 10_300_000_018_323,
-            version: 10,
+            version: UsizeSer32(10),
             number: BlockNumber(107_984),
-            pow_min: 88,
+            pow_min: UsizeSer32(88),
             time: 1_522_685_861,
             median_time: 1_522_683_184,
-            members_count: 896,
+            members_count: UsizeSer32(896),
             monetary_mass: 140_469_765,
-            unit_base: 0,
-            issuers_count: 42,
-            issuers_frame: 211,
+            unit_base: UsizeSer32(0),
+            issuers_count: UsizeSer32(42),
+            issuers_frame: UsizeSer32(211),
             issuers_frame_var: 0,
             currency: CurrencyName(String::from("g1")),
             issuers: vec![PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58("DA4PYtXdvQqk1nCaprXH52iMsK5Ahxs1nRWbWKLhpVkQ"), "Fail to build PublicKey from base58"))],
@@ -884,16 +884,16 @@ nxr4exGrt16jteN9ZX3XZPP9l+X0OUbZ1o/QjE1hbWQNtVU3HhH9SJoEvNj2iVl3gCRr9u2OA9uj9vCy
 
         let mut block = BlockDocumentV10 {
             nonce: 10_300_000_090_296,
-            version: 10,
+            version: UsizeSer32(10),
             number: BlockNumber(165_647),
-            pow_min: 90,
+            pow_min: UsizeSer32(90),
             time: 1_540_633_175,
             median_time: 1_540_627_811,
-            members_count: 1402,
+            members_count: UsizeSer32(1402),
             monetary_mass: 386_008_811,
-            unit_base: 0,
-            issuers_count: 37,
-            issuers_frame: 186,
+            unit_base: UsizeSer32(0),
+            issuers_count: UsizeSer32(37),
+            issuers_frame: UsizeSer32(186),
             issuers_frame_var: 0,
             currency: CurrencyName(String::from("g1")),
             issuers: vec![PubKey::Ed25519(unwrap!(ed25519::PublicKey::from_base58("A4pc9Uuk4NXkWG8CibicjjPpEPdiup1mhjMoRWUZsonq"), "Fail to build PublicKey from base58"))],

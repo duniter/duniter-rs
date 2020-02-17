@@ -31,6 +31,9 @@
 pub mod fns;
 pub mod macros;
 pub mod traits;
+mod usizeser32;
+
+pub use usizeser32::UsizeSer32;
 
 /// Percent
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

@@ -200,12 +200,12 @@ pub fn get_current_frame<DB: BcDbInReadTx>(
     current_block: &BlockDocument,
     db: &DB,
 ) -> Result<HashMap<PubKey, usize>, DbError> {
-    let frame_begin = current_block.number().0 - current_block.current_frame_size() as u32;
+    let frame_begin = current_block.number().0 - u32::from(current_block.current_frame_size());
 
     let blocks = get_blocks_in_local_blockchain(
         db,
         BlockNumber(frame_begin),
-        current_block.current_frame_size() as u32,
+        current_block.current_frame_size().into(),
     )?;
 
     let mut current_frame: HashMap<PubKey, usize> = HashMap::new();

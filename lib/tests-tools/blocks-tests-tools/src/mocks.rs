@@ -30,6 +30,7 @@ use dubp_user_docs::documents::transaction::*;
 use dup_crypto::bases::b16::str_hex_to_32bytes;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::{ed25519, PubKey, PublicKey, Sig, Signator, Signature};
+use durs_common_tools::UsizeSer32;
 
 /// Generate n mock blockstamps
 pub fn generate_blockstamps(n: usize) -> Vec<Blockstamp> {
@@ -110,17 +111,17 @@ pub fn gen_empty_issued_block_v10(issuer: PubKey) -> BlockDocumentV10 {
 
 fn gen_empty_block_v10(block_number: BlockNumber) -> BlockDocumentV10 {
     BlockDocumentV10 {
-        version: 10,
+        version: UsizeSer32(10),
         nonce: 0,
         number: block_number,
-        pow_min: 0,
+        pow_min: UsizeSer32(0),
         time: 0,
         median_time: 0,
-        members_count: 0,
+        members_count: UsizeSer32(0),
         monetary_mass: 0,
-        unit_base: 0,
-        issuers_count: 0,
-        issuers_frame: 0,
+        unit_base: UsizeSer32(0),
+        issuers_count: UsizeSer32(0),
+        issuers_frame: UsizeSer32(0),
         issuers_frame_var: 0,
         currency: CurrencyName("test_currency".to_owned()),
         issuers: vec![],
@@ -175,16 +176,16 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
 
     BlockDocumentV10 {
             nonce: 10_300_000_018_323,
-            version: 10,
+            version: UsizeSer32(10),
             number: BlockNumber(107_984),
-            pow_min: 88,
+            pow_min: UsizeSer32(88),
             time: 1_522_685_861,
             median_time: 1_522_683_184,
-            members_count: 896,
+            members_count: UsizeSer32(896),
             monetary_mass: 140_469_765,
-            unit_base: 0,
-            issuers_count: 42,
-            issuers_frame: 211,
+            unit_base: UsizeSer32(0),
+            issuers_count: UsizeSer32(42),
+            issuers_frame: UsizeSer32(211),
             issuers_frame_var: 0,
             currency: CurrencyName(String::from("g1")),
             issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58("DA4PYtXdvQqk1nCaprXH52iMsK5Ahxs1nRWbWKLhpVkQ").expect("fail to parse issuers"))],
@@ -213,16 +214,16 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
 pub fn gen_mock_genesis_block_v10() -> BlockDocumentV10 {
     BlockDocumentV10 {
             nonce: 0,
-            version: 10,
+            version: UsizeSer32(10),
             number: BlockNumber(0),
-            pow_min: 0,
+            pow_min: UsizeSer32(0),
             time: 0,
             median_time: 0,
-            members_count: 0,
+            members_count: UsizeSer32(0),
             monetary_mass: 0,
-            unit_base: 0,
-            issuers_count: 0,
-            issuers_frame: 0,
+            unit_base: UsizeSer32(0),
+            issuers_count: UsizeSer32(0),
+            issuers_frame: UsizeSer32(0),
             issuers_frame_var: 0,
             currency: CurrencyName(String::from("g1")),
             issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58("DA4PYtXdvQqk1nCaprXH52iMsK5Ahxs1nRWbWKLhpVkQ").expect("fail to parse issuers"))],

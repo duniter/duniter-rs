@@ -29,17 +29,19 @@ use dubp_common_doc::errors::DocumentSigsErr;
 use dubp_common_doc::traits::Document;
 use dubp_common_doc::BlockNumber;
 use dubp_currency_params::CurrencyParameters;
+use durs_common_tools::UsizeSer32;
 
 const COUNT_ALLOWED_BLOCK_VERSIONS: usize = 3;
-static ALLOWED_BLOCK_VERSIONS: [usize; COUNT_ALLOWED_BLOCK_VERSIONS] = [10, 11, 12];
+static ALLOWED_BLOCK_VERSIONS: [UsizeSer32; COUNT_ALLOWED_BLOCK_VERSIONS] =
+    [UsizeSer32(10), UsizeSer32(11), UsizeSer32(12)];
 
 #[derive(Debug, PartialEq)]
 /// Local verification of a block error
 pub enum LocalVerifyBlockError {
     /// Wrong block version
     Version {
-        expected_version: [usize; COUNT_ALLOWED_BLOCK_VERSIONS],
-        actual_version: u32,
+        expected_version: [UsizeSer32; COUNT_ALLOWED_BLOCK_VERSIONS],
+        actual_version: UsizeSer32,
     },
     /// Genesis block specific rules
     LocalVerifyGenesisBlockError(LocalVerifyGenesisBlockError),
@@ -108,7 +110,7 @@ pub fn verify_local_validity_block_v10(
     block: &BlockDocumentV10,
 ) -> Result<(), LocalVerifyBlockError> {
     // Version
-    if !ALLOWED_BLOCK_VERSIONS.contains(&(block.version as usize)) {
+    if !ALLOWED_BLOCK_VERSIONS.contains(&block.version) {
         return Err(LocalVerifyBlockError::Version {
             expected_version: ALLOWED_BLOCK_VERSIONS,
             actual_version: block.version,
@@ -126,7 +128,7 @@ pub fn verify_local_validity_block_v10(
     // As it has been checked that block.issuers.len() == 1 and as
     // block.issuers.len() == block.signatures.len() is check in block.verify_signatures()
     // there is no need to check that block.signatures.len() == 1
-    if block.version >= 12 {
+    if usize::from(block.version()) >= 12 {
         block
             .verify_signatures()
             .map_err(LocalVerifyBlockError::BlockSignatureError)?;
@@ -181,11 +183,11 @@ mod tests {
     fn test_verify_not_genesis_block_wrong_version() {
         let currency_params = gen_mock_currency_parameters();
         let mut block = gen_mock_normal_block_v10();
-        block.version = 14;
+        block.version = UsizeSer32(14);
 
         let expected = Err(LocalVerifyBlockError::Version {
             expected_version: ALLOWED_BLOCK_VERSIONS,
-            actual_version: 14,
+            actual_version: UsizeSer32(14),
         });
         let actual = verify_local_validity_block(&BlockDocument::V10(block), Some(currency_params));
         assert_eq!(expected, actual);

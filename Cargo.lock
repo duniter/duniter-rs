@@ -740,6 +740,7 @@ dependencies = [
  "dubp-user-docs-tests-tools 0.1.0",
  "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "dup-crypto-tests-tools 0.1.0",
+ "durs-common-tools 0.2.0",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "json-pest-parser 0.2.0",
 ]
@@ -966,6 +967,8 @@ name = "durs-common-tools"
 version = "0.2.0"
 dependencies = [
  "pretty_assertions 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
+ "shrinkwraprs 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

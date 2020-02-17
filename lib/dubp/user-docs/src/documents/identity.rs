@@ -22,6 +22,7 @@ use dubp_common_doc::blockstamp::Blockstamp;
 use dubp_common_doc::parser::{DocumentsParser, TextDocumentParseError, TextDocumentParser};
 use dubp_common_doc::traits::{Document, ToStringObject};
 use dup_crypto::keys::*;
+use durs_common_tools::UsizeSer32;
 
 pub use v10::{IdentityDocumentV10, IdentityDocumentV10Stringified};
 
@@ -36,9 +37,9 @@ impl Document for IdentityDocument {
     type PublicKey = PubKey;
 
     #[inline]
-    fn version(&self) -> usize {
+    fn version(&self) -> UsizeSer32 {
         match self {
-            IdentityDocument::V10(_) => 10,
+            IdentityDocument::V10(idty_v10) => idty_v10.version(),
         }
     }
 

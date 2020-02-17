@@ -23,7 +23,7 @@ use dubp_common_doc::traits::{Document, DocumentBuilder, ToStringObject};
 use dubp_common_doc::{BlockHash, BlockNumber};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
-use durs_common_tools::fatal_error;
+use durs_common_tools::{fatal_error, UsizeSer32};
 
 /// Type of a Membership.
 #[derive(Debug, Deserialize, Clone, Copy, Hash, Serialize, PartialEq, Eq)]
@@ -194,8 +194,8 @@ impl MembershipDocumentV10 {
 impl Document for MembershipDocumentV10 {
     type PublicKey = PubKey;
 
-    fn version(&self) -> usize {
-        10
+    fn version(&self) -> UsizeSer32 {
+        UsizeSer32(10)
     }
 
     fn currency(&self) -> &str {

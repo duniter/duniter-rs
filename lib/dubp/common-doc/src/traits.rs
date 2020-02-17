@@ -20,6 +20,7 @@ pub mod text;
 use crate::blockstamp::Blockstamp;
 use crate::errors::DocumentSigsErr;
 use dup_crypto::keys::*;
+use durs_common_tools::UsizeSer32;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -109,7 +110,7 @@ pub trait Document: Debug + Clone + PartialEq + Eq {
     }
 
     /// Get document version.
-    fn version(&self) -> usize;
+    fn version(&self) -> UsizeSer32;
 }
 
 /// Trait helper for building new documents.

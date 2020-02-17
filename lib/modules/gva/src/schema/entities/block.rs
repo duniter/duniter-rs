@@ -51,7 +51,7 @@ impl Block {
         ask_issuer_name: bool,
     ) -> Result<Block, DbError> {
         Ok(Block {
-            version: block_db.block.version() as i32,
+            version: block_db.block.version().into(),
             currency: block_db.block.currency().to_string(),
             issuer: block_db.block.issuers()[0].to_string(),
             issuer_name: if ask_issuer_name {
@@ -59,8 +59,8 @@ impl Block {
             } else {
                 None
             },
-            issuers_count: block_db.block.issuers_count() as i32,
-            members_count: block_db.block.members_count() as i32,
+            issuers_count: block_db.block.issuers_count().into(),
+            members_count: block_db.block.members_count().into(),
             number: block_db.block.number().0 as i32,
             hash: block_db
                 .block
@@ -68,7 +68,7 @@ impl Block {
                 .unwrap_or_else(|| fatal_error!("BlockDb without hash."))
                 .to_string(),
             blockchain_time: NaiveDateTime::from_timestamp(block_db.block.common_time() as i64, 0),
-            pow_min: block_db.block.pow_min() as i32,
+            pow_min: block_db.block.pow_min().into(),
         })
     }
 }

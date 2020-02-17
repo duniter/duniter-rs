@@ -23,6 +23,7 @@ use dubp_common_doc::parser::{DocumentsParser, TextDocumentParseError, TextDocum
 use dubp_common_doc::traits::text::*;
 use dubp_common_doc::traits::{Document, ToStringObject};
 use dup_crypto::keys::*;
+use durs_common_tools::UsizeSer32;
 
 pub use v10::{MembershipDocumentV10, MembershipDocumentV10Stringified};
 
@@ -38,9 +39,9 @@ impl Document for MembershipDocument {
     type PublicKey = PubKey;
 
     #[inline]
-    fn version(&self) -> usize {
+    fn version(&self) -> UsizeSer32 {
         match self {
-            MembershipDocument::V10(_) => 10,
+            MembershipDocument::V10(ms_v10) => ms_v10.version(),
         }
     }
 

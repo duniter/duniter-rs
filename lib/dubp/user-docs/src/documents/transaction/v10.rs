@@ -23,7 +23,7 @@ use dubp_common_doc::traits::{Document, DocumentBuilder, ToStringObject};
 use dubp_common_doc::{BlockHash, BlockNumber};
 use dup_crypto::hashs::*;
 use dup_crypto::keys::*;
-use durs_common_tools::fatal_error;
+use durs_common_tools::{fatal_error, UsizeSer32};
 use pest::iterators::Pair;
 use pest::iterators::Pairs;
 use pest::Parser;
@@ -470,8 +470,8 @@ impl TransactionDocumentV10 {
 impl Document for TransactionDocumentV10 {
     type PublicKey = PubKey;
 
-    fn version(&self) -> usize {
-        10
+    fn version(&self) -> UsizeSer32 {
+        UsizeSer32(10)
     }
 
     fn currency(&self) -> &str {

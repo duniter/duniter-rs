@@ -25,6 +25,7 @@ use dubp_common_doc::traits::{Document, DocumentBuilder, ToStringObject};
 use dubp_common_doc::{BlockHash, BlockNumber};
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
+use durs_common_tools::UsizeSer32;
 
 /// Wrap an Identity document.
 ///
@@ -135,8 +136,8 @@ impl IdentityDocumentV10 {
 impl Document for IdentityDocumentV10 {
     type PublicKey = PubKey;
 
-    fn version(&self) -> usize {
-        10
+    fn version(&self) -> UsizeSer32 {
+        UsizeSer32(10)
     }
 
     fn currency(&self) -> &str {

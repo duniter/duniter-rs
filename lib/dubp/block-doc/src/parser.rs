@@ -24,8 +24,10 @@ use dubp_user_docs::parsers::{serde_json_value_to_pest_json_value, DefaultHasher
 use dup_crypto::bases::BaseConvertionError;
 use dup_crypto::hashs::Hash;
 use dup_crypto::keys::*;
+use durs_common_tools::UsizeSer32;
 use failure::Error;
 use json_pest_parser::*;
+use std::convert::TryFrom;
 use std::str::FromStr;
 
 pub fn parse_json_block_from_serde_value(
@@ -46,22 +48,20 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
 
     let currency = get_str(json_block, "currency")?;
 
-    let block_number = get_number(json_block, "number")?.trunc() as u32;
+    let block_number = u32::try_from(get_u64(json_block, "number")?)?;
 
     Ok(BlockDocument::V10(BlockDocumentV10 {
-        version: get_number(json_block, "version")?.trunc() as u32,
+        version: UsizeSer32(get_u64(json_block, "version")? as usize),
         nonce: get_u64(json_block, "nonce")?,
         number: BlockNumber(block_number),
-        pow_min: get_number(json_block, "powMin")?.trunc() as usize,
-        time: get_number(json_block, "time")?.trunc() as u64,
-        median_time: get_number(json_block, "medianTime")?.trunc() as u64,
-        members_count: get_number(json_block, "membersCount")?.trunc() as usize,
-        monetary_mass: get_number(json_block, "monetaryMass")
-            .unwrap_or(0f64)
-            .trunc() as usize,
-        unit_base: get_number(json_block, "unitbase")?.trunc() as usize,
-        issuers_count: get_number(json_block, "issuersCount")?.trunc() as usize,
-        issuers_frame: get_number(json_block, "issuersFrame")?.trunc() as usize,
+        pow_min: UsizeSer32(get_u64(json_block, "powMin")? as usize),
+        time: get_u64(json_block, "time")?,
+        median_time: get_u64(json_block, "medianTime")?,
+        members_count: UsizeSer32(get_u64(json_block, "membersCount")? as usize),
+        monetary_mass: get_u64(json_block, "monetaryMass").unwrap_or(0),
+        unit_base: UsizeSer32(get_u64(json_block, "unitbase")? as usize),
+        issuers_count: UsizeSer32(get_u64(json_block, "issuersCount")? as usize),
+        issuers_frame: UsizeSer32(get_u64(json_block, "issuersFrame")? as usize),
         issuers_frame_var: get_number(json_block, "issuersFrameVar")?.trunc() as isize,
         currency: CurrencyName(currency.to_owned()),
         issuers: vec![PubKey::Ed25519(ed25519::PublicKey::from_base58(get_str(
@@ -89,7 +89,7 @@ pub fn parse_json_block(json_block: &JSONValue<DefaultHasher>) -> Result<BlockDo
             )?)?))
         },
         inner_hash: Some(Hash::from_hex(get_str(json_block, "inner_hash")?)?),
-        dividend: get_optional_usize(json_block, "dividend")?,
+        dividend: get_optional_usize(json_block, "dividend")?.map(UsizeSer32),
         identities: dubp_user_docs::parsers::identities::parse_compact_identities(
             currency,
             get_str_array(json_block, "identities")?,
@@ -172,17 +172,17 @@ mod tests {
             .expect("Fail to parse json block !");
         assert_eq!(
             BlockDocument::V10(BlockDocumentV10 {
-                version: 10,
+                version: UsizeSer32(10),
                 nonce: 10_200_000_037_108,
                 number: BlockNumber(7),
-                pow_min: 70,
+                pow_min: UsizeSer32(70),
                 time: 1_488_987_677,
                 median_time: 1_488_987_394,
-                members_count: 59,
+                members_count: UsizeSer32(59),
                 monetary_mass: 59000,
-                unit_base: 0,
-                issuers_count: 1,
-                issuers_frame: 6,
+                unit_base: UsizeSer32(0),
+                issuers_count: UsizeSer32(1),
+                issuers_frame: UsizeSer32(6),
                 issuers_frame_var: 0,
                 currency: CurrencyName("g1".to_owned()),
                 issuers: vec![PubKey::Ed25519(
@@ -293,17 +293,17 @@ mod tests {
             .expect("Fail to parse json block !");
 
         let expected_block = BlockDocument::V10(BlockDocumentV10 {
-                version: 10,
+                version: UsizeSer32(10),
                 nonce: 10_100_000_033_688,
                 number: BlockNumber(52),
-                pow_min: 74,
+                pow_min: UsizeSer32(74),
                 time: 1_488_990_898,
                 median_time: 1_488_990_117,
-                members_count: 59,
+                members_count: UsizeSer32(59),
                 monetary_mass: 59000,
-                unit_base: 0,
-                issuers_count: 1,
-                issuers_frame: 6,
+                unit_base: UsizeSer32(0),
+                issuers_count: UsizeSer32(1),
+                issuers_frame: UsizeSer32(6),
                 issuers_frame_var: 0,
                 currency: CurrencyName("g1".to_owned()),
                 issuers: vec![PubKey::Ed25519(

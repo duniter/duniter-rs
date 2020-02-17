@@ -80,8 +80,8 @@ fn local_validation_genesis_block_v10(
         .ok_or(LocalVerifyGenesisBlockError::MissingParameters)?;
 
     // unit_base must be equal to zero
-    (block.unit_base == 0).or_err(LocalVerifyGenesisBlockError::NonZeroUnitBase {
-        unit_base: block.unit_base,
+    (usize::from(block.unit_base) == 0).or_err(LocalVerifyGenesisBlockError::NonZeroUnitBase {
+        unit_base: block.unit_base.into(),
     })?;
 
     // time must be equal to median_time
@@ -100,6 +100,7 @@ mod tests {
     use dubp_blocks_tests_tools::mocks::gen_mock_genesis_block_v10;
     use dup_crypto::hashs::Hash;
     use dup_crypto::keys::*;
+    use durs_common_tools::UsizeSer32;
 
     #[test]
     fn test_genesis_block_valid() {
@@ -125,7 +126,7 @@ mod tests {
     #[test]
     fn test_genesis_block_unexpected_dividend() {
         let mut block = gen_mock_genesis_block_v10();
-        block.dividend = Some(10);
+        block.dividend = Some(UsizeSer32(10));
 
         let expected = Err(LocalVerifyGenesisBlockError::UnexpectedDividend);
         let actual = local_validation_genesis_block(&BlockDocument::V10(block));
@@ -171,7 +172,7 @@ mod tests {
     #[test]
     fn test_genesis_block_non_zero_unit_base() {
         let mut block = gen_mock_genesis_block_v10();
-        block.unit_base = 3;
+        block.unit_base = UsizeSer32(3);
 
         let expected = Err(LocalVerifyGenesisBlockError::NonZeroUnitBase { unit_base: 3 });
         let actual = local_validation_genesis_block(&BlockDocument::V10(block));

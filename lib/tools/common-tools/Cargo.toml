@@ -13,6 +13,8 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
+shrinkwraprs = "0.3.*"
+serde = { version = "1.0.*", features = ["derive"] }
 
 [dev-dependencies]
 pretty_assertions = "0.6.1"

@@ -24,6 +24,7 @@ use dubp_common_doc::traits::text::*;
 use dubp_common_doc::traits::{Document, DocumentBuilder, ToStringObject};
 use dup_crypto::hashs::*;
 use dup_crypto::keys::*;
+use durs_common_tools::{fatal_error, UsizeSer32};
 use std::ops::{Add, Deref, Sub};
 use unwrap::unwrap;
 
@@ -311,7 +312,7 @@ impl TransactionDocument {
 impl Document for TransactionDocument {
     type PublicKey = PubKey;
 
-    fn version(&self) -> usize {
+    fn version(&self) -> UsizeSer32 {
         match self {
             TransactionDocument::V10(tx_v10) => tx_v10.version(),
         }
