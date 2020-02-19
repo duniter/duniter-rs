@@ -19,7 +19,7 @@ use crate::db::BcDbRo;
 use crate::graphql::graphql;
 use crate::schema::create_schema;
 use actix_cors::Cors;
-use actix_web::{http::header, middleware, web, App, HttpResponse, HttpServer};
+use actix_web::{middleware, web, App, HttpResponse, HttpServer};
 #[cfg(not(test))]
 use durs_common_tools::fatal_error;
 use durs_conf::DuRsConf;
@@ -81,12 +81,8 @@ pub fn start_web_server(
                 .data(global_context.clone())
                 .wrap(
                     Cors::new()
-                        .allowed_headers(vec![
-                            header::AUTHORIZATION,
-                            header::ACCEPT,
-                            header::ACCESS_CONTROL_ALLOW_ORIGIN,
-                        ])
-                        .allowed_methods(vec!["GET", "POST", "OPTIONS"])
+                        .expose_headers(vec!["Content-Length", "Content-Range"])
+                        .send_wildcard()
                         .finish(),
                 )
                 .wrap(middleware::Logger::default())
