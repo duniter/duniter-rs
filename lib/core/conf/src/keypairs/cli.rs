@@ -28,11 +28,25 @@
 )]
 
 use crate::*;
+#[cfg(test)]
+use mockall::*;
 use std::io;
 
+#[cfg_attr(test, automock)]
+trait UserPasswordInput {
+    fn get_password(&self, prompt: &str) -> std::io::Result<String>;
+}
+
+impl UserPasswordInput for std::io::Stdin {
+    #[inline]
+    fn get_password(&self, prompt: &str) -> std::io::Result<String> {
+        Ok(rpassword::prompt_password_stdout(prompt)?)
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
-/// Errors encountered by the wizard
-pub enum WizardError {
+/// Errors encountered by the user interaction
+pub enum CliError {
     /// Canceled
     Canceled,
 
@@ -40,83 +54,87 @@ pub enum WizardError {
     BadInput,
 }
 
-impl From<std::io::Error> for WizardError {
+impl From<std::io::Error> for CliError {
     fn from(_e: std::io::Error) -> Self {
-        WizardError::BadInput
+        CliError::BadInput
     }
 }
 
+#[inline]
 /// Modify network keys command
-pub fn modify_network_keys(
-    salt: String,
-    password: String,
-    mut key_pairs: DuniterKeyPairs,
-) -> DuniterKeyPairs {
-    let generator = ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters();
-    key_pairs.network_keypair =
-        KeyPairEnum::Ed25519(generator.generate(ed25519::SaltedPassword::new(salt, password)));
-    key_pairs
+pub fn modify_network_keys(key_pairs: DuniterKeyPairs) -> Result<DuniterKeyPairs, CliError> {
+    inner_modify_network_keys(std::io::stdin(), key_pairs)
 }
 
-/// Modify member keys command
-pub fn modify_member_keys(
-    salt: String,
-    password: String,
+/// Private function to modify network keys
+fn inner_modify_network_keys<T: UserPasswordInput>(
+    stdin: T,
     mut key_pairs: DuniterKeyPairs,
-) -> DuniterKeyPairs {
-    let generator = ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters();
-    key_pairs.member_keypair = Some(KeyPairEnum::Ed25519(
-        generator.generate(ed25519::SaltedPassword::new(salt, password)),
-    ));
-    key_pairs
+) -> Result<DuniterKeyPairs, CliError> {
+    key_pairs.network_keypair = salt_password_prompt(stdin)?;
+    Ok(key_pairs)
+}
+
+#[inline]
+/// Modify member keys command
+pub fn modify_member_keys(key_pairs: DuniterKeyPairs) -> Result<DuniterKeyPairs, CliError> {
+    inner_modify_member_keys(std::io::stdin(), key_pairs)
+}
+
+/// Private function to modify network keys
+fn inner_modify_member_keys<T: UserPasswordInput>(
+    stdin: T,
+    mut key_pairs: DuniterKeyPairs,
+) -> Result<DuniterKeyPairs, CliError> {
+    key_pairs.member_keypair = Some(salt_password_prompt(stdin)?);
+    Ok(key_pairs)
 }
 
 /// Ask user for confirmation and Clear keys command
-pub fn clear_keys(network: bool, member: bool, key_pairs: DuniterKeyPairs) -> DuniterKeyPairs {
-    inner_clear_keys(
-        if network {
-            if let Ok("y") = question_prompt("Clear your network keypair?", &["y", "n"]) {
-                println!("Generating a new network keypair!");
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        },
-        if member {
-            if let Ok("y") = question_prompt("Clear your member keypair?", &["y", "n"]) {
-                println!("Deleting member keypair!");
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        },
-        key_pairs,
-    )
-}
-
-/// Private function to Clear keys
-fn inner_clear_keys(
-    network: bool,
-    member: bool,
-    mut key_pairs: DuniterKeyPairs,
-) -> DuniterKeyPairs {
+pub fn clear_keys(network: bool, member: bool, mut key_pairs: DuniterKeyPairs) -> DuniterKeyPairs {
     if network {
-        key_pairs.network_keypair = super::generate_random_keypair(KeysAlgo::Ed25519);
+        if let Ok("y") = question_prompt("Clear your network keypair?", &["y", "n"]) {
+            println!("Generating a new network keypair!");
+            clear_network_key(&mut key_pairs);
+        }
     }
     if member {
-        key_pairs.member_keypair = None
+        if let Ok("y") = question_prompt("Clear your member keypair?", &["y", "n"]) {
+            println!("Deleting member keypair!");
+            clear_member_key(&mut key_pairs);
+        }
     }
     key_pairs
+}
+
+#[inline]
+/// Private function to Clear keys
+fn clear_network_key(key_pairs: &mut DuniterKeyPairs) {
+    key_pairs.network_keypair = super::generate_random_keypair(KeysAlgo::Ed25519);
+}
+
+#[inline]
+/// Private function to Clear member key
+fn clear_member_key(key_pairs: &mut DuniterKeyPairs) {
+    key_pairs.member_keypair = None;
 }
 
 /// Show keys command
 pub fn show_keys(key_pairs: DuniterKeyPairs) {
+    show_network_keys(&key_pairs);
+    show_member_keys(&key_pairs);
+}
+
+#[inline]
+/// Show network keys
+pub fn show_network_keys(key_pairs: &DuniterKeyPairs) {
     println!("Network key: {}", key_pairs.network_keypair);
-    match key_pairs.member_keypair {
+}
+
+#[inline]
+/// Show member keys
+pub fn show_member_keys(key_pairs: &DuniterKeyPairs) {
+    match &key_pairs.member_keypair {
         None => println!("No member key configured"),
         Some(key) => println!("Member key: {}", key),
     }
@@ -126,7 +144,7 @@ pub fn show_keys(key_pairs: DuniterKeyPairs) {
 pub fn save_keypairs(
     profile_path: PathBuf,
     keypairs_file_path: &Option<PathBuf>,
-    key_pairs: DuniterKeyPairs,
+    key_pairs: &DuniterKeyPairs,
 ) -> Result<(), std::io::Error> {
     let conf_keys_path: PathBuf = if let Some(keypairs_file_path) = keypairs_file_path {
         keypairs_file_path.to_path_buf()
@@ -135,32 +153,30 @@ pub fn save_keypairs(
         conf_keys_path.push(crate::constants::KEYPAIRS_FILENAME);
         conf_keys_path
     };
-    super::write_keypairs_file(&conf_keys_path, &key_pairs)?;
-    Ok(())
+    super::write_keypairs_file(&conf_keys_path, &key_pairs)
 }
 
-fn question_prompt<'a>(question: &str, answers: &[&'a str]) -> Result<&'a str, WizardError> {
+fn question_prompt<'a>(question: &str, answers: &[&'a str]) -> Result<&'a str, CliError> {
     let mut buf = String::new();
 
     println!("{} ({}):", question, answers.join("/"));
     let res = io::stdin().read_line(&mut buf);
 
-    match res {
-        Ok(_) => {
-            let answer = answers.iter().find(|x| **x == buf.trim());
-            match answer {
-                Some(&value) => Ok(value),
-                None => Err(WizardError::Canceled),
-            }
-        }
-        Err(_) => Err(WizardError::Canceled),
+    if res.is_ok() {
+        answers
+            .iter()
+            .find(|x| **x == buf.trim())
+            .copied()
+            .ok_or(CliError::Canceled)
+    } else {
+        Err(CliError::Canceled)
     }
 }
 
-fn salt_password_prompt() -> Result<KeyPairEnum, WizardError> {
-    let salt = rpassword::prompt_password_stdout("Salt: ")?;
+fn salt_password_prompt<T: UserPasswordInput>(stdin: T) -> Result<KeyPairEnum, CliError> {
+    let salt = stdin.get_password("Salt: ")?;
     if !salt.is_empty() {
-        let password = rpassword::prompt_password_stdout("Password: ")?;
+        let password = stdin.get_password("Password: ")?;
         if !password.is_empty() {
             let generator = ed25519::KeyPairFromSaltedPasswordGenerator::with_default_parameters();
             let key_pairs = KeyPairEnum::Ed25519(
@@ -168,26 +184,26 @@ fn salt_password_prompt() -> Result<KeyPairEnum, WizardError> {
             );
             Ok(key_pairs)
         } else {
-            Err(WizardError::BadInput)
+            Err(CliError::BadInput)
         }
     } else {
-        Err(WizardError::BadInput)
+        Err(CliError::BadInput)
     }
 }
 
 /// The wizard key function
-pub fn key_wizard(mut key_pairs: DuniterKeyPairs) -> Result<DuniterKeyPairs, WizardError> {
+pub fn key_wizard(mut key_pairs: DuniterKeyPairs) -> Result<DuniterKeyPairs, CliError> {
     let mut answer = question_prompt("Modify your network keypair?", &["y", "n"])?;
     if answer == "y" {
-        key_pairs.network_keypair = salt_password_prompt()?;
+        key_pairs.network_keypair = salt_password_prompt(std::io::stdin())?;
     }
 
     answer = question_prompt("Modify your member keypair?", &["y", "n", "d"])?;
     if answer == "y" {
-        key_pairs.member_keypair = Some(salt_password_prompt()?);
+        key_pairs.member_keypair = Some(salt_password_prompt(std::io::stdin())?);
     } else if answer == "d" {
         println!("Deleting member keypair!");
-        key_pairs.member_keypair = None;
+        clear_member_key(&mut key_pairs);
     }
 
     Ok(key_pairs)
@@ -201,27 +217,60 @@ mod tests {
 
     static BASE58_SEED_INIT: &'static str = "4iXXx5GgRkZ85BVPwn8vFXvztdXAAa5yB573ErcAnngA";
     static BASE58_PUB_INIT: &'static str = "otDgSpKvKAPPmE1MUYxc3UQ3RtEnKYz4iGD3BmwKPzM";
-    //static SALT_INIT: &'static str = "initsalt";
-    //static PASSWORD_INIT: &'static str = "initpassword";
 
     static BASE58_SEED_TEST: &'static str = "ELjDWGPyCGMuhr7R7H2aip6UJA9qLRepmK77pcD41UqQ";
     static BASE58_PUB_TEST: &'static str = "6sewkaNWyEMqkEa2PVRWrDb3hxWtjPdUSB1zXVCqhdWV";
     static SALT_TEST: &'static str = "testsalt";
     static PASSWORD_TEST: &'static str = "testpassword";
 
-    #[test]
-    fn test_modify_member_keys() {
-        let key_pairs = DuniterKeyPairs {
+    fn setup_user_password_input() -> MockUserPasswordInput {
+        let mut stdin_mock = MockUserPasswordInput::new();
+        stdin_mock
+            .expect_get_password()
+            .returning(|prompt| {
+                if prompt.starts_with("Salt:") {
+                    Ok(SALT_TEST.to_owned())
+                } else if prompt.starts_with("Password:") {
+                    Ok(PASSWORD_TEST.to_owned())
+                } else {
+                    Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        format!("should not be called with {}", prompt),
+                    ))
+                }
+            })
+            .times(2);
+        stdin_mock
+    }
+
+    fn setup_keys(both_keys: bool) -> DuniterKeyPairs {
+        let member_keypair = if both_keys {
+            Some(KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
+                seed: Seed32::from_base58(BASE58_SEED_INIT)
+                    .expect("conf : keypairs file : fail to parse network_seed !"),
+                pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
+                    .expect("conf : keypairs file : fail to parse network_pub !"),
+            }))
+        } else {
+            None
+        };
+        DuniterKeyPairs {
             network_keypair: KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
                 seed: Seed32::from_base58(BASE58_SEED_INIT)
                     .expect("conf : keypairs file : fail to parse network_seed !"),
                 pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
                     .expect("conf : keypairs file : fail to parse network_pub !"),
             }),
-            member_keypair: None,
-        };
+            member_keypair,
+        }
+    }
+
+    #[test]
+    fn test_modify_member_keys() {
+        let key_pairs = setup_keys(false);
+        let stdin_mock = setup_user_password_input();
         let result_key_pairs =
-            modify_member_keys(SALT_TEST.to_owned(), PASSWORD_TEST.to_owned(), key_pairs);
+            inner_modify_member_keys(stdin_mock, key_pairs).expect("Fail to read new member keys");
         // We expect network key not to change
         assert_eq!(
             result_key_pairs.network_keypair.public_key(),
@@ -260,17 +309,10 @@ mod tests {
 
     #[test]
     fn test_modify_network_keys() {
-        let key_pairs = DuniterKeyPairs {
-            network_keypair: KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
-                seed: Seed32::from_base58(BASE58_SEED_INIT)
-                    .expect("conf : keypairs file : fail to parse network_seed !"),
-                pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
-                    .expect("conf : keypairs file : fail to parse network_pub !"),
-            }),
-            member_keypair: None,
-        };
-        let result_key_pairs =
-            modify_network_keys(SALT_TEST.to_owned(), PASSWORD_TEST.to_owned(), key_pairs);
+        let key_pairs = setup_keys(false);
+        let stdin_mock = setup_user_password_input();
+        let result_key_pairs = inner_modify_network_keys(stdin_mock, key_pairs)
+            .expect("Fail to read new network keys");
         // We expect network key to update
         assert_eq!(
             result_key_pairs.network_keypair.public_key(),
@@ -289,31 +331,18 @@ mod tests {
 
     #[test]
     fn test_clear_network_keys() {
-        let key_pairs = DuniterKeyPairs {
-            network_keypair: KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
-                seed: Seed32::from_base58(BASE58_SEED_INIT)
-                    .expect("conf : keypairs file : fail to parse network_seed !"),
-                pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
-                    .expect("conf : keypairs file : fail to parse network_pub !"),
-            }),
-            member_keypair: Some(KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
-                seed: Seed32::from_base58(BASE58_SEED_INIT)
-                    .expect("conf : keypairs file : fail to parse network_seed !"),
-                pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
-                    .expect("conf : keypairs file : fail to parse network_pub !"),
-            })),
-        };
-        let result_key_pairs = inner_clear_keys(true, false, key_pairs);
+        let mut key_pairs = setup_keys(true);
+        clear_network_key(&mut key_pairs);
         // We expect network key to be reset to a new random key
         assert_ne!(
-            result_key_pairs.network_keypair.public_key(),
+            key_pairs.network_keypair.public_key(),
             PubKey::Ed25519(
                 ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
                     .expect("Wrong data in BASE58_PUB_TEST")
             )
         );
         assert_ne!(
-            result_key_pairs.network_keypair.seed().clone(),
+            key_pairs.network_keypair.seed().clone(),
             unwrap!(
                 Seed32::from_base58(BASE58_SEED_INIT),
                 "Wrong data in BASE58_SEED_TEST"
@@ -323,8 +352,8 @@ mod tests {
         // We expect member key not to change
         assert_eq!(
             unwrap!(
-                result_key_pairs.member_keypair.clone(),
-                "conf: result_keypair must have a value"
+                key_pairs.member_keypair.clone(),
+                "conf: keypair must have a value"
             )
             .public_key(),
             PubKey::Ed25519(
@@ -333,10 +362,10 @@ mod tests {
             )
         );
         assert_eq!(
-            result_key_pairs
+            key_pairs
                 .member_keypair
                 .clone()
-                .expect("conf: result_keypair must have a value")
+                .expect("conf: keypair must have a value")
                 .seed()
                 .clone(),
             Seed32::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_TEST")
@@ -345,36 +374,22 @@ mod tests {
 
     #[test]
     fn test_clear_member_keys() {
-        let key_pairs = DuniterKeyPairs {
-            network_keypair: KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
-                seed: Seed32::from_base58(BASE58_SEED_INIT)
-                    .expect("conf : keypairs file : fail to parse network_seed !"),
-                pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
-                    .expect("conf : keypairs file : fail to parse network_pub !"),
-            }),
-            member_keypair: Some(KeyPairEnum::Ed25519(ed25519::Ed25519KeyPair {
-                seed: Seed32::from_base58(BASE58_SEED_INIT)
-                    .expect("conf : keypairs file : fail to parse network_seed !"),
-                pubkey: ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
-                    .expect("conf : keypairs file : fail to parse network_pub !"),
-            })),
-        };
-        let result_key_pairs = inner_clear_keys(false, true, key_pairs);
+        let mut key_pairs = setup_keys(true);
+        clear_member_key(&mut key_pairs);
         // We expect network key not to change
         assert_eq!(
-            result_key_pairs.network_keypair.public_key(),
+            key_pairs.network_keypair.public_key(),
             PubKey::Ed25519(
                 ed25519::PublicKey::from_base58(BASE58_PUB_INIT)
                     .expect("Wrong data in BASE58_PUB_TEST")
             )
         );
         assert_eq!(
-            result_key_pairs.network_keypair.seed().clone(),
+            key_pairs.network_keypair.seed().clone(),
             Seed32::from_base58(BASE58_SEED_INIT).expect("Wrong data in BASE58_SEED_TEST")
         );
 
         // We expect member key to change
-        assert_eq!(result_key_pairs.member_keypair, None);
-        assert_eq!(result_key_pairs.member_keypair, None);
+        assert_eq!(key_pairs.member_keypair, None);
     }
 }

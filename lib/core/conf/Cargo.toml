@@ -29,6 +29,7 @@ unwrap = "1.2.1"
 [dev-dependencies]
 durs-module = { path = "../module", features = ["module-test"] }
 maplit = "1.0.2"
+mockall = { version = "0.6.0"}
 once_cell = "1.3.1"
 
 [features]

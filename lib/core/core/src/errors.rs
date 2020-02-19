@@ -17,7 +17,7 @@
 
 use crate::logger::InitLoggerError;
 use dubp_currency_params::db::CurrencyParamsDbError;
-use durs_conf::keypairs::cli::WizardError;
+use durs_conf::keypairs::cli::CliError;
 use durs_module::{ModuleStaticName, PlugModuleError};
 use failure::{Error, Fail};
 
@@ -66,8 +66,8 @@ pub enum DursCoreError {
     #[fail(display = "Please specify the url of a trusted node or use the --local option.")]
     SyncWithoutSource,
     /// Error on keys sub-command
-    #[fail(display = "Error en keys sub-command")]
-    WizardKeysError(WizardError),
+    #[fail(display = "Error on keys sub-command")]
+    WizardKeysError(CliError),
 }
 
 impl From<InitLoggerError> for DursCoreError {
@@ -76,8 +76,8 @@ impl From<InitLoggerError> for DursCoreError {
     }
 }
 
-impl From<WizardError> for DursCoreError {
-    fn from(e: WizardError) -> Self {
+impl From<CliError> for DursCoreError {
+    fn from(e: CliError) -> Self {
         DursCoreError::WizardKeysError(e)
     }
 }

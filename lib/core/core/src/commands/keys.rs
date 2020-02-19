@@ -21,9 +21,8 @@ use crate::DursCore;
 use clap::arg_enum;
 use durs_conf::keypairs::cli::*;
 use durs_conf::DuRsConf;
-use zeroize::Zeroize;
 
-#[derive(StructOpt, Debug, Clone)]
+#[derive(StructOpt, Debug, Clone, Copy)]
 #[structopt(
     name = "keys",
     author = "inso <inso@tuta.io>",
@@ -36,7 +35,7 @@ pub struct KeysOpt {
     pub subcommand: KeysSubCommand,
 }
 
-#[derive(StructOpt, Debug, Clone)]
+#[derive(StructOpt, Debug, Clone, Copy)]
 /// keys subcommands
 pub enum KeysSubCommand {
     /// Modify keys
@@ -72,7 +71,7 @@ pub enum KeysSubCommand {
     Wizard(WizardOpt),
 }
 
-#[derive(StructOpt, Debug, Clone)]
+#[derive(StructOpt, Debug, Clone, Copy)]
 /// ModifyOpt
 pub struct ModifyOpt {
     #[structopt(subcommand)]
@@ -80,16 +79,16 @@ pub struct ModifyOpt {
     pub subcommand: ModifySubCommand,
 }
 
-#[derive(StructOpt, Debug, Clone)]
+#[derive(StructOpt, Debug, Clone, Copy)]
 /// keys modify subcommands
 pub enum ModifySubCommand {
     #[structopt(name = "member", setting(structopt::clap::AppSettings::ColoredHelp))]
     /// Salt and password of member key
-    MemberSaltPassword(SaltPasswordOpt),
+    MemberSaltPassword,
 
     #[structopt(name = "network", setting(structopt::clap::AppSettings::ColoredHelp))]
     /// Salt and password of network key    
-    NetworkSaltPassword(SaltPasswordOpt),
+    NetworkSaltPassword,
 }
 
 arg_enum! {
@@ -121,19 +120,6 @@ pub struct ClearOpt {
     key: KeyKind,
 }
 
-#[derive(StructOpt, Debug, Clone, Zeroize)]
-#[zeroize(drop)]
-/// SaltPasswordOpt
-pub struct SaltPasswordOpt {
-    #[structopt(long = "salt")]
-    /// Salt of key generator
-    pub salt: String,
-
-    #[structopt(long = "password")]
-    /// Password of key generator
-    pub password: String,
-}
-
 #[derive(StructOpt, Debug, Copy, Clone)]
 /// WizardOpt
 pub struct WizardOpt {}
@@ -151,27 +137,31 @@ impl DursExecutableCoreCommand for KeysOpt {
         match self.subcommand {
             KeysSubCommand::Wizard(_) => {
                 let new_keypairs = key_wizard(keypairs)?;
-                save_keypairs(profile_path, &keypairs_file, new_keypairs)
+                save_keypairs(profile_path, &keypairs_file, &new_keypairs)
                     .map_err(DursCoreError::FailWriteKeypairsFile)
+                    .and_then(|_| {
+                        show_keys(new_keypairs);
+                        Ok(())
+                    })
             }
             KeysSubCommand::Modify(modify_opt) => match modify_opt.subcommand {
-                ModifySubCommand::NetworkSaltPassword(network_opt) => {
-                    let new_keypairs = modify_network_keys(
-                        network_opt.salt.clone(),
-                        network_opt.password.clone(),
-                        keypairs,
-                    );
-                    save_keypairs(profile_path, &keypairs_file, new_keypairs)
+                ModifySubCommand::NetworkSaltPassword => {
+                    let new_keypairs = modify_network_keys(keypairs)?;
+                    save_keypairs(profile_path, &keypairs_file, &new_keypairs)
                         .map_err(DursCoreError::FailWriteKeypairsFile)
+                        .and_then(|_| {
+                            show_network_keys(&new_keypairs);
+                            Ok(())
+                        })
                 }
-                ModifySubCommand::MemberSaltPassword(member_opt) => {
-                    let new_keypairs = modify_member_keys(
-                        member_opt.salt.clone(),
-                        member_opt.password.clone(),
-                        keypairs,
-                    );
-                    save_keypairs(profile_path, &keypairs_file, new_keypairs)
+                ModifySubCommand::MemberSaltPassword => {
+                    let new_keypairs = modify_member_keys(keypairs)?;
+                    save_keypairs(profile_path, &keypairs_file, &new_keypairs)
                         .map_err(DursCoreError::FailWriteKeypairsFile)
+                        .and_then(|_| {
+                            show_member_keys(&new_keypairs);
+                            Ok(())
+                        })
                 }
             },
             KeysSubCommand::Clear(clear_opt) => {
@@ -180,8 +170,12 @@ impl DursExecutableCoreCommand for KeysOpt {
                     clear_opt.key.is_member(),
                     keypairs,
                 );
-                save_keypairs(profile_path, &keypairs_file, new_keypairs)
+                save_keypairs(profile_path, &keypairs_file, &new_keypairs)
                     .map_err(DursCoreError::FailWriteKeypairsFile)
+                    .and_then(|_| {
+                        show_keys(new_keypairs);
+                        Ok(())
+                    })
             }
             KeysSubCommand::Show(_) => {
                 show_keys(keypairs);
