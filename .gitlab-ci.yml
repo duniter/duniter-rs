@@ -138,7 +138,7 @@ clippy:
     - cargo clippy -- -V
   stage: quality
   script:
-    - cargo clippy --all -- -D warnings --verbose
+    - cargo clippy --all --tests -- -D warnings --verbose
 
 audit_dependencies:
   extends: .rust_stable_lin64

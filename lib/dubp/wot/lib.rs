@@ -124,7 +124,6 @@ mod tests {
         wot.rem_link(WotId(0), WotId(3));
         wot.rem_link(WotId(0), WotId(4));
 
-
         // false when not linked + test out of bounds
         assert_eq!(wot.has_link(WotId(0), WotId(6)), HasLinkResult::Link(false));
         assert_eq!(
