@@ -481,8 +481,8 @@ mod tests {
             currency: "duniter_unit_test_currency",
             blockstamp: &block,
             locktime: &0,
-            issuers: &vec![pubkey],
-            inputs: &vec![TransactionInputV10::D(
+            issuers: &[pubkey],
+            inputs: &[TransactionInputV10::D(
                 TxAmount(10),
                 TxBase(0),
                 PubKey::Ed25519(unwrap!(
@@ -491,11 +491,11 @@ mod tests {
                 )),
                 BlockNumber(0),
             )],
-            unlocks: &vec![TransactionInputUnlocksV10 {
+            unlocks: &[TransactionInputUnlocksV10 {
                 index: 0,
                 unlocks: vec![TransactionUnlockProof::Sig(0)],
             }],
-            outputs: &vec![TransactionOutputV10::from_str(
+            outputs: &[TransactionOutputV10::from_str(
                 "10:0:SIG(FD9wujR7KABw88RyKEGBYRLz8PA6jzVCbcBAsrBXBqSa)",
             )
             .expect("fail to parse output !")],
@@ -534,8 +534,8 @@ mod tests {
             currency: "g1",
             blockstamp: &block,
             locktime: &0,
-            issuers: &vec![pubkey],
-            inputs: &vec![TransactionInputV10::T(
+            issuers: &[pubkey],
+            inputs: &[TransactionInputV10::T(
                 TxAmount(950),
                 TxBase(0),
                 unwrap!(
@@ -546,10 +546,10 @@ mod tests {
                 ),
                 OutputIndex(1),
             )],
-            unlocks: &vec![
+            unlocks: &[
                 TransactionInputUnlocksV10::from_str("0:SIG(0)").expect("fail to parse unlock !")
             ],
-            outputs: &vec![
+            outputs: &[
                 TransactionOutputV10::from_str(
                     "30:0:SIG(38MEAZN68Pz1DTvT3tqgxx4yQP6snJCQhPqEFxbDk4aE)",
                 )

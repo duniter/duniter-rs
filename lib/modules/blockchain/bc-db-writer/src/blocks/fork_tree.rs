@@ -130,10 +130,10 @@ mod test {
         );
 
         // Insert FORK_WINDOW_SIZE blocks
-        for i in 1..*DEFAULT_FORK_WINDOW_SIZE {
+        for blockstamp in blockstamps.iter().take(*DEFAULT_FORK_WINDOW_SIZE).skip(1) {
             assert_eq!(
                 Vec::<Blockstamp>::with_capacity(0),
-                insert_new_head_block(&mut fork_tree, blockstamps[i])?
+                insert_new_head_block(&mut fork_tree, *blockstamp)?
             );
         }
 
@@ -168,10 +168,10 @@ mod test {
         let mut fork_tree = ForkTree::default();
 
         // Insert 4 main blocks
-        for i in 0..4 {
+        for blockstamp in blockstamps.iter().take(4) {
             assert_eq!(
                 Vec::<Blockstamp>::with_capacity(0),
-                insert_new_head_block(&mut fork_tree, blockstamps[i])?
+                insert_new_head_block(&mut fork_tree, *blockstamp)?
             );
         }
 
@@ -195,7 +195,7 @@ mod test {
         // Check tree state
         assert_eq!(5, fork_tree.size());
         assert!(durs_common_tests_tools::collections::slice_same_elems(
-            &vec![
+            &[
                 (TreeNodeId(3), blockstamps[3]),
                 (TreeNodeId(4), fork_blockstamp)
             ],
@@ -215,7 +215,7 @@ mod test {
         // Check tree state
         assert_eq!(6, fork_tree.size());
         assert!(durs_common_tests_tools::collections::slice_same_elems(
-            &vec![
+            &[
                 (TreeNodeId(3), blockstamps[3]),
                 (TreeNodeId(5), fork_blockstamp_2)
             ],
@@ -223,17 +223,17 @@ mod test {
         ));
 
         // Insert FORK_WINDOW_SIZE blocks
-        for i in 4..*DEFAULT_FORK_WINDOW_SIZE {
+        for blockstamp in blockstamps.iter().take(*DEFAULT_FORK_WINDOW_SIZE).skip(4) {
             assert_eq!(
                 Vec::<Blockstamp>::with_capacity(0),
-                insert_new_head_block(&mut fork_tree, blockstamps[i])?
+                insert_new_head_block(&mut fork_tree, *blockstamp)?
             );
         }
 
         // Check tree state
         assert_eq!(*DEFAULT_FORK_WINDOW_SIZE + 2, fork_tree.size());
         assert!(durs_common_tests_tools::collections::slice_same_elems(
-            &vec![
+            &[
                 (
                     TreeNodeId(*DEFAULT_FORK_WINDOW_SIZE + 1),
                     blockstamps[*DEFAULT_FORK_WINDOW_SIZE - 1]

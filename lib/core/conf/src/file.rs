@@ -110,8 +110,7 @@ mod tests {
     #[test]
     fn load_conf_file_v1() -> Result<(), DursConfFileError> {
         let profile_path = PathBuf::from("./test/v1/");
-        save_old_conf(PathBuf::from(profile_path.clone()))
-            .map_err(DursConfFileError::WriteError)?;
+        save_old_conf(profile_path.clone()).map_err(DursConfFileError::WriteError)?;
         let conf = load_conf_from_file(profile_path.clone())?;
         assert_eq!(
             conf.modules()

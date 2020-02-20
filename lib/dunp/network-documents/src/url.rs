@@ -243,7 +243,7 @@ mod tests {
         println!("{:?}", addrs);*/
 
         assert!(durs_common_tests_tools::collections::slice_same_elems(
-            &vec![
+            &[
                 SocketAddr::V4(SocketAddrV4::new(ip4(), 80)),
                 SocketAddr::V6(SocketAddrV6::new(ip6(), 80, 0, 0)),
             ],
@@ -260,7 +260,7 @@ mod tests {
         let url = Url::Url(url::Url::parse("wss://g1.duniter.org")?);
 
         assert!(durs_common_tests_tools::collections::slice_same_elems(
-            &vec![
+            &[
                 SocketAddr::V6(SocketAddrV6::new(ip6(), 443, 0, 0)),
                 SocketAddr::V4(SocketAddrV4::new(ip4(), 443)),
             ],
@@ -287,7 +287,7 @@ mod tests {
         );
 
         assert!(durs_common_tests_tools::collections::slice_same_elems(
-            &vec![
+            &[
                 SocketAddr::V6(SocketAddrV6::new(ip6(), 20901, 0, 0)),
                 SocketAddr::V4(SocketAddrV4::new(ip4(), 20901)),
             ],
@@ -304,7 +304,7 @@ mod tests {
         let url = Url::Url(url::Url::parse("ws://g1.duniter.org:20901")?);
 
         assert!(durs_common_tests_tools::collections::slice_same_elems(
-            &vec![
+            &[
                 SocketAddr::V6(SocketAddrV6::new(ip6(), 20901, 0, 0)),
                 SocketAddr::V4(SocketAddrV4::new(ip4(), 20901)),
             ],

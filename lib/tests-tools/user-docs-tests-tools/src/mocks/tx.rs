@@ -32,18 +32,16 @@ pub fn first_g1_tx_doc() -> TransactionDocument {
         )
         .expect("Fail to parse blockstamp"),
         locktime: &0,
-        issuers: &vec![PubKey::Ed25519(
+        issuers: &[PubKey::Ed25519(
             ed25519::PublicKey::from_base58("2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ")
                 .expect("Fail to parse issuer !"),
         )],
-        inputs: &vec![TransactionInputV10::from_str(
+        inputs: &[TransactionInputV10::from_str(
             "1000:0:D:2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ:1",
         )
         .expect("Fail to parse inputs")],
-        unlocks: &vec![
-            TransactionInputUnlocksV10::from_str("0:SIG(0)").expect("Fail to parse unlocks")
-        ],
-        outputs: &vec![
+        unlocks: &[TransactionInputUnlocksV10::from_str("0:SIG(0)").expect("Fail to parse unlocks")],
+        outputs: &[
             TransactionOutputV10::from_str("1:0:SIG(Com8rJukCozHZyFao6AheSsfDQdPApxQRnz7QYFf64mm)")
                 .expect("Fail to parse outputs"),
             TransactionOutputV10::from_str(

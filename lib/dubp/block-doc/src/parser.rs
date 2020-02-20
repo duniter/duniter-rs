@@ -173,11 +173,11 @@ mod tests {
         assert_eq!(
             BlockDocument::V10(BlockDocumentV10 {
                 version: 10,
-                nonce: 10200000037108,
+                nonce: 10_200_000_037_108,
                 number: BlockNumber(7),
                 pow_min: 70,
-                time: 1488987677,
-                median_time: 1488987394,
+                time: 1_488_987_677,
+                median_time: 1_488_987_394,
                 members_count: 59,
                 monetary_mass: 59000,
                 unit_base: 0,
@@ -294,11 +294,11 @@ mod tests {
 
         let expected_block = BlockDocument::V10(BlockDocumentV10 {
                 version: 10,
-                nonce: 10100000033688,
+                nonce: 10_100_000_033_688,
                 number: BlockNumber(52),
                 pow_min: 74,
-                time: 1488990898,
-                median_time: 1488990117,
+                time: 1_488_990_898,
+                median_time: 1_488_990_117,
                 members_count: 59,
                 monetary_mass: 59000,
                 unit_base: 0,

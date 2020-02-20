@@ -481,6 +481,24 @@ mod tests {
         assert!(parse_json_string(json_string).is_err());
     }
 
+    fn test_parse_json_string_check_object_type(
+        json_value: &JSONValue<
+            std::hash::BuildHasherDefault<std::collections::hash_map::DefaultHasher>,
+        >,
+    ) {
+        assert!(json_value.is_object());
+        assert!(!json_value.is_array());
+        assert!(!json_value.is_str());
+        assert!(!json_value.is_number());
+        assert!(!json_value.is_bool());
+        assert!(!json_value.is_null());
+        assert_eq!(None, json_value.to_array());
+        assert_eq!(None, json_value.to_str());
+        assert_eq!(None, json_value.to_f64());
+        assert_eq!(None, json_value.to_u64());
+        assert_eq!(None, json_value.to_bool());
+    }
+
     #[test]
     fn test_parse_json_string() {
         let json_string = "{
@@ -502,17 +520,7 @@ mod tests {
             "{\"name\":\"toto\",\"legalAge\":true,\"ratio\":0.5,\"age\":25,\"friends\":[\"titi\",\"tata\"],\"car\":null}"
         );
 
-        assert!(json_value.is_object());
-        assert!(!json_value.is_array());
-        assert!(!json_value.is_str());
-        assert!(!json_value.is_number());
-        assert!(!json_value.is_bool());
-        assert!(!json_value.is_null());
-        assert_eq!(None, json_value.to_array());
-        assert_eq!(None, json_value.to_str());
-        assert_eq!(None, json_value.to_f64());
-        assert_eq!(None, json_value.to_u64());
-        assert_eq!(None, json_value.to_bool());
+        test_parse_json_string_check_object_type(&json_value);
 
         let json_object = json_value.to_object().expect("safe unwrap");
 

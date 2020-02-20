@@ -119,7 +119,7 @@ mod tests {
         let cert_doc = create_cert_doc();
         let response = WS2Pv2ReqRes {
             id: 29,
-            body: WS2Pv2ReqResBody::WotPool(vec![cert_doc.clone(), cert_doc.clone()], vec![]),
+            body: WS2Pv2ReqResBody::WotPool(vec![cert_doc, cert_doc], vec![]),
         };
         test_ws2p_message(WS2Pv2MessagePayload::ReqRes(response));
     }

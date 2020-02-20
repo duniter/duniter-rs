@@ -33,8 +33,8 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 
-static PORT: &'static u16 = &10899;
-static TIMEOUT_IN_MS: &'static u64 = &30_000;
+static PORT: &u16 = &10899;
+static TIMEOUT_IN_MS: &u64 = &30_000;
 
 // Empty mutex used to ensure that only one test runs at a time
 static MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
@@ -107,7 +107,7 @@ fn test_connection_negociation_denial() {
     let client_service_channel = mpsc::channel();
 
     // launch client controller
-    let server_node_clone = server_node.clone();
+    let server_node_clone = server_node;
     let client_service_sender = client_service_channel.0.clone();
     thread::spawn(move || {
         connect_to_ws2p_v2_endpoint(
@@ -307,7 +307,7 @@ fn get_controller(
     if let Ok(OrchestratorMsg::ControllerSender(controller_sender)) =
         orchestrator_receiver.recv_timeout(Duration::from_millis(*TIMEOUT_IN_MS))
     {
-        return controller_sender;
+        controller_sender
     } else {
         panic!("Not receive client controller sender");
     }

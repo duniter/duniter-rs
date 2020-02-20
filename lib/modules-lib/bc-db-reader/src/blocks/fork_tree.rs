@@ -559,6 +559,7 @@ mod tests {
         );
         assert_eq!(vec![(TreeNodeId(2), blockstamps[2])], tree.get_sheets());
         assert_eq!(None, tree.get_free_node_id());
+        #[allow(clippy::needless_range_loop)]
         for i in 0..=2 {
             assert_eq!(
                 Some(TreeNodeId(i)),
@@ -581,6 +582,7 @@ mod tests {
         let mut tree = ForkTree::default();
         let blockstamps: Vec<Blockstamp> = dubp_blocks_tests_tools::mocks::generate_blockstamps(10);
         tree.insert_new_node(blockstamps[0], None, true);
+        #[allow(clippy::needless_range_loop)]
         for i in 1..10 {
             tree.insert_new_node(blockstamps[i], Some(TreeNodeId(i - 1)), true);
         }
@@ -670,6 +672,7 @@ mod tests {
 
         // Fill tree with MAX_DEPTH nodes
         tree.insert_new_node(blockstamps[0], None, true);
+        #[allow(clippy::needless_range_loop)]
         for i in 1..*DEFAULT_FORK_WINDOW_SIZE {
             tree.insert_new_node(blockstamps[i], Some(TreeNodeId(i - 1)), true);
         }
@@ -707,6 +710,7 @@ mod tests {
 
         // Fill tree with MAX_DEPTH nodes
         tree.insert_new_node(blockstamps[0], None, true);
+        #[allow(clippy::needless_range_loop)]
         for i in 1..*DEFAULT_FORK_WINDOW_SIZE {
             tree.insert_new_node(blockstamps[i], Some(TreeNodeId(i - 1)), true);
         }

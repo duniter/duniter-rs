@@ -242,15 +242,15 @@ mod tests {
             currency: "g1",
             blockstamp: &block,
             locktime: &0,
-            issuers: &vec![pubkey],
-            inputs: &vec![TransactionInputV10::from_str(
+            issuers: &[pubkey],
+            inputs: &[TransactionInputV10::from_str(
                 "1000:0:D:2ny7YAdmzReQxAayyJZsyVYwYhVyax2thKcGknmQy5nQ:1",
             )
             .expect("fail to parse input !")],
-            unlocks: &vec![
+            unlocks: &[
                 TransactionInputUnlocksV10::from_str("0:SIG(0)").expect("fail to parse unlock !")
             ],
-            outputs: &vec![
+            outputs: &[
                 TransactionOutputV10::from_str(
                     "1:0:SIG(Com8rJukCozHZyFao6AheSsfDQdPApxQRnz7QYFf64mm)",
                 )
@@ -284,7 +284,7 @@ mod tests {
                 &mut w,
                 &SourceAmount(TxAmount(1000), TxBase(0)),
                 BlockNumber(1),
-                &vec![tx_doc.issuers()[0], tortue_pubkey],
+                &[tx_doc.issuers()[0], tortue_pubkey],
                 false,
             )?;
             Ok(WriteResp::from(w))

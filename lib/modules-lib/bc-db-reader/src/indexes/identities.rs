@@ -328,7 +328,7 @@ mod test {
             by_pubkey: None,
         };
         assert!(slice_same_elems(
-            &vec![mock_identities[2].clone(), mock_identities[3].clone()],
+            &[mock_identities[2].clone(), mock_identities[3].clone()],
             &db.r(|db_r| get_identities(db_r, filters, BlockNumber(5)))?
         ));
 

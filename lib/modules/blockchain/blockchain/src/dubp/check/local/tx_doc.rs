@@ -137,10 +137,10 @@ mod tests {
 
     fn tx_builder<'a>(
         blockstamp: &'a Blockstamp,
-        issuers: &'a Vec<PubKey>,
-        inputs: &'a Vec<TransactionInputV10>,
-        unlocks: &'a Vec<TransactionInputUnlocksV10>,
-        outputs: &'a Vec<TransactionOutputV10>,
+        issuers: &'a [PubKey],
+        inputs: &'a [TransactionInputV10],
+        unlocks: &'a [TransactionInputUnlocksV10],
+        outputs: &'a [TransactionOutputV10],
     ) -> TransactionDocumentV10Builder<'a> {
         TransactionDocumentV10Builder {
             currency: "duniter_unit_test_currency",

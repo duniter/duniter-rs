@@ -668,9 +668,7 @@ IdtyTimestamp: 97401-0000003821911909F98519CC773D2D3E5CFE3D5DBB39F4F4FF33B96B4D4
 IdtySignature: QncUVXxZ2NfARjdJOn6luILvDuG1NuK9qSoaU4CST2Ij8z7oeVtEgryHl+EXOjSe6XniALsCT0gU8wtadcA/Cw==
 CertTimestamp: 106669-000003682E6FE38C44433DCE92E8B2A26C69B6D7867A2BAED231E788DDEF4251
 UmseG2XKNwKcY8RFi6gUCT91udGnnNmSh7se10J1jeRVlwf+O2Tyb2Cccot9Dt7BO4+Kx2P6vFJB3oVGGHMxBA==").expect("Fail to parse cert1");
-        let cert1 = match cert1 {
-            CertificationDocument::V10(cert_v10) => cert_v10,
-        };
+        let CertificationDocument::V10(cert1) = cert1;
 
         let TransactionDocument::V10(tx1) = TransactionDocumentParser::parse("Version: 10
 Type: Transaction
@@ -710,7 +708,7 @@ a9PHPuSfw7jW8FRQHXFsGi/bnLjbtDnTYvEVgUC9u0WlR7GVofa+Xb+l5iy6NwuEXiwvueAkf08wPVY8
             number: BlockNumber(107_984),
             pow_min: 88,
             time: 1_522_685_861,
-            median_time: 1522683184,
+            median_time: 1_522_683_184,
             members_count: 896,
             monetary_mass: 140_469_765,
             unit_base: 0,
@@ -819,9 +817,7 @@ CertTS: 74077-0000022816648B2F7801E059F67CCD0C023FF0ED84459D52C70494D74DDCC6F6
 gvaZ1QnJf8FjjRDJ0cYusgpBgQ8r0NqEz39BooH6DtIrgX+WTeXuLSnjZDl35VCBjokvyjry+v0OkTT8FKpABA==",
         )
         .expect("Fail to parse ms1");
-        let ms1 = match ms1 {
-            MembershipDocument::V10(ms_v10) => ms_v10,
-        };
+        let MembershipDocument::V10(ms1) = ms1;
 
         let TransactionDocument::V10(tx1) = TransactionDocumentParser::parse(
             "Version: 10

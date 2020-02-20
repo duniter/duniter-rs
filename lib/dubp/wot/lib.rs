@@ -58,6 +58,7 @@ mod tests {
     ///
     /// Clone and file tests are not included in this generic test and should be done in
     /// the implementation test.
+    #[allow(clippy::cognitive_complexity)]
     pub fn generic_wot_test<W>()
     where
         W: WebOfTrust + Sync,
@@ -122,6 +123,7 @@ mod tests {
         wot.rem_link(WotId(0), WotId(2));
         wot.rem_link(WotId(0), WotId(3));
         wot.rem_link(WotId(0), WotId(4));
+
 
         // false when not linked + test out of bounds
         assert_eq!(wot.has_link(WotId(0), WotId(6)), HasLinkResult::Link(false));

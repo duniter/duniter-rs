@@ -215,13 +215,13 @@ mod tests {
 
     use unwrap::unwrap;
 
-    static BASE58_SEED_INIT: &'static str = "4iXXx5GgRkZ85BVPwn8vFXvztdXAAa5yB573ErcAnngA";
-    static BASE58_PUB_INIT: &'static str = "otDgSpKvKAPPmE1MUYxc3UQ3RtEnKYz4iGD3BmwKPzM";
+    static BASE58_SEED_INIT: &str = "4iXXx5GgRkZ85BVPwn8vFXvztdXAAa5yB573ErcAnngA";
+    static BASE58_PUB_INIT: &str = "otDgSpKvKAPPmE1MUYxc3UQ3RtEnKYz4iGD3BmwKPzM";
 
-    static BASE58_SEED_TEST: &'static str = "ELjDWGPyCGMuhr7R7H2aip6UJA9qLRepmK77pcD41UqQ";
-    static BASE58_PUB_TEST: &'static str = "6sewkaNWyEMqkEa2PVRWrDb3hxWtjPdUSB1zXVCqhdWV";
-    static SALT_TEST: &'static str = "testsalt";
-    static PASSWORD_TEST: &'static str = "testpassword";
+    static BASE58_SEED_TEST: &str = "ELjDWGPyCGMuhr7R7H2aip6UJA9qLRepmK77pcD41UqQ";
+    static BASE58_PUB_TEST: &str = "6sewkaNWyEMqkEa2PVRWrDb3hxWtjPdUSB1zXVCqhdWV";
+    static SALT_TEST: &str = "testsalt";
+    static PASSWORD_TEST: &str = "testpassword";
 
     fn setup_user_password_input() -> MockUserPasswordInput {
         let mut stdin_mock = MockUserPasswordInput::new();
@@ -299,7 +299,6 @@ mod tests {
         assert_eq!(
             result_key_pairs
                 .member_keypair
-                .clone()
                 .expect("conf: member_keypair must have a value")
                 .seed()
                 .clone(),
@@ -364,7 +363,6 @@ mod tests {
         assert_eq!(
             key_pairs
                 .member_keypair
-                .clone()
                 .expect("conf: keypair must have a value")
                 .seed()
                 .clone(),
