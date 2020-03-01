@@ -13,7 +13,7 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-dup-crypto = "0.8.0"
+dup-crypto = "0.8.1"
 durs-common-tools = { path = "../../tools/common-tools", version = "0.2.0" }
 failure = "0.1.5"
 json-pest-parser = { path = "../../tools/json-pest-parser", version = "0.2.0" }

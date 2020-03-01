@@ -15,7 +15,7 @@ dubp-common-doc = { path = "../../../dubp/common-doc"} #, version = "0.1.0" }
 dubp-currency-params = { path = "../../../dubp/currency-params" }
 dubp-indexes = { path = "../../../dubp/indexes"} #, version = "0.1.0" }
 dubp-user-docs= { path = "../../../dubp/user-docs" }
-dup-crypto = "0.8.0"
+dup-crypto = "0.8.1"
 durs-bc-db-reader = { path = "../../../modules-lib/bc-db-reader" }
 durs-common-tools = { path = "../../../tools/common-tools" }
 durs-conf = { path = "../../../core/conf" }
