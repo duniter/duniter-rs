@@ -396,7 +396,7 @@ dependencies = [
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dup-crypto-tests-tools 0.1.0",
  "durs-bc-db-reader 0.3.0-dev",
  "durs-bc-db-writer 0.3.0-dev",
@@ -715,7 +715,7 @@ dependencies = [
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
  "dubp-user-docs-tests-tools 0.1.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-common-tools 0.2.0",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "json-pest-parser 0.2.0",
@@ -738,7 +738,7 @@ dependencies = [
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
  "dubp-user-docs-tests-tools 0.1.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dup-crypto-tests-tools 0.1.0",
  "durs-common-tools 0.2.0",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -749,7 +749,7 @@ dependencies = [
 name = "dubp-common-doc"
 version = "0.1.0"
 dependencies = [
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-common-tools 0.2.0",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "json-pest-parser 0.2.0",
@@ -781,7 +781,7 @@ dependencies = [
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-common-tools 0.2.0",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -796,7 +796,7 @@ name = "dubp-user-docs"
 version = "0.14.0"
 dependencies = [
  "dubp-common-doc 0.1.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-common-tools 0.2.0",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "json-pest-parser 0.2.0",
@@ -818,7 +818,7 @@ dependencies = [
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dup-crypto-tests-tools 0.1.0",
 ]
 
@@ -839,7 +839,7 @@ dependencies = [
 
 [[package]]
 name = "dup-crypto"
-version = "0.8.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "base64 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -857,7 +857,7 @@ dependencies = [
 name = "dup-crypto-tests-tools"
 version = "0.1.0"
 dependencies = [
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -870,7 +870,7 @@ dependencies = [
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
  "dubp-user-docs-tests-tools 0.1.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dup-crypto-tests-tools 0.1.0",
  "durs-bc-db-reader 0.3.0-dev",
  "durs-bc-db-writer 0.3.0-dev",
@@ -910,7 +910,7 @@ dependencies = [
  "dubp-indexes 0.1.0",
  "dubp-user-docs 0.14.0",
  "dubp-user-docs-tests-tools 0.1.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dup-crypto-tests-tools 0.1.0",
  "durs-common-tests-tools 0.1.0",
  "durs-common-tools 0.2.0",
@@ -937,7 +937,7 @@ dependencies = [
  "dubp-indexes 0.1.0",
  "dubp-user-docs 0.14.0",
  "dubp-user-docs-tests-tools 0.1.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dup-crypto-tests-tools 0.1.0",
  "durs-bc-db-reader 0.3.0-dev",
  "durs-common-tests-tools 0.1.0",
@@ -978,7 +978,7 @@ dependencies = [
  "dirs 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-common-tools 0.2.0",
  "durs-message 0.3.0-dev",
  "durs-module 0.3.0-dev",
@@ -1002,7 +1002,7 @@ dependencies = [
  "chrono 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dubp-currency-params 0.2.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-bc 0.3.0-dev",
  "durs-bc-db-reader 0.3.0-dev",
  "durs-common-tools 0.2.0",
@@ -1050,7 +1050,7 @@ dependencies = [
  "dubp-blocks-tests-tools 0.1.0",
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dup-crypto-tests-tools 0.1.0",
  "durs-bc-db-reader 0.3.0-dev",
  "durs-common-tools 0.2.0",
@@ -1078,7 +1078,7 @@ dependencies = [
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-module 0.3.0-dev",
  "durs-network 0.3.0-dev",
  "durs-network-documents 0.4.0",
@@ -1093,7 +1093,7 @@ version = "0.3.0-dev"
 dependencies = [
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-common-tools 0.2.0",
  "durs-network-documents 0.4.0",
  "envy 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1112,7 +1112,7 @@ dependencies = [
  "dubp-block-doc 0.1.0",
  "dubp-common-doc 0.1.0",
  "dubp-user-docs 0.14.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-common-tools 0.2.0",
  "durs-module 0.3.0-dev",
  "durs-network-documents 0.4.0",
@@ -1131,7 +1131,7 @@ dependencies = [
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-common-tests-tools 0.1.0",
  "durs-common-tools 0.2.0",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1153,7 +1153,7 @@ version = "0.1.0"
 dependencies = [
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-common-tools 0.2.0",
  "durs-conf 0.3.0-dev",
  "durs-message 0.3.0-dev",
@@ -1173,7 +1173,7 @@ version = "0.3.0-dev"
 dependencies = [
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-common-tools 0.2.0",
  "durs-conf 0.3.0-dev",
  "durs-message 0.3.0-dev",
@@ -1194,7 +1194,7 @@ name = "durs-wot"
 version = "0.8.0-a0.9"
 dependencies = [
  "bincode 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-common-tools 0.2.0",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1209,7 +1209,7 @@ dependencies = [
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-common-tests-tools 0.1.0",
  "durs-common-tools 0.2.0",
  "durs-conf 0.3.0-dev",
@@ -1241,7 +1241,7 @@ dependencies = [
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-common-tools 0.2.0",
  "durs-network-documents 0.4.0",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1260,7 +1260,7 @@ dependencies = [
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-common-tools 0.2.0",
  "durs-module 0.3.0-dev",
  "durs-network-documents 0.4.0",
@@ -1282,7 +1282,7 @@ dependencies = [
  "dubp-common-doc 0.1.0",
  "dubp-currency-params 0.2.0",
  "dubp-user-docs 0.14.0",
- "dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "durs-common-tools 0.2.0",
  "durs-conf 0.3.0-dev",
  "durs-message 0.3.0-dev",
@@ -3202,7 +3202,7 @@ dependencies = [
 "checksum dirs-sys 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "afa0b23de8fd801745c471deffa6e12d248f962c9fd4b4c33787b055599bde7b"
 "checksum downcast 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4bb454f0228b18c7f4c3b0ebbee346ed9c52e7443b0999cd543ff3571205701d"
 "checksum dtoa 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)" = "ea57b42383d091c85abcc2706240b94ab2a8fa1fc81c10ff23c4de06e2a90b5e"
-"checksum dup-crypto 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)" = "62b6e534560bf82f97cbe1130b30e10606cd5f14c7d552d9976468a7ce179ce0"
+"checksum dup-crypto 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)" = "542de3d135c11f4be83469441c69a9f77c2543377c445f229a0d808c58a4d0dd"
 "checksum either 1.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "bb1f6b1ce1c140482ea30ddd3335fc0024ac7ee112895426e0a629a6c20adfe3"
 "checksum encoding_rs 0.8.22 (registry+https://github.com/rust-lang/crates.io-index)" = "cd8d03faa7fe0c1431609dfad7bbe827af30f82e1e2ae6f7ee4fca6bd764bc28"
 "checksum enum-as-inner 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "900a6c7fbe523f4c2884eaf26b57b81bb69b6810a01a236390a7ac021d09492e"

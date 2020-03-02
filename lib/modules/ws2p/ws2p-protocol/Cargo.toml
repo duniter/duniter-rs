@@ -14,7 +14,7 @@ dubp-common-doc = { path = "../../../dubp/common-doc"} #, version = "0.1.0" }
 dubp-currency-params = { path = "../../../dubp/currency-params" }
 dubp-user-docs= { path = "../../../dubp/user-docs" }
 durs-common-tools = { path = "../../../tools/common-tools" }
-dup-crypto = "0.8.1"
+dup-crypto = "0.8.2"
 durs-module = { path = "../../../core/module" }
 durs-network-documents = { path = "../../../dunp/network-documents" }
 durs-ws2p-messages = { path = "../ws2p-messages" }

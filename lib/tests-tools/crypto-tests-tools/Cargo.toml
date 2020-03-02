@@ -13,6 +13,6 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies]
-dup-crypto = "0.8.1"
+dup-crypto = "0.8.2"
 
 [dev-dependencies]
