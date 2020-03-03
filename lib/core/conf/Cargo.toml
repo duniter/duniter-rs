@@ -11,7 +11,7 @@ path = "src/lib.rs"
 
 [dependencies]
 dirs = "2.0.2"
-dup-crypto = "0.8.2"
+dup-crypto = "0.8.3"
 dubp-currency-params = { path = "../../dubp/currency-params" }
 dubp-user-docs= { path = "../../dubp/user-docs" }
 durs-message =  { path = "../message" }

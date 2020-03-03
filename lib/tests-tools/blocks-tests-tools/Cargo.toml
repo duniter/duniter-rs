@@ -17,7 +17,7 @@ dubp-block-doc = { path = "../../dubp/block-doc"} #, version = "0.1.0" }
 dubp-common-doc = { path = "../../dubp/common-doc"} #, version = "0.1.0" }
 dubp-currency-params = { path = "../../dubp/currency-params" }
 dubp-user-docs = { path = "../../dubp/user-docs" }
-dup-crypto = "0.8.2"
+dup-crypto = "0.8.3"
 dup-crypto-tests-tools = { path = "../crypto-tests-tools" }
 dubp-user-docs-tests-tools = { path = "../user-docs-tests-tools" }
 durs-common-tools = { path = "../../tools/common-tools" }
