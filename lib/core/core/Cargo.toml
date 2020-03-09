@@ -17,7 +17,7 @@ durs-common-tools = { path = "../../tools/common-tools" }
 durs-bc-db-reader = { path = "../../modules-lib/bc-db-reader" }
 durs-conf = { path = "../conf" }
 durs-dbs-tools = { path = "../../tools/dbs-tools" }
-dup-crypto = "0.8.3"
+dup-crypto = "0.8.4"
 dubp-currency-params = { path = "../../dubp/currency-params" }
 durs-message =  { path = "../message" }
 durs-module = { path = "../module" }
