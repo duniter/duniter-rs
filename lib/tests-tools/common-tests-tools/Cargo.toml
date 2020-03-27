@@ -14,7 +14,7 @@ path = "src/lib.rs"
 
 [dependencies]
 chrono = "0.4"
-fern = { version = "0.5.8", features = ["colored"] }
+fern = { version = "0.6.0", features = ["colored"] }
 log = "0.4.*"
 
 [dev-dependencies]
